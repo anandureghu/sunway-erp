@@ -5,7 +5,7 @@ import AppLayout from "./components/layout/app-layout";
 import LoginPage from "./pages/auth/login-page";
 import RegisterPage from "./pages/auth/register-page";
 import NotFound from "./pages/not-found";
-import DashboardPage from "./pages/Dashboard";
+import DashboardPage from "./pages/dashboard";
 
 function App() {
   return (
