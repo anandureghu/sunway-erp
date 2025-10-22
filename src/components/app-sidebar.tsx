@@ -103,7 +103,7 @@ export function AppSidebar() {
   return (
     <Sidebar className="relative">
       {/* Header */}
-      <SidebarHeader className="mb-3 bg-background border-b">
+      <SidebarHeader className="bg-background border-b">
         <div className="flex items-center gap-3 px-3">
           <img
             src="/assets/logo-dark.svg"
@@ -121,7 +121,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       {/* Content */}
-      <SidebarContent className="px-4 bg-background">
+      <SidebarContent className="px-4 bg-background pt-3">
         {/* Dashboard */}
         <SidebarMenu>
           <SidebarMenuItem>
