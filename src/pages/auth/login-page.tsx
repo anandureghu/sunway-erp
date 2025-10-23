@@ -80,12 +80,12 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-2"
             onClick={() => navigate("/")}
           >
-            <img
+            {/* <img
               src="https://img.icons8.com/?size=512&id=17949&format=png"
               alt="Google"
               className="w-5 h-5"
-            />
-            Continue with Google
+            /> */}
+            Skip Auth & Go to Dashboard
           </Button>
         </div>
       </CardContent>
