@@ -7,6 +7,7 @@ import RegisterPage from "./pages/auth/register-page";
 import NotFound from "./pages/not-found";
 import DashboardPage from "./pages/dashboard";
 import AccountsReceivablePage from "./pages/finance/accounts-receivable-page";
+import ManageStocks from "./pages/inventory/manage-stocks";
 
 function App() {
   return (
@@ -19,6 +20,11 @@ function App() {
           {/* 💰 Finance Module */}
           <Route path="finance">
             <Route path="receivable" element={<AccountsReceivablePage />} />
+          </Route>
+
+          {/* 🛒 Inventory Module */}
+          <Route path="inventory">
+            <Route path="stocks" element={<ManageStocks />} />
           </Route>
         </Route>
 
