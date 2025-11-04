@@ -1,0 +1,111 @@
+﻿import type { Employee } from "../types/hr";
+
+export const EMPLOYEES: Employee[] = [
+  { 
+    id: "E-1001", 
+    employeeNo: "1001", 
+    firstName: "Aisha", 
+    lastName: "Rahman", 
+    status: "Active",   
+    department: "Information Technology", 
+    designation: "Senior Software Engineer",
+    dateOfBirth: "1990-05-15",
+    gender: "Female",
+    joinDate: "2019-03-01",
+    nationality: "Malaysian",
+    nationalId: "900515-14-5566",
+    maritalStatus: "Single"
+  },
+  { 
+    id: "E-1002", 
+    employeeNo: "1002", 
+    firstName: "Vivek", 
+    lastName: "Menon",  
+    status: "Inactive", 
+    department: "Human Resources",  
+    designation: "HR Manager",
+    dateOfBirth: "1985-08-22",
+    gender: "Male",
+    joinDate: "2018-01-15",
+    nationality: "Malaysian",
+    nationalId: "850822-08-1234",
+    maritalStatus: "Married"
+  },
+  { 
+    id: "E-1003", 
+    employeeNo: "1003", 
+    firstName: "Sara",  
+    lastName: "Khan",   
+    status: "On Leave", 
+    department: "Operations", 
+    designation: "Operations Analyst",
+    dateOfBirth: "1992-11-30",
+    gender: "Female",
+    joinDate: "2020-06-01",
+    nationality: "Malaysian",
+    nationalId: "921130-10-7890",
+    maritalStatus: "Single"
+  },
+  {
+    id: "E-1004",
+    employeeNo: "1004",
+    firstName: "Wei",
+    lastName: "Chen",
+    status: "Active",
+    department: "Finance",
+    designation: "Financial Controller",
+    dateOfBirth: "1988-02-14",
+    gender: "Male",
+    joinDate: "2017-09-15",
+    nationality: "Malaysian",
+    nationalId: "880214-12-4321",
+    maritalStatus: "Married"
+  },
+  {
+    id: "E-1005",
+    employeeNo: "1005",
+    firstName: "Raj",
+    lastName: "Patel",
+    status: "Active",
+    department: "Sales",
+    designation: "Sales Director",
+    dateOfBirth: "1982-07-08",
+    gender: "Male",
+    joinDate: "2016-04-01",
+    nationality: "Malaysian",
+    nationalId: "820708-06-5432",
+    maritalStatus: "Married"
+  }
+  ,
+  // Duplicate entries (intentional) to reproduce previous overview
+  { 
+    id: "E-1006", 
+    employeeNo: "1001", 
+    firstName: "Aisha", 
+    lastName: "Rahman", 
+    status: "Active",   
+    department: "Information Technology", 
+    designation: "Senior Software Engineer",
+    dateOfBirth: "1990-05-15",
+    gender: "Female",
+    joinDate: "2019-03-01",
+    nationality: "Malaysian",
+    nationalId: "900515-14-5566",
+    maritalStatus: "Single"
+  },
+  { 
+    id: "E-1007", 
+    employeeNo: "1003", 
+    firstName: "Sara", 
+    lastName: "Khan", 
+    status: "On Leave", 
+    department: "Operations", 
+    designation: "Operations Analyst",
+    dateOfBirth: "1992-11-30",
+    gender: "Female",
+    joinDate: "2020-06-01",
+    nationality: "Malaysian",
+    nationalId: "921130-10-7890",
+    maritalStatus: "Single"
+  }
+];
