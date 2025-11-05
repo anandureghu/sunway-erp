@@ -1,14 +1,15 @@
 import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Button } from "./ui/button";
-import { Separator } from "./ui/separator";
+
+// ✅ Shadcn UI components live in src/components/ui
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const Navbar = () => {
   const navigate = useNavigate();
 
   const logout = () => {
-    // Perform logout logic here (e.g., clear auth tokens, user data, etc.)
-    // After logout, navigate to the login page
+    // clear auth, etc…
     navigate("/auth/login");
   };
 
@@ -21,15 +22,14 @@ const Navbar = () => {
           </h1>
           <p className="text-sm">john.doe@example.com</p>
         </div>
+
         <Avatar>
-          <AvatarImage
-            src="https://github.com/shadcn.png"
-            width={60}
-            height={60}
-          />
-          <AvatarFallback>CN</AvatarFallback>
+          <AvatarImage src="https://github.com/shadcn.png" width={60} height={60} />
+          <AvatarFallback>JD</AvatarFallback>
         </Avatar>
+
         <Separator orientation="vertical" className="h-full w-1" />
+
         <Button variant="ghost" onClick={logout}>
           Logout
         </Button>
