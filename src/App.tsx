@@ -56,6 +56,7 @@ import LeavesHistory from "@/modules/hr/leaves/tabs/LeavesHistory";
 import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
 import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
+import ManageStocks from "./pages/inventory/manage-stocks";
 
 export default function App() {
   return (
@@ -69,13 +70,21 @@ export default function App() {
           <Route path="receivable" element={<AccountsReceivablePage />} />
         </Route>
 
+        {/* Finance */}
+        <Route path="inventory">
+          <Route path="stocks" element={<ManageStocks />} />
+        </Route>
+
         {/* HR */}
         <Route path="hr">
           {/* default for /hr */}
           <Route index element={<Navigate to="employees" replace />} />
 
           {/* alias /hr/employee -> /hr/employees */}
-          <Route path="employee" element={<Navigate to="/hr/employees" replace />} />
+          <Route
+            path="employee"
+            element={<Navigate to="/hr/employees" replace />}
+          />
 
           {/* employees list */}
           <Route path="employees" element={<EmployeesPage />} />
@@ -93,8 +102,14 @@ export default function App() {
             {/* Current Job */}
             <Route path="current-job" element={<CurrentJobShell />}>
               <Route index element={<CurrentJobForm />} />
-              <Route path="previous-experiences" element={<PreviousExperiencesForm />} />
-              <Route path="education" element={<EducationQualificationsForm />} />
+              <Route
+                path="previous-experiences"
+                element={<PreviousExperiencesForm />}
+              />
+              <Route
+                path="education"
+                element={<EducationQualificationsForm />}
+              />
             </Route>
 
             {/* Salary */}
@@ -107,13 +122,19 @@ export default function App() {
             {/* Immigration */}
             <Route path="immigration" element={<ImmigrationShell />}>
               <Route index element={<PassportForm />} />
-              <Route path="residence-permit" element={<ResidencePermitForm />} />
+              <Route
+                path="residence-permit"
+                element={<ResidencePermitForm />}
+              />
             </Route>
 
             {/* Loans */}
             <Route path="loans" element={<LoansShell />}>
               <Route index element={<LoansForm />} />
-              <Route path="company-properties" element={<CompanyPropertiesForm />} />
+              <Route
+                path="company-properties"
+                element={<CompanyPropertiesForm />}
+              />
             </Route>
 
             {/* Dependents */}
@@ -132,7 +153,6 @@ export default function App() {
               <Route index element={<PerformanceForm />} />
               <Route path="form" element={<AppraisalForm />} />
             </Route>
-
           </Route>
         </Route>
       </Route>
