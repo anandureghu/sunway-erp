@@ -57,6 +57,23 @@ import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
 import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
 import ManageStocks from "./pages/inventory/manage-stocks";
+import InventoryReportsPage from "./pages/inventory/inventory-reports-page";
+
+/* Sales */
+import SalesLandingPage from "./pages/sales/sales-landing-page";
+import SalesOrdersPage from "./pages/sales/sales-orders-page";
+import CustomersPage from "./pages/sales/customers-page";
+import PicklistDispatchPage from "./pages/sales/picklist-dispatch-page";
+import DeliveryTrackingPage from "./pages/sales/delivery-tracking-page";
+import InvoicesPage from "./pages/sales/invoices-page";
+
+/* Purchase */
+import PurchaseLandingPage from "./pages/purchase/purchase-landing-page";
+import PurchaseOrdersPage from "./pages/purchase/purchase-orders-page";
+import SuppliersPage from "./pages/purchase/suppliers-page";
+import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
+import ReceivingPage from "./pages/purchase/receiving-page";
+import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
 
 export default function App() {
   return (
@@ -70,9 +87,24 @@ export default function App() {
           <Route path="receivable" element={<AccountsReceivablePage />} />
         </Route>
 
-        {/* Finance */}
+        {/* Inventory */}
         <Route path="inventory">
           <Route path="stocks" element={<ManageStocks />} />
+          <Route path="reports" element={<InventoryReportsPage />} />
+          <Route path="sales" element={<SalesLandingPage />} />
+          <Route path="sales/orders" element={<SalesOrdersPage />} />
+          <Route path="sales/orders/new" element={<SalesOrdersPage />} />
+          <Route path="sales/customers" element={<CustomersPage />} />
+          <Route path="sales/picklist" element={<PicklistDispatchPage />} />
+          <Route path="sales/tracking" element={<DeliveryTrackingPage />} />
+          <Route path="sales/invoices" element={<InvoicesPage />} />
+          <Route path="purchase" element={<PurchaseLandingPage />} />
+          <Route path="purchase/orders" element={<PurchaseOrdersPage />} />
+          <Route path="purchase/orders/new" element={<PurchaseOrdersPage />} />
+          <Route path="purchase/suppliers" element={<SuppliersPage />} />
+          <Route path="purchase/invoices" element={<PurchaseInvoicesPage />} />
+          <Route path="purchase/receiving" element={<ReceivingPage />} />
+          <Route path="purchase/requisitions" element={<PurchaseRequisitionsPage />} />
         </Route>
 
         {/* HR */}

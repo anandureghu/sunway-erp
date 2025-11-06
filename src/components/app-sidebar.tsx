@@ -70,7 +70,7 @@ export function AppSidebar() {
       items: [
         { title: "Inventory (Stocks)", url: "/inventory/stocks", icon: Package },
         { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-        { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
+        { title: "Purchase & Suppliers", url: "/inventory/purchase", icon: Receipt },
         { title: "Inventory Report", url: "/inventory/reports", icon: FileText },
       ],
     },
