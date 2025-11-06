@@ -1,17 +1,11 @@
-import { useNavigate } from "react-router-dom";
-
 // ✅ Shadcn UI components live in src/components/ui
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
-  const navigate = useNavigate();
-
-  const logout = () => {
-    // clear auth, etc…
-    navigate("/auth/login");
-  };
+  const { logout } = useAuth();
 
   return (
     <div className="w-full bg-background border-b-1 border-b-foreground/10 h-14 flex items-center justify-end px-4 fixed top-0 z-10 max-w-[calc(100vw-16rem)]">
@@ -24,7 +18,11 @@ const Navbar = () => {
         </div>
 
         <Avatar>
-          <AvatarImage src="https://github.com/shadcn.png" width={60} height={60} />
+          <AvatarImage
+            src="https://github.com/shadcn.png"
+            width={60}
+            height={60}
+          />
           <AvatarFallback>JD</AvatarFallback>
         </Avatar>
 

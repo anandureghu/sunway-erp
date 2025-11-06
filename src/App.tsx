@@ -12,7 +12,6 @@ import AppLayout from "./components/layout/app-layout";
 
 /* Pages */
 import LoginPage from "./pages/auth/login-page";
-import RegisterPage from "./pages/auth/register-page";
 import NotFound from "./pages/not-found";
 import DashboardPage from "./pages/dashboard";
 import AccountsReceivablePage from "./pages/finance/accounts-receivable-page";
@@ -57,12 +56,20 @@ import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
 import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
 import ManageStocks from "./pages/inventory/manage-stocks";
+import { PrivateRoute } from "./components/protected-route";
 
 export default function App() {
   return (
     <Routes>
       {/* App frame */}
-      <Route path="/" element={<AppLayout />}>
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <AppLayout />
+          </PrivateRoute>
+        }
+      >
         <Route index element={<DashboardPage />} />
 
         {/* Finance */}
@@ -160,7 +167,6 @@ export default function App() {
       {/* Auth */}
       <Route path="/auth" element={<AuthLayout />}>
         <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
       </Route>
 
       {/* 404 */}
