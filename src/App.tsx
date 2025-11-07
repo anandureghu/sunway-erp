@@ -57,8 +57,13 @@ import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
 import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
 import ManageStocks from "./pages/inventory/manage-stocks";
 import { PrivateRoute } from "./components/protected-route";
+import { useAppSelector } from "./store/store";
+import CompanyPage from "./pages/admin/hr/company/company-page";
+import Payroll from "./pages/finance/payroll";
+import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
 
 export default function App() {
+  const adminView = useAppSelector((s) => s.ui.adminView);
   return (
     <Routes>
       {/* App frame */}
@@ -70,11 +75,21 @@ export default function App() {
           </PrivateRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
+        <Route
+          index
+          element={adminView ? <DashboardPage /> : <DashboardPage />}
+        />
 
         {/* Finance */}
         <Route path="finance">
           <Route path="receivable" element={<AccountsReceivablePage />} />
+          <Route path="payroll" element={<Payroll />} />
+        </Route>
+
+        {/* Admin */}
+        <Route path="admin">
+          <Route path="company" element={<CompanyPage />} />
+          <Route path="department" element={<DepartmentListPage />} />
         </Route>
 
         {/* Finance */}
