@@ -1,83 +1,57 @@
+import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
-import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
 import { dummyInvoices } from "@/lib/data";
 import type { Invoice } from "@/types/sales";
-import { useEffect, useState } from "react";
+import { AppTab } from "@/components/app-tab";
 
-async function getData(): Promise<Invoice[]> {
-  // Fetch data from your API here.
+interface AccountsReceivableProps {
+  invoices: Invoice[];
+  payments: { id: string; amount: number }[];
+}
+
+async function getInvoices(): Promise<Invoice[]> {
   return dummyInvoices;
 }
 
+async function getPayments(): Promise<{ id: string; amount: number }[]> {
+  return [{ id: "1", amount: 5000 }];
+}
+
 const AccountsReceivablePage = () => {
-  const [data, setData] = useState<Invoice[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [payments, setPayments] = useState<{ id: string; amount: number }[]>(
+    []
+  );
 
   useEffect(() => {
-    // Fetch data when component mounts
-    getData().then((data) => {
-      setData(data);
+    Promise.all([getInvoices(), getPayments()]).then(([inv, pay]) => {
+      setInvoices(inv);
+      setPayments(pay);
     });
   }, []);
 
+  const tabsList = [
+    {
+      value: "invoices",
+      label: "Sales Invoices",
+      element: ({ invoices }: AccountsReceivableProps) => (
+        <DataTable columns={SALES_INVOICE_COLUMNS} data={invoices} />
+      ),
+    },
+    { value: "payments", label: "Customer Payments" },
+    { value: "agreements", label: "Agreements" },
+    { value: "credits", label: "Customer Credit Accounts" },
+    { value: "charges", label: "Other Finance Charges" },
+  ];
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Accounts Receivable</h1>
-
-      <Card>
-        <CardContent>
-          <Tabs defaultValue="invoices" className="w-full max-w-3xl">
-            <TabsList>
-              <StyledTabsTrigger value="invoices">
-                Sales Invoices
-              </StyledTabsTrigger>
-              <StyledTabsTrigger value="payments">
-                Customer Payments
-              </StyledTabsTrigger>
-              <StyledTabsTrigger value="agreements">
-                Agreements
-              </StyledTabsTrigger>
-              <StyledTabsTrigger value="credits">
-                Customer Credit Accounts
-              </StyledTabsTrigger>
-              <StyledTabsTrigger value="charges">
-                Other Finance Charges
-              </StyledTabsTrigger>
-            </TabsList>
-
-            <TabsContent value="invoices">
-              <DataTable columns={SALES_INVOICE_COLUMNS} data={data} />
-            </TabsContent>
-
-            <TabsContent value="payments">
-              <p className="text-gray-600 mt-4">
-                Track and record customer payments here.
-              </p>
-            </TabsContent>
-
-            <TabsContent value="agreements">
-              <p className="text-gray-600 mt-4">
-                Manage customer agreements and contracts.
-              </p>
-            </TabsContent>
-
-            <TabsContent value="credits">
-              <p className="text-gray-600 mt-4">
-                Overview of customer credit accounts.
-              </p>
-            </TabsContent>
-
-            <TabsContent value="charges">
-              <p className="text-gray-600 mt-4">
-                Add or review other finance-related charges.
-              </p>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+    <AppTab
+      title="Accounts Receivable"
+      tabs={tabsList}
+      defaultValue="invoices"
+      props={{ invoices, payments }}
+    />
   );
 };
 

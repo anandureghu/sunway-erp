@@ -3,9 +3,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LOGIN_SCHEMA } from "@/schema/auth";
 import type { LoginFormData } from "@/types/auth";
+import { apiClient } from "@/service/apiClient";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const {
@@ -17,8 +20,25 @@ export default function LoginPage() {
   });
 
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const onSubmit = (data: LoginFormData) => console.log("Login Data:", data);
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      const response = await apiClient.post("/auth/login", {
+        loginId: data.username,
+        password: data.password,
+      });
+
+      const { accessToken, refreshToken } = response.data;
+
+      login(accessToken, refreshToken);
+      toast.success("Login successful!");
+      navigate("/");
+    } catch (error) {
+      toast.error("Login failed. Please check your credentials.");
+      console.error("Login failed:", error);
+    }
+  };
 
   return (
     <Card className="w-full max-w-md shadow-none border-none">
@@ -65,13 +85,6 @@ export default function LoginPage() {
           >
             Login
           </Button>
-
-          <div className="text-center text-sm text-gray-600 mt-4">
-            Don’t have an account?{" "}
-            <Link to="/auth/register" className="text-blue-600 hover:underline">
-              Register
-            </Link>
-          </div>
         </form>
 
         <div className="mt-6">
@@ -80,11 +93,6 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-2"
             onClick={() => navigate("/")}
           >
-            {/* <img
-              src="https://img.icons8.com/?size=512&id=17949&format=png"
-              alt="Google"
-              className="w-5 h-5"
-            /> */}
             Skip Auth & Go to Dashboard
           </Button>
         </div>
