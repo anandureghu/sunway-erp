@@ -32,20 +32,20 @@ import {
   ChevronDown,
   Settings,
   FileSpreadsheet,
-  Database,
+  // Database,
   LayoutDashboard,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { useEmployeeSelection } from "@/context/employee-selection";
+// import { useEmployeeSelection } from "@/context/employee-selection";
 import { useAppSelector } from "@/store/store";
 
 export function AppSidebar() {
   const location = useLocation();
   const path = location.pathname;
-  const { selected } = useEmployeeSelection();
+  // const { selected } = useEmployeeSelection();
   const adminView = useAppSelector((s) => s.ui.adminView);
 
-  const empBase = selected ? `/hr/employees/${selected.id}` : null;
+  // const empBase = selected ? `/hr/employees/${selected.id}` : null;
 
   const sections = [
     {
