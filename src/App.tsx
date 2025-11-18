@@ -12,7 +12,6 @@ import AppLayout from "./components/layout/app-layout";
 
 /* Pages */
 import LoginPage from "./pages/auth/login-page";
-import RegisterPage from "./pages/auth/register-page";
 import NotFound from "./pages/not-found";
 import DashboardPage from "./pages/dashboard";
 import AccountsReceivablePage from "./pages/finance/accounts-receivable-page";
@@ -74,17 +73,41 @@ import SuppliersPage from "./pages/purchase/suppliers-page";
 import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
 import ReceivingPage from "./pages/purchase/receiving-page";
 import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
+import { PrivateRoute } from "./components/protected-route";
+import { useAppSelector } from "./store/store";
+import CompanyPage from "./pages/admin/hr/company/company-page";
+import Payroll from "./pages/finance/payroll";
+import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
+import CompanyDetailPage from "./pages/hr/company-detail-page";
 
 export default function App() {
+  const adminView = useAppSelector((s) => s.ui.adminView);
   return (
     <Routes>
       {/* App frame */}
-      <Route path="/" element={<AppLayout />}>
-        <Route index element={<DashboardPage />} />
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <AppLayout />
+          </PrivateRoute>
+        }
+      >
+        <Route
+          index
+          element={adminView ? <DashboardPage /> : <DashboardPage />}
+        />
 
         {/* Finance */}
         <Route path="finance">
           <Route path="receivable" element={<AccountsReceivablePage />} />
+          <Route path="payroll" element={<Payroll />} />
+        </Route>
+
+        {/* Admin */}
+        <Route path="admin">
+          <Route path="company" element={<CompanyPage />} />
+          <Route path="department" element={<DepartmentListPage />} />
         </Route>
 
         {/* Inventory */}
@@ -104,7 +127,18 @@ export default function App() {
           <Route path="purchase/suppliers" element={<SuppliersPage />} />
           <Route path="purchase/invoices" element={<PurchaseInvoicesPage />} />
           <Route path="purchase/receiving" element={<ReceivingPage />} />
-          <Route path="purchase/requisitions" element={<PurchaseRequisitionsPage />} />
+          <Route
+            path="purchase/requisitions"
+            element={<PurchaseRequisitionsPage />}
+          />
+        </Route>
+
+        <Route path="companies">
+          <Route path=":id" element={<CompanyDetailPage />} />
+        </Route>
+
+        <Route path="companies">
+          <Route path=":id" element={<CompanyDetailPage />} />
         </Route>
 
         {/* HR */}
@@ -192,7 +226,6 @@ export default function App() {
       {/* Auth */}
       <Route path="/auth" element={<AuthLayout />}>
         <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
       </Route>
 
       {/* 404 */}
