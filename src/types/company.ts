@@ -1,8 +1,8 @@
 export interface Company {
   id: number;
   companyName: string;
-  nooEmployees: number; // number of employees
-  cNo: number; // company number
+  noOfEmployees: number; // number of employees
+  crNo: number; // company number
   computerCard: string;
   street: string;
   city: string;
@@ -11,4 +11,7 @@ export interface Company {
   phoneNo: string;
   createdAt: string;
   createdBy: string;
+  hrEnabled: boolean;
+  financeEnabled: boolean;
+  inventoryEnabled: boolean;
 }

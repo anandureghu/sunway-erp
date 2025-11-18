@@ -61,8 +61,10 @@ import { useAppSelector } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
 import Payroll from "./pages/finance/payroll";
 import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
+import CompanyDetailPage from "./pages/hr/company-detail-page";
 
 export default function App() {
+  const adminView = useAppSelector((s) => s.ui.adminView);
   const adminView = useAppSelector((s) => s.ui.adminView);
   return (
     <Routes>
@@ -95,6 +97,10 @@ export default function App() {
         {/* Finance */}
         <Route path="inventory">
           <Route path="stocks" element={<ManageStocks />} />
+        </Route>
+
+        <Route path="companies">
+          <Route path=":id" element={<CompanyDetailPage />} />
         </Route>
 
         {/* HR */}
