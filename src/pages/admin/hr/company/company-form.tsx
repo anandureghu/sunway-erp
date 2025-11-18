@@ -28,8 +28,8 @@ export const CompanyForm = ({
     resolver: zodResolver(COMPANY_SCHEMA),
     defaultValues: {
       companyName: "",
-      nooEmployees: 0,
-      cNo: 0,
+      noOfEmployees: 0,
+      crNo: 0,
       computerCard: "",
       street: "",
       city: "",
@@ -69,7 +69,7 @@ export const CompanyForm = ({
 
           <FormField
             control={form.control}
-            name="cNo"
+            name="crNo"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Company No.</FormLabel>
@@ -92,7 +92,7 @@ export const CompanyForm = ({
 
           <FormField
             control={form.control}
-            name="nooEmployees"
+            name="noOfEmployees"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>No. of Employees</FormLabel>
@@ -191,6 +191,69 @@ export const CompanyForm = ({
               </FormItem>
             )}
           />
+        </div>
+
+        <div className="space-y-2 border p-4 rounded-md">
+          <p className="font-medium text-sm">Subscribed Modules</p>
+
+          <div className="grid grid-cols-3 gap-4">
+            {/* HR */}
+            <FormField
+              control={form.control}
+              name="hrEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                  </FormControl>
+                  <FormLabel className="m-0">HR</FormLabel>
+                </FormItem>
+              )}
+            />
+
+            {/* Finance */}
+            <FormField
+              control={form.control}
+              name="financeEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                  </FormControl>
+                  <FormLabel className="m-0">Finance</FormLabel>
+                </FormItem>
+              )}
+            />
+
+            {/* Inventory */}
+            <FormField
+              control={form.control}
+              name="inventoryEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                  </FormControl>
+                  <FormLabel className="m-0">Inventory</FormLabel>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>

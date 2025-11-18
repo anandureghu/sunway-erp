@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyDialog } from "./company-dialog";
+import { useNavigate } from "react-router-dom";
+import type { Row } from "@tanstack/react-table";
 
 export default function CompanyListPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -60,6 +62,13 @@ export default function CompanyListPage() {
     }
   };
 
+  const navigate = useNavigate();
+
+  const handleRowClick = (row: Row<Company>) => {
+    const company = row.original; // row.original = the full company object
+    navigate(`/companies/${company.id}`);
+  };
+
   const columns = getCompanyColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
@@ -100,7 +109,11 @@ export default function CompanyListPage() {
         </CardHeader>
 
         <CardContent>
-          <DataTable columns={columns} data={companies} />
+          <DataTable
+            columns={columns}
+            data={companies}
+            onRowClick={handleRowClick}
+          />
         </CardContent>
       </Card>
 
