@@ -12,6 +12,8 @@ import {
 import type { Invoice } from "@/types/sales";
 import { type ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
   {
@@ -25,21 +27,43 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
   {
     accessorKey: "date",
     header: "Invoice Date",
+    cell: ({ row }) => {
+      const date = row.getValue("date") as string;
+      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+    },
   },
   {
     accessorKey: "dueDate",
     header: "Due Date",
+    cell: ({ row }) => {
+      const date = row.getValue("dueDate") as string;
+      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+    },
   },
   {
     accessorKey: "status",
     header: "Status",
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string;
+      const statusColors: Record<string, string> = {
+        Paid: "bg-green-100 text-green-800",
+        Unpaid: "bg-red-100 text-red-800",
+        "Partially Paid": "bg-yellow-100 text-yellow-800",
+        Overdue: "bg-orange-100 text-orange-800",
+      };
+      return (
+        <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
+          {status}
+        </Badge>
+      );
+    },
   },
   {
-    accessorKey: "amount",
+    accessorKey: "total",
     header: "Amount (₹)",
     cell: ({ row }) => {
-      const amount = row.getValue("amount") as number;
-      return <span>₹ {amount.toLocaleString()}</span>;
+      const total = row.getValue("total") as number;
+      return <span className="font-semibold">₹ {total.toLocaleString()}</span>;
     },
   },
   {

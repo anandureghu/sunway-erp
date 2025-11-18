@@ -69,7 +69,11 @@ export function AppSidebar() {
           icon: Package,
         },
         { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-        { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
+        {
+          title: "Purchase & Suppliers",
+          url: "/inventory/purchase",
+          icon: Receipt,
+        },
         {
           title: "Inventory Report",
           url: "/inventory/reports",
