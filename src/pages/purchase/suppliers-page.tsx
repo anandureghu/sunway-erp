@@ -14,16 +14,19 @@ import { SUPPLIER_SCHEMA, type SupplierFormData } from "@/schema/purchase";
 import type { Supplier } from "@/types/purchase";
 
 export default function SuppliersPage() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState((location.state as { searchQuery?: string })?.searchQuery || "");
+  const [searchQuery, setSearchQuery] = useState(
+    (location.state as { searchQuery?: string })?.searchQuery || ""
+  );
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   const filteredSuppliers = suppliers.filter((supplier) => {
     return (
       supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       supplier.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      supplier.contactPerson?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      supplier.contactPerson
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
       supplier.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
@@ -43,7 +46,9 @@ export default function SuppliersPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Suppliers</h1>
-            <p className="text-muted-foreground">Manage supplier database and track performance</p>
+            <p className="text-muted-foreground">
+              Manage supplier database and track performance
+            </p>
           </div>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
@@ -90,7 +95,7 @@ function CreateSupplierForm({ onCancel }: { onCancel: () => void }) {
 
   const onSubmit = (data: SupplierFormData) => {
     const supplierCode = `SUPP${String(suppliers.length + 1).padStart(3, "0")}`;
-    
+
     const newSupplier: Supplier = {
       id: `supp-${Date.now()}`,
       code: supplierCode,
@@ -273,12 +278,9 @@ function CreateSupplierForm({ onCancel }: { onCancel: () => void }) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit">
-            Create Supplier
-          </Button>
+          <Button type="submit">Create Supplier</Button>
         </div>
       </form>
     </div>
   );
 }
-

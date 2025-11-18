@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
-import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +18,23 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PURCHASE_REQUISITION_SCHEMA, type PurchaseRequisitionFormData } from "@/schema/purchase";
+import {
+  PURCHASE_REQUISITION_SCHEMA,
+  type PurchaseRequisitionFormData,
+} from "@/schema/purchase";
 import { z } from "zod";
-import type { PurchaseRequisitionItem, PurchaseRequisition } from "@/types/purchase";
-import { purchaseRequisitions, addPurchaseRequisition, updatePurchaseRequisition } from "@/lib/purchase-data";
+import type {
+  PurchaseRequisitionItem,
+  PurchaseRequisition,
+} from "@/types/purchase";
+import {
+  purchaseRequisitions,
+  addPurchaseRequisition,
+  updatePurchaseRequisition,
+} from "@/lib/purchase-data";
 import { items } from "@/lib/inventory-data";
 
 export default function PurchaseRequisitionsPage() {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -79,7 +88,9 @@ export default function PurchaseRequisitionsPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Purchase Requisitions</h1>
-            <p className="text-muted-foreground">Create and approve purchase requisitions</p>
+            <p className="text-muted-foreground">
+              Create and approve purchase requisitions
+            </p>
           </div>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
@@ -126,7 +137,9 @@ export default function PurchaseRequisitionsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{req.requisitionNo}</h3>
+                        <h3 className="font-semibold text-lg">
+                          {req.requisitionNo}
+                        </h3>
                         <Badge
                           variant={
                             req.status === "approved"
@@ -142,17 +155,22 @@ export default function PurchaseRequisitionsPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Requested by: {req.requestedByName} • Department: {req.department}
+                        Requested by: {req.requestedByName} • Department:{" "}
+                        {req.department}
                       </p>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Requested: {req.requestedDate} • Required: {req.requiredDate || "N/A"}
+                        Requested: {req.requestedDate} • Required:{" "}
+                        {req.requiredDate || "N/A"}
                       </p>
                       {req.approvedByName && (
                         <p className="text-sm text-muted-foreground mb-2">
-                          Approved by: {req.approvedByName} on {req.approvedDate}
+                          Approved by: {req.approvedByName} on{" "}
+                          {req.approvedDate}
                         </p>
                       )}
-                      <p className="font-medium mt-2">Total: ₹{req.totalAmount?.toLocaleString() || 0}</p>
+                      <p className="font-medium mt-2">
+                        Total: ₹{req.totalAmount?.toLocaleString() || 0}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       {req.status === "pending" && (
@@ -181,7 +199,9 @@ export default function PurchaseRequisitionsPage() {
               </Card>
             ))}
             {filteredRequisitions.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">No requisitions found</p>
+              <p className="text-center text-muted-foreground py-8">
+                No requisitions found
+              </p>
             )}
           </div>
         </CardContent>
@@ -192,7 +212,9 @@ export default function PurchaseRequisitionsPage() {
 
 function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
   const navigate = useNavigate();
-  const [requisitionItems, setRequisitionItems] = useState<PurchaseRequisitionItem[]>([]);
+  const [requisitionItems, setRequisitionItems] = useState<
+    PurchaseRequisitionItem[]
+  >([]);
   const [selectedItem, setSelectedItem] = useState<string>("");
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [itemUnitPrice, setItemUnitPrice] = useState<number>(0);
@@ -201,17 +223,17 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch,
   } = useForm<Omit<PurchaseRequisitionFormData, "items"> & { items?: any[] }>({
-    resolver: zodResolver(z.object({
-      requestedBy: z.string().min(1, "Requested by is required"),
-      department: z.string().optional(),
-      requestedDate: z.string().min(1, "Request date is required"),
-      requiredDate: z.string().optional(),
-      notes: z.string().optional(),
-      items: z.array(z.any()).optional(),
-    })),
+    resolver: zodResolver(
+      z.object({
+        requestedBy: z.string().min(1, "Requested by is required"),
+        department: z.string().optional(),
+        requestedDate: z.string().min(1, "Request date is required"),
+        requiredDate: z.string().optional(),
+        notes: z.string().optional(),
+        items: z.array(z.any()).optional(),
+      })
+    ),
     defaultValues: {
       requestedDate: format(new Date(), "yyyy-MM-dd"),
       requestedBy: "current-user",
@@ -250,7 +272,10 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
   };
 
   const calculateTotal = () => {
-    return requisitionItems.reduce((sum, item) => sum + (item.estimatedTotal || 0), 0);
+    return requisitionItems.reduce(
+      (sum, item) => sum + (item.estimatedTotal || 0),
+      0
+    );
   };
 
   const onSubmit = (data: any) => {
@@ -271,26 +296,30 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
       items: itemsData,
     };
 
-    const validationResult = PURCHASE_REQUISITION_SCHEMA.safeParse(completeData);
+    const validationResult =
+      PURCHASE_REQUISITION_SCHEMA.safeParse(completeData);
     if (!validationResult.success) {
-      const errorMessages = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n');
+      const errorMessages = validationResult.error;
       alert(`Please check the form for errors:\n${errorMessages}`);
       return;
     }
 
-    const requisitionNumber = `PR-${new Date().getFullYear()}-${String(purchaseRequisitions.length + 1).padStart(3, "0")}`;
+    const requisitionNumber = `PR-${new Date().getFullYear()}-${String(
+      purchaseRequisitions.length + 1
+    ).padStart(3, "0")}`;
     const totalAmount = calculateTotal();
-    
-    const requisitionItemsData: PurchaseRequisitionItem[] = requisitionItems.map((item) => ({
-      id: `pri-${Date.now()}-${Math.random()}`,
-      requisitionId: "",
-      itemId: item.itemId,
-      item: item.item,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      estimatedTotal: item.estimatedTotal,
-    }));
-    
+
+    const requisitionItemsData: PurchaseRequisitionItem[] =
+      requisitionItems.map((item) => ({
+        id: `pri-${Date.now()}-${Math.random()}`,
+        requisitionId: "",
+        itemId: item.itemId,
+        item: item.item,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        estimatedTotal: item.estimatedTotal,
+      }));
+
     const newRequisition: PurchaseRequisition = {
       id: `pr-${Date.now()}`,
       requisitionNo: requisitionNumber,
@@ -331,13 +360,16 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
         </Button>
       </div>
 
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        handleSubmit(onSubmit, (errors) => {
-          console.error("Form validation errors:", errors);
-          alert("Please fix the form errors before submitting.");
-        })(e);
-      }} className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(onSubmit, (errors) => {
+            console.error("Form validation errors:", errors);
+            alert("Please fix the form errors before submitting.");
+          })(e);
+        }}
+        className="space-y-6"
+      >
         <Card>
           <CardHeader>
             <CardTitle>Requisition Information</CardTitle>
@@ -352,7 +384,9 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
                   {...register("requestedBy")}
                 />
                 {errors.requestedBy && (
-                  <p className="text-sm text-red-500">{errors.requestedBy.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.requestedBy.message}
+                  </p>
                 )}
               </div>
 
@@ -373,7 +407,9 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
                   {...register("requestedDate")}
                 />
                 {errors.requestedDate && (
-                  <p className="text-sm text-red-500">{errors.requestedDate.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.requestedDate.message}
+                  </p>
                 )}
               </div>
 
@@ -420,7 +456,9 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
                   min="0.01"
                   step="0.01"
                   value={itemQuantity}
-                  onChange={(e) => setItemQuantity(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setItemQuantity(parseFloat(e.target.value) || 0)
+                  }
                 />
               </div>
 
@@ -431,13 +469,19 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
                   min="0"
                   step="0.01"
                   value={itemUnitPrice}
-                  onChange={(e) => setItemUnitPrice(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setItemUnitPrice(parseFloat(e.target.value) || 0)
+                  }
                   placeholder="Auto from item"
                 />
               </div>
 
               <div className="flex items-end">
-                <Button type="button" onClick={addItemToRequisition} className="w-full">
+                <Button
+                  type="button"
+                  onClick={addItemToRequisition}
+                  className="w-full"
+                >
                   Add Item
                 </Button>
               </div>
@@ -460,9 +504,15 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
                       {requisitionItems.map((item) => (
                         <tr key={item.id} className="border-t">
                           <td className="p-2">{item.item?.name}</td>
-                          <td className="p-2">{item.quantity} {item.item?.unit}</td>
-                          <td className="p-2">₹{item.unitPrice?.toLocaleString() || 0}</td>
-                          <td className="p-2 font-medium">₹{item.estimatedTotal?.toLocaleString() || 0}</td>
+                          <td className="p-2">
+                            {item.quantity} {item.item?.unit}
+                          </td>
+                          <td className="p-2">
+                            ₹{item.unitPrice?.toLocaleString() || 0}
+                          </td>
+                          <td className="p-2 font-medium">
+                            ₹{item.estimatedTotal?.toLocaleString() || 0}
+                          </td>
                           <td className="p-2">
                             <Button
                               type="button"
@@ -515,10 +565,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
-            disabled={requisitionItems.length === 0}
-          >
+          <Button type="submit" disabled={requisitionItems.length === 0}>
             Create Requisition
           </Button>
         </div>
@@ -526,4 +573,3 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
     </div>
   );
 }
-

@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
-import { PICKLIST_COLUMNS, DISPATCH_COLUMNS } from "@/lib/columns/sales-columns";
+import {
+  PICKLIST_COLUMNS,
+  DISPATCH_COLUMNS,
+} from "@/lib/columns/sales-columns";
 import { picklists, dispatches, salesOrders } from "@/lib/sales-data";
 import { warehouses } from "@/lib/inventory-data";
 import { Package, Truck, Plus, ArrowLeft } from "lucide-react";
@@ -19,7 +22,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PICKLIST_SCHEMA, DISPATCH_SCHEMA, type PicklistFormData, type DispatchFormData } from "@/schema/sales";
+import {
+  PICKLIST_SCHEMA,
+  DISPATCH_SCHEMA,
+  type PicklistFormData,
+  type DispatchFormData,
+} from "@/schema/sales";
 import { Link } from "react-router-dom";
 
 export default function PicklistDispatchPage() {
@@ -46,7 +54,9 @@ export default function PicklistDispatchPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Picklist & Dispatch</h1>
-            <p className="text-muted-foreground">Generate picklists and plan dispatches</p>
+            <p className="text-muted-foreground">
+              Generate picklists and plan dispatches
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -160,7 +170,9 @@ function CreatePicklistForm({ onCancel }: { onCancel: () => void }) {
                   </SelectTrigger>
                   <SelectContent>
                     {salesOrders
-                      .filter((o) => o.status === "confirmed" || o.status === "draft")
+                      .filter(
+                        (o) => o.status === "confirmed" || o.status === "draft"
+                      )
                       .map((order) => (
                         <SelectItem key={order.id} value={order.id}>
                           {order.orderNo} - {order.customer?.name}
@@ -169,7 +181,9 @@ function CreatePicklistForm({ onCancel }: { onCancel: () => void }) {
                   </SelectContent>
                 </Select>
                 {errors.orderId && (
-                  <p className="text-sm text-red-500">{errors.orderId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.orderId.message}
+                  </p>
                 )}
               </div>
 
@@ -191,7 +205,9 @@ function CreatePicklistForm({ onCancel }: { onCancel: () => void }) {
                   </SelectContent>
                 </Select>
                 {errors.warehouseId && (
-                  <p className="text-sm text-red-500">{errors.warehouseId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.warehouseId.message}
+                  </p>
                 )}
               </div>
 
@@ -211,8 +227,16 @@ function CreatePicklistForm({ onCancel }: { onCancel: () => void }) {
                 <div className="space-y-2">
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.item?.name} - Qty: {item.quantity}</span>
-                      <span>Warehouse: {item.warehouseId ? warehouses.find(w => w.id === item.warehouseId)?.name : "Not assigned"}</span>
+                      <span>
+                        {item.item?.name} - Qty: {item.quantity}
+                      </span>
+                      <span>
+                        Warehouse:{" "}
+                        {item.warehouseId
+                          ? warehouses.find((w) => w.id === item.warehouseId)
+                              ?.name
+                          : "Not assigned"}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -243,14 +267,12 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<DispatchFormData>({
     resolver: zodResolver(DISPATCH_SCHEMA),
   });
 
-  const selectedOrder = salesOrders.find((o) => o.id === selectedOrderId);
-  const availablePicklists = picklists.filter((pl) => 
-    pl.orderId === selectedOrderId && pl.status === "completed"
+  const availablePicklists = picklists.filter(
+    (pl) => pl.orderId === selectedOrderId && pl.status === "completed"
   );
 
   const onSubmit = (data: DispatchFormData) => {
@@ -296,7 +318,9 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                   </SelectTrigger>
                   <SelectContent>
                     {salesOrders
-                      .filter((o) => o.status === "picked" || o.status === "confirmed")
+                      .filter(
+                        (o) => o.status === "picked" || o.status === "confirmed"
+                      )
                       .map((order) => (
                         <SelectItem key={order.id} value={order.id}>
                           {order.orderNo} - {order.customer?.name}
@@ -305,7 +329,9 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                   </SelectContent>
                 </Select>
                 {errors.orderId && (
-                  <p className="text-sm text-red-500">{errors.orderId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.orderId.message}
+                  </p>
                 )}
               </div>
 
@@ -331,7 +357,9 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                   </SelectContent>
                 </Select>
                 {errors.picklistId && (
-                  <p className="text-sm text-red-500">{errors.picklistId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.picklistId.message}
+                  </p>
                 )}
               </div>
 
@@ -363,7 +391,9 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="estimatedDeliveryDate">Estimated Delivery Date</Label>
+                <Label htmlFor="estimatedDeliveryDate">
+                  Estimated Delivery Date
+                </Label>
                 <Input
                   id="estimatedDeliveryDate"
                   type="date"
@@ -379,7 +409,9 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                   {...register("deliveryAddress")}
                 />
                 {errors.deliveryAddress && (
-                  <p className="text-sm text-red-500">{errors.deliveryAddress.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.deliveryAddress.message}
+                  </p>
                 )}
               </div>
 
@@ -408,7 +440,10 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!selectedOrderId || !selectedPicklistId}>
+          <Button
+            type="submit"
+            disabled={!selectedOrderId || !selectedPicklistId}
+          >
             Create Dispatch
           </Button>
         </div>
@@ -416,4 +451,3 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
     </div>
   );
 }
-

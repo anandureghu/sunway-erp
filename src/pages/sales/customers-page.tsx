@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CUSTOMER_COLUMNS } from "@/lib/columns/sales-columns";
 import { customers } from "@/lib/sales-data";
-import { Plus, Search, Users, ArrowLeft } from "lucide-react";
+import { Plus, Search, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CUSTOMER_SCHEMA, type CustomerFormData } from "@/schema/sales";
@@ -21,13 +21,16 @@ import {
 
 export default function CustomersPage() {
   const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState((location.state as { searchQuery?: string })?.searchQuery || "");
+  const [searchQuery, setSearchQuery] = useState(
+    (location.state as { searchQuery?: string })?.searchQuery || ""
+  );
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.contactPerson?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCustomers = customers.filter(
+    (customer) =>
+      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.contactPerson?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (showCreateForm) {
@@ -45,7 +48,9 @@ export default function CustomersPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Customer Management</h1>
-            <p className="text-muted-foreground">Manage customer information and details</p>
+            <p className="text-muted-foreground">
+              Manage customer information and details
+            </p>
           </div>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
@@ -121,11 +126,7 @@ function CreateCustomerForm({ onCancel }: { onCancel: () => void }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Customer Code *</Label>
-                <Input
-                  id="code"
-                  placeholder="CUST001"
-                  {...register("code")}
-                />
+                <Input id="code" placeholder="CUST001" {...register("code")} />
                 {errors.code && (
                   <p className="text-sm text-red-500">{errors.code.message}</p>
                 )}
@@ -178,7 +179,9 @@ function CreateCustomerForm({ onCancel }: { onCancel: () => void }) {
                 <Label htmlFor="status">Status *</Label>
                 <Select
                   value={watch("status")}
-                  onValueChange={(value: "active" | "inactive") => setValue("status", value)}
+                  onValueChange={(value: "active" | "inactive") =>
+                    setValue("status", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -295,4 +298,3 @@ function CreateCustomerForm({ onCancel }: { onCancel: () => void }) {
     </div>
   );
 }
-

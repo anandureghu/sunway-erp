@@ -9,9 +9,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { SalesOrder, Customer, Picklist, Dispatch, Invoice } from "@/types/sales";
+import type { SalesOrder, Customer, Picklist, Dispatch } from "@/types/sales";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Eye, Edit, Trash2, Package, Truck, FileText } from "lucide-react";
+import {
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  Package,
+  Truck,
+  FileText,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
@@ -77,9 +85,7 @@ export const SALES_ORDER_COLUMNS: ColumnDef<SalesOrder>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const order = row.original;
-
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -147,7 +153,13 @@ export const CUSTOMER_COLUMNS: ColumnDef<Customer>[] = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       return (
-        <Badge className={status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+        <Badge
+          className={
+            status === "active"
+              ? "bg-green-100 text-green-800"
+              : "bg-gray-100 text-gray-800"
+          }
+        >
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       );
@@ -155,7 +167,7 @@ export const CUSTOMER_COLUMNS: ColumnDef<Customer>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -219,7 +231,11 @@ export const PICKLIST_COLUMNS: ColumnDef<Picklist>[] = [
       };
       return (
         <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
-          {status.replace("_", " ").split(" ").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ")}
+          {status
+            .replace("_", " ")
+            .split(" ")
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join(" ")}
         </Badge>
       );
     },
@@ -233,7 +249,7 @@ export const PICKLIST_COLUMNS: ColumnDef<Picklist>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -293,7 +309,11 @@ export const DISPATCH_COLUMNS: ColumnDef<Dispatch>[] = [
       };
       return (
         <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
-          {status.replace("_", " ").split(" ").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ")}
+          {status
+            .replace("_", " ")
+            .split(" ")
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join(" ")}
         </Badge>
       );
     },
@@ -303,12 +323,16 @@ export const DISPATCH_COLUMNS: ColumnDef<Dispatch>[] = [
     header: "Est. Delivery",
     cell: ({ row }) => {
       const date = row.original.estimatedDeliveryDate;
-      return date ? <span>{format(new Date(date), "MMM dd, yyyy")}</span> : <span>-</span>;
+      return date ? (
+        <span>{format(new Date(date), "MMM dd, yyyy")}</span>
+      ) : (
+        <span>-</span>
+      );
     },
   },
   {
     id: "actions",
-    cell: ({ row }) => {
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -333,4 +357,3 @@ export const DISPATCH_COLUMNS: ColumnDef<Dispatch>[] = [
     },
   },
 ];
-

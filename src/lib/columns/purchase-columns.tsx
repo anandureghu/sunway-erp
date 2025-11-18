@@ -9,9 +9,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { PurchaseOrder, Supplier, PurchaseInvoice, GoodsReceipt } from "@/types/purchase";
+import type {
+  PurchaseOrder,
+  Supplier,
+  PurchaseInvoice,
+  GoodsReceipt,
+} from "@/types/purchase";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Eye, Edit, Trash2, FileText, Package, CheckCircle } from "lucide-react";
+import {
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  FileText,
+  Package,
+  CheckCircle,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
@@ -63,7 +76,11 @@ export const PURCHASE_ORDER_COLUMNS: ColumnDef<PurchaseOrder>[] = [
       };
       return (
         <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
-          {status.replace("_", " ").split(" ").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ")}
+          {status
+            .replace("_", " ")
+            .split(" ")
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join(" ")}
         </Badge>
       );
     },
@@ -78,9 +95,7 @@ export const PURCHASE_ORDER_COLUMNS: ColumnDef<PurchaseOrder>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const order = row.original;
-
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -147,7 +162,11 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
     header: "Rating",
     cell: ({ row }) => {
       const rating = row.getValue("rating") as number | undefined;
-      return rating ? <span className="font-medium">{rating.toFixed(1)} ⭐</span> : <span>-</span>;
+      return rating ? (
+        <span className="font-medium">{rating.toFixed(1)} ⭐</span>
+      ) : (
+        <span>-</span>
+      );
     },
   },
   {
@@ -164,7 +183,13 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       return (
-        <Badge className={status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+        <Badge
+          className={
+            status === "active"
+              ? "bg-green-100 text-green-800"
+              : "bg-gray-100 text-gray-800"
+          }
+        >
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>
       );
@@ -172,7 +197,7 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -247,7 +272,11 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
       };
       return (
         <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
-          {status.replace("_", " ").split(" ").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ")}
+          {status
+            .replace("_", " ")
+            .split(" ")
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join(" ")}
         </Badge>
       );
     },
@@ -262,7 +291,7 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -325,7 +354,11 @@ export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] = [
       };
       return (
         <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
-          {status.replace("_", " ").split(" ").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ")}
+          {status
+            .replace("_", " ")
+            .split(" ")
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+            .join(" ")}
         </Badge>
       );
     },
@@ -339,7 +372,7 @@ export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
+    cell: () => {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -364,4 +397,3 @@ export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] = [
     },
   },
 ];
-

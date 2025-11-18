@@ -1,11 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { PURCHASE_ORDER_COLUMNS } from "@/lib/columns/purchase-columns";
-import { purchaseOrders, suppliers, addPurchaseOrder, purchaseRequisitions } from "@/lib/purchase-data";
+import {
+  purchaseOrders,
+  suppliers,
+  addPurchaseOrder,
+  purchaseRequisitions,
+} from "@/lib/purchase-data";
 import { items, warehouses } from "@/lib/inventory-data";
 import { Plus, Search, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -21,27 +26,37 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PURCHASE_ORDER_SCHEMA, type PurchaseOrderFormData } from "@/schema/purchase";
+import {
+  PURCHASE_ORDER_SCHEMA,
+  type PurchaseOrderFormData,
+} from "@/schema/purchase";
 import { z } from "zod";
 import type { PurchaseOrderItem, PurchaseOrder } from "@/types/purchase";
 
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState((location.state as { searchQuery?: string })?.searchQuery || "");
+  const [searchQuery, setSearchQuery] = useState(
+    (location.state as { searchQuery?: string })?.searchQuery || ""
+  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showCreateForm, setShowCreateForm] = useState(location.pathname.includes("/new"));
+  const [showCreateForm, setShowCreateForm] = useState(
+    location.pathname.includes("/new")
+  );
 
   const filteredOrders = purchaseOrders.filter((order) => {
     const matchesSearch =
       order.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.supplier?.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   if (showCreateForm) {
-    return <CreatePurchaseOrderForm onCancel={() => setShowCreateForm(false)} />;
+    return (
+      <CreatePurchaseOrderForm onCancel={() => setShowCreateForm(false)} />
+    );
   }
 
   return (
@@ -55,7 +70,9 @@ export default function PurchaseOrdersPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Purchase Orders</h1>
-            <p className="text-muted-foreground">Manage and track purchase orders</p>
+            <p className="text-muted-foreground">
+              Manage and track purchase orders
+            </p>
           </div>
         </div>
         <Button onClick={() => navigate("/inventory/purchase/orders/new")}>
@@ -88,7 +105,9 @@ export default function PurchaseOrdersPage() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="ordered">Ordered</SelectItem>
-                  <SelectItem value="partially_received">Partially Received</SelectItem>
+                  <SelectItem value="partially_received">
+                    Partially Received
+                  </SelectItem>
                   <SelectItem value="received">Received</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -120,15 +139,17 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
     setValue,
     watch,
   } = useForm<Omit<PurchaseOrderFormData, "items"> & { items?: any[] }>({
-    resolver: zodResolver(z.object({
-      requisitionId: z.string().optional(),
-      supplierId: z.string().min(1, "Supplier is required"),
-      orderDate: z.string().min(1, "Order date is required"),
-      expectedDate: z.string().optional(),
-      shippingAddress: z.string().optional(),
-      notes: z.string().optional(),
-      items: z.array(z.any()).optional(),
-    })),
+    resolver: zodResolver(
+      z.object({
+        requisitionId: z.string().optional(),
+        supplierId: z.string().min(1, "Supplier is required"),
+        orderDate: z.string().min(1, "Order date is required"),
+        expectedDate: z.string().optional(),
+        shippingAddress: z.string().optional(),
+        notes: z.string().optional(),
+        items: z.array(z.any()).optional(),
+      })
+    ),
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
       items: [],
@@ -176,10 +197,14 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
   };
 
   const calculateTotals = () => {
-    const subtotal = orderItems.reduce((sum, item) => sum + item.total - item.tax, 0);
+    const subtotal = orderItems.reduce(
+      (sum, item) => sum + item.total - item.tax,
+      0
+    );
     const tax = orderItems.reduce((sum, item) => sum + item.tax, 0);
     const discount = orderItems.reduce(
-      (sum, item) => sum + (item.unitPrice * item.quantity * item.discount) / 100,
+      (sum, item) =>
+        sum + (item.unitPrice * item.quantity * item.discount) / 100,
       0
     );
     const total = subtotal + tax;
@@ -214,14 +239,16 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
 
     const validationResult = PURCHASE_ORDER_SCHEMA.safeParse(completeData);
     if (!validationResult.success) {
-      const errorMessages = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n');
+      const errorMessages = validationResult.error;
       alert(`Please check the form for errors:\n${errorMessages}`);
       return;
     }
 
     const totals = calculateTotals();
-    const orderNumber = `PO-${new Date().getFullYear()}-${String(purchaseOrders.length + 1).padStart(3, "0")}`;
-    
+    const orderNumber = `PO-${new Date().getFullYear()}-${String(
+      purchaseOrders.length + 1
+    ).padStart(3, "0")}`;
+
     const orderItemsData: PurchaseOrderItem[] = orderItems.map((item) => ({
       id: `poi-${Date.now()}-${Math.random()}`,
       orderId: "",
@@ -236,8 +263,10 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
     }));
 
     const supplier = suppliers.find((s) => s.id === data.supplierId);
-    const requisition = data.requisitionId ? purchaseRequisitions.find((r) => r.id === data.requisitionId) : undefined;
-    
+    const requisition = data.requisitionId
+      ? purchaseRequisitions.find((r) => r.id === data.requisitionId)
+      : undefined;
+
     const newOrder: PurchaseOrder = {
       id: `po-${Date.now()}`,
       orderNo: orderNumber,
@@ -277,7 +306,9 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
 
   const totals = calculateTotals();
   const selectedSupplier = suppliers.find((s) => s.id === selectedSupplierId);
-  const approvedRequisitions = purchaseRequisitions.filter((r) => r.status === "approved");
+  const approvedRequisitions = purchaseRequisitions.filter(
+    (r) => r.status === "approved"
+  );
 
   return (
     <div className="p-6">
@@ -293,13 +324,16 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
         </Button>
       </div>
 
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        handleSubmit(onSubmit, (errors) => {
-          console.error("Form validation errors:", errors);
-          alert("Please fix the form errors before submitting.");
-        })(e);
-      }} className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(onSubmit, (errors) => {
+            console.error("Form validation errors:", errors);
+            alert("Please fix the form errors before submitting.");
+          })(e);
+        }}
+        className="space-y-6"
+      >
         {/* Supplier Selection */}
         <Card>
           <CardHeader>
@@ -327,12 +361,16 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                   </SelectContent>
                 </Select>
                 {errors.supplierId && (
-                  <p className="text-sm text-red-500">{errors.supplierId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.supplierId.message}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="requisitionId">Purchase Requisition (Optional)</Label>
+                <Label htmlFor="requisitionId">
+                  Purchase Requisition (Optional)
+                </Label>
                 <Select
                   value={selectedRequisitionId || ""}
                   onValueChange={(value) => setValue("requisitionId", value)}
@@ -353,13 +391,11 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
 
               <div className="space-y-2">
                 <Label htmlFor="orderDate">Order Date *</Label>
-                <Input
-                  id="orderDate"
-                  type="date"
-                  {...register("orderDate")}
-                />
+                <Input id="orderDate" type="date" {...register("orderDate")} />
                 {errors.orderDate && (
-                  <p className="text-sm text-red-500">{errors.orderDate.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.orderDate.message}
+                  </p>
                 )}
               </div>
 
@@ -377,14 +413,17 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
               <div className="p-4 bg-muted rounded-lg">
                 <p className="font-medium">{selectedSupplier.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedSupplier.address}, {selectedSupplier.city}, {selectedSupplier.state}
+                  {selectedSupplier.address}, {selectedSupplier.city},{" "}
+                  {selectedSupplier.state}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Phone: {selectedSupplier.phone} | Email: {selectedSupplier.email}
+                  Phone: {selectedSupplier.phone} | Email:{" "}
+                  {selectedSupplier.email}
                 </p>
                 {selectedSupplier.rating && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Rating: {selectedSupplier.rating}/5 | On-time Delivery: {selectedSupplier.onTimeDeliveryRate}%
+                    Rating: {selectedSupplier.rating}/5 | On-time Delivery:{" "}
+                    {selectedSupplier.onTimeDeliveryRate}%
                   </p>
                 )}
               </div>
@@ -424,7 +463,9 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                   min="0.01"
                   step="0.01"
                   value={itemQuantity}
-                  onChange={(e) => setItemQuantity(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setItemQuantity(parseFloat(e.target.value) || 0)
+                  }
                 />
               </div>
 
@@ -435,7 +476,9 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                   min="0"
                   step="0.01"
                   value={itemUnitPrice}
-                  onChange={(e) => setItemUnitPrice(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setItemUnitPrice(parseFloat(e.target.value) || 0)
+                  }
                 />
               </div>
 
@@ -446,7 +489,9 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                   min="0"
                   max="100"
                   value={itemDiscount}
-                  onChange={(e) => setItemDiscount(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setItemDiscount(parseFloat(e.target.value) || 0)
+                  }
                 />
               </div>
 
@@ -467,7 +512,11 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
               </div>
 
               <div className="flex items-end">
-                <Button type="button" onClick={addItemToOrder} className="w-full">
+                <Button
+                  type="button"
+                  onClick={addItemToOrder}
+                  className="w-full"
+                >
                   Add Item
                 </Button>
               </div>
@@ -493,11 +542,17 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                       {orderItems.map((item) => (
                         <tr key={item.id} className="border-t">
                           <td className="p-2">{item.item?.name}</td>
-                          <td className="p-2">{item.quantity} {item.item?.unit}</td>
-                          <td className="p-2">₹{item.unitPrice.toLocaleString()}</td>
+                          <td className="p-2">
+                            {item.quantity} {item.item?.unit}
+                          </td>
+                          <td className="p-2">
+                            ₹{item.unitPrice.toLocaleString()}
+                          </td>
                           <td className="p-2">{item.discount}%</td>
                           <td className="p-2">₹{item.tax.toFixed(2)}</td>
-                          <td className="p-2 font-medium">₹{item.total.toLocaleString()}</td>
+                          <td className="p-2 font-medium">
+                            ₹{item.total.toLocaleString()}
+                          </td>
                           <td className="p-2">
                             <Button
                               type="button"
@@ -533,15 +588,21 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span className="font-medium">₹{totals.subtotal.toLocaleString()}</span>
+                <span className="font-medium">
+                  ₹{totals.subtotal.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Discount:</span>
-                <span className="font-medium">-₹{totals.discount.toLocaleString()}</span>
+                <span className="font-medium">
+                  -₹{totals.discount.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Tax (18%):</span>
-                <span className="font-medium">₹{totals.tax.toLocaleString()}</span>
+                <span className="font-medium">
+                  ₹{totals.tax.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
@@ -573,8 +634,8 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={orderItems.length === 0 || !selectedSupplierId}
           >
             Create Purchase Order
@@ -594,4 +655,3 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
     </div>
   );
 }
-

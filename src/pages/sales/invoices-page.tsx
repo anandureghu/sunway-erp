@@ -3,10 +3,9 @@ import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
 import { invoices, salesOrders } from "@/lib/sales-data";
-import { Search, Plus, FileText, Printer, ArrowLeft } from "lucide-react";
+import { Search, Plus, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import {
   Select,
@@ -23,7 +22,9 @@ import { Link, useLocation } from "react-router-dom";
 
 export default function InvoicesPage() {
   const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState((location.state as { searchQuery?: string })?.searchQuery || "");
+  const [searchQuery, setSearchQuery] = useState(
+    (location.state as { searchQuery?: string })?.searchQuery || ""
+  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -31,7 +32,8 @@ export default function InvoicesPage() {
     const matchesSearch =
       invoice.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || invoice.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -50,7 +52,9 @@ export default function InvoicesPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Sales Invoices</h1>
-            <p className="text-muted-foreground">Manage invoices and payments</p>
+            <p className="text-muted-foreground">
+              Manage invoices and payments
+            </p>
           </div>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
@@ -170,16 +174,21 @@ function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
                   </SelectTrigger>
                   <SelectContent>
                     {salesOrders
-                      .filter((o) => o.status !== "cancelled" && o.status !== "draft")
+                      .filter(
+                        (o) => o.status !== "cancelled" && o.status !== "draft"
+                      )
                       .map((order) => (
                         <SelectItem key={order.id} value={order.id}>
-                          {order.orderNo} - {order.customer?.name} - ₹{order.total.toLocaleString()}
+                          {order.orderNo} - {order.customer?.name} - ₹
+                          {order.total.toLocaleString()}
                         </SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
                 {errors.orderId && (
-                  <p className="text-sm text-red-500">{errors.orderId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.orderId.message}
+                  </p>
                 )}
               </div>
 
@@ -192,17 +201,15 @@ function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
                   {...register("customerId")}
                 />
                 {errors.customerId && (
-                  <p className="text-sm text-red-500">{errors.customerId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.customerId.message}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="date">Invoice Date *</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  {...register("date")}
-                />
+                <Input id="date" type="date" {...register("date")} />
                 {errors.date && (
                   <p className="text-sm text-red-500">{errors.date.message}</p>
                 )}
@@ -217,7 +224,9 @@ function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
                   defaultValue={calculateDueDate()}
                 />
                 {errors.dueDate && (
-                  <p className="text-sm text-red-500">{errors.dueDate.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.dueDate.message}
+                  </p>
                 )}
               </div>
 
@@ -244,10 +253,22 @@ function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <h3 className="font-medium mb-2">Order Summary:</h3>
                 <div className="space-y-1 text-sm">
-                  <p><span className="text-muted-foreground">Order No:</span> {selectedOrder.orderNo}</p>
-                  <p><span className="text-muted-foreground">Customer:</span> {selectedOrder.customer?.name}</p>
-                  <p><span className="text-muted-foreground">Items:</span> {selectedOrder.items.length} items</p>
-                  <p><span className="text-muted-foreground">Total:</span> ₹{selectedOrder.total.toLocaleString()}</p>
+                  <p>
+                    <span className="text-muted-foreground">Order No:</span>{" "}
+                    {selectedOrder.orderNo}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Customer:</span>{" "}
+                    {selectedOrder.customer?.name}
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Items:</span>{" "}
+                    {selectedOrder.items.length} items
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Total:</span> ₹
+                    {selectedOrder.total.toLocaleString()}
+                  </p>
                 </div>
               </div>
             )}
@@ -266,4 +287,3 @@ function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
     </div>
   );
 }
-

@@ -1,26 +1,35 @@
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
-import { 
-  FileText, 
-  TrendingUp, 
-  DollarSign, 
-  Package, 
-  Calendar, 
+import {
+  TrendingUp,
+  DollarSign,
+  Package,
   AlertTriangle,
   Download,
   BarChart3,
-  PieChart,
   Clock,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { format, differenceInDays, parseISO, subDays, startOfMonth, endOfMonth } from "date-fns";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import {
+  format,
+  differenceInDays,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+} from "date-fns";
+import { ChartContainer } from "@/components/ui/chart";
 import {
   BarChart,
   Bar,
@@ -35,9 +44,13 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { getStockWithDetails, items, warehouses, itemCategories } from "@/lib/inventory-data";
+import {
+  getStockWithDetails,
+  items,
+  warehouses,
+  itemCategories,
+} from "@/lib/inventory-data";
 import { salesOrders } from "@/lib/sales-data";
-import type { Stock, Item } from "@/types/inventory";
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
@@ -73,7 +86,9 @@ export default function InventoryReportsPage() {
 
     // Valuation by warehouse
     const valuationByWarehouse = warehouses.map((wh) => {
-      const stockInWarehouse = filteredStock.filter((s) => s.warehouseId === wh.id);
+      const stockInWarehouse = filteredStock.filter(
+        (s) => s.warehouseId === wh.id
+      );
       const value = stockInWarehouse.reduce(
         (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
         0
@@ -84,7 +99,9 @@ export default function InventoryReportsPage() {
 
     // Valuation by category
     const valuationByCategory = itemCategories.map((cat) => {
-      const stockInCategory = filteredStock.filter((s) => s.item?.category === cat.name);
+      const stockInCategory = filteredStock.filter(
+        (s) => s.item?.category === cat.name
+      );
       const value = stockInCategory.reduce(
         (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
         0
@@ -118,7 +135,7 @@ export default function InventoryReportsPage() {
     // Calculate COGS (Cost of Goods Sold) from sales orders in date range
     const dateFrom = parseISO(dateRange.from);
     const dateTo = parseISO(dateRange.to);
-    
+
     const salesInRange = salesOrders.filter((so) => {
       const orderDate = parseISO(so.orderDate);
       return orderDate >= dateFrom && orderDate <= dateTo;
@@ -139,7 +156,8 @@ export default function InventoryReportsPage() {
     const avgInventoryValue = stockValuation.totalValue;
 
     // Turnover ratio = COGS / Average Inventory
-    const turnoverRatio = avgInventoryValue > 0 ? totalCOGS / avgInventoryValue : 0;
+    const turnoverRatio =
+      avgInventoryValue > 0 ? totalCOGS / avgInventoryValue : 0;
     const daysToSell = turnoverRatio > 0 ? 365 / turnoverRatio : 0;
 
     // Turnover by category
@@ -149,12 +167,15 @@ export default function InventoryReportsPage() {
           const itemData = items.find((i) => i.id === item.itemId);
           return itemData?.category === cat.category;
         });
-        return sum + categoryItems.reduce((itemSum, item) => {
-          const itemData = items.find((i) => i.id === item.itemId);
-          return itemSum + (item.quantity * (itemData?.costPrice || 0));
-        }, 0);
+        return (
+          sum +
+          categoryItems.reduce((itemSum, item) => {
+            const itemData = items.find((i) => i.id === item.itemId);
+            return itemSum + item.quantity * (itemData?.costPrice || 0);
+          }, 0)
+        );
       }, 0);
-      
+
       const categoryTurnover = cat.value > 0 ? categoryCOGS / cat.value : 0;
       return {
         category: cat.category,
@@ -234,19 +255,25 @@ export default function InventoryReportsPage() {
         };
       })
       .filter(Boolean) as Array<{
-        itemName: string;
-        sku: string;
-        expiryDate: string;
-        daysUntilExpiry: number;
-        status: string;
-        quantity: number;
-        value: number;
-        warehouse: string;
-      }>;
+      itemName: string;
+      sku: string;
+      expiryDate: string;
+      daysUntilExpiry: number;
+      status: string;
+      quantity: number;
+      value: number;
+      warehouse: string;
+    }>;
 
-    const expiredItems = expiryAnalysis.filter((item) => item.status === "expired");
-    const expiringSoon = expiryAnalysis.filter((item) => item.status === "expiring_soon");
-    const warningItems = expiryAnalysis.filter((item) => item.status === "warning");
+    const expiredItems = expiryAnalysis.filter(
+      (item) => item.status === "expired"
+    );
+    const expiringSoon = expiryAnalysis.filter(
+      (item) => item.status === "expiring_soon"
+    );
+    const warningItems = expiryAnalysis.filter(
+      (item) => item.status === "warning"
+    );
 
     return {
       ageingSummary,
@@ -264,7 +291,9 @@ export default function InventoryReportsPage() {
     const lowStockItems = filteredStock.filter(
       (s) => s.item && s.quantity <= (s.item.reorderLevel || 0)
     ).length;
-    const outOfStockItems = filteredStock.filter((s) => s.quantity === 0).length;
+    const outOfStockItems = filteredStock.filter(
+      (s) => s.quantity === 0
+    ).length;
     const totalValue = stockValuation.totalValue;
     const totalQuantity = filteredStock.reduce((sum, s) => sum + s.quantity, 0);
 
@@ -298,8 +327,12 @@ export default function InventoryReportsPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Inventory Reports & Analytics</h1>
-            <p className="text-muted-foreground">Comprehensive inventory analysis and insights</p>
+            <h1 className="text-3xl font-bold">
+              Inventory Reports & Analytics
+            </h1>
+            <p className="text-muted-foreground">
+              Comprehensive inventory analysis and insights
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -322,7 +355,9 @@ export default function InventoryReportsPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Warehouse</label>
+              <label className="text-sm font-medium mb-2 block">
+                Warehouse
+              </label>
               <select
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={selectedWarehouse}
@@ -337,11 +372,15 @@ export default function InventoryReportsPage() {
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Date From</label>
+              <label className="text-sm font-medium mb-2 block">
+                Date From
+              </label>
               <Input
                 type="date"
                 value={dateRange.from}
-                onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, from: e.target.value })
+                }
               />
             </div>
             <div>
@@ -349,7 +388,9 @@ export default function InventoryReportsPage() {
               <Input
                 type="date"
                 value={dateRange.to}
-                onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, to: e.target.value })
+                }
               />
             </div>
             <div className="flex items-end">
@@ -375,8 +416,12 @@ export default function InventoryReportsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Inventory Value</p>
-                <p className="text-2xl font-bold mt-1">₹{kpis.totalValue.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">
+                  Total Inventory Value
+                </p>
+                <p className="text-2xl font-bold mt-1">
+                  ₹{kpis.totalValue.toLocaleString()}
+                </p>
               </div>
               <DollarSign className="h-8 w-8 text-blue-500" />
             </div>
@@ -398,7 +443,9 @@ export default function InventoryReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Low Stock Items</p>
-                <p className="text-2xl font-bold mt-1 text-orange-600">{kpis.lowStockItems}</p>
+                <p className="text-2xl font-bold mt-1 text-orange-600">
+                  {kpis.lowStockItems}
+                </p>
               </div>
               <AlertTriangle className="h-8 w-8 text-orange-500" />
             </div>
@@ -409,7 +456,9 @@ export default function InventoryReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Turnover Ratio</p>
-                <p className="text-2xl font-bold mt-1">{inventoryTurnover.turnoverRatio.toFixed(2)}x</p>
+                <p className="text-2xl font-bold mt-1">
+                  {inventoryTurnover.turnoverRatio.toFixed(2)}x
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {inventoryTurnover.daysToSell.toFixed(0)} days to sell
                 </p>
@@ -447,7 +496,9 @@ export default function InventoryReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Valuation by Warehouse</CardTitle>
-                <CardDescription>Total inventory value by location</CardDescription>
+                <CardDescription>
+                  Total inventory value by location
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
@@ -482,7 +533,11 @@ export default function InventoryReportsPage() {
                           return null;
                         }}
                       />
-                      <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={6} />
+                      <Bar
+                        dataKey="value"
+                        fill="hsl(var(--chart-1))"
+                        radius={6}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -492,7 +547,9 @@ export default function InventoryReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Valuation by Category</CardTitle>
-                <CardDescription>Inventory value distribution by category</CardDescription>
+                <CardDescription>
+                  Inventory value distribution by category
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
@@ -508,13 +565,18 @@ export default function InventoryReportsPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ category, percent }) => `${category}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ category, percent }) =>
+                          `${category}: ${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {stockValuation.valuationByCategory.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        {stockValuation.valuationByCategory.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={CHART_COLORS[index % CHART_COLORS.length]}
+                          />
                         ))}
                       </Pie>
                       <Tooltip
@@ -522,7 +584,9 @@ export default function InventoryReportsPage() {
                           if (active && payload && payload.length) {
                             return (
                               <div className="rounded-lg border bg-background p-2 shadow-sm">
-                                <p className="font-medium">{payload[0].payload.category}</p>
+                                <p className="font-medium">
+                                  {payload[0].payload.category}
+                                </p>
                                 <p className="text-sm text-muted-foreground">
                                   ₹{payload[0].value?.toLocaleString()}
                                 </p>
@@ -542,7 +606,9 @@ export default function InventoryReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Top Items by Value</CardTitle>
-              <CardDescription>Highest value items in inventory</CardDescription>
+              <CardDescription>
+                Highest value items in inventory
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -561,11 +627,21 @@ export default function InventoryReportsPage() {
                     {stockValuation.topItemsByValue.map((item, idx) => (
                       <tr key={idx} className="border-b">
                         <td className="p-2 font-medium">{item.name}</td>
-                        <td className="p-2 text-sm text-muted-foreground">{item.sku}</td>
-                        <td className="p-2 text-right">{item.quantity.toLocaleString()}</td>
-                        <td className="p-2 text-right">₹{item.unitCost.toLocaleString()}</td>
-                        <td className="p-2 text-right font-semibold">₹{item.totalValue.toLocaleString()}</td>
-                        <td className="p-2 text-sm text-muted-foreground">{item.warehouse}</td>
+                        <td className="p-2 text-sm text-muted-foreground">
+                          {item.sku}
+                        </td>
+                        <td className="p-2 text-right">
+                          {item.quantity.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right">
+                          ₹{item.unitCost.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right font-semibold">
+                          ₹{item.totalValue.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-sm text-muted-foreground">
+                          {item.warehouse}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -581,16 +657,22 @@ export default function InventoryReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Turnover Overview</CardTitle>
-                <CardDescription>Inventory turnover metrics for selected period</CardDescription>
+                <CardDescription>
+                  Inventory turnover metrics for selected period
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <span className="font-medium">Cost of Goods Sold (COGS)</span>
-                  <span className="text-2xl font-bold">₹{inventoryTurnover.totalCOGS.toLocaleString()}</span>
+                  <span className="text-2xl font-bold">
+                    ₹{inventoryTurnover.totalCOGS.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <span className="font-medium">Average Inventory Value</span>
-                  <span className="text-2xl font-bold">₹{inventoryTurnover.avgInventoryValue.toLocaleString()}</span>
+                  <span className="text-2xl font-bold">
+                    ₹{inventoryTurnover.avgInventoryValue.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
                   <span className="font-medium">Turnover Ratio</span>
@@ -600,11 +682,15 @@ export default function InventoryReportsPage() {
                 </div>
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <span className="font-medium">Days to Sell</span>
-                  <span className="text-2xl font-bold">{inventoryTurnover.daysToSell.toFixed(0)} days</span>
+                  <span className="text-2xl font-bold">
+                    {inventoryTurnover.daysToSell.toFixed(0)} days
+                  </span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <span className="font-medium">Sales Orders (Period)</span>
-                  <span className="text-2xl font-bold">{inventoryTurnover.salesCount}</span>
+                  <span className="text-2xl font-bold">
+                    {inventoryTurnover.salesCount}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -612,12 +698,17 @@ export default function InventoryReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Turnover by Category</CardTitle>
-                <CardDescription>Category-wise inventory turnover analysis</CardDescription>
+                <CardDescription>
+                  Category-wise inventory turnover analysis
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
                   config={{
-                    turnoverRatio: { label: "Turnover Ratio", color: "hsl(var(--chart-3))" },
+                    turnoverRatio: {
+                      label: "Turnover Ratio",
+                      color: "hsl(var(--chart-3))",
+                    },
                   }}
                   className="h-[300px]"
                 >
@@ -633,16 +724,26 @@ export default function InventoryReportsPage() {
                             return (
                               <div className="rounded-lg border bg-background p-2 shadow-sm">
                                 <p className="font-medium">{data.category}</p>
-                                <p className="text-sm">Turnover: {data.turnoverRatio.toFixed(2)}x</p>
-                                <p className="text-sm">Days to Sell: {data.daysToSell.toFixed(0)}</p>
-                                <p className="text-sm">COGS: ₹{data.cogs.toLocaleString()}</p>
+                                <p className="text-sm">
+                                  Turnover: {data.turnoverRatio.toFixed(2)}x
+                                </p>
+                                <p className="text-sm">
+                                  Days to Sell: {data.daysToSell.toFixed(0)}
+                                </p>
+                                <p className="text-sm">
+                                  COGS: ₹{data.cogs.toLocaleString()}
+                                </p>
                               </div>
                             );
                           }
                           return null;
                         }}
                       />
-                      <Bar dataKey="turnoverRatio" fill="hsl(var(--chart-3))" radius={6} />
+                      <Bar
+                        dataKey="turnoverRatio"
+                        fill="hsl(var(--chart-3))"
+                        radius={6}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -670,10 +771,18 @@ export default function InventoryReportsPage() {
                     {inventoryTurnover.turnoverByCategory.map((cat, idx) => (
                       <tr key={idx} className="border-b">
                         <td className="p-2 font-medium">{cat.category}</td>
-                        <td className="p-2 text-right">₹{cat.inventoryValue.toLocaleString()}</td>
-                        <td className="p-2 text-right">₹{cat.cogs.toLocaleString()}</td>
-                        <td className="p-2 text-right font-semibold">{cat.turnoverRatio.toFixed(2)}x</td>
-                        <td className="p-2 text-right">{cat.daysToSell.toFixed(0)} days</td>
+                        <td className="p-2 text-right">
+                          ₹{cat.inventoryValue.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right">
+                          ₹{cat.cogs.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right font-semibold">
+                          {cat.turnoverRatio.toFixed(2)}x
+                        </td>
+                        <td className="p-2 text-right">
+                          {cat.daysToSell.toFixed(0)} days
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -710,8 +819,12 @@ export default function InventoryReportsPage() {
                             return (
                               <div className="rounded-lg border bg-background p-2 shadow-sm">
                                 <p className="font-medium">{data.range}</p>
-                                <p className="text-sm">Value: ₹{data.value.toLocaleString()}</p>
-                                <p className="text-sm">Quantity: {data.quantity.toLocaleString()}</p>
+                                <p className="text-sm">
+                                  Value: ₹{data.value.toLocaleString()}
+                                </p>
+                                <p className="text-sm">
+                                  Quantity: {data.quantity.toLocaleString()}
+                                </p>
                                 <p className="text-sm">Items: {data.items}</p>
                               </div>
                             );
@@ -719,7 +832,11 @@ export default function InventoryReportsPage() {
                           return null;
                         }}
                       />
-                      <Bar dataKey="value" fill="hsl(var(--chart-4))" radius={6} />
+                      <Bar
+                        dataKey="value"
+                        fill="hsl(var(--chart-4))"
+                        radius={6}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -736,39 +853,66 @@ export default function InventoryReportsPage() {
                   <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg border border-red-200">
                     <div>
                       <p className="font-medium text-red-900">Expired Items</p>
-                      <p className="text-sm text-red-700">{ageingAndExpiry.expiredItems.length} items</p>
+                      <p className="text-sm text-red-700">
+                        {ageingAndExpiry.expiredItems.length} items
+                      </p>
                     </div>
                     <span className="text-2xl font-bold text-red-600">
-                      ₹{ageingAndExpiry.expiredItems.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
+                      ₹
+                      {ageingAndExpiry.expiredItems
+                        .reduce((sum, item) => sum + item.value, 0)
+                        .toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg border border-orange-200">
                     <div>
-                      <p className="font-medium text-orange-900">Expiring Soon (&lt;30 days)</p>
-                      <p className="text-sm text-orange-700">{ageingAndExpiry.expiringSoon.length} items</p>
+                      <p className="font-medium text-orange-900">
+                        Expiring Soon (&lt;30 days)
+                      </p>
+                      <p className="text-sm text-orange-700">
+                        {ageingAndExpiry.expiringSoon.length} items
+                      </p>
                     </div>
                     <span className="text-2xl font-bold text-orange-600">
-                      ₹{ageingAndExpiry.expiringSoon.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
+                      ₹
+                      {ageingAndExpiry.expiringSoon
+                        .reduce((sum, item) => sum + item.value, 0)
+                        .toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                     <div>
-                      <p className="font-medium text-yellow-900">Warning (30-90 days)</p>
-                      <p className="text-sm text-yellow-700">{ageingAndExpiry.warningItems.length} items</p>
+                      <p className="font-medium text-yellow-900">
+                        Warning (30-90 days)
+                      </p>
+                      <p className="text-sm text-yellow-700">
+                        {ageingAndExpiry.warningItems.length} items
+                      </p>
                     </div>
                     <span className="text-2xl font-bold text-yellow-600">
-                      ₹{ageingAndExpiry.warningItems.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
+                      ₹
+                      {ageingAndExpiry.warningItems
+                        .reduce((sum, item) => sum + item.value, 0)
+                        .toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg border border-green-200">
                     <div>
-                      <p className="font-medium text-green-900">Safe (&gt;90 days)</p>
+                      <p className="font-medium text-green-900">
+                        Safe (&gt;90 days)
+                      </p>
                       <p className="text-sm text-green-700">
-                        {ageingAndExpiry.expiryAnalysis.filter((item) => item.status === "safe").length} items
+                        {
+                          ageingAndExpiry.expiryAnalysis.filter(
+                            (item) => item.status === "safe"
+                          ).length
+                        }{" "}
+                        items
                       </p>
                     </div>
                     <span className="text-2xl font-bold text-green-600">
-                      ₹{ageingAndExpiry.expiryAnalysis
+                      ₹
+                      {ageingAndExpiry.expiryAnalysis
                         .filter((item) => item.status === "safe")
                         .reduce((sum, item) => sum + item.value, 0)
                         .toLocaleString()}
@@ -805,17 +949,28 @@ export default function InventoryReportsPage() {
                       .map((item, idx) => (
                         <tr key={idx} className="border-b">
                           <td className="p-2 font-medium">{item.itemName}</td>
-                          <td className="p-2 text-sm text-muted-foreground">{item.sku}</td>
-                          <td className="p-2">{format(parseISO(item.expiryDate), "MMM dd, yyyy")}</td>
+                          <td className="p-2 text-sm text-muted-foreground">
+                            {item.sku}
+                          </td>
+                          <td className="p-2">
+                            {format(parseISO(item.expiryDate), "MMM dd, yyyy")}
+                          </td>
                           <td className="p-2 text-right">
                             {item.daysUntilExpiry < 0 ? (
-                              <span className="text-red-600 font-semibold">Expired ({Math.abs(item.daysUntilExpiry)} days ago)</span>
+                              <span className="text-red-600 font-semibold">
+                                Expired ({Math.abs(item.daysUntilExpiry)} days
+                                ago)
+                              </span>
                             ) : (
                               item.daysUntilExpiry
                             )}
                           </td>
-                          <td className="p-2 text-right">{item.quantity.toLocaleString()}</td>
-                          <td className="p-2 text-right">₹{item.value.toLocaleString()}</td>
+                          <td className="p-2 text-right">
+                            {item.quantity.toLocaleString()}
+                          </td>
+                          <td className="p-2 text-right">
+                            ₹{item.value.toLocaleString()}
+                          </td>
                           <td className="p-2">
                             <Badge
                               className={
@@ -848,7 +1003,9 @@ export default function InventoryReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Inventory Value Trend</CardTitle>
-                <CardDescription>Historical inventory value (simulated)</CardDescription>
+                <CardDescription>
+                  Historical inventory value (simulated)
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
@@ -860,9 +1017,18 @@ export default function InventoryReportsPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={[
-                        { month: "Jan", value: stockValuation.totalValue * 0.85 },
-                        { month: "Feb", value: stockValuation.totalValue * 0.9 },
-                        { month: "Mar", value: stockValuation.totalValue * 0.95 },
+                        {
+                          month: "Jan",
+                          value: stockValuation.totalValue * 0.85,
+                        },
+                        {
+                          month: "Feb",
+                          value: stockValuation.totalValue * 0.9,
+                        },
+                        {
+                          month: "Mar",
+                          value: stockValuation.totalValue * 0.95,
+                        },
                         { month: "Apr", value: stockValuation.totalValue },
                       ]}
                     >
@@ -874,14 +1040,21 @@ export default function InventoryReportsPage() {
                           if (active && payload && payload.length) {
                             return (
                               <div className="rounded-lg border bg-background p-2 shadow-sm">
-                                <p className="font-medium">₹{payload[0].value?.toLocaleString()}</p>
+                                <p className="font-medium">
+                                  ₹{payload[0].value?.toLocaleString()}
+                                </p>
                               </div>
                             );
                           }
                           return null;
                         }}
                       />
-                      <Line type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" strokeWidth={2} />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="hsl(var(--chart-1))"
+                        strokeWidth={2}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -904,14 +1077,22 @@ export default function InventoryReportsPage() {
                     <RechartsPieChart>
                       <Pie
                         data={[
-                          { name: "In Stock", value: kpis.totalItems - kpis.lowStockItems - kpis.outOfStockItems },
+                          {
+                            name: "In Stock",
+                            value:
+                              kpis.totalItems -
+                              kpis.lowStockItems -
+                              kpis.outOfStockItems,
+                          },
                           { name: "Low Stock", value: kpis.lowStockItems },
                           { name: "Out of Stock", value: kpis.outOfStockItems },
                         ]}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) =>
+                          `${name}: ${(percent * 100).toFixed(0)}%`
+                        }
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
@@ -935,16 +1116,28 @@ export default function InventoryReportsPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">Average Item Value</p>
-                  <p className="text-2xl font-bold mt-1">₹{kpis.avgItemValue.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Average Item Value
+                  </p>
+                  <p className="text-2xl font-bold mt-1">
+                    ₹{kpis.avgItemValue.toLocaleString()}
+                  </p>
                 </div>
                 <div className="p-4 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">Total Quantity</p>
-                  <p className="text-2xl font-bold mt-1">{kpis.totalQuantity.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Total Quantity
+                  </p>
+                  <p className="text-2xl font-bold mt-1">
+                    {kpis.totalQuantity.toLocaleString()}
+                  </p>
                 </div>
                 <div className="p-4 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">Out of Stock Items</p>
-                  <p className="text-2xl font-bold mt-1 text-red-600">{kpis.outOfStockItems}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Out of Stock Items
+                  </p>
+                  <p className="text-2xl font-bold mt-1 text-red-600">
+                    {kpis.outOfStockItems}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -954,4 +1147,3 @@ export default function InventoryReportsPage() {
     </div>
   );
 }
-

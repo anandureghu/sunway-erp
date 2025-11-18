@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { PURCHASE_INVOICE_COLUMNS } from "@/lib/columns/purchase-columns";
 import { purchaseInvoices } from "@/lib/purchase-data";
 import { Search, ArrowLeft } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 export default function PurchaseInvoicesPage() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState((location.state as { searchQuery?: string })?.searchQuery || "");
+  const [searchQuery, setSearchQuery] = useState(
+    (location.state as { searchQuery?: string })?.searchQuery || ""
+  );
 
   const filteredInvoices = purchaseInvoices.filter((invoice) => {
     return (
@@ -31,7 +32,9 @@ export default function PurchaseInvoicesPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Purchase Invoices</h1>
-            <p className="text-muted-foreground">Manage purchase invoices and payments</p>
+            <p className="text-muted-foreground">
+              Manage purchase invoices and payments
+            </p>
           </div>
         </div>
       </div>
@@ -52,10 +55,12 @@ export default function PurchaseInvoicesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable columns={PURCHASE_INVOICE_COLUMNS} data={filteredInvoices} />
+          <DataTable
+            columns={PURCHASE_INVOICE_COLUMNS}
+            data={filteredInvoices}
+          />
         </CardContent>
       </Card>
     </div>
   );
 }
-

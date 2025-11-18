@@ -1,15 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
-import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { SALES_ORDER_COLUMNS } from "@/lib/columns/sales-columns";
 import { salesOrders, customers, addSalesOrder } from "@/lib/sales-data";
 import { items, warehouses } from "@/lib/inventory-data";
-import { Plus, Search, ShoppingCart, FileText, Package, ArrowLeft } from "lucide-react";
+import { Plus, Search, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import {
@@ -28,17 +26,21 @@ import { z } from "zod";
 import type { SalesOrderItem, SalesOrder } from "@/types/sales";
 
 export default function SalesOrdersPage() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState((location.state as { searchQuery?: string })?.searchQuery || "");
+  const [searchQuery, setSearchQuery] = useState(
+    (location.state as { searchQuery?: string })?.searchQuery || ""
+  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showCreateForm, setShowCreateForm] = useState(location.pathname.includes("/new"));
+  const [showCreateForm, setShowCreateForm] = useState(
+    location.pathname.includes("/new")
+  );
 
   const filteredOrders = salesOrders.filter((order) => {
     const matchesSearch =
       order.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customer?.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -57,7 +59,9 @@ export default function SalesOrdersPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold mb-2">Sales Orders</h1>
-            <p className="text-muted-foreground">Manage and track sales orders</p>
+            <p className="text-muted-foreground">
+              Manage and track sales orders
+            </p>
           </div>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
@@ -119,16 +123,18 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
     formState: { errors },
     setValue,
     watch,
-  } = useForm<Omit<SalesOrderFormData, "items"> & { items?: any[] }>({
-    resolver: zodResolver(z.object({
-      customerId: z.string().min(1, "Customer is required"),
-      orderDate: z.string().min(1, "Order date is required"),
-      requiredDate: z.string().optional(),
-      shippingAddress: z.string().optional(),
-      notes: z.string().optional(),
-      salesPerson: z.string().optional(),
-      items: z.array(z.any()).optional(), // Items validated separately
-    })),
+  } = useForm<Omit<SalesOrderFormData, "items"> & { items?: unknown[] }>({
+    resolver: zodResolver(
+      z.object({
+        customerId: z.string().min(1, "Customer is required"),
+        orderDate: z.string().min(1, "Order date is required"),
+        requiredDate: z.string().optional(),
+        shippingAddress: z.string().optional(),
+        notes: z.string().optional(),
+        salesPerson: z.string().optional(),
+        items: z.array(z.any()).optional(), // Items validated separately
+      })
+    ),
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
       items: [],
@@ -175,10 +181,14 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   };
 
   const calculateTotals = () => {
-    const subtotal = orderItems.reduce((sum, item) => sum + item.total - item.tax, 0);
+    const subtotal = orderItems.reduce(
+      (sum, item) => sum + item.total - item.tax,
+      0
+    );
     const tax = orderItems.reduce((sum, item) => sum + item.tax, 0);
     const discount = orderItems.reduce(
-      (sum, item) => sum + (item.unitPrice * item.quantity * item.discount) / 100,
+      (sum, item) =>
+        sum + (item.unitPrice * item.quantity * item.discount) / 100,
       0
     );
     const total = subtotal + tax;
@@ -188,7 +198,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
 
   const onSubmit = (data: any) => {
     console.log("Form submitted with data:", data);
-    
+
     // Validate that items are added
     if (orderItems.length === 0) {
       alert("Please add at least one item to the order.");
@@ -223,7 +233,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
     const validationResult = SALES_ORDER_SCHEMA.safeParse(completeData);
     if (!validationResult.success) {
       console.error("Validation errors:", validationResult.error);
-      const errorMessages = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('\n');
+      const errorMessages = validationResult.error;
       alert(`Please check the form for errors:\n${errorMessages}`);
       return;
     }
@@ -231,10 +241,12 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
     console.log("Validation passed, creating order...");
 
     const totals = calculateTotals();
-    
+
     // Generate order number
-    const orderNumber = `SO-${new Date().getFullYear()}-${String(salesOrders.length + 1).padStart(3, "0")}`;
-    
+    const orderNumber = `SO-${new Date().getFullYear()}-${String(
+      salesOrders.length + 1
+    ).padStart(3, "0")}`;
+
     // Create order items with proper structure
     const orderItemsData: SalesOrderItem[] = orderItems.map((item) => ({
       id: `soi-${Date.now()}-${Math.random()}`,
@@ -251,7 +263,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
 
     // Find customer
     const customer = customers.find((c) => c.id === data.customerId);
-    
+
     // Create the new sales order
     const newOrder: SalesOrder = {
       id: `so-${Date.now()}`,
@@ -261,7 +273,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       orderDate: data.orderDate,
       requiredDate: data.requiredDate || undefined,
       status: "draft",
-      items: orderItemsData.map((item, index) => ({
+      items: orderItemsData.map((item) => ({
         ...item,
         orderId: `so-${Date.now()}`,
       })),
@@ -307,14 +319,17 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         </Button>
       </div>
 
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        console.log("Form submit event triggered");
-        handleSubmit(onSubmit, (errors) => {
-          console.error("Form validation errors:", errors);
-          alert("Please fix the form errors before submitting.");
-        })(e);
-      }} className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          console.log("Form submit event triggered");
+          handleSubmit(onSubmit, (errors) => {
+            console.error("Form validation errors:", errors);
+            alert("Please fix the form errors before submitting.");
+          })(e);
+        }}
+        className="space-y-6"
+      >
         {/* Customer Selection */}
         <Card>
           <CardHeader>
@@ -342,19 +357,19 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   </SelectContent>
                 </Select>
                 {errors.customerId && (
-                  <p className="text-sm text-red-500">{errors.customerId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.customerId.message}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="orderDate">Order Date *</Label>
-                <Input
-                  id="orderDate"
-                  type="date"
-                  {...register("orderDate")}
-                />
+                <Input id="orderDate" type="date" {...register("orderDate")} />
                 {errors.orderDate && (
-                  <p className="text-sm text-red-500">{errors.orderDate.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.orderDate.message}
+                  </p>
                 )}
               </div>
 
@@ -381,10 +396,12 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
               <div className="p-4 bg-muted rounded-lg">
                 <p className="font-medium">{selectedCustomer.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedCustomer.address}, {selectedCustomer.city}, {selectedCustomer.state}
+                  {selectedCustomer.address}, {selectedCustomer.city},{" "}
+                  {selectedCustomer.state}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Phone: {selectedCustomer.phone} | Email: {selectedCustomer.email}
+                  Phone: {selectedCustomer.phone} | Email:{" "}
+                  {selectedCustomer.email}
                 </p>
               </div>
             )}
@@ -423,7 +440,9 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   min="0.01"
                   step="0.01"
                   value={itemQuantity}
-                  onChange={(e) => setItemQuantity(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setItemQuantity(parseFloat(e.target.value) || 0)
+                  }
                 />
               </div>
 
@@ -434,7 +453,9 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   min="0"
                   max="100"
                   value={itemDiscount}
-                  onChange={(e) => setItemDiscount(parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setItemDiscount(parseFloat(e.target.value) || 0)
+                  }
                 />
               </div>
 
@@ -455,7 +476,11 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
               </div>
 
               <div className="flex items-end">
-                <Button type="button" onClick={addItemToOrder} className="w-full">
+                <Button
+                  type="button"
+                  onClick={addItemToOrder}
+                  className="w-full"
+                >
                   Add Item
                 </Button>
               </div>
@@ -481,11 +506,17 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                       {orderItems.map((item) => (
                         <tr key={item.id} className="border-t">
                           <td className="p-2">{item.item?.name}</td>
-                          <td className="p-2">{item.quantity} {item.item?.unit}</td>
-                          <td className="p-2">₹{item.unitPrice.toLocaleString()}</td>
+                          <td className="p-2">
+                            {item.quantity} {item.item?.unit}
+                          </td>
+                          <td className="p-2">
+                            ₹{item.unitPrice.toLocaleString()}
+                          </td>
                           <td className="p-2">{item.discount}%</td>
                           <td className="p-2">₹{item.tax.toFixed(2)}</td>
-                          <td className="p-2 font-medium">₹{item.total.toLocaleString()}</td>
+                          <td className="p-2 font-medium">
+                            ₹{item.total.toLocaleString()}
+                          </td>
                           <td className="p-2">
                             <Button
                               type="button"
@@ -521,15 +552,21 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
             <CardContent className="space-y-4">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span className="font-medium">₹{totals.subtotal.toLocaleString()}</span>
+                <span className="font-medium">
+                  ₹{totals.subtotal.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Discount:</span>
-                <span className="font-medium">-₹{totals.discount.toLocaleString()}</span>
+                <span className="font-medium">
+                  -₹{totals.discount.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Tax (18%):</span>
-                <span className="font-medium">₹{totals.tax.toLocaleString()}</span>
+                <span className="font-medium">
+                  ₹{totals.tax.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
@@ -561,8 +598,8 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={orderItems.length === 0 || !selectedCustomerId}
             onClick={() => {
               console.log("Submit button clicked");
@@ -587,4 +624,3 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
     </div>
   );
 }
-
