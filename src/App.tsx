@@ -65,6 +65,7 @@ import CompanyDetailPage from "./pages/hr/company-detail-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
+  const adminView = useAppSelector((s) => s.ui.adminView);
   return (
     <Routes>
       {/* App frame */}
