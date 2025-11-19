@@ -22,7 +22,13 @@ export type Customer = {
 };
 
 // Sales Order Types
-export type SalesOrderStatus = "draft" | "confirmed" | "picked" | "dispatched" | "delivered" | "cancelled";
+export type SalesOrderStatus =
+  | "draft"
+  | "confirmed"
+  | "picked"
+  | "dispatched"
+  | "delivered"
+  | "cancelled";
 
 export type SalesOrderItem = {
   id: string;
@@ -60,7 +66,11 @@ export type SalesOrder = {
 };
 
 // Picklist Types
-export type PicklistStatus = "pending" | "in_progress" | "completed" | "cancelled";
+export type PicklistStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 
 export type PicklistItem = {
   id: string;
@@ -92,7 +102,11 @@ export type Picklist = {
 };
 
 // Dispatch Types
-export type DispatchStatus = "planned" | "in_transit" | "delivered" | "returned";
+export type DispatchStatus =
+  | "planned"
+  | "in_transit"
+  | "delivered"
+  | "returned";
 
 export type Dispatch = {
   id: string;
@@ -117,7 +131,12 @@ export type Dispatch = {
 };
 
 // Delivery Tracking Types
-export type DeliveryTrackingStatus = "dispatched" | "in_transit" | "out_for_delivery" | "delivered" | "failed";
+export type DeliveryTrackingStatus =
+  | "dispatched"
+  | "in_transit"
+  | "out_for_delivery"
+  | "delivered"
+  | "failed";
 
 export type DeliveryTracking = {
   id: string;
@@ -148,24 +167,25 @@ export type InvoiceItem = {
 };
 
 export type Invoice = {
-  id: string;
-  invoiceNo: string;
-  orderId: string;
+  id?: string;
+  invoiceNo?: string;
+  orderId?: string;
   order?: SalesOrder;
-  customerId: string;
+  customerId?: string;
   customer?: Customer;
-  customerName: string;
-  date: string;
-  dueDate: string;
-  items: InvoiceItem[];
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-  paidAmount: number;
-  status: InvoiceStatus;
+  customerName?: string;
+  date?: string;
+  dueDate?: string;
+  items?: InvoiceItem[];
+  subtotal?: number;
+  tax?: number;
+  discount?: number;
+  total?: number;
+  paidAmount?: number;
+  status?: InvoiceStatus;
   paymentTerms?: string;
   notes?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt?: string;
+  amount?: number;
 };

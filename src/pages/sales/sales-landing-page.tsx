@@ -29,7 +29,7 @@ export default function SalesLandingPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Calculate KPIs
-  const totalSales = invoices.reduce((sum, inv) => sum + inv.total, 0);
+  const totalSales = invoices.reduce((sum, inv) => sum + inv.total!, 0);
   const pendingOrders = salesOrders.filter(
     (o) => o.status === "draft" || o.status === "confirmed"
   ).length;
@@ -66,8 +66,8 @@ export default function SalesLandingPage() {
     // Search in invoices
     const foundInvoice = invoices.find(
       (inv) =>
-        inv.invoiceNo.toLowerCase().includes(lowerQuery) ||
-        inv.customerName.toLowerCase().includes(lowerQuery)
+        inv.invoiceNo?.toLowerCase().includes(lowerQuery) ||
+        inv.customerName?.toLowerCase().includes(lowerQuery)
     );
 
     // Navigate to the first match found, prioritizing orders

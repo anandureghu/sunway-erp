@@ -1,3 +1,32 @@
+import "./App.css";
+
+
+/* Appraisal */
+import ManageStocks from "./pages/inventory/manage-stocks";
+import InventoryReportsPage from "./pages/inventory/inventory-reports-page";
+
+/* Sales */
+import SalesLandingPage from "./pages/sales/sales-landing-page";
+import SalesOrdersPage from "./pages/sales/sales-orders-page";
+import CustomersPage from "./pages/sales/customers-page";
+import PicklistDispatchPage from "./pages/sales/picklist-dispatch-page";
+import DeliveryTrackingPage from "./pages/sales/delivery-tracking-page";
+import InvoicesPage from "./pages/sales/invoices-page";
+
+/* Purchase */
+import PurchaseLandingPage from "./pages/purchase/purchase-landing-page";
+import PurchaseOrdersPage from "./pages/purchase/purchase-orders-page";
+import SuppliersPage from "./pages/purchase/suppliers-page";
+import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
+import ReceivingPage from "./pages/purchase/receiving-page";
+import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
+import { PrivateRoute } from "./components/protected-route";
+import { useAppSelector } from "./store/store";
+import CompanyPage from "./pages/admin/hr/company/company-page";
+import Payroll from "./pages/finance/payroll";
+import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
+import CompanyDetailPage from "./pages/hr/company-detail-page";
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 
@@ -55,30 +84,7 @@ import LeavesHistory from "@/modules/hr/leaves/tabs/LeavesHistory";
 import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
 import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
-import ManageStocks from "./pages/inventory/manage-stocks";
-import InventoryReportsPage from "./pages/inventory/inventory-reports-page";
 
-/* Sales */
-import SalesLandingPage from "./pages/sales/sales-landing-page";
-import SalesOrdersPage from "./pages/sales/sales-orders-page";
-import CustomersPage from "./pages/sales/customers-page";
-import PicklistDispatchPage from "./pages/sales/picklist-dispatch-page";
-import DeliveryTrackingPage from "./pages/sales/delivery-tracking-page";
-import InvoicesPage from "./pages/sales/invoices-page";
-
-/* Purchase */
-import PurchaseLandingPage from "./pages/purchase/purchase-landing-page";
-import PurchaseOrdersPage from "./pages/purchase/purchase-orders-page";
-import SuppliersPage from "./pages/purchase/suppliers-page";
-import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
-import ReceivingPage from "./pages/purchase/receiving-page";
-import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
-import { PrivateRoute } from "./components/protected-route";
-import { useAppSelector } from "./store/store";
-import CompanyPage from "./pages/admin/hr/company/company-page";
-import Payroll from "./pages/finance/payroll";
-import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
-import CompanyDetailPage from "./pages/hr/company-detail-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -137,20 +143,13 @@ export default function App() {
           <Route path=":id" element={<CompanyDetailPage />} />
         </Route>
 
-        <Route path="companies">
-          <Route path=":id" element={<CompanyDetailPage />} />
-        </Route>
-
         {/* HR */}
         <Route path="hr">
           {/* default for /hr */}
           <Route index element={<Navigate to="employees" replace />} />
 
           {/* alias /hr/employee -> /hr/employees */}
-          <Route
-            path="employee"
-            element={<Navigate to="/hr/employees" replace />}
-          />
+          <Route path="employee" element={<Navigate to="/hr/employees" replace />} />
 
           {/* employees list */}
           <Route path="employees" element={<EmployeesPage />} />
@@ -168,14 +167,8 @@ export default function App() {
             {/* Current Job */}
             <Route path="current-job" element={<CurrentJobShell />}>
               <Route index element={<CurrentJobForm />} />
-              <Route
-                path="previous-experiences"
-                element={<PreviousExperiencesForm />}
-              />
-              <Route
-                path="education"
-                element={<EducationQualificationsForm />}
-              />
+              <Route path="previous-experiences" element={<PreviousExperiencesForm />} />
+              <Route path="education" element={<EducationQualificationsForm />} />
             </Route>
 
             {/* Salary */}
@@ -188,19 +181,13 @@ export default function App() {
             {/* Immigration */}
             <Route path="immigration" element={<ImmigrationShell />}>
               <Route index element={<PassportForm />} />
-              <Route
-                path="residence-permit"
-                element={<ResidencePermitForm />}
-              />
+              <Route path="residence-permit" element={<ResidencePermitForm />} />
             </Route>
 
             {/* Loans */}
             <Route path="loans" element={<LoansShell />}>
               <Route index element={<LoansForm />} />
-              <Route
-                path="company-properties"
-                element={<CompanyPropertiesForm />}
-              />
+              <Route path="company-properties" element={<CompanyPropertiesForm />} />
             </Route>
 
             {/* Dependents */}
@@ -219,6 +206,7 @@ export default function App() {
               <Route index element={<PerformanceForm />} />
               <Route path="form" element={<AppraisalForm />} />
             </Route>
+
           </Route>
         </Route>
       </Route>

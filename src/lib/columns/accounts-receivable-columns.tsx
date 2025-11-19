@@ -62,8 +62,8 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
     accessorKey: "total",
     header: "Amount (₹)",
     cell: ({ row }) => {
-      const total = row.getValue("total") as number;
-      return <span className="font-semibold">₹ {total.toLocaleString()}</span>;
+      const total = row.getValue("amount") as number;
+      return <span className="font-semibold">₹ {total?.toLocaleString()}</span>;
     },
   },
   {
@@ -82,7 +82,7 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
+              onClick={() => navigator.clipboard.writeText(payment.id || "")}
             >
               Copy payment ID
             </DropdownMenuItem>

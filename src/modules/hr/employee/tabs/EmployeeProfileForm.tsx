@@ -86,7 +86,7 @@ export default function EmployeeProfileForm(): ReactElement {
   const persistChanges = useCallback((updated: EmpProfile) => {
     try {
       const stored = localStorage.getItem("employees");
-      let list = stored ? JSON.parse(stored) : null;
+      const list = stored ? JSON.parse(stored) : null;
       if (!list || !Array.isArray(list)) {
         // fallback: don't overwrite if missing
         return;
