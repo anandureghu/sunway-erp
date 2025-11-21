@@ -30,34 +30,37 @@ interface EmployeeStatsProps {
 export function EmployeeStats({ employees }: EmployeeStatsProps) {
   const stats = {
     total: employees.length,
-    active: employees.filter(e => e.status.toLowerCase() === "active").length,
-    onLeave: employees.filter(e => e.status.toLowerCase() === "on leave").length,
-    inactive: employees.filter(e => e.status.toLowerCase() === "inactive").length,
+    active: employees.filter((e) => e.status?.toLowerCase() === "active")
+      .length,
+    onLeave: employees.filter((e) => e.status?.toLowerCase() === "on leave")
+      .length,
+    inactive: employees.filter((e) => e.status?.toLowerCase() === "inactive")
+      .length,
   };
 
   return (
     <div className="grid gap-4 md:grid-cols-4 mb-6">
-      <StatCard 
-        label="Total Employees" 
+      <StatCard
+        label="Total Employees"
         value={stats.total}
-        icon={<UsersRound size={24} />} 
+        icon={<UsersRound size={24} />}
       />
-      <StatCard 
-        label="Active Employees" 
+      <StatCard
+        label="Active Employees"
         value={stats.active}
-        icon={<UserCheck size={24} />} 
+        icon={<UserCheck size={24} />}
         className="border-green-200"
       />
-      <StatCard 
-        label="On Leave" 
+      <StatCard
+        label="On Leave"
         value={stats.onLeave}
-        icon={<UserCog2 size={24} />} 
+        icon={<UserCog2 size={24} />}
         className="border-amber-200"
       />
-      <StatCard 
-        label="Inactive" 
+      <StatCard
+        label="Inactive"
         value={stats.inactive}
-        icon={<UserRoundCog size={24} />} 
+        icon={<UserRoundCog size={24} />}
         className="border-red-200"
       />
     </div>
