@@ -31,6 +31,13 @@ const INITIAL_DATA: Salary = {
   travelAllowance: "4000",
   otherAllowance: "4000",
   totalAllowance: "28000",
+  housing: "No",
+  housingAllowance: "",
+  payPeriodStart: "",
+  payPeriodEnd: "",
+  numberOfDaysWorked: "",
+  payPerDay: "",
+  overtime: "",
   compensationStatus: "Active",
   effectiveFrom: "",
   effectiveTo: "",
@@ -115,8 +122,23 @@ export default function SalaryForm() {
     const ta = parseFloat(formData.transportationAllowance) || 0;
     const tr = parseFloat(formData.travelAllowance) || 0;
     const oa = parseFloat(formData.otherAllowance) || 0;
-    return (ta + tr + oa).toString();
-  }, [formData.transportationAllowance, formData.travelAllowance, formData.otherAllowance]);
+    const ha = formData.housing === "Yes" ? (parseFloat(formData.housingAllowance) || 0) : 0;
+    return (ta + tr + oa + ha).toString();
+  }, [formData.transportationAllowance, formData.travelAllowance, formData.otherAllowance, formData.housing, formData.housingAllowance]);
+
+  // Calculate gross pay (basic salary + total allowance)
+  const grossPay = useMemo(() => {
+    const basic = parseFloat(formData.basicSalary) || 0;
+    const allowance = parseFloat(totalAllowance) || 0;
+    return (basic + allowance).toString();
+  }, [formData.basicSalary, totalAllowance]);
+
+  // Calculate compensation based on days worked * pay per day
+  const calculatedCompensation = useMemo(() => {
+    const daysWorked = parseFloat(formData.numberOfDaysWorked) || 0;
+    const payPerDay = parseFloat(formData.payPerDay) || 0;
+    return (daysWorked * payPerDay).toString();
+  }, [formData.numberOfDaysWorked, formData.payPerDay]);
 
   return (
     <div className="space-y-6">
@@ -192,17 +214,116 @@ export default function SalaryForm() {
           </FormField>
 
           <FormField 
-            label="Total Allowance"
+            label="Housing"
+            required
+          >
+            <SelectField
+              options={YES_NO_OPTIONS}
+              value={formData.housing}
+              onChange={e => updateField('housing')(e.target.value as 'Yes' | 'No')}
+              disabled={!editing}
+            />
+          </FormField>
+        </FormRow>
+
+        <FormRow columns={2}>
+          <FormField 
+            label="Housing Allowance"
+            required={formData.housing === 'Yes'}
           >
             <Input
-              value={formatMoney(totalAllowance)}
+              value={formatMoney(formData.housingAllowance)}
+              onChange={e => updateField('housingAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
+              placeholder="Enter housing allowance"
+              disabled={!editing || formData.housing === 'No'}
+            />
+          </FormField>
+
+          <FormField 
+            label="Total Compensation"
+          >
+            <Input
+              value={formatMoney(grossPay)}
               disabled
             />
           </FormField>
         </FormRow>
       </FormSection>
 
-      <FormSection title="Compensation Details">
+      <FormSection title="Pay Period and Work Days">
+        <FormRow columns={3}>
+          <FormField 
+            label="Pay Period Start"
+            required
+          >
+            <Input
+              type="date"
+              value={formData.payPeriodStart}
+              onChange={e => updateField('payPeriodStart')(e.target.value)}
+              disabled={!editing}
+            />
+          </FormField>
+
+          <FormField 
+            label="Pay Period End"
+            required
+          >
+            <Input
+              type="date"
+              value={formData.payPeriodEnd}
+              onChange={e => updateField('payPeriodEnd')(e.target.value)}
+              disabled={!editing}
+            />
+          </FormField>
+
+          <FormField 
+            label="Number of Days Worked"
+          >
+            <Input
+              type="number"
+              value={formData.numberOfDaysWorked}
+              onChange={e => updateField('numberOfDaysWorked')(e.target.value)}
+              placeholder="Enter number of days"
+              disabled={!editing}
+            />
+          </FormField>
+        </FormRow>
+
+        <FormRow columns={3}>
+          <FormField 
+            label="Pay Per Day"
+          >
+            <Input
+              value={formatMoney(formData.payPerDay)}
+              onChange={e => updateField('payPerDay')(e.target.value.replace(/[^0-9.]/g, ''))}
+              placeholder="Enter pay per day"
+              disabled={!editing}
+            />
+          </FormField>
+
+          <FormField 
+            label="Overtime"
+          >
+            <Input
+              value={formatMoney(formData.overtime)}
+              onChange={e => updateField('overtime')(e.target.value.replace(/[^0-9.]/g, ''))}
+              placeholder="Enter overtime amount"
+              disabled={!editing}
+            />
+          </FormField>
+
+          <FormField 
+            label="Calculated Compensation"
+          >
+            <Input
+              value={formatMoney(calculatedCompensation)}
+              disabled
+            />
+          </FormField>
+        </FormRow>
+      </FormSection>
+
+      <FormSection title="Compensation Status">
         <FormRow columns={3}>
           <FormField 
             label="Compensation Status"

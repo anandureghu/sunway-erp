@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 import type { CurrentJob } from "@/types/hr";
@@ -42,6 +42,24 @@ export default function CurrentJobForm() {
     }
   });
 
+  // Listen for shell-level edit/save/cancel events so the shell's Edit/Update button
+  // controls this form. CurrentJobShell dispatches these events.
+  useEffect(() => {
+    const onStart = () => handleEdit();
+    const onSave = () => handleSave();
+    const onCancel = () => handleCancel();
+
+    document.addEventListener("current-job:start-edit", onStart as EventListener);
+    document.addEventListener("current-job:save", onSave as EventListener);
+    document.addEventListener("current-job:cancel", onCancel as EventListener);
+
+    return () => {
+      document.removeEventListener("current-job:start-edit", onStart as EventListener);
+      document.removeEventListener("current-job:save", onSave as EventListener);
+      document.removeEventListener("current-job:cancel", onCancel as EventListener);
+    };
+  }, [handleEdit, handleSave, handleCancel]);
+
   const validateForm = (data: CurrentJob): ValidationErrors => {
     const errors: ValidationErrors = {};
 
@@ -59,18 +77,7 @@ export default function CurrentJobForm() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end">
-        {!editing ? (
-          <Button onClick={handleEdit} variant="outline">
-            ✏️ Edit/Update
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button onClick={handleCancel} variant="secondary">Cancel</Button>
-            <Button onClick={handleSave}>Save</Button>
-          </div>
-        )}
-      </div>
+      {/* Action bar is provided by the Current Job shell */}
 
       <FormSection title="Job Information">
         <FormRow columns={3}>

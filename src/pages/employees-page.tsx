@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmployeeFilters } from "@/modules/hr/components/employee-filters";
 import { EmployeeStats } from "@/modules/hr/components/employee-stats";
+import { AddEmployeeModal } from "@/context/employee-selection";
 
 interface EmployeeTableProps {
   data: Employee[];
@@ -52,6 +53,7 @@ const EmployeeSearchBar = ({ value, onChange }: EmployeeSearchBarProps) => (
 export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
   const navigate = useNavigate();
   const { setSelected } = useEmployeeSelection();
 
@@ -94,24 +96,47 @@ export default function EmployeesPage() {
     navigate(`/hr/employees/${employee.id}/profile`);
   };
 
+  const handleAddEmployee = (newEmployee: any) => {
+    EMPLOYEES.push({
+      id: `${EMPLOYEES.length + 1}`,
+      ...newEmployee,
+      status: "Active",
+      department: "",
+      designation: "",
+      dateOfBirth: "",
+      gender: "",
+      joinDate: "",
+      nationality: "",
+      nationalId: "",
+      maritalStatus: "",
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Employee Overview</h2>
         <div className="flex items-center gap-2">
-          <Button 
+          <Button
             variant="default"
             className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => {
-              alert('Add Employee flow not implemented in demo');
-            }}
+            onClick={() => setShowAddEmployee(true)}
           >
             + Add Employee
           </Button>
         </div>
       </div>
 
-      <EmployeeStats employees={EMPLOYEES} />
+    {showAddEmployee && (
+      <AddEmployeeModal
+        isOpen={showAddEmployee}
+        onAdd={(employee: any) => {
+          handleAddEmployee(employee);
+          setShowAddEmployee(false);
+        }}
+        onClose={() => setShowAddEmployee(false)}
+      />
+    )}      <EmployeeStats employees={EMPLOYEES} />
 
       <div className="rounded-md border bg-white">
         <div className="p-4">

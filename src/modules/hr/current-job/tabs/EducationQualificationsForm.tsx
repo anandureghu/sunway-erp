@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import type { PropsWithChildren } from "react";
+import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 type EducationData = {
   schoolName: string;
+  schoolAddress: string;
   yearGraduated: string;
   degreeEarned: string;
   major: string;
@@ -14,6 +16,7 @@ type EducationData = {
 
 const INITIAL_DATA: EducationData = {
   schoolName: "",
+  schoolAddress: "",
   yearGraduated: "",
   degreeEarned: "",
   major: "",
@@ -22,31 +25,36 @@ const INITIAL_DATA: EducationData = {
 };
 
 export default function EducationQualificationsForm(): React.ReactElement {
+  const { editing } = useOutletContext<{ editing: boolean }>();
   const [isEdit, setIsEdit] = useState(false);
   const [original, setOriginal] = useState<EducationData>(INITIAL_DATA);
   const [form, setForm] = useState<EducationData>(original);
 
-  const handleEdit = useCallback(() => {
-    // restore current data into the editable form
-    setForm(original);
-    setIsEdit(true);
-  }, [original]);
+  useEffect(() => {
+    const onStart = () => {
+      setForm(original);
+      setIsEdit(true);
+    };
+    const onSave = () => {
+      setOriginal(form);
+      setIsEdit(false);
+      console.log("Saved education data:", form);
+    };
+    const onCancel = () => {
+      setForm(original);
+      setIsEdit(false);
+    };
 
-  const handleCancel = useCallback(() => {
-    // revert changes
-    setForm(original);
-    setIsEdit(false);
-  }, [original]);
+    document.addEventListener("current-job:start-edit", onStart as EventListener);
+    document.addEventListener("current-job:save", onSave as EventListener);
+    document.addEventListener("current-job:cancel", onCancel as EventListener);
 
-  const handleSave = useCallback(() => {
-    // persist changes (placeholder)
-    setOriginal(form);
-    setIsEdit(false);
-    // TODO: replace with API call
-    // small console output for dev visibility
-    // eslint-disable-next-line no-console
-    console.log("Saved education data:", form);
-  }, [form]);
+    return () => {
+      document.removeEventListener("current-job:start-edit", onStart as EventListener);
+      document.removeEventListener("current-job:save", onSave as EventListener);
+      document.removeEventListener("current-job:cancel", onCancel as EventListener);
+    };
+  }, [form, original]);
 
   const handleChange = useCallback((field: keyof EducationData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -54,22 +62,9 @@ export default function EducationQualificationsForm(): React.ReactElement {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        {!isEdit ? (
-          <Button onClick={handleEdit} variant="outline" aria-label="Edit education">
-            ✏️ Edit/Update
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button onClick={handleCancel} variant="secondary" aria-label="Cancel editing">
-              Cancel
-            </Button>
-            <Button onClick={handleSave} aria-label="Save education">Save</Button>
-          </div>
-        )}
-      </div>
+      {/* Action bar is provided by Current Job shell */}
 
-      <Section title="Education 1">
+      <Section title="Education">
         <Row label="School Name:">
           <Input
             value={form.schoolName}
@@ -77,6 +72,16 @@ export default function EducationQualificationsForm(): React.ReactElement {
             placeholder="Enter school name"
             disabled={!isEdit}
             aria-label="School Name"
+          />
+        </Row>
+
+        <Row label="School Address:">
+          <Input
+            value={form.schoolAddress}
+            onChange={e => handleChange("schoolAddress", e.target.value)}
+            placeholder="Enter school address"
+            disabled={!isEdit}
+            aria-label="School Address"
           />
         </Row>
 

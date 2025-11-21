@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import type { ReactElement } from "react";
-import { useParams } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import EditUpdateButton from "@/components/EditUpdateButton";
+
+type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
 /* -------------------- types & constants -------------------- */
 
@@ -47,19 +48,9 @@ const SEED: LeaveRecord = {
 /* -------------------- component -------------------- */
 
 export default function LeavesForm(): ReactElement {
-  const { id: employeeId } = useParams<{ id: string }>();
+  const { editing } = useOutletContext<Ctx>();
 
-  const [saved, setSaved] = useState<LeaveRecord>(SEED);
   const [draft, setDraft] = useState<LeaveRecord>(SEED);
-  const [editing, setEditing] = useState(false);
-
-  // Optional legacy hook to allow shell to toggle via event
-  useEffect(() => {
-    const handler = () => setEditing((prev) => !prev);
-    // event is optional; typed as EventListener for safety
-    document.addEventListener("leaves:toggle-edit", handler as EventListener);
-    return () => document.removeEventListener("leaves:toggle-edit", handler as EventListener);
-  }, []);
 
   // Auto-calc total days (inclusive) when editing dates
   useEffect(() => {
@@ -78,38 +69,8 @@ export default function LeavesForm(): ReactElement {
     setDraft((d) => ({ ...d, [k]: v }));
   }, []);
 
-  const startEdit = useCallback(() => {
-    setDraft(saved);
-    setEditing(true);
-  }, [saved]);
-
-  const cancelEdit = useCallback(() => {
-    setDraft(saved);
-    setEditing(false);
-  }, [saved]);
-
-  const save = useCallback(() => {
-    setSaved(draft);
-    setEditing(false);
-
-    // Store/update a simple history list for the History tab
-    const key = `leaves-history-${employeeId ?? "unknown"}`;
-    const prev: LeaveRecord[] = JSON.parse(localStorage.getItem(key) || "[]");
-    const idx = prev.findIndex((r) => r.leaveCode === draft.leaveCode);
-    if (idx >= 0) prev[idx] = draft;
-    else prev.unshift(draft);
-    localStorage.setItem(key, JSON.stringify(prev));
-  }, [draft, employeeId]);
-
   return (
-    <div className="rounded-xl border bg-white overflow-hidden">
-      {/* Edit/Update toolbar (same position as Current Job) */}
-      <div className="px-4 pt-3 flex justify-end">
-        <EditUpdateButton editing={editing} onEdit={startEdit} onSave={save} onCancel={cancelEdit} />
-      </div>
-
-      {/* Form body */}
-      <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4">
         <Row>
           <Field label="Leave Code:">
               <Input
@@ -202,7 +163,6 @@ export default function LeavesForm(): ReactElement {
           <div />
         </Row>
       </div>
-    </div>
   );
 }
 
