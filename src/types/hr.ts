@@ -3,20 +3,32 @@ export type Gender = "Male" | "Female" | "Other";
 export type MaritalStatus = "Single" | "Married" | "Divorced" | "Widowed";
 
 export interface Employee {
-  id: string;
-  employeeNo: string;
-  firstName: string;
-  lastName: string;
-  status: EmployeeStatus;
+  id?: string;
+  employeeNo?: string;
+  firstName?: string;
+  lastName?: string;
+  status?: EmployeeStatus;
   department?: string;
   designation?: string;
-  dateOfBirth?: string;  // yyyy-mm-dd
+  dateOfBirth?: string; // yyyy-mm-dd
   gender?: Gender;
-  joinDate?: string;     // yyyy-mm-dd
+  joinDate?: string; // yyyy-mm-dd
   nationality?: string;
   nationalId?: string;
   maritalStatus?: MaritalStatus;
+
+  phoneNo?: string;
+  company?: string;
+  user?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  departmentId?: string;
+  email?: string;
+  username?: string;
+  role?: Role;
 }
+
+export type Role = "ADMIN" | "SUPER_ADMIN" | "USER";
 
 export interface CurrentJob {
   jobCode: string;
@@ -25,20 +37,24 @@ export interface CurrentJob {
   jobTitle: string;
   jobLevel: string;
   grade: string;
-  startDate: string;      // yyyy-mm-dd
-  effectiveFrom: string;  // yyyy-mm-dd
+  startDate: string; // yyyy-mm-dd
+  effectiveFrom: string; // yyyy-mm-dd
   expectedEndDate?: string; // yyyy-mm-dd
 }
 
 export type LeaveStatus = "Pending" | "Approved" | "Rejected";
-export type LeaveType = "Annual Leave" | "Sick Leave" | "Emergency Leave" | "Unpaid Leave";
+export type LeaveType =
+  | "Annual Leave"
+  | "Sick Leave"
+  | "Emergency Leave"
+  | "Unpaid Leave";
 
 export interface LeaveRecord {
   leaveCode: string;
   leaveType: LeaveType;
-  startDate: string;     // yyyy-mm-dd
-  endDate: string;       // yyyy-mm-dd
-  dateReported: string;  // yyyy-mm-dd
+  startDate: string; // yyyy-mm-dd
+  endDate: string; // yyyy-mm-dd
+  dateReported: string; // yyyy-mm-dd
   leaveBalance: string;
   leaveStatus: LeaveStatus;
   totalDays: number;
@@ -52,8 +68,8 @@ export interface Salary {
   otherAllowance: string;
   totalAllowance: string;
   compensationStatus: "Active" | "Inactive";
-  effectiveFrom: string;  // yyyy-mm-dd
-  effectiveTo: string;    // yyyy-mm-dd
+  effectiveFrom: string; // yyyy-mm-dd
+  effectiveTo: string; // yyyy-mm-dd
 }
 
 export interface Loan {
@@ -62,7 +78,7 @@ export interface Loan {
   notes: string;
   loanType: string;
   loanPeriod: string;
-  startDate: string;      // yyyy-mm-dd
+  startDate: string; // yyyy-mm-dd
   monthlyDeductions: string;
   loanStatus: string;
   balance: string;
@@ -75,8 +91,8 @@ export interface CompanyProperty {
   itemCode: string;
   itemName: string;
   itemStatus: string;
-  dateGiven: string;     // yyyy-mm-dd
-  returnDate: string;    // yyyy-mm-dd
+  dateGiven: string; // yyyy-mm-dd
+  returnDate: string; // yyyy-mm-dd
   description: string;
 }
 
@@ -85,7 +101,7 @@ export interface Dependent {
   firstName: string;
   middleName?: string;
   lastName: string;
-  dob?: string;          // yyyy-mm-dd
+  dob?: string; // yyyy-mm-dd
   gender?: Gender;
   nationalId?: string;
   nationality?: string;
@@ -98,7 +114,7 @@ export interface Appraisal {
   employeeComments: string;
   managerComments: string;
   rating?: number;
-  reviewDate?: string;   // yyyy-mm-dd
+  reviewDate?: string; // yyyy-mm-dd
   nextReviewDate?: string; // yyyy-mm-dd
   status?: "Draft" | "Submitted" | "Reviewed" | "Completed";
 }
