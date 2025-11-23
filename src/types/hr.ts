@@ -18,7 +18,7 @@ export interface Employee {
   maritalStatus?: MaritalStatus;
 
   phoneNo?: string;
-  company?: string;
+  companyId?: string;
   user?: string;
   createdAt?: string;
   updatedAt?: string;
