@@ -218,7 +218,7 @@ export default function EmployeeProfileForm(): ReactElement {
         )}
       </div>
 
-      {/* Row 1: Employee No | Prefix/First/Last */}
+      {/* Row 1: Employee No | Designation */}
       <Row>
         <Field label="Employee No">
           <Input
@@ -228,59 +228,6 @@ export default function EmployeeProfileForm(): ReactElement {
             value={draft.employeeNo}
             aria-label="Employee number"
             aria-readonly="true"
-          />
-        </Field>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="space-y-1.5" role="group">
-            <Label className="text-sm" htmlFor="field-prefix">
-              Prefix
-            </Label>
-            <select
-              id="field-prefix"
-              disabled={!editing}
-              className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
-              value={draft.prefix}
-              onChange={(e) =>
-                set("prefix", e.target.value as EmpProfile["prefix"])
-              }
-              aria-label="Prefix"
-            >
-              <option value="">Select…</option>
-              <option value="Mr.">Mr.</option>
-              <option value="Mrs.">Mrs.</option>
-              <option value="Ms.">Ms.</option>
-              <option value="Miss">Miss</option>
-              <option value="Dr.">Dr.</option>
-            </select>
-          </div>
-          <div className="space-y-1.5 col-span-2" role="group">
-            <Label className="text-sm" htmlFor="field-first-name">
-              First Name
-            </Label>
-            <Input
-              id="field-first-name"
-              type="text"
-              disabled={!editing}
-              value={draft.firstName}
-              onChange={(e) => set("firstName", e.target.value)}
-              aria-label="First name"
-              aria-required="true"
-            />
-          </div>
-        </div>
-      </Row>
-
-      {/* Row 2: Last Name | Designation */}
-      <Row>
-        <Field label="Last Name">
-          <Input
-            id="field-last-name"
-            type="text"
-            disabled={!editing}
-            value={draft.lastName}
-            onChange={(e) => set("lastName", e.target.value)}
-            aria-label="Last name"
-            aria-required="true"
           />
         </Field>
         <Field label="Designation">
@@ -294,6 +241,54 @@ export default function EmployeeProfileForm(): ReactElement {
           />
         </Field>
       </Row>
+
+      {/* Row 2: First Name | Prefix | Last Name */}
+      <div className="grid grid-cols-3 gap-4">
+        <Field label="First Name">
+          <Input
+            id="field-first-name"
+            type="text"
+            disabled={!editing}
+            value={draft.firstName}
+            onChange={(e) => set("firstName", e.target.value)}
+            aria-label="First name"
+            aria-required="true"
+          />
+        </Field>
+        <div className="space-y-1.5" role="group">
+          <Label className="text-sm" htmlFor="field-prefix">
+            Prefix
+          </Label>
+          <select
+            id="field-prefix"
+            disabled={!editing}
+            className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
+            value={draft.prefix}
+            onChange={(e) =>
+              set("prefix", e.target.value as EmpProfile["prefix"])
+            }
+            aria-label="Prefix"
+          >
+            <option value="">Select…</option>
+            <option value="Mr.">Mr.</option>
+            <option value="Mrs.">Mrs.</option>
+            <option value="Ms.">Ms.</option>
+            <option value="Miss">Miss</option>
+            <option value="Dr.">Dr.</option>
+          </select>
+        </div>
+        <Field label="Last Name">
+          <Input
+            id="field-last-name"
+            type="text"
+            disabled={!editing}
+            value={draft.lastName}
+            onChange={(e) => set("lastName", e.target.value)}
+            aria-label="Last name"
+            aria-required="true"
+          />
+        </Field>
+      </div>
 
       {/* Row 3: Status | Gender */}
       <Row>
