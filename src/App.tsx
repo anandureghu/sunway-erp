@@ -4,6 +4,7 @@ import "./App.css";
 /* Appraisal */
 import ManageStocks from "./pages/inventory/manage-stocks";
 import InventoryReportsPage from "./pages/inventory/inventory-reports-page";
+import InventoryItemDetail from "./pages/inventory/inventory-item-detail";
 
 /* Sales */
 import SalesLandingPage from "./pages/sales/sales-landing-page";
@@ -119,6 +120,7 @@ export default function App() {
         {/* Inventory */}
         <Route path="inventory">
           <Route path="stocks" element={<ManageStocks />} />
+          <Route path="stocks/:id" element={<InventoryItemDetail />} />
           <Route path="reports" element={<InventoryReportsPage />} />
           <Route path="sales" element={<SalesLandingPage />} />
           <Route path="sales/orders" element={<SalesOrdersPage />} />

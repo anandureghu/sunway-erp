@@ -7,6 +7,7 @@ import { getStockWithDetails, items, warehouses, searchItems, itemCategories } f
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 import { Package, Plus, Search, Warehouse as WarehouseIcon, AlertTriangle, FileText, TrendingUp, FileEdit, Save, X, Check, DollarSign, BarChart3, PieChart, Calendar, Clock } from "lucide-react";
 import { RECEIVE_ITEM_SCHEMA, type ReceiveItemFormData, STOCK_ADJUSTMENT_SCHEMA, type StockAdjustmentFormData } from "@/schema/inventory";
 import { useForm } from "react-hook-form";
@@ -35,6 +36,7 @@ import {
 } from "recharts";
 
 const ManageStocks = () => {
+  const navigate = useNavigate();
   const [stockData, setStockData] = useState(getStockWithDetails());
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,7 +53,7 @@ const ManageStocks = () => {
     resolver: zodResolver(RECEIVE_ITEM_SCHEMA),
     defaultValues: {
       receivedDate: format(new Date(), "yyyy-MM-dd"),
-      quantity: 0,
+      quantityReceived: 0,
     },
   });
 
@@ -151,12 +153,12 @@ const ManageStocks = () => {
       const updatedStock = [...stockData];
       updatedStock[existingStockIndex] = {
         ...updatedStock[existingStockIndex],
-        quantity: updatedStock[existingStockIndex].quantity + data.quantity,
+        quantity: updatedStock[existingStockIndex].quantity + data.quantityReceived,
         availableQuantity:
-          updatedStock[existingStockIndex].availableQuantity + data.quantity,
+          updatedStock[existingStockIndex].availableQuantity + data.quantityReceived,
         lastUpdated: new Date().toISOString(),
         batchNo: data.batchNo || updatedStock[existingStockIndex].batchNo,
-        lotNo: data.lotNo || updatedStock[existingStockIndex].lotNo,
+        dateReceived: data.receivedDate,
       };
       setStockData(updatedStock);
     } else {
@@ -168,12 +170,12 @@ const ManageStocks = () => {
           id: `stock-${Date.now()}`,
           itemId: data.itemId,
           warehouseId: data.warehouseId,
-          quantity: data.quantity,
-          availableQuantity: data.quantity,
+          quantity: data.quantityReceived,
+          availableQuantity: data.quantityReceived,
           reservedQuantity: 0,
           batchNo: data.batchNo,
-          lotNo: data.lotNo,
           serialNo: data.serialNo,
+          dateReceived: data.receivedDate,
           lastUpdated: new Date().toISOString(),
           item,
           warehouse,
@@ -495,21 +497,27 @@ const ManageStocks = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <DataTable columns={STOCK_COLUMNS} data={filteredStock} />
+              <DataTable 
+                columns={STOCK_COLUMNS} 
+                data={filteredStock}
+                onRowClick={(row) => {
+                  navigate(`/inventory/stocks/${row.original.id}`);
+                }}
+              />
             </TabsContent>
 
             {/* Receive Item Tab */}
             <TabsContent value="receive" className="space-y-6 mt-6">
               <form onSubmit={handleSubmit(onReceiveItem)} className="space-y-6">
-                {/* Item Information Section */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Item Information
+                      <Plus className="h-5 w-5 text-orange-500" />
+                      Receive Item
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Item Search */}
                     <div className="relative">
                       <label className="text-sm font-medium mb-2 block">
                         Item Code / SKU / Barcode
@@ -548,17 +556,19 @@ const ManageStocks = () => {
                     </div>
 
                     {selectedItem && (
-                      <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Field 1: Item Description */}
                         <div>
                           <label className="text-sm font-medium mb-2 block">
-                            Product Name
+                            Item Description
                           </label>
-                          <Input value={selectedItem.name} disabled />
+                          <Input value={selectedItem.description || selectedItem.name} disabled />
                         </div>
 
+                        {/* Field 2: Location/ warehouse */}
                         <div>
                           <label className="text-sm font-medium mb-2 block">
-                            Location / Warehouse
+                            Location/ warehouse
                           </label>
                           <Select
                             onValueChange={(value) => {
@@ -582,125 +592,146 @@ const ManageStocks = () => {
                               {errors.warehouseId.message}
                             </p>
                           )}
-                          {selectedWarehouseId && selectedItem && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              Current Stock: {getCurrentStock(selectedItem.id, selectedWarehouseId)}{" "}
-                              {selectedItem.unit}
-                            </p>
-                          )}
                         </div>
 
+                        {/* Field 3: Quantity on Hand */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Quantity on Hand
+                          </label>
+                          <Input
+                            value={
+                              selectedWarehouseId && selectedItem
+                                ? `${getCurrentStock(selectedItem.id, selectedWarehouseId)} ${selectedItem.unit}`
+                                : "-"
+                            }
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        </div>
+
+                        {/* Field 4: Product Status */}
                         <div>
                           <label className="text-sm font-medium mb-2 block">
                             Product Status
                           </label>
-                          <Input value={selectedItem.status} disabled />
+                          <Input value={selectedItem.status} disabled className="bg-gray-50" />
                         </div>
-                      </>
+
+                        {/* Field 5: Received Date */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Received Date
+                          </label>
+                          <Input
+                            type="date"
+                            {...register("receivedDate")}
+                          />
+                          {errors.receivedDate && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.receivedDate.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Field 6: Batch No. */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Batch No.
+                          </label>
+                          <Input
+                            placeholder="Batch number"
+                            {...register("batchNo")}
+                          />
+                        </div>
+
+                        {/* Field 7: Serial No. */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Serial No.
+                          </label>
+                          <Input
+                            placeholder="Serial number"
+                            {...register("serialNo")}
+                          />
+                        </div>
+
+                        {/* Field 8: Reference No. */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Reference No.
+                          </label>
+                          <Input
+                            placeholder="PO number or reference"
+                            {...register("referenceNo")}
+                          />
+                        </div>
+
+                        {/* Field 9: Quantity Received */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Quantity Received
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Enter quantity"
+                            {...register("quantityReceived", { valueAsNumber: true })}
+                          />
+                          {errors.quantityReceived && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.quantityReceived.message}
+                            </p>
+                          )}
+                          {selectedItem && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              Unit: {selectedItem.unit}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Field 10: Cost price */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Cost price
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Enter cost price"
+                            {...register("costPrice", { valueAsNumber: true })}
+                          />
+                          {errors.costPrice && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.costPrice.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Field 11: Unit Price */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Unit Price
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Enter unit price"
+                            {...register("unitPrice", { valueAsNumber: true })}
+                          />
+                          {errors.unitPrice && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.unitPrice.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </CardContent>
-                </Card>
 
-                {/* Receive Item Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Plus className="h-5 w-5 text-orange-500" />
-                      Receive an Item
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Received Date
-                      </label>
-                      <Input
-                        type="date"
-                        {...register("receivedDate")}
-                      />
-                      {errors.receivedDate && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.receivedDate.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Quantity on Hand
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Enter quantity"
-                        {...register("quantity", { valueAsNumber: true })}
-                      />
-                      {errors.quantity && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.quantity.message}
-                        </p>
-                      )}
-                      {selectedItem && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          Unit: {selectedItem.unit}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Batch Number (Optional)
-                        </label>
-                        <Input
-                          placeholder="Batch number"
-                          {...register("batchNo")}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Lot Number (Optional)
-                        </label>
-                        <Input
-                          placeholder="Lot number"
-                          {...register("lotNo")}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Serial Number (Optional)
-                      </label>
-                      <Input
-                        placeholder="Serial number"
-                        {...register("serialNo")}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Reference Number (Optional)
-                      </label>
-                      <Input
-                        placeholder="PO number or reference"
-                        {...register("referenceNo")}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Notes (Optional)
-                      </label>
-                      <Input
-                        placeholder="Additional notes"
-                        {...register("notes")}
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-4 pt-4">
+                    <div className="flex justify-end gap-4 pt-4 border-t">
                       <Button
                         type="button"
                         variant="outline"
