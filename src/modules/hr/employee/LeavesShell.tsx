@@ -32,8 +32,8 @@ export default function LeavesShell() {
         </div>
       </div>
 
-      {/* Action row BELOW header + Tabs */}
-      <div className="px-4 pt-3 flex justify-between items-center">
+      {/* Tabs + Action row (tabs left, edit controls right) */}
+      <div className="px-4 pt-3 flex justify-between items-center border-b bg-white" role="navigation" aria-label="Leaves sections">
         <div className="flex gap-2">
           <Tab to="." icon={<CalendarDays className="h-4 w-4" />}>
             Employee Leaves
@@ -73,8 +73,8 @@ function Tab({
       to={to}
       className={({ isActive }) =>
         [
-          "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm",
-          isActive ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800",
+          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm",
+          isActive ? "bg-blue-600 text-white" : "text-black hover:bg-gray-100",
         ].join(" ")
       }
     >

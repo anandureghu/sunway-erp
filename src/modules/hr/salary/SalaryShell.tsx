@@ -43,18 +43,15 @@ export default function SalaryShell() {
         </div>
       </div>
 
-      {/* Action row under the header */}
-      <div className="px-4 pt-3 flex justify-end">
-        <EditUpdateButton editing={editing} onEdit={startEdit} onCancel={cancel} onSave={save} />
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b bg-white">
-        <div className="flex gap-2 px-4 py-2">
+      {/* Tabs + Action row (tabs left, edit controls right) */}
+      <div className="px-4 pt-3 flex justify-between items-center border-b bg-white">
+        <div className="flex gap-2">
           <Tab to="" icon={<BadgeIndianRupee className="h-4 w-4" />} label="Salary" />
           <Tab to="bank" icon={<Landmark className="h-4 w-4" />} label="Bank" />
           <Tab to="payroll" icon={<Banknote className="h-4 w-4" />} label="Payroll" />
         </div>
+
+        <EditUpdateButton editing={editing} onEdit={startEdit} onCancel={cancel} onSave={save} />
       </div>
 
       {/* Active tab content */}

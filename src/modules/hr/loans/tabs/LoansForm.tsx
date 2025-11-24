@@ -1,4 +1,3 @@
-import { useOutletContext } from "react-router-dom";
 import type { ReactElement } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { formatMoney, generateId } from "@/lib/utils";
 
-type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
 type LoansModel = {
   id: string;
@@ -52,7 +50,6 @@ const INITIAL_LOAN: LoansModel = {
 };
 
 export default function LoansForm(): ReactElement {
-  const { editing } = useOutletContext<Ctx>();
   const [loans, setLoans] = useState<LoansModel[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -241,7 +238,6 @@ export default function LoansForm(): ReactElement {
                       variant="ghost" 
                       size="sm"
                       onClick={() => handleEdit(loan)}
-                      disabled={!editing}
                     >
                       Edit
                     </Button>
@@ -249,7 +245,6 @@ export default function LoansForm(): ReactElement {
                       variant="ghost" 
                       size="sm"
                       onClick={() => handleDelete(loan.id)}
-                      disabled={!editing}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

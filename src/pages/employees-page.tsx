@@ -29,9 +29,16 @@ interface EmployeeSearchBarProps {
   onChange: (value: string) => void;
 }
 
-const EmployeeSearchBar = ({ value, onChange }: EmployeeSearchBarProps) => (
-  <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-    <div className="flex gap-2 w-full max-w-md">
+interface EmployeeSearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+  showAdd?: boolean;
+  onAddClick?: () => void;
+}
+
+const EmployeeSearchBar = ({ value, onChange, showAdd, onAddClick }: EmployeeSearchBarProps) => (
+  <div className="flex items-center justify-between gap-3 p-4">
+    <div className="flex gap-2 w-full max-w-md items-center">
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -47,6 +54,18 @@ const EmployeeSearchBar = ({ value, onChange }: EmployeeSearchBarProps) => (
         Reset
       </Button>
     </div>
+
+    {showAdd && (
+      <div className="flex-shrink-0">
+        <Button
+          variant="default"
+          className="bg-blue-600 hover:bg-blue-700 h-9"
+          onClick={onAddClick}
+        >
+          + Add Employee
+        </Button>
+      </div>
+    )}
   </div>
 );
 
@@ -97,34 +116,36 @@ export default function EmployeesPage() {
   };
 
   const handleAddEmployee = (newEmployee: any) => {
-    EMPLOYEES.push({
-      id: `${EMPLOYEES.length + 1}`,
-      ...newEmployee,
-      status: "Active",
-      department: "",
-      designation: "",
-      dateOfBirth: "",
-      gender: "",
-      joinDate: "",
-      nationality: "",
-      nationalId: "",
-      maritalStatus: "",
-    });
+    const id = `${EMPLOYEES.length + 1}`;
+    const employee = {
+      id,
+      employeeNo: newEmployee.no ?? newEmployee.employeeNo ?? "",
+      firstName: newEmployee.firstName ?? "",
+      lastName: newEmployee.lastName ?? "",
+      department: newEmployee.department ?? "",
+      designation: newEmployee.designation ?? "",
+      status: newEmployee.status ?? "Active",
+      dateOfBirth: newEmployee.dateOfBirth ?? "",
+      gender: newEmployee.gender ?? "",
+      joinDate: newEmployee.joinDate ?? "",
+      nationality: newEmployee.nationality ?? "",
+      nationalId: newEmployee.nationalId ?? "",
+      maritalStatus: newEmployee.maritalStatus ?? "",
+    } as Employee;
+
+    EMPLOYEES.push(employee);
+
+    try {
+      localStorage.setItem("employees", JSON.stringify(EMPLOYEES));
+    } catch (e) {
+      // ignore localStorage errors in environments where it's unavailable
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Employee Overview</h2>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => setShowAddEmployee(true)}
-          >
-            + Add Employee
-          </Button>
-        </div>
       </div>
 
     {showAddEmployee && (
@@ -143,6 +164,8 @@ export default function EmployeesPage() {
           <EmployeeSearchBar 
             value={searchQuery}
             onChange={setSearchQuery}
+            showAdd={true}
+            onAddClick={() => setShowAddEmployee(true)}
           />
           
           <EmployeeFilters

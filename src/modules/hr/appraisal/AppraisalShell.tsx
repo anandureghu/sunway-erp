@@ -61,17 +61,14 @@ export default function AppraisalShell(): ReactElement {
         Employee Appraisal – {title}
       </div>
 
-      {/* Action row UNDER the header */}
-      <div className="px-4 pt-3 flex justify-end">
-        <EditUpdateBar editing={editing} onEdit={handleEdit} onCancel={handleCancel} onSave={handleSave} />
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b bg-white">
-        <div className="flex gap-2 px-4 py-2">
+      {/* Tabs + Action row (tabs left, edit controls right) */}
+      <div className="px-4 pt-3 flex justify-between items-center border-b bg-white">
+        <div className="flex gap-2">
           <Tab to="" icon={<ClipboardList className="h-4 w-4" />} label="Employee Performance" />
           <Tab to="form" icon={<FileText className="h-4 w-4" />} label="Appraisal Form" />
         </div>
+
+        <EditUpdateBar editing={editing} onEdit={handleEdit} onCancel={handleCancel} onSave={handleSave} />
       </div>
 
       {/* Active tab content */}
