@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import type { PropsWithChildren } from "react";
-import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 type EducationData = {
   schoolName: string;
@@ -25,7 +23,6 @@ const INITIAL_DATA: EducationData = {
 };
 
 export default function EducationQualificationsForm(): React.ReactElement {
-  const { editing } = useOutletContext<{ editing: boolean }>();
   const [isEdit, setIsEdit] = useState(false);
   const [original, setOriginal] = useState<EducationData>(INITIAL_DATA);
   const [form, setForm] = useState<EducationData>(original);
@@ -45,20 +42,32 @@ export default function EducationQualificationsForm(): React.ReactElement {
       setIsEdit(false);
     };
 
-    document.addEventListener("current-job:start-edit", onStart as EventListener);
+    document.addEventListener(
+      "current-job:start-edit",
+      onStart as EventListener
+    );
     document.addEventListener("current-job:save", onSave as EventListener);
     document.addEventListener("current-job:cancel", onCancel as EventListener);
 
     return () => {
-      document.removeEventListener("current-job:start-edit", onStart as EventListener);
+      document.removeEventListener(
+        "current-job:start-edit",
+        onStart as EventListener
+      );
       document.removeEventListener("current-job:save", onSave as EventListener);
-      document.removeEventListener("current-job:cancel", onCancel as EventListener);
+      document.removeEventListener(
+        "current-job:cancel",
+        onCancel as EventListener
+      );
     };
   }, [form, original]);
 
-  const handleChange = useCallback((field: keyof EducationData, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-  }, []);
+  const handleChange = useCallback(
+    (field: keyof EducationData, value: string) => {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
 
   return (
     <div className="space-y-4">
@@ -68,7 +77,7 @@ export default function EducationQualificationsForm(): React.ReactElement {
         <Row label="School Name:">
           <Input
             value={form.schoolName}
-            onChange={e => handleChange("schoolName", e.target.value)}
+            onChange={(e) => handleChange("schoolName", e.target.value)}
             placeholder="Enter school name"
             disabled={!isEdit}
             aria-label="School Name"
@@ -78,7 +87,7 @@ export default function EducationQualificationsForm(): React.ReactElement {
         <Row label="School Address:">
           <Input
             value={form.schoolAddress}
-            onChange={e => handleChange("schoolAddress", e.target.value)}
+            onChange={(e) => handleChange("schoolAddress", e.target.value)}
             placeholder="Enter school address"
             disabled={!isEdit}
             aria-label="School Address"
@@ -88,7 +97,7 @@ export default function EducationQualificationsForm(): React.ReactElement {
         <Row label="Year Graduated:">
           <Input
             value={form.yearGraduated}
-            onChange={e => handleChange("yearGraduated", e.target.value)}
+            onChange={(e) => handleChange("yearGraduated", e.target.value)}
             placeholder="Enter year"
             disabled={!isEdit}
             aria-label="Year Graduated"
@@ -98,7 +107,7 @@ export default function EducationQualificationsForm(): React.ReactElement {
         <Row label="Degree Earned:">
           <Input
             value={form.degreeEarned}
-            onChange={e => handleChange("degreeEarned", e.target.value)}
+            onChange={(e) => handleChange("degreeEarned", e.target.value)}
             placeholder="Enter degree"
             disabled={!isEdit}
             aria-label="Degree Earned"
@@ -108,7 +117,7 @@ export default function EducationQualificationsForm(): React.ReactElement {
         <Row label="Major:">
           <Input
             value={form.major}
-            onChange={e => handleChange("major", e.target.value)}
+            onChange={(e) => handleChange("major", e.target.value)}
             placeholder="Enter major"
             disabled={!isEdit}
             aria-label="Major"
@@ -118,7 +127,7 @@ export default function EducationQualificationsForm(): React.ReactElement {
         <Row label="Awards and Certificates:">
           <Input
             value={form.awards}
-            onChange={e => handleChange("awards", e.target.value)}
+            onChange={(e) => handleChange("awards", e.target.value)}
             placeholder="Enter awards"
             disabled={!isEdit}
             aria-label="Awards and Certificates"
@@ -128,7 +137,7 @@ export default function EducationQualificationsForm(): React.ReactElement {
         <Row label="Notes/Remarks:">
           <Input
             value={form.notes}
-            onChange={e => handleChange("notes", e.target.value)}
+            onChange={(e) => handleChange("notes", e.target.value)}
             placeholder="Enter notes"
             disabled={!isEdit}
             aria-label="Notes or Remarks"
@@ -143,7 +152,9 @@ function Section({ title, children }: PropsWithChildren<{ title: string }>) {
   return (
     <div className="rounded-md border">
       <div className="px-4 py-3 border-b text-lg font-semibold">{title}</div>
-      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {children}
+      </div>
     </div>
   );
 }
