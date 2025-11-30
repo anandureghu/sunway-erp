@@ -9,6 +9,7 @@ import type { LoginFormData } from "@/types/auth";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const {
@@ -43,7 +44,7 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-md shadow-none border-none">
       <CardContent className="p-6">
-        <img
+        {/* <img
           src="/assets/logo-dark.svg"
           alt="sunway"
           width={70}
@@ -54,11 +55,16 @@ export default function LoginPage() {
         </h2>
         <p className="text-center text-sm text-gray-500 mb-6">
           Welcome back! Please login to continue.
-        </p>
+        </p> */}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <Input placeholder="Username" {...register("username")} />
+            <div className="flex items-center gap-3">
+              <Label htmlFor="username" className="mb-1 block">
+                Username:
+              </Label>
+              <Input placeholder="Username" {...register("username")} />
+            </div>
             {errors.username && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.username.message}
@@ -67,11 +73,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <Input
-              type="password"
-              placeholder="Password"
-              {...register("password")}
-            />
+            <div className="flex items-center gap-3">
+              <Label htmlFor="password" className="mb-1 block">
+                Password:
+              </Label>
+              <Input
+                type="password"
+                placeholder="Password"
+                {...register("password")}
+              />
+            </div>
+
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">
                 {errors.password.message}
@@ -86,16 +98,6 @@ export default function LoginPage() {
             Login
           </Button>
         </form>
-
-        <div className="mt-6">
-          <Button
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2"
-            onClick={() => navigate("/")}
-          >
-            Skip Auth & Go to Dashboard
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );

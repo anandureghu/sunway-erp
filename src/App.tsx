@@ -1,6 +1,5 @@
 import "./App.css";
 
-
 /* Appraisal */
 import ManageStocks from "./pages/inventory/manage-stocks";
 import InventoryReportsPage from "./pages/inventory/inventory-reports-page";
@@ -84,7 +83,7 @@ import LeavesHistory from "@/modules/hr/leaves/tabs/LeavesHistory";
 import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
 import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
-
+import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -108,6 +107,7 @@ export default function App() {
         <Route path="finance">
           <Route path="receivable" element={<AccountsReceivablePage />} />
           <Route path="payroll" element={<Payroll />} />
+          <Route path="ledger" element={<GeneralLedgerPage />} />
         </Route>
 
         {/* Admin */}
@@ -149,7 +149,10 @@ export default function App() {
           <Route index element={<Navigate to="employees" replace />} />
 
           {/* alias /hr/employee -> /hr/employees */}
-          <Route path="employee" element={<Navigate to="/hr/employees" replace />} />
+          <Route
+            path="employee"
+            element={<Navigate to="/hr/employees" replace />}
+          />
 
           {/* employees list */}
           <Route path="employees" element={<EmployeesPage />} />
@@ -167,8 +170,14 @@ export default function App() {
             {/* Current Job */}
             <Route path="current-job" element={<CurrentJobShell />}>
               <Route index element={<CurrentJobForm />} />
-              <Route path="previous-experiences" element={<PreviousExperiencesForm />} />
-              <Route path="education" element={<EducationQualificationsForm />} />
+              <Route
+                path="previous-experiences"
+                element={<PreviousExperiencesForm />}
+              />
+              <Route
+                path="education"
+                element={<EducationQualificationsForm />}
+              />
             </Route>
 
             {/* Salary */}
@@ -181,13 +190,19 @@ export default function App() {
             {/* Immigration */}
             <Route path="immigration" element={<ImmigrationShell />}>
               <Route index element={<PassportForm />} />
-              <Route path="residence-permit" element={<ResidencePermitForm />} />
+              <Route
+                path="residence-permit"
+                element={<ResidencePermitForm />}
+              />
             </Route>
 
             {/* Loans */}
             <Route path="loans" element={<LoansShell />}>
               <Route index element={<LoansForm />} />
-              <Route path="company-properties" element={<CompanyPropertiesForm />} />
+              <Route
+                path="company-properties"
+                element={<CompanyPropertiesForm />}
+              />
             </Route>
 
             {/* Dependents */}
@@ -206,7 +221,6 @@ export default function App() {
               <Route index element={<PerformanceForm />} />
               <Route path="form" element={<AppraisalForm />} />
             </Route>
-
           </Route>
         </Route>
       </Route>
