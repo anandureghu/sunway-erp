@@ -1,18 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { Stock } from "@/types/inventory";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, AlertTriangle, Warehouse } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Warehouse } from "lucide-react";
 
 // Stock with details type
 type StockWithDetails = Stock & {
@@ -100,9 +90,7 @@ export const STOCK_COLUMNS: ColumnDef<StockWithDetails>[] = [
           <span className={`font-semibold ${isLowStock ? "text-red-600" : ""}`}>
             {stock.quantity.toLocaleString()} {stock.item.unit}
           </span>
-          {isLowStock && (
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          )}
+          {isLowStock && <AlertTriangle className="h-4 w-4 text-red-500" />}
         </div>
       );
     },
@@ -161,4 +149,3 @@ export const STOCK_COLUMNS: ColumnDef<StockWithDetails>[] = [
   //   },
   // },
 ];
-
