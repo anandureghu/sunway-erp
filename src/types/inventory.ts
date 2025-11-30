@@ -10,12 +10,15 @@ export type Item = {
   sku: string; // Stock Keeping Unit - for barcode/RFID support
   name: string;
   description?: string;
+  itemType?: string; // Item Type
   category: string;
   subcategory?: string;
+  brand?: string; // Brand
   unit: Unit;
   costPrice: number;
-  sellingPrice: number;
-  reorderLevel: number;
+  sellingPrice: number; // Retail Price
+  reorderLevel: number; // minimum
+  maximum?: number; // maximum stock level
   reorderQuantity?: number;
   status: ItemStatus;
   barcode?: string; // Barcode support
@@ -47,7 +50,10 @@ export type Stock = {
   lotNo?: string; // For lot tracking
   serialNo?: string; // For serial number tracking
   expiryDate?: string; // For expiry tracking
+  dateReceived?: string; // Date Recieved
+  saleByDate?: string; // Sale By Sate (Sale By Date)
   lastUpdated: string;
+  updatedBy?: string; // Updated by
   // Computed fields from joins
   item?: Item;
   warehouse?: Warehouse;
