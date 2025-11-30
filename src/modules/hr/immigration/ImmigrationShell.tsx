@@ -82,19 +82,9 @@ export default function ImmigrationShell(): ReactElement {
         <div className="text-lg font-semibold" role="heading" aria-level={1}>{title}</div>
       </div>
 
-      {/* Action row under header */}
-      <div className="px-4 pt-3 flex justify-end">
-        <EditUpdateBar
-          editing={editing}
-          onEdit={startEdit}
-          onSave={save}
-          onCancel={cancel}
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b bg-white" role="navigation" aria-label="Immigration sections">
-        <div className="flex gap-2 px-4 py-2">
+      {/* Tabs + Action row (tabs left, edit controls right) */}
+      <div className="px-4 pt-3 flex justify-between items-center border-b bg-white" role="navigation" aria-label="Immigration sections">
+        <div className="flex gap-2 px-0 py-0">
           <Tab to="" icon={<Contact2 className="h-4 w-4" aria-hidden="true" />} label="Passport" />
           <Tab
             to="residence-permit"
@@ -102,6 +92,13 @@ export default function ImmigrationShell(): ReactElement {
             label="Residence Permit"
           />
         </div>
+
+        <EditUpdateBar
+          editing={editing}
+          onEdit={startEdit}
+          onSave={save}
+          onCancel={cancel}
+        />
       </div>
 
       {/* Tab content */}

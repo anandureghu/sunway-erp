@@ -67,6 +67,13 @@ export interface Salary {
   travelAllowance: string;
   otherAllowance: string;
   totalAllowance: string;
+  housing: "Yes" | "No";
+  housingAllowance: string;
+  payPeriodStart: string;  // yyyy-mm-dd
+  payPeriodEnd: string;    // yyyy-mm-dd
+  numberOfDaysWorked: string;
+  payPerDay: string;
+  overtime: string;
   compensationStatus: "Active" | "Inactive";
   effectiveFrom: string; // yyyy-mm-dd
   effectiveTo: string; // yyyy-mm-dd

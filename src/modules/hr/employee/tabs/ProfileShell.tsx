@@ -95,22 +95,19 @@ export default function ProfileShell(): ReactElement {
         <div className="text-lg font-semibold" role="heading" aria-level={1}>{title}</div>
       </div>
 
-      {/* Action bar under header */}
-      <div className="px-4 pt-3 flex justify-end">
+      {/* Tabs + Action row (tabs left, edit controls right) */}
+      <div className="px-4 pt-3 flex justify-between items-center border-b bg-white" role="navigation" aria-label="Profile sections">
+        <div className="flex gap-2">
+          <Tab to="" icon={<IdCard className="h-4 w-4" aria-hidden="true" />} label="Employee Profile" />
+          <Tab to="contact" icon={<Contact className="h-4 w-4" aria-hidden="true" />} label="Contact Info" />
+        </div>
+
         <EditUpdateBar
           editing={editing}
           onEdit={startEdit}
           onSave={save}
           onCancel={cancel}
         />
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b bg-white" role="navigation" aria-label="Profile sections">
-        <div className="flex gap-2 px-4 py-2">
-          <Tab to="" icon={<IdCard className="h-4 w-4" aria-hidden="true" />} label="Employee Profile" />
-          <Tab to="contact" icon={<Contact className="h-4 w-4" aria-hidden="true" />} label="Contact Info" />
-        </div>
       </div>
 
       {/* Active tab content */}
