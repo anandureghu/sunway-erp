@@ -89,8 +89,15 @@ export function DependentsForm() {
   }, []);
 
   const handleCancel = useCallback(() => {
+    // If we're cancelling while adding a new dependent (empty fields), remove that placeholder
+    setDependents(current => current.filter(d => {
+      if (d.id !== editingId) return true;
+      // if the dependent is essentially empty, drop it
+      const isEmpty = !(d.firstName?.trim() || d.lastName?.trim() || d.relationship || d.gender || d.nationalId || d.nationality || d.dob);
+      return !isEmpty;
+    }));
     setEditingId(null);
-  }, []);
+  }, [editingId]);
 
   const handleDelete = useCallback((id: string) => {
     if (window.confirm('Are you sure you want to delete this dependent?')) {

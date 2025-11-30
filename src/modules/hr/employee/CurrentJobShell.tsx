@@ -1,6 +1,7 @@
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { NavLink, Outlet, useParams, useSearchParams } from "react-router-dom";
 import { BriefcaseBusiness, GraduationCap, Hourglass } from "lucide-react";
 import { EMPLOYEES } from "@/pages/employees.mock";
+import EditUpdateButton from "@/components/EditUpdateButton";
 
 export default function CurrentJobShell() {
   const { id } = useParams<{ id: string }>();
@@ -9,6 +10,17 @@ export default function CurrentJobShell() {
   const employeeTitle = emp
     ? `${emp.firstName} ${emp.lastName}${emp.employeeNo ? ` (${emp.employeeNo})` : ""}`
     : id; 
+
+  const [sp, setSp] = useSearchParams();
+
+  const editing = sp.get("edit") === "1";
+
+  const setEditing = (val: boolean) => {
+    const next = new URLSearchParams(sp);
+    if (val) next.set("edit", "1");
+    else next.delete("edit");
+    setSp(next, { replace: true });
+  };
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -20,9 +32,9 @@ export default function CurrentJobShell() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b bg-white">
-        <div className="flex gap-2 px-3 py-2">
+      {/* Action row BELOW header + Tabs */}
+      <div className="px-4 pt-3 flex justify-between items-center border-b bg-white">
+        <div className="flex gap-2">
           <TabLink to="" end icon={<BriefcaseBusiness className="w-4 h-4" />}>
             Current Job
           </TabLink>
@@ -33,10 +45,27 @@ export default function CurrentJobShell() {
             Education and Qualifications
           </TabLink>
         </div>
+
+        <EditUpdateButton
+          editing={editing}
+          onEdit={() => {
+            // notify children that editing started
+            window.dispatchEvent(new CustomEvent("current-job:start-edit"));
+            setEditing(true);
+          }}
+          onCancel={() => {
+            window.dispatchEvent(new CustomEvent("current-job:cancel"));
+            setEditing(false);
+          }}
+          onSave={() => {
+            window.dispatchEvent(new CustomEvent("current-job:save"));
+            setEditing(false);
+          }}
+        />
       </div>
 
       <div className="p-4">
-        <Outlet />
+        <Outlet context={{ editing, setEditing }} />
       </div>
     </div>
   );

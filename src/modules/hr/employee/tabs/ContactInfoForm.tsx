@@ -67,131 +67,115 @@ export default function ContactInfoForm() {
 
   return (
     <div className="space-y-6">
-      <Row>
-        <Field label="Email">
-          <Input
-            disabled={!editing}
-            value={draft.email}
-            onChange={(e) => set("email", e.target.value)}
-          />
-        </Field>
-        <Field label="Phone">
-          <Input
-            disabled={!editing}
-            value={draft.phone}
-            onChange={(e) => set("phone", e.target.value)}
-          />
-        </Field>
-      </Row>
+      {/* Two-column: left = Address, right = Emergency Contact */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <Field label="Address Line 1">
+            <Input
+              disabled={!editing}
+              value={draft.addressLine1}
+              onChange={(e) => set("addressLine1", e.target.value)}
+            />
+          </Field>
 
-      <Row>
-        <Field label="Alternate Phone">
-          <Input
-            disabled={!editing}
-            value={draft.altPhone}
-            onChange={(e) => set("altPhone", e.target.value)}
-          />
-        </Field>
-        <div />
-      </Row>
+          <Field label="Address Line 2">
+            <Input
+              disabled={!editing}
+              value={draft.addressLine2}
+              onChange={(e) => set("addressLine2", e.target.value)}
+            />
+          </Field>
 
-      <Row>
-        <Field label="Address Line 1">
-          <Input
-            disabled={!editing}
-            value={draft.addressLine1}
-            onChange={(e) => set("addressLine1", e.target.value)}
-          />
-        </Field>
-        <Field label="Address Line 2">
-          <Input
-            disabled={!editing}
-            value={draft.addressLine2}
-            onChange={(e) => set("addressLine2", e.target.value)}
-          />
-        </Field>
-      </Row>
+          <Field label="City">
+            <Input
+              disabled={!editing}
+              value={draft.city}
+              onChange={(e) => set("city", e.target.value)}
+            />
+          </Field>
 
-      <Row>
-        <Field label="City">
-          <Input
-            disabled={!editing}
-            value={draft.city}
-            onChange={(e) => set("city", e.target.value)}
-          />
-        </Field>
-        <Field label="State">
-          <Input
-            disabled={!editing}
-            value={draft.state}
-            onChange={(e) => set("state", e.target.value)}
-          />
-        </Field>
-      </Row>
+          <Field label="State">
+            <Input
+              disabled={!editing}
+              value={draft.state}
+              onChange={(e) => set("state", e.target.value)}
+            />
+          </Field>
 
-      <Row>
-        <Field label="Zip Code">
-          <Input
-            disabled={!editing}
-            value={draft.zipcode}
-            onChange={(e) => set("zipcode", e.target.value)}
-          />
-        </Field>
-        <Field label="Country">
-          <Input
-            disabled={!editing}
-            value={draft.country}
-            onChange={(e) => set("country", e.target.value)}
-          />
-        </Field>
-      </Row>
+          <Field label="Postal Code">
+            <Input
+              disabled={!editing}
+              value={draft.zipcode}
+              onChange={(e) => set("zipcode", e.target.value)}
+            />
+          </Field>
 
-      <Row>
-        <Field label="Emergency Contact Name">
-          <Input
-            disabled={!editing}
-            value={draft.emergencyName}
-            onChange={(e) => set("emergencyName", e.target.value)}
-          />
-        </Field>
-        <Field label="Relationship">
-          <Input
-            disabled={!editing}
-            value={draft.emergencyRelation}
-            onChange={(e) => set("emergencyRelation", e.target.value)}
-          />
-        </Field>
-      </Row>
+          <Field label="Country">
+            <Input
+              disabled={!editing}
+              value={draft.country}
+              onChange={(e) => set("country", e.target.value)}
+            />
+          </Field>
+        </div>
 
-      <Row>
-        <Field label="Emergency Phone">
-          <Input
-            disabled={!editing}
-            value={draft.emergencyPhone}
-            onChange={(e) => set("emergencyPhone", e.target.value)}
-          />
-        </Field>
-        <div />
-      </Row>
+        <div className="space-y-4">
+          <Field label="Emergency Contact Name">
+            <Input
+              disabled={!editing}
+              value={draft.emergencyName}
+              onChange={(e) => set("emergencyName", e.target.value)}
+            />
+          </Field>
 
+          <Field label="Relationship">
+            <Input
+              disabled={!editing}
+              value={draft.emergencyRelation}
+              onChange={(e) => set("emergencyRelation", e.target.value)}
+            />
+          </Field>
+
+          <Field label="Emergency Phone">
+            <Input
+              disabled={!editing}
+              value={draft.emergencyPhone}
+              onChange={(e) => set("emergencyPhone", e.target.value)}
+            />
+          </Field>
+
+          <Field label="Notes">
+            <Textarea
+              disabled={!editing}
+              value={draft.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              className="min-h-[80px]"
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* Full-width Notes/Remarks */}
       <div className="space-y-1.5">
-        <Label className="text-sm">Notes</Label>
+        <Label className="text-sm">Notes/Remarks:</Label>
         <Textarea
           disabled={!editing}
           value={draft.notes}
           onChange={(e) => set("notes", e.target.value)}
-          className="min-h-[100px]"
+          className="min-h-[100px] w-full"
         />
       </div>
     </div>
   );
 }
 
-/* layout helpers */
-function Row({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
-}
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-sm">{label}</Label>

@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { formatMoney } from "@/lib/utils";
 
 type SalaryCtx = { editing: boolean };
 
 type PayrollRow = {
   payrollCode: string;
-  payPeriod: string;      // yyyy-mm-dd
-  payPeriodEnd: string;   // yyyy-mm-dd
-  workingPeriod: string;
-  payDays: string;
-  basic: string;
+  payPeriodStart: string;    // yyyy-mm-dd (populated from salary)
+  payPeriodEnd: string;      // yyyy-mm-dd (populated from salary)
+  grossPay: string;          // calculated from Total Compensation (basicSalary + totalAllowance)
+  payDay: string;            // only editable field
   netPayable: string;
   bankName: string;
   bankAccount: string;
@@ -19,18 +19,17 @@ type PayrollRow = {
 const ROWS: PayrollRow[] = [
   {
     payrollCode: "",
-    payPeriod: "2025-09-22",
+    payPeriodStart: "2025-09-22",
     payPeriodEnd: "2025-10-22",
-    workingPeriod: "",
-    payDays: "",
-    basic: "50000",
+    grossPay: "78000",  // 50000 + 28000
+    payDay: "",
     netPayable: "28000",
     bankName: "",
     bankAccount: "",
   },
-  { payrollCode: "", payPeriod: "", payPeriodEnd: "", workingPeriod: "", payDays: "", basic: "50000", netPayable: "28000", bankName: "", bankAccount: "" },
-  { payrollCode: "", payPeriod: "", payPeriodEnd: "", workingPeriod: "", payDays: "", basic: "60000", netPayable: "0", bankName: "", bankAccount: "" },
-  { payrollCode: "", payPeriod: "", payPeriodEnd: "", workingPeriod: "", payDays: "", basic: "60000", netPayable: "0", bankName: "", bankAccount: "" },
+  { payrollCode: "", payPeriodStart: "", payPeriodEnd: "", grossPay: "78000", payDay: "", netPayable: "28000", bankName: "", bankAccount: "" },
+  { payrollCode: "", payPeriodStart: "", payPeriodEnd: "", grossPay: "88000", payDay: "", netPayable: "0", bankName: "", bankAccount: "" },
+  { payrollCode: "", payPeriodStart: "", payPeriodEnd: "", grossPay: "88000", payDay: "", netPayable: "0", bankName: "", bankAccount: "" },
 ];
 
 export default function PayrollTab() {
@@ -54,50 +53,46 @@ export default function PayrollTab() {
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[1100px] grid grid-cols-9 gap-3 items-center">
-        <Header>KPI Employee No.</Header>
+      <div className="min-w-[1100px] grid grid-cols-8 gap-3 items-center">
         <Header>Payroll Code</Header>
-        <Header>Pay Period</Header>
+        <Header>Pay Period Start</Header>
         <Header>Pay Period End</Header>
-        <Header>Working Period</Header>
-        <Header>Pay Days</Header>
-        <Header>Basic</Header>
+        <Header>Gross Pay</Header>
+        <Header>Pay Day</Header>
         <Header>Net Payable</Header>
         <Header>Bank Name</Header>
+        <Header>Bank Account</Header>
         {/* rows */}
         {draft.map((r, i) => (
           <Row key={i}>
             <Cell>
-              <Input disabled value="" />
+              <Input disabled value={r.payrollCode} />
             </Cell>
             <Cell>
-              <Input disabled={!editing} value={r.payrollCode} onChange={(e) => set(i, "payrollCode", e.target.value)} />
+              <Input type="date" disabled value={r.payPeriodStart} />
             </Cell>
             <Cell>
-              <Input type="date" disabled={!editing} value={r.payPeriod} onChange={(e) => set(i, "payPeriod", e.target.value)} />
+              <Input type="date" disabled value={r.payPeriodEnd} />
             </Cell>
             <Cell>
-              <Input type="date" disabled={!editing} value={r.payPeriodEnd} onChange={(e) => set(i, "payPeriodEnd", e.target.value)} />
+              <Input disabled value={formatMoney(r.grossPay)} />
             </Cell>
             <Cell>
-              <Input disabled={!editing} value={r.workingPeriod} onChange={(e) => set(i, "workingPeriod", e.target.value)} />
+              <Input
+                type="date"
+                disabled={!editing}
+                value={r.payDay}
+                onChange={(e) => set(i, "payDay", e.target.value)}
+              />
             </Cell>
             <Cell>
-              <Input disabled={!editing} value={r.payDays} onChange={(e) => set(i, "payDays", e.target.value)} />
+              <Input disabled value={formatMoney(r.netPayable)} />
             </Cell>
             <Cell>
-              <Input disabled={!editing} value={r.basic} onChange={(e) => set(i, "basic", e.target.value)} />
+              <Input disabled value={r.bankName} />
             </Cell>
             <Cell>
-              <Input disabled={!editing} value={r.netPayable} onChange={(e) => set(i, "netPayable", e.target.value)} />
-            </Cell>
-            <Cell>
-              <Input disabled={!editing} value={r.bankName} onChange={(e) => set(i, "bankName", e.target.value)} />
-            </Cell>
-            {/* extra: Bank Account */}
-            <Header className="col-span-9 hidden" children={undefined} />
-            <Cell className="hidden">
-              <Input disabled={!editing} value={r.bankAccount} onChange={(e) => set(i, "bankAccount", e.target.value)} />
+              <Input disabled value={r.bankAccount} />
             </Cell>
           </Row>
         ))}
