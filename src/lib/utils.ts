@@ -12,14 +12,16 @@ export function generateId(): string {
 }
 
 export function formatDate(date: string) {
-  if (!date) return '';
+  if (!date) return "";
   return new Date(date).toLocaleDateString();
 }
 
 export function formatMoney(amount: string | number) {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
   }).format(num);
 }
+
+export const toISO = (date: string) => new Date(date).toISOString();

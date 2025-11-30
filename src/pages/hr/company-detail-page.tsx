@@ -7,25 +7,77 @@ import { toast } from "sonner";
 import { type Company } from "@/types/company";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { CompanyDialog } from "../admin/hr/company/company-dialog";
+import { EmployeeDialog } from "../admin/hr/employee/employee-dialog";
+import type { Employee } from "@/types/hr";
 
 export default function CompanyDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
+  // admin state
+  const [admin, setAdmin] = useState<Employee | null>(null);
+  const [adminLoading, setAdminLoading] = useState(true);
+  const [, setAdminError] = useState<string | null>(null);
+  const [openEditAdmin, setOpenEditAdmin] = useState(false);
+  const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
+
+  const [openCreateAdmin, setOpenCreateAdmin] = useState(false);
+
+  const handleCreateAdmin = () => {
+    setOpenCreateAdmin(true);
+  };
+
   const fetchCompany = async () => {
     try {
       const res = await apiClient.get(`/companies/${id}`);
       setCompany(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("fetchCompany:", err);
       toast.error("Failed to load company");
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchCompanyAdmin = async () => {
+    if (!id) return;
+    setAdminLoading(true);
+    setAdminError(null);
+    // backend endpoint you showed: GET /employees/admin/{companyId}
+    apiClient
+      .get(`/employees/admin/${id}`)
+      .then((res) => {
+        setAdmin(res.data);
+      })
+      .catch((err) => {
+        // if API returns 500 with message "No admin exists for this company"
+        // treat it as "no admin" instead of fatal error
+        console.warn("fetchCompanyAdmin:", err);
+        const message =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to check company admin";
+        // if the backend uses 500 for "no admin", check that message and suppress toast
+        if (
+          message?.toLowerCase().includes("no admin") ||
+          err?.response?.status === 404
+        ) {
+          setAdmin(null);
+          // set adminError only for UI logic, no toast
+          setAdminError("No admin exists");
+        } else {
+          // unexpected error - show toast
+          setAdminError(message);
+          toast.error("Failed to check admin");
+        }
+      })
+      .finally(() => {
+        setAdminLoading(false);
+      });
   };
 
   const handleDelete = async () => {
@@ -41,7 +93,8 @@ export default function CompanyDetailPage() {
 
   useEffect(() => {
     fetchCompany();
-  }, []);
+    fetchCompanyAdmin();
+  }, [id]);
 
   if (loading)
     return (
@@ -163,6 +216,69 @@ export default function CompanyDetailPage() {
         </Card>
       </div>
 
+      {/* Admin Card / Create Admin */}
+      <div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Company Admin</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {adminLoading ? (
+              <p className="text-muted-foreground">Checking for admin...</p>
+            ) : admin ? (
+              <div className="text-sm space-y-1">
+                <p>
+                  <span className="font-semibold">Name:</span> {admin.firstName}{" "}
+                  {admin.lastName}
+                </p>
+                <p>
+                  <span className="font-semibold">Role:</span> {admin.role}
+                </p>
+                <p>
+                  <span className="font-semibold">Phone:</span>{" "}
+                  {admin.phoneNo || "-"}
+                </p>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate(`/admin/employees/${admin.id}`)}
+                  >
+                    View Profile
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setEditEmployee(admin);
+                      setOpenEditAdmin(true);
+                    }}
+                  >
+                    Edit Admin
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    No admin exists for this company.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Create an admin to manage company HR and permissions.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleCreateAdmin}>Create Admin</Button>
+                  {/* If you want an automatic creation (POST) you could add a different button that calls the POST /api/employees with role ADMIN.
+                      For safety UX we prefer navigating to the create form so the user can enter details. */}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Edit Dialog */}
       <CompanyDialog
         open={open}
@@ -173,6 +289,33 @@ export default function CompanyDetailPage() {
           fetchCompany();
         }}
       />
+
+      <EmployeeDialog
+        open={openCreateAdmin}
+        onOpenChange={setOpenCreateAdmin}
+        companyId={Number(id)}
+        presetRole="ADMIN"
+        onSuccess={() => {
+          setOpenCreateAdmin(false);
+          fetchCompanyAdmin(); // Refresh admin info immediately
+        }}
+      />
+
+      {editEmployee && (
+        <EmployeeDialog
+          open={openEditAdmin}
+          onOpenChange={setOpenEditAdmin}
+          mode="edit"
+          employee={editEmployee}
+          employeeId={editEmployee?.id}
+          companyId={company.id} // important
+          presetRole="ADMIN"
+          onSuccess={() => {
+            setOpenEditAdmin(false);
+            fetchCompanyAdmin();
+          }}
+        />
+      )}
     </div>
   );
 }
