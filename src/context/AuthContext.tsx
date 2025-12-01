@@ -2,24 +2,19 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { apiClient } from "@/service/apiClient";
+import type { Employee, Role } from "@/types/hr";
 
 type DecodedToken = {
   userId: number;
-  role: string;
+  role: Role;
   username: string;
   sub: string;
   iss: string;
   exp: number;
 };
 
-type User = {
-  id: number;
-  username: string;
-  role: string;
-};
-
 type AuthContextType = {
-  user: User | null;
+  user: Employee | null;
   accessToken: string | null;
   refreshToken: string | null;
   login: (accessToken: string, refreshToken: string) => void;
@@ -32,7 +27,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<Employee | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(
     localStorage.getItem("accessToken")
   );
@@ -50,9 +45,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const decoded: DecodedToken = jwtDecode(accessToken);
         setUser({
-          id: decoded.userId,
+          id: decoded.userId.toString(),
           username: decoded.username,
-          role: decoded.role,
+          role: decoded.role as Role,
+        });
+        apiClient.get("/users/" + decoded.userId).then((response) => {
+          setUser(response.data);
         });
       } catch (e) {
         console.warn("Invalid token, logging out: ", e);
@@ -60,6 +58,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
   }, []);
+
+  console.log(user);
 
   /** Handle auto-refresh logic */
   useEffect(() => {
@@ -100,9 +100,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const decoded: DecodedToken = jwtDecode(accessToken);
       setUser({
-        id: decoded.userId,
+        id: decoded.userId.toString(),
         username: decoded.username,
-        role: decoded.role,
+        role: decoded.role as Role,
       });
     } catch (err) {
       console.error("Token decode failed", err);

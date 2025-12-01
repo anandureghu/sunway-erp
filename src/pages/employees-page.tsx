@@ -36,7 +36,12 @@ interface EmployeeSearchBarProps {
   onAddClick?: () => void;
 }
 
-const EmployeeSearchBar = ({ value, onChange, showAdd, onAddClick }: EmployeeSearchBarProps) => (
+const EmployeeSearchBar = ({
+  value,
+  onChange,
+  showAdd,
+  onAddClick,
+}: EmployeeSearchBarProps) => (
   <div className="flex items-center justify-between gap-3 p-4">
     <div className="flex gap-2 w-full max-w-md items-center">
       <Input
@@ -78,18 +83,20 @@ export default function EmployeesPage() {
 
   const filteredEmployees = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    
+
     return EMPLOYEES.filter((employee: Employee) => {
-      const matchesSearch = !query || 
-        employee.employeeNo.toLowerCase().includes(query) ||
-        employee.firstName.toLowerCase().includes(query) ||
-        employee.lastName.toLowerCase().includes(query) ||
+      const matchesSearch =
+        !query ||
+        employee.employeeNo!.toLowerCase().includes(query) ||
+        employee.firstName!.toLowerCase().includes(query) ||
+        employee.lastName!.toLowerCase().includes(query) ||
         (employee.department ?? "").toLowerCase().includes(query) ||
         (employee.designation ?? "").toLowerCase().includes(query) ||
-        employee.status.toLowerCase().includes(query);
+        employee.status!.toLowerCase().includes(query);
 
-      const matchesStatus = !statusFilter || 
-        employee.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus =
+        !statusFilter ||
+        employee.status!.toLowerCase() === statusFilter.toLowerCase();
 
       return matchesSearch && matchesStatus;
     });
@@ -97,12 +104,12 @@ export default function EmployeesPage() {
 
   const handleEmployeeSelect = (employee: Employee) => {
     setSelected({
-      id: employee.id,
-      no: employee.employeeNo,
+      id: employee.id?.toString() || "",
+      no: employee.employeeNo?.toString() || "",
       name: `${employee.firstName} ${employee.lastName}`,
-      firstName: employee.firstName,
-      lastName: employee.lastName,
-      status: employee.status,
+      firstName: employee.firstName?.toString() || "",
+      lastName: employee.lastName?.toString() || "",
+      status: employee.status?.toString() || "",
       department: employee.department,
       designation: employee.designation,
       dateOfBirth: employee.dateOfBirth,
@@ -110,7 +117,7 @@ export default function EmployeesPage() {
       joinDate: employee.joinDate,
       nationality: employee.nationality,
       nationalId: employee.nationalId,
-      maritalStatus: employee.maritalStatus
+      maritalStatus: employee.maritalStatus,
     });
     navigate(`/hr/employees/${employee.id}/profile`);
   };
@@ -147,27 +154,26 @@ export default function EmployeesPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Employee Overview</h2>
       </div>
-
-    {showAddEmployee && (
-      <AddEmployeeModal
-        isOpen={showAddEmployee}
-        onAdd={(employee: any) => {
-          handleAddEmployee(employee);
-          setShowAddEmployee(false);
-        }}
-        onClose={() => setShowAddEmployee(false)}
-      />
-    )}      <EmployeeStats employees={EMPLOYEES} />
-
+      {showAddEmployee && (
+        <AddEmployeeModal
+          isOpen={showAddEmployee}
+          onAdd={(employee: any) => {
+            handleAddEmployee(employee);
+            setShowAddEmployee(false);
+          }}
+          onClose={() => setShowAddEmployee(false)}
+        />
+      )}{" "}
+      <EmployeeStats employees={EMPLOYEES} />
       <div className="rounded-md border bg-white">
         <div className="p-4">
-          <EmployeeSearchBar 
+          <EmployeeSearchBar
             value={searchQuery}
             onChange={setSearchQuery}
             showAdd={true}
             onAddClick={() => setShowAddEmployee(true)}
           />
-          
+
           <EmployeeFilters
             onFilterStatus={setStatusFilter}
             activeFilter={statusFilter}
@@ -175,7 +181,7 @@ export default function EmployeesPage() {
         </div>
 
         <div className="px-4 pb-4">
-          <EmployeeTable 
+          <EmployeeTable
             data={filteredEmployees}
             onSelect={handleEmployeeSelect}
           />
