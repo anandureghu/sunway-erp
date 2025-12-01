@@ -1,10 +1,35 @@
-import React, { useState, useCallback, useEffect } from "react";
-import type { PropsWithChildren } from "react";
-import { useOutletContext } from "react-router-dom";
-import { Input } from "@/components/ui/input";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Plus, Trash2, Eye } from "lucide-react";
+import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
+import { generateId } from "@/lib/utils";
 
-type EducationData = {
+interface ValidationErrors {
+  [key: string]: string | undefined;
+}
+
+function validateEducation(education: Education): ValidationErrors {
+  const errors: ValidationErrors = {};
+  
+  if (!education.schoolName?.trim()) {
+    errors.schoolName = "School name is required";
+  }
+  
+  if (!education.degreeEarned?.trim()) {
+    errors.degreeEarned = "Degree earned is required";
+  }
+  
+  if (!education.yearGraduated?.trim()) {
+    errors.yearGraduated = "Year graduated is required";
+  }
+  
+  return errors;
+}
+
+type Education = {
+  id: string;
   schoolName: string;
   schoolAddress: string;
   yearGraduated: string;
@@ -14,7 +39,8 @@ type EducationData = {
   notes: string;
 };
 
-const INITIAL_DATA: EducationData = {
+const INITIAL_EDUCATION: Education = {
+  id: "",
   schoolName: "",
   schoolAddress: "",
   yearGraduated: "",
@@ -24,135 +50,270 @@ const INITIAL_DATA: EducationData = {
   notes: "",
 };
 
-export default function EducationQualificationsForm(): React.ReactElement {
-  const { editing } = useOutletContext<{ editing: boolean }>();
-  const [isEdit, setIsEdit] = useState(false);
-  const [original, setOriginal] = useState<EducationData>(INITIAL_DATA);
-  const [form, setForm] = useState<EducationData>(original);
+export default function EducationQualificationsForm() {
+  const [educations, setEducations] = useState<Education[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const onStart = () => {
-      setForm(original);
-      setIsEdit(true);
+  const handleAdd = useCallback(() => {
+    const newEducation = {
+      ...INITIAL_EDUCATION,
+      id: generateId()
     };
-    const onSave = () => {
-      setOriginal(form);
-      setIsEdit(false);
-      console.log("Saved education data:", form);
-    };
-    const onCancel = () => {
-      setForm(original);
-      setIsEdit(false);
-    };
+    setEducations(current => [...current, newEducation]);
+    setEditingId(newEducation.id);
+  }, []);
 
-    document.addEventListener("current-job:start-edit", onStart as EventListener);
-    document.addEventListener("current-job:save", onSave as EventListener);
-    document.addEventListener("current-job:cancel", onCancel as EventListener);
+  const handleEdit = useCallback((education: Education) => {
+    setEditingId(education.id);
+  }, []);
 
-    return () => {
-      document.removeEventListener("current-job:start-edit", onStart as EventListener);
-      document.removeEventListener("current-job:save", onSave as EventListener);
-      document.removeEventListener("current-job:cancel", onCancel as EventListener);
-    };
-  }, [form, original]);
+  const handleSave = useCallback((education: Education) => {
+    setEducations(current => 
+      current.map(e => e.id === education.id ? education : e)
+    );
+  }, []);
 
-  const handleChange = useCallback((field: keyof EducationData, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+  const handleDone = useCallback((education: Education) => {
+    setEducations(current => 
+      current.map(e => e.id === education.id ? education : e)
+    );
+    setEditingId(null);
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    // If we're cancelling while adding a new education (empty fields), remove that placeholder
+    setEducations(current => current.filter(e => {
+      if (e.id !== editingId) return true;
+      // if the education is essentially empty, drop it
+      const isEmpty = !(e.schoolName?.trim() || e.schoolAddress?.trim() || e.yearGraduated || e.degreeEarned || e.major || e.awards || e.notes);
+      return !isEmpty;
+    }));
+    setEditingId(null);
+  }, [editingId]);
+
+  const handleDelete = useCallback((id: string) => {
+    if (window.confirm('Are you sure you want to delete this education record?')) {
+      setEducations(current => current.filter(e => e.id !== id));
+      setEditingId(null);
+    }
   }, []);
 
   return (
-    <div className="space-y-4">
-      {/* Action bar is provided by Current Job shell */}
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">Education & Qualifications</h2>
+        <Button 
+          onClick={handleAdd}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Education
+        </Button>
+      </div>
 
-      <Section title="Education">
-        <Row label="School Name:">
-          <Input
-            value={form.schoolName}
-            onChange={e => handleChange("schoolName", e.target.value)}
-            placeholder="Enter school name"
-            disabled={!isEdit}
-            aria-label="School Name"
-          />
-        </Row>
+      <div className="grid gap-4">
+        {educations.map((education) => (
+          <Card key={education.id}>
+            <CardContent className="p-4">
+              {editingId === education.id ? (
+                <FormSection title="Edit Education">
+                  <FormRow columns={2}>
+                    <FormField 
+                      label="School Name"
+                      required
+                      error={validateEducation(education).schoolName}
+                    >
+                      <Input
+                        value={education.schoolName}
+                        onChange={e => handleSave({ ...education, schoolName: e.target.value })}
+                        placeholder="Enter school name"
+                      />
+                    </FormField>
 
-        <Row label="School Address:">
-          <Input
-            value={form.schoolAddress}
-            onChange={e => handleChange("schoolAddress", e.target.value)}
-            placeholder="Enter school address"
-            disabled={!isEdit}
-            aria-label="School Address"
-          />
-        </Row>
+                    <FormField label="School Address">
+                      <Input
+                        value={education.schoolAddress}
+                        onChange={e => handleSave({ ...education, schoolAddress: e.target.value })}
+                        placeholder="Enter school address"
+                      />
+                    </FormField>
+                  </FormRow>
 
-        <Row label="Year Graduated:">
-          <Input
-            value={form.yearGraduated}
-            onChange={e => handleChange("yearGraduated", e.target.value)}
-            placeholder="Enter year"
-            disabled={!isEdit}
-            aria-label="Year Graduated"
-          />
-        </Row>
+                  <FormRow columns={2}>
+                    <FormField 
+                      label="Year Graduated"
+                      required
+                      error={validateEducation(education).yearGraduated}
+                    >
+                      <Input
+                        value={education.yearGraduated}
+                        onChange={e => handleSave({ ...education, yearGraduated: e.target.value })}
+                        placeholder="Enter year"
+                      />
+                    </FormField>
 
-        <Row label="Degree Earned:">
-          <Input
-            value={form.degreeEarned}
-            onChange={e => handleChange("degreeEarned", e.target.value)}
-            placeholder="Enter degree"
-            disabled={!isEdit}
-            aria-label="Degree Earned"
-          />
-        </Row>
+                    <FormField 
+                      label="Degree Earned"
+                      required
+                      error={validateEducation(education).degreeEarned}
+                    >
+                      <Input
+                        value={education.degreeEarned}
+                        onChange={e => handleSave({ ...education, degreeEarned: e.target.value })}
+                        placeholder="Enter degree"
+                      />
+                    </FormField>
+                  </FormRow>
 
-        <Row label="Major:">
-          <Input
-            value={form.major}
-            onChange={e => handleChange("major", e.target.value)}
-            placeholder="Enter major"
-            disabled={!isEdit}
-            aria-label="Major"
-          />
-        </Row>
+                  <FormRow columns={2}>
+                    <FormField label="Major">
+                      <Input
+                        value={education.major}
+                        onChange={e => handleSave({ ...education, major: e.target.value })}
+                        placeholder="Enter major"
+                      />
+                    </FormField>
 
-        <Row label="Awards and Certificates:">
-          <Input
-            value={form.awards}
-            onChange={e => handleChange("awards", e.target.value)}
-            placeholder="Enter awards"
-            disabled={!isEdit}
-            aria-label="Awards and Certificates"
-          />
-        </Row>
+                    <FormField label="Awards and Certificates">
+                      <Input
+                        value={education.awards}
+                        onChange={e => handleSave({ ...education, awards: e.target.value })}
+                        placeholder="Enter awards"
+                      />
+                    </FormField>
+                  </FormRow>
 
-        <Row label="Notes/Remarks:">
-          <Input
-            value={form.notes}
-            onChange={e => handleChange("notes", e.target.value)}
-            placeholder="Enter notes"
-            disabled={!isEdit}
-            aria-label="Notes or Remarks"
-          />
-        </Row>
-      </Section>
-    </div>
-  );
-}
+                  <FormRow columns={1}>
+                    <FormField label="Notes/Remarks">
+                      <Input
+                        value={education.notes}
+                        onChange={e => handleSave({ ...education, notes: e.target.value })}
+                        placeholder="Enter notes"
+                      />
+                    </FormField>
+                  </FormRow>
 
-function Section({ title, children }: PropsWithChildren<{ title: string }>) {
-  return (
-    <div className="rounded-md border">
-      <div className="px-4 py-3 border-b text-lg font-semibold">{title}</div>
-      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
-    </div>
-  );
-}
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCancel}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      disabled={Object.keys(validateEducation(education)).length > 0}
+                      onClick={() => handleDone(education)}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </FormSection>
+              ) : (
+                <div className="space-y-4">
+                  {/* Summary View */}
+                  {viewingId !== education.id && (
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">
+                          {education.schoolName || "Unnamed School"}
+                        </h3>
+                        <div className="text-sm text-gray-500 mt-1">
+                          <p>{education.degreeEarned || "No degree"} in {education.major || "Unknown major"}</p>
+                          {education.yearGraduated && (
+                            <p>Graduated: {education.yearGraduated}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setViewingId(education.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEdit(education)}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDelete(education.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
-function Row({ label, children }: PropsWithChildren<{ label: string }>) {
-  return (
-    <div className="grid grid-cols-12 gap-0 border rounded-md">
-      <div className="col-span-5 bg-gray-50 px-3 py-2 font-medium">{label}</div>
-      <div className="col-span-7 px-3 py-2">{children}</div>
+                  {/* Full Details View */}
+                  {viewingId === education.id && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">School Name</p>
+                          <p className="text-sm mt-1">{education.schoolName || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">School Address</p>
+                          <p className="text-sm mt-1">{education.schoolAddress || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Year Graduated</p>
+                          <p className="text-sm mt-1">{education.yearGraduated || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Degree Earned</p>
+                          <p className="text-sm mt-1">{education.degreeEarned || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Major</p>
+                          <p className="text-sm mt-1">{education.major || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Awards & Certificates</p>
+                          <p className="text-sm mt-1">{education.awards || "—"}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-600 uppercase">Notes/Remarks</p>
+                        <p className="text-sm mt-1">{education.notes || "—"}</p>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setViewingId(null)}
+                        >
+                          Close
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            setViewingId(null);
+                            handleEdit(education);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

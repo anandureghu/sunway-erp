@@ -4,10 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Eye } from "lucide-react";
 import { useState, useCallback } from "react";
 import { formatMoney, generateId } from "@/lib/utils";
-
 
 type LoansModel = {
   id: string;
@@ -28,6 +27,22 @@ type LoansModel = {
   deductionAmount: string;
   netPay: string;
 };
+
+function validateLoan(loan: LoansModel): boolean {
+  return (
+    loan.loanCode.trim() !== "" &&
+    loan.loanAmount.trim() !== "" &&
+    loan.loanType.trim() !== "" &&
+    loan.loanPeriod.trim() !== "" &&
+    loan.startDate.trim() !== "" &&
+    loan.monthlyDeductions.trim() !== "" &&
+    loan.loanStatus.trim() !== "" &&
+    loan.balance.trim() !== "" &&
+    loan.grossPay.trim() !== "" &&
+    loan.deductionAmount.trim() !== "" &&
+    loan.netPay.trim() !== ""
+  );
+}
 
 const INITIAL_LOAN: LoansModel = {
   id: "",
@@ -52,6 +67,7 @@ const INITIAL_LOAN: LoansModel = {
 export default function LoansForm(): ReactElement {
   const [loans, setLoans] = useState<LoansModel[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   const handleAdd = useCallback(() => {
     const newLoan = {
@@ -113,6 +129,7 @@ export default function LoansForm(): ReactElement {
                       disabled={false}
                       value={loan.loanCode}
                       onChange={(v) => handleSave({ ...loan, loanCode: v })}
+                      required
                     />
                     <Field
                       label="Loan Amount:"
@@ -120,6 +137,7 @@ export default function LoansForm(): ReactElement {
                       value={formatMoney(loan.loanAmount)}
                       onChange={(v) => handleSave({ ...loan, loanAmount: v.replace(/[^0-9.]/g, "") })}
                       ariaLabel="Loan Amount"
+                      required
                     />
                     <div className="md:col-span-1">
                       <Label className="text-sm">Note/Remarks:</Label>
@@ -138,12 +156,14 @@ export default function LoansForm(): ReactElement {
                       disabled={false}
                       value={loan.loanType}
                       onChange={(v) => handleSave({ ...loan, loanType: v })}
+                      required
                     />
                     <Field
                       label="Loan Period:"
                       disabled={false}
                       value={loan.loanPeriod}
                       onChange={(v) => handleSave({ ...loan, loanPeriod: v })}
+                      required
                     />
                     <Field
                       label="Start Date:"
@@ -151,6 +171,7 @@ export default function LoansForm(): ReactElement {
                       disabled={false}
                       value={loan.startDate}
                       onChange={(v) => handleSave({ ...loan, startDate: v })}
+                      required
                     />
                   </div>
 
@@ -161,12 +182,14 @@ export default function LoansForm(): ReactElement {
                       value={formatMoney(loan.monthlyDeductions)}
                       onChange={(v) => handleSave({ ...loan, monthlyDeductions: v.replace(/[^0-9.]/g, "") })}
                       ariaLabel="Monthly Deductions"
+                      required
                     />
                     <Field
                       label="Loan Status:"
                       disabled={false}
                       value={loan.loanStatus}
                       onChange={(v) => handleSave({ ...loan, loanStatus: v })}
+                      required
                     />
                     <Field
                       label="Balance:"
@@ -174,6 +197,7 @@ export default function LoansForm(): ReactElement {
                       value={formatMoney(loan.balance)}
                       onChange={(v) => handleSave({ ...loan, balance: v.replace(/[^0-9.]/g, "") })}
                       ariaLabel="Loan Balance"
+                      required
                     />
                   </div>
 
@@ -186,6 +210,7 @@ export default function LoansForm(): ReactElement {
                         value={formatMoney(loan.grossPay)}
                         onChange={(v) => handleSave({ ...loan, grossPay: v.replace(/[^0-9.]/g, "") })}
                         ariaLabel="Gross Pay"
+                        required
                       />
                       <Field
                         label="Deduction Amount:"
@@ -193,6 +218,7 @@ export default function LoansForm(): ReactElement {
                         value={formatMoney(loan.deductionAmount)}
                         onChange={(v) => handleSave({ ...loan, deductionAmount: v.replace(/[^0-9.]/g, "") })}
                         ariaLabel="Deduction Amount"
+                        required
                       />
                       <Field
                         label="Net Pay:"
@@ -200,6 +226,7 @@ export default function LoansForm(): ReactElement {
                         value={formatMoney(loan.netPay)}
                         onChange={(v) => handleSave({ ...loan, netPay: v.replace(/[^0-9.]/g, "") })}
                         ariaLabel="Net Pay"
+                        required
                       />
                     </div>
                   </div>
@@ -212,6 +239,7 @@ export default function LoansForm(): ReactElement {
                       Cancel
                     </Button>
                     <Button 
+                      disabled={!validateLoan(loan)}
                       onClick={() => {
                         handleSave(loan);
                         setEditingId(null);
@@ -222,33 +250,111 @@ export default function LoansForm(): ReactElement {
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">
-                      {loan.loanCode || "Loan"}
-                    </h3>
-                    <div className="text-sm text-gray-500 mt-1">
-                      <p>Amount: {formatMoney(loan.loanAmount)}</p>
-                      <p>Type: {loan.loanType || "N/A"} • Period: {loan.loanPeriod || "N/A"}</p>
-                      <p>Status: {loan.loanStatus || "N/A"} • Balance: {formatMoney(loan.balance)}</p>
+                <div className="space-y-4">
+                  {/* Summary View */}
+                  {viewingId !== loan.id && (
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">
+                          {loan.loanCode || "Loan"}
+                        </h3>
+                        <div className="text-sm text-gray-500 mt-1">
+                          <p>Amount: {formatMoney(loan.loanAmount)}</p>
+                          <p>Type: {loan.loanType || "N/A"} • Period: {loan.loanPeriod || "N/A"}</p>
+                          <p>Status: {loan.loanStatus || "N/A"} • Balance: {formatMoney(loan.balance)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setViewingId(loan.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(loan)}>Edit</Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(loan.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit(loan)}
-                    >
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDelete(loan.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  )}
+
+                  {/* Full Details View */}
+                  {viewingId === loan.id && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Loan Code</p>
+                          <p className="text-sm mt-1">{loan.loanCode || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Loan Amount</p>
+                          <p className="text-sm mt-1">{formatMoney(loan.loanAmount)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Loan Type</p>
+                          <p className="text-sm mt-1">{loan.loanType || "—"}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Loan Period</p>
+                          <p className="text-sm mt-1">{loan.loanPeriod || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Start Date</p>
+                          <p className="text-sm mt-1">{loan.startDate ? new Date(loan.startDate).toLocaleDateString() : "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Monthly Deductions</p>
+                          <p className="text-sm mt-1">{formatMoney(loan.monthlyDeductions)}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Loan Status</p>
+                          <p className="text-sm mt-1">{loan.loanStatus || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Balance</p>
+                          <p className="text-sm mt-1">{formatMoney(loan.balance)}</p>
+                        </div>
+                      </div>
+
+                      <div className="border-t pt-4">
+                        <p className="text-xs font-semibold text-gray-600 uppercase mb-3">Salary Breakdown</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-600 uppercase">Gross Pay</p>
+                            <p className="text-sm mt-1">{formatMoney(loan.grossPay)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-600 uppercase">Deduction Amount</p>
+                            <p className="text-sm mt-1">{formatMoney(loan.deductionAmount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-600 uppercase">Net Pay</p>
+                            <p className="text-sm mt-1">{formatMoney(loan.netPay)}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-gray-600 uppercase">Notes/Remarks</p>
+                        <p className="text-sm mt-1 whitespace-pre-wrap">{loan.notes || "—"}</p>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button variant="outline" size="sm" onClick={() => setViewingId(null)}>Close</Button>
+                        <Button size="sm" onClick={() => { setViewingId(null); handleEdit(loan); }}>Edit</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -272,17 +378,22 @@ function Field(props: {
   type?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  required?: boolean;
 }) {
-  const { label, value, onChange, type = "text", disabled, ariaLabel } = props;
+  const { label, value, onChange, type = "text", disabled, ariaLabel, required } = props;
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
+      <Label className="text-sm">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </Label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         aria-label={ariaLabel}
+        required={required}
       />
     </div>
   );

@@ -9,9 +9,9 @@ import React, {
 } from "react";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { ProfileCtx } from "./ProfileShell";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 
 type ProfileEvent = "profile:save" | "profile:cancel" | "profile:edit";
 
@@ -23,10 +23,10 @@ type EmpProfile = {
   firstName: string;
   lastName: string;
   photoUrl?: string;
-  designation: string;
   joinDate: string; // yyyy-mm-dd
   dateOfBirth: string; // yyyy-mm-dd
   gender: "Male" | "Female" | "Other" | "";
+  maritalStatus?: "Single" | "Married" | "Divorced" | "Widowed" | "";
   status?: string;
 };
 
@@ -35,10 +35,10 @@ const SEED: EmpProfile = {
   prefix: "",
   firstName: "Aisha",
   lastName: "Rahman",
-  designation: "Engineer",
   joinDate: "2024-01-15",
   dateOfBirth: "1998-09-05",
   gender: "",
+  maritalStatus: "",
   status: "Active",
 };
 
@@ -107,10 +107,10 @@ export default function EmployeeProfileForm(): ReactElement {
         firstName: updated.firstName,
         lastName: updated.lastName,
         status: updated.status ?? "Active",
-        designation: updated.designation,
         dateOfBirth: updated.dateOfBirth,
         gender: updated.gender,
         joinDate: updated.joinDate,
+        maritalStatus: updated.maritalStatus,
       });
 
       // notify other parts of the app to reload employees (e.g., overview stats)
@@ -218,165 +218,136 @@ export default function EmployeeProfileForm(): ReactElement {
         )}
       </div>
 
-      {/* Row 1: Employee No | Designation */}
-      <Row>
-        <Field label="Employee No">
-          <Input
-            type="text"
-            disabled
-            readOnly
-            value={draft.employeeNo}
-            aria-label="Employee number"
-            aria-readonly="true"
-          />
-        </Field>
-        <Field label="Designation">
-          <Input
-            type="text"
-            disabled={!editing}
-            value={draft.designation}
-            onChange={(e) => set("designation", e.target.value)}
-            aria-label="Designation"
-            aria-required="true"
-          />
-        </Field>
-      </Row>
+      <FormSection title="Personal Information">
+        <FormRow columns={3}>
+          <FormField label="Employee No" required>
+            <Input
+              type="text"
+              disabled
+              readOnly
+              value={draft.employeeNo}
+              aria-label="Employee number"
+              aria-readonly="true"
+            />
+          </FormField>
 
-      {/* Row 2: First Name | Prefix | Last Name */}
-      <div className="grid grid-cols-3 gap-4">
-        <Field label="First Name">
-          <Input
-            id="field-first-name"
-            type="text"
-            disabled={!editing}
-            value={draft.firstName}
-            onChange={(e) => set("firstName", e.target.value)}
-            aria-label="First name"
-            aria-required="true"
-          />
-        </Field>
-        <div className="space-y-1.5" role="group">
-          <Label className="text-sm" htmlFor="field-prefix">
-            Prefix
-          </Label>
-          <select
-            id="field-prefix"
-            disabled={!editing}
-            className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
-            value={draft.prefix}
-            onChange={(e) =>
-              set("prefix", e.target.value as EmpProfile["prefix"])
-            }
-            aria-label="Prefix"
-          >
-            <option value="">Select…</option>
-            <option value="Mr.">Mr.</option>
-            <option value="Mrs.">Mrs.</option>
-            <option value="Ms.">Ms.</option>
-            <option value="Miss">Miss</option>
-            <option value="Dr.">Dr.</option>
-          </select>
-        </div>
-        <Field label="Last Name">
-          <Input
-            id="field-last-name"
-            type="text"
-            disabled={!editing}
-            value={draft.lastName}
-            onChange={(e) => set("lastName", e.target.value)}
-            aria-label="Last name"
-            aria-required="true"
-          />
-        </Field>
-      </div>
+          <FormField label="Gender">
+            <select
+              disabled={!editing}
+              className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
+              value={draft.gender}
+              onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
+              aria-label="Gender"
+            >
+              <option value="" hidden>
+                Select…
+              </option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </FormField>
 
-      {/* Row 3: Status | Gender */}
-      <Row>
-        <Field label="Status">
-          <select
-            disabled={!editing}
-            className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
-            value={draft.status ?? "Active"}
-            onChange={(e) => set("status", e.target.value as EmpProfile["status"])}
-            aria-label="Status"
-          >
-            <option value="Active">Active</option>
-            <option value="On Leave">On Leave</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-        </Field>
-        <Field label="Gender">
-          <select
-            disabled={!editing}
-            className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
-            value={draft.gender}
-            onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
-            aria-label="Gender"
-          >
-            <option value="" hidden>
-              Select…
-            </option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </Field>
-      </Row>
+          <FormField label="Status" required>
+            <select
+              disabled={!editing}
+              className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
+              value={draft.status ?? "Active"}
+              onChange={(e) => set("status", e.target.value as EmpProfile["status"])}
+              aria-label="Status"
+            >
+              <option value="Active">Active</option>
+              <option value="On Leave">On Leave</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </FormField>
+        </FormRow>
 
-      {/* Row 4: Join Date | Date of Birth */}
-      <Row>
-        <Field label="Join Date">
-          <Input
-            type="date"
-            disabled={!editing}
-            value={draft.joinDate}
-            onChange={(e) => set("joinDate", e.target.value)}
-            aria-label="Join date"
-            aria-required="true"
-          />
-        </Field>
-        <Field label="Date of Birth">
-          <Input
-            type="date"
-            disabled={!editing}
-            value={draft.dateOfBirth}
-            onChange={(e) => set("dateOfBirth", e.target.value)}
-            aria-label="Date of birth"
-            aria-required="true"
-          />
-        </Field>
-      </Row>
-    </div>
-  );
-}
+        <FormRow columns={3}>
+          <FormField label="Prefix">
+            <select
+              disabled={!editing}
+              className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
+              value={draft.prefix}
+              onChange={(e) =>
+                set("prefix", e.target.value as EmpProfile["prefix"])
+              }
+              aria-label="Prefix"
+            >
+              <option value="">Select…</option>
+              <option value="Mr.">Mr.</option>
+              <option value="Mrs.">Mrs.</option>
+              <option value="Ms.">Ms.</option>
+              <option value="Miss">Miss</option>
+              <option value="Dr.">Dr.</option>
+            </select>
+          </FormField>
 
-/* Layout helper components with proper types */
-interface RowProps {
-  children: React.ReactNode;
-}
+          <FormField label="First Name" required>
+            <Input
+              type="text"
+              disabled={!editing}
+              value={draft.firstName}
+              onChange={(e) => set("firstName", e.target.value)}
+              placeholder="Enter first name"
+              aria-label="First name"
+              aria-required="true"
+            />
+          </FormField>
 
-function Row({ children }: RowProps): ReactElement {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      {children}
-    </div>
-  );
-}
+          <FormField label="Last Name" required>
+            <Input
+              type="text"
+              disabled={!editing}
+              value={draft.lastName}
+              onChange={(e) => set("lastName", e.target.value)}
+              placeholder="Enter last name"
+              aria-label="Last name"
+              aria-required="true"
+            />
+          </FormField>
+        </FormRow>
 
-interface FieldProps {
-  label: string;
-  children: React.ReactNode;
-}
+        <FormRow columns={3}>
+          <FormField label="Date of Birth">
+            <Input
+              type="date"
+              disabled={!editing}
+              value={draft.dateOfBirth}
+              onChange={(e) => set("dateOfBirth", e.target.value)}
+              aria-label="Date of birth"
+            />
+          </FormField>
 
-function Field({ label, children }: FieldProps): ReactElement {
-  const fieldId = `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
+          <FormField label="Marital Status">
+            <select
+              disabled={!editing}
+              className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
+              value={draft.maritalStatus ?? ""}
+              onChange={(e) => set("maritalStatus", e.target.value as EmpProfile["maritalStatus"])}
+              aria-label="Marital status"
+            >
+              <option value="" hidden>
+                Select…
+              </option>
+              <option value="Single">Single</option>
+              <option value="Married">Married</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Widowed">Widowed</option>
+            </select>
+          </FormField>
 
-  return (
-    <div className="space-y-1.5" role="group">
-      <Label className="text-sm" htmlFor={fieldId}>
-        {label}
-      </Label>
-      <div id={fieldId}>{children}</div>
+          <FormField label="Join Date">
+            <Input
+              type="date"
+              disabled={!editing}
+              value={draft.joinDate}
+              onChange={(e) => set("joinDate", e.target.value)}
+              aria-label="Join date"
+            />
+          </FormField>
+        </FormRow>
+      </FormSection>
     </div>
   );
 }

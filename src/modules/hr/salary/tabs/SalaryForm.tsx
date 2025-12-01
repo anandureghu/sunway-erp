@@ -33,14 +33,14 @@ const INITIAL_DATA: Salary = {
   totalAllowance: "28000",
   housing: "No",
   housingAllowance: "",
+  compensationStatus: "Active",
+  effectiveFrom: "",
+  effectiveTo: "",
   payPeriodStart: "",
   payPeriodEnd: "",
   numberOfDaysWorked: "",
   payPerDay: "",
-  overtime: "",
-  compensationStatus: "Active",
-  effectiveFrom: "",
-  effectiveTo: "",
+  overtime: ""
 };
 
 interface ValidationErrors {
@@ -134,12 +134,6 @@ export default function SalaryForm() {
   }, [formData.basicSalary, totalAllowance]);
 
   // Calculate compensation based on days worked * pay per day
-  const calculatedCompensation = useMemo(() => {
-    const daysWorked = parseFloat(formData.numberOfDaysWorked) || 0;
-    const payPerDay = parseFloat(formData.payPerDay) || 0;
-    return (daysWorked * payPerDay).toString();
-  }, [formData.numberOfDaysWorked, formData.payPerDay]);
-
   return (
     <div className="space-y-6">
 
@@ -169,22 +163,24 @@ export default function SalaryForm() {
               disabled={!editing}
             />
           </FormField>
+
+          {formData.transportation === 'Yes' && (
+            <FormField 
+              label="Transportation Allowance"
+              error={validateForm(formData).transportationAllowance}
+              required
+            >
+              <Input
+                value={formatMoney(formData.transportationAllowance)}
+                onChange={e => updateField('transportationAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
+                placeholder="Enter transportation allowance"
+                disabled={!editing}
+              />
+            </FormField>
+          )}
         </FormRow>
 
         <FormRow columns={2}>
-          <FormField 
-            label="Transportation Allowance"
-            error={validateForm(formData).transportationAllowance}
-            required={formData.transportation === 'Yes'}
-          >
-            <Input
-              value={formatMoney(formData.transportationAllowance)}
-              onChange={e => updateField('transportationAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
-              placeholder="Enter transportation allowance"
-              disabled={!editing || formData.transportation === 'No'}
-            />
-          </FormField>
-
           <FormField 
             label="Travel Allowance"
             error={validateForm(formData).travelAllowance}
@@ -197,9 +193,7 @@ export default function SalaryForm() {
               disabled={!editing}
             />
           </FormField>
-        </FormRow>
 
-        <FormRow columns={2}>
           <FormField 
             label="Other Allowance"
             error={validateForm(formData).otherAllowance}
@@ -212,7 +206,9 @@ export default function SalaryForm() {
               disabled={!editing}
             />
           </FormField>
+        </FormRow>
 
+        <FormRow columns={2}>
           <FormField 
             label="Housing"
             required
@@ -224,99 +220,29 @@ export default function SalaryForm() {
               disabled={!editing}
             />
           </FormField>
+
+          {formData.housing === 'Yes' && (
+            <FormField 
+              label="Housing Allowance"
+              error={validateForm(formData).housingAllowance}
+              required
+            >
+              <Input
+                value={formatMoney(formData.housingAllowance)}
+                onChange={e => updateField('housingAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
+                placeholder="Enter housing allowance"
+                disabled={!editing}
+              />
+            </FormField>
+          )}
         </FormRow>
 
-        <FormRow columns={2}>
-          <FormField 
-            label="Housing Allowance"
-            required={formData.housing === 'Yes'}
-          >
-            <Input
-              value={formatMoney(formData.housingAllowance)}
-              onChange={e => updateField('housingAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
-              placeholder="Enter housing allowance"
-              disabled={!editing || formData.housing === 'No'}
-            />
-          </FormField>
-
+        <FormRow columns={1}>
           <FormField 
             label="Total Compensation"
           >
             <Input
               value={formatMoney(grossPay)}
-              disabled
-            />
-          </FormField>
-        </FormRow>
-      </FormSection>
-
-      <FormSection title="Pay Period and Work Days">
-        <FormRow columns={3}>
-          <FormField 
-            label="Pay Period Start"
-            required
-          >
-            <Input
-              type="date"
-              value={formData.payPeriodStart}
-              onChange={e => updateField('payPeriodStart')(e.target.value)}
-              disabled={!editing}
-            />
-          </FormField>
-
-          <FormField 
-            label="Pay Period End"
-            required
-          >
-            <Input
-              type="date"
-              value={formData.payPeriodEnd}
-              onChange={e => updateField('payPeriodEnd')(e.target.value)}
-              disabled={!editing}
-            />
-          </FormField>
-
-          <FormField 
-            label="Number of Days Worked"
-          >
-            <Input
-              type="number"
-              value={formData.numberOfDaysWorked}
-              onChange={e => updateField('numberOfDaysWorked')(e.target.value)}
-              placeholder="Enter number of days"
-              disabled={!editing}
-            />
-          </FormField>
-        </FormRow>
-
-        <FormRow columns={3}>
-          <FormField 
-            label="Pay Per Day"
-          >
-            <Input
-              value={formatMoney(formData.payPerDay)}
-              onChange={e => updateField('payPerDay')(e.target.value.replace(/[^0-9.]/g, ''))}
-              placeholder="Enter pay per day"
-              disabled={!editing}
-            />
-          </FormField>
-
-          <FormField 
-            label="Overtime"
-          >
-            <Input
-              value={formatMoney(formData.overtime)}
-              onChange={e => updateField('overtime')(e.target.value.replace(/[^0-9.]/g, ''))}
-              placeholder="Enter overtime amount"
-              disabled={!editing}
-            />
-          </FormField>
-
-          <FormField 
-            label="Calculated Compensation"
-          >
-            <Input
-              value={formatMoney(calculatedCompensation)}
               disabled
             />
           </FormField>

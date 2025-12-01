@@ -67,7 +67,7 @@ export default function PassportForm(): ReactElement {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Passport information form">
-      <Field label="Passport No">
+      <Field label="Passport No" required>
         <Input
           type="text"
           disabled={!editing}
@@ -75,10 +75,11 @@ export default function PassportForm(): ReactElement {
           onChange={(e) => patch("passportNo", e.target.value)}
           aria-label="Passport number"
           aria-required="true"
+          required
         />
       </Field>
 
-      <Field label="Issue Country">
+      <Field label="Issue Country" required>
         <Input
           type="text"
           disabled={!editing}
@@ -86,10 +87,11 @@ export default function PassportForm(): ReactElement {
           onChange={(e) => patch("issueCountry", e.target.value)}
           aria-label="Country of issue"
           aria-required="true"
+          required
         />
       </Field>
 
-      <Field label="Name as Passport">
+      <Field label="Name as Passport" required>
         <Input
           type="text"
           disabled={!editing}
@@ -97,10 +99,11 @@ export default function PassportForm(): ReactElement {
           onChange={(e) => patch("nameAsPassport", e.target.value)}
           aria-label="Name as shown on passport"
           aria-required="true"
+          required
         />
       </Field>
 
-      <Field label="Nationality">
+      <Field label="Nationality" required>
         <Input
           type="text"
           disabled={!editing}
@@ -108,10 +111,11 @@ export default function PassportForm(): ReactElement {
           onChange={(e) => patch("nationality", e.target.value)}
           aria-label="Nationality"
           aria-required="true"
+          required
         />
       </Field>
 
-      <Field label="Issue Date">
+      <Field label="Issue Date" required>
         <Input
           type="date"
           disabled={!editing}
@@ -119,10 +123,11 @@ export default function PassportForm(): ReactElement {
           onChange={(e) => patch("issueDate", e.target.value)}
           aria-label="Date of issue"
           aria-required="true"
+          required
         />
       </Field>
 
-      <Field label="Expire Date">
+      <Field label="Expire Date" required>
         <Input
           type="date"
           disabled={!editing}
@@ -130,19 +135,20 @@ export default function PassportForm(): ReactElement {
           onChange={(e) => patch("expireDate", e.target.value)}
           aria-label="Expiration date"
           aria-required="true"
+          required
         />
       </Field>
     </div>
   );
 }
 
-function Field({ label, children }: FieldProps): ReactElement {
+function Field({ label, children, required }: FieldProps & { required?: boolean }) {
   const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
-  
   return (
     <div className="space-y-1.5" role="group">
       <Label className="text-sm" htmlFor={fieldId}>
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       <div id={fieldId}>
         {children}

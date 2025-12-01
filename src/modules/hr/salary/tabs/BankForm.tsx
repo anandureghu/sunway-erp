@@ -55,46 +55,101 @@ export default function BankForm() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Row>
         <Field label="Location:">
-          <Input disabled={!editing} value={draft.location} onChange={(e) => patch("location", e.target.value)} />
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.location}
+            onChange={(e) => patch("location", e.target.value)}
+          />
         </Field>
         <Field label="City:">
-          <Input disabled={!editing} value={draft.city} onChange={(e) => patch("city", e.target.value)} />
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.city}
+            onChange={(e) => patch("city", e.target.value)}
+          />
         </Field>
       </Row>
 
       <Row>
-        <Field label="Bank Name:">
-          <Input disabled={!editing} value={draft.bankName} onChange={(e) => patch("bankName", e.target.value)} />
+        <Field label="Bank Name:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.bankName}
+            onChange={(e) => patch("bankName", e.target.value)}
+            required
+          />
         </Field>
         <Field label="State:">
-          <Input disabled={!editing} value={draft.state} onChange={(e) => patch("state", e.target.value)} />
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.state}
+            onChange={(e) => patch("state", e.target.value)}
+          />
         </Field>
       </Row>
 
       <Row>
-        <Field label="Bank Branch:">
-          <Input disabled={!editing} value={draft.bankBranch} onChange={(e) => patch("bankBranch", e.target.value)} />
+        <Field label="Bank Branch:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.bankBranch}
+            onChange={(e) => patch("bankBranch", e.target.value)}
+            required
+          />
         </Field>
-        <Field label="Country:">
-          <Input disabled={!editing} value={draft.country} onChange={(e) => patch("country", e.target.value)} />
+        <Field label="Country:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.country}
+            onChange={(e) => patch("country", e.target.value)}
+            required
+          />
         </Field>
       </Row>
 
       <Row>
-        <Field label="Account Type:">
-          <Input disabled={!editing} value={draft.accountType} onChange={(e) => patch("accountType", e.target.value)} />
+        <Field label="Account Type:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.accountType}
+            onChange={(e) => patch("accountType", e.target.value)}
+            required
+          />
         </Field>
         <Field label="Bank Remarks:">
-          <Textarea disabled={!editing} value={draft.bankRemarks} onChange={(e) => patch("bankRemarks", e.target.value)} />
+          <Textarea
+            className="min-h-[100px] w-full"
+            disabled={!editing}
+            value={draft.bankRemarks}
+            onChange={(e) => patch("bankRemarks", e.target.value)}
+          />
         </Field>
       </Row>
 
       <Row>
-        <Field label="Account No:">
-          <Input disabled={!editing} value={draft.accountNo} onChange={(e) => patch("accountNo", e.target.value)} />
+        <Field label="Account No:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.accountNo}
+            onChange={(e) => patch("accountNo", e.target.value)}
+            required
+          />
         </Field>
         <Field label="IBAN:">
-          <Input disabled={!editing} value={draft.iban} onChange={(e) => patch("iban", e.target.value)} />
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.iban}
+            onChange={(e) => patch("iban", e.target.value)}
+          />
         </Field>
       </Row>
     </div>
@@ -104,10 +159,13 @@ export default function BankForm() {
 function Row({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
 }
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, required }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
+      <Label className="text-sm">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </Label>
       {children}
     </div>
   );

@@ -90,16 +90,17 @@ export default function ResidencePermitForm(): ReactElement {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Residence permit form">
       {/* row 1 */}
-      <Field label="Visa Type">
+      <Field label="Visa Type" required>
         <Select
           disabled={!editing}
           value={draft.visaType}
           onChange={(v) => patch("visaType", v)}
           options={VISA_TYPES}
           label="Visa type"
+          aria-required="true"
         />
       </Field>
-      <Field label="ID">
+      <Field label="ID" required>
         <Input
           type="text"
           disabled={!editing}
@@ -107,20 +108,22 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("idNumber", e.target.value)}
           aria-label="Identification number"
           aria-required="true"
+          required
         />
       </Field>
 
       {/* row 2 */}
-      <Field label="Duration Type">
+      <Field label="Duration Type" required>
         <Select
           disabled={!editing}
           value={draft.durationType}
           onChange={(v) => patch("durationType", v)}
           options={DURATION_TYPES}
           label="Duration type"
+          aria-required="true"
         />
       </Field>
-      <Field label="Nationality">
+      <Field label="Nationality" required>
         <Input
           type="text"
           disabled={!editing}
@@ -128,11 +131,12 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("nationality", e.target.value)}
           aria-label="Nationality"
           aria-required="true"
+          required
         />
       </Field>
 
       {/* row 3 */}
-      <Field label="Visa Duration">
+      <Field label="Visa Duration" required>
         <Input
           type="text"
           disabled={!editing}
@@ -140,9 +144,10 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("visaDuration", e.target.value)}
           aria-label="Visa duration"
           aria-required="true"
+          required
         />
       </Field>
-      <Field label="Occupation">
+      <Field label="Occupation" required>
         <Input
           type="text"
           disabled={!editing}
@@ -150,11 +155,12 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("occupation", e.target.value)}
           aria-label="Occupation"
           aria-required="true"
+          required
         />
       </Field>
 
       {/* row 4 */}
-      <Field label="Issue Place">
+      <Field label="Issue Place" required>
         <Input
           type="text"
           disabled={!editing}
@@ -162,9 +168,10 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("issuePlace", e.target.value)}
           aria-label="Place of issue"
           aria-required="true"
+          required
         />
       </Field>
-      <Field label="Issue Authority">
+      <Field label="Issue Authority" required>
         <Input
           type="text"
           disabled={!editing}
@@ -172,23 +179,25 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("issueAuthority", e.target.value)}
           aria-label="Issuing authority"
           aria-required="true"
+          required
         />
       </Field>
 
       {/* row 5 */}
-      <Field label="Visa Status">
+      <Field label="Visa Status" required>
         <Select
           disabled={!editing}
           value={draft.visaStatus}
           onChange={(v) => patch("visaStatus", v)}
           options={VISA_STATUS}
           label="Visa status"
+          aria-required="true"
         />
       </Field>
       <div />
 
       {/* row 6 */}
-      <Field label="Start Date">
+      <Field label="Start Date" required>
         <Input
           type="date"
           disabled={!editing}
@@ -196,9 +205,10 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("startDate", e.target.value)}
           aria-label="Start date"
           aria-required="true"
+          required
         />
       </Field>
-      <Field label="End Date">
+      <Field label="End Date" required>
         <Input
           type="date"
           disabled={!editing}
@@ -206,19 +216,20 @@ export default function ResidencePermitForm(): ReactElement {
           onChange={(e) => patch("endDate", e.target.value)}
           aria-label="End date"
           aria-required="true"
+          required
         />
       </Field>
     </div>
   );
 }
 
-function Field({ label, children }: FieldProps): ReactElement {
+function Field({ label, children, required }: FieldProps & { required?: boolean }) {
   const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
-  
   return (
     <div className="space-y-1.5" role="group">
       <Label className="text-sm" htmlFor={fieldId}>
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       <div id={fieldId}>
         {children}
