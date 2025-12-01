@@ -1,14 +1,43 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataTable } from "@/components/datatable";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { STOCK_COLUMNS } from "@/lib/columns/inventory-columns";
-import { getStockWithDetails, items, warehouses, searchItems, itemCategories } from "@/lib/inventory-data";
+import {
+  getStockWithDetails,
+  items,
+  warehouses,
+  searchItems,
+  itemCategories,
+} from "@/lib/inventory-data";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Package, Plus, Search, Warehouse as WarehouseIcon, AlertTriangle, FileText, TrendingUp, FileEdit, Save, X, Check, DollarSign, BarChart3, PieChart, Calendar, Clock } from "lucide-react";
-import { RECEIVE_ITEM_SCHEMA, type ReceiveItemFormData, STOCK_ADJUSTMENT_SCHEMA, type StockAdjustmentFormData } from "@/schema/inventory";
+import { useNavigate } from "react-router-dom";
+import {
+  Package,
+  Plus,
+  Search,
+  Warehouse as WarehouseIcon,
+  AlertTriangle,
+  TrendingUp,
+  FileEdit,
+  Save,
+  X,
+  Check,
+  DollarSign,
+  BarChart3,
+  PieChart,
+  Calendar,
+  Clock,
+} from "lucide-react";
+import {
+  RECEIVE_ITEM_SCHEMA,
+  type ReceiveItemFormData,
+  STOCK_ADJUSTMENT_SCHEMA,
+  type StockAdjustmentFormData,
+} from "@/schema/inventory";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Item, Stock } from "@/types/inventory";
@@ -35,6 +64,7 @@ import {
 } from "recharts";
 
 const ManageStocks = () => {
+  const navigate = useNavigate();
   const [stockData, setStockData] = useState(getStockWithDetails());
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,7 +81,7 @@ const ManageStocks = () => {
     resolver: zodResolver(RECEIVE_ITEM_SCHEMA),
     defaultValues: {
       receivedDate: format(new Date(), "yyyy-MM-dd"),
-      quantity: 0,
+      quantityReceived: 0,
     },
   });
 
@@ -79,14 +109,17 @@ const ManageStocks = () => {
 
   const [varianceItem, setVarianceItem] = useState<Item | null>(null);
   const [varianceItemSearchQuery, setVarianceItemSearchQuery] = useState("");
-  const [varianceSearchResults, setVarianceSearchResults] = useState<Item[]>([]);
+  const [varianceSearchResults, setVarianceSearchResults] = useState<Item[]>(
+    []
+  );
   const varianceWarehouseId = watchVariance("warehouseId");
   const adjustmentQuantity = watchVariance("adjustmentQuantity");
   const [isAdjustingByQuantity, setIsAdjustingByQuantity] = useState(true); // true = adjust by quantity, false = set new quantity
 
   // Filter stock data
   const filteredStock = stockData.filter((stock) => {
-    const matchesWarehouse = selectedWarehouse === "all" || stock.warehouseId === selectedWarehouse;
+    const matchesWarehouse =
+      selectedWarehouse === "all" || stock.warehouseId === selectedWarehouse;
     const matchesSearch =
       searchQuery === "" ||
       stock.item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -140,7 +173,7 @@ const ManageStocks = () => {
   const onReceiveItem = (data: ReceiveItemFormData) => {
     // In a real app, this would make an API call
     console.log("Receiving item:", data);
-    
+
     // Update stock (mock update)
     const existingStockIndex = stockData.findIndex(
       (s) => s.itemId === data.itemId && s.warehouseId === data.warehouseId
@@ -151,12 +184,14 @@ const ManageStocks = () => {
       const updatedStock = [...stockData];
       updatedStock[existingStockIndex] = {
         ...updatedStock[existingStockIndex],
-        quantity: updatedStock[existingStockIndex].quantity + data.quantity,
+        quantity:
+          updatedStock[existingStockIndex].quantity + data.quantityReceived,
         availableQuantity:
-          updatedStock[existingStockIndex].availableQuantity + data.quantity,
+          updatedStock[existingStockIndex].availableQuantity +
+          data.quantityReceived,
         lastUpdated: new Date().toISOString(),
         batchNo: data.batchNo || updatedStock[existingStockIndex].batchNo,
-        lotNo: data.lotNo || updatedStock[existingStockIndex].lotNo,
+        dateReceived: data.receivedDate,
       };
       setStockData(updatedStock);
     } else {
@@ -168,12 +203,12 @@ const ManageStocks = () => {
           id: `stock-${Date.now()}`,
           itemId: data.itemId,
           warehouseId: data.warehouseId,
-          quantity: data.quantity,
-          availableQuantity: data.quantity,
+          quantity: data.quantityReceived,
+          availableQuantity: data.quantityReceived,
           reservedQuantity: 0,
           batchNo: data.batchNo,
-          lotNo: data.lotNo,
           serialNo: data.serialNo,
+          dateReceived: data.receivedDate,
           lastUpdated: new Date().toISOString(),
           item,
           warehouse,
@@ -191,7 +226,7 @@ const ManageStocks = () => {
   // Variance adjustment handlers
   const onAdjustStock = (data: StockAdjustmentFormData) => {
     console.log("Adjusting stock:", data);
-    
+
     // Find existing stock
     const existingStockIndex = stockData.findIndex(
       (s) => s.itemId === data.itemId && s.warehouseId === data.warehouseId
@@ -211,7 +246,9 @@ const ManageStocks = () => {
       }
 
       if (newQuantity < 0) {
-        alert("Adjustment would result in negative stock. Please check the quantity.");
+        alert(
+          "Adjustment would result in negative stock. Please check the quantity."
+        );
         return;
       }
 
@@ -220,7 +257,9 @@ const ManageStocks = () => {
       updatedStock[existingStockIndex] = {
         ...updatedStock[existingStockIndex],
         quantity: newQuantity,
-        availableQuantity: newQuantity - (updatedStock[existingStockIndex].reservedQuantity || 0),
+        availableQuantity:
+          newQuantity -
+          (updatedStock[existingStockIndex].reservedQuantity || 0),
         lastUpdated: new Date().toISOString(),
       };
       setStockData(updatedStock);
@@ -296,7 +335,8 @@ const ManageStocks = () => {
         (s) => s.item?.category === cat.name
       );
       const totalValue = stockInCategory.reduce(
-        (sum: number, s: Stock & { item?: Item }) => sum + s.quantity * (s.item?.costPrice || 0),
+        (sum: number, s: Stock & { item?: Item }) =>
+          sum + s.quantity * (s.item?.costPrice || 0),
         0
       );
       return {
@@ -339,32 +379,36 @@ const ManageStocks = () => {
 
     // Expiry tracking (items with expiry dates)
     const itemsWithExpiry = stockData.filter((s) => s.expiryDate);
-    const expiryAnalysis = itemsWithExpiry.map((s) => {
-      if (!s.expiryDate) return null;
-      const expiry = parseISO(s.expiryDate);
-      const daysUntilExpiry = differenceInDays(expiry, now);
-      let status = "safe";
-      if (daysUntilExpiry < 0) status = "expired";
-      else if (daysUntilExpiry < 30) status = "expiring_soon";
-      else if (daysUntilExpiry < 90) status = "warning";
+    const expiryAnalysis = itemsWithExpiry
+      .map((s) => {
+        if (!s.expiryDate) return null;
+        const expiry = parseISO(s.expiryDate);
+        const daysUntilExpiry = differenceInDays(expiry, now);
+        let status = "safe";
+        if (daysUntilExpiry < 0) status = "expired";
+        else if (daysUntilExpiry < 30) status = "expiring_soon";
+        else if (daysUntilExpiry < 90) status = "warning";
 
-      return {
-        itemName: s.item?.name || "",
-        expiryDate: s.expiryDate,
-        daysUntilExpiry,
-        status,
-        quantity: s.quantity,
-        value: s.quantity * (s.item?.costPrice || 0),
-      };
-    }).filter(Boolean);
+        return {
+          itemName: s.item?.name || "",
+          expiryDate: s.expiryDate,
+          daysUntilExpiry,
+          status,
+          quantity: s.quantity,
+          value: s.quantity * (s.item?.costPrice || 0),
+        };
+      })
+      .filter(Boolean);
 
     // Inventory turnover simulation (mock data for demo)
     // In real app, this would be calculated from sales history
-    const turnoverByCategory = valuationByCategory.map((cat: { category: string; value: number }) => ({
-      category: cat.category,
-      inventoryValue: cat.value,
-      turnoverRatio: Math.random() * 12 + 1, // Mock: 1-13 turns per year
-    }));
+    const turnoverByCategory = valuationByCategory.map(
+      (cat: { category: string; value: number }) => ({
+        category: cat.category,
+        inventoryValue: cat.value,
+        turnoverRatio: Math.random() * 12 + 1, // Mock: 1-13 turns per year
+      })
+    );
 
     // Top items by value
     const topItemsByValue = stockData
@@ -397,7 +441,9 @@ const ManageStocks = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Manage Inventory</h1>
-          <p className="text-gray-600 text-sm mt-1">Track and control your inventory</p>
+          <p className="text-gray-600 text-sm mt-1">
+            Track and control your inventory
+          </p>
         </div>
       </div>
 
@@ -419,7 +465,9 @@ const ManageStocks = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Low Stock Items</p>
-                <p className="text-2xl font-bold mt-1 text-red-600">{lowStockItems}</p>
+                <p className="text-2xl font-bold mt-1 text-red-600">
+                  {lowStockItems}
+                </p>
               </div>
               <AlertTriangle className="h-8 w-8 text-red-500" />
             </div>
@@ -461,9 +509,7 @@ const ManageStocks = () => {
               <StyledTabsTrigger value="receive">
                 Receive Item
               </StyledTabsTrigger>
-              <StyledTabsTrigger value="variances">
-                Variances
-              </StyledTabsTrigger>
+              <StyledTabsTrigger value="variances">Variances</StyledTabsTrigger>
               <StyledTabsTrigger value="values">
                 Inventory Values
               </StyledTabsTrigger>
@@ -481,7 +527,10 @@ const ManageStocks = () => {
                     className="pl-10"
                   />
                 </div>
-                <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+                <Select
+                  value={selectedWarehouse}
+                  onValueChange={setSelectedWarehouse}
+                >
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="All Warehouses" />
                   </SelectTrigger>
@@ -495,21 +544,30 @@ const ManageStocks = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <DataTable columns={STOCK_COLUMNS} data={filteredStock} />
+              <DataTable
+                columns={STOCK_COLUMNS}
+                data={filteredStock}
+                onRowClick={(row) => {
+                  navigate(`/inventory/stocks/${row.original.id}`);
+                }}
+              />
             </TabsContent>
 
             {/* Receive Item Tab */}
             <TabsContent value="receive" className="space-y-6 mt-6">
-              <form onSubmit={handleSubmit(onReceiveItem)} className="space-y-6">
-                {/* Item Information Section */}
+              <form
+                onSubmit={handleSubmit(onReceiveItem)}
+                className="space-y-6"
+              >
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Item Information
+                      <Plus className="h-5 w-5 text-orange-500" />
+                      Receive Item
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Item Search */}
                     <div className="relative">
                       <label className="text-sm font-medium mb-2 block">
                         Item Code / SKU / Barcode
@@ -548,21 +606,30 @@ const ManageStocks = () => {
                     </div>
 
                     {selectedItem && (
-                      <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Field 1: Item Description */}
                         <div>
                           <label className="text-sm font-medium mb-2 block">
-                            Product Name
+                            Item Description
                           </label>
-                          <Input value={selectedItem.name} disabled />
+                          <Input
+                            value={
+                              selectedItem.description || selectedItem.name
+                            }
+                            disabled
+                          />
                         </div>
 
+                        {/* Field 2: Location/ warehouse */}
                         <div>
                           <label className="text-sm font-medium mb-2 block">
-                            Location / Warehouse
+                            Location/ warehouse
                           </label>
                           <Select
                             onValueChange={(value) => {
-                              setValue("warehouseId", value, { shouldValidate: true });
+                              setValue("warehouseId", value, {
+                                shouldValidate: true,
+                              });
                             }}
                             value={selectedWarehouseId || undefined}
                           >
@@ -582,125 +649,152 @@ const ManageStocks = () => {
                               {errors.warehouseId.message}
                             </p>
                           )}
-                          {selectedWarehouseId && selectedItem && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              Current Stock: {getCurrentStock(selectedItem.id, selectedWarehouseId)}{" "}
-                              {selectedItem.unit}
-                            </p>
-                          )}
                         </div>
 
+                        {/* Field 3: Quantity on Hand */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Quantity on Hand
+                          </label>
+                          <Input
+                            value={
+                              selectedWarehouseId && selectedItem
+                                ? `${getCurrentStock(
+                                    selectedItem.id,
+                                    selectedWarehouseId
+                                  )} ${selectedItem.unit}`
+                                : "-"
+                            }
+                            disabled
+                            className="bg-gray-50"
+                          />
+                        </div>
+
+                        {/* Field 4: Product Status */}
                         <div>
                           <label className="text-sm font-medium mb-2 block">
                             Product Status
                           </label>
-                          <Input value={selectedItem.status} disabled />
+                          <Input
+                            value={selectedItem.status}
+                            disabled
+                            className="bg-gray-50"
+                          />
                         </div>
-                      </>
+
+                        {/* Field 5: Received Date */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Received Date
+                          </label>
+                          <Input type="date" {...register("receivedDate")} />
+                          {errors.receivedDate && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.receivedDate.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Field 6: Batch No. */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Batch No.
+                          </label>
+                          <Input
+                            placeholder="Batch number"
+                            {...register("batchNo")}
+                          />
+                        </div>
+
+                        {/* Field 7: Serial No. */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Serial No.
+                          </label>
+                          <Input
+                            placeholder="Serial number"
+                            {...register("serialNo")}
+                          />
+                        </div>
+
+                        {/* Field 8: Reference No. */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Reference No.
+                          </label>
+                          <Input
+                            placeholder="PO number or reference"
+                            {...register("referenceNo")}
+                          />
+                        </div>
+
+                        {/* Field 9: Quantity Received */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Quantity Received
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Enter quantity"
+                            {...register("quantityReceived", {
+                              valueAsNumber: true,
+                            })}
+                          />
+                          {errors.quantityReceived && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.quantityReceived.message}
+                            </p>
+                          )}
+                          {selectedItem && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              Unit: {selectedItem.unit}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Field 10: Cost price */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Cost price
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Enter cost price"
+                            {...register("costPrice", { valueAsNumber: true })}
+                          />
+                          {errors.costPrice && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.costPrice.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Field 11: Unit Price */}
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Unit Price
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Enter unit price"
+                            {...register("unitPrice", { valueAsNumber: true })}
+                          />
+                          {errors.unitPrice && (
+                            <p className="text-sm text-red-500 mt-1">
+                              {errors.unitPrice.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </CardContent>
-                </Card>
 
-                {/* Receive Item Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Plus className="h-5 w-5 text-orange-500" />
-                      Receive an Item
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Received Date
-                      </label>
-                      <Input
-                        type="date"
-                        {...register("receivedDate")}
-                      />
-                      {errors.receivedDate && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.receivedDate.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Quantity on Hand
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Enter quantity"
-                        {...register("quantity", { valueAsNumber: true })}
-                      />
-                      {errors.quantity && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.quantity.message}
-                        </p>
-                      )}
-                      {selectedItem && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          Unit: {selectedItem.unit}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Batch Number (Optional)
-                        </label>
-                        <Input
-                          placeholder="Batch number"
-                          {...register("batchNo")}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Lot Number (Optional)
-                        </label>
-                        <Input
-                          placeholder="Lot number"
-                          {...register("lotNo")}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Serial Number (Optional)
-                      </label>
-                      <Input
-                        placeholder="Serial number"
-                        {...register("serialNo")}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Reference Number (Optional)
-                      </label>
-                      <Input
-                        placeholder="PO number or reference"
-                        {...register("referenceNo")}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Notes (Optional)
-                      </label>
-                      <Input
-                        placeholder="Additional notes"
-                        {...register("notes")}
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-4 pt-4">
+                    <div className="flex justify-end gap-4 pt-4 border-t">
                       <Button
                         type="button"
                         variant="outline"
@@ -712,7 +806,10 @@ const ManageStocks = () => {
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                      <Button
+                        type="submit"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
                         Receive Item
                       </Button>
                     </div>
@@ -723,7 +820,10 @@ const ManageStocks = () => {
 
             {/* Variances Tab */}
             <TabsContent value="variances" className="space-y-6 mt-6">
-              <form onSubmit={handleVarianceSubmit(onAdjustStock)} className="space-y-6">
+              <form
+                onSubmit={handleVarianceSubmit(onAdjustStock)}
+                className="space-y-6"
+              >
                 {/* Item Information Section */}
                 <Card>
                   <CardHeader>
@@ -742,7 +842,9 @@ const ManageStocks = () => {
                         <Input
                           placeholder="Search by SKU, name, or barcode..."
                           value={varianceItemSearchQuery}
-                          onChange={(e) => setVarianceItemSearchQuery(e.target.value)}
+                          onChange={(e) =>
+                            setVarianceItemSearchQuery(e.target.value)
+                          }
                           className="pl-10"
                         />
                       </div>
@@ -785,7 +887,9 @@ const ManageStocks = () => {
                           </label>
                           <Select
                             onValueChange={(value) => {
-                              setVarianceValue("warehouseId", value, { shouldValidate: true });
+                              setVarianceValue("warehouseId", value, {
+                                shouldValidate: true,
+                              });
                             }}
                             value={varianceWarehouseId || undefined}
                           >
@@ -879,7 +983,14 @@ const ManageStocks = () => {
                           Quantity on Hand
                         </label>
                         <Input
-                          value={getCurrentStock(varianceItem.id, varianceWarehouseId).toLocaleString() + " " + varianceItem.unit}
+                          value={
+                            getCurrentStock(
+                              varianceItem.id,
+                              varianceWarehouseId
+                            ).toLocaleString() +
+                            " " +
+                            varianceItem.unit
+                          }
                           disabled
                           className="bg-gray-50"
                         />
@@ -888,7 +999,9 @@ const ManageStocks = () => {
 
                     <div>
                       <div className="flex items-center gap-4 mb-2">
-                        <label className="text-sm font-medium">Adjustment Method:</label>
+                        <label className="text-sm font-medium">
+                          Adjustment Method:
+                        </label>
                         <div className="flex gap-4">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -920,16 +1033,26 @@ const ManageStocks = () => {
                             type="number"
                             step="0.01"
                             placeholder="Enter adjustment (use negative for decrease)"
-                            {...registerVariance("adjustmentQuantity", { valueAsNumber: true })}
+                            {...registerVariance("adjustmentQuantity", {
+                              valueAsNumber: true,
+                            })}
                           />
                           <p className="text-xs text-gray-500 mt-1">
-                            Use positive numbers to increase, negative to decrease
+                            Use positive numbers to increase, negative to
+                            decrease
                           </p>
-                          {varianceItem && varianceWarehouseId && adjustmentQuantity !== undefined && (
-                            <p className="text-sm text-blue-600 mt-2">
-                              New Quantity: {getCurrentStock(varianceItem.id, varianceWarehouseId) + (adjustmentQuantity || 0)} {varianceItem.unit}
-                            </p>
-                          )}
+                          {varianceItem &&
+                            varianceWarehouseId &&
+                            adjustmentQuantity !== undefined && (
+                              <p className="text-sm text-blue-600 mt-2">
+                                New Quantity:{" "}
+                                {getCurrentStock(
+                                  varianceItem.id,
+                                  varianceWarehouseId
+                                ) + (adjustmentQuantity || 0)}{" "}
+                                {varianceItem.unit}
+                              </p>
+                            )}
                         </div>
                       ) : (
                         <div>
@@ -941,7 +1064,9 @@ const ManageStocks = () => {
                             step="0.01"
                             min="0"
                             placeholder="Enter new quantity"
-                            {...registerVariance("newQuantity", { valueAsNumber: true })}
+                            {...registerVariance("newQuantity", {
+                              valueAsNumber: true,
+                            })}
                           />
                         </div>
                       )}
@@ -1024,9 +1149,12 @@ const ManageStocks = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600">Total Inventory Value</p>
+                        <p className="text-sm text-gray-600">
+                          Total Inventory Value
+                        </p>
                         <p className="text-2xl font-bold mt-1">
-                          ₹ {inventoryMetrics.totalInventoryValue.toLocaleString()}
+                          ₹{" "}
+                          {inventoryMetrics.totalInventoryValue.toLocaleString()}
                         </p>
                       </div>
                       <DollarSign className="h-8 w-8 text-green-500" />
@@ -1037,16 +1165,20 @@ const ManageStocks = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600">Avg Turnover Ratio</p>
+                        <p className="text-sm text-gray-600">
+                          Avg Turnover Ratio
+                        </p>
                         <p className="text-2xl font-bold mt-1">
                           {inventoryMetrics.turnoverByCategory.length > 0
-                          ? (
-                              inventoryMetrics.turnoverByCategory.reduce(
-                                (sum: number, c: { turnoverRatio: number }) => sum + c.turnoverRatio,
-                                0
-                              ) / inventoryMetrics.turnoverByCategory.length
-                            ).toFixed(1)
-                          : "0"}x
+                            ? (
+                                inventoryMetrics.turnoverByCategory.reduce(
+                                  (sum: number, c: { turnoverRatio: number }) =>
+                                    sum + c.turnoverRatio,
+                                  0
+                                ) / inventoryMetrics.turnoverByCategory.length
+                              ).toFixed(1)
+                            : "0"}
+                          x
                         </p>
                         <p className="text-xs text-gray-500 mt-1">per year</p>
                       </div>
@@ -1076,12 +1208,16 @@ const ManageStocks = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600">Aged Stock (90+ days)</p>
+                        <p className="text-sm text-gray-600">
+                          Aged Stock (90+ days)
+                        </p>
                         <p className="text-2xl font-bold mt-1 text-red-600">
                           ₹{" "}
                           {(
-                            inventoryMetrics.ageingSummary.find((a: { range: string; value: number }) => a.range === "90+ days")
-                              ?.value || 0
+                            inventoryMetrics.ageingSummary.find(
+                              (a: { range: string; value: number }) =>
+                                a.range === "90+ days"
+                            )?.value || 0
                           ).toLocaleString()}
                         </p>
                       </div>
@@ -1116,9 +1252,15 @@ const ManageStocks = () => {
                         <YAxis />
                         <Tooltip
                           content={<ChartTooltipContent />}
-                          formatter={(value: number) => `₹ ${value.toLocaleString()}`}
+                          formatter={(value: number) =>
+                            `₹ ${value.toLocaleString()}`
+                          }
                         />
-                        <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={6} />
+                        <Bar
+                          dataKey="value"
+                          fill="hsl(var(--chart-1))"
+                          radius={6}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
@@ -1137,7 +1279,11 @@ const ManageStocks = () => {
                   <CardContent>
                     <ChartContainer
                       config={inventoryMetrics.valuationByCategory.reduce(
-                        (acc: Record<string, { label: string; color: string }>, cat: { category: string }, idx: number) => {
+                        (
+                          acc: Record<string, { label: string; color: string }>,
+                          cat: { category: string },
+                          idx: number
+                        ) => {
                           acc[cat.category] = {
                             label: cat.category,
                             color: CHART_COLORS[idx % CHART_COLORS.length],
@@ -1157,17 +1303,32 @@ const ManageStocks = () => {
                             cx="50%"
                             cy="50%"
                             outerRadius={100}
-                            label={({ category, value }: { category: string; value: number }) => `${category}: ₹${(value / 1000).toFixed(0)}k`}
+                            label={({
+                              category,
+                              value,
+                            }: {
+                              category: string;
+                              value: number;
+                            }) => `${category}: ₹${(value / 1000).toFixed(0)}k`}
                           >
-                            {inventoryMetrics.valuationByCategory.map((_: { category: string; value: number }, index: number) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={CHART_COLORS[index % CHART_COLORS.length]}
-                              />
-                            ))}
+                            {inventoryMetrics.valuationByCategory.map(
+                              (
+                                _: { category: string; value: number },
+                                index: number
+                              ) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={
+                                    CHART_COLORS[index % CHART_COLORS.length]
+                                  }
+                                />
+                              )
+                            )}
                           </Pie>
                           <Tooltip
-                            formatter={(value: number) => `₹ ${value.toLocaleString()}`}
+                            formatter={(value: number) =>
+                              `₹ ${value.toLocaleString()}`
+                            }
                           />
                         </RechartsPieChart>
                       </ResponsiveContainer>
@@ -1200,9 +1361,15 @@ const ManageStocks = () => {
                           <YAxis />
                           <Tooltip
                             content={<ChartTooltipContent />}
-                            formatter={(value: number) => `₹ ${value.toLocaleString()}`}
+                            formatter={(value: number) =>
+                              `₹ ${value.toLocaleString()}`
+                            }
                           />
-                          <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={6} />
+                          <Bar
+                            dataKey="value"
+                            fill="hsl(var(--chart-2))"
+                            radius={6}
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </ChartContainer>
@@ -1235,9 +1402,15 @@ const ManageStocks = () => {
                         <YAxis />
                         <Tooltip
                           content={<ChartTooltipContent />}
-                          formatter={(value: number) => `${value.toFixed(1)}x per year`}
+                          formatter={(value: number) =>
+                            `${value.toFixed(1)}x per year`
+                          }
                         />
-                        <Bar dataKey="turnoverRatio" fill="hsl(var(--chart-3))" radius={6} />
+                        <Bar
+                          dataKey="turnoverRatio"
+                          fill="hsl(var(--chart-3))"
+                          radius={6}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
@@ -1259,25 +1432,51 @@ const ManageStocks = () => {
                         <tr className="border-b">
                           <th className="text-left p-3 font-medium">Item</th>
                           <th className="text-left p-3 font-medium">SKU</th>
-                          <th className="text-right p-3 font-medium">Quantity</th>
-                          <th className="text-right p-3 font-medium">Unit Cost</th>
-                          <th className="text-right p-3 font-medium">Total Value</th>
-                          <th className="text-left p-3 font-medium">Warehouse</th>
+                          <th className="text-right p-3 font-medium">
+                            Quantity
+                          </th>
+                          <th className="text-right p-3 font-medium">
+                            Unit Cost
+                          </th>
+                          <th className="text-right p-3 font-medium">
+                            Total Value
+                          </th>
+                          <th className="text-left p-3 font-medium">
+                            Warehouse
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {inventoryMetrics.topItemsByValue.map((item: { name: string; sku: string; quantity: number; unitCost: number; totalValue: number; warehouse: string }, idx: number) => (
-                          <tr key={idx} className="border-b hover:bg-gray-50">
-                            <td className="p-3">{item.name}</td>
-                            <td className="p-3 text-gray-600">{item.sku}</td>
-                            <td className="p-3 text-right">{item.quantity.toLocaleString()}</td>
-                            <td className="p-3 text-right">₹ {item.unitCost.toLocaleString()}</td>
-                            <td className="p-3 text-right font-semibold">
-                              ₹ {item.totalValue.toLocaleString()}
-                            </td>
-                            <td className="p-3 text-gray-600">{item.warehouse}</td>
-                          </tr>
-                        ))}
+                        {inventoryMetrics.topItemsByValue.map(
+                          (
+                            item: {
+                              name: string;
+                              sku: string;
+                              quantity: number;
+                              unitCost: number;
+                              totalValue: number;
+                              warehouse: string;
+                            },
+                            idx: number
+                          ) => (
+                            <tr key={idx} className="border-b hover:bg-gray-50">
+                              <td className="p-3">{item.name}</td>
+                              <td className="p-3 text-gray-600">{item.sku}</td>
+                              <td className="p-3 text-right">
+                                {item.quantity.toLocaleString()}
+                              </td>
+                              <td className="p-3 text-right">
+                                ₹ {item.unitCost.toLocaleString()}
+                              </td>
+                              <td className="p-3 text-right font-semibold">
+                                ₹ {item.totalValue.toLocaleString()}
+                              </td>
+                              <td className="p-3 text-gray-600">
+                                {item.warehouse}
+                              </td>
+                            </tr>
+                          )
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -1299,52 +1498,74 @@ const ManageStocks = () => {
                         <thead>
                           <tr className="border-b">
                             <th className="text-left p-3 font-medium">Item</th>
-                            <th className="text-left p-3 font-medium">Expiry Date</th>
-                            <th className="text-right p-3 font-medium">Days Until Expiry</th>
-                            <th className="text-right p-3 font-medium">Quantity</th>
-                            <th className="text-right p-3 font-medium">Value at Risk</th>
-                            <th className="text-left p-3 font-medium">Status</th>
+                            <th className="text-left p-3 font-medium">
+                              Expiry Date
+                            </th>
+                            <th className="text-right p-3 font-medium">
+                              Days Until Expiry
+                            </th>
+                            <th className="text-right p-3 font-medium">
+                              Quantity
+                            </th>
+                            <th className="text-right p-3 font-medium">
+                              Value at Risk
+                            </th>
+                            <th className="text-left p-3 font-medium">
+                              Status
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {inventoryMetrics.expiryAnalysis.map((item: any, idx: number) => (
-                            <tr key={idx} className="border-b hover:bg-gray-50">
-                              <td className="p-3">{item.itemName}</td>
-                              <td className="p-3">
-                                {format(parseISO(item.expiryDate), "MMM dd, yyyy")}
-                              </td>
-                              <td className="p-3 text-right">
-                                {item.daysUntilExpiry < 0
-                                  ? `Expired ${Math.abs(item.daysUntilExpiry)} days ago`
-                                  : `${item.daysUntilExpiry} days`}
-                              </td>
-                              <td className="p-3 text-right">{item.quantity}</td>
-                              <td className="p-3 text-right font-semibold">
-                                ₹ {item.value.toLocaleString()}
-                              </td>
-                              <td className="p-3">
-                                <span
-                                  className={`px-2 py-1 rounded text-xs font-medium ${
-                                    item.status === "expired"
-                                      ? "bg-red-100 text-red-800"
+                          {inventoryMetrics.expiryAnalysis.map(
+                            (item: any, idx: number) => (
+                              <tr
+                                key={idx}
+                                className="border-b hover:bg-gray-50"
+                              >
+                                <td className="p-3">{item.itemName}</td>
+                                <td className="p-3">
+                                  {format(
+                                    parseISO(item.expiryDate),
+                                    "MMM dd, yyyy"
+                                  )}
+                                </td>
+                                <td className="p-3 text-right">
+                                  {item.daysUntilExpiry < 0
+                                    ? `Expired ${Math.abs(
+                                        item.daysUntilExpiry
+                                      )} days ago`
+                                    : `${item.daysUntilExpiry} days`}
+                                </td>
+                                <td className="p-3 text-right">
+                                  {item.quantity}
+                                </td>
+                                <td className="p-3 text-right font-semibold">
+                                  ₹ {item.value.toLocaleString()}
+                                </td>
+                                <td className="p-3">
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs font-medium ${
+                                      item.status === "expired"
+                                        ? "bg-red-100 text-red-800"
+                                        : item.status === "expiring_soon"
+                                        ? "bg-orange-100 text-orange-800"
+                                        : item.status === "warning"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-green-100 text-green-800"
+                                    }`}
+                                  >
+                                    {item.status === "expired"
+                                      ? "Expired"
                                       : item.status === "expiring_soon"
-                                      ? "bg-orange-100 text-orange-800"
+                                      ? "Expiring Soon"
                                       : item.status === "warning"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-green-100 text-green-800"
-                                  }`}
-                                >
-                                  {item.status === "expired"
-                                    ? "Expired"
-                                    : item.status === "expiring_soon"
-                                    ? "Expiring Soon"
-                                    : item.status === "warning"
-                                    ? "Warning"
-                                    : "Safe"}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                                      ? "Warning"
+                                      : "Safe"}
+                                  </span>
+                                </td>
+                              </tr>
+                            )
+                          )}
                         </tbody>
                       </table>
                     </div>

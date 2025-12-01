@@ -30,13 +30,13 @@ export const WAREHOUSE_SCHEMA = z.object({
 export const RECEIVE_ITEM_SCHEMA = z.object({
   itemId: z.string().min(1, "Item is required"),
   warehouseId: z.string().min(1, "Warehouse is required"),
-  quantity: z.number().min(0.01, "Quantity must be greater than 0"),
+  quantityReceived: z.number().min(0.01, "Quantity received must be greater than 0"),
   receivedDate: z.string().min(1, "Received date is required"),
   batchNo: z.string().optional(),
-  lotNo: z.string().optional(),
   serialNo: z.string().optional(),
-  expiryDate: z.string().optional(),
   referenceNo: z.string().optional(), // PO number
+  costPrice: z.number().min(0, "Cost price must be positive").optional(),
+  unitPrice: z.number().min(0, "Unit price must be positive").optional(),
   notes: z.string().optional(),
 });
 
