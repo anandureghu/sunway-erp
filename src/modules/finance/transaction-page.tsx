@@ -19,17 +19,18 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
   const [open, setOpen] = useState(false);
 
   const fetchAll = async () => {
-    try {
-      const res = await apiClient.get(
-        `/finance/transactions/company/${companyId}`
-      );
-      setTxList(res.data);
-    } catch (error) {
-      console.error("Failed to load transactions:", error);
-      toast.error("Failed to load transactions");
-    } finally {
-      setLoading(false);
-    }
+    apiClient
+      .get(`/finance/transactions/company/${companyId}`)
+      .then(({ data }) => {
+        setTxList(data);
+      })
+      .catch((error) => {
+        console.error("Failed to load transactions:", error);
+        toast.error("Failed to load transactions");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {

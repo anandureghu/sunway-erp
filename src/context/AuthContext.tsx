@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { apiClient } from "@/service/apiClient";
 import type { Employee, Role } from "@/types/hr";
+import { useAppDispatch } from "@/store/store";
+import { toggleAdminView } from "@/store/uiSlice";
 
 type DecodedToken = {
   userId: number;
@@ -26,6 +28,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   const [user, setUser] = useState<Employee | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(
@@ -58,8 +61,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
   }, []);
-
-  console.log(user);
 
   /** Handle auto-refresh logic */
   useEffect(() => {
@@ -104,6 +105,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         username: decoded.username,
         role: decoded.role as Role,
       });
+      apiClient.get("/users/" + decoded.userId).then((response) => {
+        setUser(response.data);
+      });
     } catch (err) {
       console.error("Token decode failed", err);
     }
@@ -139,6 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   /** Logout handler */
   const logout = () => {
+    dispatch(toggleAdminView());
     setUser(null);
     setAccessToken(null);
     setRefreshToken(null);

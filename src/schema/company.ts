@@ -22,9 +22,9 @@ export const COMPANY_SCHEMA = z.object({
   country: z.string().optional(),
   phoneNo: z.string().optional(),
 
-  hrEnabled: z.boolean(),
-  financeEnabled: z.boolean(),
-  inventoryEnabled: z.boolean(),
+  hrEnabled: z.boolean().optional(),
+  financeEnabled: z.boolean().optional(),
+  inventoryEnabled: z.boolean().optional(),
 });
 
 export type CompanyFormData = z.infer<typeof COMPANY_SCHEMA>;

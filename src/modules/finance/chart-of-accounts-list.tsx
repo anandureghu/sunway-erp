@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import type { ChartOfAccounts } from "@/types/coa";
 import { CHART_OF_ACCOUNTS_COLUMNS } from "@/lib/columns/finance/chart-of-accounts-columns";
 import { ChartOfAccountDialog } from "./coa-dialog";
+import { fetchCOAAccounts } from "@/service/coaService";
 
 export default function ChartOfAccountsPage({
   companyId,
@@ -22,22 +23,14 @@ export default function ChartOfAccountsPage({
   const [selected, setSelected] = useState<ChartOfAccounts | null>(null);
   const [open, setOpen] = useState(false);
 
-  const fetchAccounts = async () => {
-    try {
-      const res = await apiClient.get(
-        `/finance/chart-of-accounts/company/${companyId}`
-      );
-      setAccounts(res.data);
-    } catch (error) {
-      console.error("Error loading accounts:", error);
-      toast.error("Failed to load Chart of Accounts");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchAccounts();
+    fetchCOAAccounts(companyId)
+      .then((data) => {
+        if (data) setAccounts(data);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const handleDialogSuccess = (

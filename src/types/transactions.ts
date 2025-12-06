@@ -26,12 +26,12 @@ export interface TransactionResponseDTO {
 export interface CreateTransactionDTO {
   companyId: number;
   transactionType: string;
-  fiscalType: string;
+  // fiscalType: string;
   transactionDate: string;
   amount: number | string;
-  debitAccount: string;
+  // debitAccount: string;
   creditAccount: string;
-  itemCode?: string | null;
+  // itemCode?: string | null;
   invoiceId?: string | null;
   paymentId?: string | null;
   transactionDescription?: string | null;

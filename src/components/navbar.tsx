@@ -14,7 +14,7 @@ const Navbar = () => {
   const adminView = useAppSelector((s) => s.ui.adminView);
   console.log(user);
   return (
-    <div className="w-full bg-background border-b-1 border-b-foreground/10 h-14 flex items-center justify-end px-4 fixed top-0 z-10 max-w-[calc(100vw-16rem)]">
+    <div className="w-full bg-primary text-white border-b-1 border-b-foreground/10 border-l-1 border-l-blue-500/0 h-[70px] flex items-center justify-end px-4 fixed top-0 z-10 max-w-[calc(100vw-16rem)]">
       {user?.role === "SUPER_ADMIN" ? (
         <div className="flex items-center space-x-2 mr-5">
           <Label htmlFor="airplane-mode">Admin View</Label>
