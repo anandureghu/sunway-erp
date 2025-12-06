@@ -4,7 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import { apiClient } from "@/service/apiClient";
 import type { Employee, Role } from "@/types/hr";
 import { useAppDispatch } from "@/store/store";
-import { toggleAdminView } from "@/store/uiSlice";
+import { setAdminView } from "@/store/uiSlice";
 
 type DecodedToken = {
   userId: number;
@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   /** Logout handler */
   const logout = () => {
-    dispatch(toggleAdminView());
+    dispatch(setAdminView(false));
     setUser(null);
     setAccessToken(null);
     setRefreshToken(null);
