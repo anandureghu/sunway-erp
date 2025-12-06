@@ -1,11 +1,10 @@
 import { Link, Outlet } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { useEmployeeSelection } from "@/context/employee-selection";
 
 export default function EmployeeShell() {
   const { selected } = useEmployeeSelection();
 
-  // If no employee is selected (e.g., direct URL), nudge user to the list
+  // If no employee is selected
   if (!selected) {
     return (
       <div className="p-6">
@@ -25,16 +24,9 @@ export default function EmployeeShell() {
 
   return (
     <div className="p-6">
-      {/* Header only — no per-employee module list here */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-sm text-muted-foreground">Employee</div>
-          <div className="text-xl font-semibold">{selected.firstName} {selected.lastName}</div>
-          <Badge variant="secondary" className="mt-2">
-            {selected.status}
-          </Badge>
-        </div>
 
+      {/* Only Back to Search button (header removed) */}
+      <div className="mb-4 flex items-center justify-end">
         <Link
           to="/hr/employees"
           className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-muted"
@@ -43,7 +35,7 @@ export default function EmployeeShell() {
         </Link>
       </div>
 
-      {/* Render the actual page/tab content */}
+      {/* Render page content */}
       <Outlet />
     </div>
   );

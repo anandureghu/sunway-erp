@@ -5,12 +5,17 @@ import type { AppraisalCtx } from "../AppraisalShell";
 import { useState, useCallback } from "react";
 import type { ReactElement } from "react";
 
+
 type Perf = {
+  month: string;
+  year: string;
   kpi1: string; kpi2: string; kpi3: string; kpi4: string; kpi5: string;
   rev1: string; rev2: string; rev3: string; rev4: string; rev5: string;
 };
 
 const SEED: Perf = {
+  month: "",
+  year: "",
   kpi1: "", kpi2: "", kpi3: "", kpi4: "", kpi5: "",
   rev1: "", rev2: "", rev3: "", rev4: "", rev5: "",
 };
@@ -25,6 +30,27 @@ export default function PerformanceForm(): ReactElement {
     <div className="space-y-6">
       <Section title="Employee Performance">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Month:" required>
+            <Input
+              disabled={!editing}
+              value={data.month}
+              onChange={(e) => set("month", e.target.value)}
+              aria-label="Month"
+              placeholder="e.g. January"
+              required
+            />
+          </Field>
+          <Field label="Year:" required>
+            <Input
+              disabled={!editing}
+              value={data.year}
+              onChange={(e) => set("year", e.target.value)}
+              aria-label="Year"
+              placeholder="e.g. 2024"
+              required
+            />
+          </Field>
+
           <Field label="KPI 1:">
             <Input disabled={!editing} value={data.kpi1} onChange={(e) => set("kpi1", e.target.value)} aria-label="KPI 1" />
           </Field>
@@ -74,10 +100,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
+      <Label className="text-sm">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </Label>
       {children}
     </div>
   );

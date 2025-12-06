@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Eye } from "lucide-react";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import { generateId } from "@/lib/utils";
@@ -42,25 +42,11 @@ const RELATIONSHIPS = [
 function validateDependent(dependent: Dependent): ValidationErrors {
   const errors: ValidationErrors = {};
 
-  if (!dependent.firstName?.trim()) {
-    errors.firstName = "First name is required";
-  }
-
-  if (!dependent.lastName?.trim()) {
-    errors.lastName = "Last name is required";
-  }
-
-  if (!dependent.gender) {
-    errors.gender = "Gender is required";
-  }
-
-  if (!dependent.relationship) {
-    errors.relationship = "Relationship is required";
-  }
-
-  if (dependent.dob && !isValidDate(dependent.dob)) {
-    errors.dob = "Invalid date format";
-  }
+  if (!dependent.firstName?.trim()) errors.firstName = "First name is required";
+  if (!dependent.lastName?.trim()) errors.lastName = "Last name is required";
+  if (!dependent.gender) errors.gender = "Gender is required";
+  if (!dependent.relationship) errors.relationship = "Relationship is required";
+  if (dependent.dob && !isValidDate(dependent.dob)) errors.dob = "Invalid date format";
 
   return errors;
 }
@@ -68,12 +54,10 @@ function validateDependent(dependent: Dependent): ValidationErrors {
 export function DependentsForm() {
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   const handleAdd = useCallback(() => {
-    const newDependent = {
-      ...INITIAL_DEPENDENT,
-      id: generateId()
-    };
+    const newDependent = { ...INITIAL_DEPENDENT, id: generateId() };
     setDependents(current => [...current, newDependent]);
     setEditingId(newDependent.id);
   }, []);
@@ -83,24 +67,29 @@ export function DependentsForm() {
   }, []);
 
   const handleSave = useCallback((dependent: Dependent) => {
-    setDependents(current => 
-      current.map(d => d.id === dependent.id ? dependent : d)
-    );
+    setDependents(current => current.map(d => (d.id === dependent.id ? dependent : d)));
   }, []);
 
   const handleCancel = useCallback(() => {
-    // If we're cancelling while adding a new dependent (empty fields), remove that placeholder
-    setDependents(current => current.filter(d => {
-      if (d.id !== editingId) return true;
-      // if the dependent is essentially empty, drop it
-      const isEmpty = !(d.firstName?.trim() || d.lastName?.trim() || d.relationship || d.gender || d.nationalId || d.nationality || d.dob);
-      return !isEmpty;
-    }));
+    setDependents(current =>
+      current.filter(d => {
+        if (d.id !== editingId) return true;
+        const isEmpty =
+          !(d.firstName?.trim() ||
+            d.lastName?.trim() ||
+            d.relationship ||
+            d.gender ||
+            d.nationalId ||
+            d.nationality ||
+            d.dob);
+        return !isEmpty;
+      })
+    );
     setEditingId(null);
   }, [editingId]);
 
   const handleDelete = useCallback((id: string) => {
-    if (window.confirm('Are you sure you want to delete this dependent?')) {
+    if (window.confirm("Are you sure you want to delete this dependent?")) {
       setDependents(current => current.filter(d => d.id !== id));
       setEditingId(null);
     }
@@ -110,49 +99,34 @@ export function DependentsForm() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Employee Dependents</h2>
-        <Button 
-          onClick={handleAdd}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
+        <Button onClick={handleAdd} variant="outline" size="sm" className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Dependent
         </Button>
       </div>
 
       <div className="grid gap-4">
-        {dependents.map((dependent) => (
+        {dependents.map(dependent => (
           <Card key={dependent.id}>
             <CardContent className="p-4">
               {editingId === dependent.id ? (
                 <FormSection title="Edit Dependent">
                   <FormRow columns={3}>
-                    <FormField 
-                      label="First Name"
-                      required
-                      error={validateDependent(dependent).firstName}
-                    >
+                    <FormField label="First Name" required error={validateDependent(dependent).firstName}>
                       <Input
                         value={dependent.firstName}
                         onChange={e => handleSave({ ...dependent, firstName: e.target.value })}
                       />
                     </FormField>
 
-                    <FormField 
-                      label="Middle Name"
-                    >
+                    <FormField label="Middle Name">
                       <Input
                         value={dependent.middleName}
                         onChange={e => handleSave({ ...dependent, middleName: e.target.value })}
                       />
                     </FormField>
 
-                    <FormField 
-                      label="Last Name"
-                      required
-                      error={validateDependent(dependent).lastName}
-                    >
+                    <FormField label="Last Name" required error={validateDependent(dependent).lastName}>
                       <Input
                         value={dependent.lastName}
                         onChange={e => handleSave({ ...dependent, lastName: e.target.value })}
@@ -161,10 +135,7 @@ export function DependentsForm() {
                   </FormRow>
 
                   <FormRow columns={2}>
-                    <FormField 
-                      label="Date of Birth"
-                      error={validateDependent(dependent).dob}
-                    >
+                    <FormField label="Date of Birth" error={validateDependent(dependent).dob}>
                       <Input
                         type="date"
                         value={dependent.dob}
@@ -172,40 +143,31 @@ export function DependentsForm() {
                       />
                     </FormField>
 
-                    <FormField 
-                      label="Gender"
-                      required
-                      error={validateDependent(dependent).gender}
-                    >
+                    <FormField label="Gender" required error={validateDependent(dependent).gender}>
                       <select
                         className="h-9 w-full rounded-md border px-3 text-sm"
                         value={dependent.gender ?? ""}
-                        onChange={e => handleSave({ 
-                          ...dependent, 
-                          gender: e.target.value as Gender || undefined
-                        })}
+                        onChange={e => handleSave({ ...dependent, gender: (e.target.value as Gender) || undefined })}
                       >
                         <option value="">Select Gender</option>
                         {GENDERS.map(g => (
-                          <option key={g} value={g}>{g}</option>
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
                         ))}
                       </select>
                     </FormField>
                   </FormRow>
 
                   <FormRow columns={2}>
-                    <FormField 
-                      label="National ID"
-                    >
+                    <FormField label="National ID">
                       <Input
                         value={dependent.nationalId}
                         onChange={e => handleSave({ ...dependent, nationalId: e.target.value })}
                       />
                     </FormField>
 
-                    <FormField 
-                      label="Nationality"
-                    >
+                    <FormField label="Nationality">
                       <Input
                         value={dependent.nationality}
                         onChange={e => handleSave({ ...dependent, nationality: e.target.value })}
@@ -214,53 +176,53 @@ export function DependentsForm() {
                   </FormRow>
 
                   <FormRow columns={2}>
-                    <FormField 
-                      label="Marital Status"
-                    >
+                    <FormField label="Marital Status">
                       <select
                         className="h-9 w-full rounded-md border px-3 text-sm"
                         value={dependent.maritalStatus ?? ""}
-                        onChange={e => handleSave({ 
-                          ...dependent, 
-                          maritalStatus: e.target.value as MaritalStatus || undefined
-                        })}
+                        onChange={e =>
+                          handleSave({
+                            ...dependent,
+                            maritalStatus: (e.target.value as MaritalStatus) || undefined
+                          })
+                        }
                       >
                         <option value="">Select Status</option>
                         {MARITALS.map(m => (
-                          <option key={m} value={m}>{m}</option>
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
                         ))}
                       </select>
                     </FormField>
 
-                    <FormField 
-                      label="Relationship"
-                      required
-                      error={validateDependent(dependent).relationship}
-                    >
+                    <FormField label="Relationship" required error={validateDependent(dependent).relationship}>
                       <select
                         className="h-9 w-full rounded-md border px-3 text-sm"
                         value={dependent.relationship ?? ""}
-                        onChange={e => handleSave({ 
-                          ...dependent, 
-                          relationship: (e.target.value || undefined) as typeof RELATIONSHIPS[number]["value"] | undefined
-                        })}
+                        onChange={e =>
+                          handleSave({
+                            ...dependent,
+                            relationship: ((e.target.value || undefined) as typeof RELATIONSHIPS[number]["value"]) ||
+                              undefined
+                          })
+                        }
                       >
                         <option value="">Select Relationship</option>
                         {RELATIONSHIPS.map(r => (
-                          <option key={r.value} value={r.value}>{r.label}</option>
+                          <option key={r.value} value={r.value}>
+                            {r.label}
+                          </option>
                         ))}
                       </select>
                     </FormField>
                   </FormRow>
 
                   <div className="flex justify-end gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={handleCancel}
-                    >
+                    <Button variant="outline" onClick={handleCancel}>
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       disabled={Object.keys(validateDependent(dependent)).length > 0}
                       onClick={() => {
                         handleSave(dependent);
@@ -272,34 +234,105 @@ export function DependentsForm() {
                   </div>
                 </FormSection>
               ) : (
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">
-                      {dependent.firstName} {dependent.middleName} {dependent.lastName}
-                    </h3>
-                    <div className="text-sm text-gray-500 mt-1">
-                      <p>{dependent.relationship} • {dependent.gender}</p>
-                      {dependent.dob && (
-                        <p>DOB: {new Date(dependent.dob).toLocaleDateString()}</p>
-                      )}
+                <div className="space-y-4">
+                  {viewingId !== dependent.id && (
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">
+                          {dependent.firstName} {dependent.middleName} {dependent.lastName}
+                        </h3>
+                        <div className="text-sm text-gray-500 mt-1">
+                          <p>
+                            {dependent.relationship} • {dependent.gender}
+                          </p>
+                          {dependent.dob && <p>DOB: {new Date(dependent.dob).toLocaleDateString()}</p>}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setViewingId(dependent.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(dependent)}>
+                          Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(dependent.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEdit(dependent)}
-                    >
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDelete(dependent.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  )}
+
+                  {viewingId === dependent.id && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">First Name</p>
+                          <p className="text-sm mt-1">{dependent.firstName || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Middle Name</p>
+                          <p className="text-sm mt-1">{dependent.middleName || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Last Name</p>
+                          <p className="text-sm mt-1">{dependent.lastName || "—"}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Date of Birth</p>
+                          <p className="text-sm mt-1">
+                            {dependent.dob ? new Date(dependent.dob).toLocaleDateString() : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Gender</p>
+                          <p className="text-sm mt-1">{dependent.gender || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">National ID</p>
+                          <p className="text-sm mt-1">{dependent.nationalId || "—"}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Nationality</p>
+                          <p className="text-sm mt-1">{dependent.nationality || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Marital Status</p>
+                          <p className="text-sm mt-1">{dependent.maritalStatus || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-600 uppercase">Relationship</p>
+                          <p className="text-sm mt-1">{dependent.relationship || "—"}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button variant="outline" size="sm" onClick={() => setViewingId(null)}>
+                          Close
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setViewingId(null);
+                            handleEdit(dependent);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -308,9 +341,7 @@ export function DependentsForm() {
       </div>
 
       {dependents.length === 0 && (
-        <div className="text-center p-8 text-gray-500">
-          No dependents added yet. Click "Add Dependent" to add one.
-        </div>
+        <div className="text-center p-8 text-gray-500">No dependents added yet. Click "Add Dependent" to add one.</div>
       )}
     </div>
   );
