@@ -1,6 +1,6 @@
 // modules/hr/employee/tabs/EmployeeProfileForm.tsx
 import { useOutletContext, useParams } from "react-router-dom";
-import React, {
+import {
   useState,
   useCallback,
   useEffect,
@@ -11,7 +11,11 @@ import { useEmployeeSelection } from "@/context/employee-selection";
 import { Input } from "@/components/ui/input";
 import type { ProfileCtx } from "./ProfileShell";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
+import {
+  FormRow,
+  FormField,
+  FormSection,
+} from "@/modules/hr/components/form-components";
 
 type ProfileEvent = "profile:save" | "profile:cancel" | "profile:edit";
 
@@ -96,9 +100,9 @@ export default function EmployeeProfileForm(): ReactElement {
       }
 
       // update selected employee in context (prefix only affects display name)
-      const fullName = `${
-        updated.prefix ? `${updated.prefix} ` : ""
-      }${updated.firstName} ${updated.lastName}`.trim();
+      const fullName = `${updated.prefix ? `${updated.prefix} ` : ""}${
+        updated.firstName
+      } ${updated.lastName}`.trim();
 
       setSelected({
         id: id ?? "",
@@ -179,9 +183,7 @@ export default function EmployeeProfileForm(): ReactElement {
         </Avatar>
         <div className="flex-1">
           <div className="font-semibold text-lg">Employee</div>
-          <div className="text-muted-foreground text-sm">
-            Profile details
-          </div>
+          <div className="text-muted-foreground text-sm">Profile details</div>
         </div>
         {editing && (
           <div className="flex flex-col gap-2">
@@ -236,7 +238,9 @@ export default function EmployeeProfileForm(): ReactElement {
               disabled={!editing}
               className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
               value={draft.gender}
-              onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
+              onChange={(e) =>
+                set("gender", e.target.value as EmpProfile["gender"])
+              }
               aria-label="Gender"
             >
               <option value="" hidden>
@@ -253,7 +257,9 @@ export default function EmployeeProfileForm(): ReactElement {
               disabled={!editing}
               className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
               value={draft.status ?? "Active"}
-              onChange={(e) => set("status", e.target.value as EmpProfile["status"])}
+              onChange={(e) =>
+                set("status", e.target.value as EmpProfile["status"])
+              }
               aria-label="Status"
             >
               <option value="Active">Active</option>
@@ -324,7 +330,12 @@ export default function EmployeeProfileForm(): ReactElement {
               disabled={!editing}
               className="h-9 w-full rounded-md border px-3 text-sm disabled:bg-muted/40"
               value={draft.maritalStatus ?? ""}
-              onChange={(e) => set("maritalStatus", e.target.value as EmpProfile["maritalStatus"])}
+              onChange={(e) =>
+                set(
+                  "maritalStatus",
+                  e.target.value as EmpProfile["maritalStatus"]
+                )
+              }
               aria-label="Marital status"
             >
               <option value="" hidden>
