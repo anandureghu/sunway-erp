@@ -17,8 +17,8 @@ const InfoCard = ({
   span?: string;
 }) => (
   <Card className={`hover:shadow-md transition-shadow duration-200 ${span}`}>
-    <CardHeader>
-      <CardTitle className="text-xs uppercase tracking-wide text-gray-500">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-xs uppercase tracking-wide text-blue-800 bg-blue-50 px-3 py-2 rounded-md font-medium">
         {title}
       </CardTitle>
     </CardHeader>
