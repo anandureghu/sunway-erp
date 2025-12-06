@@ -1,5 +1,5 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import {
@@ -19,11 +19,11 @@ export const TRANSACTION_COLUMNS = ({
   onEdit: (data: TransactionResponseDTO) => void;
   onPost: (data: TransactionResponseDTO) => void;
 }): ColumnDef<TransactionResponseDTO>[] => [
-  { accessorKey: "id", header: "ID" },
+  // { accessorKey: "id", header: "ID" },
 
-  { accessorKey: "transactionCode", header: "Code" },
+  { accessorKey: "transactionCode", header: "Transaction No" },
   { accessorKey: "transactionType", header: "Type" },
-  { accessorKey: "fiscalType", header: "Fiscal Type" },
+  // { accessorKey: "fiscalType", header: "Fiscal Type" },
 
   {
     accessorKey: "transactionDate",
@@ -32,17 +32,23 @@ export const TRANSACTION_COLUMNS = ({
       new Date(row.getValue("transactionDate")).toLocaleDateString(),
   },
 
-  {
-    accessorKey: "posted",
-    header: "Posted",
-    cell: ({ row }) =>
-      row.getValue("posted") ? (
-        <Badge className="bg-green-100 text-green-800">Posted</Badge>
-      ) : (
-        <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-      ),
-  },
+  // {
+  //   accessorKey: "posted",
+  //   header: "Posted",
+  //   cell: ({ row }) =>
+  //     row.getValue("posted") ? (
+  //       <Badge className="bg-green-100 text-green-800">Posted</Badge>
+  //     ) : (
+  //       <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+  //     ),
+  // },
 
+  {
+    accessorKey: "transactionDescription",
+    header: "Description",
+  },
+  // { accessorKey: "debitAccount", header: "Debit" },
+  { accessorKey: "creditAccount", header: "Paid To" },
   {
     accessorKey: "amount",
     header: "Amount",
@@ -51,18 +57,10 @@ export const TRANSACTION_COLUMNS = ({
       return <>₹ {amount.toLocaleString()}</>;
     },
   },
+  { accessorKey: "paymentId", header: "Payment ID" },
 
-  { accessorKey: "debitAccount", header: "Debit" },
-  { accessorKey: "creditAccount", header: "Credit" },
-
-  { accessorKey: "invoiceId", header: "Invoice" },
-  { accessorKey: "paymentId", header: "Payment" },
-  { accessorKey: "itemCode", header: "Item Code" },
-
-  {
-    accessorKey: "transactionDescription",
-    header: "Description",
-  },
+  { accessorKey: "invoiceId", header: "Invoice No" },
+  // { accessorKey: "itemCode", header: "Item Code" },
 
   {
     id: "actions",

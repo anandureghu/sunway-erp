@@ -49,6 +49,80 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store/store";
 import { useEffect } from "react";
 
+const sections = [
+  {
+    title: "HR and Payroll",
+    icon: Users,
+    color: "text-yellow-500",
+    image: "/assets/images/hr.svg",
+    url: "/hr/dashboard",
+    items: [
+      {
+        title: "HR Analytics",
+        url: "/hr/dashboard",
+        icon: Users,
+      },
+      // Employee Overview
+      { title: "Employee Overview", url: "/hr/employees", icon: Users },
+
+      // Core HR Functions
+      { title: "HR Reports", url: "/hr/reports", icon: FileSpreadsheet },
+      { title: "HR Settings", url: "/hr/settings", icon: Settings },
+    ],
+  },
+  {
+    title: "Inventory",
+    icon: Package,
+    color: "text-amber-700",
+    image: "/assets/images/inventory.svg",
+    url: "/inventory/dashboard",
+    items: [
+      {
+        title: "Inventory Analytics",
+        url: "/inventory/dashboard",
+        icon: Package,
+      },
+      {
+        title: "Inventory (Stocks)",
+        url: "/inventory/stocks",
+        icon: Package,
+      },
+      { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
+      { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
+      {
+        title: "Inventory Report",
+        url: "/inventory/reports",
+        icon: FileText,
+      },
+    ],
+  },
+  {
+    title: "Finance",
+    icon: DollarSign,
+    color: "text-green-700",
+    image: "/assets/images/finance.svg",
+    url: "/finance/dashboard",
+    items: [
+      {
+        title: "Finance Analytics",
+        url: "/finance/dashboard",
+        icon: DollarSign,
+      },
+      {
+        title: "Accounts Receivable",
+        url: "/finance/receivable",
+        icon: Wallet,
+      },
+      { title: "Accounts Payable", url: "/finance/payable", icon: Receipt },
+      { title: "General Ledger", url: "/finance/ledger", icon: Landmark },
+      { title: "Employee Payroll", url: "/finance/payroll", icon: Users },
+      { title: "Finance Reports", url: "/finance/reports", icon: PieChart },
+    ],
+  },
+] as const;
+
+export const SIDEBAR_ITEMS = sections;
+
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,57 +132,6 @@ export function AppSidebar() {
   const adminView = useAppSelector((s) => s.ui.adminView);
 
   const empBase = selected ? `/hr/employees/${selected.id}` : null;
-
-  const sections = [
-    {
-      title: "HR and Payroll",
-      icon: Users,
-      color: "text-yellow-500",
-      items: [
-        // Employee Overview
-        { title: "Employee Overview", url: "/hr/employees", icon: Users },
-
-        // Core HR Functions
-        { title: "HR Reports", url: "/hr/reports", icon: FileSpreadsheet },
-        { title: "HR Settings", url: "/hr/settings", icon: Settings },
-      ],
-    },
-    {
-      title: "Inventory",
-      icon: Package,
-      color: "text-amber-700",
-      items: [
-        {
-          title: "Inventory (Stocks)",
-          url: "/inventory/stocks",
-          icon: Package,
-        },
-        { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-        { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
-        {
-          title: "Inventory Report",
-          url: "/inventory/reports",
-          icon: FileText,
-        },
-      ],
-    },
-    {
-      title: "Finance",
-      icon: DollarSign,
-      color: "text-green-700",
-      items: [
-        {
-          title: "Accounts Receivable",
-          url: "/finance/receivable",
-          icon: Wallet,
-        },
-        { title: "Accounts Payable", url: "/finance/payable", icon: Receipt },
-        { title: "General Ledger", url: "/finance/ledger", icon: Landmark },
-        { title: "Employee Payroll", url: "/finance/payroll", icon: Users },
-        { title: "Finance Reports", url: "/finance/reports", icon: PieChart },
-      ],
-    },
-  ] as const;
 
   // Sub-modules that live under Employee Overview
   const employeeSubModules = [
@@ -178,21 +201,21 @@ export function AppSidebar() {
   }, [adminView]);
 
   return (
-    <Sidebar className="relative">
+    <Sidebar className="relative border-none">
       {/* Header */}
-      <SidebarHeader className="bg-background border-b">
+      <SidebarHeader className="bg-primary text-white border-b">
         <div className="flex items-center gap-3 px-3">
           <img
-            src="/assets/logo-dark.svg"
+            src="/assets/logo.svg"
             alt="sunway"
             width={38}
             className="my-2"
           />
           <div className="flex flex-col items-start">
-            <h1 className="font-display font-bold text-xl text-primary">
+            <h1 className="font-display font-bold text-xl text-white">
               Sunway
             </h1>
-            <p className="text-sm text-muted-foreground">ERP Platform</p>
+            <p className="text-sm text-accent">ERP Platform</p>
           </div>
         </div>
       </SidebarHeader>
