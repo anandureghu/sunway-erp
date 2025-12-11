@@ -117,7 +117,7 @@ export default function CompanyDetailPage() {
         <div className="flex gap-3 items-center">
           <Button
             variant="ghost"
-            onClick={() => navigate("/admin/companies")}
+            onClick={() => navigate("/admin/company")}
             className="flex gap-1"
           >
             <ArrowLeft className="h-4 w-4" /> Back

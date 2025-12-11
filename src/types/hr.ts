@@ -26,6 +26,7 @@ export interface Employee {
   email?: string;
   username?: string;
   role?: Role;
+  companyName?: string;
 }
 
 export type Role = "ADMIN" | "SUPER_ADMIN" | "USER";
@@ -69,8 +70,8 @@ export interface Salary {
   totalAllowance: string;
   housing: "Yes" | "No";
   housingAllowance: string;
-  payPeriodStart: string;  // yyyy-mm-dd
-  payPeriodEnd: string;    // yyyy-mm-dd
+  payPeriodStart: string; // yyyy-mm-dd
+  payPeriodEnd: string; // yyyy-mm-dd
   numberOfDaysWorked: string;
   payPerDay: string;
   overtime: string;

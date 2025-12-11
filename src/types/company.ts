@@ -15,3 +15,22 @@ export interface Company {
   financeEnabled: boolean;
   inventoryEnabled: boolean;
 }
+
+export type IModules = "hr" | "finance" | "inventory";
+
+import type { LucideIcon } from "lucide-react";
+
+export interface SidebarSubItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+}
+
+export interface SidebarItem {
+  title: string;
+  icon: LucideIcon;
+  color: string;
+  image: string;
+  url: string;
+  items: SidebarSubItem[];
+}
