@@ -146,7 +146,7 @@ export function EmployeeDialog({
       password: values.password || null, // if empty, backend should ignore
       companyId,
       departmentId: values.departmentId ? Number(values.departmentId) : null,
-      role: presetRole,
+      role: employee?.role || presetRole,
     };
 
     try {
@@ -354,7 +354,7 @@ export function EmployeeDialog({
               <FormLabel>User Role</FormLabel>
               <Input
                 disabled
-                value={presetRole}
+                value={employee?.role || presetRole}
                 className="bg-muted/50 font-semibold mt-1"
               />
             </div>

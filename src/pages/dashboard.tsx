@@ -1,15 +1,27 @@
-import { SIDEBAR_ITEMS } from "@/components/app-sidebar";
 // import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { getSidebarItems } from "@/service/companyService";
+import type { SidebarItem } from "@/types/company";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
+  useEffect(() => {
+    if (user?.companyId) {
+      getSidebarItems(user.companyId).then((items) => {
+        setSidebarItems(items);
+      });
+    }
+  }, [user]);
   return (
     <div className="">
       <h1 className="text-3xl mb-10 font-bold bg-primary text-white py-3 px-6 mt-5">
         Sunway ERP Modules
       </h1>
       <div className="flex justify-between items-start gap-3 p-6">
-        {SIDEBAR_ITEMS.map((item) => (
+        {sidebarItems.map((item) => (
           <div key={item.title} className="mb-4 w-full">
             <h1 className="mb-4 font-semibold text-gray-400">
               Sunway {item.title} System

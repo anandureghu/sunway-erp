@@ -23,17 +23,10 @@ import {
 import {
   Home,
   Users,
-  Package,
-  ShoppingCart,
-  Receipt,
   FileText,
   DollarSign,
-  Wallet,
-  Landmark,
-  PieChart,
   ChevronDown,
   Settings,
-  FileSpreadsheet,
   // Database,
   LayoutDashboard,
   UserRound,
@@ -47,87 +40,17 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 // import { useEmployeeSelection } from "@/context/employee-selection";
 import { useAppSelector } from "@/store/store";
-import { useEffect } from "react";
-
-const sections = [
-  {
-    title: "HR and Payroll",
-    icon: Users,
-    color: "text-yellow-500",
-    image: "/assets/images/hr.svg",
-    url: "/hr/dashboard",
-    items: [
-      {
-        title: "HR Analytics",
-        url: "/hr/dashboard",
-        icon: Users,
-      },
-      // Employee Overview
-      { title: "Employee Overview", url: "/hr/employees", icon: Users },
-
-      // Core HR Functions
-      { title: "HR Reports", url: "/hr/reports", icon: FileSpreadsheet },
-      { title: "HR Settings", url: "/hr/settings", icon: Settings },
-    ],
-  },
-  {
-    title: "Inventory",
-    icon: Package,
-    color: "text-amber-700",
-    image: "/assets/images/inventory.svg",
-    url: "/inventory/dashboard",
-    items: [
-      {
-        title: "Inventory Analytics",
-        url: "/inventory/dashboard",
-        icon: Package,
-      },
-      {
-        title: "Inventory (Stocks)",
-        url: "/inventory/stocks",
-        icon: Package,
-      },
-      { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-      { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
-      {
-        title: "Inventory Report",
-        url: "/inventory/reports",
-        icon: FileText,
-      },
-    ],
-  },
-  {
-    title: "Finance",
-    icon: DollarSign,
-    color: "text-green-700",
-    image: "/assets/images/finance.svg",
-    url: "/finance/dashboard",
-    items: [
-      {
-        title: "Finance Analytics",
-        url: "/finance/dashboard",
-        icon: DollarSign,
-      },
-      {
-        title: "Accounts Receivable",
-        url: "/finance/receivable",
-        icon: Wallet,
-      },
-      { title: "Accounts Payable", url: "/finance/payable", icon: Receipt },
-      { title: "General Ledger", url: "/finance/ledger", icon: Landmark },
-      { title: "Employee Payroll", url: "/finance/payroll", icon: Users },
-      { title: "Finance Reports", url: "/finance/reports", icon: PieChart },
-    ],
-  },
-] as const;
-
-export const SIDEBAR_ITEMS = sections;
+import { useEffect, useState } from "react";
+import type { SidebarItem } from "@/types/company";
+import { useAuth } from "@/context/AuthContext";
+import { getSidebarItems } from "@/service/companyService";
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
   const { selected } = useEmployeeSelection();
+  const { user } = useAuth();
 
   const adminView = useAppSelector((s) => s.ui.adminView);
 
@@ -200,6 +123,15 @@ export function AppSidebar() {
     else navigate("/");
   }, [adminView]);
 
+  const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
+  useEffect(() => {
+    if (user?.companyId) {
+      getSidebarItems(user.companyId).then((items) => {
+        setSidebarItems(items);
+      });
+    }
+  }, [user]);
+
   return (
     <Sidebar className="relative border-none">
       {/* Header */}
@@ -242,7 +174,7 @@ export function AppSidebar() {
 
         {/* Groups */}
         {!adminView &&
-          sections.map((section) => (
+          sidebarItems.map((section) => (
             <Collapsible
               key={section.title}
               defaultOpen
