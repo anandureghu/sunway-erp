@@ -330,3 +330,9 @@ export function searchItems(query: string): Item[] {
   );
 }
 
+// Helper function to add a new item
+export function addItem(item: Item): Item {
+  items.push(item);
+  return item;
+}
+

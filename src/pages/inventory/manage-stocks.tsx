@@ -10,7 +10,9 @@ import {
   warehouses,
   searchItems,
   itemCategories,
+  addItem,
 } from "@/lib/inventory-data";
+import { purchaseOrders } from "@/lib/purchase-data";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +39,8 @@ import {
   type ReceiveItemFormData,
   STOCK_ADJUSTMENT_SCHEMA,
   type StockAdjustmentFormData,
+  ITEM_SCHEMA,
+  type ItemFormData,
 } from "@/schema/inventory";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,6 +52,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import {
@@ -62,6 +72,225 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+
+// Create Item Form Component
+function CreateItemForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: (item: Item) => void;
+  onCancel: () => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+  } = useForm<ItemFormData>({
+    resolver: zodResolver(ITEM_SCHEMA),
+    defaultValues: {
+      status: "active",
+      unit: "pcs",
+      costPrice: 0,
+      sellingPrice: 0,
+      reorderLevel: 0,
+    },
+  });
+
+  const onSubmit = (data: ItemFormData) => {
+    const newItem: Item = {
+      id: `item-${Date.now()}`,
+      ...data,
+      sku: data.sku.toUpperCase(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    onSuccess(newItem);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            SKU <span className="text-red-500">*</span>
+          </label>
+          <Input
+            placeholder="SKU-001"
+            {...register("sku")}
+          />
+          {errors.sku && (
+            <p className="text-sm text-red-500 mt-1">{errors.sku.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Item Name <span className="text-red-500">*</span>
+          </label>
+          <Input
+            placeholder="Item name"
+            {...register("name")}
+          />
+          {errors.name && (
+            <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
+          )}
+        </div>
+
+        <div className="col-span-2">
+          <label className="text-sm font-medium mb-2 block">
+            Description
+          </label>
+          <Input
+            placeholder="Item description"
+            {...register("description")}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Category <span className="text-red-500">*</span>
+          </label>
+          <Select
+            onValueChange={(value) => setValue("category", value)}
+            value={watch("category")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {itemCategories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.name}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.category && (
+            <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Unit <span className="text-red-500">*</span>
+          </label>
+          <Select
+            onValueChange={(value) => setValue("unit", value as any)}
+            value={watch("unit")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select unit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pcs">Pieces (pcs)</SelectItem>
+              <SelectItem value="kg">Kilogram (kg)</SelectItem>
+              <SelectItem value="g">Gram (g)</SelectItem>
+              <SelectItem value="box">Box</SelectItem>
+              <SelectItem value="pallet">Pallet</SelectItem>
+              <SelectItem value="liter">Liter</SelectItem>
+              <SelectItem value="meter">Meter</SelectItem>
+              <SelectItem value="carton">Carton</SelectItem>
+              <SelectItem value="bag">Bag</SelectItem>
+              <SelectItem value="bucket">Bucket</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.unit && (
+            <p className="text-sm text-red-500 mt-1">{errors.unit.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Cost Price <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            {...register("costPrice", { valueAsNumber: true })}
+          />
+          {errors.costPrice && (
+            <p className="text-sm text-red-500 mt-1">{errors.costPrice.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Selling Price <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            {...register("sellingPrice", { valueAsNumber: true })}
+          />
+          {errors.sellingPrice && (
+            <p className="text-sm text-red-500 mt-1">{errors.sellingPrice.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Reorder Level <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="number"
+            step="1"
+            min="0"
+            placeholder="0"
+            {...register("reorderLevel", { valueAsNumber: true })}
+          />
+          {errors.reorderLevel && (
+            <p className="text-sm text-red-500 mt-1">{errors.reorderLevel.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Status <span className="text-red-500">*</span>
+          </label>
+          <Select
+            onValueChange={(value) => setValue("status", value as any)}
+            value={watch("status")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="discontinued">Discontinued</SelectItem>
+              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.status && (
+            <p className="text-sm text-red-500 mt-1">{errors.status.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Barcode
+          </label>
+          <Input
+            placeholder="Optional barcode"
+            {...register("barcode")}
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">Create Item</Button>
+      </div>
+    </form>
+  );
+}
 
 const ManageStocks = () => {
   const navigate = useNavigate();
@@ -88,6 +317,7 @@ const ManageStocks = () => {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Item[]>([]);
+  const [showCreateItemDialog, setShowCreateItemDialog] = useState(false);
   const selectedWarehouseId = watch("warehouseId");
 
   // Variance/Adjustment Form
@@ -569,9 +799,21 @@ const ManageStocks = () => {
                   <CardContent className="space-y-4">
                     {/* Item Search */}
                     <div className="relative">
-                      <label className="text-sm font-medium mb-2 block">
-                        Item Code / SKU / Barcode
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">
+                          Item Code / SKU / Barcode
+                        </label>
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          onClick={() => setShowCreateItemDialog(true)}
+                          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add New Item
+                        </Button>
+                      </div>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
@@ -581,6 +823,20 @@ const ManageStocks = () => {
                           className="pl-10"
                         />
                       </div>
+                      {itemSearchQuery.length > 0 && searchResults.length === 0 && (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <p className="text-sm text-blue-800">
+                            No items found.{" "}
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateItemDialog(true)}
+                              className="font-semibold underline hover:text-blue-900"
+                            >
+                              Click here to create a new item
+                            </button>
+                          </p>
+                        </div>
+                      )}
                       {searchResults.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
                           {searchResults.map((item) => (
@@ -722,10 +978,23 @@ const ManageStocks = () => {
                           <label className="text-sm font-medium mb-2 block">
                             Reference No.
                           </label>
-                          <Input
-                            placeholder="PO number or reference"
-                            {...register("referenceNo")}
-                          />
+                          <Select
+                            value={watch("referenceNo") || ""}
+                            onValueChange={(value) => setValue("referenceNo", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select PO number" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {purchaseOrders
+                                .filter((po) => po.status === "approved" || po.status === "ordered")
+                                .map((po) => (
+                                  <SelectItem key={po.id} value={po.orderNo}>
+                                    {po.orderNo}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         {/* Field 9: Quantity Received */}
@@ -816,6 +1085,27 @@ const ManageStocks = () => {
                   </CardContent>
                 </Card>
               </form>
+
+              {/* Create New Item Dialog */}
+              <Dialog open={showCreateItemDialog} onOpenChange={setShowCreateItemDialog}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Item</DialogTitle>
+                  </DialogHeader>
+                  <CreateItemForm
+                    onSuccess={(newItem) => {
+                      // Add the new item to the items array
+                      addItem(newItem);
+                      // Select the newly created item
+                      handleItemSelect(newItem);
+                      setShowCreateItemDialog(false);
+                      // Clear search query
+                      setItemSearchQuery("");
+                    }}
+                    onCancel={() => setShowCreateItemDialog(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* Variances Tab */}
