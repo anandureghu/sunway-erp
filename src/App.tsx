@@ -85,6 +85,7 @@ import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
 import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
+import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -107,6 +108,7 @@ export default function App() {
         {/* Finance */}
         <Route path="finance">
           <Route path="receivable" element={<AccountsReceivablePage />} />
+          <Route path="payable" element={<AccountsPayablePage />} />
           <Route path="payroll" element={<Payroll />} />
           <Route path="ledger" element={<GeneralLedgerPage />} />
         </Route>
