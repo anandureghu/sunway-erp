@@ -8,7 +8,7 @@ import InventoryItemDetail from "./pages/inventory/inventory-item-detail";
 /* Sales */
 import SalesLandingPage from "./pages/sales/sales-landing-page";
 import SalesOrdersPage from "./pages/sales/sales-orders-page";
-import CustomersPage from "./pages/sales/customers-page";
+import SalesCustomersPage from "./pages/sales/customers-page";
 import PicklistDispatchPage from "./pages/sales/picklist-dispatch-page";
 import DeliveryTrackingPage from "./pages/sales/delivery-tracking-page";
 import InvoicesPage from "./pages/sales/invoices-page";
@@ -26,6 +26,8 @@ import CompanyPage from "./pages/admin/hr/company/company-page";
 import Payroll from "./pages/finance/payroll";
 import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
 import CompanyDetailPage from "./pages/hr/company-detail-page";
+import CustomersPage from "./pages/admin/customers/customers-page";
+import CustomerDetailPage from "./pages/admin/customers/customer-detail-page";
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
@@ -117,6 +119,8 @@ export default function App() {
         <Route path="admin">
           <Route path="company" element={<CompanyPage />} />
           <Route path="department" element={<DepartmentListPage />} />
+          <Route path="customers" element={<CustomersPage />} />
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
         </Route>
 
         {/* Inventory */}
@@ -127,7 +131,7 @@ export default function App() {
           <Route path="sales" element={<SalesLandingPage />} />
           <Route path="sales/orders" element={<SalesOrdersPage />} />
           <Route path="sales/orders/new" element={<SalesOrdersPage />} />
-          <Route path="sales/customers" element={<CustomersPage />} />
+          <Route path="sales/customers" element={<SalesCustomersPage />} />
           <Route path="sales/picklist" element={<PicklistDispatchPage />} />
           <Route path="sales/tracking" element={<DeliveryTrackingPage />} />
           <Route path="sales/invoices" element={<InvoicesPage />} />
