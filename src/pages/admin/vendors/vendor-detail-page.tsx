@@ -4,25 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import { type Customer } from "@/types/customer";
+import { type Vendor } from "@/types/vendor";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
-import { CustomerDialog } from "./customer-dialog";
+import { VendorDialog } from "./vendor-dialog";
 
-export default function CustomerDetailPage() {
+export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
-  const fetchCustomer = async () => {
+  const fetchVendor = async () => {
     try {
-      const res = await apiClient.get(`/customers/${id}`);
-      setCustomer(res.data);
+      const res = await apiClient.get(`/vendors/${id}`);
+      setVendor(res.data);
     } catch (err) {
-      console.error("fetchCustomer:", err);
-      toast.error("Failed to load customer");
+      console.error("fetchVendor:", err);
+      toast.error("Failed to load vendor");
     } finally {
       setLoading(false);
     }
@@ -30,17 +30,17 @@ export default function CustomerDetailPage() {
 
   const handleDelete = async () => {
     try {
-      await apiClient.delete(`/customers/${id}`);
-      toast.success("Customer deleted");
-      navigate("/admin/customers");
+      await apiClient.delete(`/vendors/${id}`);
+      toast.success("Vendor deleted");
+      navigate("/admin/vendors");
     } catch (err) {
       console.error(err);
-      toast.error("Error deleting customer");
+      toast.error("Error deleting vendor");
     }
   };
 
   useEffect(() => {
-    fetchCustomer();
+    fetchVendor();
   }, [id]);
 
   if (loading)
@@ -50,10 +50,10 @@ export default function CustomerDetailPage() {
       </div>
     );
 
-  if (!customer)
+  if (!vendor)
     return (
       <div className="p-6">
-        <p className="text-red-500">Customer not found.</p>
+        <p className="text-red-500">Vendor not found.</p>
       </div>
     );
 
@@ -64,12 +64,12 @@ export default function CustomerDetailPage() {
         <div className="flex gap-3 items-center">
           <Button
             variant="ghost"
-            onClick={() => navigate("/admin/customers")}
+            onClick={() => navigate("/admin/vendors")}
             className="flex gap-1"
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
-          <h1 className="text-2xl font-semibold">{customer.customerName}</h1>
+          <h1 className="text-2xl font-semibold">{vendor.vendorName}</h1>
         </div>
 
         <div className="flex gap-2">
@@ -85,29 +85,36 @@ export default function CustomerDetailPage() {
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Customer Info */}
+        {/* Vendor Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Customer Information</CardTitle>
+            <CardTitle className="text-lg">Vendor Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Customer Name:</span>{" "}
-              {customer.customerName}
+              <span className="font-semibold">Vendor Name:</span>{" "}
+              {vendor.vendorName}
             </p>
             <p>
               <span className="font-semibold">Contact Person:</span>{" "}
-              {customer.contactPersonName || "-"}
+              {vendor.contactPersonName || "-"}
             </p>
             <p>
-              <span className="font-semibold">Email:</span> {customer.email || "-"}
+              <span className="font-semibold">Email:</span> {vendor.email || "-"}
             </p>
             <p>
-              <span className="font-semibold">Phone:</span> {customer.phoneNo || "-"}
+              <span className="font-semibold">Phone:</span> {vendor.phoneNo || "-"}
             </p>
             <p>
-              <span className="font-semibold">Customer Type:</span>{" "}
-              {customer.customerType || "-"}
+              <span className="font-semibold">Fax:</span> {vendor.fax || "-"}
+            </p>
+            <p>
+              <span className="font-semibold">Active:</span>{" "}
+              {vendor.active ? "Yes" : "No"}
+            </p>
+            <p>
+              <span className="font-semibold">1099 Vendor:</span>{" "}
+              {vendor.is1099Vendor ? "Yes" : "No"}
             </p>
           </CardContent>
         </Card>
@@ -119,17 +126,14 @@ export default function CustomerDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Street:</span> {customer.street || "-"}
+              <span className="font-semibold">Street:</span> {vendor.street || "-"}
             </p>
             <p>
-              <span className="font-semibold">City:</span> {customer.city || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">State:</span> {customer.state || "-"}
+              <span className="font-semibold">City:</span> {vendor.city || "-"}
             </p>
             <p>
               <span className="font-semibold">Country:</span>{" "}
-              {customer.country || "-"}
+              {vendor.country || "-"}
             </p>
           </CardContent>
         </Card>
@@ -141,32 +145,32 @@ export default function CustomerDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Tax ID:</span> {customer.taxId || "-"}
+              <span className="font-semibold">Tax ID:</span> {vendor.taxId || "-"}
             </p>
             <p>
               <span className="font-semibold">Payment Terms:</span>{" "}
-              {customer.paymentTerms || "-"}
+              {vendor.paymentTerms || "-"}
             </p>
             <p>
               <span className="font-semibold">Currency:</span>{" "}
-              {customer.currencyCode || "-"}
+              {vendor.currencyCode || "-"}
             </p>
             <p>
               <span className="font-semibold">Credit Limit:</span>{" "}
-              {customer.creditLimit
-                ? `${customer.currencyCode || ""} ${customer.creditLimit.toLocaleString()}`
+              {vendor.creditLimit
+                ? `${vendor.currencyCode || ""} ${vendor.creditLimit.toLocaleString()}`
                 : "-"}
             </p>
-            {customer.websiteUrl && (
+            {vendor.websiteUrl && (
               <p>
                 <span className="font-semibold">Website:</span>{" "}
                 <a
-                  href={customer.websiteUrl}
+                  href={vendor.websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
                 >
-                  {customer.websiteUrl}
+                  {vendor.websiteUrl}
                 </a>
               </p>
             )}
@@ -175,18 +179,16 @@ export default function CustomerDetailPage() {
       </div>
 
       {/* Edit Dialog */}
-      <CustomerDialog
+      <VendorDialog
         open={open}
         onOpenChange={setOpen}
-        customer={customer}
+        vendor={vendor}
         onSuccess={() => {
           setOpen(false);
-          fetchCustomer();
+          fetchVendor();
         }}
       />
     </div>
   );
 }
-
-
 

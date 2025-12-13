@@ -1,7 +1,14 @@
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_APP_BASE_URL || "http://localhost:8080/api";
+// Use relative URL when in dev (goes through Vite proxy to avoid CORS)
+// Use full URL in production
+const baseURL = import.meta.env.PROD
+  ? (import.meta.env.VITE_APP_BASE_URL || "https://api.picominds.com/api")
+  : "/api";
+
+// Debug: Log the base URL (remove in production)
 console.log("API Base URL:", baseURL);
+console.log("Environment:", import.meta.env.PROD ? "PRODUCTION" : "DEVELOPMENT");
 
 const apiClient = axios.create({
   baseURL,
@@ -16,5 +23,18 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Add response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+      console.error("Network Error - Backend might be down or unreachable");
+      console.error("Attempted URL:", error.config?.url);
+      console.error("Base URL:", baseURL);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export { apiClient };

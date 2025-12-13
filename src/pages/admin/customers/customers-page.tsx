@@ -23,11 +23,20 @@ export default function CustomersPage() {
     try {
       const res = await apiClient.get("/customers");
       // Map API response to match our Customer type
-      const mappedCustomers = res.data.map((customer: any) => ({
-        ...customer,
-        customerName: customer.name || customer.customerName,
-        companyId: customer.customerId || customer.companyId,
-      }));
+      const mappedCustomers = res.data.map((customer: any) => {
+        const mapped = {
+          ...customer,
+          customerName: customer.name || customer.customerName,
+          companyId: customer.customerId || customer.companyId,
+          createdAt: customer.createdAt || customer.created_at || customer.dateCreated || customer.date_created,
+        };
+        // Debug: Log first customer to see what fields are available
+        if (res.data.indexOf(customer) === 0) {
+          console.log("Sample customer data:", customer);
+          console.log("Mapped createdAt:", mapped.createdAt);
+        }
+        return mapped;
+      });
       setCustomers(mappedCustomers);
     } catch (error) {
       console.error("Error fetching customers:", error);
@@ -80,6 +89,14 @@ export default function CustomersPage() {
     onEdit: handleEdit,
     onDelete: handleDelete,
   });
+
+  // Debug: Log columns to verify Created At column is included
+  useEffect(() => {
+    console.log("Customer columns:", columns.map(col => ({ 
+      header: typeof col.header === 'string' ? col.header : 'function',
+      accessorKey: (col as any).accessorKey || (col as any).id 
+    })));
+  }, [columns]);
 
   const filteredCustomers = customers.filter((customer) => {
     const query = searchQuery.toLowerCase();

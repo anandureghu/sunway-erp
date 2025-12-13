@@ -28,6 +28,8 @@ import DepartmentListPage from "./pages/admin/hr/department/department-list-page
 import CompanyDetailPage from "./pages/hr/company-detail-page";
 import CustomersPage from "./pages/admin/customers/customers-page";
 import CustomerDetailPage from "./pages/admin/customers/customer-detail-page";
+import VendorsPage from "./pages/admin/vendors/vendors-page";
+import VendorDetailPage from "./pages/admin/vendors/vendor-detail-page";
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
@@ -121,6 +123,8 @@ export default function App() {
           <Route path="department" element={<DepartmentListPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:id" element={<CustomerDetailPage />} />
+          <Route path="vendors" element={<VendorsPage />} />
+          <Route path="vendors/:id" element={<VendorDetailPage />} />
         </Route>
 
         {/* Inventory */}
