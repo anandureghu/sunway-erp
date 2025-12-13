@@ -35,9 +35,29 @@ export default function LoginPage() {
       login(accessToken, refreshToken);
       toast.success("Login successful!");
       navigate("/");
-    } catch (error) {
-      toast.error("Login failed. Please check your credentials.");
+    } catch (error: any) {
+      // Enhanced error logging
       console.error("Login failed:", error);
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error("Response status:", error.response.status);
+        console.error("Response data:", error.response.data);
+        console.error("Response headers:", error.response.headers);
+        
+        const errorMessage = error.response.data?.message || 
+                            error.response.data?.error || 
+                            `Server error: ${error.response.status}`;
+        toast.error(errorMessage);
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error("No response received:", error.request);
+        toast.error("Unable to reach server. Please check your connection.");
+      } else {
+        // Error setting up the request
+        console.error("Error setting up request:", error.message);
+        toast.error("Login failed. Please try again.");
+      }
     }
   };
 
