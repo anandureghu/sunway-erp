@@ -3,15 +3,15 @@ import { z } from "zod";
 export const VENDOR_SCHEMA = z.object({
   vendorName: z
     .string()
-    .min(2, { message: "Vendor name must be at least 2 characters long" }),
+    .min(2, "Vendor name must be at least 2 characters long"),
   taxId: z.string().optional(),
   paymentTerms: z.string().optional(),
   currencyCode: z.string().optional(),
   creditLimit: z
     .number()
-    .min(0, { message: "Credit limit must be a positive number" })
+    .min(0, "Credit limit must be a positive number")
     .optional(),
-  active: z.boolean().optional().default(true),
+  active: z.boolean().optional(),
   street: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
@@ -30,8 +30,7 @@ export const VENDOR_SCHEMA = z.object({
       message: "Invalid URL",
     })
     .optional(),
-  is1099Vendor: z.boolean().optional().default(false),
+  is1099Vendor: z.boolean().optional(),
 });
 
 export type VendorFormData = z.infer<typeof VENDOR_SCHEMA>;
-

@@ -30,11 +30,13 @@ export default defineConfig({
             // Log the proxied request for debugging
             console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyReq.path}`);
           });
-          proxy.on("error", (err, req, res) => {
+          proxy.on("error", (err) => {
             console.error("[Proxy Error]", err);
           });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            console.log(`[Proxy Response] ${req.url} -> ${proxyRes.statusCode}`);
+          proxy.on("proxyRes", (proxyRes, req) => {
+            console.log(
+              `[Proxy Response] ${req.url} -> ${proxyRes.statusCode}`
+            );
           });
         },
       },

@@ -11,7 +11,7 @@ export const CUSTOMER_SCHEMA = z.object({
     .number()
     .min(0, { message: "Credit limit must be a positive number" })
     .optional(),
-  isActive: z.boolean().optional().default(true),
+  isActive: z.boolean().optional(),
   street: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -34,4 +34,3 @@ export const CUSTOMER_SCHEMA = z.object({
 });
 
 export type CustomerFormData = z.infer<typeof CUSTOMER_SCHEMA>;
-

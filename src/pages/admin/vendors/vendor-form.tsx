@@ -102,7 +102,11 @@ export const VendorForm = ({
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@example.com" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -171,7 +175,10 @@ export const VendorForm = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Currency Code</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || "USD"}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value || "USD"}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select currency" />
@@ -313,4 +320,3 @@ export const VendorForm = ({
     </Form>
   );
 };
-

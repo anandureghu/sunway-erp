@@ -36,7 +36,9 @@ const GeneralLedgerPage = () => {
     {
       value: "budget",
       label: "Budget",
-      element: () => <BudgetPage />,
+      element: ({ companyId }: { companyId: number }) => (
+        <BudgetPage companyId={companyId} />
+      ),
     },
   ];
 
