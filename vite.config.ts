@@ -11,8 +11,35 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  server: {
-    host: "localhost",
-    port: 5173,
-  },
+  // server: {
+  //   host: "localhost",
+  //   port: 5173,
+  //   proxy: {
+  //     "/api": {
+  //       target: "https://api.picominds.com",
+  //       changeOrigin: true,
+  //       secure: true,
+  //       rewrite: (path) => path, // Keep the /api prefix in the path
+  //       configure: (proxy, _options) => {
+  //         proxy.on("proxyReq", (proxyReq, req, _res) => {
+  //           // Forward Authorization header if present
+  //           const token = req.headers.authorization;
+  //           if (token) {
+  //             proxyReq.setHeader("Authorization", token);
+  //           }
+  //           // Log the proxied request for debugging
+  //           console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyReq.path}`);
+  //         });
+  //         proxy.on("error", (err) => {
+  //           console.error("[Proxy Error]", err);
+  //         });
+  //         proxy.on("proxyRes", (proxyRes, req) => {
+  //           console.log(
+  //             `[Proxy Response] ${req.url} -> ${proxyRes.statusCode}`
+  //           );
+  //         });
+  //       },
+  //     },
+  //   },
+  // },
 });

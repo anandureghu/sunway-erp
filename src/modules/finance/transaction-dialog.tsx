@@ -16,16 +16,8 @@ import type {
   TransactionResponseDTO,
   CreateTransactionDTO,
 } from "@/types/transactions";
-import { fetchCOAAccounts } from "@/service/coaService";
-// import { FormControl } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { ChartOfAccounts } from "@/types/coa";
+import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SelectAccount from "@/components/select-account";
 
 export function TransactionDialog({
   open,
@@ -40,7 +32,6 @@ export function TransactionDialog({
   companyId: number;
   onSuccess: (updated: TransactionResponseDTO, mode: "add" | "edit") => void;
 }) {
-  const [accounts, setAccounts] = useState([]);
   const [form, setForm] = useState<CreateTransactionDTO>({
     companyId,
     transactionType: "",
@@ -90,12 +81,6 @@ export function TransactionDialog({
       toast.error("Failed to save");
     }
   };
-
-  useEffect(() => {
-    fetchCOAAccounts(companyId.toString()).then((data) => {
-      if (data) setAccounts(data);
-    });
-  }, []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -169,16 +154,7 @@ export function TransactionDialog({
               </SelectTrigger>
               {/* </FormControl> */}
 
-              <SelectContent>
-                {accounts.map((d: ChartOfAccounts) => (
-                  <SelectItem key={d.id} value={String(d.accountCode)}>
-                    <div>
-                      <h2 className="font-semibold">{d.accountName}</h2>
-                      <h4 className="font-sm text-gray-500">{d.accountCode}</h4>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              <SelectAccount />
             </Select>
           </div>
 

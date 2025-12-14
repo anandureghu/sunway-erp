@@ -801,8 +801,8 @@ const ManageStocks = () => {
                     <div className="relative">
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-sm font-medium">
-                          Item Code / SKU / Barcode
-                        </label>
+                        Item Code / SKU / Barcode
+                      </label>
                         <Button
                           type="button"
                           variant="default"
