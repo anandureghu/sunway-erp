@@ -2,13 +2,16 @@ import axios from "axios";
 
 // Use relative URL when in dev (goes through Vite proxy to avoid CORS)
 // Use full URL in production
-const baseURL = import.meta.env.PROD
-  ? (import.meta.env.VITE_APP_BASE_URL || "https://api.picominds.com/api")
+const baseURL = import.meta.env.VITE_APP_BASE_URL
+  ? import.meta.env.VITE_APP_BASE_URL || "https://api.picominds.com/api"
   : "/api";
 
 // Debug: Log the base URL (remove in production)
 console.log("API Base URL:", baseURL);
-console.log("Environment:", import.meta.env.PROD ? "PRODUCTION" : "DEVELOPMENT");
+console.log(
+  "Environment:",
+  import.meta.env.PROD ? "PRODUCTION" : "DEVELOPMENT"
+);
 
 const apiClient = axios.create({
   baseURL,
