@@ -8,8 +8,6 @@ import {
   PICKLIST_COLUMNS,
   DISPATCH_COLUMNS,
 } from "@/lib/columns/sales-columns";
-import { picklists, dispatches, salesOrders } from "@/lib/sales-data";
-import { warehouses } from "@/lib/inventory-data";
 import { Package, Truck, Plus, ArrowLeft } from "lucide-react";
 import {
   Select,
@@ -29,18 +27,80 @@ import {
   type DispatchFormData,
 } from "@/schema/sales";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import type { Dispatch, Picklist, SalesOrder } from "@/types/sales";
+import { listItems, listWarehouses } from "@/service/inventoryService";
+import {
+  attachOrderAndItems,
+  createShipmentFromPicklist,
+  generatePicklistFromSalesOrder,
+  listPicklists,
+  listSalesOrders,
+  listShipmentsAsDispatches,
+} from "@/service/salesFlowService";
+import type { Warehouse } from "@/types/inventory";
 
 export default function PicklistDispatchPage() {
   const [activeTab, setActiveTab] = useState("picklists");
   const [showCreatePicklist, setShowCreatePicklist] = useState(false);
   const [showCreateDispatch, setShowCreateDispatch] = useState(false);
+  const [picklists, setPicklists] = useState<Picklist[]>([]);
+  const [dispatches, setDispatches] = useState<Dispatch[]>([]);
+  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+        const [orders, pls, shps, items] = await Promise.all([
+          listSalesOrders(),
+          listPicklists(),
+          listShipmentsAsDispatches(),
+          listItems(),
+        ]);
+        if (cancelled) return;
+        const { picklistsEnriched, dispatchesEnriched } = attachOrderAndItems(
+          orders,
+          pls,
+          shps,
+          items
+        );
+        setSalesOrders(orders);
+        setPicklists(picklistsEnriched);
+        setDispatches(dispatchesEnriched);
+      } catch (e: any) {
+        if (!cancelled) setLoadError(e?.message || "Failed to load data");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (showCreatePicklist) {
-    return <CreatePicklistForm onCancel={() => setShowCreatePicklist(false)} />;
+    return (
+      <CreatePicklistForm
+        salesOrders={salesOrders}
+        onCancel={() => setShowCreatePicklist(false)}
+        onCreated={(pl) => setPicklists((prev) => [pl, ...prev])}
+      />
+    );
   }
 
   if (showCreateDispatch) {
-    return <CreateDispatchForm onCancel={() => setShowCreateDispatch(false)} />;
+    return (
+      <CreateDispatchForm
+        picklists={picklists}
+        onCancel={() => setShowCreateDispatch(false)}
+        onCreated={(d) => setDispatches((prev) => [d, ...prev])}
+      />
+    );
   }
 
   return (
@@ -93,7 +153,15 @@ export default function PicklistDispatchPage() {
               <CardTitle>All Picklists</CardTitle>
             </CardHeader>
             <CardContent>
-              <DataTable columns={PICKLIST_COLUMNS} data={picklists} />
+              {loading ? (
+                <div className="py-10 text-center text-muted-foreground">
+                  Loading...
+                </div>
+              ) : loadError ? (
+                <div className="py-10 text-center text-red-600">{loadError}</div>
+              ) : (
+                <DataTable columns={PICKLIST_COLUMNS} data={picklists} />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -104,7 +172,15 @@ export default function PicklistDispatchPage() {
               <CardTitle>All Dispatches</CardTitle>
             </CardHeader>
             <CardContent>
-              <DataTable columns={DISPATCH_COLUMNS} data={dispatches} />
+              {loading ? (
+                <div className="py-10 text-center text-muted-foreground">
+                  Loading...
+                </div>
+              ) : loadError ? (
+                <div className="py-10 text-center text-red-600">{loadError}</div>
+              ) : (
+                <DataTable columns={DISPATCH_COLUMNS} data={dispatches} />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -113,26 +189,47 @@ export default function PicklistDispatchPage() {
   );
 }
 
-function CreatePicklistForm({ onCancel }: { onCancel: () => void }) {
+function CreatePicklistForm({
+  onCancel,
+  salesOrders,
+  onCreated,
+}: {
+  onCancel: () => void;
+  salesOrders: SalesOrder[];
+  onCreated: (pl: Picklist) => void;
+}) {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<PicklistFormData>({
     resolver: zodResolver(PICKLIST_SCHEMA),
   });
+
+  useEffect(() => {
+    listWarehouses()
+      .then(setWarehouses)
+      .catch((err) => console.error("Failed to load warehouses:", err));
+  }, []);
 
   const selectedOrder = salesOrders.find((o) => o.id === selectedOrderId);
 
   const onSubmit = (data: PicklistFormData) => {
     console.log("Creating picklist:", data);
-    // TODO: Make API call to create picklist
-    alert("Picklist generated successfully!");
-    onCancel();
+    generatePicklistFromSalesOrder(selectedOrderId)
+      .then((pl) => {
+        onCreated(pl);
+        alert("Picklist generated successfully!");
+        onCancel();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to generate picklist.");
+      });
   };
 
   return (
@@ -186,39 +283,9 @@ function CreatePicklistForm({ onCancel }: { onCancel: () => void }) {
                   </p>
                 )}
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="warehouseId">Warehouse *</Label>
-                <Select
-                  value={watch("warehouseId") || ""}
-                  onValueChange={(value) => setValue("warehouseId", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.warehouseId && (
-                  <p className="text-sm text-red-500">
-                    {errors.warehouseId.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="assignedTo">Assigned To</Label>
-                <Input
-                  id="assignedTo"
-                  placeholder="Enter picker name or ID"
-                  {...register("assignedTo")}
-                />
-              </div>
+              {/* Backend picklist generation API does not take warehouse/assignee fields */}
+              <input type="hidden" {...register("warehouseId")} />
+              <input type="hidden" {...register("assignedTo")} />
             </div>
 
             {selectedOrder && (
@@ -258,8 +325,15 @@ function CreatePicklistForm({ onCancel }: { onCancel: () => void }) {
   );
 }
 
-function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
-  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+function CreateDispatchForm({
+  onCancel,
+  picklists,
+  onCreated,
+}: {
+  onCancel: () => void;
+  picklists: Picklist[];
+  onCreated: (d: Dispatch) => void;
+}) {
   const [selectedPicklistId, setSelectedPicklistId] = useState<string>("");
 
   const {
@@ -271,15 +345,21 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
     resolver: zodResolver(DISPATCH_SCHEMA),
   });
 
-  const availablePicklists = picklists.filter(
-    (pl) => pl.orderId === selectedOrderId && pl.status === "completed"
-  );
-
   const onSubmit = (data: DispatchFormData) => {
     console.log("Creating dispatch:", data);
-    // TODO: Make API call to create dispatch
-    alert("Dispatch created successfully!");
-    onCancel();
+    createShipmentFromPicklist(selectedPicklistId, {
+      carrierName: data.notes || data.driverName || "",
+      trackingNumber: data.trackingNumber || "",
+    })
+      .then((d) => {
+        onCreated(d);
+        alert("Dispatch (Shipment) created successfully!");
+        onCancel();
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to create dispatch (shipment).");
+      });
   };
 
   return (
@@ -304,38 +384,6 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="orderId">Sales Order *</Label>
-                <Select
-                  value={selectedOrderId}
-                  onValueChange={(value) => {
-                    setSelectedOrderId(value);
-                    setValue("orderId", value);
-                    setSelectedPicklistId("");
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sales order" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {salesOrders
-                      .filter(
-                        (o) => o.status === "picked" || o.status === "confirmed"
-                      )
-                      .map((order) => (
-                        <SelectItem key={order.id} value={order.id}>
-                          {order.orderNo} - {order.customer?.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {errors.orderId && (
-                  <p className="text-sm text-red-500">
-                    {errors.orderId.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="picklistId">Picklist *</Label>
                 <Select
                   value={selectedPicklistId}
@@ -343,13 +391,14 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                     setSelectedPicklistId(value);
                     setValue("picklistId", value);
                   }}
-                  disabled={!selectedOrderId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select picklist" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availablePicklists.map((pl) => (
+                    {picklists
+                      .filter((pl) => pl.status === "completed")
+                      .map((pl) => (
                       <SelectItem key={pl.id} value={pl.id}>
                         {pl.picklistNo}
                       </SelectItem>
@@ -425,10 +474,10 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">Carrier Name</Label>
                 <Input
                   id="notes"
-                  placeholder="Additional notes"
+                  placeholder="Carrier name (e.g., DHL)"
                   {...register("notes")}
                 />
               </div>
@@ -442,7 +491,7 @@ function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
           </Button>
           <Button
             type="submit"
-            disabled={!selectedOrderId || !selectedPicklistId}
+            disabled={!selectedPicklistId}
           >
             Create Dispatch
           </Button>

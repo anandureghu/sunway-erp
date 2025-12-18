@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SALES_ORDER_COLUMNS } from "@/lib/columns/sales-columns";
-import { salesOrders, customers, addSalesOrder } from "@/lib/sales-data";
-import { items, warehouses } from "@/lib/inventory-data";
 import { Plus, Search, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
@@ -24,6 +22,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SALES_ORDER_SCHEMA, type SalesOrderFormData } from "@/schema/sales";
 import { z } from "zod";
 import type { SalesOrderItem, SalesOrder } from "@/types/sales";
+import { listCustomers } from "@/service/customerService";
+import { listItems, listWarehouses } from "@/service/inventoryService";
+import { createSalesOrder, listSalesOrders } from "@/service/salesFlowService";
 
 export default function SalesOrdersPage() {
   const location = useLocation();
@@ -34,8 +35,31 @@ export default function SalesOrdersPage() {
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new")
   );
+  const [orders, setOrders] = useState<SalesOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const filteredOrders = salesOrders.filter((order) => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+        const data = await listSalesOrders();
+        if (!cancelled) setOrders(data);
+      } catch (e: any) {
+        if (!cancelled) setLoadError(e?.message || "Failed to load sales orders");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
     const matchesSearch =
       order.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customer?.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -43,6 +67,7 @@ export default function SalesOrdersPage() {
       statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+  }, [orders, searchQuery, statusFilter]);
 
   if (showCreateForm) {
     return <CreateSalesOrderForm onCancel={() => setShowCreateForm(false)} />;
@@ -102,7 +127,13 @@ export default function SalesOrdersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable columns={SALES_ORDER_COLUMNS} data={filteredOrders} />
+          {loading ? (
+            <div className="py-10 text-center text-muted-foreground">Loading...</div>
+          ) : loadError ? (
+            <div className="py-10 text-center text-red-600">{loadError}</div>
+          ) : (
+            <DataTable columns={SALES_ORDER_COLUMNS} data={filteredOrders} />
+          )}
         </CardContent>
       </Card>
     </div>
@@ -116,6 +147,13 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   const [itemDiscount, setItemDiscount] = useState<number>(0);
   const [itemWarehouse, setItemWarehouse] = useState<string>("");
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadSeq, setReloadSeq] = useState(0);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const {
     register,
@@ -143,6 +181,38 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   });
 
   const selectedCustomerId = watch("customerId");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+        const [c, it, wh] = await Promise.all([
+          listCustomers(),
+          listItems(),
+          listWarehouses(),
+        ]);
+        if (cancelled) return;
+        setCustomers(c);
+        setItems(it);
+        setWarehouses(wh);
+      } catch (e: any) {
+        if (!cancelled) {
+          setLoadError(
+            e?.response?.data?.message ||
+              e?.message ||
+              "Failed to load customers/items/warehouses"
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadSeq]);
 
   const addItemToOrder = () => {
     if (!selectedItem || itemQuantity <= 0) return;
@@ -238,68 +308,29 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       return;
     }
 
-    console.log("Validation passed, creating order...");
+    console.log("Validation passed, creating order via API...");
+    setSubmitLoading(true);
 
-    const totals = calculateTotals();
-
-    // Generate order number
-    const orderNumber = `SO-${new Date().getFullYear()}-${String(
-      salesOrders.length + 1
-    ).padStart(3, "0")}`;
-
-    // Create order items with proper structure
-    const orderItemsData: SalesOrderItem[] = orderItems.map((item) => ({
-      id: `soi-${Date.now()}-${Math.random()}`,
-      orderId: "", // Will be set after order is created
-      itemId: item.itemId,
-      item: item.item,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      discount: item.discount,
-      tax: item.tax,
-      total: item.total,
-      warehouseId: item.warehouseId,
-    }));
-
-    // Find customer
-    const customer = customers.find((c) => c.id === data.customerId);
-
-    // Create the new sales order
-    const newOrder: SalesOrder = {
-      id: `so-${Date.now()}`,
-      orderNo: orderNumber,
-      customerId: data.customerId,
-      customer: customer,
+    const payload = {
+      customerId: Number(data.customerId),
       orderDate: data.orderDate,
-      requiredDate: data.requiredDate || undefined,
-      status: "draft",
-      items: orderItemsData.map((item) => ({
-        ...item,
-        orderId: `so-${Date.now()}`,
+      items: orderItems.map((it) => ({
+        itemId: Number(it.itemId),
+        quantity: Math.round(it.quantity),
+        unitPrice: it.unitPrice,
       })),
-      subtotal: totals.subtotal,
-      tax: totals.tax,
-      discount: totals.discount,
-      total: totals.total,
-      shippingAddress: data.shippingAddress || customer?.address || "",
-      notes: data.notes || undefined,
-      salesPerson: data.salesPerson || undefined,
-      createdBy: "current-user", // TODO: Get from auth context
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    // Add to sales orders array (in a real app, this would be an API call)
-    try {
-      addSalesOrder(newOrder);
-    } catch (error) {
-      console.error("Error adding sales order:", error);
-      salesOrders.push(newOrder);
-    }
-
-    console.log("Created sales order:", newOrder);
-    alert(`Sales order ${orderNumber} created successfully!`);
-    navigate("/inventory/sales/orders");
+    createSalesOrder(payload)
+      .then((created) => {
+        alert(`Sales order ${created.orderNo} created successfully!`);
+        navigate("/inventory/sales/orders");
+      })
+      .catch((error) => {
+        console.error("Error creating sales order:", error);
+        alert("Failed to create sales order. Please check console logs.");
+      })
+      .finally(() => setSubmitLoading(false));
   };
 
   const totals = calculateTotals();
@@ -319,7 +350,17 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         </Button>
       </div>
 
-      <form
+      {loading ? (
+        <div className="py-10 text-center text-muted-foreground">Loading...</div>
+      ) : loadError ? (
+        <div className="py-10 text-center">
+          <div className="text-red-600 mb-3">{loadError}</div>
+          <Button variant="outline" onClick={() => setReloadSeq((n) => n + 1)}>
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <form
         onSubmit={(e) => {
           e.preventDefault();
           console.log("Form submit event triggered");
@@ -607,7 +648,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
               console.log("Selected customer:", selectedCustomerId);
             }}
           >
-            Create Sales Order
+            {submitLoading ? "Creating..." : "Create Sales Order"}
           </Button>
         </div>
         {orderItems.length === 0 && (
@@ -620,7 +661,8 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
             Please select a customer
           </p>
         )}
-      </form>
+        </form>
+      )}
     </div>
   );
 }

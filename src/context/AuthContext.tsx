@@ -6,12 +6,14 @@ import type { Employee, Role } from "@/types/hr";
 import { useAppDispatch } from "@/store/store";
 import { setAdminView } from "@/store/uiSlice";
 
+// JWT shape differs between environments/backends.
+// Keep this type permissive and guard at runtime.
 type DecodedToken = {
-  userId: number;
-  role: Role;
-  username: string;
-  sub: string;
-  iss: string;
+  userId?: number;
+  role?: Role | string;
+  username?: string;
+  sub?: string;
+  iss?: string;
   exp: number;
 };
 
@@ -38,6 +40,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.getItem("refreshToken")
   );
 
+  const applyUserFromToken = (token: string) => {
+    const decoded: DecodedToken = jwtDecode(token);
+    const role =
+      (decoded.role as Role) === "ADMIN" ||
+      (decoded.role as Role) === "SUPER_ADMIN" ||
+      (decoded.role as Role) === "USER"
+        ? (decoded.role as Role)
+        : "USER";
+
+    setUser({
+      id: decoded.userId != null ? String(decoded.userId) : undefined,
+      username: decoded.username || decoded.sub,
+      role,
+    });
+
+    // Only fetch /users/{id} if token actually contains a userId.
+    if (decoded.userId != null) {
+      apiClient
+        .get("/users/" + decoded.userId)
+        .then((response) => setUser(response.data))
+        .catch((e) => {
+          // Don't hard-logout on profile fetch failure; token may still be valid.
+          console.warn("Failed to load user profile:", e?.response?.status || e);
+        });
+    }
+  };
+
   /** Initialize session on app start */
   useEffect(() => {
     if (accessToken) {
@@ -46,15 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       ] = `Bearer ${accessToken}`;
 
       try {
-        const decoded: DecodedToken = jwtDecode(accessToken);
-        setUser({
-          id: decoded.userId.toString(),
-          username: decoded.username,
-          role: decoded.role as Role,
-        });
-        apiClient.get("/users/" + decoded.userId).then((response) => {
-          setUser(response.data);
-        });
+        applyUserFromToken(accessToken);
       } catch (e) {
         console.warn("Invalid token, logging out: ", e);
         logout();
@@ -99,15 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     ] = `Bearer ${accessToken}`;
 
     try {
-      const decoded: DecodedToken = jwtDecode(accessToken);
-      setUser({
-        id: decoded.userId.toString(),
-        username: decoded.username,
-        role: decoded.role as Role,
-      });
-      apiClient.get("/users/" + decoded.userId).then((response) => {
-        setUser(response.data);
-      });
+      applyUserFromToken(accessToken);
     } catch (err) {
       console.error("Token decode failed", err);
     }
