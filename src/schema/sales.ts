@@ -42,13 +42,13 @@ export const SALES_ORDER_SCHEMA = z.object({
 // Picklist Schema
 export const PICKLIST_SCHEMA = z.object({
   orderId: z.string().min(1, "Sales order is required"),
-  warehouseId: z.string().min(1, "Warehouse is required"),
+  warehouseId: z.string().optional(), // Optional - backend API doesn't accept it, but we collect for display
   assignedTo: z.string().optional(),
 });
 
 // Dispatch Schema
 export const DISPATCH_SCHEMA = z.object({
-  orderId: z.string().min(1, "Sales order is required"),
+  orderId: z.string().optional(), // Optional - can be derived from picklist
   picklistId: z.string().min(1, "Picklist is required"),
   vehicleNumber: z.string().optional(),
   driverName: z.string().optional(),

@@ -187,6 +187,12 @@ export type ShipmentItemDTO = {
 export type ShipmentCreateDTO = {
   carrierName?: string;
   trackingNumber?: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  estimatedDeliveryDate?: string;
+  deliveryAddress?: string;
+  notes?: string;
 };
 
 export type ShipmentResponseDTO = {

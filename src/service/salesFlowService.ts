@@ -59,22 +59,21 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     quantity: Number(li.quantity || 0),
   }));
 
-  // Map backend status -> UI picklist statuses
+  // Map backend status -> UI picklist statuses (created, picked, cancelled)
   const s = normalizeStatus(dto.status);
   const status =
     s === "picked"
-      ? "completed"
+      ? "picked"
       : s === "cancelled"
         ? "cancelled"
-        : s === "created"
-          ? "pending"
-          : "pending";
+        : "created"; // Default to "created"
 
   return {
     id: String(dto.id),
     picklistNo: dto.picklistNumber || `PL-${dto.id}`,
     orderId: String(dto.salesOrderId || ""),
-    warehouseId: "",
+    warehouseId: "", // Backend doesn't return warehouseId in PicklistResponseDTO
+    // Will be enriched from sales order if needed via attachOrderAndItems
     status,
     items,
     assignedTo: undefined,
@@ -86,6 +85,7 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
 }
 
 function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
+  // Map backend status -> UI dispatch statuses (created, dispatched, in_transit, delivered, cancelled)
   const s = normalizeStatus(dto.status);
   const status =
     s === "delivered"
@@ -93,13 +93,15 @@ function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
       : s === "in_transit"
         ? "in_transit"
         : s === "dispatched"
-          ? "planned"
-          : "planned";
+          ? "dispatched"
+          : s === "cancelled"
+            ? "cancelled"
+            : "created"; // Default to "created"
 
   return {
     id: String(dto.id),
     dispatchNo: dto.shipmentNumber || `SHP-${dto.id}`,
-    orderId: "",
+    orderId: "", // Will be derived from picklist in attachOrderAndItems function
     picklistId: String(dto.picklistId || ""),
     status,
     vehicleId: undefined,
@@ -108,11 +110,11 @@ function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
     driverPhone: undefined,
     estimatedDeliveryDate: undefined,
     actualDeliveryDate: dto.deliveredAt || undefined,
-    deliveryAddress: "",
+    deliveryAddress: "", // Backend doesn't provide this in ShipmentResponseDTO
     trackingNumber: dto.trackingNumber || undefined,
     notes: dto.carrierName || undefined,
     createdBy: undefined,
-    createdAt: dto.dispatchedAt || "",
+    createdAt: dto.dispatchedAt || dto.deliveredAt || "",
     updatedAt: undefined,
   };
 }
@@ -149,9 +151,13 @@ export async function listPicklists(): Promise<Picklist[]> {
   return (res.data || []).map(toPicklist);
 }
 
-export async function generatePicklistFromSalesOrder(salesOrderId: Id | string) {
+export async function generatePicklistFromSalesOrder(
+  salesOrderId: Id | string,
+  options?: { warehouseId?: Id | string }
+) {
   const res = await apiClient.post<PicklistResponseDTO>(
-    `/warehouse/picklists/from-sales-order/${salesOrderId}`
+    `/warehouse/picklists/from-sales-order/${salesOrderId}`,
+    options?.warehouseId ? { warehouseId: Number(options.warehouseId) } : undefined
   );
   return toPicklist(res.data);
 }
@@ -210,14 +216,25 @@ export function attachOrderAndItems(
   const orderById = new Map(orders.map((o) => [o.id, o]));
   const itemById = new Map(items.map((i) => [i.id, i]));
 
-  const picklistsEnriched = picklists.map((p) => ({
-    ...p,
-    order: orderById.get(p.orderId),
-    items: p.items.map((pli) => ({
-      ...pli,
-      item: itemById.get(pli.itemId),
-    })),
-  }));
+  const picklistsEnriched = picklists.map((p) => {
+    const order = orderById.get(p.orderId);
+    // Try to get warehouseId from order items if available
+    let warehouseId = p.warehouseId || "";
+    if (!warehouseId && order && order.items.length > 0) {
+      const itemWithWarehouse = order.items.find((item) => item.warehouseId);
+      warehouseId = itemWithWarehouse?.warehouseId || "";
+    }
+    
+    return {
+      ...p,
+      warehouseId,
+      order,
+      items: p.items.map((pli) => ({
+        ...pli,
+        item: itemById.get(pli.itemId),
+      })),
+    };
+  });
 
   const dispatchesEnriched = dispatches.map((d) => {
     const pick = picklists.find((p) => p.id === d.picklistId);

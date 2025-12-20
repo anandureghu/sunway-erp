@@ -10,8 +10,10 @@ import {
   warehouses,
   searchItems,
   itemCategories,
-  addItem,
 } from "@/lib/inventory-data";
+import { createItem, listCategories } from "@/service/inventoryService";
+import type { ItemCategory } from "@/types/inventory";
+import { toast } from "sonner";
 import { purchaseOrders } from "@/lib/purchase-data";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -81,6 +83,32 @@ function CreateItemForm({
   onSuccess: (item: Item) => void;
   onCancel: () => void;
 }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<ItemCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Load categories from API
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingCategories(true);
+        const cats = await listCategories();
+        if (!cancelled) setCategories(cats);
+      } catch (error: any) {
+        console.error("Failed to load categories:", error);
+        if (!cancelled) {
+          toast.error("Failed to load categories. Using default options.");
+        }
+      } finally {
+        if (!cancelled) setLoadingCategories(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -98,15 +126,35 @@ function CreateItemForm({
     },
   });
 
-  const onSubmit = (data: ItemFormData) => {
-    const newItem: Item = {
-      id: `item-${Date.now()}`,
-      ...data,
-      sku: data.sku.toUpperCase(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    onSuccess(newItem);
+  const onSubmit = async (data: ItemFormData) => {
+    try {
+      setSubmitting(true);
+      // Map form data to API format
+      const payload = {
+        sku: data.sku?.toUpperCase(),
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        subCategory: data.subcategory,
+        costPrice: data.costPrice || 0,
+        sellingPrice: data.sellingPrice || 0,
+        unitMeasure: data.unit || "pcs",
+        reorderLevel: data.reorderLevel || 0,
+        status: data.status || "active",
+        barcode: data.barcode,
+      };
+      
+      const createdItem = await createItem(payload);
+      toast.success("Item created successfully!");
+      onSuccess(createdItem);
+    } catch (error: any) {
+      console.error("Failed to create item:", error);
+      toast.error(
+        error?.response?.data?.message || "Failed to create item. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -155,16 +203,27 @@ function CreateItemForm({
           <Select
             onValueChange={(value) => setValue("category", value)}
             value={watch("category")}
+            disabled={loadingCategories}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder={loadingCategories ? "Loading categories..." : "Select category"} />
             </SelectTrigger>
             <SelectContent>
-              {itemCategories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.name}>
-                  {cat.name}
-                </SelectItem>
-              ))}
+              {loadingCategories ? (
+                <div className="p-2 text-sm text-muted-foreground text-center">
+                  Loading categories...
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="p-2 text-sm text-muted-foreground text-center">
+                  No categories available. Please create a category first.
+                </div>
+              ) : (
+                categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           {errors.category && (
@@ -283,10 +342,12 @@ function CreateItemForm({
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button type="submit">Create Item</Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Creating..." : "Create Item"}
+        </Button>
       </div>
     </form>
   );
@@ -887,7 +948,7 @@ const ManageStocks = () => {
                                 shouldValidate: true,
                               });
                             }}
-                            value={selectedWarehouseId || undefined}
+                            value={selectedWarehouseId || ""}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select warehouse" />
@@ -1094,8 +1155,7 @@ const ManageStocks = () => {
                   </DialogHeader>
                   <CreateItemForm
                     onSuccess={(newItem) => {
-                      // Add the new item to the items array
-                      addItem(newItem);
+                      // Item is already saved to API via createItem()
                       // Select the newly created item
                       handleItemSelect(newItem);
                       setShowCreateItemDialog(false);

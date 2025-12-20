@@ -1,9 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { SALES_ORDER_COLUMNS } from "@/lib/columns/sales-columns";
 import { Plus, Search, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -24,10 +32,19 @@ import { z } from "zod";
 import type { SalesOrderItem, SalesOrder } from "@/types/sales";
 import { listCustomers } from "@/service/customerService";
 import { listItems, listWarehouses } from "@/service/inventoryService";
-import { createSalesOrder, listSalesOrders } from "@/service/salesFlowService";
+import { 
+  createSalesOrder, 
+  listSalesOrders,
+  confirmSalesOrder,
+  cancelSalesOrder,
+} from "@/service/salesFlowService";
+import type { Customer } from "@/types/sales";
+import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
+import { toast } from "sonner";
 
 export default function SalesOrdersPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
     (location.state as { searchQuery?: string })?.searchQuery || ""
   );
@@ -36,17 +53,38 @@ export default function SalesOrdersPage() {
     location.pathname.includes("/new")
   );
   const [orders, setOrders] = useState<SalesOrder[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Sync showCreateForm with location
   useEffect(() => {
+    setShowCreateForm(location.pathname.includes("/new"));
+  }, [location.pathname]);
+
+  // Load orders when pathname changes or when form is closed
+  useEffect(() => {
+    // Only load if we're showing the list (not the form)
+    if (showCreateForm) return;
+    
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
         setLoadError(null);
-        const data = await listSalesOrders();
-        if (!cancelled) setOrders(data);
+        const [ordersData, customersData] = await Promise.all([
+          listSalesOrders(),
+          listCustomers(),
+        ]);
+        if (!cancelled) {
+          setCustomers(customersData);
+          // Enrich orders with customer data
+          const enrichedOrders = ordersData.map(order => ({
+            ...order,
+            customer: customersData.find(c => c.id === order.customerId),
+          }));
+          setOrders(enrichedOrders);
+        }
       } catch (e: any) {
         if (!cancelled) setLoadError(e?.message || "Failed to load sales orders");
       } finally {
@@ -56,7 +94,7 @@ export default function SalesOrdersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [location.pathname, showCreateForm]); // Reload when pathname changes or form is closed
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -68,6 +106,138 @@ export default function SalesOrdersPage() {
     return matchesSearch && matchesStatus;
   });
   }, [orders, searchQuery, statusFilter]);
+
+  const handleConfirmOrder = useCallback(async (id: string) => {
+    try {
+      await confirmSalesOrder(id);
+      toast.success("Order confirmed successfully");
+      // Reload orders and customers
+      const [ordersData, customersData] = await Promise.all([
+        listSalesOrders(),
+        listCustomers(),
+      ]);
+      const enrichedOrders = ordersData.map(order => ({
+        ...order,
+        customer: customersData.find(c => c.id === order.customerId),
+      }));
+      setOrders(enrichedOrders);
+    } catch (error: any) {
+      console.error("Confirm order error:", error);
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.error ||
+                          error?.message || 
+                          "Failed to confirm order. Please check the order status.";
+      toast.error(errorMessage);
+    }
+  }, []);
+
+  const handleCancelOrder = useCallback(async (id: string) => {
+    const order = orders.find(o => o.id === id);
+    if (!order) {
+      toast.error("Order not found");
+      return;
+    }
+    
+    // Check if order can be cancelled according to spec
+    if (order.status !== "draft" && order.status !== "confirmed") {
+      toast.error(`Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`);
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to cancel order ${order.orderNo}? This action cannot be undone.`)) return;
+    
+    try {
+      await cancelSalesOrder(id);
+      toast.success("Order cancelled successfully");
+      // Reload orders and customers
+      const [ordersData, customersData] = await Promise.all([
+        listSalesOrders(),
+        listCustomers(),
+      ]);
+      const enrichedOrders = ordersData.map(order => ({
+        ...order,
+        customer: customersData.find(c => c.id === order.customerId),
+      }));
+      setOrders(enrichedOrders);
+    } catch (error: any) {
+      console.error("Cancel order error:", error);
+      console.error("Full error response:", error?.response?.data);
+      
+      let errorMessage = "Failed to cancel order";
+      
+      // Extract error message from various possible response formats
+      const responseData = error?.response?.data;
+      if (responseData) {
+        // Try different possible error message fields
+        const backendMsg = responseData.message || 
+                          responseData.error || 
+                          responseData.errorMessage ||
+                          (typeof responseData === 'string' ? responseData : null);
+        
+        if (backendMsg) {
+          // Show backend message, but if it's a technical Spring Boot error, provide user-friendly context
+          if (backendMsg.includes('parameter name information not available') || 
+              backendMsg.includes('-parameters flag')) {
+            errorMessage = "Backend configuration error: Cannot cancel order. Please contact system administrator.";
+          } else {
+            errorMessage = backendMsg;
+          }
+        }
+        
+        // For 500 errors without a specific message, provide generic context
+        if (error?.response?.status === 500 && (!backendMsg || errorMessage === "Failed to cancel order")) {
+          errorMessage = "Cannot cancel this order. The order may have associated picklists or shipments, or the backend encountered an error. Please check the order status or contact support.";
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+      
+      // Also log the full error for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error details:", {
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          url: error?.config?.url,
+        });
+      }
+    }
+  }, [orders]);
+
+  const handleGeneratePicklist = useCallback((id: string) => {
+    navigate(`/inventory/sales/picklist`, { 
+      state: { salesOrderId: id } 
+    });
+  }, [navigate]);
+
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<SalesOrder | null>(null);
+  const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
+
+  const handleViewDetails = useCallback((id: string) => {
+    const order = orders.find(o => o.id === id);
+    if (order) {
+      setSelectedOrderForDetails(order);
+      setShowOrderDetailsDialog(true);
+    }
+  }, [orders]);
+
+  const handleEdit = useCallback((id: string) => {
+    // Navigate to edit page or open edit dialog
+    toast.info("Edit functionality coming soon");
+  }, []);
+
+  const columns = useMemo(
+    () => createSalesOrderColumns(
+      handleConfirmOrder,
+      handleCancelOrder,
+      handleGeneratePicklist,
+      handleViewDetails,
+      handleEdit
+    ),
+    [handleConfirmOrder, handleCancelOrder, handleGeneratePicklist, handleViewDetails, handleEdit]
+  );
 
   if (showCreateForm) {
     return <CreateSalesOrderForm onCancel={() => setShowCreateForm(false)} />;
@@ -132,10 +302,198 @@ export default function SalesOrdersPage() {
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
-            <DataTable columns={SALES_ORDER_COLUMNS} data={filteredOrders} />
+            <DataTable columns={columns} data={filteredOrders} />
           )}
         </CardContent>
       </Card>
+
+      {/* Order Details Dialog */}
+      <Dialog open={showOrderDetailsDialog} onOpenChange={setShowOrderDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Order Details - {selectedOrderForDetails?.orderNo}</DialogTitle>
+            <DialogDescription>
+              Complete information about this sales order
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrderForDetails && (
+            <div className="space-y-6 mt-4">
+              {/* Order Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Order Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Order Number</p>
+                      <p className="font-medium">{selectedOrderForDetails.orderNo}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <Badge className={
+                        selectedOrderForDetails.status === "confirmed" ? "bg-blue-100 text-blue-800" :
+                        selectedOrderForDetails.status === "draft" ? "bg-gray-100 text-gray-800" :
+                        selectedOrderForDetails.status === "cancelled" ? "bg-red-100 text-red-800" :
+                        "bg-gray-100 text-gray-800"
+                      }>
+                        {selectedOrderForDetails.status.charAt(0).toUpperCase() + selectedOrderForDetails.status.slice(1)}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Order Date</p>
+                      <p className="font-medium">
+                        {selectedOrderForDetails.orderDate ? format(new Date(selectedOrderForDetails.orderDate), "MMM dd, yyyy") : "N/A"}
+                      </p>
+                    </div>
+                    {selectedOrderForDetails.requiredDate && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Required Date</p>
+                        <p className="font-medium">
+                          {format(new Date(selectedOrderForDetails.requiredDate), "MMM dd, yyyy")}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Customer Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Customer Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {selectedOrderForDetails.customer ? (
+                    <>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Customer Name</p>
+                        <p className="font-medium">{selectedOrderForDetails.customer.name}</p>
+                      </div>
+                      {selectedOrderForDetails.customer.code && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Customer Code</p>
+                          <p className="font-medium">{selectedOrderForDetails.customer.code}</p>
+                        </div>
+                      )}
+                      {selectedOrderForDetails.customer.email && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Email</p>
+                          <p className="font-medium">{selectedOrderForDetails.customer.email}</p>
+                        </div>
+                      )}
+                      {selectedOrderForDetails.customer.phone && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Phone</p>
+                          <p className="font-medium">{selectedOrderForDetails.customer.phone}</p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">Customer information not available</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Order Items */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Order Items</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedOrderForDetails.items.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-5 gap-4 font-medium text-sm border-b pb-2">
+                        <div>Item</div>
+                        <div className="text-right">Quantity</div>
+                        <div className="text-right">Unit Price</div>
+                        <div className="text-right">Discount</div>
+                        <div className="text-right">Total</div>
+                      </div>
+                      {selectedOrderForDetails.items.map((item) => (
+                        <div key={item.id} className="grid grid-cols-5 gap-4 text-sm border-b pb-2">
+                          <div>
+                            <p className="font-medium">{item.item?.name || `Item ${item.itemId}`}</p>
+                            {item.item?.sku && (
+                              <p className="text-xs text-muted-foreground">SKU: {item.item.sku}</p>
+                            )}
+                          </div>
+                          <div className="text-right">{item.quantity}</div>
+                          <div className="text-right">₹{item.unitPrice.toLocaleString()}</div>
+                          <div className="text-right">{item.discount}%</div>
+                          <div className="text-right font-medium">₹{item.total.toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No items in this order</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Order Totals */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Order Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span className="font-medium">₹{selectedOrderForDetails.subtotal.toLocaleString()}</span>
+                    </div>
+                    {selectedOrderForDetails.discount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Discount:</span>
+                        <span className="font-medium">-₹{selectedOrderForDetails.discount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {selectedOrderForDetails.tax > 0 && (
+                      <div className="flex justify-between">
+                        <span>Tax:</span>
+                        <span className="font-medium">₹{selectedOrderForDetails.tax.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-lg font-bold border-t pt-2">
+                      <span>Total:</span>
+                      <span>₹{selectedOrderForDetails.total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Additional Info */}
+              {(selectedOrderForDetails.shippingAddress || selectedOrderForDetails.notes || selectedOrderForDetails.salesPerson) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Additional Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {selectedOrderForDetails.salesPerson && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Sales Person</p>
+                        <p className="font-medium">{selectedOrderForDetails.salesPerson}</p>
+                      </div>
+                    )}
+                    {selectedOrderForDetails.shippingAddress && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Shipping Address</p>
+                        <p className="font-medium">{selectedOrderForDetails.shippingAddress}</p>
+                      </div>
+                    )}
+                    {selectedOrderForDetails.notes && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Notes</p>
+                        <p className="font-medium">{selectedOrderForDetails.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -195,7 +553,17 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         ]);
         if (cancelled) return;
         setCustomers(c);
+        console.log("Customers loaded:", c.length);
+        console.log("Active customers:", c.filter(cust => cust.status === "active").length);
+        if (c.length > 0) {
+          console.log("First customer:", c[0]);
+        }
         setItems(it);
+        console.log("Items loaded:", it.length);
+        console.log("Active items:", it.filter(item => item.status === "active").length);
+        if (it.length > 0) {
+          console.log("First item:", it[0]);
+        }
         setWarehouses(wh);
       } catch (e: any) {
         if (!cancelled) {
@@ -217,8 +585,11 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   const addItemToOrder = () => {
     if (!selectedItem || itemQuantity <= 0) return;
 
-    const item = items.find((i) => i.id === selectedItem);
-    if (!item) return;
+    const item = items.find((i) => String(i.id) === String(selectedItem));
+    if (!item) {
+      console.error("Item not found for id:", selectedItem);
+      return;
+    }
 
     const unitPrice = item.sellingPrice;
     const discountAmount = (unitPrice * itemQuantity * itemDiscount) / 100;
@@ -271,13 +642,13 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
 
     // Validate that items are added
     if (orderItems.length === 0) {
-      alert("Please add at least one item to the order.");
+      toast.error("Please add at least one item to the order.");
       return;
     }
 
     // Validate customer is selected
     if (!data.customerId) {
-      alert("Please select a customer.");
+      toast.error("Please select a customer.");
       return;
     }
 
@@ -303,8 +674,8 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
     const validationResult = SALES_ORDER_SCHEMA.safeParse(completeData);
     if (!validationResult.success) {
       console.error("Validation errors:", validationResult.error);
-      const errorMessages = validationResult.error;
-      alert(`Please check the form for errors:\n${errorMessages}`);
+      const errorMessages = validationResult.error.errors.map(e => e.message).join(", ");
+      toast.error(`Please check the form for errors: ${errorMessages}`);
       return;
     }
 
@@ -323,12 +694,13 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
 
     createSalesOrder(payload)
       .then((created) => {
-        alert(`Sales order ${created.orderNo} created successfully!`);
-        navigate("/inventory/sales/orders");
+        toast.success(`Sales order ${created.orderNo} created successfully!`);
+        // Navigate and trigger refresh by changing pathname
+        navigate("/inventory/sales/orders", { replace: true });
       })
-      .catch((error) => {
+      .catch((error: any) => {
         console.error("Error creating sales order:", error);
-        alert("Failed to create sales order. Please check console logs.");
+        toast.error(error?.response?.data?.message || error?.message || "Failed to create sales order. Please try again.");
       })
       .finally(() => setSubmitLoading(false));
   };
@@ -366,7 +738,8 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
           console.log("Form submit event triggered");
           handleSubmit(onSubmit, (errors) => {
             console.error("Form validation errors:", errors);
-            alert("Please fix the form errors before submitting.");
+            const errorCount = Object.keys(errors).length;
+            toast.error(`Please fix ${errorCount} form error${errorCount > 1 ? 's' : ''} before submitting.`);
           })(e);
         }}
         className="space-y-6"
@@ -382,19 +755,43 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                 <Label htmlFor="customerId">Customer *</Label>
                 <Select
                   value={selectedCustomerId || ""}
-                  onValueChange={(value) => setValue("customerId", value)}
+                  onValueChange={(value) => {
+                    console.log("Customer selected:", value);
+                    setValue("customerId", value, { shouldValidate: true });
+                  }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select customer" />
+                    <SelectValue placeholder="Select customer">
+                      {selectedCustomerId
+                        ? customers.find((c) => c.id === selectedCustomerId)?.name || "Select customer"
+                        : "Select customer"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {customers
-                      .filter((c) => c.status === "active")
-                      .map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name} ({customer.code})
-                        </SelectItem>
-                      ))}
+                    {customers.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No customers available
+                      </div>
+                    ) : customers.filter((c) => c.status === "active").length === 0 ? (
+                      <>
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No active customers ({customers.length} total)
+                        </div>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={String(customer.id)}>
+                            {customer.name} ({customer.code}) - {customer.status}
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : (
+                      customers
+                        .filter((c) => c.status === "active")
+                        .map((customer) => (
+                          <SelectItem key={customer.id} value={String(customer.id)}>
+                            {customer.name} ({customer.code})
+                          </SelectItem>
+                        ))
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.customerId && (
@@ -458,18 +855,48 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
             <div className="grid grid-cols-5 gap-4">
               <div className="space-y-2">
                 <Label>Item</Label>
-                <Select value={selectedItem} onValueChange={setSelectedItem}>
+                <Select 
+                  value={selectedItem || ""} 
+                  onValueChange={(value) => {
+                    console.log("Item selected:", value);
+                    setSelectedItem(value);
+                  }}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select item" />
+                    <SelectValue placeholder="Select item">
+                      {selectedItem && items.length > 0
+                        ? (() => {
+                            const selected = items.find((i) => String(i.id) === String(selectedItem));
+                            return selected ? `${selected.name} - ₹${selected.sellingPrice || 0}` : "Select item";
+                          })()
+                        : "Select item"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {items
-                      .filter((i) => i.status === "active")
-                      .map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name} - ₹{item.sellingPrice}
-                        </SelectItem>
-                      ))}
+                    {items.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No items available
+                      </div>
+                    ) : items.filter((i) => i.status === "active").length === 0 ? (
+                      <>
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No active items ({items.length} total)
+                        </div>
+                        {items.map((item) => (
+                          <SelectItem key={item.id} value={String(item.id)}>
+                            {item.name} - ₹{item.sellingPrice || 0} - {item.status}
+                          </SelectItem>
+                        ))}
+                      </>
+                    ) : (
+                      items
+                        .filter((i) => i.status === "active")
+                        .map((item) => (
+                          <SelectItem key={item.id} value={String(item.id)}>
+                            {item.name} - ₹{item.sellingPrice || 0}
+                          </SelectItem>
+                        ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -507,11 +934,23 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                     <SelectValue placeholder="Select warehouse" />
                   </SelectTrigger>
                   <SelectContent>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
+                    {warehouses.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No warehouses available. Please create a warehouse first.
+                      </div>
+                    ) : warehouses.filter((wh) => wh.status === "active").length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No active warehouses. Please activate or create a warehouse.
+                      </div>
+                    ) : (
+                      warehouses
+                        .filter((wh) => wh.status === "active")
+                        .map((wh) => (
+                          <SelectItem key={wh.id} value={wh.id}>
+                            {wh.name} {wh.location ? `- ${wh.location}` : ""}
+                          </SelectItem>
+                        ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

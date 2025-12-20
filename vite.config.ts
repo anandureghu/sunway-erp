@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_PROXY_TARGET ||
     "https://api.picominds.com";
   const proxyOrigin = new URL(proxyTarget).origin;
-  const devPort = Number(env.VITE_PORT || 5175);
+  const devPort = Number(env.VITE_PORT || 5173);
 
   return {
     plugins: [react(), tailwindcss()],
