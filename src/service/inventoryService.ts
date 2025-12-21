@@ -64,8 +64,8 @@ function toItem(dto: ItemResponseDTO): Item {
       normalizeStatus(dto.status) === "discontinued"
         ? "discontinued"
         : normalizeStatus(dto.status) === "out_of_stock"
-          ? "out_of_stock"
-          : "active",
+        ? "out_of_stock"
+        : "active",
     barcode: dto.barcode || undefined,
     rfidTag: undefined,
     createdAt: dto.createdAt || "",
@@ -75,7 +75,9 @@ function toItem(dto: ItemResponseDTO): Item {
 
 // ---- Categories ----
 export async function listCategories(): Promise<ItemCategory[]> {
-  const res = await apiClient.get<CategoryResponseDTO[]>("/inventory/categories");
+  const res = await apiClient.get<CategoryResponseDTO[]>(
+    "/inventory/categories"
+  );
   return (res.data || []).map(toCategory);
 }
 
@@ -87,7 +89,10 @@ export async function createCategory(payload: CategoryCreateDTO) {
   return toCategory(res.data);
 }
 
-export async function updateCategory(id: Id | string, payload: CategoryUpdateDTO) {
+export async function updateCategory(
+  id: Id | string,
+  payload: CategoryUpdateDTO
+) {
   const res = await apiClient.put<CategoryResponseDTO>(
     `/inventory/categories/${id}`,
     payload
@@ -96,7 +101,9 @@ export async function updateCategory(id: Id | string, payload: CategoryUpdateDTO
 }
 
 export async function getCategory(id: Id | string): Promise<ItemCategory> {
-  const res = await apiClient.get<CategoryResponseDTO>(`/inventory/categories/${id}`);
+  const res = await apiClient.get<CategoryResponseDTO>(
+    `/inventory/categories/${id}`
+  );
   return toCategory(res.data);
 }
 
@@ -106,8 +113,9 @@ export async function deleteCategory(id: Id | string) {
 
 // ---- Warehouses ----
 export async function listWarehouses(): Promise<Warehouse[]> {
-  const res =
-    await apiClient.get<WarehouseResponseDTO[]>("/inventory/warehouses");
+  const res = await apiClient.get<WarehouseResponseDTO[]>(
+    "/inventory/warehouses"
+  );
   return (res.data || []).map(toWarehouse);
 }
 
@@ -131,7 +139,9 @@ export async function updateWarehouse(
 }
 
 export async function getWarehouse(id: Id | string): Promise<Warehouse> {
-  const res = await apiClient.get<WarehouseResponseDTO>(`/inventory/warehouses/${id}`);
+  const res = await apiClient.get<WarehouseResponseDTO>(
+    `/inventory/warehouses/${id}`
+  );
   return toWarehouse(res.data);
 }
 
@@ -146,7 +156,10 @@ export async function listItems(): Promise<Item[]> {
 }
 
 export async function createItem(payload: ItemCreateDTO) {
-  const res = await apiClient.post<ItemResponseDTO>("/inventory/items", payload);
+  const res = await apiClient.post<ItemResponseDTO>(
+    "/inventory/items",
+    payload
+  );
   return toItem(res.data);
 }
 
@@ -186,7 +199,6 @@ function toStock(
   return {
     id: String(dto.id || `${itemId}-${warehouseId}`),
     itemId,
-    warehouseId,
     quantity: Number(dto.quantity || 0),
     reservedQuantity: dto.reserved ? Number(dto.reserved) : undefined,
     availableQuantity: Number(dto.available || dto.quantity || 0),
@@ -213,37 +225,42 @@ export async function listStock(): Promise<Stock[]> {
     // If stock endpoint doesn't exist (404) or fails (500), fetch items and create stock from item data
     const status = error?.response?.status;
     if (status === 404 || status === 500) {
-      console.warn(`Stock endpoint returned ${status}, falling back to items-based stock creation`);
-      
+      console.warn(
+        `Stock endpoint returned ${status}, falling back to items-based stock creation`
+      );
+
       // Fetch items directly from API to get quantity/available/reserved data from DTOs
-      const itemsRes = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
+      const itemsRes = await apiClient.get<ItemResponseDTO[]>(
+        "/inventory/items"
+      );
       const itemsList = itemsRes.data || [];
-      const warehouses = await listWarehouses();
-      
+
       // Create stock records from items
       const stock: Stock[] = [];
       itemsList.forEach((itemDto) => {
-        warehouses.forEach((warehouse) => {
-          // Use item's quantity/available/reserved if available from API DTO
-          const quantity = Number(itemDto.quantity || 0);
-          const available = Number(itemDto.available || itemDto.quantity || 0);
-          const reserved = Number(itemDto.reserved || 0);
-          
-          stock.push({
-            id: `${itemDto.id}-${warehouse.id}`,
-            itemId: String(itemDto.id),
-            warehouseId: warehouse.id,
-            quantity: quantity,
-            availableQuantity: available,
-            reservedQuantity: reserved > 0 ? reserved : undefined,
-            lastUpdated: new Date().toISOString(),
-          });
+        // warehouses.forEach((warehouse) => {
+        // Use item's quantity/available/reserved if available from API DTO
+        const quantity = Number(itemDto.quantity || 0);
+        const available = Number(itemDto.available || itemDto.quantity || 0);
+        const reserved = Number(itemDto.reserved || 0);
+
+        stock.push({
+          id: `${itemDto.id}`,
+          itemId: String(itemDto.id),
+          quantity: quantity,
+          availableQuantity: available,
+          reservedQuantity: reserved > 0 ? reserved : undefined,
+          lastUpdated: new Date().toISOString(),
+          warehouse_id: itemDto.warehouse_id,
+          warehouse_name: itemDto.warehouse_name,
+          warehouse_location: itemDto.warehouse_location,
         });
+        // });
       });
+
+      console.log(stock);
       return stock;
     }
     throw error;
   }
 }
-
-

@@ -9,8 +9,19 @@ export const ITEM_SCHEMA = z.object({
   category: z.string().min(1, "Category is required"),
   subcategory: z.string().optional(),
   brand: z.string().optional(), // Brand name
-  unit: z.enum(["pcs", "kg", "g", "box", "pallet", "liter", "meter", "carton", "bag", "bucket"]),
-  location: z.string().min(1, "Warehouse location is required"), // Warehouse
+  unit: z.enum([
+    "pcs",
+    "kg",
+    "g",
+    "box",
+    "pallet",
+    "liter",
+    "meter",
+    "carton",
+    "bag",
+    "bucket",
+  ]),
+  warehouse: z.number().min(1, "Warehouse location is required"), // Warehouse
   quantity: z.number().min(0, "Quantity must be positive"), // Initial quantity
   costPrice: z.number().min(0, "Cost price must be positive"),
   sellingPrice: z.number().min(0, "Selling price must be positive"),
@@ -32,7 +43,9 @@ export const WAREHOUSE_SCHEMA = z.object({
 export const RECEIVE_ITEM_SCHEMA = z.object({
   itemId: z.string().min(1, "Item is required"),
   warehouseId: z.string().min(1, "Warehouse is required"),
-  quantityReceived: z.number().min(0.01, "Quantity received must be greater than 0"),
+  quantityReceived: z
+    .number()
+    .min(0.01, "Quantity received must be greater than 0"),
   receivedDate: z.string().min(1, "Received date is required"),
   batchNo: z.string().optional(),
   serialNo: z.string().optional(),
@@ -62,7 +75,14 @@ export const STOCK_ADJUSTMENT_SCHEMA = z.object({
   }),
   newQuantity: z.number().min(0).optional(), // Optional: can adjust by quantity or set new quantity
   reason: z.string().min(1, "Reason is required"),
-  adjustmentType: z.enum(["damaged", "expired", "wastage", "found", "theft", "other"]),
+  adjustmentType: z.enum([
+    "damaged",
+    "expired",
+    "wastage",
+    "found",
+    "theft",
+    "other",
+  ]),
   adjustmentDate: z.string().min(1, "Adjustment date is required"),
   notes: z.string().optional(),
 });
@@ -81,4 +101,3 @@ export type ReceiveItemFormData = z.infer<typeof RECEIVE_ITEM_SCHEMA>;
 export type StockTransferFormData = z.infer<typeof STOCK_TRANSFER_SCHEMA>;
 export type StockAdjustmentFormData = z.infer<typeof STOCK_ADJUSTMENT_SCHEMA>;
 export type CategoryFormData = z.infer<typeof CATEGORY_SCHEMA>;
-

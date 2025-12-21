@@ -1,11 +1,37 @@
-import type { Item, Warehouse, Stock, InventoryMovement, ItemCategory } from "@/types/inventory";
+import type {
+  Item,
+  Warehouse,
+  Stock,
+  InventoryMovement,
+  ItemCategory,
+} from "@/types/inventory";
 
 // Sample Categories
 export const itemCategories: ItemCategory[] = [
-  { id: "cat-1", name: "Raw Materials", description: "Raw materials and components", createdAt: "2025-01-01" },
-  { id: "cat-2", name: "Finished Goods", description: "Completed products", createdAt: "2025-01-01" },
-  { id: "cat-3", name: "Office Supplies", description: "Office equipment and supplies", createdAt: "2025-01-01" },
-  { id: "cat-4", name: "Tools & Equipment", description: "Tools and machinery", createdAt: "2025-01-01" },
+  {
+    id: "cat-1",
+    name: "Raw Materials",
+    description: "Raw materials and components",
+    createdAt: "2025-01-01",
+  },
+  {
+    id: "cat-2",
+    name: "Finished Goods",
+    description: "Completed products",
+    createdAt: "2025-01-01",
+  },
+  {
+    id: "cat-3",
+    name: "Office Supplies",
+    description: "Office equipment and supplies",
+    createdAt: "2025-01-01",
+  },
+  {
+    id: "cat-4",
+    name: "Tools & Equipment",
+    description: "Tools and machinery",
+    createdAt: "2025-01-01",
+  },
 ];
 
 // Sample Warehouses
@@ -168,7 +194,6 @@ export const stock: Stock[] = [
   {
     id: "stock-1",
     itemId: "item-1",
-    warehouseId: "wh-1",
     quantity: 850,
     reservedQuantity: 50,
     availableQuantity: 800,
@@ -182,7 +207,6 @@ export const stock: Stock[] = [
   {
     id: "stock-2",
     itemId: "item-1",
-    warehouseId: "wh-2",
     quantity: 450,
     reservedQuantity: 0,
     availableQuantity: 450,
@@ -196,7 +220,6 @@ export const stock: Stock[] = [
   {
     id: "stock-3",
     itemId: "item-2",
-    warehouseId: "wh-1",
     quantity: 3200,
     reservedQuantity: 200,
     availableQuantity: 3000,
@@ -210,7 +233,6 @@ export const stock: Stock[] = [
   {
     id: "stock-4",
     itemId: "item-3",
-    warehouseId: "wh-1",
     quantity: 12000,
     reservedQuantity: 500,
     availableQuantity: 11500,
@@ -224,7 +246,6 @@ export const stock: Stock[] = [
   {
     id: "stock-5",
     itemId: "item-4",
-    warehouseId: "wh-1",
     quantity: 85,
     reservedQuantity: 5,
     availableQuantity: 80,
@@ -239,7 +260,6 @@ export const stock: Stock[] = [
   {
     id: "stock-6",
     itemId: "item-5",
-    warehouseId: "wh-2",
     quantity: 650,
     reservedQuantity: 0,
     availableQuantity: 650,
@@ -253,7 +273,6 @@ export const stock: Stock[] = [
   {
     id: "stock-7",
     itemId: "item-6",
-    warehouseId: "wh-1",
     quantity: 1800,
     reservedQuantity: 100,
     availableQuantity: 1700,
@@ -306,10 +325,15 @@ export const inventoryMovements: InventoryMovement[] = [
 ];
 
 // Helper function to get stock with item and warehouse details
-export function getStockWithDetails(): (Stock & { item: Item; warehouse: Warehouse })[] {
+export function getStockWithDetails(): (Stock & {
+  item: Item;
+  warehouse: Warehouse;
+})[] {
   return stock.map((s) => {
     const item = items.find((i) => i.id === s.itemId);
-    const warehouse = warehouses.find((w) => w.id === s.warehouseId);
+    const warehouse = warehouses.find(
+      (w) => w.id === s.warehouse_id?.toString()
+    );
     return {
       ...s,
       item: item!,
@@ -335,4 +359,3 @@ export function addItem(item: Item): Item {
   items.push(item);
   return item;
 }
-

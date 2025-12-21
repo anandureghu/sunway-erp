@@ -6,22 +6,20 @@ import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { STOCK_COLUMNS } from "@/lib/columns/inventory-columns";
 import { createCategoryColumns } from "@/lib/columns/category-columns";
 import { createWarehouseColumns } from "@/lib/columns/warehouse-columns";
+import { getStockWithDetails } from "@/lib/inventory-data";
 import {
-  getStockWithDetails,
-} from "@/lib/inventory-data";
-import { 
-  createItem, 
+  createItem,
   listCategories,
   createCategory,
   updateCategory,
   deleteCategory,
   getCategory,
-  listItems, 
+  listItems,
   listWarehouses,
   createWarehouse,
   updateWarehouse,
   deleteWarehouse,
-  listStock 
+  listStock,
 } from "@/service/inventoryService";
 import type { ItemCategory, Item, Warehouse, Stock } from "@/types/inventory";
 import { toast } from "sonner";
@@ -105,7 +103,8 @@ function CreateItemForm({
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [showCreateCategoryDialog, setShowCreateCategoryDialog] = useState(false);
+  const [showCreateCategoryDialog, setShowCreateCategoryDialog] =
+    useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
 
@@ -115,9 +114,7 @@ function CreateItemForm({
     (async () => {
       try {
         setLoadingCategories(true);
-        console.log("Loading categories from API...");
         const cats = await listCategories();
-        console.log("Categories loaded:", cats);
         if (!cancelled) {
           setCategories(cats);
           if (cats.length === 0) {
@@ -132,7 +129,13 @@ function CreateItemForm({
           message: error?.message,
         });
         if (!cancelled) {
-          toast.error(`Failed to load categories: ${error?.response?.data?.message || error?.message || "Unknown error"}`);
+          toast.error(
+            `Failed to load categories: ${
+              error?.response?.data?.message ||
+              error?.message ||
+              "Unknown error"
+            }`
+          );
           // Set empty array so the UI shows the "no categories" message
           setCategories([]);
         }
@@ -159,21 +162,22 @@ function CreateItemForm({
         code: newCategoryName.trim().toUpperCase().replace(/\s+/g, "_"),
       });
       toast.success("Category created successfully!");
-      
+
       // Reload categories
       const cats = await listCategories();
       setCategories(cats);
-      
+
       // Set the new category as selected
       setValue("category", newCategory.name);
-      
+
       // Reset form
       setNewCategoryName("");
       setShowCreateCategoryDialog(false);
     } catch (error: any) {
       console.error("Failed to create category:", error);
       toast.error(
-        error?.response?.data?.message || "Failed to create category. Please try again."
+        error?.response?.data?.message ||
+          "Failed to create category. Please try again."
       );
     } finally {
       setCreatingCategory(false);
@@ -209,7 +213,7 @@ function CreateItemForm({
         category: data.category,
         subCategory: data.subcategory,
         brand: data.brand,
-        location: data.location, // Warehouse ID
+        warehouse: data.warehouse, // Warehouse ID
         quantity: data.quantity || 0, // Initial quantity
         costPrice: data.costPrice || 0,
         sellingPrice: data.sellingPrice || 0,
@@ -218,14 +222,15 @@ function CreateItemForm({
         status: data.status || "active",
         barcode: data.barcode,
       };
-      
+
       const createdItem = await createItem(payload);
       toast.success("Item created successfully!");
       onSuccess(createdItem);
     } catch (error: any) {
       console.error("Failed to create item:", error);
       toast.error(
-        error?.response?.data?.message || "Failed to create item. Please try again."
+        error?.response?.data?.message ||
+          "Failed to create item. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -239,10 +244,7 @@ function CreateItemForm({
           <label className="text-sm font-medium mb-2 block">
             SKU <span className="text-red-500">*</span>
           </label>
-          <Input
-            placeholder="SKU-001"
-            {...register("sku")}
-          />
+          <Input placeholder="SKU-001" {...register("sku")} />
           {errors.sku && (
             <p className="text-sm text-red-500 mt-1">{errors.sku.message}</p>
           )}
@@ -252,23 +254,15 @@ function CreateItemForm({
           <label className="text-sm font-medium mb-2 block">
             Item Name <span className="text-red-500">*</span>
           </label>
-          <Input
-            placeholder="Item name"
-            {...register("name")}
-          />
+          <Input placeholder="Item name" {...register("name")} />
           {errors.name && (
             <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
           )}
         </div>
 
         <div className="col-span-2">
-          <label className="text-sm font-medium mb-2 block">
-            Description
-          </label>
-          <Input
-            placeholder="Item description"
-            {...register("description")}
-          />
+          <label className="text-sm font-medium mb-2 block">Description</label>
+          <Input placeholder="Item description" {...register("description")} />
         </div>
 
         <div>
@@ -293,7 +287,13 @@ function CreateItemForm({
             disabled={loadingCategories}
           >
             <SelectTrigger>
-              <SelectValue placeholder={loadingCategories ? "Loading categories..." : "Select category"} />
+              <SelectValue
+                placeholder={
+                  loadingCategories
+                    ? "Loading categories..."
+                    : "Select category"
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {loadingCategories ? (
@@ -314,44 +314,41 @@ function CreateItemForm({
             </SelectContent>
           </Select>
           {errors.category && (
-            <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.category.message}
+            </p>
           )}
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">
-            Item Type
-          </label>
+          <label className="text-sm font-medium mb-2 block">Item Type</label>
           <Input
             placeholder="e.g., Raw Material, Finished Good"
             {...register("itemType")}
           />
           {errors.itemType && (
-            <p className="text-sm text-red-500 mt-1">{errors.itemType.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.itemType.message}
+            </p>
           )}
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">
-            Subcategory
-          </label>
+          <label className="text-sm font-medium mb-2 block">Subcategory</label>
           <Input
             placeholder="Optional subcategory"
             {...register("subcategory")}
           />
           {errors.subcategory && (
-            <p className="text-sm text-red-500 mt-1">{errors.subcategory.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.subcategory.message}
+            </p>
           )}
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">
-            Brand
-          </label>
-          <Input
-            placeholder="Optional brand name"
-            {...register("brand")}
-          />
+          <label className="text-sm font-medium mb-2 block">Brand</label>
+          <Input placeholder="Optional brand name" {...register("brand")} />
           {errors.brand && (
             <p className="text-sm text-red-500 mt-1">{errors.brand.message}</p>
           )}
@@ -391,8 +388,8 @@ function CreateItemForm({
             Warehouse <span className="text-red-500">*</span>
           </label>
           <Select
-            onValueChange={(value) => setValue("location", value)}
-            value={watch("location")}
+            onValueChange={(value) => setValue("warehouse", Number(value))}
+            {...register("warehouse")}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select warehouse" />
@@ -407,8 +404,10 @@ function CreateItemForm({
                 ))}
             </SelectContent>
           </Select>
-          {errors.location && (
-            <p className="text-sm text-red-500 mt-1">{errors.location.message}</p>
+          {errors.warehouse && (
+            <p className="text-sm text-red-500 mt-1">
+              {errors.warehouse.message}
+            </p>
           )}
         </div>
 
@@ -424,7 +423,9 @@ function CreateItemForm({
             {...register("quantity", { valueAsNumber: true })}
           />
           {errors.quantity && (
-            <p className="text-sm text-red-500 mt-1">{errors.quantity.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.quantity.message}
+            </p>
           )}
         </div>
 
@@ -440,7 +441,9 @@ function CreateItemForm({
             {...register("costPrice", { valueAsNumber: true })}
           />
           {errors.costPrice && (
-            <p className="text-sm text-red-500 mt-1">{errors.costPrice.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.costPrice.message}
+            </p>
           )}
         </div>
 
@@ -456,7 +459,9 @@ function CreateItemForm({
             {...register("sellingPrice", { valueAsNumber: true })}
           />
           {errors.sellingPrice && (
-            <p className="text-sm text-red-500 mt-1">{errors.sellingPrice.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.sellingPrice.message}
+            </p>
           )}
         </div>
 
@@ -472,7 +477,9 @@ function CreateItemForm({
             {...register("reorderLevel", { valueAsNumber: true })}
           />
           {errors.reorderLevel && (
-            <p className="text-sm text-red-500 mt-1">{errors.reorderLevel.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.reorderLevel.message}
+            </p>
           )}
         </div>
 
@@ -499,18 +506,18 @@ function CreateItemForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">
-            Barcode
-          </label>
-          <Input
-            placeholder="Optional barcode"
-            {...register("barcode")}
-          />
+          <label className="text-sm font-medium mb-2 block">Barcode</label>
+          <Input placeholder="Optional barcode" {...register("barcode")} />
         </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={submitting}
+        >
           Cancel
         </Button>
         <Button type="submit" disabled={submitting}>
@@ -519,7 +526,10 @@ function CreateItemForm({
       </div>
 
       {/* Create Category Dialog */}
-      <Dialog open={showCreateCategoryDialog} onOpenChange={setShowCreateCategoryDialog}>
+      <Dialog
+        open={showCreateCategoryDialog}
+        onOpenChange={setShowCreateCategoryDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Category</DialogTitle>
@@ -574,7 +584,9 @@ function CreateItemForm({
 
 const ManageStocks = () => {
   const navigate = useNavigate();
-  const [stockData, setStockData] = useState<(Stock & { item: Item; warehouse: Warehouse })[]>([]);
+  const [stockData, setStockData] = useState<
+    (Stock & { item: Item; warehouse: Warehouse })[]
+  >([]);
   const [items, setItems] = useState<Item[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
@@ -582,7 +594,6 @@ const ManageStocks = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-
   // Receive Item Form
   const {
     register,
@@ -633,9 +644,13 @@ const ManageStocks = () => {
 
   // Categories management state
   const [showCategoryForm, setShowCategoryForm] = useState(false);
-  const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<ItemCategory | null>(null);
-  const [showCategoryDetailsDialog, setShowCategoryDetailsDialog] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(null);
+  const [selectedCategoryForDetails, setSelectedCategoryForDetails] =
+    useState<ItemCategory | null>(null);
+  const [showCategoryDetailsDialog, setShowCategoryDetailsDialog] =
+    useState(false);
+  const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(
+    null
+  );
   const {
     register: registerCategory,
     handleSubmit: handleCategorySubmit,
@@ -655,7 +670,9 @@ const ManageStocks = () => {
 
   // Warehouses management state
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
+    null
+  );
   const {
     register: registerWarehouse,
     handleSubmit: handleWarehouseSubmit,
@@ -669,10 +686,13 @@ const ManageStocks = () => {
     },
   });
 
+  console.log(stockData);
+
   // Filter stock data
   const filteredStock = stockData.filter((stock) => {
     const matchesWarehouse =
-      selectedWarehouse === "all" || stock.warehouseId === selectedWarehouse;
+      selectedWarehouse === "all" ||
+      String(stock.warehouse_id) === selectedWarehouse;
     const matchesSearch =
       searchQuery === "" ||
       stock.item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -681,6 +701,8 @@ const ManageStocks = () => {
     return matchesWarehouse && matchesSearch;
   });
 
+  console.log(filteredStock);
+
   // Load stock data from API
   useEffect(() => {
     let cancelled = false;
@@ -688,37 +710,44 @@ const ManageStocks = () => {
       try {
         setLoading(true);
         setLoadError(null);
-        
+
         // Fetch all data in parallel
-        const [stockList, itemsList, warehousesList, categoriesList] = await Promise.all([
-          listStock(),
-          listItems(),
-          listWarehouses(),
-          listCategories(),
-        ]);
-        
+        const [stockList, itemsList, warehousesList, categoriesList] =
+          await Promise.all([
+            listStock(),
+            listItems(),
+            listWarehouses(),
+            listCategories(),
+          ]);
+
         if (!cancelled) {
           setItems(itemsList);
           setWarehouses(warehousesList);
           setCategories(categoriesList);
-          setCategories(categoriesList);
-          
+
+          console.log(stockList);
+
           // Enrich stock with item and warehouse details
           const enrichedStock = stockList
             .map((stock) => {
               const item = itemsList.find((i) => i.id === stock.itemId);
-              const warehouse = warehousesList.find((w) => w.id === stock.warehouseId);
-              
-              if (!item || !warehouse) return null;
-              
+              const warehouse = warehousesList.find(
+                (w) => w.id === String(stock.warehouse_id)
+              );
+
+              // if (!item || !warehouse) return null;
+
               return {
                 ...stock,
-                item,
-                warehouse,
+                item: item || null,
+                warehouse: warehouse || null,
               };
             })
-            .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
-          
+            .filter(
+              (s): s is Stock & { item: Item; warehouse: Warehouse } =>
+                s !== null
+            );
+
           setStockData(enrichedStock);
         }
       } catch (error: any) {
@@ -732,7 +761,7 @@ const ManageStocks = () => {
         if (!cancelled) setLoading(false);
       }
     })();
-    
+
     return () => {
       cancelled = true;
     };
@@ -773,7 +802,7 @@ const ManageStocks = () => {
   // Get current stock quantity for selected item and warehouse
   const getCurrentStock = (itemId: string, warehouseId: string): number => {
     const stock = stockData.find(
-      (s) => s.itemId === itemId && s.warehouseId === warehouseId
+      (s) => s.itemId === itemId && String(s.warehouse_id) === warehouseId
     );
     return stock?.quantity || 0;
   };
@@ -798,7 +827,9 @@ const ManageStocks = () => {
 
     // Update stock (mock update)
     const existingStockIndex = stockData.findIndex(
-      (s) => s.itemId === data.itemId && s.warehouseId === data.warehouseId
+      (s) =>
+        s.itemId === data.itemId &&
+        s.warehouse_id?.toString() === data.warehouseId
     );
 
     if (existingStockIndex >= 0) {
@@ -824,7 +855,6 @@ const ManageStocks = () => {
         const newStock: Stock & { item: Item; warehouse: typeof warehouse } = {
           id: `stock-${Date.now()}`,
           itemId: data.itemId,
-          warehouseId: data.warehouseId,
           quantity: data.quantityReceived,
           availableQuantity: data.quantityReceived,
           reservedQuantity: 0,
@@ -851,7 +881,9 @@ const ManageStocks = () => {
 
     // Find existing stock
     const existingStockIndex = stockData.findIndex(
-      (s) => s.itemId === data.itemId && s.warehouseId === data.warehouseId
+      (s) =>
+        s.itemId === data.itemId &&
+        s.warehouse_id?.toString() === data.warehouseId
     );
 
     if (existingStockIndex >= 0) {
@@ -937,7 +969,7 @@ const ManageStocks = () => {
     try {
       // Trim and normalize the name
       const normalizedName = data.name.trim();
-      
+
       if (editingCategory) {
         // For updates, check if parentId is being changed
         const updatePayload: any = {
@@ -947,27 +979,35 @@ const ManageStocks = () => {
         // If editing and parentId changed, we need to handle it via API
         // Note: Update endpoint might not support parentId change, so we check
         await updateCategory(editingCategory.id, updatePayload);
-        toast.success(editingCategory.parentId ? "Subcategory updated successfully!" : "Category updated successfully!");
+        toast.success(
+          editingCategory.parentId
+            ? "Subcategory updated successfully!"
+            : "Category updated successfully!"
+        );
       } else {
         // Generate code from name for new categories
         const categoryCode = generateCategoryCode(normalizedName);
-        
+
         const payload = {
           code: categoryCode,
           name: normalizedName,
           status: data.status || "active",
           parentId: data.parentId ? Number(data.parentId) : undefined,
         };
-        
+
         console.log("Creating category with payload:", payload);
         await createCategory(payload);
-        toast.success(data.parentId ? "Subcategory created successfully!" : "Category created successfully!");
+        toast.success(
+          data.parentId
+            ? "Subcategory created successfully!"
+            : "Category created successfully!"
+        );
       }
-      
+
       // Reload categories
       const categoriesList = await listCategories();
       setCategories(categoriesList);
-      
+
       // Reset form
       setShowCategoryForm(false);
       setEditingCategory(null);
@@ -977,21 +1017,29 @@ const ManageStocks = () => {
       const status = error?.response?.status;
       const errorMessage = error?.response?.data?.message || "";
       const errorData = error?.response?.data || {};
-      
+
       if (status === 409) {
         // Conflict - category name or code already exists
-        const conflictField = errorData.field || (errorMessage.toLowerCase().includes("code") ? "code" : "name");
+        const conflictField =
+          errorData.field ||
+          (errorMessage.toLowerCase().includes("code") ? "code" : "name");
         if (conflictField === "code") {
-          toast.error(`Category code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`);
+          toast.error(
+            `Category code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`
+          );
         } else {
-          toast.error(`Category name "${data.name}" already exists. Please use a different name.`);
+          toast.error(
+            `Category name "${data.name}" already exists. Please use a different name.`
+          );
         }
       } else if (errorMessage) {
         toast.error(errorMessage);
       } else {
-        toast.error(editingCategory 
-          ? "Failed to update category. Please try again." 
-          : "Failed to create category. Please try again.");
+        toast.error(
+          editingCategory
+            ? "Failed to update category. Please try again."
+            : "Failed to create category. Please try again."
+        );
       }
     }
   };
@@ -1003,7 +1051,9 @@ const ManageStocks = () => {
       setShowCategoryDetailsDialog(true);
     } catch (error: any) {
       console.error("Failed to load category details:", error);
-      toast.error(error?.response?.data?.message || "Failed to load category details.");
+      toast.error(
+        error?.response?.data?.message || "Failed to load category details."
+      );
     }
   };
 
@@ -1018,38 +1068,53 @@ const ManageStocks = () => {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    const category = categories.find(c => c.id === id);
+    const category = categories.find((c) => c.id === id);
     if (!category) {
       toast.error("Category not found");
       return;
     }
-    
+
     const isSubcategory = !!category.parentId;
-    const hasSubcategories = subcategoriesByParent.some(sub => sub.parentId === id);
-    
+    const hasSubcategories = subcategoriesByParent.some(
+      (sub) => sub.parentId === id
+    );
+
     if (hasSubcategories) {
-      toast.error("Cannot delete category. Please delete all subcategories first.");
+      toast.error(
+        "Cannot delete category. Please delete all subcategories first."
+      );
       return;
     }
-    
-    const confirmMessage = isSubcategory 
-      ? "Are you sure you want to delete this subcategory?" 
+
+    const confirmMessage = isSubcategory
+      ? "Are you sure you want to delete this subcategory?"
       : "Are you sure you want to delete this category?";
-    
+
     if (!window.confirm(confirmMessage)) return;
-    
+
     try {
       await deleteCategory(id);
-      toast.success(isSubcategory ? "Subcategory deleted successfully!" : "Category deleted successfully!");
-      
+      toast.success(
+        isSubcategory
+          ? "Subcategory deleted successfully!"
+          : "Category deleted successfully!"
+      );
+
       // Reload categories
       const categoriesList = await listCategories();
       setCategories(categoriesList);
     } catch (error: any) {
       console.error("Failed to delete category:", error);
-      const errorMessage = error?.response?.data?.message || "Failed to delete category. Please try again.";
-      if (errorMessage.includes("subcategories") || errorMessage.includes("child")) {
-        toast.error("Cannot delete category. This category has subcategories. Please delete all subcategories first.");
+      const errorMessage =
+        error?.response?.data?.message ||
+        "Failed to delete category. Please try again.";
+      if (
+        errorMessage.includes("subcategories") ||
+        errorMessage.includes("child")
+      ) {
+        toast.error(
+          "Cannot delete category. This category has subcategories. Please delete all subcategories first."
+        );
       } else {
         toast.error(errorMessage);
       }
@@ -1079,18 +1144,18 @@ const ManageStocks = () => {
     try {
       const normalizedName = data.name.trim();
       const normalizedLocation = data.location.trim();
-      
+
       const payload: any = {
         name: normalizedName,
         location: normalizedLocation,
         status: data.status || "active",
       };
-      
+
       // Add code for new warehouses
       if (!editingWarehouse) {
         payload.code = generateWarehouseCode(normalizedName);
       }
-      
+
       if (editingWarehouse) {
         await updateWarehouse(editingWarehouse.id, payload);
         toast.success("Warehouse updated successfully!");
@@ -1098,34 +1163,38 @@ const ManageStocks = () => {
         await createWarehouse(payload);
         toast.success("Warehouse created successfully!");
       }
-      
+
       // Reload warehouses
       const warehousesList = await listWarehouses();
       setWarehouses(warehousesList);
-      
+
       // Reload stock data
       const [stockList, itemsList] = await Promise.all([
         listStock(),
         listItems(),
       ]);
-      
+
       const enrichedStock = stockList
         .map((stock) => {
           const item = itemsList.find((i) => i.id === stock.itemId);
-          const warehouse = warehousesList.find((w) => w.id === stock.warehouseId);
-          
+          const warehouse = warehousesList.find(
+            (w) => w.id === stock.warehouse_id?.toString()
+          );
+
           if (!item || !warehouse) return null;
-          
+
           return {
             ...stock,
             item,
             warehouse,
           };
         })
-        .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
-      
+        .filter(
+          (s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null
+        );
+
       setStockData(enrichedStock);
-      
+
       // Reset form
       setShowWarehouseForm(false);
       setEditingWarehouse(null);
@@ -1135,21 +1204,29 @@ const ManageStocks = () => {
       const status = error?.response?.status;
       const errorMessage = error?.response?.data?.message || "";
       const errorData = error?.response?.data || {};
-      
+
       if (status === 409) {
         // Conflict - warehouse name or code already exists
-        const conflictField = errorData.field || (errorMessage.toLowerCase().includes("code") ? "code" : "name");
+        const conflictField =
+          errorData.field ||
+          (errorMessage.toLowerCase().includes("code") ? "code" : "name");
         if (conflictField === "code") {
-          toast.error(`Warehouse code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`);
+          toast.error(
+            `Warehouse code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`
+          );
         } else {
-          toast.error(`Warehouse name "${data.name}" already exists. Please use a different name.`);
+          toast.error(
+            `Warehouse name "${data.name}" already exists. Please use a different name.`
+          );
         }
       } else if (errorMessage) {
         toast.error(errorMessage);
       } else {
-        toast.error(editingWarehouse 
-          ? "Failed to update warehouse. Please try again." 
-          : "Failed to create warehouse. Please try again.");
+        toast.error(
+          editingWarehouse
+            ? "Failed to update warehouse. Please try again."
+            : "Failed to create warehouse. Please try again."
+        );
       }
     }
   };
@@ -1166,40 +1243,47 @@ const ManageStocks = () => {
 
   const handleDeleteWarehouse = async (id: string) => {
     if (!confirm("Are you sure you want to delete this warehouse?")) return;
-    
+
     try {
       await deleteWarehouse(id);
       toast.success("Warehouse deleted successfully!");
-      
+
       // Reload warehouses
       const warehousesList = await listWarehouses();
       setWarehouses(warehousesList);
-      
+
       // Reload stock data
       const [stockList, itemsList] = await Promise.all([
         listStock(),
         listItems(),
       ]);
-      
+
       const enrichedStock = stockList
         .map((stock) => {
           const item = itemsList.find((i) => i.id === stock.itemId);
-          const warehouse = warehousesList.find((w) => w.id === stock.warehouseId);
-          
+          const warehouse = warehousesList.find(
+            (w) => w.id === stock.warehouse_id?.toString()
+          );
+
           if (!item || !warehouse) return null;
-          
+
           return {
             ...stock,
             item,
             warehouse,
           };
         })
-        .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
-      
+        .filter(
+          (s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null
+        );
+
       setStockData(enrichedStock);
     } catch (error: any) {
       console.error("Failed to delete warehouse:", error);
-      toast.error(error?.response?.data?.message || "Failed to delete warehouse. Please try again.");
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to delete warehouse. Please try again."
+      );
     }
   };
 
@@ -1238,7 +1322,9 @@ const ManageStocks = () => {
   const calculateInventoryMetrics = () => {
     // Total valuation by warehouse
     const valuationByWarehouse = warehouses.map((wh) => {
-      const stockInWarehouse = stockData.filter((s) => s.warehouseId === wh.id);
+      const stockInWarehouse = stockData.filter(
+        (s) => s.warehouse_id?.toString() === wh.id
+      );
       const totalValue = stockInWarehouse.reduce(
         (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
         0
@@ -1485,8 +1571,8 @@ const ManageStocks = () => {
                 </div>
               ) : filteredStock.length === 0 ? (
                 <div className="py-10 text-center text-muted-foreground">
-                  {searchQuery || selectedWarehouse !== "all" 
-                    ? "No inventory items found matching your filters." 
+                  {searchQuery || selectedWarehouse !== "all"
+                    ? "No inventory items found matching your filters."
                     : "No inventory items found. Add items to get started."}
                 </div>
               ) : (
@@ -1518,8 +1604,8 @@ const ManageStocks = () => {
                     <div className="relative">
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-sm font-medium">
-                        Item Code / SKU / Barcode
-                      </label>
+                          Item Code / SKU / Barcode
+                        </label>
                         <Button
                           type="button"
                           variant="default"
@@ -1540,20 +1626,21 @@ const ManageStocks = () => {
                           className="pl-10"
                         />
                       </div>
-                      {itemSearchQuery.length > 0 && searchResults.length === 0 && (
-                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                          <p className="text-sm text-blue-800">
-                            No items found.{" "}
-                            <button
-                              type="button"
-                              onClick={() => setShowCreateItemDialog(true)}
-                              className="font-semibold underline hover:text-blue-900"
-                            >
-                              Click here to create a new item
-                            </button>
-                          </p>
-                        </div>
-                      )}
+                      {itemSearchQuery.length > 0 &&
+                        searchResults.length === 0 && (
+                          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <p className="text-sm text-blue-800">
+                              No items found.{" "}
+                              <button
+                                type="button"
+                                onClick={() => setShowCreateItemDialog(true)}
+                                className="font-semibold underline hover:text-blue-900"
+                              >
+                                Click here to create a new item
+                              </button>
+                            </p>
+                          </div>
+                        )}
                       {searchResults.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
                           {searchResults.map((item) => (
@@ -1697,14 +1784,20 @@ const ManageStocks = () => {
                           </label>
                           <Select
                             value={watch("referenceNo") || ""}
-                            onValueChange={(value) => setValue("referenceNo", value)}
+                            onValueChange={(value) =>
+                              setValue("referenceNo", value)
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select PO number" />
                             </SelectTrigger>
                             <SelectContent>
                               {purchaseOrders
-                                .filter((po) => po.status === "approved" || po.status === "ordered")
+                                .filter(
+                                  (po) =>
+                                    po.status === "approved" ||
+                                    po.status === "ordered"
+                                )
                                 .map((po) => (
                                   <SelectItem key={po.id} value={po.orderNo}>
                                     {po.orderNo}
@@ -1804,7 +1897,10 @@ const ManageStocks = () => {
               </form>
 
               {/* Create New Item Dialog */}
-              <Dialog open={showCreateItemDialog} onOpenChange={setShowCreateItemDialog}>
+              <Dialog
+                open={showCreateItemDialog}
+                onOpenChange={setShowCreateItemDialog}
+              >
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create New Item</DialogTitle>
@@ -2619,36 +2715,56 @@ const ManageStocks = () => {
                       parentCategories
                     )}
                     data={[
-                      ...parentCategories.map(cat => ({ ...cat, _sortOrder: 0 })),
-                      ...subcategoriesByParent.map(cat => ({ ...cat, _sortOrder: 1 }))
+                      ...parentCategories.map((cat) => ({
+                        ...cat,
+                        _sortOrder: 0,
+                      })),
+                      ...subcategoriesByParent.map((cat) => ({
+                        ...cat,
+                        _sortOrder: 1,
+                      })),
                     ]
-                    .sort((a, b) => {
-                      // Sort by parent first, then by name within each group
-                      if (a._sortOrder !== b._sortOrder) {
-                        return a._sortOrder - b._sortOrder;
-                      }
-                      // If both are subcategories, group by parent
-                      if (a.parentId && b.parentId) {
-                        if (a.parentId !== b.parentId) {
-                          return String(a.parentId).localeCompare(String(b.parentId));
+                      .sort((a, b) => {
+                        // Sort by parent first, then by name within each group
+                        if (a._sortOrder !== b._sortOrder) {
+                          return a._sortOrder - b._sortOrder;
                         }
-                      }
-                      return a.name.localeCompare(b.name);
-                    })
-                    .filter((cat) =>
-                      searchQuery === "" || 
-                      cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (cat.parentId && parentCategories.find(p => p.id === cat.parentId)?.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    )}
+                        // If both are subcategories, group by parent
+                        if (a.parentId && b.parentId) {
+                          if (a.parentId !== b.parentId) {
+                            return String(a.parentId).localeCompare(
+                              String(b.parentId)
+                            );
+                          }
+                        }
+                        return a.name.localeCompare(b.name);
+                      })
+                      .filter(
+                        (cat) =>
+                          searchQuery === "" ||
+                          cat.name
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase()) ||
+                          (cat.parentId &&
+                            parentCategories
+                              .find((p) => p.id === cat.parentId)
+                              ?.name.toLowerCase()
+                              .includes(searchQuery.toLowerCase()))
+                      )}
                   />
                 </CardContent>
               </Card>
 
               {/* Category Details Dialog */}
-              <Dialog open={showCategoryDetailsDialog} onOpenChange={setShowCategoryDetailsDialog}>
+              <Dialog
+                open={showCategoryDetailsDialog}
+                onOpenChange={setShowCategoryDetailsDialog}
+              >
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>{selectedCategoryForDetails?.name} - Details</DialogTitle>
+                    <DialogTitle>
+                      {selectedCategoryForDetails?.name} - Details
+                    </DialogTitle>
                     <DialogDescription>
                       View category information and manage subcategories.
                     </DialogDescription>
@@ -2656,20 +2772,30 @@ const ManageStocks = () => {
                   {selectedCategoryForDetails && (
                     <div className="space-y-4 mt-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Category Name</p>
-                        <p className="font-medium text-lg">{selectedCategoryForDetails.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Category Name
+                        </p>
+                        <p className="font-medium text-lg">
+                          {selectedCategoryForDetails.name}
+                        </p>
                       </div>
                       {selectedCategoryForDetails.description && (
                         <div>
-                          <p className="text-sm text-muted-foreground">Description</p>
-                          <p className="font-medium">{selectedCategoryForDetails.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Description
+                          </p>
+                          <p className="font-medium">
+                            {selectedCategoryForDetails.description}
+                          </p>
                         </div>
                       )}
 
                       {/* Subcategories List */}
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-medium text-muted-foreground">Subcategories</p>
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Subcategories
+                          </p>
                           <Button
                             size="sm"
                             variant="outline"
@@ -2682,16 +2808,29 @@ const ManageStocks = () => {
                             Add Subcategory
                           </Button>
                         </div>
-                        {subcategoriesByParent.filter((sub) => sub.parentId === selectedCategoryForDetails.id).length > 0 ? (
+                        {subcategoriesByParent.filter(
+                          (sub) =>
+                            sub.parentId === selectedCategoryForDetails.id
+                        ).length > 0 ? (
                           <div className="space-y-2">
                             {subcategoriesByParent
-                              .filter((sub) => sub.parentId === selectedCategoryForDetails.id)
+                              .filter(
+                                (sub) =>
+                                  sub.parentId === selectedCategoryForDetails.id
+                              )
                               .map((sub) => (
-                                <div key={sub.id} className="p-3 border rounded-md flex items-center justify-between hover:bg-gray-50">
+                                <div
+                                  key={sub.id}
+                                  className="p-3 border rounded-md flex items-center justify-between hover:bg-gray-50"
+                                >
                                   <div className="flex-1">
-                                    <span className="font-medium">{sub.name}</span>
+                                    <span className="font-medium">
+                                      {sub.name}
+                                    </span>
                                     {sub.description && (
-                                      <p className="text-sm text-gray-500 mt-1">{sub.description}</p>
+                                      <p className="text-sm text-gray-500 mt-1">
+                                        {sub.description}
+                                      </p>
                                     )}
                                   </div>
                                   <div className="flex gap-2">
@@ -2722,12 +2861,16 @@ const ManageStocks = () => {
                           </div>
                         ) : (
                           <div className="text-center py-8 border rounded-md">
-                            <p className="text-sm text-gray-500 mb-3">No subcategories found.</p>
+                            <p className="text-sm text-gray-500 mb-3">
+                              No subcategories found.
+                            </p>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                handleNewSubcategory(selectedCategoryForDetails);
+                                handleNewSubcategory(
+                                  selectedCategoryForDetails
+                                );
                                 setShowCategoryDetailsDialog(false);
                               }}
                             >
@@ -2741,7 +2884,6 @@ const ManageStocks = () => {
                   )}
                 </DialogContent>
               </Dialog>
-
             </TabsContent>
 
             {/* Warehouses Tab */}
@@ -2766,21 +2908,29 @@ const ManageStocks = () => {
               {showWarehouseForm && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>{editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}</CardTitle>
+                    <CardTitle>
+                      {editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleWarehouseSubmit(onWarehouseSubmit)} className="space-y-4">
+                    <form
+                      onSubmit={handleWarehouseSubmit(onWarehouseSubmit)}
+                      className="space-y-4"
+                    >
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-sm font-medium mb-2 block">
-                            Warehouse Name <span className="text-red-500">*</span>
+                            Warehouse Name{" "}
+                            <span className="text-red-500">*</span>
                           </label>
                           <Input
                             placeholder="Warehouse name"
                             {...registerWarehouse("name")}
                           />
                           {warehouseErrors.name && (
-                            <p className="text-sm text-red-500 mt-1">{warehouseErrors.name.message}</p>
+                            <p className="text-sm text-red-500 mt-1">
+                              {warehouseErrors.name.message}
+                            </p>
                           )}
                         </div>
 
@@ -2793,7 +2943,9 @@ const ManageStocks = () => {
                             {...registerWarehouse("location")}
                           />
                           {warehouseErrors.location && (
-                            <p className="text-sm text-red-500 mt-1">{warehouseErrors.location.message}</p>
+                            <p className="text-sm text-red-500 mt-1">
+                              {warehouseErrors.location.message}
+                            </p>
                           )}
                         </div>
 
@@ -2802,7 +2954,12 @@ const ManageStocks = () => {
                             Status <span className="text-red-500">*</span>
                           </label>
                           <Select
-                            onValueChange={(value) => resetWarehouse({ ...watchWarehouse(), status: value as "active" | "inactive" })}
+                            onValueChange={(value) =>
+                              resetWarehouse({
+                                ...watchWarehouse(),
+                                status: value as "active" | "inactive",
+                              })
+                            }
                             value={watchWarehouse("status")}
                           >
                             <SelectTrigger>
@@ -2814,7 +2971,9 @@ const ManageStocks = () => {
                             </SelectContent>
                           </Select>
                           {warehouseErrors.status && (
-                            <p className="text-sm text-red-500 mt-1">{warehouseErrors.status.message}</p>
+                            <p className="text-sm text-red-500 mt-1">
+                              {warehouseErrors.status.message}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -2844,11 +3003,19 @@ const ManageStocks = () => {
               <Card>
                 <CardContent className="pt-6">
                   <DataTable
-                    columns={createWarehouseColumns(handleEditWarehouse, handleDeleteWarehouse)}
-                    data={warehouses.filter((wh) =>
-                      searchQuery === "" ||
-                      wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      wh.location.toLowerCase().includes(searchQuery.toLowerCase())
+                    columns={createWarehouseColumns(
+                      handleEditWarehouse,
+                      handleDeleteWarehouse
+                    )}
+                    data={warehouses.filter(
+                      (wh) =>
+                        searchQuery === "" ||
+                        wh.name
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()) ||
+                        wh.location
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
                     )}
                   />
                 </CardContent>
@@ -2859,23 +3026,35 @@ const ManageStocks = () => {
       </Card>
 
       {/* Category Form Dialog - Outside tabs so it's always accessible */}
-      <Dialog open={showCategoryForm} onOpenChange={(open) => {
-        setShowCategoryForm(open);
-        if (!open) {
-          setEditingCategory(null);
-          resetCategory();
-        }
-      }}>
+      <Dialog
+        open={showCategoryForm}
+        onOpenChange={(open) => {
+          setShowCategoryForm(open);
+          if (!open) {
+            setEditingCategory(null);
+            resetCategory();
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingCategory ? (editingCategory.parentId ? "Edit Subcategory" : "Edit Category") : "Add Category / Subcategory"}</DialogTitle>
+            <DialogTitle>
+              {editingCategory
+                ? editingCategory.parentId
+                  ? "Edit Subcategory"
+                  : "Edit Category"
+                : "Add Category / Subcategory"}
+            </DialogTitle>
             <DialogDescription>
-              {editingCategory 
-                ? "Update the category information below." 
+              {editingCategory
+                ? "Update the category information below."
                 : "Create a new category or subcategory. Leave parent category as 'None' for a main category."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCategorySubmit(onCategorySubmit)} className="space-y-4 mt-4">
+          <form
+            onSubmit={handleCategorySubmit(onCategorySubmit)}
+            className="space-y-4 mt-4"
+          >
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
@@ -2886,23 +3065,33 @@ const ManageStocks = () => {
                   {...registerCategory("name")}
                 />
                 {categoryErrors.name && (
-                  <p className="text-sm text-red-500 mt-1">{categoryErrors.name.message}</p>
+                  <p className="text-sm text-red-500 mt-1">
+                    {categoryErrors.name.message}
+                  </p>
                 )}
                 {!editingCategory && watchCategoryName && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Code will be: <span className="font-mono font-semibold">{generateCategoryCode(watchCategoryName)}</span>
+                    Code will be:{" "}
+                    <span className="font-mono font-semibold">
+                      {generateCategoryCode(watchCategoryName)}
+                    </span>
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  {editingCategory && editingCategory.parentId 
+                  {editingCategory && editingCategory.parentId
                     ? "Parent Category (Cannot change for existing subcategory)"
                     : "Parent Category (for subcategory)"}
                 </label>
                 <Select
-                  onValueChange={(value) => setCategoryValue("parentId", value === "none" ? undefined : value)}
+                  onValueChange={(value) =>
+                    setCategoryValue(
+                      "parentId",
+                      value === "none" ? undefined : value
+                    )
+                  }
                   value={categoryParentId || "none"}
                   disabled={!!(editingCategory && editingCategory.parentId)}
                 >
@@ -2920,7 +3109,10 @@ const ManageStocks = () => {
                 </Select>
                 {editingCategory && editingCategory.parentId && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Current parent: {parentCategories.find(p => p.id === editingCategory?.parentId)?.name || "Unknown"}
+                    Current parent:{" "}
+                    {parentCategories.find(
+                      (p) => p.id === editingCategory?.parentId
+                    )?.name || "Unknown"}
                   </p>
                 )}
               </div>
@@ -2930,7 +3122,9 @@ const ManageStocks = () => {
                   Status <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  onValueChange={(value) => setCategoryValue("status", value as "active" | "inactive")}
+                  onValueChange={(value) =>
+                    setCategoryValue("status", value as "active" | "inactive")
+                  }
                   value={watchCategoryStatus}
                 >
                   <SelectTrigger>

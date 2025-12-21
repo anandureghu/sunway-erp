@@ -96,6 +96,10 @@ export type ItemResponseDTO = {
   status?: string;
   createdAt?: string;
   updatedAt?: string;
+
+  warehouse_id?: number;
+  warehouse_name?: number;
+  warehouse_location?: number;
 };
 
 export type ItemCreateDTO = {
@@ -213,5 +217,3 @@ export type ShipmentResponseDTO = {
   deliveredAt?: string;
   items?: ShipmentItemDTO[];
 };
-
-
