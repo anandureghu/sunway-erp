@@ -30,6 +30,7 @@ export type Item = {
 // Warehouse
 export type Warehouse = {
   id: string;
+  code?: string;
   name: string;
   location: string;
   address?: string;
@@ -102,8 +103,10 @@ export type StockAdjustment = {
 // Item Category
 export type ItemCategory = {
   id: string;
+  code?: string;
   name: string;
   description?: string;
+  status?: string;
   parentId?: string; // For hierarchical categories
   createdAt: string;
 };

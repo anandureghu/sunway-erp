@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Warehouse, AlertTriangle } from "lucide-react";
-import { getStockWithDetails } from "@/lib/inventory-data";
 import { format } from "date-fns";
+import { useState, useEffect } from "react";
+import { listStock, listItems, listWarehouses } from "@/service/inventoryService";
+import type { Stock, Item, Warehouse } from "@/types/inventory";
 
 // Reusable InfoCard Component
 const InfoCard = ({ 
@@ -29,11 +31,66 @@ const InfoCard = ({
 const InventoryItemDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const stockData = getStockWithDetails();
-  const stock = stockData.find((s) => s.id === id);
+  const [stock, setStock] = useState<(Stock & { item: Item; warehouse: Warehouse }) | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!stock) {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch all data in parallel
+        const [stockList, itemsList, warehousesList] = await Promise.all([
+          listStock(),
+          listItems(),
+          listWarehouses(),
+        ]);
+        
+        if (!cancelled) {
+          // Enrich stock with item and warehouse details
+          const enrichedStock = stockList
+            .map((s) => {
+              const item = itemsList.find((i) => i.id === s.itemId);
+              const warehouse = warehousesList.find((w) => w.id === s.warehouseId);
+              
+              if (!item || !warehouse) return null;
+              
+              return {
+                ...s,
+                item,
+                warehouse,
+              };
+            })
+            .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
+          
+          // Find the stock by ID
+          const foundStock = enrichedStock.find((s) => s.id === id);
+          
+          if (foundStock) {
+            setStock(foundStock);
+          } else {
+            setError("Stock record not found");
+          }
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          console.error("Failed to load stock details:", error);
+          setError(error?.message || "Failed to load item details");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (loading) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="flex items-center gap-4 mb-6">
@@ -48,7 +105,29 @@ const InventoryItemDetail = () => {
         </div>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-gray-500">Item not found</p>
+            <p className="text-center text-gray-500">Loading item details...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error || !stock) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/inventory/stocks")}
+            className="flex items-center gap-2 rounded-full px-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Inventory
+          </Button>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-gray-500">{error || "Item not found"}</p>
           </CardContent>
         </Card>
       </div>

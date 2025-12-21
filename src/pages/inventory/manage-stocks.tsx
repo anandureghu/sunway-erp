@@ -4,15 +4,26 @@ import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { STOCK_COLUMNS } from "@/lib/columns/inventory-columns";
+import { createCategoryColumns } from "@/lib/columns/category-columns";
+import { createWarehouseColumns } from "@/lib/columns/warehouse-columns";
 import {
   getStockWithDetails,
-  items,
-  warehouses,
-  searchItems,
-  itemCategories,
 } from "@/lib/inventory-data";
-import { createItem, listCategories } from "@/service/inventoryService";
-import type { ItemCategory } from "@/types/inventory";
+import { 
+  createItem, 
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getCategory,
+  listItems, 
+  listWarehouses,
+  createWarehouse,
+  updateWarehouse,
+  deleteWarehouse,
+  listStock 
+} from "@/service/inventoryService";
+import type { ItemCategory, Item, Warehouse, Stock } from "@/types/inventory";
 import { toast } from "sonner";
 import { purchaseOrders } from "@/lib/purchase-data";
 import { useState, useEffect } from "react";
@@ -35,6 +46,8 @@ import {
   PieChart,
   Calendar,
   Clock,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import {
   RECEIVE_ITEM_SCHEMA,
@@ -43,10 +56,13 @@ import {
   type StockAdjustmentFormData,
   ITEM_SCHEMA,
   type ItemFormData,
+  CATEGORY_SCHEMA,
+  type CategoryFormData,
+  WAREHOUSE_SCHEMA,
+  type WarehouseFormData,
 } from "@/schema/inventory";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Item, Stock } from "@/types/inventory";
 import {
   Select,
   SelectContent,
@@ -59,6 +75,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
@@ -86,6 +103,9 @@ function CreateItemForm({
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [showCreateCategoryDialog, setShowCreateCategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
 
   // Load categories from API
   useEffect(() => {
@@ -93,12 +113,26 @@ function CreateItemForm({
     (async () => {
       try {
         setLoadingCategories(true);
+        console.log("Loading categories from API...");
         const cats = await listCategories();
-        if (!cancelled) setCategories(cats);
+        console.log("Categories loaded:", cats);
+        if (!cancelled) {
+          setCategories(cats);
+          if (cats.length === 0) {
+            console.warn("No categories returned from API");
+          }
+        }
       } catch (error: any) {
         console.error("Failed to load categories:", error);
+        console.error("Error details:", {
+          status: error?.response?.status,
+          data: error?.response?.data,
+          message: error?.message,
+        });
         if (!cancelled) {
-          toast.error("Failed to load categories. Using default options.");
+          toast.error(`Failed to load categories: ${error?.response?.data?.message || error?.message || "Unknown error"}`);
+          // Set empty array so the UI shows the "no categories" message
+          setCategories([]);
         }
       } finally {
         if (!cancelled) setLoadingCategories(false);
@@ -108,6 +142,41 @@ function CreateItemForm({
       cancelled = true;
     };
   }, []);
+
+  // Handle creating a new category
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error("Please enter a category name");
+      return;
+    }
+
+    try {
+      setCreatingCategory(true);
+      const newCategory = await createCategory({
+        name: newCategoryName.trim(),
+        code: newCategoryName.trim().toUpperCase().replace(/\s+/g, "_"),
+      });
+      toast.success("Category created successfully!");
+      
+      // Reload categories
+      const cats = await listCategories();
+      setCategories(cats);
+      
+      // Set the new category as selected
+      setValue("category", newCategory.name);
+      
+      // Reset form
+      setNewCategoryName("");
+      setShowCreateCategoryDialog(false);
+    } catch (error: any) {
+      console.error("Failed to create category:", error);
+      toast.error(
+        error?.response?.data?.message || "Failed to create category. Please try again."
+      );
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
 
   const {
     register,
@@ -134,8 +203,10 @@ function CreateItemForm({
         sku: data.sku?.toUpperCase(),
         name: data.name,
         description: data.description,
+        type: data.itemType, // Item Type
         category: data.category,
         subCategory: data.subcategory,
+        brand: data.brand,
         costPrice: data.costPrice || 0,
         sellingPrice: data.sellingPrice || 0,
         unitMeasure: data.unit || "pcs",
@@ -197,9 +268,21 @@ function CreateItemForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">
-            Category <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCreateCategoryDialog(true)}
+              className="h-7 text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              New Category
+            </Button>
+          </div>
           <Select
             onValueChange={(value) => setValue("category", value)}
             value={watch("category")}
@@ -215,7 +298,7 @@ function CreateItemForm({
                 </div>
               ) : categories.length === 0 ? (
                 <div className="p-2 text-sm text-muted-foreground text-center">
-                  No categories available. Please create a category first.
+                  No categories available. Click "New Category" to create one.
                 </div>
               ) : (
                 categories.map((cat) => (
@@ -228,6 +311,45 @@ function CreateItemForm({
           </Select>
           {errors.category && (
             <p className="text-sm text-red-500 mt-1">{errors.category.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Item Type
+          </label>
+          <Input
+            placeholder="e.g., Raw Material, Finished Good"
+            {...register("itemType")}
+          />
+          {errors.itemType && (
+            <p className="text-sm text-red-500 mt-1">{errors.itemType.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Subcategory
+          </label>
+          <Input
+            placeholder="Optional subcategory"
+            {...register("subcategory")}
+          />
+          {errors.subcategory && (
+            <p className="text-sm text-red-500 mt-1">{errors.subcategory.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Brand
+          </label>
+          <Input
+            placeholder="Optional brand name"
+            {...register("brand")}
+          />
+          {errors.brand && (
+            <p className="text-sm text-red-500 mt-1">{errors.brand.message}</p>
           )}
         </div>
 
@@ -349,13 +471,69 @@ function CreateItemForm({
           {submitting ? "Creating..." : "Create Item"}
         </Button>
       </div>
+
+      {/* Create Category Dialog */}
+      <Dialog open={showCreateCategoryDialog} onOpenChange={setShowCreateCategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Category</DialogTitle>
+            <DialogDescription>
+              Create a new category that can be used when creating items.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Category Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="e.g., Raw Materials"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !creatingCategory) {
+                    e.preventDefault();
+                    handleCreateCategory();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowCreateCategoryDialog(false);
+                  setNewCategoryName("");
+                }}
+                disabled={creatingCategory}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCreateCategory}
+                disabled={creatingCategory || !newCategoryName.trim()}
+              >
+                {creatingCategory ? "Creating..." : "Create Category"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }
 
 const ManageStocks = () => {
   const navigate = useNavigate();
-  const [stockData, setStockData] = useState(getStockWithDetails());
+  const [stockData, setStockData] = useState<(Stock & { item: Item; warehouse: Warehouse })[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [categories, setCategories] = useState<ItemCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -407,6 +585,44 @@ const ManageStocks = () => {
   const adjustmentQuantity = watchVariance("adjustmentQuantity");
   const [isAdjustingByQuantity, setIsAdjustingByQuantity] = useState(true); // true = adjust by quantity, false = set new quantity
 
+  // Categories management state
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<ItemCategory | null>(null);
+  const [showCategoryDetailsDialog, setShowCategoryDetailsDialog] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(null);
+  const {
+    register: registerCategory,
+    handleSubmit: handleCategorySubmit,
+    formState: { errors: categoryErrors },
+    reset: resetCategory,
+    watch: watchCategory,
+    setValue: setCategoryValue,
+  } = useForm<CategoryFormData>({
+    resolver: zodResolver(CATEGORY_SCHEMA),
+    defaultValues: {
+      status: "active" as const,
+    },
+  });
+  const categoryParentId = watchCategory("parentId");
+  const watchCategoryStatus = watchCategory("status");
+  const watchCategoryName = watchCategory("name");
+
+  // Warehouses management state
+  const [showWarehouseForm, setShowWarehouseForm] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const {
+    register: registerWarehouse,
+    handleSubmit: handleWarehouseSubmit,
+    formState: { errors: warehouseErrors },
+    reset: resetWarehouse,
+    watch: watchWarehouse,
+  } = useForm<WarehouseFormData>({
+    resolver: zodResolver(WAREHOUSE_SCHEMA),
+    defaultValues: {
+      status: "active",
+    },
+  });
+
   // Filter stock data
   const filteredStock = stockData.filter((stock) => {
     const matchesWarehouse =
@@ -419,25 +635,94 @@ const ManageStocks = () => {
     return matchesWarehouse && matchesSearch;
   });
 
-  // Search items for receiving
+  // Load stock data from API
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+        
+        // Fetch all data in parallel
+        const [stockList, itemsList, warehousesList, categoriesList] = await Promise.all([
+          listStock(),
+          listItems(),
+          listWarehouses(),
+          listCategories(),
+        ]);
+        
+        if (!cancelled) {
+          setItems(itemsList);
+          setWarehouses(warehousesList);
+          setCategories(categoriesList);
+          setCategories(categoriesList);
+          
+          // Enrich stock with item and warehouse details
+          const enrichedStock = stockList
+            .map((stock) => {
+              const item = itemsList.find((i) => i.id === stock.itemId);
+              const warehouse = warehousesList.find((w) => w.id === stock.warehouseId);
+              
+              if (!item || !warehouse) return null;
+              
+              return {
+                ...stock,
+                item,
+                warehouse,
+              };
+            })
+            .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
+          
+          setStockData(enrichedStock);
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          console.error("Failed to load stock data:", error);
+          setLoadError(error?.message || "Failed to load inventory data");
+          // Fallback to mock data if API fails
+          setStockData(getStockWithDetails());
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Search items for receiving (using API items)
   useEffect(() => {
     if (itemSearchQuery.length > 0) {
-      const results = searchItems(itemSearchQuery);
+      const lowerQuery = itemSearchQuery.toLowerCase();
+      const results = items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(lowerQuery) ||
+          item.sku.toLowerCase().includes(lowerQuery) ||
+          item.barcode?.toLowerCase().includes(lowerQuery)
+      );
       setSearchResults(results);
     } else {
       setSearchResults([]);
     }
-  }, [itemSearchQuery]);
+  }, [itemSearchQuery, items]);
 
-  // Search items for variance
+  // Search items for variance (using API items)
   useEffect(() => {
     if (varianceItemSearchQuery.length > 0) {
-      const results = searchItems(varianceItemSearchQuery);
+      const lowerQuery = varianceItemSearchQuery.toLowerCase();
+      const results = items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(lowerQuery) ||
+          item.sku.toLowerCase().includes(lowerQuery) ||
+          item.barcode?.toLowerCase().includes(lowerQuery)
+      );
       setVarianceSearchResults(results);
     } else {
       setVarianceSearchResults([]);
     }
-  }, [varianceItemSearchQuery]);
+  }, [varianceItemSearchQuery, items]);
 
   // Get current stock quantity for selected item and warehouse
   const getCurrentStock = (itemId: string, warehouseId: string): number => {
@@ -581,6 +866,309 @@ const ManageStocks = () => {
     setIsAdjustingByQuantity(true);
   };
 
+  // Helper function to generate category code from name
+  const generateCategoryCode = (name: string): string => {
+    return name
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^A-Z0-9_]/g, "")
+      .substring(0, 50); // Limit length
+  };
+
+  // Helper function to generate warehouse code from name
+  const generateWarehouseCode = (name: string): string => {
+    return name
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^A-Z0-9_]/g, "")
+      .substring(0, 50); // Limit length
+  };
+
+  // Category handlers
+  const onCategorySubmit = async (data: CategoryFormData) => {
+    try {
+      // Trim and normalize the name
+      const normalizedName = data.name.trim();
+      
+      if (editingCategory) {
+        // For updates, check if parentId is being changed
+        const updatePayload: any = {
+          name: normalizedName,
+          status: data.status || "active",
+        };
+        // If editing and parentId changed, we need to handle it via API
+        // Note: Update endpoint might not support parentId change, so we check
+        await updateCategory(editingCategory.id, updatePayload);
+        toast.success(editingCategory.parentId ? "Subcategory updated successfully!" : "Category updated successfully!");
+      } else {
+        // Generate code from name for new categories
+        const categoryCode = generateCategoryCode(normalizedName);
+        
+        const payload = {
+          code: categoryCode,
+          name: normalizedName,
+          status: data.status || "active",
+          parentId: data.parentId ? Number(data.parentId) : undefined,
+        };
+        
+        console.log("Creating category with payload:", payload);
+        await createCategory(payload);
+        toast.success(data.parentId ? "Subcategory created successfully!" : "Category created successfully!");
+      }
+      
+      // Reload categories
+      const categoriesList = await listCategories();
+      setCategories(categoriesList);
+      
+      // Reset form
+      setShowCategoryForm(false);
+      setEditingCategory(null);
+      resetCategory();
+    } catch (error: any) {
+      console.error("Failed to save category:", error);
+      const status = error?.response?.status;
+      const errorMessage = error?.response?.data?.message || "";
+      const errorData = error?.response?.data || {};
+      
+      if (status === 409) {
+        // Conflict - category name or code already exists
+        const conflictField = errorData.field || (errorMessage.toLowerCase().includes("code") ? "code" : "name");
+        if (conflictField === "code") {
+          toast.error(`Category code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`);
+        } else {
+          toast.error(`Category name "${data.name}" already exists. Please use a different name.`);
+        }
+      } else if (errorMessage) {
+        toast.error(errorMessage);
+      } else {
+        toast.error(editingCategory 
+          ? "Failed to update category. Please try again." 
+          : "Failed to create category. Please try again.");
+      }
+    }
+  };
+
+  const handleViewCategoryDetails = async (id: string) => {
+    try {
+      const category = await getCategory(id);
+      setSelectedCategoryForDetails(category);
+      setShowCategoryDetailsDialog(true);
+    } catch (error: any) {
+      console.error("Failed to load category details:", error);
+      toast.error(error?.response?.data?.message || "Failed to load category details.");
+    }
+  };
+
+  const handleEditCategory = (category: ItemCategory) => {
+    setEditingCategory(category);
+    resetCategory({
+      name: category.name,
+      status: "active" as const,
+      parentId: category.parentId,
+    });
+    setShowCategoryForm(true);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    const category = categories.find(c => c.id === id);
+    if (!category) {
+      toast.error("Category not found");
+      return;
+    }
+    
+    const isSubcategory = !!category.parentId;
+    const hasSubcategories = subcategoriesByParent.some(sub => sub.parentId === id);
+    
+    if (hasSubcategories) {
+      toast.error("Cannot delete category. Please delete all subcategories first.");
+      return;
+    }
+    
+    const confirmMessage = isSubcategory 
+      ? "Are you sure you want to delete this subcategory?" 
+      : "Are you sure you want to delete this category?";
+    
+    if (!window.confirm(confirmMessage)) return;
+    
+    try {
+      await deleteCategory(id);
+      toast.success(isSubcategory ? "Subcategory deleted successfully!" : "Category deleted successfully!");
+      
+      // Reload categories
+      const categoriesList = await listCategories();
+      setCategories(categoriesList);
+    } catch (error: any) {
+      console.error("Failed to delete category:", error);
+      const errorMessage = error?.response?.data?.message || "Failed to delete category. Please try again.";
+      if (errorMessage.includes("subcategories") || errorMessage.includes("child")) {
+        toast.error("Cannot delete category. This category has subcategories. Please delete all subcategories first.");
+      } else {
+        toast.error(errorMessage);
+      }
+    }
+  };
+
+  const handleNewCategory = () => {
+    setEditingCategory(null);
+    resetCategory({
+      status: "active" as const,
+      parentId: undefined,
+    });
+    setShowCategoryForm(true);
+  };
+
+  const handleNewSubcategory = (parentCategory: ItemCategory) => {
+    setEditingCategory(null);
+    resetCategory({
+      status: "active" as const,
+      parentId: parentCategory.id,
+    });
+    setShowCategoryForm(true);
+  };
+
+  // Warehouse handlers
+  const onWarehouseSubmit = async (data: WarehouseFormData) => {
+    try {
+      const normalizedName = data.name.trim();
+      const normalizedLocation = data.location.trim();
+      
+      const payload: any = {
+        name: normalizedName,
+        location: normalizedLocation,
+        status: data.status || "active",
+      };
+      
+      // Add code for new warehouses
+      if (!editingWarehouse) {
+        payload.code = generateWarehouseCode(normalizedName);
+      }
+      
+      if (editingWarehouse) {
+        await updateWarehouse(editingWarehouse.id, payload);
+        toast.success("Warehouse updated successfully!");
+      } else {
+        await createWarehouse(payload);
+        toast.success("Warehouse created successfully!");
+      }
+      
+      // Reload warehouses
+      const warehousesList = await listWarehouses();
+      setWarehouses(warehousesList);
+      
+      // Reload stock data
+      const [stockList, itemsList] = await Promise.all([
+        listStock(),
+        listItems(),
+      ]);
+      
+      const enrichedStock = stockList
+        .map((stock) => {
+          const item = itemsList.find((i) => i.id === stock.itemId);
+          const warehouse = warehousesList.find((w) => w.id === stock.warehouseId);
+          
+          if (!item || !warehouse) return null;
+          
+          return {
+            ...stock,
+            item,
+            warehouse,
+          };
+        })
+        .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
+      
+      setStockData(enrichedStock);
+      
+      // Reset form
+      setShowWarehouseForm(false);
+      setEditingWarehouse(null);
+      resetWarehouse();
+    } catch (error: any) {
+      console.error("Failed to save warehouse:", error);
+      const status = error?.response?.status;
+      const errorMessage = error?.response?.data?.message || "";
+      const errorData = error?.response?.data || {};
+      
+      if (status === 409) {
+        // Conflict - warehouse name or code already exists
+        const conflictField = errorData.field || (errorMessage.toLowerCase().includes("code") ? "code" : "name");
+        if (conflictField === "code") {
+          toast.error(`Warehouse code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`);
+        } else {
+          toast.error(`Warehouse name "${data.name}" already exists. Please use a different name.`);
+        }
+      } else if (errorMessage) {
+        toast.error(errorMessage);
+      } else {
+        toast.error(editingWarehouse 
+          ? "Failed to update warehouse. Please try again." 
+          : "Failed to create warehouse. Please try again.");
+      }
+    }
+  };
+
+  const handleEditWarehouse = (warehouse: Warehouse) => {
+    setEditingWarehouse(warehouse);
+    resetWarehouse({
+      name: warehouse.name,
+      location: warehouse.location,
+      status: warehouse.status,
+    });
+    setShowWarehouseForm(true);
+  };
+
+  const handleDeleteWarehouse = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this warehouse?")) return;
+    
+    try {
+      await deleteWarehouse(id);
+      toast.success("Warehouse deleted successfully!");
+      
+      // Reload warehouses
+      const warehousesList = await listWarehouses();
+      setWarehouses(warehousesList);
+      
+      // Reload stock data
+      const [stockList, itemsList] = await Promise.all([
+        listStock(),
+        listItems(),
+      ]);
+      
+      const enrichedStock = stockList
+        .map((stock) => {
+          const item = itemsList.find((i) => i.id === stock.itemId);
+          const warehouse = warehousesList.find((w) => w.id === stock.warehouseId);
+          
+          if (!item || !warehouse) return null;
+          
+          return {
+            ...stock,
+            item,
+            warehouse,
+          };
+        })
+        .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
+      
+      setStockData(enrichedStock);
+    } catch (error: any) {
+      console.error("Failed to delete warehouse:", error);
+      toast.error(error?.response?.data?.message || "Failed to delete warehouse. Please try again.");
+    }
+  };
+
+  const handleNewWarehouse = () => {
+    setEditingWarehouse(null);
+    resetWarehouse({
+      status: "active",
+    });
+    setShowWarehouseForm(true);
+  };
+
+  // Filter categories - separate parent categories from subcategories
+  const parentCategories = categories.filter((cat) => !cat.parentId);
+  const subcategoriesByParent = categories.filter((cat) => cat.parentId);
+
   // Calculate stats
   const totalItems = stockData.length;
   const lowStockItems = stockData.filter(
@@ -621,7 +1209,7 @@ const ManageStocks = () => {
     });
 
     // Valuation by category
-    const valuationByCategory = itemCategories.map((cat: { name: string }) => {
+    const valuationByCategory = categories.map((cat: ItemCategory) => {
       const stockInCategory = stockData.filter(
         (s) => s.item?.category === cat.name
       );
@@ -793,7 +1381,7 @@ const ManageStocks = () => {
       <Card>
         <CardContent>
           <Tabs defaultValue="stock" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
               <StyledTabsTrigger value="stock">
                 Inventory Items (Stock)
               </StyledTabsTrigger>
@@ -803,6 +1391,12 @@ const ManageStocks = () => {
               <StyledTabsTrigger value="variances">Variances</StyledTabsTrigger>
               <StyledTabsTrigger value="values">
                 Inventory Values
+              </StyledTabsTrigger>
+              <StyledTabsTrigger value="categories">
+                Categories
+              </StyledTabsTrigger>
+              <StyledTabsTrigger value="warehouses">
+                Warehouses
               </StyledTabsTrigger>
             </TabsList>
 
@@ -835,13 +1429,29 @@ const ManageStocks = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <DataTable
-                columns={STOCK_COLUMNS}
-                data={filteredStock}
-                onRowClick={(row) => {
-                  navigate(`/inventory/stocks/${row.original.id}`);
-                }}
-              />
+              {loading ? (
+                <div className="py-10 text-center text-muted-foreground">
+                  Loading inventory data...
+                </div>
+              ) : loadError ? (
+                <div className="py-10 text-center text-red-600">
+                  {loadError}
+                </div>
+              ) : filteredStock.length === 0 ? (
+                <div className="py-10 text-center text-muted-foreground">
+                  {searchQuery || selectedWarehouse !== "all" 
+                    ? "No inventory items found matching your filters." 
+                    : "No inventory items found. Add items to get started."}
+                </div>
+              ) : (
+                <DataTable
+                  columns={STOCK_COLUMNS}
+                  data={filteredStock}
+                  onRowClick={(row) => {
+                    navigate(`/inventory/stocks/${row.original.id}`);
+                  }}
+                />
+              )}
             </TabsContent>
 
             {/* Receive Item Tab */}
@@ -1152,6 +1762,9 @@ const ManageStocks = () => {
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create New Item</DialogTitle>
+                    <DialogDescription>
+                      Add a new inventory item with all required details.
+                    </DialogDescription>
                   </DialogHeader>
                   <CreateItemForm
                     onSuccess={(newItem) => {
@@ -1923,9 +2536,386 @@ const ManageStocks = () => {
                 </Card>
               )}
             </TabsContent>
+
+            {/* Categories Tab */}
+            <TabsContent value="categories" className="space-y-4 mt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search categories..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button onClick={handleNewCategory} className="ml-4">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Category
+                </Button>
+              </div>
+
+              {/* Categories Table - Show all categories and subcategories */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Categories & Subcategories</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <DataTable
+                    columns={createCategoryColumns(
+                      handleViewCategoryDetails,
+                      handleEditCategory,
+                      handleDeleteCategory,
+                      handleNewSubcategory,
+                      parentCategories
+                    )}
+                    data={[
+                      ...parentCategories.map(cat => ({ ...cat, _sortOrder: 0 })),
+                      ...subcategoriesByParent.map(cat => ({ ...cat, _sortOrder: 1 }))
+                    ]
+                    .sort((a, b) => {
+                      // Sort by parent first, then by name within each group
+                      if (a._sortOrder !== b._sortOrder) {
+                        return a._sortOrder - b._sortOrder;
+                      }
+                      // If both are subcategories, group by parent
+                      if (a.parentId && b.parentId) {
+                        if (a.parentId !== b.parentId) {
+                          return String(a.parentId).localeCompare(String(b.parentId));
+                        }
+                      }
+                      return a.name.localeCompare(b.name);
+                    })
+                    .filter((cat) =>
+                      searchQuery === "" || 
+                      cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (cat.parentId && parentCategories.find(p => p.id === cat.parentId)?.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Category Details Dialog */}
+              <Dialog open={showCategoryDetailsDialog} onOpenChange={setShowCategoryDetailsDialog}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{selectedCategoryForDetails?.name} - Details</DialogTitle>
+                    <DialogDescription>
+                      View category information and manage subcategories.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {selectedCategoryForDetails && (
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Category Name</p>
+                        <p className="font-medium text-lg">{selectedCategoryForDetails.name}</p>
+                      </div>
+                      {selectedCategoryForDetails.description && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Description</p>
+                          <p className="font-medium">{selectedCategoryForDetails.description}</p>
+                        </div>
+                      )}
+
+                      {/* Subcategories List */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-sm font-medium text-muted-foreground">Subcategories</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              handleNewSubcategory(selectedCategoryForDetails);
+                              setShowCategoryDetailsDialog(false);
+                            }}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Subcategory
+                          </Button>
+                        </div>
+                        {subcategoriesByParent.filter((sub) => sub.parentId === selectedCategoryForDetails.id).length > 0 ? (
+                          <div className="space-y-2">
+                            {subcategoriesByParent
+                              .filter((sub) => sub.parentId === selectedCategoryForDetails.id)
+                              .map((sub) => (
+                                <div key={sub.id} className="p-3 border rounded-md flex items-center justify-between hover:bg-gray-50">
+                                  <div className="flex-1">
+                                    <span className="font-medium">{sub.name}</span>
+                                    {sub.description && (
+                                      <p className="text-sm text-gray-500 mt-1">{sub.description}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        handleEditCategory(sub);
+                                        setShowCategoryDetailsDialog(false);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-red-600 hover:text-red-700"
+                                      onClick={() => {
+                                        setShowCategoryDetailsDialog(false);
+                                        handleDeleteCategory(sub.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 border rounded-md">
+                            <p className="text-sm text-gray-500 mb-3">No subcategories found.</p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                handleNewSubcategory(selectedCategoryForDetails);
+                                setShowCategoryDetailsDialog(false);
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add First Subcategory
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+
+            </TabsContent>
+
+            {/* Warehouses Tab */}
+            <TabsContent value="warehouses" className="space-y-4 mt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search warehouses..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button onClick={handleNewWarehouse} className="ml-4">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Warehouse
+                </Button>
+              </div>
+
+              {/* Warehouse Form */}
+              {showWarehouseForm && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleWarehouseSubmit(onWarehouseSubmit)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Warehouse Name <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            placeholder="Warehouse name"
+                            {...registerWarehouse("name")}
+                          />
+                          {warehouseErrors.name && (
+                            <p className="text-sm text-red-500 mt-1">{warehouseErrors.name.message}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Location <span className="text-red-500">*</span>
+                          </label>
+                          <Input
+                            placeholder="Location"
+                            {...registerWarehouse("location")}
+                          />
+                          {warehouseErrors.location && (
+                            <p className="text-sm text-red-500 mt-1">{warehouseErrors.location.message}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">
+                            Status <span className="text-red-500">*</span>
+                          </label>
+                          <Select
+                            onValueChange={(value) => resetWarehouse({ ...watchWarehouse(), status: value as "active" | "inactive" })}
+                            value={watchWarehouse("status")}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {warehouseErrors.status && (
+                            <p className="text-sm text-red-500 mt-1">{warehouseErrors.status.message}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowWarehouseForm(false);
+                            setEditingWarehouse(null);
+                            resetWarehouse();
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit">
+                          {editingWarehouse ? "Update" : "Create"} Warehouse
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Warehouses Table */}
+              <Card>
+                <CardContent className="pt-6">
+                  <DataTable
+                    columns={createWarehouseColumns(handleEditWarehouse, handleDeleteWarehouse)}
+                    data={warehouses.filter((wh) =>
+                      searchQuery === "" ||
+                      wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      wh.location.toLowerCase().includes(searchQuery.toLowerCase())
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Category Form Dialog - Outside tabs so it's always accessible */}
+      <Dialog open={showCategoryForm} onOpenChange={(open) => {
+        setShowCategoryForm(open);
+        if (!open) {
+          setEditingCategory(null);
+          resetCategory();
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? (editingCategory.parentId ? "Edit Subcategory" : "Edit Category") : "Add Category / Subcategory"}</DialogTitle>
+            <DialogDescription>
+              {editingCategory 
+                ? "Update the category information below." 
+                : "Create a new category or subcategory. Leave parent category as 'None' for a main category."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCategorySubmit(onCategorySubmit)} className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Category Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="Category name"
+                  {...registerCategory("name")}
+                />
+                {categoryErrors.name && (
+                  <p className="text-sm text-red-500 mt-1">{categoryErrors.name.message}</p>
+                )}
+                {!editingCategory && watchCategoryName && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Code will be: <span className="font-mono font-semibold">{generateCategoryCode(watchCategoryName)}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  {editingCategory && editingCategory.parentId 
+                    ? "Parent Category (Cannot change for existing subcategory)"
+                    : "Parent Category (for subcategory)"}
+                </label>
+                <Select
+                  onValueChange={(value) => setCategoryValue("parentId", value === "none" ? undefined : value)}
+                  value={categoryParentId || "none"}
+                  disabled={!!(editingCategory && editingCategory.parentId)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select parent category (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (Main Category)</SelectItem>
+                    {parentCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editingCategory && editingCategory.parentId && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Current parent: {parentCategories.find(p => p.id === editingCategory?.parentId)?.name || "Unknown"}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Status <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  onValueChange={(value) => setCategoryValue("status", value as "active" | "inactive")}
+                  value={watchCategoryStatus}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowCategoryForm(false);
+                  setEditingCategory(null);
+                  resetCategory();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingCategory ? "Update" : "Create"} Category
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

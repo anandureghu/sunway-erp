@@ -1,5 +1,5 @@
 import { apiClient } from "@/service/apiClient";
-import type { Item, ItemCategory, Warehouse } from "@/types/inventory";
+import type { Item, ItemCategory, Warehouse, Stock } from "@/types/inventory";
 import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
@@ -20,9 +20,10 @@ function normalizeStatus(status?: string) {
 function toWarehouse(dto: WarehouseResponseDTO): Warehouse {
   return {
     id: String(dto.id),
+    code: dto.code,
     name: dto.name || "",
     location: dto.location || "",
-    address: "",
+    address: undefined,
     capacity: undefined,
     status: normalizeStatus(dto.status) === "inactive" ? "inactive" : "active",
     createdAt: "",
@@ -32,8 +33,10 @@ function toWarehouse(dto: WarehouseResponseDTO): Warehouse {
 function toCategory(dto: CategoryResponseDTO): ItemCategory {
   return {
     id: String(dto.id),
+    code: dto.code,
     name: dto.name || dto.code || "",
     description: undefined,
+    status: dto.status,
     parentId: dto.parentId ? String(dto.parentId) : undefined,
     createdAt: "",
   };
@@ -47,15 +50,15 @@ function toItem(dto: ItemResponseDTO): Item {
     sku: dto.sku || "",
     name: dto.name || "",
     description: undefined,
-    itemType: undefined,
+    itemType: dto.type || undefined,
     category: dto.category || "",
     subcategory: dto.subCategory || undefined,
     brand: dto.brand || undefined,
-    unit: "pcs",
+    unit: dto.unitMeasure || "pcs",
     costPrice: Number(dto.costPrice || 0),
     sellingPrice: Number(dto.sellingPrice || 0),
-    reorderLevel: 0,
-    maximum: undefined,
+    reorderLevel: Number(dto.reorderLevel || dto.minimum || 0),
+    maximum: dto.maximum ? Number(dto.maximum) : undefined,
     reorderQuantity: undefined,
     status:
       normalizeStatus(dto.status) === "discontinued"
@@ -63,7 +66,7 @@ function toItem(dto: ItemResponseDTO): Item {
         : normalizeStatus(dto.status) === "out_of_stock"
           ? "out_of_stock"
           : "active",
-    barcode: undefined,
+    barcode: dto.barcode || undefined,
     rfidTag: undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.updatedAt || "",
@@ -89,6 +92,11 @@ export async function updateCategory(id: Id | string, payload: CategoryUpdateDTO
     `/inventory/categories/${id}`,
     payload
   );
+  return toCategory(res.data);
+}
+
+export async function getCategory(id: Id | string): Promise<ItemCategory> {
+  const res = await apiClient.get<CategoryResponseDTO>(`/inventory/categories/${id}`);
   return toCategory(res.data);
 }
 
@@ -122,6 +130,11 @@ export async function updateWarehouse(
   return toWarehouse(res.data);
 }
 
+export async function getWarehouse(id: Id | string): Promise<Warehouse> {
+  const res = await apiClient.get<WarehouseResponseDTO>(`/inventory/warehouses/${id}`);
+  return toWarehouse(res.data);
+}
+
 export async function deleteWarehouse(id: Id | string) {
   await apiClient.delete(`/inventory/warehouses/${id}`);
 }
@@ -143,6 +156,94 @@ export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
     payload
   );
   return toItem(res.data);
+}
+
+// ---- Stock ----
+// Note: The API returns stock info embedded in items (quantity, available, reserved)
+// We'll fetch items and warehouses, then create stock records
+export type StockResponseDTO = {
+  id?: Id;
+  itemId?: Id;
+  warehouseId?: Id;
+  quantity?: number;
+  available?: number;
+  reserved?: number;
+  batchNo?: string;
+  lotNo?: string;
+  serialNo?: string;
+  expiryDate?: string;
+  dateReceived?: string;
+  saleByDate?: string;
+  lastUpdated?: string;
+  updatedBy?: string;
+};
+
+function toStock(
+  dto: StockResponseDTO,
+  itemId: string,
+  warehouseId: string
+): Stock {
+  return {
+    id: String(dto.id || `${itemId}-${warehouseId}`),
+    itemId,
+    warehouseId,
+    quantity: Number(dto.quantity || 0),
+    reservedQuantity: dto.reserved ? Number(dto.reserved) : undefined,
+    availableQuantity: Number(dto.available || dto.quantity || 0),
+    batchNo: dto.batchNo,
+    lotNo: dto.lotNo,
+    serialNo: dto.serialNo,
+    expiryDate: dto.expiryDate,
+    dateReceived: dto.dateReceived,
+    saleByDate: dto.saleByDate,
+    lastUpdated: dto.lastUpdated || new Date().toISOString(),
+    updatedBy: dto.updatedBy,
+  };
+}
+
+// Fetch stock data - try dedicated endpoint first, fallback to items
+export async function listStock(): Promise<Stock[]> {
+  try {
+    // Try dedicated stock endpoint
+    const res = await apiClient.get<StockResponseDTO[]>("/inventory/stock");
+    return (res.data || []).map((s) =>
+      toStock(s, String(s.itemId || ""), String(s.warehouseId || ""))
+    );
+  } catch (error: any) {
+    // If stock endpoint doesn't exist (404) or fails (500), fetch items and create stock from item data
+    const status = error?.response?.status;
+    if (status === 404 || status === 500) {
+      console.warn(`Stock endpoint returned ${status}, falling back to items-based stock creation`);
+      
+      // Fetch items directly from API to get quantity/available/reserved data from DTOs
+      const itemsRes = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
+      const itemsList = itemsRes.data || [];
+      const warehouses = await listWarehouses();
+      
+      // Create stock records from items
+      const stock: Stock[] = [];
+      itemsList.forEach((itemDto) => {
+        warehouses.forEach((warehouse) => {
+          // Use item's quantity/available/reserved if available from API DTO
+          const quantity = Number(itemDto.quantity || 0);
+          const available = Number(itemDto.available || itemDto.quantity || 0);
+          const reserved = Number(itemDto.reserved || 0);
+          
+          stock.push({
+            id: `${itemDto.id}-${warehouse.id}`,
+            itemId: String(itemDto.id),
+            warehouseId: warehouse.id,
+            quantity: quantity,
+            availableQuantity: available,
+            reservedQuantity: reserved > 0 ? reserved : undefined,
+            lastUpdated: new Date().toISOString(),
+          });
+        });
+      });
+      return stock;
+    }
+    throw error;
+  }
 }
 
 

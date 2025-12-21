@@ -79,6 +79,7 @@ export type ItemResponseDTO = {
   id: Id;
   sku?: string;
   name?: string;
+  type?: string; // Item type
   category?: string;
   subCategory?: string;
   brand?: string;
@@ -87,6 +88,11 @@ export type ItemResponseDTO = {
   reserved?: number;
   costPrice?: number;
   sellingPrice?: number;
+  unitMeasure?: string; // Unit of measure
+  reorderLevel?: number;
+  minimum?: number;
+  maximum?: number;
+  barcode?: string;
   status?: string;
   createdAt?: string;
   updatedAt?: string;

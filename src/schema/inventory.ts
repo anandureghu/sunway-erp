@@ -5,9 +5,11 @@ export const ITEM_SCHEMA = z.object({
   sku: z.string().min(1, "SKU is required"),
   name: z.string().min(1, "Item name is required"),
   description: z.string().optional(),
+  itemType: z.string().optional(), // Item Type (e.g., Raw Material, Finished Good)
   category: z.string().min(1, "Category is required"),
   subcategory: z.string().optional(),
-  unit: z.enum(["pcs", "kg", "g", "box", "pallet", "liter", "meter", "carton"]),
+  brand: z.string().optional(), // Brand name
+  unit: z.enum(["pcs", "kg", "g", "box", "pallet", "liter", "meter", "carton", "bag", "bucket"]),
   costPrice: z.number().min(0, "Cost price must be positive"),
   sellingPrice: z.number().min(0, "Selling price must be positive"),
   reorderLevel: z.number().min(0, "Reorder level must be positive"),
@@ -21,8 +23,6 @@ export const ITEM_SCHEMA = z.object({
 export const WAREHOUSE_SCHEMA = z.object({
   name: z.string().min(1, "Warehouse name is required"),
   location: z.string().min(1, "Location is required"),
-  address: z.string().optional(),
-  capacity: z.number().min(0).optional(),
   status: z.enum(["active", "inactive"]),
 });
 
@@ -65,10 +65,18 @@ export const STOCK_ADJUSTMENT_SCHEMA = z.object({
   notes: z.string().optional(),
 });
 
+// Category Schema
+export const CATEGORY_SCHEMA = z.object({
+  name: z.string().min(1, "Category name is required"),
+  parentId: z.string().optional(), // For subcategories
+  status: z.enum(["active", "inactive"]),
+});
+
 // Export types from schemas
 export type ItemFormData = z.infer<typeof ITEM_SCHEMA>;
 export type WarehouseFormData = z.infer<typeof WAREHOUSE_SCHEMA>;
 export type ReceiveItemFormData = z.infer<typeof RECEIVE_ITEM_SCHEMA>;
 export type StockTransferFormData = z.infer<typeof STOCK_TRANSFER_SCHEMA>;
 export type StockAdjustmentFormData = z.infer<typeof STOCK_ADJUSTMENT_SCHEMA>;
+export type CategoryFormData = z.infer<typeof CATEGORY_SCHEMA>;
 
