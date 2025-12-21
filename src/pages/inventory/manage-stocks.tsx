@@ -96,9 +96,11 @@ import {
 function CreateItemForm({
   onSuccess,
   onCancel,
+  warehouses,
 }: {
   onSuccess: (item: Item) => void;
   onCancel: () => void;
+  warehouses: Warehouse[];
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
@@ -207,6 +209,8 @@ function CreateItemForm({
         category: data.category,
         subCategory: data.subcategory,
         brand: data.brand,
+        location: data.location, // Warehouse ID
+        quantity: data.quantity || 0, // Initial quantity
         costPrice: data.costPrice || 0,
         sellingPrice: data.sellingPrice || 0,
         unitMeasure: data.unit || "pcs",
@@ -379,6 +383,48 @@ function CreateItemForm({
           </Select>
           {errors.unit && (
             <p className="text-sm text-red-500 mt-1">{errors.unit.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Warehouse <span className="text-red-500">*</span>
+          </label>
+          <Select
+            onValueChange={(value) => setValue("location", value)}
+            value={watch("location")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select warehouse" />
+            </SelectTrigger>
+            <SelectContent>
+              {warehouses
+                .filter((w) => w.status === "active")
+                .map((warehouse) => (
+                  <SelectItem key={warehouse.id} value={warehouse.id}>
+                    {warehouse.name} - {warehouse.location}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          {errors.location && (
+            <p className="text-sm text-red-500 mt-1">{errors.location.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Initial Quantity <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="number"
+            step="1"
+            min="0"
+            placeholder="0"
+            {...register("quantity", { valueAsNumber: true })}
+          />
+          {errors.quantity && (
+            <p className="text-sm text-red-500 mt-1">{errors.quantity.message}</p>
           )}
         </div>
 
@@ -1767,6 +1813,7 @@ const ManageStocks = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <CreateItemForm
+                    warehouses={warehouses}
                     onSuccess={(newItem) => {
                       // Item is already saved to API via createItem()
                       // Select the newly created item

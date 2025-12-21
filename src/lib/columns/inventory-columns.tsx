@@ -35,14 +35,6 @@ export const STOCK_COLUMNS: ColumnDef<StockWithDetails>[] = [
     },
   },
   {
-    accessorKey: "item.itemType",
-    header: "Item Type",
-    cell: ({ row }) => {
-      const item = row.original.item;
-      return <span className="text-gray-600">{item.itemType || "-"}</span>;
-    },
-  },
-  {
     accessorKey: "item.category",
     header: "Category",
     cell: ({ row }) => {

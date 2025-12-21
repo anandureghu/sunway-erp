@@ -10,6 +10,8 @@ export const ITEM_SCHEMA = z.object({
   subcategory: z.string().optional(),
   brand: z.string().optional(), // Brand name
   unit: z.enum(["pcs", "kg", "g", "box", "pallet", "liter", "meter", "carton", "bag", "bucket"]),
+  location: z.string().min(1, "Warehouse location is required"), // Warehouse
+  quantity: z.number().min(0, "Quantity must be positive"), // Initial quantity
   costPrice: z.number().min(0, "Cost price must be positive"),
   sellingPrice: z.number().min(0, "Selling price must be positive"),
   reorderLevel: z.number().min(0, "Reorder level must be positive"),
