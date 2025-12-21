@@ -2,7 +2,7 @@
 
 import type { Stock } from "@/types/inventory";
 import { type ColumnDef } from "@tanstack/react-table";
-import { AlertTriangle, Warehouse } from "lucide-react";
+import { AlertTriangle, MapPin, Warehouse } from "lucide-react";
 
 // Stock with details type
 type StockWithDetails = Stock & {
@@ -35,14 +35,6 @@ export const STOCK_COLUMNS: ColumnDef<StockWithDetails>[] = [
     },
   },
   {
-    accessorKey: "item.itemType",
-    header: "Item Type",
-    cell: ({ row }) => {
-      const item = row.original.item;
-      return <span className="text-gray-600">{item.itemType || "-"}</span>;
-    },
-  },
-  {
     accessorKey: "item.category",
     header: "Category",
     cell: ({ row }) => {
@@ -67,14 +59,27 @@ export const STOCK_COLUMNS: ColumnDef<StockWithDetails>[] = [
     },
   },
   {
-    accessorKey: "warehouse.location",
-    header: "Location",
+    accessorKey: "item.warehouse_name",
+    header: "Warehouse",
     cell: ({ row }) => {
-      const warehouse = row.original.warehouse;
+      const item = row.original;
       return (
         <div className="flex items-center gap-2">
           <Warehouse className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-600">{warehouse.location}</span>
+          <span className="text-gray-600">{item.warehouse_name}</span>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "item.warehouse_location",
+    header: "Location",
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-gray-400" />
+          <span className="text-gray-600">{item.warehouse_location}</span>
         </div>
       );
     },

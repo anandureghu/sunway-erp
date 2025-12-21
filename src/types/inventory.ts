@@ -1,8 +1,24 @@
 // Inventory Types
 
 export type ItemStatus = "active" | "discontinued" | "out_of_stock";
-export type MovementType = "inbound" | "outbound" | "transfer" | "adjustment" | "return";
-export type Unit = "pcs" | "kg" | "g" | "box" | "pallet" | "liter" | "meter" | "carton" | "bag" | "bucket" | string;
+export type MovementType =
+  | "inbound"
+  | "outbound"
+  | "transfer"
+  | "adjustment"
+  | "return";
+export type Unit =
+  | "pcs"
+  | "kg"
+  | "g"
+  | "box"
+  | "pallet"
+  | "liter"
+  | "meter"
+  | "carton"
+  | "bag"
+  | "bucket"
+  | string;
 
 // Items
 export type Item = {
@@ -30,6 +46,7 @@ export type Item = {
 // Warehouse
 export type Warehouse = {
   id: string;
+  code?: string;
   name: string;
   location: string;
   address?: string;
@@ -42,7 +59,6 @@ export type Warehouse = {
 export type Stock = {
   id: string;
   itemId: string;
-  warehouseId: string;
   quantity: number;
   reservedQuantity?: number; // Reserved for orders
   availableQuantity: number; // quantity - reservedQuantity
@@ -57,6 +73,9 @@ export type Stock = {
   // Computed fields from joins
   item?: Item;
   warehouse?: Warehouse;
+  warehouse_id?: number;
+  warehouse_name?: number;
+  warehouse_location?: number;
 };
 
 // Inventory Movements
@@ -90,7 +109,13 @@ export type StockAdjustment = {
   quantityAfter: number;
   adjustmentQuantity: number; // difference
   reason: string;
-  adjustmentType: "damaged" | "expired" | "wastage" | "found" | "theft" | "other";
+  adjustmentType:
+    | "damaged"
+    | "expired"
+    | "wastage"
+    | "found"
+    | "theft"
+    | "other";
   date: string;
   approvedBy?: string;
   notes?: string;
@@ -102,9 +127,10 @@ export type StockAdjustment = {
 // Item Category
 export type ItemCategory = {
   id: string;
+  code?: string;
   name: string;
   description?: string;
+  status?: string;
   parentId?: string; // For hierarchical categories
   createdAt: string;
 };
-

@@ -73,7 +73,9 @@ export default function InventoryReportsPage() {
   // Filter stock by warehouse
   const filteredStock = useMemo(() => {
     if (selectedWarehouse === "all") return stockData;
-    return stockData.filter((s) => s.warehouseId === selectedWarehouse);
+    return stockData.filter(
+      (s) => s.warehouse_id?.toString() === selectedWarehouse
+    );
   }, [stockData, selectedWarehouse]);
 
   // 1. STOCK VALUATION REPORTS
@@ -87,7 +89,7 @@ export default function InventoryReportsPage() {
     // Valuation by warehouse
     const valuationByWarehouse = warehouses.map((wh) => {
       const stockInWarehouse = filteredStock.filter(
-        (s) => s.warehouseId === wh.id
+        (s) => s.warehouse_id?.toString() === wh.id
       );
       const value = stockInWarehouse.reduce(
         (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),

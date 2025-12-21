@@ -67,10 +67,12 @@ export type SalesOrder = {
 
 // Picklist Types
 export type PicklistStatus =
-  | "pending"
-  | "in_progress"
+  | "created"
+  | "picked"
+  | "cancelled"
   | "completed"
-  | "cancelled";
+  | "in_progress"
+  | "on_hold";
 
 export type PicklistItem = {
   id: string;
@@ -103,10 +105,11 @@ export type Picklist = {
 
 // Dispatch Types
 export type DispatchStatus =
-  | "planned"
+  | "created"
+  | "dispatched"
   | "in_transit"
   | "delivered"
-  | "returned";
+  | "cancelled";
 
 export type Dispatch = {
   id: string;
