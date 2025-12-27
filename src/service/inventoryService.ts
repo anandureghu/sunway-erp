@@ -264,3 +264,23 @@ export async function listStock(): Promise<Stock[]> {
     throw error;
   }
 }
+
+// Helper function to generate category code from name
+export const generateCategoryCode = (name: string): string => {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^A-Z0-9_]/g, "")
+    .substring(0, 50); // Limit length
+};
+
+// Helper function to generate warehouse code from name
+export const generateWarehouseCode = (name: string): string => {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^A-Z0-9_]/g, "")
+    .substring(0, 50); // Limit length
+};

@@ -92,6 +92,8 @@ import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
+import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
+import FinanceSettingsPage from "./pages/finance/finance-settings-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -113,6 +115,7 @@ export default function App() {
 
         {/* Finance */}
         <Route path="finance">
+          <Route path="settings" element={<FinanceSettingsPage />} />
           <Route path="receivable" element={<AccountsReceivablePage />} />
           <Route path="payable" element={<AccountsPayablePage />} />
           <Route path="payroll" element={<Payroll />} />
@@ -123,6 +126,8 @@ export default function App() {
           <Route path="budgets">
             <Route path=":id" element={<BudgetDetailPage />} />
           </Route>
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
+          <Route path="vendors/:id" element={<VendorDetailPage />} />
         </Route>
 
         {/* Admin */}
@@ -137,6 +142,7 @@ export default function App() {
 
         {/* Inventory */}
         <Route path="inventory">
+          <Route path="settings" element={<InventorySettingsPage />} />
           <Route path="stocks" element={<ManageStocks />} />
           <Route path="stocks/:id" element={<InventoryItemDetail />} />
           <Route path="reports" element={<InventoryReportsPage />} />
@@ -157,6 +163,8 @@ export default function App() {
             path="purchase/requisitions"
             element={<PurchaseRequisitionsPage />}
           />
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
+          <Route path="vendors/:id" element={<VendorDetailPage />} />
         </Route>
 
         <Route path="companies">

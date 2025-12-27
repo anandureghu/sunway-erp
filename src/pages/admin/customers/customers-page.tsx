@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomerDialog } from "./customer-dialog";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
+import { getParentPath } from "@/lib/utils";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -18,6 +19,7 @@ export default function CustomersPage() {
   const [selected, setSelected] = useState<Customer | null>(null);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { pathname } = useLocation();
 
   const fetchCustomers = async () => {
     try {
@@ -28,7 +30,11 @@ export default function CustomersPage() {
           ...customer,
           customerName: customer.name || customer.customerName,
           companyId: customer.customerId || customer.companyId,
-          createdAt: customer.createdAt || customer.created_at || customer.dateCreated || customer.date_created,
+          createdAt:
+            customer.createdAt ||
+            customer.created_at ||
+            customer.dateCreated ||
+            customer.date_created,
         };
         // Debug: Log first customer to see what fields are available
         if (res.data.indexOf(customer) === 0) {
@@ -82,7 +88,9 @@ export default function CustomersPage() {
 
   const handleRowClick = (row: Row<Customer>) => {
     const customer = row.original;
-    navigate(`/admin/customers/${customer.id}`);
+    const parentPath = getParentPath(pathname);
+    const path = `/${parentPath}/customers/${customer.id}`;
+    navigate(path);
   };
 
   const columns = getCustomerColumns({
@@ -92,10 +100,13 @@ export default function CustomersPage() {
 
   // Debug: Log columns to verify Created At column is included
   useEffect(() => {
-    console.log("Customer columns:", columns.map(col => ({ 
-      header: typeof col.header === 'string' ? col.header : 'function',
-      accessorKey: (col as any).accessorKey || (col as any).id 
-    })));
+    console.log(
+      "Customer columns:",
+      columns.map((col) => ({
+        header: typeof col.header === "string" ? col.header : "function",
+        accessorKey: (col as any).accessorKey || (col as any).id,
+      }))
+    );
   }, [columns]);
 
   const filteredCustomers = customers.filter((customer) => {
@@ -103,9 +114,9 @@ export default function CustomersPage() {
     const name = customer.name || customer.customerName || "";
     return (
       name.toLowerCase().includes(query) ||
-      (customer.contactPersonName?.toLowerCase() ?? '').includes(query) ||
-      (customer.email?.toLowerCase() ?? '').includes(query) ||
-      (customer.phoneNo?.toLowerCase() ?? '').includes(query)
+      (customer.contactPersonName?.toLowerCase() ?? "").includes(query) ||
+      (customer.email?.toLowerCase() ?? "").includes(query) ||
+      (customer.phoneNo?.toLowerCase() ?? "").includes(query)
     );
   });
 
@@ -169,4 +180,3 @@ export default function CustomersPage() {
     </div>
   );
 }
-

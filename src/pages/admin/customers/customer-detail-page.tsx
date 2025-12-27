@@ -64,7 +64,7 @@ export default function CustomerDetailPage() {
         <div className="flex gap-3 items-center">
           <Button
             variant="ghost"
-            onClick={() => navigate("/admin/customers")}
+            onClick={() => navigate(-1)}
             className="flex gap-1"
           >
             <ArrowLeft className="h-4 w-4" /> Back
@@ -100,10 +100,12 @@ export default function CustomerDetailPage() {
               {customer.contactPersonName || "-"}
             </p>
             <p>
-              <span className="font-semibold">Email:</span> {customer.email || "-"}
+              <span className="font-semibold">Email:</span>{" "}
+              {customer.email || "-"}
             </p>
             <p>
-              <span className="font-semibold">Phone:</span> {customer.phoneNo || "-"}
+              <span className="font-semibold">Phone:</span>{" "}
+              {customer.phoneNo || "-"}
             </p>
             <p>
               <span className="font-semibold">Customer Type:</span>{" "}
@@ -119,13 +121,16 @@ export default function CustomerDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Street:</span> {customer.street || "-"}
+              <span className="font-semibold">Street:</span>{" "}
+              {customer.street || "-"}
             </p>
             <p>
-              <span className="font-semibold">City:</span> {customer.city || "-"}
+              <span className="font-semibold">City:</span>{" "}
+              {customer.city || "-"}
             </p>
             <p>
-              <span className="font-semibold">State:</span> {customer.state || "-"}
+              <span className="font-semibold">State:</span>{" "}
+              {customer.state || "-"}
             </p>
             <p>
               <span className="font-semibold">Country:</span>{" "}
@@ -141,7 +146,8 @@ export default function CustomerDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Tax ID:</span> {customer.taxId || "-"}
+              <span className="font-semibold">Tax ID:</span>{" "}
+              {customer.taxId || "-"}
             </p>
             <p>
               <span className="font-semibold">Payment Terms:</span>{" "}
@@ -154,7 +160,9 @@ export default function CustomerDetailPage() {
             <p>
               <span className="font-semibold">Credit Limit:</span>{" "}
               {customer.creditLimit
-                ? `${customer.currencyCode || ""} ${customer.creditLimit.toLocaleString()}`
+                ? `${
+                    customer.currencyCode || ""
+                  } ${customer.creditLimit.toLocaleString()}`
                 : "-"}
             </p>
             {customer.websiteUrl && (
@@ -187,6 +195,3 @@ export default function CustomerDetailPage() {
     </div>
   );
 }
-
-
-
