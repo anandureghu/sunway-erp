@@ -32,7 +32,7 @@ export default function VendorDetailPage() {
     try {
       await apiClient.delete(`/vendors/${id}`);
       toast.success("Vendor deleted");
-      navigate("/admin/vendors");
+      navigate(-1);
     } catch (err) {
       console.error(err);
       toast.error("Error deleting vendor");
@@ -64,7 +64,7 @@ export default function VendorDetailPage() {
         <div className="flex gap-3 items-center">
           <Button
             variant="ghost"
-            onClick={() => navigate("/admin/vendors")}
+            onClick={() => navigate(-1)}
             className="flex gap-1"
           >
             <ArrowLeft className="h-4 w-4" /> Back
@@ -100,10 +100,12 @@ export default function VendorDetailPage() {
               {vendor.contactPersonName || "-"}
             </p>
             <p>
-              <span className="font-semibold">Email:</span> {vendor.email || "-"}
+              <span className="font-semibold">Email:</span>{" "}
+              {vendor.email || "-"}
             </p>
             <p>
-              <span className="font-semibold">Phone:</span> {vendor.phoneNo || "-"}
+              <span className="font-semibold">Phone:</span>{" "}
+              {vendor.phoneNo || "-"}
             </p>
             <p>
               <span className="font-semibold">Fax:</span> {vendor.fax || "-"}
@@ -126,7 +128,8 @@ export default function VendorDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Street:</span> {vendor.street || "-"}
+              <span className="font-semibold">Street:</span>{" "}
+              {vendor.street || "-"}
             </p>
             <p>
               <span className="font-semibold">City:</span> {vendor.city || "-"}
@@ -145,7 +148,8 @@ export default function VendorDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Tax ID:</span> {vendor.taxId || "-"}
+              <span className="font-semibold">Tax ID:</span>{" "}
+              {vendor.taxId || "-"}
             </p>
             <p>
               <span className="font-semibold">Payment Terms:</span>{" "}
@@ -158,7 +162,9 @@ export default function VendorDetailPage() {
             <p>
               <span className="font-semibold">Credit Limit:</span>{" "}
               {vendor.creditLimit
-                ? `${vendor.currencyCode || ""} ${vendor.creditLimit.toLocaleString()}`
+                ? `${
+                    vendor.currencyCode || ""
+                  } ${vendor.creditLimit.toLocaleString()}`
                 : "-"}
             </p>
             {vendor.websiteUrl && (
@@ -191,4 +197,3 @@ export default function VendorDetailPage() {
     </div>
   );
 }
-

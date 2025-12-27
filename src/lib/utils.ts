@@ -25,3 +25,10 @@ export function formatMoney(amount: string | number) {
 }
 
 export const toISO = (date: string) => new Date(date).toISOString();
+
+export const getParentPath = (pathname: string) =>
+  pathname.includes("finance")
+    ? "finance"
+    : pathname.includes("inventory")
+    ? "inventory"
+    : "admin";
