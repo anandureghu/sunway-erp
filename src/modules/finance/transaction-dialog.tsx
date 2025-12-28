@@ -84,7 +84,7 @@ export function TransactionDialog({
           });
         });
     } else {
-      await apiClient
+      apiClient
         .post(`/finance/transactions`, {
           ...form,
           debitAccount: Number(form.debitAccount),
