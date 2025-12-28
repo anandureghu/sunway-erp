@@ -10,10 +10,11 @@ export function getBudgetLineColumns({
   onDelete: (line: BudgetLineDTO) => void;
 }): ColumnDef<BudgetLineDTO>[] {
   return [
-    { header: "Account", accessorKey: "accountId" },
-    { header: "Dept", accessorKey: "departmentId" },
+    { header: "Credited Account", accessorKey: "accountName" },
+    { header: "Picklist", accessorKey: "departmentId" },
     { header: "Project", accessorKey: "projectId" },
-    { header: "Period", accessorKey: "period" },
+    { header: "Start Date", accessorKey: "startDate" },
+    { header: "End Date", accessorKey: "endDate" },
     { header: "Amount", accessorKey: "amount" },
     { header: "Notes", accessorKey: "notes" },
     {

@@ -21,6 +21,7 @@ import type {
 
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
+import SelectDepartment from "@/components/select-department";
 
 export function BudgetDialog({
   open,
@@ -147,6 +148,19 @@ export function BudgetDialog({
                 type="date"
                 value={form.endDate}
                 onChange={(e) => update("endDate", e.target.value)}
+              />
+            </div>
+
+            <SelectDepartment
+              value={form.departmentId?.toString()}
+              onChange={(v) => update("departmentId", v)}
+            />
+
+            <div>
+              <Label>Project ID</Label>
+              <Input
+                value={form.projectId}
+                onChange={(e) => update("projectId", e.target.value)}
               />
             </div>
 

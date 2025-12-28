@@ -4,10 +4,11 @@ export interface BudgetLineDTO {
   accountId: number;
   departmentId: number | null;
   projectId: number | null;
-  period: number;
   amount: number;
   currencyCode: string;
   notes: string;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export interface BudgetResponseDTO {
@@ -18,6 +19,7 @@ export interface BudgetResponseDTO {
   startDate: string;
   endDate: string;
   amount?: number;
+  balance?: number;
   createdAt: string;
   updatedAt: string;
   companyId: number;
@@ -32,6 +34,8 @@ export interface BudgetCreateDTO {
   startDate: string;
   endDate: string;
   amount: number;
+  departmentId?: number;
+  projectId?: number;
 }
 
 export interface BudgetUpdateDTO {
@@ -40,4 +44,6 @@ export interface BudgetUpdateDTO {
   startDate: string;
   endDate: string;
   amount: number;
+  departmentId?: number;
+  projectId?: number;
 }

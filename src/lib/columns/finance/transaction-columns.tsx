@@ -47,8 +47,8 @@ export const TRANSACTION_COLUMNS = ({
     accessorKey: "transactionDescription",
     header: "Description",
   },
-  // { accessorKey: "debitAccount", header: "Debit" },
-  { accessorKey: "creditAccount", header: "Paid To" },
+  { accessorKey: "debitAccountName", header: "Debited From" },
+  { accessorKey: "creditAccountName", header: "Credited To" },
   {
     accessorKey: "amount",
     header: "Amount",

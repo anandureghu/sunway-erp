@@ -1,9 +1,17 @@
 import { AppTab } from "@/components/app-tab";
 import VendorsPage from "../admin/vendors/vendors-page";
 import CustomersPage from "../admin/customers/customers-page";
+import ChartOfAccountsPage from "@/modules/finance/chart-of-accounts-list";
+import { useAuth } from "@/context/AuthContext";
 
 const FinanceSettingsPage = () => {
+  const { user } = useAuth();
   const tabsList = [
+    {
+      value: "coa",
+      label: "Chart of Accounts",
+      element: () => <ChartOfAccountsPage companyId={user?.companyId || ""} />,
+    },
     {
       value: "customers",
       label: "Customers",
