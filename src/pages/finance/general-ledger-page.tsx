@@ -1,7 +1,6 @@
 import { AppTab } from "@/components/app-tab";
 import { useAuth } from "@/context/AuthContext";
 import BudgetPage from "@/modules/finance/budget-page";
-import ChartOfAccountsPage from "@/modules/finance/chart-of-accounts-list";
 import GLBalancePage from "@/modules/finance/gl-balance-page";
 import JournalPage from "@/modules/finance/journal-page";
 import TransactionPage from "@/modules/finance/transaction-page";
@@ -9,11 +8,6 @@ import TransactionPage from "@/modules/finance/transaction-page";
 const GeneralLedgerPage = () => {
   const { user } = useAuth();
   const tabsList = [
-    {
-      value: "coa",
-      label: "Chart of Accounts",
-      element: () => <ChartOfAccountsPage companyId={user?.companyId || ""} />,
-    },
     {
       value: "gl-balance",
       label: "GL Account Balance",
