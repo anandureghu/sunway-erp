@@ -172,17 +172,20 @@ function CreateItemForm({
   const onSubmit = async (data: ItemFormData) => {
     try {
       setSubmitting(true);
-      // Map form data to API format
+
+      const formData = new FormData();
+
+      // JSON payload
       const payload = {
         sku: data.sku?.toUpperCase(),
         name: data.name,
         description: data.description,
-        type: data.itemType, // Item Type
+        type: data.itemType,
         category: data.category,
         subCategory: data.subcategory,
         brand: data.brand,
-        warehouse: data.warehouse, // Warehouse ID
-        quantity: data.quantity || 0, // Initial quantity
+        warehouse: data.warehouse,
+        quantity: data.quantity || 0,
         costPrice: data.costPrice || 0,
         sellingPrice: data.sellingPrice || 0,
         unitMeasure: data.unit || "pcs",
@@ -191,7 +194,19 @@ function CreateItemForm({
         barcode: data.barcode,
       };
 
-      const createdItem = await createItem(payload);
+      formData.append(
+        "data",
+        new Blob([JSON.stringify(payload)], {
+          type: "application/json",
+        })
+      );
+
+      if (data.image) {
+        formData.append("image", data.image);
+      }
+
+      const createdItem = await createItem(formData);
+
       toast.success("Item created successfully!");
       onSuccess(createdItem);
     } catch (error: any) {
@@ -208,6 +223,32 @@ function CreateItemForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <label className="text-sm font-medium mb-2 block">Item Image</label>
+
+          <div className="flex items-center gap-4">
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setValue("image", file);
+                }
+              }}
+            />
+
+            {watch("image") && (
+              <span className="text-sm text-green-600">
+                {(watch("image") as File)?.name}
+              </span>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            JPG / PNG · Max 5MB
+          </p>
+        </div>
         <div>
           <label className="text-sm font-medium mb-2 block">
             SKU <span className="text-red-500">*</span>

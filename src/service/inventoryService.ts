@@ -4,7 +4,6 @@ import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
   CategoryUpdateDTO,
-  ItemCreateDTO,
   ItemResponseDTO,
   ItemUpdateDTO,
   WarehouseCreateDTO,
@@ -81,6 +80,7 @@ function toItem(dto: ItemResponseDTO): Item {
     rfidTag: undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.updatedAt || "",
+    imageUrl: dto.imageUrl || "",
   };
 }
 
@@ -166,13 +166,22 @@ export async function listItems(): Promise<Item[]> {
   return (res.data || []).map(toItem);
 }
 
-export async function createItem(payload: ItemCreateDTO) {
-  const res = await apiClient.post<ItemResponseDTO>(
-    "/inventory/items",
-    payload
-  );
+// export async function createItem(payload: ItemCreateDTO) {
+//   const res = await apiClient.post<ItemResponseDTO>(
+//     "/inventory/items",
+//     payload
+//   );
+//   return toItem(res.data);
+// }
+
+export const createItem = async (formData: FormData) => {
+  const res = await apiClient.post("/inventory/items", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return toItem(res.data);
-}
+};
 
 export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
   const res = await apiClient.put<ItemResponseDTO>(

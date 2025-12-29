@@ -3,6 +3,7 @@
 import type { Stock } from "@/types/inventory";
 import { type ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle, MapPin, Warehouse } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Stock with details type
 type StockWithDetails = Stock & {
@@ -12,12 +13,26 @@ type StockWithDetails = Stock & {
 
 export const STOCK_COLUMNS: ColumnDef<StockWithDetails>[] = [
   {
+    accessorKey: "item.imageUrl",
+    header: "",
+    cell: ({ row }) => {
+      const item = row.original.item;
+      return (
+        <img
+          src={item.imageUrl}
+          alt={item.name}
+          className="max-w-[50px] max-h-[50px] min-w-[50px] min-h-[50px] object-cover rounded-full"
+        />
+      );
+    },
+  },
+  {
     accessorKey: "item.sku",
     header: "SKU/Item Code",
     cell: ({ row }) => {
       const item = row.original.item;
       return (
-        <div className="flex flex-col">
+        <div className="flex item-center gap-2">
           <span className="font-medium">{item.sku}</span>
           {item.barcode && (
             <span className="text-xs text-gray-500">{item.barcode}</span>
@@ -64,10 +79,17 @@ export const STOCK_COLUMNS: ColumnDef<StockWithDetails>[] = [
     cell: ({ row }) => {
       const item = row.original;
       return (
-        <div className="flex items-center gap-2">
-          <Warehouse className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-600">{item.warehouse_name}</span>
-        </div>
+        <Link
+          to={`/inventory/warehouses/${item.warehouse.id}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2">
+            <Warehouse className="h-4 w-4 text-gray-400" />
+            <span className="text-gray-600 underline">
+              {item.warehouse_name}
+            </span>
+          </div>
+        </Link>
       );
     },
   },

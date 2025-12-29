@@ -41,6 +41,7 @@ export type Item = {
   rfidTag?: string; // RFID support
   createdAt: string;
   updatedAt: string;
+  imageUrl?: string;
 };
 
 // Warehouse
@@ -87,6 +88,7 @@ export type Stock = {
   warehouse_id?: number;
   warehouse_name?: number;
   warehouse_location?: number;
+  imageUrl?: string;
 };
 
 // Inventory Movements

@@ -118,6 +118,7 @@ export type ItemResponseDTO = {
   warehouse_id?: number;
   warehouse_name?: number;
   warehouse_location?: number;
+  imageUrl?: string;
 };
 
 export type ItemCreateDTO = {
@@ -140,6 +141,7 @@ export type ItemCreateDTO = {
   status?: string;
   imageUrl?: string;
   description?: string;
+  image?: File | null;
 };
 
 export type ItemUpdateDTO = {

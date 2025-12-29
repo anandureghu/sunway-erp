@@ -182,6 +182,11 @@ const InventoryItemDetail = () => {
 
       {/* Item Basic Info Section */}
       <div className="space-y-4">
+        <img
+          src={item.imageUrl}
+          alt={item.name}
+          className="max-w-[300px] max-h-[200px] object-contain"
+        />
         <h2 className="text-lg font-semibold text-gray-900">Item Basic Info</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <InfoCard title="SKU / Item Code">
