@@ -30,6 +30,10 @@ export const ITEM_SCHEMA = z.object({
   status: z.enum(["active", "discontinued", "out_of_stock"]),
   barcode: z.string().optional(),
   rfidTag: z.string().optional(),
+  image: z
+    .any()
+    .optional()
+    .refine((file) => !file || file instanceof File, "Invalid image file"),
 });
 
 // Warehouse Schema
