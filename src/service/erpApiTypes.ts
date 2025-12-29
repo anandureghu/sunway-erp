@@ -56,10 +56,28 @@ export type CategoryUpdateDTO = {
 
 export type WarehouseResponseDTO = {
   id: Id;
-  code?: string;
-  name?: string;
+
+  // Core identity
+  code: string;
+  name: string;
+  status: "active" | "inactive";
+
+  // Address
+  street?: string;
+  city?: string;
+  country?: string;
+  pin?: string;
+
+  // Contact
+  phone?: string;
+  contactPersonName?: string;
+
+  // Manager
+  managerId?: Id;
+  managerName?: string;
+
+  // Computed / display
   location?: string;
-  status?: string;
 };
 
 export type WarehouseCreateDTO = {

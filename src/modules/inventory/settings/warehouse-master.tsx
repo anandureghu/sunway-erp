@@ -1,4 +1,5 @@
 import { DataTable } from "@/components/datatable";
+import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,9 +21,11 @@ import {
 } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Row } from "@tanstack/react-table";
 import { Plus, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const WarehouseMaster = () => {
@@ -32,6 +35,8 @@ const WarehouseMaster = () => {
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
     null
   );
+
+  const navigate = useNavigate();
 
   // TODO: set loading and error states properly
   const [, setLoading] = useState(true);
@@ -56,11 +61,9 @@ const WarehouseMaster = () => {
   const onWarehouseSubmit = async (data: WarehouseFormData) => {
     try {
       const normalizedName = data.name.trim();
-      const normalizedLocation = data.location.trim();
 
       const payload: any = {
-        name: normalizedName,
-        location: normalizedLocation,
+        ...data,
         status: data.status || "active",
       };
 
@@ -121,7 +124,6 @@ const WarehouseMaster = () => {
     setEditingWarehouse(warehouse);
     resetWarehouse({
       name: warehouse.name,
-      location: warehouse.location,
       status: warehouse.status,
     });
     setShowWarehouseForm(true);
@@ -203,7 +205,7 @@ const WarehouseMaster = () => {
 
       {/* Warehouse Form */}
       {showWarehouseForm && (
-        <Card>
+        <Card className="mb-5">
           <CardHeader>
             <CardTitle>
               {editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}
@@ -232,21 +234,6 @@ const WarehouseMaster = () => {
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    Location <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    placeholder="Location"
-                    {...registerWarehouse("location")}
-                  />
-                  {warehouseErrors.location && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.location.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
                     Status <span className="text-red-500">*</span>
                   </label>
                   <Select
@@ -269,6 +256,104 @@ const WarehouseMaster = () => {
                   {warehouseErrors.status && (
                     <p className="text-sm text-red-500 mt-1">
                       {warehouseErrors.status.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">City</label>
+                  <Input placeholder="City" {...registerWarehouse("city")} />
+                  {warehouseErrors.city && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.city.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Street
+                  </label>
+                  <Input
+                    placeholder="Street"
+                    {...registerWarehouse("street")}
+                  />
+                  {warehouseErrors.street && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.street.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Country
+                  </label>
+                  <Input
+                    placeholder="Country"
+                    {...registerWarehouse("country")}
+                  />
+                  {warehouseErrors.country && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.country.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Phone
+                  </label>
+                  <Input placeholder="Phone" {...registerWarehouse("phone")} />
+                  {warehouseErrors.phone && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Pin Code
+                  </label>
+                  <Input placeholder="Pin Code" {...registerWarehouse("pin")} />
+                  {warehouseErrors.pin && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.pin.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Contact Person Name
+                  </label>
+                  <Input
+                    placeholder="Contact Person Name"
+                    {...registerWarehouse("contactPersonName")}
+                  />
+                  {warehouseErrors.contactPersonName && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.contactPersonName.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <SelectEmployees
+                    value={watchWarehouse("manager")?.toString()}
+                    onChange={(v) =>
+                      resetWarehouse({
+                        ...watchWarehouse(),
+                        manager: Number(v),
+                      })
+                    }
+                    label="Manager"
+                    placeholder="Select Manager"
+                  />
+                  {warehouseErrors.manager && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.manager.message}
                     </p>
                   )}
                 </div>
@@ -309,6 +394,9 @@ const WarehouseMaster = () => {
                 wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 wh.location.toLowerCase().includes(searchQuery.toLowerCase())
             )}
+            onRowClick={(row: Row<Warehouse>) =>
+              navigate(`/inventory/warehouses/${row.original.id}`)
+            }
           />
         </CardContent>
       </Card>
