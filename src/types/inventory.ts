@@ -53,6 +53,17 @@ export type Warehouse = {
   capacity?: number;
   status: "active" | "inactive";
   createdAt: string;
+
+  street?: string;
+  city?: string;
+  country?: string;
+  pin?: string;
+
+  phone?: string;
+  contactPersonName?: string;
+
+  managerId?: number;
+  managerName?: string;
 };
 
 // Stock (multi-location support)

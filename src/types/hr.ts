@@ -126,3 +126,13 @@ export interface Appraisal {
   nextReviewDate?: string; // yyyy-mm-dd
   status?: "Draft" | "Submitted" | "Reviewed" | "Completed";
 }
+
+export interface User {
+  id: number;
+  fullName: string;
+  email: string;
+  username: string;
+  password: string;
+  role: Role;
+  createdAt: string; // ISO-8601 string from Instant
+}

@@ -35,8 +35,14 @@ export const ITEM_SCHEMA = z.object({
 // Warehouse Schema
 export const WAREHOUSE_SCHEMA = z.object({
   name: z.string().min(1, "Warehouse name is required"),
-  location: z.string().min(1, "Location is required"),
   status: z.enum(["active", "inactive"]),
+  city: z.string(),
+  street: z.string(),
+  country: z.string(),
+  pin: z.string(),
+  phone: z.string(),
+  contactPersonName: z.string(),
+  manager: z.number(),
 });
 
 // Receive Item Schema

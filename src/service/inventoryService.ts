@@ -27,6 +27,17 @@ function toWarehouse(dto: WarehouseResponseDTO): Warehouse {
     capacity: undefined,
     status: normalizeStatus(dto.status) === "inactive" ? "inactive" : "active",
     createdAt: "",
+
+    street: dto.street,
+    city: dto.city,
+    country: dto.country,
+    pin: dto.pin,
+
+    phone: dto.phone,
+    contactPersonName: dto.contactPersonName,
+
+    managerId: dto.managerId,
+    managerName: dto.managerName,
   };
 }
 

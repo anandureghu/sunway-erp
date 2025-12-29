@@ -94,6 +94,7 @@ import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
 import FinanceSettingsPage from "./pages/finance/finance-settings-page";
+import WarehouseDetail from "./modules/inventory/warehouse/warehouse-detail";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -145,6 +146,7 @@ export default function App() {
           <Route path="settings" element={<InventorySettingsPage />} />
           <Route path="stocks" element={<ManageStocks />} />
           <Route path="stocks/:id" element={<InventoryItemDetail />} />
+          <Route path="warehouses/:id" element={<WarehouseDetail />} />v
           <Route path="reports" element={<InventoryReportsPage />} />
           <Route path="sales" element={<SalesLandingPage />} />
           <Route path="sales/orders" element={<SalesOrdersPage />} />
