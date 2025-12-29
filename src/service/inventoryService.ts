@@ -4,7 +4,6 @@ import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
   CategoryUpdateDTO,
-  ItemCreateDTO,
   ItemResponseDTO,
   ItemUpdateDTO,
   WarehouseCreateDTO,
