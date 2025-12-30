@@ -200,15 +200,28 @@ function CreateItemForm({
   const onSubmit = async (data: ItemFormData) => {
     try {
       setSubmitting(true);
+      
+      // Validate required fields
+      if (!data.sku || !data.sku.trim()) {
+        toast.error("SKU is required");
+        setSubmitting(false);
+        return;
+      }
+      if (!data.name || !data.name.trim()) {
+        toast.error("Item name is required");
+        setSubmitting(false);
+        return;
+      }
+      
       // Map form data to API format
       const payload = {
-        sku: data.sku?.toUpperCase(),
-        name: data.name,
-        description: data.description,
+        sku: data.sku?.toUpperCase().trim(),
+        name: data.name?.trim(),
+        description: data.description?.trim(),
         type: data.itemType, // Item Type
         category: data.category,
         subCategory: data.subcategory,
-        brand: data.brand,
+        brand: data.brand?.trim(),
         location: data.location, // Warehouse ID
         quantity: data.quantity || 0, // Initial quantity
         costPrice: data.costPrice || 0,
@@ -216,17 +229,39 @@ function CreateItemForm({
         unitMeasure: data.unit || "pcs",
         reorderLevel: data.reorderLevel || 0,
         status: data.status || "active",
-        barcode: data.barcode,
+        barcode: data.barcode?.trim(),
       };
+      
+      console.log("Creating item with payload:", payload);
       
       const createdItem = await createItem(payload);
       toast.success("Item created successfully!");
       onSuccess(createdItem);
     } catch (error: any) {
       console.error("Failed to create item:", error);
-      toast.error(
-        error?.response?.data?.message || "Failed to create item. Please try again."
-      );
+      console.error("Error response:", error?.response?.data);
+      
+      // Check for specific backend routing error
+      const errorData = error?.response?.data;
+      let errorMessage = "Failed to create item. Please try again.";
+      
+      if (error?.message?.includes("not configured") ||
+          errorData?.message?.includes("No static resource") || 
+          errorData?.error?.includes("No static resource")) {
+        errorMessage = "Inventory Items API endpoint is not configured on the server. Please contact your administrator.";
+      } else {
+        errorMessage = error?.message ||
+                      errorData?.message || 
+                      errorData?.error || 
+                      "Failed to create item. Please check all required fields and try again.";
+      }
+      
+      toast.error(errorMessage, {
+        duration: 8000,
+        description: errorMessage.includes("not configured") 
+          ? "Expected endpoint: POST /api/inventory/items"
+          : "This appears to be a backend configuration issue.",
+      });
     } finally {
       setSubmitting(false);
     }

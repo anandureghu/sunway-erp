@@ -141,21 +141,57 @@ export async function deleteWarehouse(id: Id | string) {
 
 // ---- Items ----
 export async function listItems(): Promise<Item[]> {
-  const res = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
-  return (res.data || []).map(toItem);
+  try {
+    const res = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
+    return (res.data || []).map(toItem);
+  } catch (error: any) {
+    // Provide more context for routing errors
+    if (error?.response?.status === 500) {
+      const errorData = error.response.data;
+      if (errorData?.message?.includes("No static resource") || 
+          errorData?.error?.includes("No static resource")) {
+        throw new Error("Inventory Items API endpoint is not configured on the server. Please contact your administrator.");
+      }
+    }
+    throw error;
+  }
 }
 
 export async function createItem(payload: ItemCreateDTO) {
-  const res = await apiClient.post<ItemResponseDTO>("/inventory/items", payload);
-  return toItem(res.data);
+  try {
+    const res = await apiClient.post<ItemResponseDTO>("/inventory/items", payload);
+    return toItem(res.data);
+  } catch (error: any) {
+    // Provide more context for routing errors
+    if (error?.response?.status === 500) {
+      const errorData = error.response.data;
+      if (errorData?.message?.includes("No static resource") || 
+          errorData?.error?.includes("No static resource")) {
+        throw new Error("Inventory Items API endpoint is not configured on the server. Please contact your administrator.");
+      }
+    }
+    throw error;
+  }
 }
 
 export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
-  const res = await apiClient.put<ItemResponseDTO>(
-    `/inventory/items/${id}`,
-    payload
-  );
-  return toItem(res.data);
+  try {
+    const res = await apiClient.put<ItemResponseDTO>(
+      `/inventory/items/${id}`,
+      payload
+    );
+    return toItem(res.data);
+  } catch (error: any) {
+    // Provide more context for routing errors
+    if (error?.response?.status === 500) {
+      const errorData = error.response.data;
+      if (errorData?.message?.includes("No static resource") || 
+          errorData?.error?.includes("No static resource")) {
+        throw new Error("Inventory Items API endpoint is not configured on the server. Please contact your administrator.");
+      }
+    }
+    throw error;
+  }
 }
 
 // ---- Stock ----
