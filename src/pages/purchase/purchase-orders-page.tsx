@@ -40,9 +40,11 @@ import {
 import type { Vendor } from "@/types/vendor";
 import { createPurchaseOrderColumns } from "@/lib/columns/purchase-columns";
 import { toast } from "sonner";
+import type { Row } from "@tanstack/react-table";
 
 export default function PurchaseOrdersPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
     (location.state as { searchQuery?: string })?.searchQuery || ""
   );
@@ -284,6 +286,14 @@ export default function PurchaseOrdersPage() {
     toast.info("Edit functionality coming soon");
   }, []);
 
+  const handleRowClick = useCallback(
+    (row: Row<PurchaseOrder>) => {
+      const order = row.original;
+      navigate(`/inventory/purchase/orders/${order.id}`);
+    },
+    [navigate]
+  );
+
   const columns = useMemo(
     () =>
       createPurchaseOrderColumns(
@@ -389,7 +399,11 @@ export default function PurchaseOrdersPage() {
               </Button>
             </div>
           ) : (
-            <DataTable columns={columns} data={filteredOrders} />
+            <DataTable
+              columns={columns}
+              data={filteredOrders}
+              onRowClick={handleRowClick}
+            />
           )}
         </CardContent>
       </Card>

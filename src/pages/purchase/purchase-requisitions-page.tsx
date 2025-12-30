@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, ArrowLeft, CheckCircle } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import type { Row } from "@tanstack/react-table";
+import type { PurchaseRequisition } from "@/types/purchase";
 import { format } from "date-fns";
 import {
   Select,
@@ -91,6 +93,14 @@ export default function PurchaseRequisitionsPage() {
       return matchesSearch && matchesStatus;
     });
   }, [requisitions, searchQuery, statusFilter]);
+
+  const handleRowClick = useCallback(
+    (row: Row<PurchaseRequisition>) => {
+      const requisition = row.original;
+      navigate(`/inventory/purchase/requisitions/${requisition.id}`);
+    },
+    [navigate]
+  );
 
   const handleApprove = useCallback(async (id: string) => {
     if (!confirm("Are you sure you want to approve this requisition?")) return;
@@ -359,7 +369,11 @@ export default function PurchaseRequisitionsPage() {
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
-            <DataTable columns={columns} data={filteredRequisitions} />
+            <DataTable
+              columns={columns}
+              data={filteredRequisitions}
+              onRowClick={handleRowClick}
+            />
           )}
         </CardContent>
       </Card>

@@ -1,23 +1,34 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GOODS_RECEIPT_COLUMNS } from "@/lib/columns/purchase-columns";
 import { Plus, Search, ArrowLeft, ClipboardCheck } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { listPurchaseOrders, getGoodsReceiptsByPurchaseOrder } from "@/service/purchaseFlowService";
 import type { GoodsReceipt, PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
+import type { Row } from "@tanstack/react-table";
 
 export default function ReceivingPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [receipts, setReceipts] = useState<GoodsReceipt[]>([]);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const handleRowClick = useCallback(
+    (row: Row<GoodsReceipt>) => {
+      const receipt = row.original;
+      navigate(`/inventory/purchase/receiving/${receipt.id}`);
+    },
+    [navigate]
+  );
 
   // Load orders and receipts
   useEffect(() => {
@@ -48,7 +59,13 @@ export default function ReceivingPage() {
         }
       } catch (e: any) {
         if (!cancelled) {
-          setLoadError(e?.message || "Failed to load goods receipts");
+          console.error("Error loading purchase orders:", e);
+          const errorMessage = e?.response?.data?.message || 
+                               e?.response?.data?.error || 
+                               e?.message || 
+                               "Failed to load purchase orders. Please check if the API endpoint is configured correctly.";
+          setLoadError(errorMessage);
+          toast.error(errorMessage);
         }
       } finally {
         if (!cancelled) {
@@ -70,13 +87,32 @@ export default function ReceivingPage() {
     });
   }, [receipts, searchQuery]);
 
-  // Get orders ready for receiving (ordered or partially received)
+  // Get orders ready for receiving (ordered or partially received) with search filter
   const ordersReadyForReceiving = useMemo(() => {
-    return orders.filter(
-      (order) =>
-        order.status === "ordered" || order.status === "partially_received" || order.status === "approved"
+    let filtered = orders.filter(
+      (order) => {
+        const status = order.status?.toLowerCase();
+        return (
+          status === "ordered" || 
+          status === "partially_received" || 
+          status === "approved" ||
+          status === "confirmed"
+        );
+      }
     );
-  }, [orders]);
+    
+    // Apply search filter if provided
+    if (orderSearchQuery.trim()) {
+      const query = orderSearchQuery.toLowerCase();
+      filtered = filtered.filter((order) =>
+        order.orderNo.toLowerCase().includes(query) ||
+        order.supplier?.name?.toLowerCase().includes(query) ||
+        order.supplier?.code?.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [orders, orderSearchQuery]);
 
   if (showCreateForm) {
     return (
@@ -117,12 +153,44 @@ export default function ReceivingPage() {
       </div>
 
       {/* Orders Ready for Receiving */}
-      {ordersReadyForReceiving.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <CardTitle>Orders Ready for Receiving</CardTitle>
-          </CardHeader>
-          <CardContent>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search purchase orders..."
+                value={orderSearchQuery}
+                onChange={(e) => setOrderSearchQuery(e.target.value)}
+                className="pl-8 w-64"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="py-4 text-center text-muted-foreground">Loading orders...</div>
+          ) : loadError ? (
+            <div className="py-4 text-center text-red-600">
+              <p className="font-medium">Error loading purchase orders</p>
+              <p className="text-sm mt-1">{loadError}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : ordersReadyForReceiving.length === 0 ? (
+            <div className="py-4 text-center text-muted-foreground">
+              {orderSearchQuery.trim() 
+                ? `No purchase orders found matching "${orderSearchQuery}"`
+                : "No purchase orders ready for receiving"}
+            </div>
+          ) : (
             <div className="space-y-2">
               {ordersReadyForReceiving.map((order) => (
                 <div
@@ -132,7 +200,7 @@ export default function ReceivingPage() {
                   <div>
                     <p className="font-medium">{order.orderNo}</p>
                     <p className="text-sm text-muted-foreground">
-                      {order.supplier?.name} • Expected: {order.expectedDate}
+                      {order.supplier?.name || "Unknown Supplier"} • Expected: {order.expectedDate || "N/A"}
                     </p>
                   </div>
                   <Button
@@ -148,9 +216,9 @@ export default function ReceivingPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -172,8 +240,18 @@ export default function ReceivingPage() {
             <div className="py-10 text-center text-muted-foreground">Loading...</div>
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
+          ) : filteredReceipts.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">
+              {searchQuery.trim() 
+                ? `No receipts found matching "${searchQuery}"`
+                : "No goods receipts found"}
+            </div>
           ) : (
-            <DataTable columns={GOODS_RECEIPT_COLUMNS} data={filteredReceipts} />
+            <DataTable
+              columns={GOODS_RECEIPT_COLUMNS}
+              data={filteredReceipts}
+              onRowClick={handleRowClick}
+            />
           )}
         </CardContent>
       </Card>
@@ -310,7 +388,13 @@ function CreateReceiptForm({
             >
               <option value="">Select Purchase Order</option>
               {orders
-                .filter(o => o.status === "ordered" || o.status === "approved" || o.status === "partially_received")
+                .filter(o => {
+                  const status = o.status?.toLowerCase();
+                  return status === "ordered" || 
+                         status === "approved" || 
+                         status === "partially_received" ||
+                         status === "confirmed";
+                })
                 .map(order => (
                   <option key={order.id} value={order.id}>
                     {order.orderNo} - {(order.supplier as any)?.vendorName || (order.supplier as any)?.name || "N/A"}

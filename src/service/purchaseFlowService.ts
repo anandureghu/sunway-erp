@@ -341,3 +341,40 @@ export async function getGoodsReceiptsByPurchaseOrder(poId: string | number): Pr
   return (res.data || []).map(dto => toGoodsReceipt(dto, order));
 }
 
+export async function getGoodsReceiptById(receiptId: string | number): Promise<GoodsReceipt | null> {
+  try {
+    // Try direct endpoint first
+    const res = await apiClient.get<GoodsReceiptResponseDTO>(`/purchase/receipts/${receiptId}`);
+    if (res.data) {
+      // Fetch the order to enrich the receipt
+      let order: PurchaseOrder | undefined;
+      try {
+        order = await getPurchaseOrder(res.data.purchaseOrderId);
+      } catch (e) {
+        console.warn("Could not fetch order for receipt:", e);
+      }
+      return toGoodsReceipt(res.data, order);
+    }
+    return null;
+  } catch (e: any) {
+    // If direct endpoint doesn't exist, search through orders
+    console.warn("Direct receipt endpoint not available, searching through orders...");
+    const orders = await listPurchaseOrders();
+    
+    for (const order of orders) {
+      try {
+        const receipts = await getGoodsReceiptsByPurchaseOrder(order.id);
+        const receipt = receipts.find(r => String(r.id) === String(receiptId));
+        if (receipt) {
+          return receipt;
+        }
+      } catch (err) {
+        // Continue searching
+        console.warn(`Error fetching receipts for order ${order.id}:`, err);
+      }
+    }
+    
+    return null;
+  }
+}
+
