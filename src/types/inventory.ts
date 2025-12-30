@@ -1,8 +1,24 @@
 // Inventory Types
 
 export type ItemStatus = "active" | "discontinued" | "out_of_stock";
-export type MovementType = "inbound" | "outbound" | "transfer" | "adjustment" | "return";
-export type Unit = "pcs" | "kg" | "g" | "box" | "pallet" | "liter" | "meter" | "carton" | "bag" | "bucket" | string;
+export type MovementType =
+  | "inbound"
+  | "outbound"
+  | "transfer"
+  | "adjustment"
+  | "return";
+export type Unit =
+  | "pcs"
+  | "kg"
+  | "g"
+  | "box"
+  | "pallet"
+  | "liter"
+  | "meter"
+  | "carton"
+  | "bag"
+  | "bucket"
+  | string;
 
 // Items
 export type Item = {
@@ -25,6 +41,7 @@ export type Item = {
   rfidTag?: string; // RFID support
   createdAt: string;
   updatedAt: string;
+  imageUrl?: string;
 };
 
 // Warehouse
@@ -37,13 +54,23 @@ export type Warehouse = {
   capacity?: number;
   status: "active" | "inactive";
   createdAt: string;
+
+  street?: string;
+  city?: string;
+  country?: string;
+  pin?: string;
+
+  phone?: string;
+  contactPersonName?: string;
+
+  managerId?: number;
+  managerName?: string;
 };
 
 // Stock (multi-location support)
 export type Stock = {
   id: string;
   itemId: string;
-  warehouseId: string;
   quantity: number;
   reservedQuantity?: number; // Reserved for orders
   availableQuantity: number; // quantity - reservedQuantity
@@ -58,6 +85,10 @@ export type Stock = {
   // Computed fields from joins
   item?: Item;
   warehouse?: Warehouse;
+  warehouse_id?: number;
+  warehouse_name?: number;
+  warehouse_location?: number;
+  imageUrl?: string;
 };
 
 // Inventory Movements
@@ -91,7 +122,13 @@ export type StockAdjustment = {
   quantityAfter: number;
   adjustmentQuantity: number; // difference
   reason: string;
-  adjustmentType: "damaged" | "expired" | "wastage" | "found" | "theft" | "other";
+  adjustmentType:
+    | "damaged"
+    | "expired"
+    | "wastage"
+    | "found"
+    | "theft"
+    | "other";
   date: string;
   approvedBy?: string;
   notes?: string;
@@ -110,4 +147,3 @@ export type ItemCategory = {
   parentId?: string; // For hierarchical categories
   createdAt: string;
 };
-

@@ -280,7 +280,7 @@ export const picklists: Picklist[] = [
     order: salesOrders[2],
     warehouseId: warehouses[0].id,
     warehouse: warehouses[0],
-    status: "in_progress",
+    status: "created",
     items: [
       {
         id: "pli-3",
@@ -476,4 +476,3 @@ export const getDispatchById = (id: string): Dispatch | undefined => {
 export const getInvoiceById = (id: string): Invoice | undefined => {
   return invoices.find((inv) => inv.id === id);
 };
-

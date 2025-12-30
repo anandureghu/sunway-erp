@@ -69,7 +69,10 @@ export type SalesOrder = {
 export type PicklistStatus =
   | "created"
   | "picked"
-  | "cancelled";
+  | "cancelled"
+  | "completed"
+  | "in_progress"
+  | "on_hold";
 
 export type PicklistItem = {
   id: string;

@@ -1,10 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import {
+  createPicklistColumns,
+  createDispatchColumns,
   createPicklistColumns,
   createDispatchColumns,
 } from "@/lib/columns/sales-columns";
@@ -77,7 +80,8 @@ export default function PicklistDispatchPage() {
       setPicklists(picklistsEnriched);
       setDispatches(dispatchesEnriched);
     } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || e?.message || "Failed to load data";
+      const errorMessage =
+        e?.response?.data?.message || e?.message || "Failed to load data";
       setLoadError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -164,22 +168,33 @@ export default function PicklistDispatchPage() {
   }, []);
 
   const picklistColumns = useMemo(
-    () => createPicklistColumns(
+    () =>
+      createPicklistColumns(
+        handleMarkPicklistPicked,
+        handleCancelPicklist,
+        handleCreateDispatchFromPicklist
+      ),
+    [
       handleMarkPicklistPicked,
       handleCancelPicklist,
-      handleCreateDispatchFromPicklist
-    ),
-    [handleMarkPicklistPicked, handleCancelPicklist, handleCreateDispatchFromPicklist]
+      handleCreateDispatchFromPicklist,
+    ]
   );
 
   const dispatchColumns = useMemo(
-    () => createDispatchColumns(
+    () =>
+      createDispatchColumns(
+        handleDispatchShipment,
+        handleMarkShipmentInTransit,
+        handleMarkShipmentDelivered,
+        handleCancelShipment
+      ),
+    [
       handleDispatchShipment,
       handleMarkShipmentInTransit,
       handleMarkShipmentDelivered,
-      handleCancelShipment
-    ),
-    [handleDispatchShipment, handleMarkShipmentInTransit, handleMarkShipmentDelivered, handleCancelShipment]
+      handleCancelShipment,
+    ]
   );
 
   if (showCreatePicklist) {
@@ -274,7 +289,8 @@ export default function PicklistDispatchPage() {
                   <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-lg font-medium mb-2">No picklists found</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Generate a picklist from a confirmed sales order to get started.
+                    Generate a picklist from a confirmed sales order to get
+                    started.
                   </p>
                   <Button onClick={() => setShowCreatePicklist(true)}>
                     <Plus className="mr-2 h-4 w-4" />
@@ -295,7 +311,8 @@ export default function PicklistDispatchPage() {
                 <div>
                   <CardTitle>All Shipments</CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Track shipments from warehouse to customer. Create shipments from picked picklists.
+                    Track shipments from warehouse to customer. Create shipments
+                    from picked picklists.
                   </p>
                 </div>
               </div>
@@ -413,7 +430,11 @@ function CreatePicklistForm({
       onCancel();
     } catch (err: any) {
       console.error("Failed to generate picklist:", err);
-      toast.error(err?.response?.data?.message || err?.message || "Failed to generate picklist. Please try again.");
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to generate picklist. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -438,7 +459,8 @@ function CreatePicklistForm({
           <CardHeader>
             <CardTitle>Picklist Information</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Select a confirmed sales order to generate a picklist. The warehouse will be auto-selected from the order items if available.
+              Select a confirmed sales order to generate a picklist. The
+              warehouse will be auto-selected from the order items if available.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -494,7 +516,8 @@ function CreatePicklistForm({
                       <div className="p-2 text-sm text-muted-foreground">
                         No warehouses available
                       </div>
-                    ) : warehouses.filter((wh) => wh.status === "active").length === 0 ? (
+                    ) : warehouses.filter((wh) => wh.status === "active")
+                        .length === 0 ? (
                       <div className="p-2 text-sm text-muted-foreground">
                         No active warehouses available
                       </div>
@@ -520,17 +543,21 @@ function CreatePicklistForm({
                       const itemWarehouses = selectedOrder.items
                         .filter((item) => item.warehouseId)
                         .map((item) => {
-                          const wh = warehouses.find((w) => w.id === item.warehouseId);
+                          const wh = warehouses.find(
+                            (w) => w.id === item.warehouseId
+                          );
                           return wh?.name || item.warehouseId;
                         })
                         .filter((v, i, arr) => arr.indexOf(v) === i); // unique
-                      
+
                       if (itemWarehouses.length === 0) {
                         return "No warehouse specified in order items. Please select a warehouse.";
                       } else if (itemWarehouses.length === 1) {
                         return `Warehouse auto-selected from order: ${itemWarehouses[0]}`;
                       } else {
-                        return `Order items span multiple warehouses: ${itemWarehouses.join(", ")}`;
+                        return `Order items span multiple warehouses: ${itemWarehouses.join(
+                          ", "
+                        )}`;
                       }
                     })()}
                   </p>
@@ -565,7 +592,12 @@ function CreatePicklistForm({
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={submitting}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={!selectedOrderId || submitting}>
@@ -619,7 +651,11 @@ function CreateDispatchForm({
       onCancel();
     } catch (err: any) {
       console.error("Failed to create shipment:", err);
-      toast.error(err?.response?.data?.message || err?.message || "Failed to create shipment. Please try again.");
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create shipment. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -644,7 +680,8 @@ function CreateDispatchForm({
           <CardHeader>
             <CardTitle>Dispatch Information</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Create a shipment from a picked picklist. Fill in delivery details and tracking information.
+              Create a shipment from a picked picklist. Fill in delivery details
+              and tracking information.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -662,16 +699,19 @@ function CreateDispatchForm({
                     <SelectValue placeholder="Select picklist" />
                   </SelectTrigger>
                   <SelectContent>
-                    {picklists.filter((pl) => pl.status === "picked").length === 0 ? (
+                    {picklists.filter((pl) => pl.status === "picked").length ===
+                    0 ? (
                       <div className="p-2 text-sm text-muted-foreground">
-                        No picked picklists available. Please mark a picklist as "picked" first.
+                        No picked picklists available. Please mark a picklist as
+                        "picked" first.
                       </div>
                     ) : (
                       picklists
                         .filter((pl) => pl.status === "picked")
                         .map((pl) => (
                           <SelectItem key={pl.id} value={pl.id}>
-                            {pl.picklistNo} {pl.order?.orderNo ? `- ${pl.order.orderNo}` : ""}
+                            {pl.picklistNo}{" "}
+                            {pl.order?.orderNo ? `- ${pl.order.orderNo}` : ""}
                           </SelectItem>
                         ))
                     )}
@@ -758,13 +798,15 @@ function CreateDispatchForm({
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={!selectedPicklistId || submitting}
-          >
+          <Button type="submit" disabled={!selectedPicklistId || submitting}>
             {submitting ? "Creating..." : "Create Dispatch"}
           </Button>
         </div>

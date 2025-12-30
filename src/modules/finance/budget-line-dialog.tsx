@@ -17,6 +17,7 @@ import SelectAccount from "@/components/select-account";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SelectDepartment from "@/components/select-department";
 
 interface Props {
   open: boolean;
@@ -39,10 +40,11 @@ export function BudgetLineDialog({
     accountId: "",
     departmentId: "",
     projectId: "",
-    period: "",
     amount: "",
     currencyCode: "USD",
     notes: "",
+    startDate: "",
+    endDate: "",
   });
 
   const update = (key: string, value: any) =>
@@ -54,20 +56,22 @@ export function BudgetLineDialog({
         accountId: "",
         departmentId: "",
         projectId: "",
-        period: "",
         amount: "",
         currencyCode: "USD",
         notes: "",
+        startDate: "",
+        endDate: "",
       });
     } else {
       setForm({
         accountId: String(line.accountId),
         departmentId: line.departmentId?.toString() || "",
         projectId: line.projectId?.toString() || "",
-        period: line.period.toString(),
         amount: line.amount.toString(),
         currencyCode: line.currencyCode ?? "USD",
         notes: line.notes ?? "",
+        startDate: line.startDate ?? "",
+        endDate: line.endDate ?? "",
       });
     }
   }, [line]);
@@ -79,28 +83,38 @@ export function BudgetLineDialog({
         accountId: Number(form.accountId),
         departmentId: form.departmentId ? Number(form.departmentId) : null,
         projectId: form.projectId ? Number(form.projectId) : null,
-        period: Number(form.period),
         amount: Number(form.amount),
         currencyCode: form.currencyCode,
         notes: form.notes,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
       };
 
       if (isEdit) {
-        await apiClient.put(
-          `/finance/budgets/${budgetId}/lines/${line!.id}`,
-          newLine
-        );
-        toast.success("Budget line updated");
+        apiClient
+          .put(`/finance/budgets/${budgetId}/lines/${line!.id}`, newLine)
+          .then(() => {
+            toast.success("Budget Distribution updated");
+          });
       } else {
-        await apiClient.post(`/finance/budgets/${budgetId}/lines`, newLine);
-        toast.success("Budget Line added");
+        apiClient
+          .post(`/finance/budgets/${budgetId}/lines`, newLine)
+          .then(() => {
+            toast.success("Budget Distribution added");
+          })
+          .catch((error) => {
+            console.error("Error adding budget line:", error);
+            toast.error("Failed to add Budget Distribution", {
+              description: error.response?.data?.message,
+            });
+          });
       }
 
       onOpenChange(false);
       onSuccess();
     } catch (e: any) {
       console.error(e);
-      toast.error("Failed to save Budget line");
+      toast.error("Failed to save Budget Distribution");
     }
   };
 
@@ -109,7 +123,7 @@ export function BudgetLineDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Edit Budget Line" : "Add Budget Line"}
+            {isEdit ? "Edit Budget Distribution" : "Add Budget Distribution"}
           </DialogTitle>
         </DialogHeader>
 
@@ -128,13 +142,10 @@ export function BudgetLineDialog({
             </Select>
           </div>
 
-          <div>
-            <Label>Department ID</Label>
-            <Input
-              value={form.departmentId}
-              onChange={(e) => update("departmentId", e.target.value)}
-            />
-          </div>
+          <SelectDepartment
+            value={form.departmentId?.toString()}
+            onChange={(v) => update("departmentId", v)}
+          />
 
           <div>
             <Label>Project ID</Label>
@@ -144,12 +155,23 @@ export function BudgetLineDialog({
             />
           </div>
 
+          {/* Start Date */}
           <div>
-            <Label>Period (1–12)</Label>
+            <Label>Start Date</Label>
             <Input
-              type="number"
-              value={form.period}
-              onChange={(e) => update("period", e.target.value)}
+              type="date"
+              value={form.startDate}
+              onChange={(e) => update("startDate", e.target.value)}
+            />
+          </div>
+
+          {/* End Date */}
+          <div>
+            <Label>End Date</Label>
+            <Input
+              type="date"
+              value={form.endDate}
+              onChange={(e) => update("endDate", e.target.value)}
             />
           </div>
 

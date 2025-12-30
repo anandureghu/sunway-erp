@@ -2,20 +2,28 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Warehouse, AlertTriangle } from "lucide-react";
+import {
+  ArrowLeft,
+  Warehouse as WarehouseIcon,
+  AlertTriangle,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import { listStock, listItems, listWarehouses } from "@/service/inventoryService";
+import {
+  listStock,
+  listItems,
+  listWarehouses,
+} from "@/service/inventoryService";
 import type { Stock, Item, Warehouse } from "@/types/inventory";
 
 // Reusable InfoCard Component
-const InfoCard = ({ 
-  title, 
-  children, 
-  span = "" 
-}: { 
-  title: string; 
-  children: React.ReactNode; 
+const InfoCard = ({
+  title,
+  children,
+  span = "",
+}: {
+  title: string;
+  children: React.ReactNode;
   span?: string;
 }) => (
   <Card className={`hover:shadow-md transition-shadow duration-200 ${span}`}>
@@ -31,7 +39,9 @@ const InfoCard = ({
 const InventoryItemDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [stock, setStock] = useState<(Stock & { item: Item; warehouse: Warehouse }) | null>(null);
+  const [stock, setStock] = useState<
+    (Stock & { item: Item; warehouse: Warehouse }) | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,34 +51,39 @@ const InventoryItemDetail = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch all data in parallel
         const [stockList, itemsList, warehousesList] = await Promise.all([
           listStock(),
           listItems(),
           listWarehouses(),
         ]);
-        
+
         if (!cancelled) {
           // Enrich stock with item and warehouse details
           const enrichedStock = stockList
             .map((s) => {
               const item = itemsList.find((i) => i.id === s.itemId);
-              const warehouse = warehousesList.find((w) => w.id === s.warehouseId);
-              
+              const warehouse = warehousesList.find(
+                (w) => w.id === s.warehouse_id?.toString()
+              );
+
               if (!item || !warehouse) return null;
-              
+
               return {
                 ...s,
                 item,
                 warehouse,
               };
             })
-            .filter((s): s is Stock & { item: Item; warehouse: Warehouse } => s !== null);
-          
+            .filter(
+              (s): s is Stock & { item: Item; warehouse: Warehouse } =>
+                s !== null
+            );
+
           // Find the stock by ID
           const foundStock = enrichedStock.find((s) => s.id === id);
-          
+
           if (foundStock) {
             setStock(foundStock);
           } else {
@@ -84,7 +99,7 @@ const InventoryItemDetail = () => {
         if (!cancelled) setLoading(false);
       }
     })();
-    
+
     return () => {
       cancelled = true;
     };
@@ -127,7 +142,9 @@ const InventoryItemDetail = () => {
         </div>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-center text-gray-500">{error || "Item not found"}</p>
+            <p className="text-center text-gray-500">
+              {error || "Item not found"}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -165,13 +182,20 @@ const InventoryItemDetail = () => {
 
       {/* Item Basic Info Section */}
       <div className="space-y-4">
+        <img
+          src={item.imageUrl}
+          alt={item.name}
+          className="max-w-[300px] max-h-[200px] object-contain"
+        />
         <h2 className="text-lg font-semibold text-gray-900">Item Basic Info</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <InfoCard title="SKU / Item Code">
             <div className="flex flex-col">
               <span className="text-lg font-semibold">{item.sku}</span>
               {item.barcode && (
-                <span className="text-xs text-gray-500 mt-1">Barcode: {item.barcode}</span>
+                <span className="text-xs text-gray-500 mt-1">
+                  Barcode: {item.barcode}
+                </span>
               )}
             </div>
           </InfoCard>
@@ -202,18 +226,24 @@ const InventoryItemDetail = () => {
 
       {/* Stock & Warehouse Details Section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Stock & Warehouse Details</h2>
+        <h2 className="text-lg font-semibold text-gray-900">
+          Stock & Warehouse Details
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <InfoCard title="Location">
             <div className="flex items-center gap-2">
-              <Warehouse className="h-4 w-4 text-gray-400" />
+              <WarehouseIcon className="h-4 w-4 text-gray-400" />
               <span className="text-gray-900">{warehouse.location}</span>
             </div>
           </InfoCard>
 
           <InfoCard title="Quantity">
             <div className="flex flex-col">
-              <span className={`text-lg font-semibold ${isLowStock ? "text-red-600" : "text-gray-900"}`}>
+              <span
+                className={`text-lg font-semibold ${
+                  isLowStock ? "text-red-600" : "text-gray-900"
+                }`}
+              >
                 {stock.quantity.toLocaleString()} {item.unit}
               </span>
               {isLowStock && (
@@ -232,20 +262,35 @@ const InventoryItemDetail = () => {
           </InfoCard>
 
           <InfoCard title="Reserved">
-            <span className={`text-lg font-semibold ${stock.reservedQuantity && stock.reservedQuantity > 0 ? "text-amber-600" : "text-gray-400"}`}>
-              {stock.reservedQuantity ? stock.reservedQuantity.toLocaleString() : "-"} {stock.reservedQuantity ? item.unit : ""}
+            <span
+              className={`text-lg font-semibold ${
+                stock.reservedQuantity && stock.reservedQuantity > 0
+                  ? "text-amber-600"
+                  : "text-gray-400"
+              }`}
+            >
+              {stock.reservedQuantity
+                ? stock.reservedQuantity.toLocaleString()
+                : "-"}{" "}
+              {stock.reservedQuantity ? item.unit : ""}
             </span>
           </InfoCard>
 
           <InfoCard title="Minimum">
-            <span className={`text-gray-900 ${isLowStock ? "text-red-600 font-semibold" : ""}`}>
+            <span
+              className={`text-gray-900 ${
+                isLowStock ? "text-red-600 font-semibold" : ""
+              }`}
+            >
               {item.reorderLevel.toLocaleString()} {item.unit}
             </span>
           </InfoCard>
 
           <InfoCard title="Maximum">
             <span className="text-gray-900">
-              {item.maximum ? `${item.maximum.toLocaleString()} ${item.unit}` : "-"}
+              {item.maximum
+                ? `${item.maximum.toLocaleString()} ${item.unit}`
+                : "-"}
             </span>
           </InfoCard>
 
@@ -285,13 +330,17 @@ const InventoryItemDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <InfoCard title="Date Received">
             <span className="text-gray-900">
-              {stock.dateReceived ? format(new Date(stock.dateReceived), "MMM dd, yyyy") : "-"}
+              {stock.dateReceived
+                ? format(new Date(stock.dateReceived), "MMM dd, yyyy")
+                : "-"}
             </span>
           </InfoCard>
 
           <InfoCard title="Sale By Date">
             <span className="text-gray-900">
-              {stock.saleByDate ? format(new Date(stock.saleByDate), "MMM dd, yyyy") : "-"}
+              {stock.saleByDate
+                ? format(new Date(stock.saleByDate), "MMM dd, yyyy")
+                : "-"}
             </span>
           </InfoCard>
 
@@ -308,7 +357,9 @@ const InventoryItemDetail = () => {
           <InfoCard title="Status">
             <Badge
               variant="outline"
-              className={`${statusColors[item.status] || "bg-gray-100 text-gray-800"} px-3 py-1 rounded-full text-xs font-semibold`}
+              className={`${
+                statusColors[item.status] || "bg-gray-100 text-gray-800"
+              } px-3 py-1 rounded-full text-xs font-semibold`}
             >
               {item.status.replace("_", " ").toUpperCase()}
             </Badge>

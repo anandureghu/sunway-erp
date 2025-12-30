@@ -4,7 +4,6 @@ import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
   CategoryUpdateDTO,
-  ItemCreateDTO,
   ItemResponseDTO,
   ItemUpdateDTO,
   WarehouseCreateDTO,
@@ -27,6 +26,17 @@ function toWarehouse(dto: WarehouseResponseDTO): Warehouse {
     capacity: undefined,
     status: normalizeStatus(dto.status) === "inactive" ? "inactive" : "active",
     createdAt: "",
+
+    street: dto.street,
+    city: dto.city,
+    country: dto.country,
+    pin: dto.pin,
+
+    phone: dto.phone,
+    contactPersonName: dto.contactPersonName,
+
+    managerId: dto.managerId,
+    managerName: dto.managerName,
   };
 }
 
@@ -64,18 +74,21 @@ function toItem(dto: ItemResponseDTO): Item {
       normalizeStatus(dto.status) === "discontinued"
         ? "discontinued"
         : normalizeStatus(dto.status) === "out_of_stock"
-          ? "out_of_stock"
-          : "active",
+        ? "out_of_stock"
+        : "active",
     barcode: dto.barcode || undefined,
     rfidTag: undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.updatedAt || "",
+    imageUrl: dto.imageUrl || "",
   };
 }
 
 // ---- Categories ----
 export async function listCategories(): Promise<ItemCategory[]> {
-  const res = await apiClient.get<CategoryResponseDTO[]>("/inventory/categories");
+  const res = await apiClient.get<CategoryResponseDTO[]>(
+    "/inventory/categories"
+  );
   return (res.data || []).map(toCategory);
 }
 
@@ -87,7 +100,10 @@ export async function createCategory(payload: CategoryCreateDTO) {
   return toCategory(res.data);
 }
 
-export async function updateCategory(id: Id | string, payload: CategoryUpdateDTO) {
+export async function updateCategory(
+  id: Id | string,
+  payload: CategoryUpdateDTO
+) {
   const res = await apiClient.put<CategoryResponseDTO>(
     `/inventory/categories/${id}`,
     payload
@@ -96,7 +112,9 @@ export async function updateCategory(id: Id | string, payload: CategoryUpdateDTO
 }
 
 export async function getCategory(id: Id | string): Promise<ItemCategory> {
-  const res = await apiClient.get<CategoryResponseDTO>(`/inventory/categories/${id}`);
+  const res = await apiClient.get<CategoryResponseDTO>(
+    `/inventory/categories/${id}`
+  );
   return toCategory(res.data);
 }
 
@@ -106,8 +124,9 @@ export async function deleteCategory(id: Id | string) {
 
 // ---- Warehouses ----
 export async function listWarehouses(): Promise<Warehouse[]> {
-  const res =
-    await apiClient.get<WarehouseResponseDTO[]>("/inventory/warehouses");
+  const res = await apiClient.get<WarehouseResponseDTO[]>(
+    "/inventory/warehouses"
+  );
   return (res.data || []).map(toWarehouse);
 }
 
@@ -131,7 +150,9 @@ export async function updateWarehouse(
 }
 
 export async function getWarehouse(id: Id | string): Promise<Warehouse> {
-  const res = await apiClient.get<WarehouseResponseDTO>(`/inventory/warehouses/${id}`);
+  const res = await apiClient.get<WarehouseResponseDTO>(
+    `/inventory/warehouses/${id}`
+  );
   return toWarehouse(res.data);
 }
 
@@ -141,57 +162,33 @@ export async function deleteWarehouse(id: Id | string) {
 
 // ---- Items ----
 export async function listItems(): Promise<Item[]> {
-  try {
-    const res = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
-    return (res.data || []).map(toItem);
-  } catch (error: any) {
-    // Provide more context for routing errors
-    if (error?.response?.status === 500) {
-      const errorData = error.response.data;
-      if (errorData?.message?.includes("No static resource") || 
-          errorData?.error?.includes("No static resource")) {
-        throw new Error("Inventory Items API endpoint is not configured on the server. Please contact your administrator.");
-      }
-    }
-    throw error;
-  }
+  const res = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
+  return (res.data || []).map(toItem);
 }
 
-export async function createItem(payload: ItemCreateDTO) {
-  try {
-    const res = await apiClient.post<ItemResponseDTO>("/inventory/items", payload);
-    return toItem(res.data);
-  } catch (error: any) {
-    // Provide more context for routing errors
-    if (error?.response?.status === 500) {
-      const errorData = error.response.data;
-      if (errorData?.message?.includes("No static resource") || 
-          errorData?.error?.includes("No static resource")) {
-        throw new Error("Inventory Items API endpoint is not configured on the server. Please contact your administrator.");
-      }
-    }
-    throw error;
-  }
-}
+// export async function createItem(payload: ItemCreateDTO) {
+//   const res = await apiClient.post<ItemResponseDTO>(
+//     "/inventory/items",
+//     payload
+//   );
+//   return toItem(res.data);
+// }
+
+export const createItem = async (formData: FormData) => {
+  const res = await apiClient.post("/inventory/items", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return toItem(res.data);
+};
 
 export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
-  try {
-    const res = await apiClient.put<ItemResponseDTO>(
-      `/inventory/items/${id}`,
-      payload
-    );
-    return toItem(res.data);
-  } catch (error: any) {
-    // Provide more context for routing errors
-    if (error?.response?.status === 500) {
-      const errorData = error.response.data;
-      if (errorData?.message?.includes("No static resource") || 
-          errorData?.error?.includes("No static resource")) {
-        throw new Error("Inventory Items API endpoint is not configured on the server. Please contact your administrator.");
-      }
-    }
-    throw error;
-  }
+  const res = await apiClient.put<ItemResponseDTO>(
+    `/inventory/items/${id}`,
+    payload
+  );
+  return toItem(res.data);
 }
 
 // ---- Stock ----
@@ -222,7 +219,6 @@ function toStock(
   return {
     id: String(dto.id || `${itemId}-${warehouseId}`),
     itemId,
-    warehouseId,
     quantity: Number(dto.quantity || 0),
     reservedQuantity: dto.reserved ? Number(dto.reserved) : undefined,
     availableQuantity: Number(dto.available || dto.quantity || 0),
@@ -249,37 +245,62 @@ export async function listStock(): Promise<Stock[]> {
     // If stock endpoint doesn't exist (404) or fails (500), fetch items and create stock from item data
     const status = error?.response?.status;
     if (status === 404 || status === 500) {
-      console.warn(`Stock endpoint returned ${status}, falling back to items-based stock creation`);
-      
+      console.warn(
+        `Stock endpoint returned ${status}, falling back to items-based stock creation`
+      );
+
       // Fetch items directly from API to get quantity/available/reserved data from DTOs
-      const itemsRes = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
+      const itemsRes = await apiClient.get<ItemResponseDTO[]>(
+        "/inventory/items"
+      );
       const itemsList = itemsRes.data || [];
-      const warehouses = await listWarehouses();
-      
+
       // Create stock records from items
       const stock: Stock[] = [];
       itemsList.forEach((itemDto) => {
-        warehouses.forEach((warehouse) => {
-          // Use item's quantity/available/reserved if available from API DTO
-          const quantity = Number(itemDto.quantity || 0);
-          const available = Number(itemDto.available || itemDto.quantity || 0);
-          const reserved = Number(itemDto.reserved || 0);
-          
-          stock.push({
-            id: `${itemDto.id}-${warehouse.id}`,
-            itemId: String(itemDto.id),
-            warehouseId: warehouse.id,
-            quantity: quantity,
-            availableQuantity: available,
-            reservedQuantity: reserved > 0 ? reserved : undefined,
-            lastUpdated: new Date().toISOString(),
-          });
+        // warehouses.forEach((warehouse) => {
+        // Use item's quantity/available/reserved if available from API DTO
+        const quantity = Number(itemDto.quantity || 0);
+        const available = Number(itemDto.available || itemDto.quantity || 0);
+        const reserved = Number(itemDto.reserved || 0);
+
+        stock.push({
+          id: `${itemDto.id}`,
+          itemId: String(itemDto.id),
+          quantity: quantity,
+          availableQuantity: available,
+          reservedQuantity: reserved > 0 ? reserved : undefined,
+          lastUpdated: new Date().toISOString(),
+          warehouse_id: itemDto.warehouse_id,
+          warehouse_name: itemDto.warehouse_name,
+          warehouse_location: itemDto.warehouse_location,
         });
+        // });
       });
+
+      console.log(stock);
       return stock;
     }
     throw error;
   }
 }
 
+// Helper function to generate category code from name
+export const generateCategoryCode = (name: string): string => {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^A-Z0-9_]/g, "")
+    .substring(0, 50); // Limit length
+};
 
+// Helper function to generate warehouse code from name
+export const generateWarehouseCode = (name: string): string => {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^A-Z0-9_]/g, "")
+    .substring(0, 50); // Limit length
+};

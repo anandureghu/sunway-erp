@@ -29,8 +29,8 @@ export interface CreateTransactionDTO {
   // fiscalType: string;
   transactionDate: string;
   amount: number | string;
-  // debitAccount: string;
-  creditAccount: string;
+  debitAccount: number;
+  creditAccount: number;
   // itemCode?: string | null;
   invoiceId?: string | null;
   paymentId?: string | null;

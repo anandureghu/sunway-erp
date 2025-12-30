@@ -56,10 +56,28 @@ export type CategoryUpdateDTO = {
 
 export type WarehouseResponseDTO = {
   id: Id;
-  code?: string;
-  name?: string;
+
+  // Core identity
+  code: string;
+  name: string;
+  status: "active" | "inactive";
+
+  // Address
+  street?: string;
+  city?: string;
+  country?: string;
+  pin?: string;
+
+  // Contact
+  phone?: string;
+  contactPersonName?: string;
+
+  // Manager
+  managerId?: Id;
+  managerName?: string;
+
+  // Computed / display
   location?: string;
-  status?: string;
 };
 
 export type WarehouseCreateDTO = {
@@ -96,6 +114,11 @@ export type ItemResponseDTO = {
   status?: string;
   createdAt?: string;
   updatedAt?: string;
+
+  warehouse_id?: number;
+  warehouse_name?: number;
+  warehouse_location?: number;
+  imageUrl?: string;
 };
 
 export type ItemCreateDTO = {
@@ -118,6 +141,7 @@ export type ItemCreateDTO = {
   status?: string;
   imageUrl?: string;
   description?: string;
+  image?: File | null;
 };
 
 export type ItemUpdateDTO = {
@@ -213,5 +237,3 @@ export type ShipmentResponseDTO = {
   deliveredAt?: string;
   items?: ShipmentItemDTO[];
 };
-
-

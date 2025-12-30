@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -14,9 +14,11 @@ import { getBudgetLineColumns } from "@/lib/columns/finance/budget-line-columns"
 
 import type { BudgetResponseDTO, BudgetLineDTO } from "@/types/budget";
 import { BudgetLineDialog } from "./budget-line-dialog";
+import { ArrowLeft } from "lucide-react";
 
 export default function BudgetDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [data, setData] = useState<BudgetResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,14 +74,33 @@ export default function BudgetDetailPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">
-        Budget: {data.budgetName} ({data.budgetYear})
-      </h1>
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="flex gap-1"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Button>
+        <h1 className="text-2xl font-semibold">
+          Budget: {data.budgetName} ({data.budgetYear})
+        </h1>
+      </div>
 
       <Card>
         <CardHeader className="flex justify-between">
           <div>
             <p>Amount: {data.amount}</p>
+            <p
+              style={{
+                color:
+                  data.balance == 0 || (data.balance || 0) < 0
+                    ? "red"
+                    : "green",
+              }}
+            >
+              Remaining: {data.balance}
+            </p>
             <p>Status: {data.status}</p>
             <p>Start: {data.startDate}</p>
             <p>End: {data.endDate}</p>
@@ -91,7 +112,7 @@ export default function BudgetDetailPage() {
               setLineDialogOpen(true);
             }}
           >
-            Add Budget Line
+            Add Budget Distribution
           </Button>
         </CardHeader>
 

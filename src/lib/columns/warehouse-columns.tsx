@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, MapPin } from "lucide-react";
 
 export function createWarehouseColumns(
   onEdit?: (warehouse: Warehouse) => void,
@@ -22,40 +22,85 @@ export function createWarehouseColumns(
     {
       accessorKey: "name",
       header: "Warehouse Name",
+      cell: ({ row }) => (
+        <span className="font-medium text-gray-900">{row.original.name}</span>
+      ),
+    },
+
+    {
+      id: "address",
+      header: "Address",
       cell: ({ row }) => {
-        return <span className="font-medium">{row.original.name}</span>;
+        const { street, city, country, pin } = row.original;
+
+        const line1 = [street, city].filter(Boolean).join(", ");
+        const line2 = [country, pin].filter(Boolean).join(" - ");
+
+        return (
+          <div className="flex items-start gap-2 text-sm text-gray-600">
+            <MapPin className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
+            <div className="leading-tight">
+              <div>{line1 || "—"}</div>
+              <div className="text-xs text-gray-500">{line2}</div>
+            </div>
+          </div>
+        );
       },
+    },
+
+    {
+      accessorKey: "phone",
+      header: "Phone",
+      cell: ({ row }) => (
+        <span className="font-medium text-gray-900">{row.original.phone}</span>
+      ),
+    },
+
+    {
+      accessorKey: "contactPersonName",
+      header: "Contact Person",
+      cell: ({ row }) => (
+        <span className="font-medium text-gray-900">
+          {row.original.contactPersonName}
+        </span>
+      ),
     },
     {
-      accessorKey: "location",
-      header: "Location",
-      cell: ({ row }) => {
-        return <span className="text-gray-600">{row.original.location}</span>;
-      },
+      accessorKey: "managerName",
+      header: "Manager",
+      cell: ({ row }) => (
+        <span className="font-medium text-gray-900">
+          {row.original.managerName}
+        </span>
+      ),
     },
+
     {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
         const status = row.original.status;
+
         return (
           <Badge
             variant="outline"
             className={
               status === "active"
-                ? "bg-green-100 text-green-800"
-                : "bg-gray-100 text-gray-800"
+                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                : "bg-gray-100 text-gray-700 border-gray-200"
             }
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {status}
           </Badge>
         );
       },
     },
+
     {
       id: "actions",
       cell: ({ row }) => {
         const warehouse = row.original;
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -64,19 +109,23 @@ export function createWarehouseColumns(
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+
               {onEdit && (
                 <DropdownMenuItem onClick={() => onEdit(warehouse)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Warehouse
                 </DropdownMenuItem>
               )}
+
               <DropdownMenuSeparator />
+
               {onDelete && (
                 <DropdownMenuItem
-                  className="text-red-600"
-                  onClick={() => onDelete(warehouse.id)}
+                  className="text-red-600 focus:text-red-600"
+                  onClick={() => onDelete(String(warehouse.id))}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
@@ -89,4 +138,3 @@ export function createWarehouseColumns(
     },
   ];
 }
-

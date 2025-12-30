@@ -38,8 +38,8 @@ export function TransactionDialog({
     // fiscalType: "",
     transactionDate: "",
     amount: 0,
-    // debitAccount: "",
-    creditAccount: "",
+    debitAccount: 0,
+    creditAccount: 0,
     // itemCode: "",
     invoiceId: "",
     paymentId: "",
@@ -58,7 +58,8 @@ export function TransactionDialog({
         transactionDate: data.transactionDate,
         amount: data.amount,
         // debitAccount: data.debitAccount ?? "",
-        creditAccount: data.creditAccount ?? "",
+        creditAccount: Number(data.creditAccount) || 0,
+        debitAccount: Number(data.debitAccount) || 0,
         // itemCode: data.itemCode ?? "",
         invoiceId: data.invoiceId ?? "",
         paymentId: data.paymentId ?? "",
@@ -68,17 +69,39 @@ export function TransactionDialog({
   }, [data, companyId]);
 
   const handleSave = async () => {
-    try {
-      const res = data
-        ? await apiClient.put(`/finance/transactions/${data.id}`, form)
-        : await apiClient.post(`/finance/transactions`, form);
+    if (data) {
+      apiClient
+        .put(`/finance/transactions/${data.id}`, form)
+        .then((res) => {
+          onSuccess(res.data, data ? "edit" : "add");
+          toast.success("Saved successfully");
+          onOpenChange(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          toast.error("Failed to save", {
+            description: err!.response!.data!.message,
+          });
+        });
+    } else {
+      apiClient
+        .post(`/finance/transactions`, {
+          ...form,
+          debitAccount: Number(form.debitAccount),
+          creditAccount: Number(form.creditAccount),
+        })
+        .then((res) => {
+          onSuccess(res.data, data ? "edit" : "add");
 
-      onSuccess(res.data, data ? "edit" : "add");
-      toast.success("Saved successfully");
-      onOpenChange(false);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save");
+          toast.success("Saved successfully");
+          onOpenChange(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          toast.error("Failed to save", {
+            description: err!.response!.data!.message,
+          });
+        });
     }
   };
 
@@ -126,6 +149,14 @@ export function TransactionDialog({
             />
           </div>
 
+          <div className="space-y-1">
+            <Label>Payment ID</Label>
+            <Input
+              value={form.paymentId ?? ""}
+              onChange={(e) => update("paymentId", e.target.value)}
+            />
+          </div>
+
           {/* <div className="space-y-1">
             <Label>Debit Account</Label>
             <Input
@@ -146,7 +177,7 @@ export function TransactionDialog({
             <Label>Credit Account</Label>
             <Select
               onValueChange={(val) => update("creditAccount", val)}
-              value={form.creditAccount}
+              value={form.creditAccount.toString()}
             >
               {/* <FormControl> */}
               <SelectTrigger>
@@ -154,25 +185,33 @@ export function TransactionDialog({
               </SelectTrigger>
               {/* </FormControl> */}
 
-              <SelectAccount />
+              <SelectAccount useId />
             </Select>
           </div>
 
           <div className="space-y-1">
+            <Label>Debit Account</Label>
+            <Select
+              onValueChange={(val) => update("debitAccount", val)}
+              value={form.debitAccount.toString()}
+            >
+              {/* <FormControl> */}
+              <SelectTrigger>
+                <SelectValue placeholder={"Select Debit Account"} />
+              </SelectTrigger>
+              {/* </FormControl> */}
+
+              <SelectAccount useId />
+            </Select>
+          </div>
+
+          {/* <div className="space-y-1">
             <Label>Invoice ID</Label>
             <Input
               value={form.invoiceId ?? ""}
               onChange={(e) => update("invoiceId", e.target.value)}
             />
-          </div>
-
-          <div className="space-y-1">
-            <Label>Payment ID</Label>
-            <Input
-              value={form.paymentId ?? ""}
-              onChange={(e) => update("paymentId", e.target.value)}
-            />
-          </div>
+          </div> */}
 
           {/* <div className="space-y-1">
             <Label>Item Code</Label>

@@ -73,9 +73,9 @@ export const getSidebarItems = async (
               url: "/inventory/dashboard",
               items: [
                 {
-                  title: "Inventory Analytics",
-                  url: "/inventory/dashboard",
-                  icon: Package,
+                  title: "Inventory Report",
+                  url: "/inventory/reports",
+                  icon: FileText,
                 },
                 {
                   title: "Inventory (Stocks)",
@@ -89,9 +89,9 @@ export const getSidebarItems = async (
                   icon: Receipt,
                 },
                 {
-                  title: "Inventory Report",
-                  url: "/inventory/reports",
-                  icon: FileText,
+                  title: "Inventory Settings",
+                  url: "/inventory/settings",
+                  icon: Settings,
                 },
               ],
             },
@@ -107,9 +107,9 @@ export const getSidebarItems = async (
               url: "/finance/dashboard",
               items: [
                 {
-                  title: "Finance Analytics",
-                  url: "/finance/dashboard",
-                  icon: DollarSign,
+                  title: "Finance Reports",
+                  url: "/finance/reports",
+                  icon: PieChart,
                 },
                 {
                   title: "Accounts Receivable",
@@ -132,9 +132,9 @@ export const getSidebarItems = async (
                   icon: Users,
                 },
                 {
-                  title: "Finance Reports",
-                  url: "/finance/reports",
-                  icon: PieChart,
+                  title: "Finance Settings",
+                  url: "/finance/settings",
+                  icon: Settings,
                 },
               ],
             },

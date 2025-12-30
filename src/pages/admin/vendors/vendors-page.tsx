@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VendorDialog } from "./vendor-dialog";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
+import { getParentPath } from "@/lib/utils";
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -18,6 +19,7 @@ export default function VendorsPage() {
   const [selected, setSelected] = useState<Vendor | null>(null);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { pathname } = useLocation();
 
   const fetchVendors = async () => {
     try {
@@ -28,30 +30,36 @@ export default function VendorsPage() {
           console.log("Sample vendor data from API:", vendor);
           console.log("All vendor keys:", Object.keys(vendor));
         }
-        
+
         const mapped = {
           ...vendor,
           // Map createdAt from various possible field names
-          createdAt: vendor.createdAt || 
-                    vendor.created_at || 
-                    vendor.dateCreated || 
-                    vendor.date_created ||
-                    vendor.createdDate ||
-                    vendor.created_date,
+          createdAt:
+            vendor.createdAt ||
+            vendor.created_at ||
+            vendor.dateCreated ||
+            vendor.date_created ||
+            vendor.createdDate ||
+            vendor.created_date,
           // Map is1099Vendor from various possible field names
-          is1099Vendor: vendor.is1099Vendor !== undefined ? vendor.is1099Vendor :
-                       vendor.is_1099_vendor !== undefined ? vendor.is_1099_vendor :
-                       vendor.is1099 !== undefined ? vendor.is1099 :
-                       vendor.is_1099 !== undefined ? vendor.is_1099 :
-                       false, // Default to false if not provided
+          is1099Vendor:
+            vendor.is1099Vendor !== undefined
+              ? vendor.is1099Vendor
+              : vendor.is_1099_vendor !== undefined
+              ? vendor.is_1099_vendor
+              : vendor.is1099 !== undefined
+              ? vendor.is1099
+              : vendor.is_1099 !== undefined
+              ? vendor.is_1099
+              : false, // Default to false if not provided
         };
-        
+
         if (res.data.indexOf(vendor) === 0) {
           console.log("Mapped vendor data:", mapped);
           console.log("Mapped createdAt:", mapped.createdAt);
           console.log("Mapped is1099Vendor:", mapped.is1099Vendor);
         }
-        
+
         return mapped;
       });
       setVendors(mappedVendors);
@@ -103,7 +111,8 @@ export default function VendorsPage() {
 
   const handleRowClick = (row: Row<Vendor>) => {
     const vendor = row.original;
-    navigate(`/admin/vendors/${vendor.id}`);
+    const parentPath = getParentPath(pathname);
+    navigate(`/${parentPath}/vendors/${vendor.id}`);
   };
 
   const columns = getVendorColumns({
@@ -181,4 +190,3 @@ export default function VendorsPage() {
     </div>
   );
 }
-
