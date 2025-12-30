@@ -1,13 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
-import { useState, useCallback, useEffect } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import {
-  createPicklistColumns,
-  createDispatchColumns,
   createPicklistColumns,
   createDispatchColumns,
 } from "@/lib/columns/sales-columns";
@@ -90,11 +87,7 @@ export default function PicklistDispatchPage() {
   };
 
   useEffect(() => {
-    let cancelled = false;
     loadData();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   // Picklist handlers
@@ -119,7 +112,7 @@ export default function PicklistDispatchPage() {
     }
   }, []);
 
-  const handleCreateDispatchFromPicklist = useCallback((picklistId: string) => {
+  const handleCreateDispatchFromPicklist = useCallback(() => {
     setShowCreateDispatch(true);
     // Store picklistId in state or pass it somehow
     // For now, the form will allow selection

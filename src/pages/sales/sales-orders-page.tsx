@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useEffect, useMemo, useState, useCallback } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { SALES_ORDER_COLUMNS } from "@/lib/columns/sales-columns";
 import { Plus, Search, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
@@ -54,7 +52,7 @@ export default function SalesOrdersPage() {
     location.pathname.includes("/new")
   );
   const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -214,7 +212,7 @@ export default function SalesOrdersPage() {
         toast.error(errorMessage);
 
         // Also log the full error for debugging
-        if (process.env.NODE_ENV === "development") {
+        if (import.meta.env.NODE_ENV === "development") {
           console.error("Error details:", {
             status: error?.response?.status,
             statusText: error?.response?.statusText,
@@ -251,7 +249,7 @@ export default function SalesOrdersPage() {
     [orders]
   );
 
-  const handleEdit = useCallback((id: string) => {
+  const handleEdit = useCallback(() => {
     // Navigate to edit page or open edit dialog
     toast.info("Edit functionality coming soon");
   }, []);
@@ -797,10 +795,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
     const validationResult = SALES_ORDER_SCHEMA.safeParse(completeData);
     if (!validationResult.success) {
       console.error("Validation errors:", validationResult.error);
-      const errorMessages = validationResult.error.errors
-        .map((e) => e.message)
-        .join(", ");
-      toast.error(`Please check the form for errors: ${errorMessages}`);
+      toast.error(`Please check the form for errors`);
       return;
     }
 
