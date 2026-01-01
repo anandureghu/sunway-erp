@@ -152,32 +152,7 @@ export const purchaseRequisitions: PurchaseRequisition[] = [
 ];
 
 // Mock Purchase Orders
-const purchaseOrderItems1: PurchaseOrderItem[] = [
-  {
-    id: "poi-1",
-    orderId: "po-1",
-    itemId: items[0].id,
-    item: items[0],
-    quantity: 200,
-    unitPrice: 1200,
-    discount: 5,
-    tax: 18,
-    total: 228000,
-    warehouseId: warehouses[0].id,
-  },
-  {
-    id: "poi-2",
-    orderId: "po-1",
-    itemId: items[1].id,
-    item: items[1],
-    quantity: 100,
-    unitPrice: 890,
-    discount: 0,
-    tax: 18,
-    total: 89000,
-    warehouseId: warehouses[0].id,
-  },
-];
+const purchaseOrderItems1: PurchaseOrderItem[] = [];
 
 // Using a mutable array for demo purposes
 export const purchaseOrders: PurchaseOrder[] = [
@@ -214,20 +189,7 @@ export const purchaseOrders: PurchaseOrder[] = [
     orderDate: "2025-02-08",
     expectedDate: "2025-02-25",
     status: "approved",
-    items: [
-      {
-        id: "poi-3",
-        orderId: "po-2",
-        itemId: items[2].id,
-        item: items[2],
-        quantity: 150,
-        unitPrice: 450,
-        discount: 10,
-        tax: 18,
-        total: 60750,
-        warehouseId: warehouses[0].id,
-      },
-    ],
+    items: [],
     subtotal: 67500,
     tax: 12150,
     discount: 6750,
@@ -246,20 +208,7 @@ export const purchaseOrders: PurchaseOrder[] = [
     orderDate: "2025-02-10",
     expectedDate: "2025-02-28",
     status: "draft",
-    items: [
-      {
-        id: "poi-4",
-        orderId: "po-3",
-        itemId: items[3].id,
-        item: items[3],
-        quantity: 80,
-        unitPrice: 600,
-        discount: 5,
-        tax: 18,
-        total: 45600,
-        warehouseId: warehouses[0].id,
-      },
-    ],
+    items: [],
     subtotal: 48000,
     tax: 8640,
     discount: 2400,
@@ -434,7 +383,9 @@ export const addSupplier = (supplier: Supplier) => {
   return supplier;
 };
 
-export const getPurchaseRequisitionById = (id: string): PurchaseRequisition | undefined => {
+export const getPurchaseRequisitionById = (
+  id: string
+): PurchaseRequisition | undefined => {
   return purchaseRequisitions.find((pr) => pr.id === id);
 };
 
@@ -443,10 +394,16 @@ export const addPurchaseRequisition = (requisition: PurchaseRequisition) => {
   return requisition;
 };
 
-export const updatePurchaseRequisition = (id: string, updates: Partial<PurchaseRequisition>) => {
+export const updatePurchaseRequisition = (
+  id: string,
+  updates: Partial<PurchaseRequisition>
+) => {
   const index = purchaseRequisitions.findIndex((pr) => pr.id === id);
   if (index >= 0) {
-    purchaseRequisitions[index] = { ...purchaseRequisitions[index], ...updates };
+    purchaseRequisitions[index] = {
+      ...purchaseRequisitions[index],
+      ...updates,
+    };
     return purchaseRequisitions[index];
   }
   return undefined;
@@ -461,7 +418,8 @@ export const addGoodsReceipt = (receipt: GoodsReceipt) => {
   return receipt;
 };
 
-export const getPurchaseInvoiceById = (id: string): PurchaseInvoice | undefined => {
+export const getPurchaseInvoiceById = (
+  id: string
+): PurchaseInvoice | undefined => {
   return purchaseInvoices.find((inv) => inv.id === id);
 };
-

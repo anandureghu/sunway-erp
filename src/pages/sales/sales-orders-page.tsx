@@ -37,6 +37,7 @@ import {
   confirmSalesOrder,
   cancelSalesOrder,
 } from "@/service/salesFlowService";
+import type { Customer } from "@/types/sales";
 import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
 import { toast } from "sonner";
 
@@ -51,6 +52,7 @@ export default function SalesOrdersPage() {
     location.pathname.includes("/new")
   );
   const [orders, setOrders] = useState<SalesOrder[]>([]);
+  const [, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -74,6 +76,7 @@ export default function SalesOrdersPage() {
           listCustomers(),
         ]);
         if (!cancelled) {
+          setCustomers(customersData);
           // Enrich orders with customer data
           const enrichedOrders = ordersData.map((order) => ({
             ...order,
@@ -792,7 +795,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
     const validationResult = SALES_ORDER_SCHEMA.safeParse(completeData);
     if (!validationResult.success) {
       console.error("Validation errors:", validationResult.error);
-
+      toast.error(`Please check the form for errors`);
       return;
     }
 

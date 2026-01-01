@@ -16,6 +16,10 @@ import InvoicesPage from "./pages/sales/invoices-page";
 /* Purchase */
 import PurchaseLandingPage from "./pages/purchase/purchase-landing-page";
 import PurchaseOrdersPage from "./pages/purchase/purchase-orders-page";
+import PurchaseOrderDetailPage from "./pages/purchase/purchase-order-detail-page";
+import PurchaseInvoiceDetailPage from "./pages/purchase/purchase-invoice-detail-page";
+import GoodsReceiptDetailPage from "./pages/purchase/goods-receipt-detail-page";
+import PurchaseRequisitionDetailPage from "./pages/purchase/purchase-requisition-detail-page";
 import SuppliersPage from "./pages/purchase/suppliers-page";
 import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
 import ReceivingPage from "./pages/purchase/receiving-page";
@@ -158,13 +162,17 @@ export default function App() {
           <Route path="purchase" element={<PurchaseLandingPage />} />
           <Route path="purchase/orders" element={<PurchaseOrdersPage />} />
           <Route path="purchase/orders/new" element={<PurchaseOrdersPage />} />
+          <Route path="purchase/orders/:id" element={<PurchaseOrderDetailPage />} />
           <Route path="purchase/suppliers" element={<SuppliersPage />} />
           <Route path="purchase/invoices" element={<PurchaseInvoicesPage />} />
+          <Route path="purchase/invoices/:id" element={<PurchaseInvoiceDetailPage />} />
           <Route path="purchase/receiving" element={<ReceivingPage />} />
+          <Route path="purchase/receiving/:id" element={<GoodsReceiptDetailPage />} />
           <Route
             path="purchase/requisitions"
             element={<PurchaseRequisitionsPage />}
           />
+          <Route path="purchase/requisitions/:id" element={<PurchaseRequisitionDetailPage />} />
           <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="vendors/:id" element={<VendorDetailPage />} />
         </Route>

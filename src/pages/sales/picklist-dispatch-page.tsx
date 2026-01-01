@@ -86,6 +86,10 @@ export default function PicklistDispatchPage() {
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
   // Picklist handlers
   const handleMarkPicklistPicked = useCallback(async (id: string) => {
     try {

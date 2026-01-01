@@ -39,6 +39,8 @@ export const ITEM_SCHEMA = z.object({
 // Warehouse Schema
 export const WAREHOUSE_SCHEMA = z.object({
   name: z.string().min(1, "Warehouse name is required"),
+  address: z.string().optional(),
+  capacity: z.number().min(0).optional(),
   status: z.enum(["active", "inactive"]),
   city: z.string(),
   street: z.string(),
