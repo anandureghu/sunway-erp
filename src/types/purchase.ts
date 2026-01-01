@@ -74,6 +74,7 @@ export type PurchaseOrderItem = {
   discount: number;
   tax: number;
   total: number;
+  lineTotal: number;
   receivedQuantity?: number;
   warehouseId?: string;
   notes?: string;

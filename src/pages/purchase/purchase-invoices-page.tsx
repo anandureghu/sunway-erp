@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,13 @@ import { Input } from "@/components/ui/input";
 import { PURCHASE_INVOICE_COLUMNS } from "@/lib/columns/purchase-columns";
 import { purchaseInvoices } from "@/lib/purchase-data";
 import { Search, ArrowLeft } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import type { Row } from "@tanstack/react-table";
+import type { PurchaseInvoice } from "@/types/purchase";
 
 export default function PurchaseInvoicesPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
     (location.state as { searchQuery?: string })?.searchQuery || ""
   );
@@ -20,6 +23,14 @@ export default function PurchaseInvoicesPage() {
       invoice.supplierName.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+
+  const handleRowClick = useCallback(
+    (row: Row<PurchaseInvoice>) => {
+      const invoice = row.original;
+      navigate(`/inventory/purchase/invoices/${invoice.id}`);
+    },
+    [navigate]
+  );
 
   return (
     <div className="p-6">
@@ -58,6 +69,7 @@ export default function PurchaseInvoicesPage() {
           <DataTable
             columns={PURCHASE_INVOICE_COLUMNS}
             data={filteredInvoices}
+            onRowClick={handleRowClick}
           />
         </CardContent>
       </Card>
