@@ -1,20 +1,25 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
-import { EMPLOYEES } from "@/pages/employees.mock";
+import { useState, useEffect } from "react";
+import { hrService } from "@/service/hr.service";
+import type { Employee } from "@/types/hr";
 
-// Icons for tabs
 import { Wrench, Hourglass, GraduationCap } from "lucide-react";
 
 export default function CurrentJobLayout() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const emp = useMemo(
-    () => EMPLOYEES.find((e) => e.id === id),
-    [id]
-  );
+  const [emp, setEmp] = useState<Employee | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   return (
     <div className="p-4">

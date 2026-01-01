@@ -1,112 +1,128 @@
-import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
+import { payrollService } from "@/service/payrollService";
+import { toast } from "sonner";
 
 type SalaryCtx = { editing: boolean };
 
 type PayrollRow = {
+  payDate: string;        // yyyy-mm-dd   
   payrollCode: string;
   payPeriodStart: string;    // yyyy-mm-dd (populated from salary)
   payPeriodEnd: string;      // yyyy-mm-dd (populated from salary)
   grossPay: string;          // calculated from Total Compensation (basicSalary + totalAllowance)
   payDay: string;            // only editable field
   netPayable: string;
-  bankName: string;
-  bankAccount: string;
+  bankName?: string;
+  bankAccount?: string;
 };
 
-const ROWS: PayrollRow[] = [
-  {
-    payrollCode: "",
-    payPeriodStart: "2025-09-22",
-    payPeriodEnd: "2025-10-22",
-    grossPay: "78000",  // 50000 + 28000
-    payDay: "",
-    netPayable: "28000",
-    bankName: "",
-    bankAccount: "",
-  },
-  { payrollCode: "", payPeriodStart: "", payPeriodEnd: "", grossPay: "78000", payDay: "", netPayable: "28000", bankName: "", bankAccount: "" },
-  { payrollCode: "", payPeriodStart: "", payPeriodEnd: "", grossPay: "88000", payDay: "", netPayable: "0", bankName: "", bankAccount: "" },
-  { payrollCode: "", payPeriodStart: "", payPeriodEnd: "", grossPay: "88000", payDay: "", netPayable: "0", bankName: "", bankAccount: "" },
-];
 
 export default function PayrollTab() {
   const { editing } = useOutletContext<SalaryCtx>();
-  const [saved, setSaved] = useState<PayrollRow[]>(ROWS);
-  const [draft, setDraft] = useState<PayrollRow[]>(ROWS);
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
+
+  const [payroll, setPayroll] = useState({ payPeriodStart: "", payPeriodEnd: "", payDate: "" });
+  const [history, setHistory] = useState<PayrollRow[]>([]);
+
+  const loadPayrollHistory = useCallback(async () => {
+    if (!employeeId) return;
+    try {
+      const res = await payrollService.getPayrollHistory(employeeId);
+      setHistory(res.data || []);
+    } catch (err: any) {
+      console.error("Failed to load payroll history", err);
+      toast.error(err?.response?.data?.message || "Failed to load payroll history");
+    }
+  }, [employeeId]);
 
   useEffect(() => {
-    const onSave = () => setSaved(draft);
-    const onCancel = () => setDraft(saved);
-    document.addEventListener("salary:save", onSave as EventListener);
-    document.addEventListener("salary:cancel", onCancel as EventListener);
-    return () => {
-      document.removeEventListener("salary:save", onSave as EventListener);
-      document.removeEventListener("salary:cancel", onCancel as EventListener);
-    };
-  }, [draft, saved]);
+    void loadPayrollHistory();
+  }, [loadPayrollHistory]);
 
-  const set = (idx: number, k: keyof PayrollRow, v: string) =>
-    setDraft((rows) => rows.map((r, i) => (i === idx ? { ...r, [k]: v } : r)));
+  const patch = (k: keyof typeof payroll, v: string) => setPayroll((p) => ({ ...p, [k]: v }));
+
+  const handleGeneratePayroll = async () => {
+    if (!employeeId) return;
+
+    try {
+      await payrollService.generatePayroll(employeeId, {
+        payPeriodStart: payroll.payPeriodStart,
+        payPeriodEnd: payroll.payPeriodEnd,
+        payDate: payroll.payDate,
+      });
+
+      toast.success("Payroll generated successfully");
+
+      
+      await loadPayrollHistory();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to generate payroll");
+    }
+  };
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="min-w-[1100px] grid grid-cols-8 gap-3 items-center">
-        <Header>Payroll Code</Header>
-        <Header>Pay Period Start</Header>
-        <Header>Pay Period End</Header>
-        <Header>Gross Pay</Header>
-        <Header>Pay Day</Header>
-        <Header>Net Payable</Header>
-        <Header>Bank Name</Header>
-        <Header>Bank Account</Header>
-        {/* rows */}
-        {draft.map((r, i) => (
-          <Row key={i}>
-            <Cell>
-              <Input disabled value={r.payrollCode} />
-            </Cell>
-            <Cell>
-              <Input type="date" disabled value={r.payPeriodStart} />
-            </Cell>
-            <Cell>
-              <Input type="date" disabled value={r.payPeriodEnd} />
-            </Cell>
-            <Cell>
-              <Input disabled value={formatMoney(r.grossPay)} />
-            </Cell>
-            <Cell>
-              <Input
-                type="date"
-                disabled={!editing}
-                value={r.payDay}
-                onChange={(e) => set(i, "payDay", e.target.value)}
-              />
-            </Cell>
-            <Cell>
-              <Input disabled value={formatMoney(r.netPayable)} />
-            </Cell>
-            <Cell>
-              <Input disabled value={r.bankName} />
-            </Cell>
-            <Cell>
-              <Input disabled value={r.bankAccount} />
-            </Cell>
-          </Row>
-        ))}
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4 items-end">
+        <div>
+          <label className="text-sm font-medium">Pay Period Start</label>
+          <Input type="date" value={payroll.payPeriodStart} onChange={(e) => patch("payPeriodStart", e.target.value)} />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Pay Period End</label>
+          <Input type="date" value={payroll.payPeriodEnd} onChange={(e) => patch("payPeriodEnd", e.target.value)} />
+        </div>
+        <div>
+          <label className="text-sm font-medium">Pay Date</label>
+          <Input type="date" value={payroll.payDate} onChange={(e) => patch("payDate", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <Button onClick={handleGeneratePayroll} disabled={!editing}>
+          Generate Payroll
+        </Button>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold">Payroll History</h3>
+        <div className="overflow-x-auto rounded-md border mt-2">
+          <table className="min-w-full text-sm">
+            <thead className="bg-muted">
+              <tr className="text-left">
+                <th className="px-3 py-2 font-medium">Payroll Code</th>
+                <th className="px-3 py-2 font-medium">Pay Period Start</th>
+                <th className="px-3 py-2 font-medium">Pay Period End</th>
+                <th className="px-3 py-2 font-medium">Gross Pay</th>
+                <th className="px-3 py-2 font-medium">Pay Date</th>
+                <th className="px-3 py-2 font-medium">Net Payable</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.length === 0 && (
+                <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No payroll history</td></tr>
+              )}
+              {history.map((r) => (
+                <tr key={r.payrollCode} className="border-t">
+                  <td className="px-3 py-2">{r.payrollCode}</td>
+                  <td className="px-3 py-2">{r.payPeriodStart}</td>
+                  <td className="px-3 py-2">{r.payPeriodEnd}</td>
+                  <td className="px-3 py-2">{formatMoney(r.grossPay)}</td>
+                  <td className="px-3 py-2">{r.payDate}</td>
+                  <td className="px-3 py-2">{formatMoney(r.netPayable)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
 
-function Header({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`text-sm font-medium ${className}`}>{children}</div>;
-}
-function Row({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
-function Cell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`py-1 ${className}`}>{children}</div>;
-}
+
+

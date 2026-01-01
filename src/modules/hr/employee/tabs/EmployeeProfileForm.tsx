@@ -1,4 +1,3 @@
-// modules/hr/employee/tabs/EmployeeProfileForm.tsx
 import { useOutletContext, useParams } from "react-router-dom";
 import {
   useState,
@@ -52,26 +51,34 @@ export default function EmployeeProfileForm(): ReactElement {
   const { setSelected } = useEmployeeSelection();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadInitial = useCallback((): EmpProfile => {
-    const base = { ...SEED };
-    const stored = localStorage.getItem("employees");
-    if (stored) {
-      try {
-        const list = JSON.parse(stored);
-        const found = list.find((e: any) => e.id === id);
-        if (found) {
-          // merge to ensure new fields (like prefix, status) always exist
-          return { ...base, ...found } as EmpProfile;
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
-    return base;
-  }, [id]);
+  const [saved, setSaved] = useState<EmpProfile>(SEED);
+  const [draft, setDraft] = useState<EmpProfile>(SEED);
 
-  const [saved, setSaved] = useState<EmpProfile>(loadInitial);
-  const [draft, setDraft] = useState<EmpProfile>(loadInitial);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!id) return;
+      const emp = await import("@/service/hr.service").then((m) => m.hrService.getEmployee(id));
+      if (!mounted) return;
+      if (emp) {
+        const fromBackendStatus = (s?: string | null) => {
+          if (!s) return SEED.status;
+          const up = String(s).toUpperCase();
+          if (up === "ACTIVE") return "Active";
+          if (up === "INACTIVE") return "Inactive";
+          if (up === "ON_LEAVE") return "On Leave";
+          return String(s);
+        };
+
+        const merged = { ...SEED, ...emp, status: fromBackendStatus((emp as any).status) } as EmpProfile;
+        setSaved(merged);
+        setDraft(merged);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   const set = useCallback(
     <K extends keyof EmpProfile>(k: K, v: EmpProfile[K]) =>
@@ -79,27 +86,43 @@ export default function EmployeeProfileForm(): ReactElement {
     []
   );
 
-  // persist updated employee in localStorage and update selection context
   const persistChanges = useCallback(
-    (updated: EmpProfile) => {
-      try {
-        const stored = localStorage.getItem("employees");
-        const list = stored ? JSON.parse(stored) : null;
+    async (updated: EmpProfile) => {
+      const toBackendStatus = (s?: string | null) => {
+        if (!s) return null;
+        const low = String(s).toLowerCase();
+        if (low === "active") return "ACTIVE";
+        if (low === "inactive") return "INACTIVE";
+        if (low === "on leave" || low === "on_leave" || low === "on-leave") return "ON_LEAVE";
+        return String(s).toUpperCase();
+      };
 
-        if (list && Array.isArray(list)) {
-          const idx = list.findIndex((e: any) => e.id === id);
-          if (idx >= 0) {
-            list[idx] = { ...list[idx], ...updated };
-          } else {
-            list.push({ id, ...updated });
-          }
-          localStorage.setItem("employees", JSON.stringify(list));
+      const statusVal = toBackendStatus(updated.status ?? null);
+
+      const payload: any = {
+        employeeNo: updated.employeeNo,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+
+        gender: updated.gender || null,
+        prefix: updated.prefix || null,
+        maritalStatus: updated.maritalStatus || null,
+
+        dateOfBirth: updated.dateOfBirth || null,
+        joinDate: updated.joinDate || null,
+      };
+
+      if (statusVal != null) payload.status = statusVal;
+
+      try {
+        const { hrService } = await import("@/service/hr.service");
+        if (id) {
+          await hrService.updateEmployee(Number(id), payload);
         }
-      } catch {
-        // ignore storage errors
+      } catch (err) {
+        console.error("Failed to persist employee changes to server:", err);
       }
 
-      // update selected employee in context (prefix only affects display name)
       const fullName = `${updated.prefix ? `${updated.prefix} ` : ""}${
         updated.firstName
       } ${updated.lastName}`.trim();
@@ -117,9 +140,8 @@ export default function EmployeeProfileForm(): ReactElement {
         maritalStatus: updated.maritalStatus,
       });
 
-      // notify other parts of the app to reload employees (e.g., overview stats)
       try {
-        document.dispatchEvent(new Event("employees:updated"));
+        window.dispatchEvent(new CustomEvent("employee:updated", { detail: { id } }));
       } catch {
         /* ignore */
       }
@@ -127,16 +149,14 @@ export default function EmployeeProfileForm(): ReactElement {
     [id, setSelected]
   );
 
-  // Event handlers with proper types
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     setSaved(draft);
-    persistChanges(draft);
+    await persistChanges(draft);
   }, [draft, persistChanges]);
 
   const handleCancel = useCallback(() => setDraft(saved), [saved]);
   const handleEdit = useCallback(() => setDraft(saved), [saved]);
 
-  // Event listeners with proper cleanup (no duplicates)
   useEffect(() => {
     const eventHandlers: Record<ProfileEvent, () => void> = {
       "profile:save": handleSave,
@@ -155,13 +175,9 @@ export default function EmployeeProfileForm(): ReactElement {
     };
   }, [handleSave, handleCancel, handleEdit]);
 
-  const uploadImageMock = async (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const safeName = file.name.replace(/[^\w.-]/g, "_");
-        resolve(`https://cdn.example.com/uploads/${Date.now()}-${safeName}`);
-      }, 300);
-    });
+  const uploadImage = async (file: File): Promise<string> => {
+    const { hrService } = await import("@/service/hr.service");
+    return hrService.uploadImage(file);
   };
 
   return (
@@ -211,7 +227,7 @@ export default function EmployeeProfileForm(): ReactElement {
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  const url = await uploadImageMock(file);
+                  const url = await uploadImage(file);
                   set("photoUrl", url);
                 }
               }}

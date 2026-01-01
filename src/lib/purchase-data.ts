@@ -12,7 +12,7 @@ import type {
 import { items, warehouses } from "./inventory-data";
 
 // Mock Suppliers (mutable for demo purposes)
-export let suppliers: Supplier[] = [
+export const suppliers: Supplier[] = [
   {
     id: "supp-1",
     code: "SUPP001",
@@ -107,7 +107,7 @@ const requisitionItems1: PurchaseRequisitionItem[] = [
 ];
 
 // Using a mutable array for demo purposes
-export let purchaseRequisitions: PurchaseRequisition[] = [
+export const purchaseRequisitions: PurchaseRequisition[] = [
   {
     id: "pr-1",
     requisitionNo: "PR-2024-001",
@@ -180,7 +180,7 @@ const purchaseOrderItems1: PurchaseOrderItem[] = [
 ];
 
 // Using a mutable array for demo purposes
-export let purchaseOrders: PurchaseOrder[] = [
+export const purchaseOrders: PurchaseOrder[] = [
   {
     id: "po-1",
     orderNo: "PO-2024-001",
@@ -308,7 +308,7 @@ const receiptItems1: GoodsReceiptItem[] = [
 ];
 
 // Using a mutable array for demo purposes
-export let goodsReceipts: GoodsReceipt[] = [
+export const goodsReceipts: GoodsReceipt[] = [
   {
     id: "gr-1",
     receiptNo: "GR-2024-001",

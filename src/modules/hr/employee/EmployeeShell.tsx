@@ -4,7 +4,7 @@ import { useEmployeeSelection } from "@/context/employee-selection";
 export default function EmployeeShell() {
   const { selected } = useEmployeeSelection();
 
-  // If no employee is selected
+  
   if (!selected) {
     return (
       <div className="p-6">

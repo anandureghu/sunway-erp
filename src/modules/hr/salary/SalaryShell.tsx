@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { Banknote, Landmark, BadgeIndianRupee } from "lucide-react";
-import { useMemo, useState, useCallback } from "react";
-import { EMPLOYEES } from "@/pages/employees.mock";
+import { useState, useCallback, useEffect } from "react";
+import { hrService } from "@/service/hr.service";
+import type { Employee } from "@/types/hr";
 import EditUpdateButton from "@/components/EditUpdateButton";
 
 interface SalaryCtx {
@@ -13,8 +14,20 @@ interface SalaryCtx {
 
 export default function SalaryShell() {
   const { id } = useParams<{ id: string }>();
-  const emp = useMemo(() => EMPLOYEES.find((e) => e.id === id), [id]);
+  const [emp, setEmp] = useState<Employee | null>(null);
   const title = emp ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})` : "";
+
+  useEffect(() => {
+    let mounted = true;
+    if (id) {
+      hrService.getEmployee(id).then((e) => {
+        if (mounted) setEmp(e ?? null);
+      });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   const [editing, setEditing] = useState(false);
 

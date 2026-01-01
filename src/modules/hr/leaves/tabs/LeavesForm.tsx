@@ -4,6 +4,10 @@ import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useParams } from "react-router-dom";
+import { leaveService } from "@/service/leaveService";
+import { toast } from "sonner";
+import type { LeavePreview } from "@/service/leaveService";
 
 type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
@@ -56,9 +60,27 @@ const SEED: LeaveRecord = {
 
 export default function LeavesForm(): ReactElement {
   const { editing } = useOutletContext<Ctx>();
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
 
-  const [draft, setDraft] = useState<LeaveRecord>(SEED);
-  const [saved, setSaved] = useState<LeaveRecord>(SEED);
+  const [draft, setDraft] = useState<LeaveRecord>({
+    ...SEED,
+    startDate: "",
+    endDate: "",
+    dateReported: new Date().toISOString().slice(0, 10),
+    totalDays: 0,
+  });
+  const [saved, setSaved] = useState<LeaveRecord | null>(null);
+  const [preview, setPreview] = useState<LeavePreview | null>(null);
+
+  useEffect(() => {
+    if (!preview) return;
+    setDraft((d) =>
+      d.leaveBalance === String(preview.currentBalance)
+        ? d
+        : { ...d, leaveBalance: String(preview.currentBalance) }
+    );
+  }, [preview]);
 
   useEffect(() => {
     if (!editing) return;
@@ -71,16 +93,53 @@ export default function LeavesForm(): ReactElement {
     setDraft((prev) => (prev.totalDays === days ? prev : { ...prev, totalDays: days }));
   }, [draft.startDate, draft.endDate, editing]);
 
+  useEffect(() => {
+    if (!employeeId) return;
+    if (!draft.leaveType || !draft.startDate || !draft.endDate) {
+      setPreview(null);
+      return;
+    }
+    let mounted = true;
+    leaveService
+      .previewLeave(employeeId, draft.leaveType, draft.startDate, draft.endDate)
+      .then((res) => mounted && setPreview(res.data))
+      .catch((err) => {
+        console.error("Preview error", err);
+        setPreview(null);
+        toast.error(err?.response?.data?.message || "Preview failed");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [draft.leaveType, draft.startDate, draft.endDate, employeeId]);
+
   const patch = useCallback(<K extends keyof LeaveRecord>(k: K, v: LeaveRecord[K]) => {
     setDraft((d) => ({ ...d, [k]: v }));
   }, []);
 
   const handleSave = useCallback(() => {
-    setSaved(draft);
-  }, [draft]);
+    if (!employeeId) return;
+    const payload = {
+      leaveType: draft.leaveType,
+      startDate: draft.startDate,
+      endDate: draft.endDate,
+    };
+    leaveService
+      .applyLeave(employeeId, payload)
+      .then(() => {
+        toast.success("Leave applied successfully");
+        setPreview(null);
+        setSaved(draft);
+      })
+      .catch((err) => {
+        console.error("Apply leave failed", err);
+        toast.error(err?.response?.data?.message || "Failed to apply leave");
+      });
+  }, [draft, employeeId]);
 
   const handleCancel = useCallback(() => {
-    setDraft(saved);
+    if (saved) setDraft(saved);
+    else setDraft(SEED);
   }, [saved]);
 
   return (
@@ -182,12 +241,20 @@ export default function LeavesForm(): ReactElement {
         <div />
       </Row>
 
+      {preview && (
+        <div className="p-3 rounded-md border bg-muted/20">
+          <p>Total Days: {preview.totalDays}</p>
+          <p>Current Balance: {preview.currentBalance}</p>
+          <p>Balance After Leave: {preview.balanceAfterLeave}</p>
+        </div>
+      )}
+
       {editing && (
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button disabled={!validateLeave(draft)} onClick={handleSave}>
+          <Button disabled={!validateLeave(draft) || !preview || preview.balanceAfterLeave < 0} onClick={handleSave}>
             Save
           </Button>
         </div>

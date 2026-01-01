@@ -1,19 +1,19 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Eye } from "lucide-react";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 import { isValidDate } from "@/modules/hr/utils/validation";
-import { generateId } from "@/lib/utils";
 import type { Dependent, Gender, MaritalStatus } from "@/types/hr";
+import { useParams, useNavigate } from "react-router-dom";
+import { dependentService } from "@/service/dependentService";
+import { toast } from "sonner";
 
-// Types
 interface ValidationErrors {
   [key: string]: string | undefined;
 }
 
-// Constants
 const INITIAL_DEPENDENT: Dependent = {
   id: "",
   firstName: "",
@@ -38,7 +38,6 @@ const RELATIONSHIPS = [
   { value: "Other", label: "Other" }
 ] as const;
 
-// Helper function
 function validateDependent(dependent: Dependent): ValidationErrors {
   const errors: ValidationErrors = {};
 
@@ -55,20 +54,88 @@ export function DependentsForm() {
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const { id } = useParams<{ id: string }>();
+  const empId = id ? Number(id) : undefined;
+
+  const reloadFromBackend = useCallback(async () => {
+    if (!empId) return;
+    try {
+      const data = await dependentService.getAll(empId);
+      setDependents(
+        (data || []).map((d) => ({
+          id: String((d as any).id ?? ""),
+          firstName: d.firstName ?? "",
+          middleName: d.middleName ?? "",
+          lastName: d.lastName ?? "",
+          dob: (d as any).dateOfBirth ?? "",
+          gender: d.gender as Gender | undefined,
+          nationalId: (d as any).nationalId ?? "",
+          nationality: d.nationality ?? "",
+          maritalStatus: d.maritalStatus as MaritalStatus | undefined,
+          relationship: d.relationship as any,
+        }))
+      );
+    } catch (err: any) {
+      console.error("DependentsForm -> failed to load dependents:", err?.response?.data ?? err);
+      toast.error(dependentService.extractErrorMessage(err));
+    }
+  }, [empId]);
+
+  useEffect(() => {
+    reloadFromBackend();
+  }, [reloadFromBackend]);
 
   const handleAdd = useCallback(() => {
-    const newDependent = { ...INITIAL_DEPENDENT, id: generateId() };
+    const newDependent = { ...INITIAL_DEPENDENT, id: "" };
     setDependents(current => [...current, newDependent]);
-    setEditingId(newDependent.id);
+    setEditingId("");
   }, []);
 
   const handleEdit = useCallback((dependent: Dependent) => {
     setEditingId(dependent.id);
   }, []);
 
-  const handleSave = useCallback((dependent: Dependent) => {
-    setDependents(current => current.map(d => (d.id === dependent.id ? dependent : d)));
-  }, []);
+  const navigate = useNavigate();
+
+  const handleSave = useCallback(
+    async (dependent: Dependent) => {
+      setDependents((current) => current.map((d) => (d.id === dependent.id ? dependent : d)));
+
+      if (!empId) return;
+
+      try {
+        const payload = {
+          firstName: dependent.firstName,
+          middleName: dependent.middleName || undefined,
+          lastName: dependent.lastName,
+          dateOfBirth: dependent.dob
+            ? new Date(dependent.dob).toISOString().slice(0, 10)
+            : undefined,
+          gender: dependent.gender,
+          nationality: dependent.nationality || undefined,
+          nationalId: dependent.nationalId || undefined,
+          maritalStatus: dependent.maritalStatus || undefined,
+          relationship: dependent.relationship,
+        } as any;
+
+        if (dependent.id) {
+          
+          await dependentService.update(empId, Number(dependent.id), payload);
+          toast.success("Dependent updated");
+        } else {
+          
+          await dependentService.create(empId, payload);
+          toast.success("Dependent created");
+        }
+
+        await reloadFromBackend();
+        navigate(`/hr/employees/${empId}/dependents`);
+      } catch (err: any) {
+        toast.error(dependentService.extractErrorMessage(err));
+      }
+    },
+    [empId, reloadFromBackend, navigate]
+  );
 
   const handleCancel = useCallback(() => {
     setDependents(current =>
@@ -88,12 +155,29 @@ export function DependentsForm() {
     setEditingId(null);
   }, [editingId]);
 
-  const handleDelete = useCallback((id: string) => {
-    if (window.confirm("Are you sure you want to delete this dependent?")) {
-      setDependents(current => current.filter(d => d.id !== id));
-      setEditingId(null);
-    }
-  }, []);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!window.confirm("Are you sure you want to delete this dependent?")) return;
+      if (!empId) {
+        return;
+      }
+
+      try {
+        await dependentService.remove(empId, Number(id));
+        toast.success("Dependent deleted");
+        setEditingId(null);
+        await reloadFromBackend();
+      } catch (err: any) {
+        console.error("DependentsForm -> delete failed:", err?.response?.data ?? err);
+        toast.error(dependentService.extractErrorMessage(err));
+      }
+    },
+    [empId, reloadFromBackend]
+  );
+
+    const updateDependent = useCallback((id: string, changes: Partial<Dependent>) => {
+      setDependents((current) => current.map((d) => (d.id === id ? { ...d, ...changes } : d)));
+    }, []);
 
   return (
     <div className="space-y-6">
@@ -115,21 +199,21 @@ export function DependentsForm() {
                     <FormField label="First Name" required error={validateDependent(dependent).firstName}>
                       <Input
                         value={dependent.firstName}
-                        onChange={e => handleSave({ ...dependent, firstName: e.target.value })}
+                        onChange={e => updateDependent(dependent.id, { firstName: e.target.value })}
                       />
                     </FormField>
 
                     <FormField label="Middle Name">
                       <Input
                         value={dependent.middleName}
-                        onChange={e => handleSave({ ...dependent, middleName: e.target.value })}
+                        onChange={e => updateDependent(dependent.id, { middleName: e.target.value })}
                       />
                     </FormField>
 
                     <FormField label="Last Name" required error={validateDependent(dependent).lastName}>
                       <Input
                         value={dependent.lastName}
-                        onChange={e => handleSave({ ...dependent, lastName: e.target.value })}
+                        onChange={e => updateDependent(dependent.id, { lastName: e.target.value })}
                       />
                     </FormField>
                   </FormRow>
@@ -139,7 +223,7 @@ export function DependentsForm() {
                       <Input
                         type="date"
                         value={dependent.dob}
-                        onChange={e => handleSave({ ...dependent, dob: e.target.value })}
+                        onChange={e => updateDependent(dependent.id, { dob: e.target.value })}
                       />
                     </FormField>
 
@@ -147,7 +231,7 @@ export function DependentsForm() {
                       <select
                         className="h-9 w-full rounded-md border px-3 text-sm"
                         value={dependent.gender ?? ""}
-                        onChange={e => handleSave({ ...dependent, gender: (e.target.value as Gender) || undefined })}
+                        onChange={e => updateDependent(dependent.id, { gender: (e.target.value as Gender) || undefined })}
                       >
                         <option value="">Select Gender</option>
                         {GENDERS.map(g => (
@@ -163,14 +247,14 @@ export function DependentsForm() {
                     <FormField label="National ID">
                       <Input
                         value={dependent.nationalId}
-                        onChange={e => handleSave({ ...dependent, nationalId: e.target.value })}
+                        onChange={e => updateDependent(dependent.id, { nationalId: e.target.value })}
                       />
                     </FormField>
 
                     <FormField label="Nationality">
                       <Input
                         value={dependent.nationality}
-                        onChange={e => handleSave({ ...dependent, nationality: e.target.value })}
+                        onChange={e => updateDependent(dependent.id, { nationality: e.target.value })}
                       />
                     </FormField>
                   </FormRow>
@@ -181,8 +265,7 @@ export function DependentsForm() {
                         className="h-9 w-full rounded-md border px-3 text-sm"
                         value={dependent.maritalStatus ?? ""}
                         onChange={e =>
-                          handleSave({
-                            ...dependent,
+                          updateDependent(dependent.id, {
                             maritalStatus: (e.target.value as MaritalStatus) || undefined
                           })
                         }
@@ -201,8 +284,7 @@ export function DependentsForm() {
                         className="h-9 w-full rounded-md border px-3 text-sm"
                         value={dependent.relationship ?? ""}
                         onChange={e =>
-                          handleSave({
-                            ...dependent,
+                          updateDependent(dependent.id, {
                             relationship: ((e.target.value || undefined) as typeof RELATIONSHIPS[number]["value"]) ||
                               undefined
                           })
@@ -224,8 +306,8 @@ export function DependentsForm() {
                     </Button>
                     <Button
                       disabled={Object.keys(validateDependent(dependent)).length > 0}
-                      onClick={() => {
-                        handleSave(dependent);
+                      onClick={async () => {
+                        await handleSave(dependent);
                         setEditingId(null);
                       }}
                     >

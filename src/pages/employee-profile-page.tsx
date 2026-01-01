@@ -1,23 +1,105 @@
-﻿import { useMemo, useState } from "react";
+﻿import {  useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { EMPLOYEES } from "./employees.mock";
-import type { Employee } from "../types/hr";
+import { hrService } from "@/service/hr.service";
+import { toast } from "sonner";
+import AddressList from "@/modules/hr/employee/address-list";
+import { DependentsForm } from "@/modules/hr/dependents/DependentsForm";
+import type { Employee, EmployeeStatus } from "../types/hr";
 
 export default function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const emp = useMemo(() => EMPLOYEES.find((e) => e.id === id), [id]);
+  const [emp, setEmp] = useState<Employee | null>(null);
   const [editing, setEditing] = useState(false);
 
-  const [form, setForm] = useState<Partial<Employee>>(() => ({
-    employeeNo: emp?.employeeNo ?? "",
-    firstName: emp?.firstName ?? "",
-    lastName: emp?.lastName ?? "",
-    status: emp?.status ?? "Active",
-    department: emp?.department ?? "",
-    designation: emp?.designation ?? "",
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!id) return;
+      try {
+        const e = await hrService.getEmployee(id);
+        if (mounted) setEmp(e ?? null);
+      } catch (err: any) {
+        console.error("EmployeeProfilePage -> failed to load employee:", err?.response?.data ?? err);
+        toast.error(err?.response?.data?.message || err?.message || "Failed to load employee");
+        if (mounted) setEmp(null);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  type FormState = {
+    employeeNo: string;
+    firstName: string;
+    lastName: string;
+
+    gender: string;
+    prefix: string;
+    status: EmployeeStatus | string;
+    maritalStatus: string;
+
+    dateOfBirth: string;
+    joinDate: string;
+
+    phoneNo: string;
+    altPhone: string;
+    email: string;
+
+    departmentId?: string;
+    notes: string;
+  };
+
+  const [form, setForm] = useState<FormState>(() => ({
+    employeeNo: "",
+    firstName: "",
+    lastName: "",
+
+    gender: "",
+    prefix: "",
+    status: "Active",
+    maritalStatus: "",
+
+    dateOfBirth: "",
+    joinDate: "",
+
+    phoneNo: "",
+    altPhone: "",
+    email: "",
+
+    departmentId: undefined,
+    notes: "",
   }));
+
+  // (cleanPayload removed; we now send a minimal explicit payload)
+
+  useEffect(() => {
+    if (!emp) return;
+
+    setForm({
+      employeeNo: emp.employeeNo ?? "",
+      firstName: emp.firstName ?? "",
+      lastName: emp.lastName ?? "",
+
+      gender: (emp as any).gender ?? "",
+      prefix: (emp as any).prefix ?? "",
+      status: emp.status ?? "Active",
+      maritalStatus: (emp as any).maritalStatus ?? "",
+
+      dateOfBirth: emp.dateOfBirth ?? "",
+      joinDate: emp.joinDate ?? "",
+
+      phoneNo: emp.phoneNo ?? "",
+      altPhone: (emp as any).altPhone ?? "",
+      email: emp.email ?? "",
+
+      departmentId: emp.departmentId ?? undefined,
+      notes: (emp as any).notes ?? "",
+    });
+  }, [emp]);
 
   if (!emp) {
     return (
@@ -28,15 +110,87 @@ export default function EmployeeProfilePage() {
     );
   }
 
-  const onChange =
-    (key: keyof Employee) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((s: Partial<Employee>) => ({ ...s, [key]: e.target.value }));   // ← typed `s`
+  const onChange = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const raw = e.target.value;
+    if (key === "departmentId") {
+      setForm((s) => ({ ...s, departmentId: raw === "" ? undefined : raw }));
+    } else {
+      setForm((s) => ({ ...s, [key]: raw } as any));
+    }
+  };
 
-  const onSave = () => {
-    // TODO: call API
-    console.log("Saving employee", { id: emp.id, ...form });
-    setEditing(false);
+  const onSave = async () => {
+    try {
+      const payload = {
+        employeeNo: form.employeeNo,
+        firstName: form.firstName,
+        lastName: form.lastName,
+
+        gender: form.gender || null,
+        prefix: form.prefix || null,
+        status: form.status || null,
+        maritalStatus: form.maritalStatus || null,
+
+        dateOfBirth: form.dateOfBirth || null,
+        joinDate: form.joinDate || null,
+      };
+      console.log("PUT payload →", payload);
+      const idNum = emp?.id ? Number(emp.id) : undefined;
+      if (!idNum) {
+        toast.error("Invalid employee id");
+        return;
+      }
+
+      toast.info("Saving employee...");
+      const updated = await hrService.updateEmployee(idNum, payload as any);
+      console.log("Updated from API →", updated);
+
+      try {
+        const fresh = await hrService.getEmployee(idNum);
+        if (fresh) {
+          setEmp(fresh as Employee);
+          setForm({
+            employeeNo: fresh.employeeNo ?? "",
+            firstName: fresh.firstName ?? "",
+            lastName: fresh.lastName ?? "",
+
+            gender: (fresh as any).gender ?? "",
+            prefix: (fresh as any).prefix ?? "",
+            status: fresh.status ?? "Active",
+            maritalStatus: (fresh as any).maritalStatus ?? "",
+
+            dateOfBirth: fresh.dateOfBirth ?? "",
+            joinDate: fresh.joinDate ?? "",
+
+            phoneNo: fresh.phoneNo ?? "",
+            altPhone: (fresh as any).altPhone ?? "",
+            email: fresh.email ?? "",
+
+            departmentId: fresh.departmentId ?? undefined,
+            notes: (fresh as any).notes ?? "",
+          });
+        } else {
+          setEmp(updated as Employee);
+        }
+      } catch (e) {
+        console.warn("Failed to refetch employee after update, falling back to API response", e);
+        setEmp(updated as Employee);
+      }
+
+      toast.success("Employee updated");
+      try {
+        window.dispatchEvent(new CustomEvent("employee:updated", { detail: updated }));
+      } catch (e) {
+        console.warn("Could not dispatch employee:updated event", e);
+      }
+    } catch (err: any) {
+      console.error("EmployeeProfilePage -> update failed:", err?.response?.data ?? err);
+      toast.error(err?.response?.data?.message || err?.message || "Failed to update employee");
+      // eslint-disable-next-line no-alert
+      alert("Failed to update employee");
+    } finally {
+      setEditing(false);
+    }
   };
 
   return (
@@ -53,20 +207,33 @@ export default function EmployeeProfilePage() {
             {editing ? (
               <>
                 <button
+                  type="button"
                   onClick={() => {
                     setForm({
-                      employeeNo: emp.employeeNo,
-                      firstName: emp.firstName,
-                      lastName: emp.lastName,
-                      status: emp.status,
-                      department: emp.department ?? "",
-                      designation: emp.designation ?? "",
+                      employeeNo: emp.employeeNo ?? "",
+                      firstName: emp.firstName ?? "",
+                      lastName: emp.lastName ?? "",
+
+                      gender: (emp as any).gender ?? "",
+                      prefix: (emp as any).prefix ?? "",
+                      status: emp.status ?? "Active",
+                      maritalStatus: (emp as any).maritalStatus ?? "",
+
+                      dateOfBirth: emp.dateOfBirth ?? "",
+                      joinDate: emp.joinDate ?? "",
+
+                      phoneNo: emp.phoneNo ?? "",
+                      altPhone: (emp as any).altPhone ?? "",
+                      email: emp.email ?? "",
+
+                      departmentId: emp.departmentId ?? undefined,
+                      notes: (emp as any).notes ?? "",
                     });
                     setEditing(false);
                   }}
                   className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90"
                 >Cancel</button>
-                <button onClick={onSave} className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90">Save</button>
+                <button type="button" onClick={onSave} className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90">Save</button>
               </>
             ) : (
               <button onClick={() => setEditing(true)} className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90">Edit / Update</button>
@@ -94,13 +261,81 @@ export default function EmployeeProfilePage() {
               <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.lastName as string} onChange={onChange("lastName")} disabled={!editing} />
             </Field>
 
-            <Field label="Department">
-              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.department as string} onChange={onChange("department")} disabled={!editing} />
+            <Field label="Gender">
+              <select
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.gender ?? ""}
+                onChange={onChange("gender")}
+                disabled={!editing}
+              >
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
             </Field>
 
-            <Field label="Designation">
-              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.designation as string} onChange={onChange("designation")} disabled={!editing} />
+            <Field label="Prefix">
+              <select
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.prefix ?? ""}
+                onChange={onChange("prefix")}
+                disabled={!editing}
+              >
+                <option value="">Select</option>
+                <option value="Mr.">Mr.</option>
+                <option value="Ms.">Ms.</option>
+              </select>
             </Field>
+
+            <Field label="Marital Status">
+              <select
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.maritalStatus ?? ""}
+                onChange={onChange("maritalStatus")}
+                disabled={!editing}
+              >
+                <option value="">Select</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+              </select>
+            </Field>
+
+            <Field label="Date of Birth">
+              <input
+                type="date"
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.dateOfBirth ?? ""}
+                onChange={onChange("dateOfBirth")}
+                disabled={!editing}
+              />
+            </Field>
+
+            <Field label="Join Date">
+              <input
+                type="date"
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.joinDate ?? ""}
+                onChange={onChange("joinDate")}
+                disabled={!editing}
+              />
+            </Field>
+
+            <Field label="Department ID">
+              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={String(form.departmentId ?? "")} onChange={onChange("departmentId")} disabled={!editing} />
+            </Field>
+
+            <Field label="Notes">
+              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.notes as string} onChange={onChange("notes")} disabled={!editing} />
+            </Field>
+          </div>
+
+          {/* Addresses section */}
+          <div className="col-span-1 md:col-span-2">
+            {id && !isNaN(Number(id)) && <AddressList employeeId={Number(id)} />}
+          </div>
+
+          <div className="col-span-1 md:col-span-2 mt-6">
+            {id && !isNaN(Number(id)) && <DependentsForm />}
           </div>
 
           <div className="mt-6">

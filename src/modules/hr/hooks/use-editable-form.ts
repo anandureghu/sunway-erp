@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, type ChangeEvent } from 'react';
 
 interface UseEditableFormProps<T> {
   initialData: T;
@@ -14,14 +14,14 @@ export function useEditableForm<T>({ initialData, onSave }: UseEditableFormProps
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState<T>(initialData);
 
-  const handleEdit = () => setEditing(true);
-  
-  const handleCancel = () => {
+  const handleEdit = useCallback(() => setEditing(true), []);
+
+  const handleCancel = useCallback(() => {
     setFormData(initialData);
     setEditing(false);
-  };
+  }, [initialData]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
       if (onSave) {
         await onSave(formData);
@@ -29,22 +29,28 @@ export function useEditableForm<T>({ initialData, onSave }: UseEditableFormProps
       setEditing(false);
     } catch (error) {
       console.error('Error saving form:', error);
-      // Here you could add error handling UI
-    }
-  };
-
-  const updateField = <K extends keyof T>(field: K) => (
-    value: T[K] | React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const newValue = value instanceof Event 
-      ? (value as React.ChangeEvent<HTMLInputElement>).target.value 
-      : value;
       
+      throw error;
+    }
+  }, [onSave, formData]);
+
+  
+  const updateField = useCallback((field: keyof T) => (
+    value: T[keyof T] | ChangeEvent<HTMLInputElement>
+  ) => {
+    
+    const maybeEvent = value as any;
+    const newValue =
+      maybeEvent && typeof maybeEvent === "object" && "target" in maybeEvent && maybeEvent.target?.value !== undefined
+        ? (maybeEvent.target.value as unknown as T[keyof T])
+        : (value as T[keyof T]);
+
     setFormData(prev => ({
       ...prev,
-      [field]: newValue
+      
+      [field]: newValue as any
     }));
-  };
+  }, []);
 
   return {
     editing,

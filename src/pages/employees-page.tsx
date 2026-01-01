@@ -1,8 +1,10 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useMemo, useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/ui/data-table";
 import { EMPLOYEE_COLUMNS } from "@/modules/hr/columns/employees-columns";
-import { EMPLOYEES } from "./employees.mock";
+import { hrService } from "@/service/hr.service";
+import { addressService } from "@/service/addressService";
 import type { Employee } from "@/types/hr";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { Button } from "@/components/ui/button";
@@ -76,6 +78,7 @@ const EmployeeSearchBar = ({
 
 export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const navigate = useNavigate();
@@ -84,23 +87,37 @@ export default function EmployeesPage() {
   const filteredEmployees = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    return EMPLOYEES.filter((employee: Employee) => {
+    const normalize = (s?: string | null) =>
+      String(s ?? "")
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "_")
+        .replace(/-/g, "_");
+
+    const desired = normalize(statusFilter);
+
+    return employees.filter((employee: Employee) => {
+      const empNo = String(employee.employeeNo ?? "").toLowerCase();
+      const first = String(employee.firstName ?? "").toLowerCase();
+      const last = String(employee.lastName ?? "").toLowerCase();
+      const dept = String(employee.department ?? "").toLowerCase();
+      const desig = String(employee.designation ?? "").toLowerCase();
+      const stat = String(employee.status ?? "").toLowerCase();
+
       const matchesSearch =
         !query ||
-        employee.employeeNo!.toLowerCase().includes(query) ||
-        employee.firstName!.toLowerCase().includes(query) ||
-        employee.lastName!.toLowerCase().includes(query) ||
-        (employee.department ?? "").toLowerCase().includes(query) ||
-        (employee.designation ?? "").toLowerCase().includes(query) ||
-        employee.status!.toLowerCase().includes(query);
+        empNo.includes(query) ||
+        first.includes(query) ||
+        last.includes(query) ||
+        dept.includes(query) ||
+        desig.includes(query) ||
+        stat.includes(query);
 
-      const matchesStatus =
-        !statusFilter ||
-        employee.status!.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus = !statusFilter || normalize(employee.status) === desired;
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, employees]);
 
   const handleEmployeeSelect = (employee: Employee) => {
     setSelected({
@@ -122,32 +139,93 @@ export default function EmployeesPage() {
     navigate(`/hr/employees/${employee.id}/profile`);
   };
 
-  const handleAddEmployee = (newEmployee: any) => {
-    const id = `${EMPLOYEES.length + 1}`;
-    const employee = {
-      id,
-      employeeNo: newEmployee.no ?? newEmployee.employeeNo ?? "",
-      firstName: newEmployee.firstName ?? "",
-      lastName: newEmployee.lastName ?? "",
-      department: newEmployee.department ?? "",
-      designation: newEmployee.designation ?? "",
-      status: newEmployee.status ?? "Active",
-      dateOfBirth: newEmployee.dateOfBirth ?? "",
-      gender: newEmployee.gender ?? "",
-      joinDate: newEmployee.joinDate ?? "",
-      nationality: newEmployee.nationality ?? "",
-      nationalId: newEmployee.nationalId ?? "",
-      maritalStatus: newEmployee.maritalStatus ?? "",
-    } as Employee;
-
-    EMPLOYEES.push(employee);
-
+  const handleAddEmployee = async (newEmployee: any) => {
     try {
-      localStorage.setItem("employees", JSON.stringify(EMPLOYEES));
-    } catch (e) {
-      // ignore localStorage errors in environments where it's unavailable
+      const created = await hrService.createEmployee({
+        employeeNo: newEmployee.no ?? newEmployee.employeeNo ?? "",
+        firstName: newEmployee.firstName ?? "",
+        lastName: newEmployee.lastName ?? "",
+        username: newEmployee.username ?? undefined,
+        password: newEmployee.password ?? undefined,
+        email: newEmployee.email ?? undefined,
+        phoneNo: newEmployee.phoneNo ?? undefined,
+        departmentId: newEmployee.departmentId !== undefined && newEmployee.departmentId !== "" ? Number(newEmployee.departmentId) : undefined,
+      });
+
+      if (created) {
+        // if create returned an id and address fields were provided, add address
+        try {
+          if (created?.id) {
+            // prefer common keys if present
+            const street = newEmployee.street ?? newEmployee.line1 ?? newEmployee.addressLine1 ?? newEmployee.line_1;
+            const city = newEmployee.city ?? undefined;
+            const state = newEmployee.state ?? undefined;
+            const country = newEmployee.country ?? undefined;
+            const postalCode = newEmployee.zipCode ?? newEmployee.postalCode ?? newEmployee.postal_code ?? undefined;
+
+            if (street || city || state || country || postalCode) {
+              const payloadAddr = {
+                line1: street ?? "",
+                line2: newEmployee.line2 ?? newEmployee.addressLine2 ?? "",
+                city: city ?? "",
+                state: state ?? "",
+                country: country ?? "",
+                postalCode: postalCode ?? "",
+                addressType: newEmployee.addressType ?? "HOME",
+              };
+
+              await addressService.addAddress(Number(created.id), payloadAddr);
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to add address after create:", err);
+        }
+        // refresh from server to reflect DB state (in case server enriches/normalizes payload)
+        const list = await hrService.listEmployees();
+        setEmployees(list);
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to create employee";
+      console.error("EmployeesPage.handleAddEmployee -> error:", err?.response?.data ?? err);
+      toast.error(String(msg));
     }
   };
+
+  // load employees
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await hrService.listEmployees();
+        console.log("EmployeesPage -> loaded employees", Array.isArray(list) ? list.length : typeof list, list?.slice?.(0,3));
+        if (mounted) setEmployees(list);
+      } catch (err: any) {
+        console.error("EmployeesPage -> failed to load employees:", err?.response?.data ?? err);
+        setEmployees([]);
+        const msg = err?.response?.data?.message || err?.message || "Failed to load employees";
+        toast.error(String(msg));
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Refresh employees list when an employee is updated elsewhere (profile page)
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      try {
+        const list = await hrService.listEmployees();
+        setEmployees(list);
+        console.log("EmployeesPage -> refreshed after employee:updated", (e as CustomEvent).detail);
+      } catch (err) {
+        console.error("EmployeesPage -> refresh after update failed:", err);
+      }
+    };
+    window.addEventListener("employee:updated", handler as EventListener);
+    return () => window.removeEventListener("employee:updated", handler as EventListener);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -164,7 +242,7 @@ export default function EmployeesPage() {
           onClose={() => setShowAddEmployee(false)}
         />
       )}{" "}
-      <EmployeeStats employees={EMPLOYEES} />
+      <EmployeeStats employees={employees} onFilter={setStatusFilter} />
       <div className="rounded-md border bg-white">
         <div className="p-4">
           <EmployeeSearchBar

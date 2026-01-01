@@ -1,10 +1,11 @@
-// modules/hr/employee/tabs/ProfileShell.tsx
 import { NavLink, Outlet, useParams } from "react-router-dom";
-import { useMemo, useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { IdCard, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EMPLOYEES } from "@/pages/employees.mock"; // used as fallback seed
+import { hrService } from "@/service/hr.service";
 import type { ReactElement } from "react";
+import type { Employee } from "@/types/hr";
+
 
 interface EditUpdateBarProps {
   editing: boolean;
@@ -54,12 +55,18 @@ export interface ProfileCtx {
 
 export default function ProfileShell(): ReactElement {
   const { id } = useParams<{ id: string }>();
+  const [emp, setEmp] = useState<Employee | null>(null);
 
-  const emp = useMemo(() => {
-    // read from localStorage first so edits persist across pages
-    const stored = localStorage.getItem("employees");
-    const list = stored ? JSON.parse(stored) : EMPLOYEES;
-    return list.find((e: any) => e.id === id);
+  useEffect(() => {
+    let mounted = true;
+    if (id) {
+      hrService.getEmployee(id).then((e) => {
+        if (mounted) setEmp(e ?? null);
+      });
+    }
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   const title = emp
@@ -68,7 +75,6 @@ export default function ProfileShell(): ReactElement {
 
   const [editing, setEditing] = useState(false);
 
-  // Event dispatcher for form state management
   const fire = useCallback((name: string) => {
     document.dispatchEvent(new Event(name));
   }, []);
