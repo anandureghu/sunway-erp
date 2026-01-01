@@ -1,8 +1,7 @@
-﻿import {  useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
-import AddressList from "@/modules/hr/employee/address-list";
 import { DependentsForm } from "@/modules/hr/dependents/DependentsForm";
 import type { Employee, EmployeeStatus } from "../types/hr";
 
@@ -21,8 +20,15 @@ export default function EmployeeProfilePage() {
         const e = await hrService.getEmployee(id);
         if (mounted) setEmp(e ?? null);
       } catch (err: any) {
-        console.error("EmployeeProfilePage -> failed to load employee:", err?.response?.data ?? err);
-        toast.error(err?.response?.data?.message || err?.message || "Failed to load employee");
+        console.error(
+          "EmployeeProfilePage -> failed to load employee:",
+          err?.response?.data ?? err
+        );
+        toast.error(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load employee"
+        );
         if (mounted) setEmp(null);
       }
     })();
@@ -104,20 +110,29 @@ export default function EmployeeProfilePage() {
   if (!emp) {
     return (
       <div className="space-y-4">
-        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">Employee not found.</div>
-        <Link to="/hr/employees" className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-gray-50">← Back to Search</Link>
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          Employee not found.
+        </div>
+        <Link
+          to="/hr/employees"
+          className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-gray-50"
+        >
+          ← Back to Search
+        </Link>
       </div>
     );
   }
 
-  const onChange = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const raw = e.target.value;
-    if (key === "departmentId") {
-      setForm((s) => ({ ...s, departmentId: raw === "" ? undefined : raw }));
-    } else {
-      setForm((s) => ({ ...s, [key]: raw } as any));
-    }
-  };
+  const onChange =
+    (key: keyof FormState) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const raw = e.target.value;
+      if (key === "departmentId") {
+        setForm((s) => ({ ...s, departmentId: raw === "" ? undefined : raw }));
+      } else {
+        setForm((s) => ({ ...s, [key]: raw } as any));
+      }
+    };
 
   const onSave = async () => {
     try {
@@ -173,20 +188,32 @@ export default function EmployeeProfilePage() {
           setEmp(updated as Employee);
         }
       } catch (e) {
-        console.warn("Failed to refetch employee after update, falling back to API response", e);
+        console.warn(
+          "Failed to refetch employee after update, falling back to API response",
+          e
+        );
         setEmp(updated as Employee);
       }
 
       toast.success("Employee updated");
       try {
-        window.dispatchEvent(new CustomEvent("employee:updated", { detail: updated }));
+        window.dispatchEvent(
+          new CustomEvent("employee:updated", { detail: updated })
+        );
       } catch (e) {
         console.warn("Could not dispatch employee:updated event", e);
       }
     } catch (err: any) {
-      console.error("EmployeeProfilePage -> update failed:", err?.response?.data ?? err);
-      toast.error(err?.response?.data?.message || err?.message || "Failed to update employee");
-      // eslint-disable-next-line no-alert
+      console.error(
+        "EmployeeProfilePage -> update failed:",
+        err?.response?.data ?? err
+      );
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update employee"
+      );
+
       alert("Failed to update employee");
     } finally {
       setEditing(false);
@@ -198,9 +225,16 @@ export default function EmployeeProfilePage() {
       <div className="rounded-lg border">
         <div className="flex items-center justify-between rounded-t-lg bg-blue-600 px-5 py-3 text-white">
           <div className="flex flex-wrap items-center gap-2 text-lg font-semibold">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-white text-blue-600">👤</span>
-            <span>Employee Profile — {emp.firstName} {emp.lastName} <span className="opacity-90">({emp.employeeNo})</span></span>
-            <span className="ml-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-blue-700">{form.status}</span>
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-white text-blue-600">
+              👤
+            </span>
+            <span>
+              Employee Profile — {emp.firstName} {emp.lastName}{" "}
+              <span className="opacity-90">({emp.employeeNo})</span>
+            </span>
+            <span className="ml-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-blue-700">
+              {form.status}
+            </span>
           </div>
 
           <div className="flex gap-2">
@@ -232,11 +266,24 @@ export default function EmployeeProfilePage() {
                     setEditing(false);
                   }}
                   className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90"
-                >Cancel</button>
-                <button type="button" onClick={onSave} className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90">Save</button>
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={onSave}
+                  className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90"
+                >
+                  Save
+                </button>
               </>
             ) : (
-              <button onClick={() => setEditing(true)} className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90">Edit / Update</button>
+              <button
+                onClick={() => setEditing(true)}
+                className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90"
+              >
+                Edit / Update
+              </button>
             )}
           </div>
         </div>
@@ -244,21 +291,43 @@ export default function EmployeeProfilePage() {
         <div className="rounded-b-lg bg-white p-5">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <Field label="Employee No">
-              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.employeeNo as string} onChange={onChange("employeeNo")} disabled={!editing} />
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.employeeNo as string}
+                onChange={onChange("employeeNo")}
+                disabled={!editing}
+              />
             </Field>
 
             <Field label="Status">
-              <select className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.status as string} onChange={onChange("status")} disabled={!editing}>
-                <option>Active</option><option>Inactive</option><option>On Leave</option>
+              <select
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.status as string}
+                onChange={onChange("status")}
+                disabled={!editing}
+              >
+                <option>Active</option>
+                <option>Inactive</option>
+                <option>On Leave</option>
               </select>
             </Field>
 
             <Field label="First Name">
-              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.firstName as string} onChange={onChange("firstName")} disabled={!editing} />
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.firstName as string}
+                onChange={onChange("firstName")}
+                disabled={!editing}
+              />
             </Field>
 
             <Field label="Last Name">
-              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.lastName as string} onChange={onChange("lastName")} disabled={!editing} />
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.lastName as string}
+                onChange={onChange("lastName")}
+                disabled={!editing}
+              />
             </Field>
 
             <Field label="Gender">
@@ -321,25 +390,41 @@ export default function EmployeeProfilePage() {
             </Field>
 
             <Field label="Department ID">
-              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={String(form.departmentId ?? "")} onChange={onChange("departmentId")} disabled={!editing} />
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={String(form.departmentId ?? "")}
+                onChange={onChange("departmentId")}
+                disabled={!editing}
+              />
             </Field>
 
             <Field label="Notes">
-              <input className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600" value={form.notes as string} onChange={onChange("notes")} disabled={!editing} />
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.notes as string}
+                onChange={onChange("notes")}
+                disabled={!editing}
+              />
             </Field>
           </div>
 
-          {/* Addresses section */}
-          <div className="col-span-1 md:col-span-2">
+          {/* TODO: Addresses section */}
+          {/* <div className="col-span-1 md:col-span-2">
             {id && !isNaN(Number(id)) && <AddressList employeeId={Number(id)} />}
-          </div>
+          </div> */}
 
           <div className="col-span-1 md:col-span-2 mt-6">
             {id && !isNaN(Number(id)) && <DependentsForm />}
           </div>
 
           <div className="mt-6">
-            <button onClick={() => navigate("/hr/employees")} className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-gray-50" type="button">← Back to Search</button>
+            <button
+              onClick={() => navigate("/hr/employees")}
+              className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-gray-50"
+              type="button"
+            >
+              ← Back to Search
+            </button>
           </div>
         </div>
       </div>
@@ -347,7 +432,13 @@ export default function EmployeeProfilePage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="grid grid-cols-[140px_1fr] items-center gap-3">
       <div className="text-sm text-gray-700">{label}:</div>

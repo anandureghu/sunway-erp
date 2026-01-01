@@ -155,7 +155,7 @@ export const purchaseRequisitions: PurchaseRequisition[] = [
 const purchaseOrderItems1: PurchaseOrderItem[] = [];
 
 // Using a mutable array for demo purposes
-export const purchaseOrders: PurchaseOrder[] = [
+export let purchaseOrders: PurchaseOrder[] = [
   {
     id: "po-1",
     orderNo: "PO-2024-001",
