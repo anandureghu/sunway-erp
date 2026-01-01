@@ -23,10 +23,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type PurchaseRequisitionFormData } from "@/schema/purchase";
 import { z } from "zod";
-import type {
-  PurchaseRequisitionItem,
-  PurchaseRequisition,
-} from "@/types/purchase";
+import type { PurchaseRequisitionItem } from "@/types/purchase";
 import { listItems } from "@/service/inventoryService";
 import {
   listPurchaseRequisitions,
