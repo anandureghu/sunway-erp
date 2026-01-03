@@ -3,7 +3,7 @@ export interface BudgetLineDTO {
   id?: number;
   accountId: number;
   departmentId: number | null;
-  projectId: number | null;
+  projectId: string | null;
   amount: number;
   currencyCode: string;
   notes: string;
@@ -33,7 +33,6 @@ export interface BudgetCreateDTO {
   budgetYear: number;
   startDate: string;
   endDate: string;
-  amount: number;
   departmentId?: number;
   projectId?: number;
 }
@@ -43,7 +42,6 @@ export interface BudgetUpdateDTO {
   budgetYear: number;
   startDate: string;
   endDate: string;
-  amount: number;
   departmentId?: number;
   projectId?: number;
 }

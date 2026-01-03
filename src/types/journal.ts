@@ -33,7 +33,8 @@ export interface JournalEntryUpdateDTO {
 // --------------------------------------------
 export interface JournalLineDTO {
   id: number;
-  accountId: number;
+  debitAccount: number | null;
+  creditAccount: number | null;
   debitAmount: number | null;
   creditAmount: number | null;
   departmentId: number | null;

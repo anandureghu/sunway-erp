@@ -3,13 +3,18 @@ import type { JournalLineDTO } from "@/types/journal";
 
 export const JOURNAL_LINE_COLUMNS: ColumnDef<JournalLineDTO>[] = [
   {
-    accessorKey: "accountId",
-    header: "Account",
+    accessorKey: "debitAccountName",
+    header: "Debit Account",
   },
+
   {
     accessorKey: "debitAmount",
     header: "Debit",
     cell: ({ row }) => row.original.debitAmount?.toFixed(2),
+  },
+  {
+    accessorKey: "creditAccountName",
+    header: "Credit Account",
   },
   {
     accessorKey: "creditAmount",

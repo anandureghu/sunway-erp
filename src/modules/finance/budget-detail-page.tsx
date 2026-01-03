@@ -91,16 +91,6 @@ export default function BudgetDetailPage() {
         <CardHeader className="flex justify-between">
           <div>
             <p>Amount: {data.amount}</p>
-            <p
-              style={{
-                color:
-                  data.balance == 0 || (data.balance || 0) < 0
-                    ? "red"
-                    : "green",
-              }}
-            >
-              Remaining: {data.balance}
-            </p>
             <p>Status: {data.status}</p>
             <p>Start: {data.startDate}</p>
             <p>End: {data.endDate}</p>

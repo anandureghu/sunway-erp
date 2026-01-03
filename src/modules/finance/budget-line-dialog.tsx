@@ -16,7 +16,6 @@ import type { BudgetLineDTO } from "@/types/budget";
 import SelectAccount from "@/components/select-account";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SelectDepartment from "@/components/select-department";
 
 interface Props {
@@ -82,7 +81,7 @@ export function BudgetLineDialog({
         tempId: line?.tempId ?? Math.random().toString(36),
         accountId: Number(form.accountId),
         departmentId: form.departmentId ? Number(form.departmentId) : null,
-        projectId: form.projectId ? Number(form.projectId) : null,
+        projectId: form.projectId ? form.projectId : null,
         amount: Number(form.amount),
         currencyCode: form.currencyCode,
         notes: form.notes,
@@ -130,16 +129,12 @@ export function BudgetLineDialog({
         <div className="space-y-4">
           <div>
             <Label>Account</Label>
-            <Select
-              value={form.accountId}
-              onValueChange={(v) => update("accountId", v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Account" />
-              </SelectTrigger>
 
-              <SelectAccount useId />
-            </Select>
+            <SelectAccount
+              value={form.accountId}
+              onChange={(v) => update("accountId", v)}
+              useId
+            />
           </div>
 
           <SelectDepartment
