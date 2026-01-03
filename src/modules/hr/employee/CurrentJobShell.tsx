@@ -1,15 +1,24 @@
 import { NavLink, Outlet, useParams, useSearchParams } from "react-router-dom";
 import { BriefcaseBusiness, GraduationCap, Hourglass } from "lucide-react";
-import { EMPLOYEES } from "@/pages/employees.mock";
+import { useState, useEffect } from "react";
+import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
+import type { Employee } from "@/types/hr";
 
 export default function CurrentJobShell() {
   const { id } = useParams<{ id: string }>();
-
-  const emp = EMPLOYEES.find((e) => e.id === id);
+  const [emp, setEmp] = useState<Employee | null>(null);
   const employeeTitle = emp
     ? `${emp.firstName} ${emp.lastName}${emp.employeeNo ? ` (${emp.employeeNo})` : ""}`
-    : id; 
+    : id;
+
+  useEffect(() => {
+    let mounted = true;
+    if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   const [sp, setSp] = useSearchParams();
 
@@ -49,16 +58,15 @@ export default function CurrentJobShell() {
         <EditUpdateButton
           editing={editing}
           onEdit={() => {
-            // notify children that editing started
-            window.dispatchEvent(new CustomEvent("current-job:start-edit"));
+            try { document.dispatchEvent(new CustomEvent("current-job:start-edit")); } catch { /* ignore */ }
             setEditing(true);
           }}
           onCancel={() => {
-            window.dispatchEvent(new CustomEvent("current-job:cancel"));
+            try { document.dispatchEvent(new CustomEvent("current-job:cancel")); } catch { /* ignore */ }
             setEditing(false);
           }}
           onSave={() => {
-            window.dispatchEvent(new CustomEvent("current-job:save"));
+            try { document.dispatchEvent(new CustomEvent("current-job:save")); } catch { /* ignore */ }
             setEditing(false);
           }}
         />

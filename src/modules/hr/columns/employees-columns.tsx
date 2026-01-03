@@ -12,18 +12,27 @@ const OptionalCell = ({ value }: { value?: string }) => (
   <span>{value ?? "-"}</span>
 );
 
-const StatusCell = ({ value }: { value: string }) => {
-  const status = value.toLowerCase();
+const StatusCell = ({ value }: { value?: string }) => {
+  const raw = String(value ?? "");
+  const key = raw.toUpperCase();
+
+  const mapLabel: Record<string, string> = {
+    ACTIVE: "Active",
+    INACTIVE: "Inactive",
+    ON_LEAVE: "On Leave",
+  };
+
+  const label = mapLabel[key] ?? (raw || "-");
+
   let variant: "default" | "secondary" | "destructive" | "outline" = "default";
-  
-  switch(status) {
-    case "active":
+  switch (key) {
+    case "ACTIVE":
       variant = "outline";
       break;
-    case "inactive":
+    case "INACTIVE":
       variant = "destructive";
       break;
-    case "on leave":
+    case "ON_LEAVE":
       variant = "secondary";
       break;
     default:
@@ -31,8 +40,8 @@ const StatusCell = ({ value }: { value: string }) => {
   }
 
   return (
-    <Badge variant={variant} className="capitalize">
-      {value}
+    <Badge variant={variant} className="">
+      {label}
     </Badge>
   );
 };

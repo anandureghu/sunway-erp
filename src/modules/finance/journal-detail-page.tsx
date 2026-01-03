@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
@@ -10,9 +10,11 @@ import { DataTable } from "@/components/datatable";
 import { JOURNAL_LINE_COLUMNS } from "@/lib/columns/finance/journal-line-columns";
 import type { Row } from "@tanstack/react-table";
 import { JournalLineDialog } from "./journal-line-dialog";
+import { ArrowLeft } from "lucide-react";
 
 export default function JournalDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState<JournalEntryResponseDTO | null>(null);
   const [openLineDialog, setOpenLineDialog] = useState(false);
 
@@ -40,9 +42,14 @@ export default function JournalDetailPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold">
-        Journal #{data.journalEntryNumber}
-      </h1>
+      <div className="flex items-center">
+        <Button variant="link" className="p-0" onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-2" />
+        </Button>
+        <h1 className="text-xl font-semibold">
+          Journal #{data.journalEntryNumber}
+        </h1>
+      </div>
 
       <Card>
         <CardHeader>

@@ -1,9 +1,11 @@
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { ClipboardList, FileText } from "lucide-react";
-import { useMemo, useState, useCallback } from "react";
-import type { ReactElement } from "react";
+import { useState, useCallback, useEffect } from "react";
+import type { ReactElement, Dispatch, SetStateAction } from "react";
+import type { AppraisalPayload } from "@/service/appraisalService";
 import { Button } from "@/components/ui/button";
-import { EMPLOYEES } from "@/pages/employees.mock";
+import { hrService } from "@/service/hr.service";
+import type { Employee } from "@/types/hr";
 
 /** Shared “Edit/Update ↔ Save/Cancel” bar used under the blue header */
 function EditUpdateBar(props: {
@@ -38,21 +40,58 @@ function EditUpdateBar(props: {
   );
 }
 
+export type AppraisalModel = AppraisalPayload & { id?: number; month?: string; year?: number };
+
 export type AppraisalCtx = {
   editing: boolean;
   setEditing?: (b: boolean) => void;
+  appraisal?: AppraisalModel;
+  setAppraisal?: Dispatch<SetStateAction<AppraisalModel>>;
 };
 
 export default function AppraisalShell(): ReactElement {
   const { id } = useParams<{ id: string }>();
-  const emp = useMemo(() => EMPLOYEES.find((e) => e.id === id), [id]);
+  const [emp, setEmp] = useState<Employee | null>(null);
   const title = emp ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})` : "";
 
   const [editing, setEditing] = useState(false);
+  const [appraisal, setAppraisal] = useState<AppraisalModel>({});
+
+  useEffect(() => {
+    let mounted = true;
+    if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   const handleEdit = useCallback(() => setEditing(true), []);
-  const handleCancel = useCallback(() => setEditing(false), []);
-  const handleSave = useCallback(() => setEditing(false), []);
+  const handleCancel = useCallback(() => {
+    setEditing(false);
+    try { document.dispatchEvent(new CustomEvent("appraisal:cancel")); } catch { /* ignore */ }
+  }, []);
+
+  const handleSave = useCallback(() => {
+    if (!editing) return;
+    try { document.dispatchEvent(new CustomEvent("appraisal:save")); } catch { /* ignore */ }
+  }, [editing]);
+
+  useEffect(() => {
+    if (editing) {
+      try { document.dispatchEvent(new CustomEvent("appraisal:edit")); } catch { /* ignore */ }
+    }
+  }, [editing]);
+
+  useEffect(() => {
+    const onSaved = () => setEditing(false);
+    document.addEventListener("appraisal:saved", onSaved as EventListener);
+    return () => document.removeEventListener("appraisal:saved", onSaved as EventListener);
+  }, []);
+
+  useEffect(() => {
+    setAppraisal({});
+    setEditing(false);
+  }, [id]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -73,7 +112,7 @@ export default function AppraisalShell(): ReactElement {
 
       {/* Active tab content */}
       <div className="p-4">
-        <Outlet context={{ editing, setEditing } satisfies AppraisalCtx} />
+        <Outlet context={{ editing, setEditing, appraisal, setAppraisal } satisfies AppraisalCtx} />
       </div>
     </div>
   );

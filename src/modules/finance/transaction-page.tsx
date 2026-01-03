@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
 import type { TransactionResponseDTO } from "@/types/transactions";
 import { TransactionDialog } from "./transaction-dialog";
@@ -94,14 +94,14 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
               <Input placeholder="Search..." className="pl-10" />
             </div>
 
-            <Button
+            {/* <Button
               onClick={() => {
                 setSelected(null);
                 setOpen(true);
               }}
             >
               Add Transaction
-            </Button>
+            </Button> */}
           </div>
         </CardHeader>
 

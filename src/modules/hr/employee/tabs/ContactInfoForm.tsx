@@ -1,6 +1,5 @@
-// modules/hr/employee/tabs/ContactInfoForm.tsx
-import { useOutletContext } from "react-router-dom";
-import { useCallback, useMemo, useState } from "react";
+import { useOutletContext, useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Eye } from "lucide-react";
 import { generateId } from "@/lib/utils";
+import { addressService } from "@/service/addressService";
+import { contactService } from "@/service/contactService";
+import { toast } from "sonner";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 
 type Ctx = { editing: boolean };
@@ -30,8 +32,8 @@ type ContactInfo = {
 };
 
 const SEED: ContactInfo = {
-  email: "aisha.rahman@example.com",
-  phone: "+91 99999 12345",
+  email: "",
+  phone: "",
   altPhone: "",
   notes: "",
 };
@@ -47,7 +49,7 @@ const INITIAL_ADDRESS: Address = {
 };
 
 function isAddressValid(address: Address) {
-  // required fields: line1, city, country
+  
   return (
     Boolean(address.line1?.trim()) &&
     Boolean(address.city?.trim()) &&
@@ -61,36 +63,116 @@ export default function ContactInfoForm() {
 
   const [saved, setSaved] = useState(SEED);
   const [draft, setDraft] = useState(SEED);
-  const [addresses, setAddresses] = useState<Address[]>([
-    {
-      id: generateId(),
-      line1: "12, Palm Street",
-      line2: "Near Lotus Mall",
-      city: "Bengaluru",
-      state: "KA",
-      zipcode: "560001",
-      country: "India",
-    },
-  ]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [viewingAddressId, setViewingAddressId] = useState<string | null>(null);
 
-  useMemo(() => {
-    const onSave = () => setSaved(draft);
+  const params = useParams<{ id?: string }>();
+  const employeeId = params.id ? Number(params.id) : undefined;
+
+  
+  useEffect(() => {
+    let mounted = true;
+    if (!employeeId) return;
+    addressService
+      .getAddressesByEmployee(employeeId)
+      .then((res) => {
+        if (!mounted) return;
+        const mapped = (res || []).map((a) => ({
+          id: String(a.id),
+          line1: a.line1 || "",
+          line2: a.line2 || "",
+          city: a.city || "",
+          state: a.state || "",
+          zipcode: a.postalCode || "",
+          country: a.country || "",
+        }));
+        setAddresses(mapped);
+      })
+      .catch((err) => {
+        console.error("Failed to load addresses", err);
+        toast.error("Failed to load addresses");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
+  
+  useEffect(() => {
+    let mounted = true;
+    if (!employeeId) return;
+    contactService
+      .getContactInfo(employeeId)
+      .then((res) => {
+        if (!mounted) return;
+        const data = res.data || {};
+        setDraft((d) => ({ ...d, email: data.email || "", phone: data.phone || "", altPhone: data.altPhone || "" }));
+        setSaved((s) => ({ ...s, email: data.email || "", phone: data.phone || "", altPhone: data.altPhone || "" }));
+      })
+      .catch(() => {
+        
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
+  
+  useEffect(() => {
+    const onSave = async () => {
+      setSaved(draft);
+      if (!employeeId) return;
+      try {
+        
+        try {
+          await contactService.saveContactInfo(employeeId, {
+            email: draft.email,
+            phone: draft.phone,
+            altPhone: draft.altPhone || undefined,
+          });
+        } catch (err) {
+          console.error("Failed to save contact info", err);
+          toast.error("Failed to save contact info");
+        }
+        for (const a of addresses) {
+          const payload = {
+            line1: a.line1,
+            line2: a.line2 || undefined,
+            city: a.city,
+            state: a.state || undefined,
+            country: a.country,
+            postalCode: a.zipcode || undefined,
+            addressType: "HOME",
+          } as any;
+
+          if (/^\d+$/.test(a.id)) {
+            await addressService.updateAddress(Number(a.id), payload);
+          } else {
+            const created = await addressService.addAddress(employeeId, payload);
+            
+            setAddresses((current) => current.map((cur) => (cur.id === a.id ? { ...cur, id: String(created.id) } : cur)));
+          }
+        }
+        toast.success("Addresses saved");
+      } catch (err) {
+        console.error("Failed to save addresses", err);
+        toast.error("Failed to save addresses");
+      }
+    };
+
     const onCancel = () => setDraft(saved);
     const onEdit = () => setDraft(saved);
-    const s = () => onSave();
-    const c = () => onCancel();
-    const e = () => onEdit();
-    document.addEventListener("profile:save", s as EventListener);
-    document.addEventListener("profile:cancel", c as EventListener);
-    document.addEventListener("profile:edit", e as EventListener);
+
+    document.addEventListener("profile:save", onSave as EventListener);
+    document.addEventListener("profile:cancel", onCancel as EventListener);
+    document.addEventListener("profile:edit", onEdit as EventListener);
     return () => {
-      document.removeEventListener("profile:save", s as EventListener);
-      document.removeEventListener("profile:cancel", c as EventListener);
-      document.removeEventListener("profile:edit", e as EventListener);
+      document.removeEventListener("profile:save", onSave as EventListener);
+      document.removeEventListener("profile:cancel", onCancel as EventListener);
+      document.removeEventListener("profile:edit", onEdit as EventListener);
     };
-  }, [draft, saved]);
+  }, [draft, saved, addresses, employeeId]);
 
   const set = <K extends keyof ContactInfo>(k: K, v: ContactInfo[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
@@ -115,7 +197,7 @@ export default function ContactInfoForm() {
     setAddresses((current) =>
       current.filter((a) => {
         if (a.id !== editingAddressId) return true;
-        // if address is empty, remove it
+        
         const isEmpty = !(
           a.line1?.trim() ||
           a.city?.trim() ||
@@ -129,10 +211,21 @@ export default function ContactInfoForm() {
   }, [editingAddressId]);
 
   const handleDeleteAddress = useCallback((id: string) => {
-    if (window.confirm("Are you sure you want to delete this address?")) {
-      setAddresses((current) => current.filter((a) => a.id !== id));
-      setEditingAddressId(null);
-    }
+    if (!window.confirm("Are you sure you want to delete this address?")) return;
+    
+    (async () => {
+      try {
+        if (/^\d+$/.test(id)) {
+          await addressService.deleteAddress(Number(id));
+        }
+        setAddresses((current) => current.filter((a) => a.id !== id));
+        setEditingAddressId(null);
+        toast.success("Address deleted");
+      } catch (err) {
+        console.error("Failed to delete address", err);
+        toast.error("Failed to delete address");
+      }
+    })();
   }, []);
 
   return (

@@ -7,18 +7,26 @@ interface StatCardProps {
   value: number;
   icon: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
-const StatCard = ({ label, value, icon, className = "" }: StatCardProps) => (
+const StatCard = ({ label, value, icon, className = "", onClick }: StatCardProps) => (
   <Card className={className}>
     <CardContent className="pt-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <h2 className="text-2xl font-bold">{value}</h2>
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left"
+        aria-label={`Filter by ${label}`}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">{label}</p>
+            <h2 className="text-2xl font-bold">{value}</h2>
+          </div>
+          <div className="text-muted-foreground">{icon}</div>
         </div>
-        <div className="text-muted-foreground">{icon}</div>
-      </div>
+      </button>
     </CardContent>
   </Card>
 );
@@ -27,15 +35,15 @@ interface EmployeeStatsProps {
   employees: Employee[];
 }
 
-export function EmployeeStats({ employees }: EmployeeStatsProps) {
+export function EmployeeStats({ employees, onFilter }: EmployeeStatsProps & { onFilter?: (status: string | null) => void }) {
+  const normalize = (s?: string | null) =>
+    String(s ?? "").trim().toUpperCase().replace(/\s+/g, "_").replace(/-/g, "_");
+
   const stats = {
     total: employees.length,
-    active: employees.filter((e) => e.status?.toLowerCase() === "active")
-      .length,
-    onLeave: employees.filter((e) => e.status?.toLowerCase() === "on leave")
-      .length,
-    inactive: employees.filter((e) => e.status?.toLowerCase() === "inactive")
-      .length,
+    active: employees.filter((e) => normalize(e.status) === "ACTIVE").length,
+    onLeave: employees.filter((e) => normalize(e.status) === "ON_LEAVE").length,
+    inactive: employees.filter((e) => normalize(e.status) === "INACTIVE").length,
   };
 
   return (
@@ -44,24 +52,28 @@ export function EmployeeStats({ employees }: EmployeeStatsProps) {
         label="Total Employees"
         value={stats.total}
         icon={<UsersRound size={24} />}
+        onClick={() => onFilter && onFilter(null)}
       />
       <StatCard
         label="Active Employees"
         value={stats.active}
         icon={<UserCheck size={24} />}
         className="border-green-200"
+        onClick={() => onFilter && onFilter("ACTIVE")}
       />
       <StatCard
         label="On Leave"
         value={stats.onLeave}
         icon={<UserCog2 size={24} />}
         className="border-amber-200"
+        onClick={() => onFilter && onFilter("ON_LEAVE")}
       />
       <StatCard
         label="Inactive"
         value={stats.inactive}
         icon={<UserRoundCog size={24} />}
         className="border-red-200"
+        onClick={() => onFilter && onFilter("INACTIVE")}
       />
     </div>
   );

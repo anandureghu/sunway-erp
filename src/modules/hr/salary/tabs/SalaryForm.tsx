@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 import { SelectField } from "@/modules/hr/components/select-field";
 import { isValidAmount, isValidDate } from "@/modules/hr/utils/validation";
 import { formatMoney } from "@/lib/utils";
-import type { Salary } from "@/types/hr";
+import { salaryService } from "@/service/salaryService";
+import { toast } from "sonner";
 
 interface SalaryCtx {
   editing: boolean;
@@ -15,8 +16,8 @@ interface SalaryCtx {
 }
 
 const YES_NO_OPTIONS = [
-  { value: "Yes", label: "Yes" },
-  { value: "No", label: "No" }
+  { value: "true", label: "Yes" },
+  { value: "false", label: "No" }
 ];
 
 const COMPENSATION_STATUS_OPTIONS = [
@@ -24,15 +25,34 @@ const COMPENSATION_STATUS_OPTIONS = [
   { value: "Inactive", label: "Inactive" }
 ];
 
-const INITIAL_DATA: Salary = {
-  basicSalary: "50000",
-  transportation: "Yes",
-  transportationAllowance: "20000",
-  travelAllowance: "4000",
-  otherAllowance: "4000",
-  totalAllowance: "28000",
-  housing: "No",
-  housingAllowance: "",
+type SalaryFormState = {
+  basicSalary: number;
+  transportation: boolean;
+  transportationAllowance: number;
+  travel: boolean;
+  travelAllowance: number;
+  housing: boolean;
+  housingAllowance: number;
+  otherAllowance: number;
+  compensationStatus: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  payPeriodStart: string;
+  payPeriodEnd: string;
+  numberOfDaysWorked: string;
+  payPerDay: string;
+  overtime: string;
+};
+
+const INITIAL_STATE: SalaryFormState = {
+  basicSalary: 0,
+  transportation: false,
+  transportationAllowance: 0,
+  travel: false,
+  travelAllowance: 0,
+  housing: false,
+  housingAllowance: 0,
+  otherAllowance: 0,
   compensationStatus: "Active",
   effectiveFrom: "",
   effectiveTo: "",
@@ -40,7 +60,7 @@ const INITIAL_DATA: Salary = {
   payPeriodEnd: "",
   numberOfDaysWorked: "",
   payPerDay: "",
-  overtime: ""
+  overtime: "",
 };
 
 interface ValidationErrors {
@@ -49,60 +69,28 @@ interface ValidationErrors {
 
 export default function SalaryForm() {
   const { editing, cancelEdit, saveEdit } = useOutletContext<SalaryCtx>();
-  const [formData, setFormData] = useState<Salary>(INITIAL_DATA);
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
 
-  // Listen for edit/save/cancel events from the shell
-  useEffect(() => {
-    const handleStartEdit = () => {};
-    const handleSave = async () => {
-      const errors = validateForm(formData);
-      if (Object.keys(errors).length > 0) {
-        throw new Error("Please fix the validation errors");
-      }
-      // TODO: Implement API call to save data
-      console.log("Saving salary data:", formData);
-      saveEdit();
-    };
-    const handleCancel = () => {
-      setFormData(INITIAL_DATA);
-      cancelEdit();
-    };
+  const [formData, setFormData] = useState<SalaryFormState>(INITIAL_STATE);
+  const [exists, setExists] = useState(false);
 
-    document.addEventListener("salary:start-edit", handleStartEdit);
-    document.addEventListener("salary:save", handleSave);
-    document.addEventListener("salary:cancel", handleCancel);
-
-    return () => {
-      document.removeEventListener("salary:start-edit", handleStartEdit);
-      document.removeEventListener("salary:save", handleSave);
-      document.removeEventListener("salary:cancel", handleCancel);
-    };
-  }, [formData, saveEdit, cancelEdit]);
-
-  const updateField = (field: keyof Salary) => (value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const validateForm = useCallback((data: Salary): ValidationErrors => {
+  const validateForm = useCallback((data: SalaryFormState): ValidationErrors => {
     const errors: ValidationErrors = {};
 
-    if (!isValidAmount(data.basicSalary)) {
+    if (!isValidAmount(String(data.basicSalary))) {
       errors.basicSalary = "Valid basic salary amount is required";
     }
 
-    if (!["Yes", "No"].includes(data.transportation)) {
-      errors.transportation = "Transportation must be Yes or No";
-    }
-
-    if (data.transportation === "Yes" && !isValidAmount(data.transportationAllowance)) {
+    if (data.transportation && !isValidAmount(String(data.transportationAllowance))) {
       errors.transportationAllowance = "Valid transportation allowance amount is required";
     }
 
-    if (!isValidAmount(data.travelAllowance)) {
+    if (data.travel && !isValidAmount(String(data.travelAllowance))) {
       errors.travelAllowance = "Valid travel allowance amount is required";
     }
 
-    if (!isValidAmount(data.otherAllowance)) {
+    if (!isValidAmount(String(data.otherAllowance))) {
       errors.otherAllowance = "Valid other allowance amount is required";
     }
 
@@ -117,23 +105,150 @@ export default function SalaryForm() {
     return errors;
   }, []);
 
-  // Calculate total allowance
+  const handleSaveSalary = useCallback(async () => {
+    if (!employeeId) return;
+    const errors = validateForm(formData);
+    if (Object.keys(errors).length > 0) {
+      throw new Error("Please fix the validation errors");
+    }
+
+    const payload = {
+      basicSalary: Number(formData.basicSalary) || 0,
+
+      transportation: formData.transportation,
+      transportationAllowance: formData.transportation
+        ? Number(formData.transportationAllowance || 0)
+        : 0,
+
+      travel: formData.travel,
+      travelAllowance: formData.travel
+        ? Number(formData.travelAllowance || 0)
+        : 0,
+
+      housing: formData.housing,
+      housingAllowance: formData.housing
+        ? Number(formData.housingAllowance || 0)
+        : 0,
+
+      otherAllowance: Number(formData.otherAllowance || 0),
+
+      status: formData.compensationStatus,
+      effectiveFrom: formData.effectiveFrom,
+      effectiveTo: formData.effectiveTo,
+    };
+
+    const api = exists ? salaryService.update : salaryService.create;
+    try {
+      await api(employeeId, payload);
+      toast.success(exists ? "Salary updated" : "Salary created");
+      if (!exists) setExists(true);
+    } catch (err: any) {
+      console.error("Failed to save salary", err);
+      toast.error(err?.response?.data?.message || "Failed to save salary");
+      throw err;
+    }
+  }, [employeeId, exists, formData, validateForm]);
+
+  useEffect(() => {
+    const handleStartEdit = () => {};
+
+    const handleCancel = () => {
+      setFormData(INITIAL_STATE);
+      cancelEdit();
+    };
+
+    document.addEventListener("salary:start-edit", handleStartEdit);
+    document.addEventListener("salary:save", handleSaveSalary as EventListener);
+    document.addEventListener("salary:cancel", handleCancel);
+
+    return () => {
+      document.removeEventListener("salary:start-edit", handleStartEdit);
+      document.removeEventListener("salary:save", handleSaveSalary as EventListener);
+      document.removeEventListener("salary:cancel", handleCancel);
+    };
+  }, [formData, saveEdit, cancelEdit, employeeId, exists]);
+
+  
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    salaryService
+      .get(employeeId)
+      .then((res) => {
+        if (!mounted) return;
+        if (res.data) {
+          
+          const api = res.data;
+          setFormData((prev) => ({
+            ...prev,
+            basicSalary: Number(api.basicSalary ?? 0),
+
+            transportation: Boolean(api.transportation),
+            transportationAllowance: Number(api.transportationAllowance ?? 0),
+
+            travel: Boolean(api.travel),
+            travelAllowance: Number(api.travelAllowance ?? 0),
+
+            housing: Boolean(api.housing),
+            housingAllowance: Number(api.housingAllowance ?? 0),
+
+            otherAllowance: Number(api.otherAllowance ?? 0),
+
+            compensationStatus: api.status ?? api.compensationStatus ?? "Active",
+            effectiveFrom: api.effectiveFrom ?? "",
+            effectiveTo: api.effectiveTo ?? "",
+
+            payPeriodStart: "",
+            payPeriodEnd: "",
+            numberOfDaysWorked: "",
+            payPerDay: "",
+            overtime: "",
+          } as SalaryFormState));
+          setExists(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load salary", err);
+        toast.error(err?.response?.data?.message || "Failed to load salary");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
+  const updateField = (field: keyof SalaryFormState) => (value: string) => {
+    
+    if (field === 'basicSalary' || field === 'transportationAllowance' || field === 'travelAllowance' || field === 'otherAllowance' || field === 'housingAllowance') {
+      const num = Number(value.replace(/[^0-9.]/g, '')) || 0;
+      setFormData(prev => ({ ...prev, [field]: num } as SalaryFormState));
+      return;
+    }
+    if (field === 'transportation' || field === 'travel' || field === 'housing') {
+      const bool = value === 'true';
+      setFormData(prev => ({ ...prev, [field]: bool } as SalaryFormState));
+      return;
+    }
+    setFormData(prev => ({ ...prev, [field]: value } as SalaryFormState));
+  };
+
+
+  
   const totalAllowance = useMemo(() => {
-    const ta = parseFloat(formData.transportationAllowance) || 0;
-    const tr = parseFloat(formData.travelAllowance) || 0;
-    const oa = parseFloat(formData.otherAllowance) || 0;
-    const ha = formData.housing === "Yes" ? (parseFloat(formData.housingAllowance) || 0) : 0;
+    const ta = formData.transportationAllowance || 0;
+    const tr = formData.travelAllowance || 0;
+    const oa = formData.otherAllowance || 0;
+    const ha = formData.housing ? (formData.housingAllowance || 0) : 0;
     return (ta + tr + oa + ha).toString();
   }, [formData.transportationAllowance, formData.travelAllowance, formData.otherAllowance, formData.housing, formData.housingAllowance]);
 
-  // Calculate gross pay (basic salary + total allowance)
+  
   const grossPay = useMemo(() => {
-    const basic = parseFloat(formData.basicSalary) || 0;
+    const basic = formData.basicSalary || 0;
     const allowance = parseFloat(totalAllowance) || 0;
     return (basic + allowance).toString();
   }, [formData.basicSalary, totalAllowance]);
 
-  // Calculate compensation based on days worked * pay per day
+  
   return (
     <div className="space-y-6">
 
@@ -145,8 +260,8 @@ export default function SalaryForm() {
             error={validateForm(formData).basicSalary}
           >
             <Input
-              value={formatMoney(formData.basicSalary)}
-              onChange={e => updateField('basicSalary')(e.target.value.replace(/[^0-9.]/g, ''))}
+              value={formatMoney(String(formData.basicSalary))}
+              onChange={e => updateField('basicSalary')(e.target.value)}
               placeholder="Enter basic salary"
               disabled={!editing}
             />
@@ -158,24 +273,24 @@ export default function SalaryForm() {
           >
             <SelectField
               options={YES_NO_OPTIONS}
-              value={formData.transportation}
-              onChange={e => updateField('transportation')(e.target.value as 'Yes' | 'No')}
+              value={String(formData.transportation)}
+              onChange={e => updateField('transportation')(e.target.value)}
               disabled={!editing}
             />
           </FormField>
 
-          {formData.transportation === 'Yes' && (
+          {formData.transportation && (
             <FormField 
               label="Transportation Allowance"
               error={validateForm(formData).transportationAllowance}
               required
             >
               <Input
-                value={formatMoney(formData.transportationAllowance)}
-                onChange={e => updateField('transportationAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
-                placeholder="Enter transportation allowance"
-                disabled={!editing}
-              />
+                  value={formatMoney(String(formData.transportationAllowance))}
+                  onChange={e => updateField('transportationAllowance')(e.target.value)}
+                  placeholder="Enter transportation allowance"
+                  disabled={!editing}
+                />
             </FormField>
           )}
         </FormRow>
@@ -187,8 +302,8 @@ export default function SalaryForm() {
             required
           >
             <Input
-              value={formatMoney(formData.travelAllowance)}
-              onChange={e => updateField('travelAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
+              value={formatMoney(String(formData.travelAllowance))}
+              onChange={e => updateField('travelAllowance')(e.target.value)}
               placeholder="Enter travel allowance"
               disabled={!editing}
             />
@@ -200,11 +315,11 @@ export default function SalaryForm() {
             required
           >
             <Input
-              value={formatMoney(formData.otherAllowance)}
-              onChange={e => updateField('otherAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
-              placeholder="Enter other allowance"
-              disabled={!editing}
-            />
+                value={formatMoney(String(formData.otherAllowance))}
+                onChange={e => updateField('otherAllowance')(e.target.value)}
+                placeholder="Enter other allowance"
+                disabled={!editing}
+              />
           </FormField>
         </FormRow>
 
@@ -215,24 +330,24 @@ export default function SalaryForm() {
           >
             <SelectField
               options={YES_NO_OPTIONS}
-              value={formData.housing}
-              onChange={e => updateField('housing')(e.target.value as 'Yes' | 'No')}
+              value={String(formData.housing)}
+              onChange={e => updateField('housing')(e.target.value)}
               disabled={!editing}
             />
           </FormField>
 
-          {formData.housing === 'Yes' && (
+          {formData.housing && (
             <FormField 
               label="Housing Allowance"
               error={validateForm(formData).housingAllowance}
               required
             >
               <Input
-                value={formatMoney(formData.housingAllowance)}
-                onChange={e => updateField('housingAllowance')(e.target.value.replace(/[^0-9.]/g, ''))}
-                placeholder="Enter housing allowance"
-                disabled={!editing}
-              />
+                  value={formatMoney(String(formData.housingAllowance))}
+                  onChange={e => updateField('housingAllowance')(e.target.value)}
+                  placeholder="Enter housing allowance"
+                  disabled={!editing}
+                />
             </FormField>
           )}
         </FormRow>

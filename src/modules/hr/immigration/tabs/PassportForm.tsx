@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ReactElement } from "react";
 import type { ImmigrationCtx } from "../ImmigrationShell";
+import { toast } from "sonner";
+import { immigrationService, type PassportPayload } from "@/service/immigrationService";
 
 interface FieldProps {
   label: string;
@@ -32,29 +34,90 @@ const SEED: PassportModel = {
 
 export default function PassportForm(): ReactElement {
   const { editing } = useOutletContext<ImmigrationCtx>();
+  const { id } = useParams<{ id: string }>();
+  const empId = id ? Number(id) : undefined;
 
   const [saved, setSaved] = useState<PassportModel>(SEED);
   const [draft, setDraft] = useState<PassportModel>(SEED);
 
-  // Memoized event handlers
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!empId) return;
+      try {
+        const data = await immigrationService.getPassport(empId);
+        if (mounted && data) {
+          const model: PassportModel = {
+            passportNo: data.passportNo ?? "",
+            issueCountry: data.issueCountry ?? "",
+            nameAsPassport: data.nameAsPassport ?? "",
+            nationality: data.nationality ?? "",
+            issueDate: data.issueDate ?? "",
+            expireDate: (data.expiryDate ?? data.expireDate) ?? "",
+          };
+          setSaved(model);
+          setDraft(model);
+        }
+      } catch (err: any) {
+        console.error("PassportForm -> failed to load:", err?.response?.data ?? err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [empId]);
+
   const handleEdit = useCallback(() => setDraft(saved), [saved]);
-  const handleSave = useCallback(() => setSaved(draft), [draft]);
   const handleCancel = useCallback(() => setDraft(saved), [saved]);
 
-  // React to shell events with proper cleanup
+  const handleSave = useCallback(async () => {
+    if (!empId) return;
+    const payload: PassportPayload = {
+      passportNo: draft.passportNo,
+      nameAsPassport: draft.nameAsPassport,
+      issueCountry: draft.issueCountry,
+      nationality: draft.nationality,
+      issueDate: draft.issueDate || undefined,
+      expiryDate: draft.expireDate || undefined,
+    } as any;
+
+    try {
+      
+      if (saved && (saved.passportNo || saved.nameAsPassport)) {
+        await immigrationService.updatePassport(empId, payload);
+        toast.success("Passport updated");
+      } else {
+        await immigrationService.createPassport(empId, payload);
+        toast.success("Passport created");
+      }
+      const fresh = await immigrationService.getPassport(empId);
+      if (fresh) {
+        const model: PassportModel = {
+          passportNo: fresh.passportNo ?? "",
+          issueCountry: fresh.issueCountry ?? "",
+          nameAsPassport: fresh.nameAsPassport ?? "",
+          nationality: fresh.nationality ?? "",
+          issueDate: fresh.issueDate ?? "",
+          expireDate: (fresh.expiryDate ?? fresh.expireDate) ?? "",
+        };
+        setSaved(model);
+        setDraft(model);
+      }
+    } catch (err: any) {
+      console.error("PassportForm -> save failed:", err?.response?.data ?? err);
+      toast.error(err?.response?.data?.message || err?.message || "Failed to save passport");
+    }
+  }, [empId, draft, saved]);
+
+  
   useEffect(() => {
     const eventHandlers: Record<ImmigrationEvent, () => void> = {
       "immigration:edit": handleEdit,
-      "immigration:save": handleSave,
+      "immigration:save": () => { void handleSave(); },
       "immigration:cancel": handleCancel,
     };
 
-    // Add event listeners
     Object.entries(eventHandlers).forEach(([event, handler]) => {
       document.addEventListener(event, handler as EventListener);
     });
-
-    // Cleanup event listeners
     return () => {
       Object.entries(eventHandlers).forEach(([event, handler]) => {
         document.removeEventListener(event, handler as EventListener);
@@ -62,8 +125,8 @@ export default function PassportForm(): ReactElement {
     };
   }, [handleEdit, handleSave, handleCancel]);
 
-  const patch = useCallback(<K extends keyof PassportModel>(k: K, v: PassportModel[K]) => 
-    setDraft(d => ({ ...d, [k]: v })), []);
+  const patch = useCallback(<K extends keyof PassportModel>(k: K, v: PassportModel[K]) =>
+    setDraft(d => ({ ...d, [k]: v })), [setDraft]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Passport information form">
@@ -157,4 +220,4 @@ function Field({ label, children, required }: FieldProps & { required?: boolean 
   );
 }
 
-// Duplicate Field implementation removed — single Field implementation kept above.
+ 

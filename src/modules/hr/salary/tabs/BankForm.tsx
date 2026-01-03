@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { bankService } from "@/service/bankService";
+import { toast } from "sonner";
 
 type SalaryCtx = { editing: boolean };
 
@@ -34,19 +36,60 @@ const SEED: BankModel = {
 
 export default function BankForm() {
   const { editing } = useOutletContext<SalaryCtx>();
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
+
   const [saved, setSaved] = useState<BankModel>(SEED);
   const [draft, setDraft] = useState<BankModel>(SEED);
+  const [exists, setExists] = useState(false);
+
+  const handleSaveBank = useCallback(async () => {
+    if (!employeeId) return;
+    const api = exists ? bankService.update : bankService.create;
+    try {
+      await api(employeeId, draft);
+      toast.success("Bank details saved");
+      setSaved(draft);
+      setExists(true);
+    } catch (err: any) {
+      console.error("Failed to save bank details", err);
+      toast.error(err?.response?.data?.message || "Failed to save bank details");
+      throw err;
+    }
+  }, [employeeId, exists, draft]);
 
   useEffect(() => {
-    const onSave = () => setSaved(draft);
+    if (!employeeId) return;
+    let mounted = true;
+    bankService
+      .get(employeeId)
+      .then((res) => {
+        if (!mounted) return;
+        if (res.data) {
+          setDraft(res.data);
+          setSaved(res.data);
+          setExists(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load bank details", err);
+        toast.error(err?.response?.data?.message || "Failed to load bank details");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
+  useEffect(() => {
     const onCancel = () => setDraft(saved);
-    document.addEventListener("salary:save", onSave as EventListener);
+
+    document.addEventListener("salary:save", handleSaveBank as EventListener);
     document.addEventListener("salary:cancel", onCancel as EventListener);
     return () => {
-      document.removeEventListener("salary:save", onSave as EventListener);
+      document.removeEventListener("salary:save", handleSaveBank as EventListener);
       document.removeEventListener("salary:cancel", onCancel as EventListener);
     };
-  }, [draft, saved]);
+  }, [draft, saved, employeeId, exists]);
 
   const patch = <K extends keyof BankModel>(k: K, v: BankModel[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));

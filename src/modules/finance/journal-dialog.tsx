@@ -69,7 +69,8 @@ export function JournalDialog({
         source: data.source || "MANUAL",
         status: data.status || JOURNAL_STATUS.DRAFT,
         lines: data.lines.map((l) => ({
-          accountId: l.accountId,
+          debitAccount: l.debitAccount,
+          creditAccount: l.creditAccount,
           debitAmount: l.debitAmount,
           creditAmount: l.creditAmount,
           departmentId: l.departmentId,

@@ -1,6 +1,7 @@
-// src/modules/hr/leaves/tabs/LeavesHistory.tsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { leaveService } from "@/service/leaveService";
+import { toast } from "sonner";
 
 type Row = {
   leaveCode: string;
@@ -16,10 +17,22 @@ type Row = {
 export default function LeavesHistory() {
   const { id } = useParams<{ id: string }>();
   const [rows, setRows] = useState<Row[]>([]);
-
   useEffect(() => {
-    const key = `leaves-history-${id}`;
-    setRows(JSON.parse(localStorage.getItem(key) || "[]"));
+    if (!id) return;
+    let mounted = true;
+    leaveService
+      .fetchLeaveHistory(Number(id))
+      .then((res) => {
+        if (!mounted) return;
+        setRows(res.data || []);
+      })
+      .catch((err) => {
+        console.error("Failed to load leave history", err);
+        toast.error(err?.response?.data?.message || "Failed to load leave history");
+      });
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   return (

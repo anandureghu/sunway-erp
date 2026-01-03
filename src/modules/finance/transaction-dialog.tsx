@@ -16,7 +16,6 @@ import type {
   TransactionResponseDTO,
   CreateTransactionDTO,
 } from "@/types/transactions";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SelectAccount from "@/components/select-account";
 
 export function TransactionDialog({
@@ -174,35 +173,23 @@ export function TransactionDialog({
           </div> */}
 
           <div className="space-y-1">
-            <Label>Credit Account</Label>
-            <Select
-              onValueChange={(val) => update("creditAccount", val)}
+            <SelectAccount
+              useId
+              onChange={(val) => update("creditAccount", val)}
               value={form.creditAccount.toString()}
-            >
-              {/* <FormControl> */}
-              <SelectTrigger>
-                <SelectValue placeholder={"Select Credit Account"} />
-              </SelectTrigger>
-              {/* </FormControl> */}
-
-              <SelectAccount useId />
-            </Select>
+              label="Credit Account"
+              placeholder="Select Credit Account"
+            />
           </div>
 
           <div className="space-y-1">
-            <Label>Debit Account</Label>
-            <Select
-              onValueChange={(val) => update("debitAccount", val)}
+            <SelectAccount
+              useId
+              onChange={(val) => update("debitAccount", val)}
               value={form.debitAccount.toString()}
-            >
-              {/* <FormControl> */}
-              <SelectTrigger>
-                <SelectValue placeholder={"Select Debit Account"} />
-              </SelectTrigger>
-              {/* </FormControl> */}
-
-              <SelectAccount useId />
-            </Select>
+              label="Debit Account"
+              placeholder="Select Debit Account"
+            />
           </div>
 
           {/* <div className="space-y-1">
