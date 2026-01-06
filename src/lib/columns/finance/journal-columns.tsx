@@ -14,6 +14,10 @@ export const JOURNAL_COLUMNS = ({
     header: "JE No",
   },
   {
+    accessorKey: "description",
+    header: "Description",
+  },
+  {
     accessorKey: "entryDate",
     header: "Date",
   },

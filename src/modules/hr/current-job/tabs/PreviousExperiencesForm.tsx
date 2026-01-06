@@ -1,10 +1,14 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Eye } from "lucide-react";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 import { generateId } from "@/lib/utils";
+import { apiClient } from "@/service/apiClient";
+import { toast } from "sonner";
+import { useParams } from "react-router-dom";
+import { toInputDate, toIsoDate } from "@/lib/date";
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -49,16 +53,77 @@ const INITIAL_EXPERIENCE: Experience = {
 };
 
 export default function PreviousExperiencesForm() {
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
+
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
 
+  
+  async function listExperiences(employeeId: number) {
+    const res = await apiClient.get(`/employees/${employeeId}/experiences`);
+    return res.data;
+  }
+
+  async function createExperience(employeeId: number, body: any) {
+    const res = await apiClient.post(`/employees/${employeeId}/experiences`, body);
+    return res.data;
+  }
+
+  async function updateExperience(employeeId: number, id: number, body: any) {
+    const res = await apiClient.put(`/employees/${employeeId}/experiences/${id}`, body);
+    return res.data;
+  }
+
+  async function deleteExperienceApi(employeeId: number, id: number) {
+    await apiClient.delete(`/employees/${employeeId}/experiences/${id}`);
+  }
+
+  
+  const mapApiToForm = (api: any): Experience => ({
+    id: String(api.id),
+    companyName: api.companyName ?? "",
+    jobTitle: api.jobTitle ?? "",
+    lastDateWorked: toInputDate(api.lastDateWorked),
+    numberOfYears: api.numberOfYears?.toString() ?? "",
+    companyAddress: api.companyAddress ?? "",
+    notes: api.notes ?? "",
+  });
+
+  const mapFormToApi = (form: Experience) => ({
+    companyName: form.companyName,
+    jobTitle: form.jobTitle,
+    lastDateWorked: toIsoDate(form.lastDateWorked),
+    numberOfYears: form.numberOfYears ? Number(form.numberOfYears) : null,
+    companyAddress: form.companyAddress,
+    notes: form.notes,
+  });
+
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await listExperiences(employeeId);
+        if (!mounted) return;
+        setExperiences((data || []).map(mapApiToForm));
+      } catch (err: any) {
+        console.error("Failed to load experiences", err);
+        toast.error(err?.response?.data?.message || "Failed to load experiences");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
   const handleAdd = useCallback(() => {
     const newExperience = {
       ...INITIAL_EXPERIENCE,
-      id: generateId()
+      id: generateId(),
     };
-    setExperiences(current => [...current, newExperience]);
+    setExperiences((current) => [...current, newExperience]);
     setEditingId(newExperience.id);
   }, []);
 
@@ -66,36 +131,70 @@ export default function PreviousExperiencesForm() {
     setEditingId(experience.id);
   }, []);
 
-  const handleSave = useCallback((experience: Experience) => {
-    setExperiences(current => 
-      current.map(e => e.id === experience.id ? experience : e)
-    );
+  const handleLocalChange = useCallback((id: string, patch: Partial<Experience>) => {
+    setExperiences((cur) => cur.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   }, []);
 
-  const handleDone = useCallback((experience: Experience) => {
-    setExperiences(current => 
-      current.map(e => e.id === experience.id ? experience : e)
-    );
-    setEditingId(null);
-  }, []);
+  const handleSave = useCallback(
+    async (experience: Experience) => {
+      if (!employeeId) return;
+
+      const errors = validateExperience(experience);
+      const firstErr = Object.values(errors).find(Boolean);
+      if (firstErr) {
+        toast.error(String(firstErr));
+        return;
+      }
+
+      try {
+        const body = mapFormToApi(experience);
+        if (experience.id && Number(experience.id)) {
+          await updateExperience(employeeId, Number(experience.id), body);
+          toast.success("Experience updated");
+        } else {
+          await createExperience(employeeId, body);
+          toast.success("Experience created");
+        }
+        const refreshed = await listExperiences(employeeId);
+        setExperiences((refreshed || []).map(mapApiToForm));
+        setEditingId(null);
+      } catch (err: any) {
+        console.error("Failed to save experience", err);
+        toast.error(err?.response?.data?.message || "Failed to save experience");
+      }
+    },
+    [employeeId]
+  );
 
   const handleCancel = useCallback(() => {
-    // If we're cancelling while adding a new experience (empty fields), remove that placeholder
-    setExperiences(current => current.filter(e => {
-      if (e.id !== editingId) return true;
-      // if the experience is essentially empty, drop it
-      const isEmpty = !(e.companyName?.trim() || e.jobTitle?.trim() || e.lastDateWorked || e.numberOfYears || e.companyAddress || e.notes);
-      return !isEmpty;
-    }));
+    setExperiences((current) =>
+      current.filter((e) => {
+        if (e.id !== editingId) return true;
+        const isEmpty = !(e.companyName?.trim() || e.jobTitle?.trim() || e.lastDateWorked || e.numberOfYears || e.companyAddress || e.notes);
+        return !isEmpty;
+      })
+    );
     setEditingId(null);
   }, [editingId]);
 
-  const handleDelete = useCallback((id: string) => {
-    if (window.confirm('Are you sure you want to delete this experience?')) {
-      setExperiences(current => current.filter(e => e.id !== id));
-      setEditingId(null);
-    }
-  }, []);
+  const handleDelete = useCallback(
+    async (idToDelete: string) => {
+      if (!employeeId) return;
+      if (!window.confirm("Are you sure you want to delete this experience?")) return;
+      try {
+        if (Number(idToDelete)) {
+          await deleteExperienceApi(employeeId, Number(idToDelete));
+        }
+        setExperiences((current) => current.filter((e) => e.id !== idToDelete));
+        toast.success("Experience deleted");
+        setEditingId(null);
+      } catch (err: any) {
+        console.error("Failed to delete experience", err);
+        toast.error(err?.response?.data?.message || "Failed to delete");
+      }
+    },
+    [employeeId]
+  );
 
   return (
     <div className="space-y-6">
@@ -126,7 +225,7 @@ export default function PreviousExperiencesForm() {
                     >
                       <Input
                         value={experience.companyName}
-                        onChange={e => handleSave({ ...experience, companyName: e.target.value })}
+                        onChange={e => handleLocalChange(experience.id, { companyName: e.target.value })}
                         placeholder="Enter company name"
                       />
                     </FormField>
@@ -138,7 +237,7 @@ export default function PreviousExperiencesForm() {
                     >
                       <Input
                         value={experience.jobTitle}
-                        onChange={e => handleSave({ ...experience, jobTitle: e.target.value })}
+                        onChange={e => handleLocalChange(experience.id, { jobTitle: e.target.value })}
                         placeholder="Enter job title"
                       />
                     </FormField>
@@ -153,14 +252,14 @@ export default function PreviousExperiencesForm() {
                       <Input
                         type="date"
                         value={experience.lastDateWorked}
-                        onChange={e => handleSave({ ...experience, lastDateWorked: e.target.value })}
+                        onChange={e => handleLocalChange(experience.id, { lastDateWorked: e.target.value })}
                       />
                     </FormField>
 
                     <FormField label="Number of Years">
                       <Input
                         value={experience.numberOfYears}
-                        onChange={e => handleSave({ ...experience, numberOfYears: e.target.value })}
+                        onChange={e => handleLocalChange(experience.id, { numberOfYears: e.target.value })}
                         placeholder="Enter years"
                       />
                     </FormField>
@@ -170,7 +269,7 @@ export default function PreviousExperiencesForm() {
                     <FormField label="Company Address">
                       <Input
                         value={experience.companyAddress}
-                        onChange={e => handleSave({ ...experience, companyAddress: e.target.value })}
+                        onChange={e => handleLocalChange(experience.id, { companyAddress: e.target.value })}
                         placeholder="Enter company address"
                       />
                     </FormField>
@@ -180,7 +279,7 @@ export default function PreviousExperiencesForm() {
                     <FormField label="Notes/Remarks">
                       <Input
                         value={experience.notes}
-                        onChange={e => handleSave({ ...experience, notes: e.target.value })}
+                        onChange={e => handleLocalChange(experience.id, { notes: e.target.value })}
                         placeholder="Enter notes or remarks"
                       />
                     </FormField>
@@ -195,7 +294,7 @@ export default function PreviousExperiencesForm() {
                     </Button>
                     <Button 
                       disabled={Object.keys(validateExperience(experience)).length > 0}
-                      onClick={() => handleDone(experience)}
+                      onClick={() => handleSave(experience)}
                     >
                       Save
                     </Button>

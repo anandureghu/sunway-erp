@@ -1,16 +1,26 @@
 import { Outlet, useParams, useSearchParams } from "react-router-dom";
 import { Users2 } from "lucide-react";
-import { EMPLOYEES } from "@/pages/employees.mock";
+import { useState, useEffect } from "react";
+import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
+import type { Employee } from "@/types/hr";
 
 export default function DependentsShell() {
   const { id } = useParams<{ id: string }>();
   const [sp, setSp] = useSearchParams();
 
-  const emp = EMPLOYEES.find((e) => e.id === id);
+  const [emp, setEmp] = useState<Employee | null>(null);
   const employeeTitle = emp
     ? `${emp.firstName} ${emp.lastName}${emp.employeeNo ? ` (${emp.employeeNo})` : ""}`
     : id ?? "";
+
+  useEffect(() => {
+    let mounted = true;
+    if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   const editing = sp.get("edit") === "1";
 
@@ -38,7 +48,6 @@ export default function DependentsShell() {
           onEdit={() => setEditing(true)}
           onCancel={() => setEditing(false)}
           onSave={() => {
-            // Ask the form to save, then close edit mode.
             window.dispatchEvent(new CustomEvent("dependents:save-click"));
             setEditing(false);
           }}

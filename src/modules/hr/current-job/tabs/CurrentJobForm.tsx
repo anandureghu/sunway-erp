@@ -1,6 +1,9 @@
 import { Input } from "@/components/ui/input";
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
+import { useParams } from "react-router-dom";
+import { currentJobService } from "@/service/currentJobService";
+import { toast } from "sonner";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 import type { CurrentJob } from "@/types/hr";
 import { isValidDate } from "@/modules/hr/utils/validation";
@@ -22,28 +25,68 @@ interface ValidationErrors {
 }
 
 export default function CurrentJobForm() {
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
+
+  const [exists, setExists] = useState(false);
+  const savingRef = useRef(false);
+
   const {
     editing,
     formData,
     updateField,
     handleEdit,
     handleSave,
-    handleCancel
+    handleCancel,
   } = useEditableForm<CurrentJob>({
     initialData: INITIAL_DATA,
     onSave: async (data) => {
-      // Validate before saving
+      if (savingRef.current) return;
+      savingRef.current = true;
       const errors = validateForm(data);
       if (Object.keys(errors).length > 0) {
+        savingRef.current = false;
         throw new Error("Please fix the validation errors");
       }
-      // TODO: Implement API call to save data
-      console.log("Saving data:", data);
-    }
+      if (!employeeId) throw new Error("No employee selected");
+
+      try {
+        const payload = { ...data } as any;
+        if (exists) {
+          await currentJobService.update(employeeId, payload);
+        } else {
+          await currentJobService.create(employeeId, payload);
+        }
+
+        setExists(true);
+        toast.success("Current job saved");
+        try {
+          const fresh = await currentJobService.get(employeeId);
+          if (fresh) {
+            updateField("jobCode")(fresh.jobCode ?? "");
+            updateField("departmentCode")(fresh.departmentCode ?? "");
+            updateField("departmentName")(fresh.departmentName ?? "");
+            updateField("jobTitle")(fresh.jobTitle ?? "");
+            updateField("jobLevel")(fresh.jobLevel ?? "");
+            updateField("grade")(fresh.grade ?? "");
+            updateField("startDate")(fresh.startDate ?? "");
+            updateField("effectiveFrom")(fresh.effectiveFrom ?? "");
+            updateField("expectedEndDate")(fresh.expectedEndDate ?? "");
+          }
+        } catch (err) {
+          void err;
+        }
+        document.dispatchEvent(new CustomEvent("current-job:saved"));
+      } catch (err: any) {
+        const msg = currentJobService.extractErrorMessage(err);
+        toast.error(msg);
+        savingRef.current = false;
+        throw err;
+      }
+      savingRef.current = false;
+    },
   });
 
-  // Listen for shell-level edit/save/cancel events so the shell's Edit/Update button
-  // controls this form. CurrentJobShell dispatches these events.
   useEffect(() => {
     const onStart = () => handleEdit();
     const onSave = () => handleSave();
@@ -59,6 +102,37 @@ export default function CurrentJobForm() {
       document.removeEventListener("current-job:cancel", onCancel as EventListener);
     };
   }, [handleEdit, handleSave, handleCancel]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!employeeId) return;
+
+    (async () => {
+      try {
+        const res = await currentJobService.get(employeeId);
+        if (!mounted) return;
+        if (res) {
+          setExists(true);
+        
+          updateField("jobCode")(res.jobCode ?? "");
+          updateField("departmentCode")(res.departmentCode ?? "");
+          updateField("departmentName")(res.departmentName ?? "");
+          updateField("jobTitle")(res.jobTitle ?? "");
+          updateField("jobLevel")(res.jobLevel ?? "");
+          updateField("grade")(res.grade ?? "");
+          updateField("startDate")(res.startDate ?? "");
+          updateField("effectiveFrom")(res.effectiveFrom ?? "");
+          updateField("expectedEndDate")(res.expectedEndDate ?? "");
+        }
+      } catch (err) {
+        void err;
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
 
   const validateForm = (data: CurrentJob): ValidationErrors => {
     const errors: ValidationErrors = {};

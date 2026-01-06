@@ -1,10 +1,13 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, Eye } from "lucide-react";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 import { generateId } from "@/lib/utils";
+import { useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { educationService } from "@/service/educationService";
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -51,9 +54,69 @@ const INITIAL_EDUCATION: Education = {
 };
 
 export default function EducationQualificationsForm() {
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
+
   const [educations, setEducations] = useState<Education[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+
+  async function listEducations(employeeId: number) {
+    const res = await educationService.getAll(employeeId);
+    return res;
+  }
+
+  async function createEducation(employeeId: number, body: any) {
+    const res = await educationService.create(employeeId, body);
+    return res;
+  }
+
+  async function updateEducation(employeeId: number, educationId: number, body: any) {
+    const res = await educationService.update(employeeId, educationId, body);
+    return res;
+  }
+
+  async function deleteEducationApi(employeeId: number, educationId: number) {
+    await educationService.remove(employeeId, educationId);
+  }
+
+  
+  const mapApiToForm = (api: any): Education => ({
+    id: String(api.id),
+    schoolName: api.schoolName ?? "",
+    schoolAddress: api.schoolAddress ?? "",
+    yearGraduated: api.yearGraduated ? String(api.yearGraduated) : "",
+    degreeEarned: api.degreeEarned ?? "",
+    major: api.major ?? "",
+    awards: api.awards ?? "",
+    notes: api.notes ?? "",
+  });
+
+  const mapFormToApi = (form: Education) => ({
+    schoolName: form.schoolName,
+    schoolAddress: form.schoolAddress || undefined,
+    degreeEarned: form.degreeEarned,
+    major: form.major || undefined,
+    yearGraduated: form.yearGraduated ? Number(form.yearGraduated) : null,
+    awards: form.awards || undefined,
+    notes: form.notes || undefined,
+  });
+
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await listEducations(employeeId);
+        if (!mounted) return;
+        setEducations((data || []).map(mapApiToForm));
+      } catch (err: any) {
+        console.error("Failed to load educations", err);
+        toast.error(err?.response?.data?.message || "Failed to load educations");
+      }
+    })();
+    return () => { mounted = false; };
+  }, [employeeId]);
 
   const handleAdd = useCallback(() => {
     const newEducation = {
@@ -68,36 +131,69 @@ export default function EducationQualificationsForm() {
     setEditingId(education.id);
   }, []);
 
-  const handleSave = useCallback((education: Education) => {
-    setEducations(current => 
-      current.map(e => e.id === education.id ? education : e)
-    );
+  const handleLocalChange = useCallback((id: string, patch: Partial<Education>) => {
+    setEducations((cur) => cur.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   }, []);
 
-  const handleDone = useCallback((education: Education) => {
-    setEducations(current => 
-      current.map(e => e.id === education.id ? education : e)
-    );
-    setEditingId(null);
-  }, []);
+  const handleSave = useCallback(
+    async (education: Education) => {
+      if (!employeeId) return;
+
+      const errors = validateEducation(education);
+      const firstErr = Object.values(errors).find(Boolean);
+      if (firstErr) {
+        toast.error(String(firstErr));
+        return;
+      }
+
+      try {
+        const body = mapFormToApi(education);
+        if (education.id && Number(education.id)) {
+          await updateEducation(employeeId, Number(education.id), body);
+          toast.success("Education updated");
+        } else {
+          await createEducation(employeeId, body);
+          toast.success("Education created");
+        }
+        const refreshed = await listEducations(employeeId);
+        setEducations((refreshed || []).map(mapApiToForm));
+        setEditingId(null);
+      } catch (err: any) {
+        console.error("Failed to save education", err);
+        toast.error(err?.response?.data?.message || "Failed to save education");
+      }
+    },
+    [employeeId]
+  );
+
 
   const handleCancel = useCallback(() => {
-    // If we're cancelling while adding a new education (empty fields), remove that placeholder
     setEducations(current => current.filter(e => {
       if (e.id !== editingId) return true;
-      // if the education is essentially empty, drop it
       const isEmpty = !(e.schoolName?.trim() || e.schoolAddress?.trim() || e.yearGraduated || e.degreeEarned || e.major || e.awards || e.notes);
       return !isEmpty;
     }));
     setEditingId(null);
   }, [editingId]);
 
-  const handleDelete = useCallback((id: string) => {
-    if (window.confirm('Are you sure you want to delete this education record?')) {
-      setEducations(current => current.filter(e => e.id !== id));
-      setEditingId(null);
-    }
-  }, []);
+  const handleDelete = useCallback(
+    async (idToDelete: string) => {
+      if (!employeeId) return;
+      if (!window.confirm('Are you sure you want to delete this education record?')) return;
+      try {
+        if (Number(idToDelete)) {
+          await deleteEducationApi(employeeId, Number(idToDelete));
+        }
+        setEducations((current) => current.filter((e) => e.id !== idToDelete));
+        toast.success("Education deleted");
+        setEditingId(null);
+      } catch (err: any) {
+        console.error("Failed to delete education", err);
+        toast.error(err?.response?.data?.message || "Failed to delete education");
+      }
+    },
+    [employeeId]
+  );
 
   return (
     <div className="space-y-6">
@@ -128,7 +224,7 @@ export default function EducationQualificationsForm() {
                     >
                       <Input
                         value={education.schoolName}
-                        onChange={e => handleSave({ ...education, schoolName: e.target.value })}
+                        onChange={e => handleLocalChange(education.id, { schoolName: e.target.value })}
                         placeholder="Enter school name"
                       />
                     </FormField>
@@ -136,7 +232,7 @@ export default function EducationQualificationsForm() {
                     <FormField label="School Address">
                       <Input
                         value={education.schoolAddress}
-                        onChange={e => handleSave({ ...education, schoolAddress: e.target.value })}
+                        onChange={e => handleLocalChange(education.id, { schoolAddress: e.target.value })}
                         placeholder="Enter school address"
                       />
                     </FormField>
@@ -150,7 +246,7 @@ export default function EducationQualificationsForm() {
                     >
                       <Input
                         value={education.yearGraduated}
-                        onChange={e => handleSave({ ...education, yearGraduated: e.target.value })}
+                        onChange={e => handleLocalChange(education.id, { yearGraduated: e.target.value })}
                         placeholder="Enter year"
                       />
                     </FormField>
@@ -162,7 +258,7 @@ export default function EducationQualificationsForm() {
                     >
                       <Input
                         value={education.degreeEarned}
-                        onChange={e => handleSave({ ...education, degreeEarned: e.target.value })}
+                        onChange={e => handleLocalChange(education.id, { degreeEarned: e.target.value })}
                         placeholder="Enter degree"
                       />
                     </FormField>
@@ -172,7 +268,7 @@ export default function EducationQualificationsForm() {
                     <FormField label="Major">
                       <Input
                         value={education.major}
-                        onChange={e => handleSave({ ...education, major: e.target.value })}
+                        onChange={e => handleLocalChange(education.id, { major: e.target.value })}
                         placeholder="Enter major"
                       />
                     </FormField>
@@ -180,7 +276,7 @@ export default function EducationQualificationsForm() {
                     <FormField label="Awards and Certificates">
                       <Input
                         value={education.awards}
-                        onChange={e => handleSave({ ...education, awards: e.target.value })}
+                        onChange={e => handleLocalChange(education.id, { awards: e.target.value })}
                         placeholder="Enter awards"
                       />
                     </FormField>
@@ -190,7 +286,7 @@ export default function EducationQualificationsForm() {
                     <FormField label="Notes/Remarks">
                       <Input
                         value={education.notes}
-                        onChange={e => handleSave({ ...education, notes: e.target.value })}
+                        onChange={e => handleLocalChange(education.id, { notes: e.target.value })}
                         placeholder="Enter notes"
                       />
                     </FormField>
@@ -205,7 +301,7 @@ export default function EducationQualificationsForm() {
                     </Button>
                     <Button 
                       disabled={Object.keys(validateEducation(education)).length > 0}
-                      onClick={() => handleDone(education)}
+                      onClick={() => handleSave(education)}
                     >
                       Save
                     </Button>

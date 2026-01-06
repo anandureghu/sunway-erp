@@ -13,12 +13,11 @@ import { Button } from "@/components/ui/button";
 
 import { useEffect, useState } from "react";
 
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
-
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import type { JournalLineDTO } from "@/types/journal";
 import SelectAccount from "@/components/select-account";
+import SelectDepartment from "@/components/select-department";
 
 interface Props {
   open: boolean;
@@ -40,7 +39,8 @@ export function JournalLineDialog({
   const isEdit = !!line;
 
   const [form, setForm] = useState({
-    accountId: "",
+    debitAccount: "",
+    creditAccount: "",
     debitAmount: "",
     creditAmount: "",
     departmentId: "",
@@ -57,7 +57,8 @@ export function JournalLineDialog({
   useEffect(() => {
     if (line) {
       setForm({
-        accountId: String(line.accountId),
+        debitAccount: String(line.debitAccount),
+        creditAccount: String(line.creditAccount),
         debitAmount: line.debitAmount?.toString() ?? "",
         creditAmount: line.creditAmount?.toString() ?? "",
         departmentId: line.departmentId?.toString() ?? "",
@@ -68,7 +69,8 @@ export function JournalLineDialog({
       });
     } else {
       setForm({
-        accountId: "",
+        debitAccount: "",
+        creditAccount: "",
         debitAmount: "",
         creditAmount: "",
         departmentId: "",
@@ -83,7 +85,8 @@ export function JournalLineDialog({
   const handleSave = async () => {
     try {
       const payload = {
-        accountId: Number(form.accountId),
+        debitAccount: Number(form.debitAccount || 0),
+        creditAccount: Number(form.creditAccount || 0),
         debitAmount: Number(form.debitAmount || 0),
         creditAmount: Number(form.creditAmount || 0),
         departmentId: form.departmentId ? Number(form.departmentId) : null,
@@ -93,13 +96,15 @@ export function JournalLineDialog({
         description: form.description,
       };
 
+      console.log(payload);
+
       // if (payload.debitAmount > 0 && payload.creditAmount > 0) {
       //   toast.error("A line cannot have both debit and credit.");
       //   return;
       // }
 
-      if (!payload.accountId) {
-        toast.error("Account is required");
+      if (!payload.debitAccount && !payload.creditAccount) {
+        toast.error("Both Account is required");
         return;
       }
 
@@ -136,7 +141,7 @@ export function JournalLineDialog({
 
         <div className="grid grid-cols-2 gap-4 py-4">
           {/* Account */}
-          <div className="col-span-2">
+          {/* <div className="col-span-2">
             <Label>Account</Label>
             <Select
               value={form.accountId}
@@ -148,6 +153,24 @@ export function JournalLineDialog({
 
               <SelectAccount useId />
             </Select>
+          </div> */}
+          <div>
+            <SelectAccount
+              label="Debit Account"
+              value={form.debitAccount}
+              onChange={(v) => update("debitAccount", v)}
+              placeholder="Select Debit Account"
+              useId
+            />
+          </div>
+          <div>
+            <SelectAccount
+              label="Credit Account"
+              value={form.creditAccount}
+              onChange={(v) => update("creditAccount", v)}
+              placeholder="Select Credit Account"
+              useId
+            />
           </div>
 
           {/* Debit */}
@@ -172,10 +195,9 @@ export function JournalLineDialog({
 
           {/* Department */}
           <div>
-            <Label>Department ID</Label>
-            <Input
+            <SelectDepartment
               value={form.departmentId}
-              onChange={(e) => update("departmentId", e.target.value)}
+              onChange={(v) => update("departmentId", v)}
             />
           </div>
 

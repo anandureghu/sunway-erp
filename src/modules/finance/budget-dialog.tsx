@@ -42,7 +42,6 @@ export function BudgetDialog({
     budgetYear: 0,
     startDate: "",
     endDate: "",
-    amount: 0,
   });
 
   const update = (key: string, value: any) =>
@@ -55,7 +54,6 @@ export function BudgetDialog({
         budgetYear: data.budgetYear,
         startDate: data.startDate ?? "",
         endDate: data.endDate ?? "",
-        amount: data.amount ?? 0,
       });
     } else {
       setForm({
@@ -63,7 +61,6 @@ export function BudgetDialog({
         budgetYear: 0,
         startDate: "",
         endDate: "",
-        amount: 0,
       });
     }
   }, [data, open]);
@@ -75,7 +72,6 @@ export function BudgetDialog({
         budgetYear: Number(form.budgetYear),
         startDate: form.startDate || null,
         endDate: form.endDate || null,
-        amount: form.amount,
       };
 
       const res = data
@@ -118,16 +114,6 @@ export function BudgetDialog({
                 type="number"
                 value={form.budgetYear}
                 onChange={(e) => update("budgetYear", e.target.value)}
-              />
-            </div>
-
-            {/* Budget Amount */}
-            <div>
-              <Label>Budget Amount</Label>
-              <Input
-                type="number"
-                value={form.amount}
-                onChange={(e) => update("amount", e.target.value)}
               />
             </div>
 

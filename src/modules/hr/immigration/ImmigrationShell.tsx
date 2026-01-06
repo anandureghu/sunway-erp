@@ -1,9 +1,10 @@
 import { NavLink, Outlet, useParams } from "react-router-dom";
-import { useMemo, useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Contact2, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EMPLOYEES } from "@/pages/employees.mock";
+import { hrService } from "@/service/hr.service";
 import type { ReactElement } from "react";
+import type { Employee } from "@/types/hr";
 
 export interface ImmigrationCtx {
   editing: boolean;
@@ -45,7 +46,7 @@ type ImmigrationEvent = "immigration:edit" | "immigration:save" | "immigration:c
 
 export default function ImmigrationShell(): ReactElement {
   const { id } = useParams<{ id: string }>();
-  const emp = useMemo(() => EMPLOYEES.find((e) => e.id === id), [id]);
+  const [emp, setEmp] = useState<Employee | null>(null);
 
   const title = emp
     ? `Immigration Services - ${emp.firstName} ${emp.lastName}${
@@ -53,9 +54,16 @@ export default function ImmigrationShell(): ReactElement {
       }`
     : "Immigration Services";
 
+  useEffect(() => {
+    let mounted = true;
+    if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
   const [editing, setEditing] = useState(false);
 
-  // Memoized event dispatcher for children
   const fire = useCallback((name: ImmigrationEvent) => {
     document.dispatchEvent(new Event(name));
   }, []);

@@ -5,8 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Eye } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { salaryService } from "@/service/salaryService";
 import { formatMoney, generateId } from "@/lib/utils";
+import { useParams } from "react-router-dom";
+import { loanService } from "@/service/loanService";
+import type { LoanPayload } from "@/types/hr/loan";
+import { toast } from "sonner";
 
 type LoansModel = {
   id: string;
@@ -65,28 +70,135 @@ const INITIAL_LOAN: LoansModel = {
 };
 
 export default function LoansForm(): ReactElement {
+  const params = useParams<{ id: string }>();
+  const employeeId = params.id ? Number(params.id) : undefined;
+
   const [loans, setLoans] = useState<LoansModel[]>([]);
+  const [grossSalary, setGrossSalary] = useState<number>(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [, setLoading] = useState(false);
 
   const handleAdd = useCallback(() => {
+    const gross = grossSalary || 0;
     const newLoan = {
       ...INITIAL_LOAN,
-      id: generateId()
+      id: generateId(),
+      grossPay: String(gross),
+      deductionAmount: String(0),
+      netPay: String(gross),
     };
     setLoans(current => [...current, newLoan]);
     setEditingId(newLoan.id);
-  }, []);
+  }, [grossSalary]);
+
+  const mapApiToForm = (api: any): LoansModel => ({
+    id: String(api.id),
+    loanCode: api.loanCode ?? "",
+    loanAmount: api.loanAmount != null ? String(api.loanAmount) : "",
+    notes: api.notes ?? "",
+
+    loanType: api.loanType ?? "",
+    loanPeriod: api.loanPeriod != null ? String(api.loanPeriod) : "",
+
+    startDate: api.startDate ?? "",
+    monthlyDeductions: api.monthlyDeduction != null ? String(api.monthlyDeduction) : "",
+
+    loanStatus: api.status ?? "",
+    balance: api.balance != null ? String(api.balance) : "",
+
+    grossPay: api.grossPay != null ? String(api.grossPay) : "0",
+    deductionAmount: api.deductionAmount != null ? String(api.deductionAmount) : "0",
+    netPay: api.netPay != null ? String(api.netPay) : "0",
+  });
+
+  const mapFormToPayload = (f: LoansModel): LoanPayload => ({
+    loanCode: f.loanCode,
+    loanAmount: Number(f.loanAmount || 0),
+    loanPeriod: Number(f.loanPeriod || 0),
+    monthlyDeduction: Number(f.monthlyDeductions || 0),
+    startDate: f.startDate || "",
+  });
+
+  const loadLoans = useCallback(async () => {
+    if (!employeeId) return;
+    setLoading(true);
+    try {
+      const res = await loanService.getAll(employeeId);
+      const mapped = (res.data || []).map(mapApiToForm).map(l => {
+        const monthly = Number(l.monthlyDeductions || 0);
+        const gross = grossSalary || Number(l.grossPay || 0);
+        const deduction = monthly;
+        const net = gross - deduction;
+        return {
+          ...l,
+          grossPay: String(gross),
+          deductionAmount: String(deduction),
+          netPay: String(net),
+        } as LoansModel;
+      });
+      setLoans(mapped);
+    } catch (err: any) {
+      console.error("LoansForm -> loadLoans failed", err);
+      toast.error(err?.response?.data?.message || "Failed to load loans");
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId, grossSalary]);
+
+  useEffect(() => {
+    if (!employeeId) return;
+    salaryService
+      .get(employeeId)
+      .then((res) => {
+        const data = res.data || {};
+        const gross = Number(data.totalCompensation ?? data.total_compensation ?? data.grossPay ?? 0) || 0;
+        setGrossSalary(gross);
+      })
+      .catch((err) => {
+        console.error("Failed to load salary", err);
+      });
+  }, [employeeId]);
+
+  useEffect(() => {
+    void loadLoans();
+  }, [loadLoans]);
 
   const handleEdit = useCallback((loan: LoansModel) => {
     setEditingId(loan.id);
   }, []);
 
   const handleSave = useCallback((loan: LoansModel) => {
-    setLoans(current => 
-      current.map(l => l.id === loan.id ? loan : l)
-    );
+    const monthly = Number(loan.monthlyDeductions || 0);
+    const gross = grossSalary || Number(loan.grossPay || 0);
+    const deduction = monthly;
+    const net = gross - deduction;
+    const updated = { ...loan, grossPay: String(gross), deductionAmount: String(deduction), netPay: String(net) } as LoansModel;
+    setLoans(current => current.map(l => l.id === loan.id ? updated : l));
   }, []);
+
+  const persistLoan = useCallback(async (loan: LoansModel) => {
+    if (!employeeId) {
+      toast.error("No employee selected");
+      return;
+    }
+
+    const payload = mapFormToPayload(loan);
+
+    try {
+      if (/^\d+$/.test(loan.id)) {
+        await loanService.update(Number(loan.id), payload);
+        toast.success("Loan updated");
+      } else {
+        await loanService.create(employeeId, payload);
+        toast.success("Loan created");
+      }
+      await loadLoans();
+    } catch (err: any) {
+      console.error("LoansForm -> persist failed", err);
+      toast.error(err?.response?.data?.message || "Failed to save loan");
+    }
+  }, [employeeId, loadLoans]);
 
   const handleCancel = useCallback(() => {
     setLoans(current => 
@@ -96,10 +208,11 @@ export default function LoansForm(): ReactElement {
   }, [editingId]);
 
   const handleDelete = useCallback((id: string) => {
-    if (window.confirm('Are you sure you want to delete this loan?')) {
-      setLoans(current => current.filter(l => l.id !== id));
-      setEditingId(null);
-    }
+    if (!window.confirm('Are you sure you want to delete this loan?')) return;
+    
+    setLoans(current => current.filter(l => l.id !== id));
+    setEditingId(null);
+    toast.success("Loan removed locally");
   }, []);
 
   return (
@@ -240,8 +353,9 @@ export default function LoansForm(): ReactElement {
                     </Button>
                     <Button 
                       disabled={!validateLoan(loan)}
-                      onClick={() => {
+                      onClick={async () => {
                         handleSave(loan);
+                        await persistLoan(loan);
                         setEditingId(null);
                       }}
                     >

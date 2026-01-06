@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ReactElement } from "react";
 import type { ImmigrationCtx } from "../ImmigrationShell";
+import { toast } from "sonner";
+import { immigrationService, type ResidencePermitPayload } from "@/service/immigrationService";
 
 interface FieldProps {
   label: string;
@@ -54,29 +56,104 @@ const VISA_STATUS = ["Active", "Expired", "Cancelled", "Pending"];
 
 export default function ResidencePermitForm(): ReactElement {
   const { editing } = useOutletContext<ImmigrationCtx>();
+  const { id } = useParams<{ id: string }>();
+  const empId = id ? Number(id) : undefined;
 
   const [saved, setSaved] = useState<ResidencePermitModel>(SEED);
   const [draft, setDraft] = useState<ResidencePermitModel>(SEED);
 
-  // Memoized event handlers
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!empId) return;
+      try {
+        const data = await immigrationService.getResidencePermit(empId);
+        if (mounted && data) {
+          const model: ResidencePermitModel = {
+            visaType: data.visaType ?? "",
+            idNumber: data.idNumber ?? "",
+            issuePlace: data.issuePlace ?? "",
+            durationType: data.durationType ?? "",
+            nationality: data.nationality ?? "",
+            issueAuthority: data.issueAuthority ?? "",
+            visaDuration: data.visaDuration ?? "",
+            occupation: data.occupation ?? "",
+            visaStatus: data.visaStatus ?? "",
+            startDate: data.startDate ?? "",
+            endDate: data.endDate ?? "",
+          };
+          setSaved(model);
+          setDraft(model);
+        }
+      } catch (err: any) {
+        console.error("ResidencePermitForm -> failed to load:", err?.response?.data ?? err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [empId]);
+
   const handleEdit = useCallback(() => setDraft(saved), [saved]);
-  const handleSave = useCallback(() => setSaved(draft), [draft]);
   const handleCancel = useCallback(() => setDraft(saved), [saved]);
 
-  // React to shell events with proper cleanup
+  const handleSave = useCallback(async () => {
+    if (!empId) return;
+    const payload: ResidencePermitPayload = {
+      visaType: draft.visaType,
+      durationType: draft.durationType,
+      visaDuration: draft.visaDuration,
+      nationality: draft.nationality,
+      occupation: draft.occupation,
+      issuePlace: draft.issuePlace,
+      issueAuthority: draft.issueAuthority,
+      visaStatus: draft.visaStatus,
+      startDate: draft.startDate || undefined,
+      endDate: draft.endDate || undefined,
+    } as any;
+
+    try {
+      if (saved && (saved.idNumber || saved.visaType)) {
+        await immigrationService.updateResidencePermit(empId, payload);
+        toast.success("Residence permit updated");
+      } else {
+        await immigrationService.createResidencePermit(empId, payload);
+        toast.success("Residence permit created");
+      }
+      const fresh = await immigrationService.getResidencePermit(empId);
+      if (fresh) {
+        const model: ResidencePermitModel = {
+          visaType: fresh.visaType ?? "",
+          idNumber: fresh.idNumber ?? "",
+          issuePlace: fresh.issuePlace ?? "",
+          durationType: fresh.durationType ?? "",
+          nationality: fresh.nationality ?? "",
+          issueAuthority: fresh.issueAuthority ?? "",
+          visaDuration: fresh.visaDuration ?? "",
+          occupation: fresh.occupation ?? "",
+          visaStatus: fresh.visaStatus ?? "",
+          startDate: fresh.startDate ?? "",
+          endDate: fresh.endDate ?? "",
+        };
+        setSaved(model);
+        setDraft(model);
+      }
+    } catch (err: any) {
+      console.error("ResidencePermitForm -> save failed:", err?.response?.data ?? err);
+      toast.error(err?.response?.data?.message || err?.message || "Failed to save permit");
+    }
+  }, [empId, draft, saved]);
+
+  
   useEffect(() => {
     const eventHandlers: Record<ImmigrationEvent, () => void> = {
       "immigration:edit": handleEdit,
-      "immigration:save": handleSave,
+      "immigration:save": () => { void handleSave(); },
       "immigration:cancel": handleCancel,
     };
 
-    // Add event listeners
     Object.entries(eventHandlers).forEach(([event, handler]) => {
       document.addEventListener(event, handler as EventListener);
     });
 
-    // Cleanup event listeners
     return () => {
       Object.entries(eventHandlers).forEach(([event, handler]) => {
         document.removeEventListener(event, handler as EventListener);
@@ -85,7 +162,7 @@ export default function ResidencePermitForm(): ReactElement {
   }, [handleEdit, handleSave, handleCancel]);
 
   const patch = useCallback(<K extends keyof ResidencePermitModel>(k: K, v: ResidencePermitModel[K]) =>
-    setDraft(d => ({ ...d, [k]: v })), []);
+    setDraft(d => ({ ...d, [k]: v })), [setDraft]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Residence permit form">

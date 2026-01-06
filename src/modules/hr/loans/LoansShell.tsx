@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { Briefcase, Package } from "lucide-react";
-import { EMPLOYEES } from "@/pages/employees.mock";
-import { useMemo, useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { hrService } from "@/service/hr.service";
+import type { Employee } from "@/types/hr";
 import { Button } from "@/components/ui/button";
 
 /** Small “Edit/Update ↔ Save/Cancel” control kept consistent with your other screens */
@@ -30,11 +31,22 @@ export function EditUpdateBar(props: {
 
 export default function LoansShell() {
   const { id } = useParams<{ id: string }>();
-  const emp = useMemo(() => EMPLOYEES.find((e) => e.id === id), [id]);
+  const [emp, setEmp] = useState<Employee | null>(null);
   const title = emp ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})` : "";
 
-  // expose edit state to children via route context
+  useEffect(() => {
+    let mounted = true;
+    if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
   const [editing, setEditing] = useState(false);
+  const saveRef = useRef<(() => Promise<void> | void) | null>(null);
+  const registerSave = (fn: (() => Promise<void> | void) | null) => {
+    saveRef.current = fn;
+  };
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -63,14 +75,20 @@ export default function LoansShell() {
             editing={editing}
             onEdit={() => setEditing(true)}
             onCancel={() => setEditing(false)}
-            onSave={() => setEditing(false)}
+            onSave={async () => {
+              try {
+                if (saveRef.current) await saveRef.current();
+              } finally {
+                setEditing(false);
+              }
+            }}
           />
         </div>
       </div>
 
       {/* Active tab content; provide edit state to children via context-like props */}
       <div className="p-4">
-        <Outlet context={{ editing, setEditing }} />
+        <Outlet context={{ editing, setEditing, registerSave }} />
       </div>
     </div>
   );

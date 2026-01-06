@@ -1,7 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 
 export interface JournalLineCreateDTO {
-  accountId: number;
+  debitAccount: number | null;
+  creditAccount: number | null;
   debitAmount: number | null;
   creditAmount: number | null;
   departmentId?: number | null;
@@ -33,7 +34,8 @@ export interface JournalEntryUpdateDTO {
 // --------------------------------------------
 export interface JournalLineDTO {
   id: number;
-  accountId: number;
+  debitAccount: number | null;
+  creditAccount: number | null;
   debitAmount: number | null;
   creditAmount: number | null;
   departmentId: number | null;
