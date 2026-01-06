@@ -176,3 +176,6 @@ public class PurchaseOrderItemDTO {
 3. **Third**: Data type mismatch (Integer vs Long, Double vs BigDecimal)
 4. **Fourth**: Jackson configuration issue
 
+
+
+
