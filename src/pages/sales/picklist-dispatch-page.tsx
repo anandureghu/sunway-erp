@@ -8,7 +8,7 @@ import {
   createPicklistColumns,
   createDispatchColumns,
 } from "@/lib/columns/sales-columns";
-import { Package, Truck, Plus, ArrowLeft } from "lucide-react";
+import { Package, Truck, Plus, ArrowLeft, FileText, Square } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -369,6 +369,15 @@ function CreatePicklistForm({
 
   const [loadingWarehouses, setLoadingWarehouses] = useState(true);
 
+  // Generate picklist number in format PL-YYYY-XXXX
+  const generatePicklistNumber = () => {
+    const year = new Date().getFullYear();
+    const randomNum = Math.floor(Math.random() * 9000) + 1000; // 4-digit number
+    return `PL-${year}-${randomNum}`;
+  };
+
+  const [picklistNumber] = useState<string>(generatePicklistNumber());
+
   useEffect(() => {
     setLoadingWarehouses(true);
     listWarehouses()
@@ -435,168 +444,220 @@ function CreatePicklistForm({
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">Generate Picklist</h1>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" size="icon" onClick={onCancel}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
+        <h1 className="text-3xl font-bold">Generate Picklist</h1>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
-          <CardHeader>
-            <CardTitle>Picklist Information</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Select a confirmed sales order to generate a picklist. The
-              warehouse will be auto-selected from the order items if available.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="orderId">Sales Order *</Label>
-                <Select
-                  value={selectedOrderId}
-                  onValueChange={(value) => {
-                    setSelectedOrderId(value);
-                    setValue("orderId", value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sales order" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {salesOrders
-                      .filter(
-                        (o) => o.status === "confirmed" || o.status === "draft"
-                      )
-                      .map((order) => (
-                        <SelectItem key={order.id} value={order.id}>
-                          {order.orderNo} - {order.customer?.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {errors.orderId && (
-                  <p className="text-sm text-red-500">
-                    {errors.orderId.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="warehouseId">Warehouse (Optional)</Label>
-                <Select
-                  value={watch("warehouseId") || ""}
-                  onValueChange={(value) => {
-                    setValue("warehouseId", value, { shouldValidate: true });
-                  }}
-                  disabled={!selectedOrderId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadingWarehouses ? (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        Loading warehouses...
-                      </div>
-                    ) : warehouses.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        No warehouses available
-                      </div>
-                    ) : warehouses.filter((wh) => wh.status === "active")
-                        .length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        No active warehouses available
-                      </div>
-                    ) : (
-                      warehouses
-                        .filter((wh) => wh.status === "active")
-                        .map((wh) => (
-                          <SelectItem key={wh.id} value={wh.id}>
-                            {wh.name} {wh.location ? `- ${wh.location}` : ""}
-                          </SelectItem>
-                        ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.warehouseId && (
-                  <p className="text-sm text-red-500">
-                    {errors.warehouseId.message}
-                  </p>
-                )}
-                {selectedOrder && selectedOrder.items.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {(() => {
-                      const itemWarehouses = selectedOrder.items
-                        .filter((item) => item.warehouseId)
-                        .map((item) => {
-                          const wh = warehouses.find(
-                            (w) => w.id === item.warehouseId
-                          );
-                          return wh?.name || item.warehouseId;
-                        })
-                        .filter((v, i, arr) => arr.indexOf(v) === i); // unique
-
-                      if (itemWarehouses.length === 0) {
-                        return "No warehouse specified in order items. Please select a warehouse.";
-                      } else if (itemWarehouses.length === 1) {
-                        return `Warehouse auto-selected from order: ${itemWarehouses[0]}`;
-                      } else {
-                        return `Order items span multiple warehouses: ${itemWarehouses.join(
-                          ", "
-                        )}`;
-                      }
-                    })()}
-                  </p>
-                )}
-              </div>
-              {/* Backend picklist generation API does not take assignee field */}
-              <input type="hidden" {...register("assignedTo")} />
+          <CardContent className="p-6 space-y-6">
+            {/* Title and Description */}
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Generate Picklist</h2>
+              <p className="text-sm text-muted-foreground">
+                Select a confirmed sales order to generate a picklist. The
+                warehouse will be auto-selected from the order items if available.
+              </p>
             </div>
 
-            {selectedOrder && (
-              <div className="mt-4 p-4 bg-muted rounded-lg">
-                <h3 className="font-medium mb-2">Order Items:</h3>
-                <div className="space-y-2">
-                  {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>
-                        {item.item?.name} - Qty: {item.quantity}
-                      </span>
-                      <span>
-                        Warehouse:{" "}
-                        {item.warehouseId
-                          ? warehouses.find((w) => w.id === item.warehouseId)
-                              ?.name
-                          : "Not assigned"}
-                      </span>
-                    </div>
-                  ))}
+            {/* Separator Line */}
+            <hr className="border-t" />
+
+            {/* Picklist Number Section */}
+            <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-300 rounded-lg p-4 flex items-center gap-4">
+              <div className="bg-white rounded-full h-12 w-12 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div className="bg-gray-200 border border-gray-400 rounded h-5 w-5"></div>
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-gray-900 mb-1">
+                  Picklist Number
+                </div>
+                <div className="text-xl font-bold text-green-600">
+                  {picklistNumber}
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Separator Line */}
+            <hr className="border-t" />
+
+            {/* Picklist Information Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Picklist Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="orderId">
+                    Sales Order <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={selectedOrderId}
+                    onValueChange={(value) => {
+                      setSelectedOrderId(value);
+                      setValue("orderId", value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Sales Order" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {salesOrders
+                        .filter((o) => o.status === "confirmed")
+                        .map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            {order.orderNo} - {order.customer?.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Only confirmed orders are available
+                  </p>
+                  {errors.orderId && (
+                    <p className="text-sm text-red-500">
+                      {errors.orderId.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="warehouseId">Warehouse (Optional)</Label>
+                  <Select
+                    value={watch("warehouseId") || ""}
+                    onValueChange={(value) => {
+                      setValue("warehouseId", value, { shouldValidate: true });
+                    }}
+                    disabled={!selectedOrderId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Auto-select from items" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingWarehouses ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          Loading warehouses...
+                        </div>
+                      ) : warehouses.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No warehouses available
+                        </div>
+                      ) : warehouses.filter((wh) => wh.status === "active")
+                          .length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No active warehouses available
+                        </div>
+                      ) : (
+                        warehouses
+                          .filter((wh) => wh.status === "active")
+                          .map((wh) => (
+                            <SelectItem key={wh.id} value={wh.id}>
+                              {wh.name} {wh.location ? `- ${wh.location}` : ""}
+                            </SelectItem>
+                          ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Override auto-detected warehouse if needed
+                  </p>
+                  {errors.warehouseId && (
+                    <p className="text-sm text-red-500">
+                      {errors.warehouseId.message}
+                    </p>
+                  )}
+                </div>
+                {/* Backend picklist generation API does not take assignee field */}
+                <input type="hidden" {...register("assignedTo")} />
+              </div>
+            </div>
+
+            {/* Separator Line */}
+            <hr className="border-t" />
+
+            {/* Items to Pick Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Items to Pick</h3>
+              <Card>
+                <CardContent className="p-0">
+                  {!selectedOrder ? (
+                    <div className="py-12 text-center">
+                      <Package className="h-16 w-16 mx-auto mb-4 text-amber-500" />
+                      <p className="text-muted-foreground">
+                        Select a sales order to view items
+                      </p>
+                    </div>
+                  ) : selectedOrder.items.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">No items in this order</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-4 px-6 font-semibold text-sm uppercase text-gray-700 tracking-wide">
+                              ITEM NAME
+                            </th>
+                            <th className="text-center py-4 px-6 font-semibold text-sm uppercase text-gray-700 tracking-wide">
+                              QUANTITY TO PICK
+                            </th>
+                            <th className="text-right py-4 px-6 font-semibold text-sm uppercase text-gray-700 tracking-wide">
+                              WAREHOUSE LOCATION
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedOrder.items.map((item) => {
+                            const warehouse = item.warehouseId
+                              ? warehouses.find((w) => w.id === item.warehouseId)
+                              : null;
+                            return (
+                              <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="text-left py-4 px-6 text-sm text-gray-900">
+                                  {item.item?.name || "Unknown Item"}
+                                </td>
+                                <td className="text-center py-4 px-6 text-sm text-gray-900">
+                                  {item.quantity}
+                                </td>
+                                <td className="text-right py-4 px-6 text-sm text-gray-900">
+                                  {warehouse
+                                    ? `${warehouse.name}${warehouse.location ? ` - ${warehouse.location}` : ""}`
+                                    : "Not assigned"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={submitting}
+                className="flex-1 w-full"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!selectedOrderId || submitting}
+                className="flex-1 w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600"
+              >
+                {submitting ? "Generating..." : "Generate Picklist"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
-
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!selectedOrderId || submitting}>
-            {submitting ? "Generating..." : "Generate Picklist"}
-          </Button>
-        </div>
       </form>
     </div>
   );

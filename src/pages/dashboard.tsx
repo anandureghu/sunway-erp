@@ -57,7 +57,7 @@ const getModuleDescription = (title: string): string => {
     "Inventory Settings": "Configure categories, units, warehouses, and inventory parameters.",
     "Finance Reports": "Financial statements, P&L, balance sheets, and cash flow analysis.",
     "Accounts Receivable": "Customer invoices, payments received, and aging reports.",
-    "Accounts Payable": "Vendor bills, payment processing, and payables management.",
+    "Accounts Payable": "Supplier bills, payment processing, and payables management.",
     "General Ledger": "Chart of accounts, journal entries, and financial transactions.",
     "Employee Payroll": "Salary processing, deductions, tax calculations, and payslips.",
     "Finance Settings": "Configure fiscal periods, currencies, tax rates, and accounting rules.",
