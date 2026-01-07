@@ -467,19 +467,40 @@ function CreatePicklistForm({
             <hr className="border-t" />
 
             {/* Picklist Number Section */}
-            <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-300 rounded-lg p-4 flex items-center gap-4">
-              <div className="bg-white rounded-full h-12 w-12 flex items-center justify-center flex-shrink-0 shadow-sm">
-                <div className="bg-gray-200 border border-gray-400 rounded h-5 w-5"></div>
+            <div className="relative bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-4">
+
+              {/* Left green accent line */}
+              <div className="absolute left-0 top-0 h-full w-1 bg-green-500 rounded-l-lg" />
+
+              {/* Icon */}
+              <div className="bg-white rounded-full h-11 w-11 flex items-center justify-center flex-shrink-0 shadow-sm border">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-gray-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                >
+                  <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5h6M9 9h6M9 13h6M5 5h.01M5 9h.01M5 13h.01M5 17h.01M9 17h6"
+                  />
+                </svg>
               </div>
+
+              {/* Text */}
               <div>
-                <div className="text-sm font-semibold text-gray-900 mb-1">
+                <div className="text-sm font-medium text-gray-700">
                   Picklist Number
                 </div>
-                <div className="text-xl font-bold text-green-600">
+                <div className="text-lg font-semibold text-green-600">
                   {picklistNumber}
                 </div>
               </div>
             </div>
+
 
             {/* Separator Line */}
             <hr className="border-t" />
@@ -644,14 +665,14 @@ function CreatePicklistForm({
                 variant="outline"
                 onClick={onCancel}
                 disabled={submitting}
-                className="flex-1 w-full"
+                className="flex-1 w-full h-12"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={!selectedOrderId || submitting}
-                className="flex-1 w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600"
+                className="flex-1 w-full h-12 bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600"
               >
                 {submitting ? "Generating..." : "Generate Picklist"}
               </Button>
