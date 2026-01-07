@@ -1,4 +1,4 @@
-import { DataTable } from "@/components/datatable";
+import { DataTable } from "@/components/ui/data-table";
 import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,9 +21,8 @@ import {
 } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Row } from "@tanstack/react-table";
 import { Plus, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -43,6 +42,9 @@ const WarehouseMaster = () => {
   const [, setLoadError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const {
     register: registerWarehouse,
@@ -185,23 +187,122 @@ const WarehouseMaster = () => {
     };
   }, []);
 
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const total = warehouses.length;
+    const active = warehouses.filter((w) => w.status === "active").length;
+    const inactive = warehouses.filter((w) => w.status === "inactive").length;
+    return { total, active, inactive };
+  }, [warehouses]);
+
+  const filteredWarehouses = useMemo(() => {
+    return warehouses.filter((wh) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (wh.location || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" || wh.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [warehouses, searchQuery, statusFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredWarehouses.length / itemsPerPage);
+  const paginatedWarehouses = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredWarehouses.slice(startIndex, endIndex);
+  }, [filteredWarehouses, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search warehouses..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <Button onClick={handleNewWarehouse} className="ml-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Warehouses</h1>
+        <Button
+          onClick={handleNewWarehouse}
+          className="bg-orange-500 hover:bg-orange-600 text-white"
+        >
           <Plus className="h-4 w-4 mr-2" />
-          Add Warehouse
+          + New Warehouse
         </Button>
       </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  TOTAL WAREHOUSES
+                </p>
+                <h2 className="text-2xl font-bold">{stats.total}</h2>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  ACTIVE
+                </p>
+                <h2 className="text-2xl font-bold">{stats.active}</h2>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  INACTIVE
+                </p>
+                <h2 className="text-2xl font-bold">{stats.inactive}</h2>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex-1 relative min-w-[300px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search warehouses..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
 
       {/* Warehouse Form */}
       {showWarehouseForm && (
@@ -380,24 +481,65 @@ const WarehouseMaster = () => {
         </Card>
       )}
 
-      {/* Warehouses Table */}
-      <Card>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={createWarehouseColumns(
-              handleEditWarehouse,
-              handleDeleteWarehouse
-            )}
-            data={warehouses.filter(
-              (wh) =>
-                searchQuery === "" ||
-                wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                wh.location.toLowerCase().includes(searchQuery.toLowerCase())
-            )}
-            onRowClick={(row: Row<Warehouse>) =>
-              navigate(`/inventory/warehouses/${row.original.id}`)
-            }
-          />
+        <CardContent>
+          {paginatedWarehouses.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No warehouses found
+            </div>
+          ) : (
+            <>
+              <DataTable
+                columns={createWarehouseColumns(
+                  handleEditWarehouse,
+                  handleDeleteWarehouse
+                )}
+                data={paginatedWarehouses}
+              />
+              {/* Pagination */}
+              {totalPages > 0 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredWarehouses.length)}-
+                    {Math.min(currentPage * itemsPerPage, filteredWarehouses.length)} of{" "}
+                    {filteredWarehouses.length} warehouses
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      ← Previous
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={currentPage === page ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500" : "min-w-[40px]"}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                    >
+                      Next →
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
