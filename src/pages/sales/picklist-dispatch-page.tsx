@@ -8,7 +8,7 @@ import {
   createPicklistColumns,
   createDispatchColumns,
 } from "@/lib/columns/sales-columns";
-import { Package, Truck, Plus, ArrowLeft, FileText, Square } from "lucide-react";
+import { Package, Truck, Plus, ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -597,13 +597,13 @@ function CreatePicklistForm({
                       <table className="w-full border-collapse">
                         <thead>
                           <tr className="border-b border-gray-200">
-                            <th className="text-left py-4 px-6 font-semibold text-sm uppercase text-gray-700 tracking-wide">
+                            <th className="text-left py-4 px-6 font-bold text-sm uppercase text-gray-700 tracking-wide">
                               ITEM NAME
                             </th>
-                            <th className="text-center py-4 px-6 font-semibold text-sm uppercase text-gray-700 tracking-wide">
+                            <th className="text-center py-4 px-6 font-bold text-sm uppercase text-gray-700 tracking-wide">
                               QUANTITY TO PICK
                             </th>
-                            <th className="text-right py-4 px-6 font-semibold text-sm uppercase text-gray-700 tracking-wide">
+                            <th className="text-right py-4 px-6 font-bold text-sm uppercase text-gray-700 tracking-wide">
                               WAREHOUSE LOCATION
                             </th>
                           </tr>

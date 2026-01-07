@@ -1,8 +1,5 @@
-import { Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { Vendor } from "@/types/vendor";
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
 
 interface VendorColumnsProps {
   onEdit: (vendor: Vendor) => void;
@@ -12,22 +9,25 @@ interface VendorColumnsProps {
 
 // Helper component to display optional values
 const OptionalCell = ({ value }: { value?: string | number | null | boolean }) => {
-  if (value === null || value === undefined) return <span>-</span>;
-  if (typeof value === "boolean") return <span>{value ? "Yes" : "No"}</span>;
-  if (typeof value === "string" && value.trim() === "") return <span>-</span>;
-  return <span>{String(value)}</span>;
+  if (value === null || value === undefined) return <span className="text-gray-500 whitespace-nowrap">-</span>;
+  if (typeof value === "boolean") return <span className="text-gray-900 whitespace-nowrap">{value ? "Yes" : "No"}</span>;
+  if (typeof value === "string" && value.trim() === "") return <span className="text-gray-500 whitespace-nowrap">-</span>;
+  return <span className="text-gray-900 font-normal whitespace-nowrap">{String(value)}</span>;
 };
 
 // Status pill component
 const StatusPill = ({ value }: { value: boolean | undefined }) => {
   const isActive = value !== false;
   return (
-    <Badge
-      variant={isActive ? "default" : "destructive"}
-      className={isActive ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}
+    <span
+      className={`inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-semibold ${
+        isActive 
+          ? "bg-green-200 text-green-500" 
+          : "bg-red-200 text-red-500"
+      }`}
     >
       {isActive ? "YES" : "NO"}
-    </Badge>
+    </span>
   );
 };
 
@@ -43,7 +43,9 @@ export const getVendorColumns = ({
     header: "ID",
     enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
-      <OptionalCell value={String(ctx.getValue() ?? "")} />
+        <span className="text-blue-600 font-medium">
+      {String(ctx.getValue() ?? "-")}
+    </span>
     ),
   },
   {
@@ -51,7 +53,9 @@ export const getVendorColumns = ({
     header: "VENDOR NAME",
     enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
-      <OptionalCell value={ctx.getValue() as string | undefined} />
+      <div className="max-w-[200px] truncate">
+        <OptionalCell value={ctx.getValue() as string | undefined} />
+      </div>
     ),
   },
   {
@@ -125,40 +129,36 @@ export const getVendorColumns = ({
     cell: ({ row }) => {
       const vendor = row.original;
       return (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {onView && (
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 onView(vendor);
               }}
+              className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
             >
               VIEW
-            </Button>
+            </button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onEdit(vendor);
             }}
+            className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
           >
             EDIT
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+          </button>
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete(vendor);
             }}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="bg-red-50 text-red-600 hover:bg-red-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
           >
             DELETE
-          </Button>
+          </button>
         </div>
       );
     },

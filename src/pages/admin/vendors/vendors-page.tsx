@@ -213,7 +213,7 @@ export default function VendorsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
@@ -226,7 +226,7 @@ export default function VendorsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-green-400 bg-green-50">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
@@ -238,7 +238,7 @@ export default function VendorsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-400 bg-red-50">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div>
@@ -353,7 +353,7 @@ export default function VendorsPage() {
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px]"
+                          className={currentPage === page ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500" : "min-w-[40px]"}
                         >
                           {page}
                         </Button>
