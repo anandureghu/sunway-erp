@@ -5,7 +5,10 @@ import { apiClient } from "./apiClient";
 ======================= */
 
 export interface AppraisalPayload {
-  // Performance
+  month: string;
+  year: number;
+
+  // KPIs
   kpi1?: string;
   review1?: string;
   kpi2?: string;
@@ -17,63 +20,66 @@ export interface AppraisalPayload {
   kpi5?: string;
   review5?: string;
 
-  // Appraisal Form
-  jobCode?: string;
+  // Comments
   employeeComments?: string;
   managerComments?: string;
+
+  // Rating
+  rating?: number;
+  annualIncrement?: number;
 }
 
 export interface AppraisalResponse extends AppraisalPayload {
   id: number;
   employeeId: number;
-  month: string;
-  year: number;
+  createdDate: string;
+  updatedDate: string;
 }
 
 /* =======================
-   API CALLS
+   API CALLS (CLEAN)
 ======================= */
 
-async function get(employeeId: number, month: string, year: number) {
-  const res = await apiClient.get<AppraisalResponse>(
-    `/employees/${employeeId}/appraisal`,
-    { params: { month, year } }
+/* -------- LIST (Loans-style) -------- */
+async function list(employeeId: number) {
+  const res = await apiClient.get<AppraisalResponse[]>(
+    `/employees/${employeeId}/appraisals`
   );
   return res.data;
 }
 
+/* -------- CREATE -------- */
 async function create(
   employeeId: number,
-  month: string,
-  year: number,
   payload: AppraisalPayload
 ) {
   const res = await apiClient.post<AppraisalResponse>(
-    `/employees/${employeeId}/appraisal`,
-    payload,
-    { params: { month, year } }
+    `/employees/${employeeId}/appraisals`,
+    payload
   );
   return res.data;
 }
 
-async function update(
+/* -------- UPDATE BY ID -------- */
+async function updateById(
   employeeId: number,
-  month: string,
-  year: number,
+  appraisalId: number,
   payload: AppraisalPayload
 ) {
   const res = await apiClient.put<AppraisalResponse>(
-    `/employees/${employeeId}/appraisal`,
-    payload,
-    { params: { month, year } }
+    `/employees/${employeeId}/appraisals/${appraisalId}`,
+    payload
   );
   return res.data;
 }
 
-async function remove(employeeId: number, month: string, year: number) {
+/* -------- DELETE BY ID -------- */
+async function removeById(
+  employeeId: number,
+  appraisalId: number
+) {
   await apiClient.delete(
-    `/employees/${employeeId}/appraisal`,
-    { params: { month, year } }
+    `/employees/${employeeId}/appraisals/${appraisalId}`
   );
 }
 
@@ -90,11 +96,15 @@ function extractErrorMessage(err: any): string {
   );
 }
 
+/* =======================
+   EXPORT
+======================= */
+
 export const appraisalService = {
-  get,
+  list,
   create,
-  update,
-  remove,
+  updateById,
+  removeById,
   extractErrorMessage,
 };
 

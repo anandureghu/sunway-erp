@@ -55,6 +55,18 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
     enableSorting: true,
     cell: (ctx: CellProps<Employee>) => <EmployeeCell value={ctx.getValue() as string} />
   },
+  {
+    accessorKey: "username",
+    header: "Username",
+    enableSorting: true,
+    cell: (ctx: CellProps<Employee>) => <OptionalCell value={ctx.getValue() as string | undefined} />
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    enableSorting: true,
+    cell: (ctx: CellProps<Employee>) => <OptionalCell value={ctx.getValue() as string | undefined} />
+  },
   { 
     accessorKey: "firstName", 
     header: "First Name", 

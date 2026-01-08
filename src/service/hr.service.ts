@@ -31,14 +31,8 @@ async function getEmployeeAddresses(employeeId: number) {
    CREATE EMPLOYEE
 ===================================================== */
 export interface CreateEmployeePayload {
-  employeeNo?: string;
   firstName?: string;
   lastName?: string;
-
-  // account
-  username?: string;
-  password?: string;
-  email?: string;
 
   // contact / profile
   phoneNo?: string;
@@ -48,10 +42,9 @@ export interface CreateEmployeePayload {
   maritalStatus?: string;
   dateOfBirth?: string;
   joinDate?: string;
-  status?: string;
 
   departmentId?: number;
-  notes?: string;
+  role?: string;
 }
 
 async function createEmployee(
@@ -105,12 +98,12 @@ async function deleteEmployee(employeeId: number): Promise<void> {
 /* =====================================================
    UPLOAD EMPLOYEE IMAGE (optional)
 ===================================================== */
-async function uploadImage(file: File): Promise<string> {
+async function uploadImage(employeeId: number, file: File): Promise<string> {
   const form = new FormData();
   form.append("file", file);
 
   const res = await apiClient.post<{ url: string }>(
-    "/employees/upload",
+    `/employees/${employeeId}/upload-image`,
     form,
     {
       headers: { "Content-Type": "multipart/form-data" },

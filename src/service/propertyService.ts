@@ -3,7 +3,7 @@ import { apiClient } from "@/service/apiClient";
 export type CompanyPropertyPayload = {
   itemCode: string;
   itemName: string;
-  itemStatus: "ISSUED" | "RETURNED";
+  itemStatus: "ASSIGNED" | "RETURNED" | "LOST" | "DAMAGED";
   description: string;
   dateGiven: string;
   returnDate?: string | null;
@@ -37,6 +37,12 @@ export const propertyService = {
     return apiClient.put<CompanyPropertyResponse>(
       `${BASE}/${employeeId}/company-properties/${propertyId}`,
       payload
+    );
+  }
+  ,
+  delete(employeeId: number, propertyId: number) {
+    return apiClient.delete<void>(
+      `${BASE}/${employeeId}/company-properties/${propertyId}`
     );
   }
 };

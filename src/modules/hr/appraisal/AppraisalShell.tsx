@@ -1,8 +1,9 @@
-import { NavLink, Outlet, useParams } from "react-router-dom";
-import { ClipboardList, FileText } from "lucide-react";
+import { useParams } from "react-router-dom";
+
 import { useState, useCallback, useEffect } from "react";
 import type { ReactElement, Dispatch, SetStateAction } from "react";
 import type { AppraisalPayload } from "@/service/appraisalService";
+import AppraisalsForm from "./AppraisalsForm";
 import { Button } from "@/components/ui/button";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
@@ -55,7 +56,7 @@ export default function AppraisalShell(): ReactElement {
   const title = emp ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})` : "";
 
   const [editing, setEditing] = useState(false);
-  const [appraisal, setAppraisal] = useState<AppraisalModel>({});
+  
 
   useEffect(() => {
     let mounted = true;
@@ -88,10 +89,7 @@ export default function AppraisalShell(): ReactElement {
     return () => document.removeEventListener("appraisal:saved", onSaved as EventListener);
   }, []);
 
-  useEffect(() => {
-    setAppraisal({});
-    setEditing(false);
-  }, [id]);
+  useEffect(() => setEditing(false), [id]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -100,38 +98,18 @@ export default function AppraisalShell(): ReactElement {
         Employee Appraisal – {title}
       </div>
 
-      {/* Tabs + Action row (tabs left, edit controls right) */}
+      {/* Action row */}
       <div className="px-4 pt-3 flex justify-between items-center border-b bg-white">
-        <div className="flex gap-2">
-          <Tab to="" icon={<ClipboardList className="h-4 w-4" />} label="Employee Performance" />
-          <Tab to="form" icon={<FileText className="h-4 w-4" />} label="Appraisal Form" />
-        </div>
+        <div />
 
         <EditUpdateBar editing={editing} onEdit={handleEdit} onCancel={handleCancel} onSave={handleSave} />
       </div>
 
-      {/* Active tab content */}
+      {/* Content (dependents-style list) */}
       <div className="p-4">
-        <Outlet context={{ editing, setEditing, appraisal, setAppraisal } satisfies AppraisalCtx} />
+        <AppraisalsForm />
       </div>
     </div>
   );
 }
 
-function Tab({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
-  return (
-    <NavLink
-      end
-      to={to}
-      className={({ isActive }) =>
-        [
-          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm",
-          isActive ? "bg-blue-600 text-white" : "text-black hover:bg-gray-100",
-        ].join(" ")
-      }
-    >
-      {icon}
-      {label}
-    </NavLink>
-  );
-}

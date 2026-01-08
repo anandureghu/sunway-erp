@@ -16,7 +16,7 @@ type BankModel = {
   bankBranch: string;
   country: string;
   accountType: string;
-  bankRemarks: string;
+  remarks: string;
   accountNo: string;
   iban: string;
 };
@@ -29,7 +29,7 @@ const SEED: BankModel = {
   bankBranch: "",
   country: "",
   accountType: "",
-  bankRemarks: "",
+  remarks: "",
   accountNo: "",
   iban: "",
 };
@@ -95,8 +95,64 @@ export default function BankForm() {
     setDraft((d) => ({ ...d, [k]: v }));
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Row>
+    <div className="space-y-3">
+     <div className="text-lg font-semibold">Bank Details </div>
+      {/* Row 1: Bank Name + Bank Branch */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field label="Bank Name:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.bankName}
+            onChange={(e) => patch("bankName", e.target.value)}
+            required
+          />
+        </Field>
+        <Field label="Bank Branch:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.bankBranch}
+            onChange={(e) => patch("bankBranch", e.target.value)}
+            required
+          />
+        </Field>
+      </div>
+
+      {/* Row 2: Account Type, Account No, IBAN/SWIFT Code */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Field label="Account Type:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.accountType}
+            onChange={(e) => patch("accountType", e.target.value)}
+            required
+          />
+        </Field>
+
+        <Field label="Account No:" required>
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.accountNo}
+            onChange={(e) => patch("accountNo", e.target.value)}
+            required
+          />
+        </Field>
+
+        <Field label="IBAN/SWIFT Code:">
+          <Input
+            className="w-full"
+            disabled={!editing}
+            value={draft.iban}
+            onChange={(e) => patch("iban", e.target.value)}
+          />
+        </Field>
+      </div>
+
+      {/* Row 3: Location, City, State, Country */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Field label="Location:">
           <Input
             className="w-full"
@@ -113,36 +169,12 @@ export default function BankForm() {
             onChange={(e) => patch("city", e.target.value)}
           />
         </Field>
-      </Row>
-
-      <Row>
-        <Field label="Bank Name:" required>
-          <Input
-            className="w-full"
-            disabled={!editing}
-            value={draft.bankName}
-            onChange={(e) => patch("bankName", e.target.value)}
-            required
-          />
-        </Field>
         <Field label="State:">
           <Input
             className="w-full"
             disabled={!editing}
             value={draft.state}
             onChange={(e) => patch("state", e.target.value)}
-          />
-        </Field>
-      </Row>
-
-      <Row>
-        <Field label="Bank Branch:" required>
-          <Input
-            className="w-full"
-            disabled={!editing}
-            value={draft.bankBranch}
-            onChange={(e) => patch("bankBranch", e.target.value)}
-            required
           />
         </Field>
         <Field label="Country:" required>
@@ -154,54 +186,24 @@ export default function BankForm() {
             required
           />
         </Field>
-      </Row>
+      </div>
 
-      <Row>
-        <Field label="Account Type:" required>
-          <Input
-            className="w-full"
-            disabled={!editing}
-            value={draft.accountType}
-            onChange={(e) => patch("accountType", e.target.value)}
-            required
-          />
-        </Field>
+      {/* Bank remarks full width */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Bank Remarks:">
           <Textarea
             className="min-h-[100px] w-full"
             disabled={!editing}
-            value={draft.bankRemarks}
-            onChange={(e) => patch("bankRemarks", e.target.value)}
+            value={draft.remarks}
+            onChange={(e) => patch("remarks", e.target.value)}
           />
         </Field>
-      </Row>
-
-      <Row>
-        <Field label="Account No:" required>
-          <Input
-            className="w-full"
-            disabled={!editing}
-            value={draft.accountNo}
-            onChange={(e) => patch("accountNo", e.target.value)}
-            required
-          />
-        </Field>
-        <Field label="IBAN:">
-          <Input
-            className="w-full"
-            disabled={!editing}
-            value={draft.iban}
-            onChange={(e) => patch("iban", e.target.value)}
-          />
-        </Field>
-      </Row>
+        <div />
+      </div>
     </div>
   );
 }
 
-function Row({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
-}
 function Field({ label, children, required }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">

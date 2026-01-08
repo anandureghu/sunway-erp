@@ -141,16 +141,21 @@ export default function EmployeesPage() {
 
   const handleAddEmployee = async (newEmployee: any) => {
     try {
-      const created = await hrService.createEmployee({
-        employeeNo: newEmployee.no ?? newEmployee.employeeNo ?? "",
+      const payload = {
         firstName: newEmployee.firstName ?? "",
         lastName: newEmployee.lastName ?? "",
-        username: newEmployee.username ?? undefined,
-        password: newEmployee.password ?? undefined,
-        email: newEmployee.email ?? undefined,
+        gender: newEmployee.gender ?? undefined,
+        prefix: newEmployee.prefix ?? undefined,
+        maritalStatus: newEmployee.maritalStatus ?? undefined,
+        dateOfBirth: newEmployee.dateOfBirth ?? undefined,
+        joinDate: newEmployee.joinDate ?? undefined,
         phoneNo: newEmployee.phoneNo ?? undefined,
+        altPhone: newEmployee.altPhone ?? undefined,
         departmentId: newEmployee.departmentId !== undefined && newEmployee.departmentId !== "" ? Number(newEmployee.departmentId) : undefined,
-      });
+        role: newEmployee.role ?? "USER",
+      };
+
+      const created = await hrService.createEmployee(payload);
 
       if (created) {
         // if create returned an id and address fields were provided, add address
@@ -180,6 +185,12 @@ export default function EmployeesPage() {
         } catch (err) {
           console.warn("Failed to add address after create:", err);
         }
+        // Show success toast with username/email from server response (do not show password)
+        const { username, email } = created as any;
+        toast.success(
+          `Employee created successfully.\nUsername: ${username || "-"}\nEmail: ${email || "-"}`
+        );
+
         // refresh from server to reflect DB state (in case server enriches/normalizes payload)
         const list = await hrService.listEmployees();
         setEmployees(list);

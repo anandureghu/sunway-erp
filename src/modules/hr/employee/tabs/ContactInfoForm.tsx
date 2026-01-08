@@ -12,7 +12,7 @@ import { contactService } from "@/service/contactService";
 import { toast } from "sonner";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 
-type Ctx = { editing: boolean };
+type Ctx = { editing: boolean; setEditing?: (v: boolean) => void };
 
 type Address = {
   id: string;
@@ -59,7 +59,7 @@ function isAddressValid(address: Address) {
 
 
 export default function ContactInfoForm() {
-  const { editing } = useOutletContext<Ctx>();
+  const { editing, setEditing } = useOutletContext<Ctx>();
 
   const [saved, setSaved] = useState(SEED);
   const [draft, setDraft] = useState(SEED);
@@ -107,8 +107,20 @@ export default function ContactInfoForm() {
       .then((res) => {
         if (!mounted) return;
         const data = res.data || {};
-        setDraft((d) => ({ ...d, email: data.email || "", phone: data.phone || "", altPhone: data.altPhone || "" }));
-        setSaved((s) => ({ ...s, email: data.email || "", phone: data.phone || "", altPhone: data.altPhone || "" }));
+        setDraft((d) => ({
+          ...d,
+          email: data.email || "",
+          phone: data.phone || "",
+          altPhone: data.altPhone || "",
+          notes: data.notes || "",
+        }));
+        setSaved((s) => ({
+          ...s,
+          email: data.email || "",
+          phone: data.phone || "",
+          altPhone: data.altPhone || "",
+          notes: data.notes || "",
+        }));
       })
       .catch(() => {
         
@@ -130,11 +142,13 @@ export default function ContactInfoForm() {
             email: draft.email,
             phone: draft.phone,
             altPhone: draft.altPhone || undefined,
+            notes: draft.notes || "",
           });
         } catch (err) {
           console.error("Failed to save contact info", err);
           toast.error("Failed to save contact info");
         }
+
         for (const a of addresses) {
           const payload = {
             line1: a.line1,
@@ -149,11 +163,27 @@ export default function ContactInfoForm() {
           if (/^\d+$/.test(a.id)) {
             await addressService.updateAddress(Number(a.id), payload);
           } else {
-            const created = await addressService.addAddress(employeeId, payload);
-            
-            setAddresses((current) => current.map((cur) => (cur.id === a.id ? { ...cur, id: String(created.id) } : cur)));
+            await addressService.addAddress(employeeId, payload);
           }
         }
+
+        // reload addresses from server to ensure authoritative state
+        try {
+          const resAddrs = await addressService.getAddressesByEmployee(employeeId);
+          const mapped = (resAddrs || []).map((a) => ({
+            id: String(a.id),
+            line1: a.line1 || "",
+            line2: a.line2 || "",
+            city: a.city || "",
+            state: a.state || "",
+            zipcode: a.postalCode || "",
+            country: a.country || "",
+          }));
+          setAddresses(mapped);
+        } catch (err) {
+          console.error("Failed to reload addresses", err);
+        }
+
         toast.success("Addresses saved");
       } catch (err) {
         console.error("Failed to save addresses", err);
@@ -268,7 +298,10 @@ export default function ContactInfoForm() {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Addresses</h3>
           <Button
-            onClick={handleAddAddress}
+            onClick={() => {
+              setEditing?.(true);
+              handleAddAddress();
+            }}
             variant="outline"
             size="sm"
             className="flex items-center gap-2"

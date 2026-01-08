@@ -10,10 +10,11 @@ export interface Loan {
 }
 
 export interface LoanPayload {
-  loanCode: string;
+  // Request DTO for creating/updating a loan
+  loanType: 'CAR_LOAN' | 'PERSONAL_LOAN' | 'HOUSING_LOAN' | 'EDUCATION_LOAN' | 'MEDICAL_LOAN';
   loanAmount: number;
   loanPeriod: number;
-  monthlyDeduction: number;
   startDate: string; // YYYY-MM-DD
+  notes?: string;
 }
 

@@ -12,10 +12,9 @@ export default function EmployeeAddresses({ employeeId }: { employeeId?: number 
     if (!id) return;
     let mounted = true;
     setLoading(true);
-    const empId = Number(id);
 
     addressService
-      .getAddressesByEmployee(empId)
+      .getAddressesByEmployee(Number(id))
       .then((list) => {
         if (mounted) setAddresses(list || []);
       })

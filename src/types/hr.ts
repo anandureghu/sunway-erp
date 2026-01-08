@@ -63,12 +63,13 @@ export interface LeaveRecord {
 
 export interface Salary {
   basicSalary: string;
-  transportation: "Yes" | "No";
+  transportationType: "ALLOWANCE" | "COMPANY_PROVIDED";
   transportationAllowance: string;
+  travelType: "ALLOWANCE" | "COMPANY_PROVIDED";
   travelAllowance: string;
   otherAllowance: string;
   totalAllowance: string;
-  housing: "Yes" | "No";
+  housingType: "ALLOWANCE" | "COMPANY_PROVIDED";
   housingAllowance: string;
   payPeriodStart: string; // yyyy-mm-dd
   payPeriodEnd: string; // yyyy-mm-dd
@@ -135,4 +136,29 @@ export interface User {
   password: string;
   role: Role;
   createdAt: string; // ISO-8601 string from Instant
+}
+
+export interface EmployeeResponse {
+  id: number;
+  employeeNo: string;
+  firstName: string;
+  lastName: string;
+  gender?: string;
+  prefix?: string;
+  status: string;
+  maritalStatus?: string;
+  dateOfBirth?: string;
+  joinDate?: string;
+  phoneNo?: string;
+  altPhone?: string;
+  email: string;
+  companyId: number;
+  companyName: string;
+  departmentId?: number;
+  departmentName?: string;
+  userId: number;
+  username: string;
+  role: string;
+  forcePasswordReset?: boolean;
+  imageUrl?: string;
 }

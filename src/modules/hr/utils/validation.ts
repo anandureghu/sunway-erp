@@ -104,20 +104,20 @@ export function validateSalary(data: Partial<Salary>): ValidationErrors<Salary> 
 export function validateLoan(data: Partial<Loan>): ValidationErrors<Loan> {
   const errors: ValidationErrors<Loan> = {};
 
-  if (!data.loanCode?.trim()) {
-    errors.loanCode = 'Loan code is required';
+  if (!data.loanType || !String(data.loanType).trim()) {
+    (errors as any).loanType = 'Loan type is required';
   }
 
-  if (!isValidAmount(data.loanAmount || '')) {
+  if (!isValidAmount(String(data.loanAmount || ''))) {
     errors.loanAmount = 'Loan amount must be a valid amount';
   }
 
   if (!data.startDate || !isValidDate(data.startDate)) {
-    errors.startDate = 'Valid start date is required';
+    errors.startDate = 'Valid start date is required (yyyy-mm-dd)';
   }
 
-  if (!isValidAmount(data.monthlyDeductions || '')) {
-    errors.monthlyDeductions = 'Monthly deduction must be a valid amount';
+  if (!data.loanPeriod || Number(data.loanPeriod) <= 0) {
+    (errors as any).loanPeriod = 'Loan period (months) is required';
   }
 
   return errors;
