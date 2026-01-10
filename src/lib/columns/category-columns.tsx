@@ -9,9 +9,7 @@ const StatusPill = ({ value }: { value: string }) => {
   return (
     <span
       className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-        isActive 
-          ? "bg-green-500 text-white" 
-          : "bg-red-500 text-white"
+        isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"
       }`}
     >
       {isActive ? "YES" : "NO"}
@@ -23,7 +21,7 @@ export function createCategoryColumns(
   onViewDetails?: (id: string) => void,
   onEdit?: (category: ItemCategory) => void,
   onDelete?: (id: string) => void,
-  onAddSubcategory?: (category: ItemCategory) => void,
+  // onAddSubcategory?: (category: ItemCategory) => void,
   parentCategories?: ItemCategory[]
 ): ColumnDef<ItemCategory>[] {
   return [
@@ -34,20 +32,28 @@ export function createCategoryColumns(
       cell: ({ row }) => {
         const category = row.original;
         const isSubcategory = !!category.parentId;
-        const parentName = parentCategories?.find(p => p.id === category.parentId)?.name;
+        const parentName = parentCategories?.find(
+          (p) => p.id === category.parentId
+        )?.name;
         return (
           <div className="max-w-[250px]">
             <div className="flex items-center gap-2">
               {isSubcategory && (
                 <span className="text-xs text-gray-400 font-mono">└─</span>
               )}
-              <span className={`font-normal whitespace-nowrap truncate ${isSubcategory ? "text-blue-700" : "text-gray-900"}`}>
+              <span
+                className={`font-normal whitespace-nowrap truncate ${
+                  isSubcategory ? "text-blue-700" : "text-gray-900"
+                }`}
+              >
                 {category.name}
               </span>
             </div>
             {isSubcategory && parentName && (
               <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                <span>Parent: <span className="font-medium">{parentName}</span></span>
+                <span>
+                  Parent: <span className="font-medium">{parentName}</span>
+                </span>
               </div>
             )}
           </div>
@@ -59,14 +65,16 @@ export function createCategoryColumns(
       header: "CODE",
       enableSorting: true,
       cell: ({ row }) => (
-        <span className="text-gray-900 font-normal whitespace-nowrap">{row.original.code || "-"}</span>
+        <span className="text-gray-900 font-normal whitespace-nowrap">
+          {row.original.code || "-"}
+        </span>
       ),
     },
     {
       accessorKey: "status",
       header: "ACTIVE",
       enableSorting: true,
-      cell: ({ row }) => <StatusPill value={row.original.status} />,
+      cell: ({ row }) => <StatusPill value={row.original.status || ""} />,
     },
     {
       id: "actions",
@@ -115,4 +123,3 @@ export function createCategoryColumns(
     },
   ];
 }
-

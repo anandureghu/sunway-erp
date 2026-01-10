@@ -3,11 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Truck, MapPin, Clock, ArrowLeft, CheckCircle2, Circle } from "lucide-react";
+import { Search, Truck, ArrowLeft, CheckCircle2, Circle } from "lucide-react";
 import { format } from "date-fns";
 import type { Dispatch } from "@/types/sales";
 import { Link } from "react-router-dom";
-import { listShipmentsAsDispatches, attachOrderAndItems, listSalesOrders, listPicklists } from "@/service/salesFlowService";
+import {
+  listShipmentsAsDispatches,
+  attachOrderAndItems,
+  listSalesOrders,
+  listPicklists,
+} from "@/service/salesFlowService";
 import { listItems } from "@/service/inventoryService";
 import { cn } from "@/lib/utils";
 
@@ -74,18 +79,23 @@ export default function DeliveryTrackingPage() {
   const getTrackingHistory = (dispatch: Dispatch): TrackingEvent[] => {
     const events: TrackingEvent[] = [];
     const orderDate = dispatch.order?.orderDate || dispatch.createdAt;
-    const createdAt = dispatch.createdAt ? new Date(dispatch.createdAt) : new Date();
+    const createdAt = dispatch.createdAt
+      ? new Date(dispatch.createdAt)
+      : new Date();
     const originCity = dispatch.order?.customer?.city || "Origin";
     const originCountry = dispatch.order?.customer?.country || "";
     const destination = getDestination(dispatch);
-    
+
     // Order Confirmed
     events.push({
       event: "Order Confirmed",
-      location: originCity && originCountry 
-        ? `${originCity}, ${originCountry}`.trim()
-        : originCity || "Origin",
-      dateTime: orderDate ? format(new Date(orderDate), "MMM dd, yyyy - h:mm a") : undefined,
+      location:
+        originCity && originCountry
+          ? `${originCity}, ${originCountry}`.trim()
+          : originCity || "Origin",
+      dateTime: orderDate
+        ? format(new Date(orderDate), "MMM dd, yyyy - h:mm a")
+        : undefined,
       status: "completed",
     });
 
@@ -142,8 +152,11 @@ export default function DeliveryTrackingPage() {
       events.push({
         event: "Delivered",
         location: destination,
-        dateTime: dispatch.actualDeliveryDate 
-          ? format(new Date(dispatch.actualDeliveryDate), "MMM dd, yyyy - h:mm a")
+        dateTime: dispatch.actualDeliveryDate
+          ? format(
+              new Date(dispatch.actualDeliveryDate),
+              "MMM dd, yyyy - h:mm a"
+            )
           : undefined,
         status: "completed",
       });
@@ -161,7 +174,7 @@ export default function DeliveryTrackingPage() {
   // Extract destination from address
   const getDestination = (dispatch: Dispatch): string => {
     if (dispatch.deliveryAddress) {
-      const parts = dispatch.deliveryAddress.split(",").map(s => s.trim());
+      const parts = dispatch.deliveryAddress.split(",").map((s) => s.trim());
       if (parts.length >= 2) {
         return `${parts[parts.length - 2]}, ${parts[parts.length - 1]}`;
       }
@@ -177,7 +190,9 @@ export default function DeliveryTrackingPage() {
   };
 
   // Get status display
-  const getStatusDisplay = (status: string): { label: string; color: string } => {
+  const getStatusDisplay = (
+    status: string
+  ): { label: string; color: string } => {
     switch (status) {
       case "delivered":
         return { label: "DELIVERED", color: "bg-green-500 text-white" };
@@ -188,7 +203,10 @@ export default function DeliveryTrackingPage() {
       case "created":
         return { label: "PENDING PICKUP", color: "bg-orange-500 text-white" };
       default:
-        return { label: status.toUpperCase().replace("_", " "), color: "bg-gray-500 text-white" };
+        return {
+          label: status.toUpperCase().replace("_", " "),
+          color: "bg-gray-500 text-white",
+        };
     }
   };
 
@@ -254,8 +272,15 @@ export default function DeliveryTrackingPage() {
                     >
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="font-semibold text-lg">{dispatch.dispatchNo}</p>
-                          <Badge className={cn("text-xs font-medium", statusDisplay.color)}>
+                          <p className="font-semibold text-lg">
+                            {dispatch.dispatchNo}
+                          </p>
+                          <Badge
+                            className={cn(
+                              "text-xs font-medium",
+                              statusDisplay.color
+                            )}
+                          >
                             {statusDisplay.label}
                           </Badge>
                         </div>
@@ -271,7 +296,10 @@ export default function DeliveryTrackingPage() {
                           <p className="text-muted-foreground">
                             <span className="font-medium">ETA:</span>{" "}
                             {dispatch.estimatedDeliveryDate
-                              ? format(new Date(dispatch.estimatedDeliveryDate), "MMM dd, yyyy")
+                              ? format(
+                                  new Date(dispatch.estimatedDeliveryDate),
+                                  "MMM dd, yyyy"
+                                )
                               : "Not set"}
                           </p>
                         </div>
@@ -291,12 +319,20 @@ export default function DeliveryTrackingPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-2xl">{selectedDispatch.dispatchNo}</CardTitle>
+                    <CardTitle className="text-2xl">
+                      {selectedDispatch.dispatchNo}
+                    </CardTitle>
                     <p className="text-muted-foreground">
-                      {selectedDispatch.order?.customer?.name || "Unknown"} → {getDestination(selectedDispatch)}
+                      {selectedDispatch.order?.customer?.name || "Unknown"} →{" "}
+                      {getDestination(selectedDispatch)}
                     </p>
                   </div>
-                  <Badge className={cn("text-sm font-medium", getStatusDisplay(selectedDispatch.status).color)}>
+                  <Badge
+                    className={cn(
+                      "text-sm font-medium",
+                      getStatusDisplay(selectedDispatch.status).color
+                    )}
+                  >
                     {getStatusDisplay(selectedDispatch.status).label}
                   </Badge>
                 </div>
@@ -306,26 +342,37 @@ export default function DeliveryTrackingPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <Card className="bg-muted/50">
                     <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground mb-1">CARRIER</p>
-                      <p className="font-semibold">{selectedDispatch.notes || "Not specified"}</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        CARRIER
+                      </p>
+                      <p className="font-semibold">
+                        {selectedDispatch.notes || "Not specified"}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card className="bg-muted/50">
                     <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground mb-1">ESTIMATED DELIVERY</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        ESTIMATED DELIVERY
+                      </p>
                       <p className="font-semibold">
                         {selectedDispatch.estimatedDeliveryDate
-                          ? format(new Date(selectedDispatch.estimatedDeliveryDate), "MMM dd, yyyy")
+                          ? format(
+                              new Date(selectedDispatch.estimatedDeliveryDate),
+                              "MMM dd, yyyy"
+                            )
                           : "Not set"}
                       </p>
                     </CardContent>
                   </Card>
                   <Card className="bg-muted/50">
                     <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground mb-1">CURRENT LOCATION</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        CURRENT LOCATION
+                      </p>
                       <p className="font-semibold">
-                        {selectedDispatch.status === "in_transit" 
-                          ? "In Transit" 
+                        {selectedDispatch.status === "in_transit"
+                          ? "In Transit"
                           : selectedDispatch.status === "delivered"
                           ? getDestination(selectedDispatch)
                           : "Origin"}
@@ -338,44 +385,63 @@ export default function DeliveryTrackingPage() {
                 <div>
                   <CardTitle className="mb-4">Tracking History</CardTitle>
                   <div className="space-y-6">
-                    {getTrackingHistory(selectedDispatch).map((event, index) => {
-                      const isLast = index === getTrackingHistory(selectedDispatch).length - 1;
-                      return (
-                        <div key={index} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            {event.status === "completed" ? (
-                              <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                                <CheckCircle2 className="h-4 w-4 text-white" />
-                              </div>
-                            ) : event.status === "current" ? (
-                              <div className="w-6 h-6 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                <Circle className="h-3 w-3 text-white fill-white" />
-                              </div>
-                            ) : (
-                              <div className="w-6 h-6 rounded-full border-2 border-gray-300 bg-white flex-shrink-0" />
-                            )}
-                            {!isLast && (
-                              <div className={cn(
-                                "w-0.5 flex-1 mt-2 min-h-[40px]",
-                                event.status === "pending" ? "bg-gray-200" : "bg-green-500"
-                              )} />
-                            )}
+                    {getTrackingHistory(selectedDispatch).map(
+                      (event, index) => {
+                        const isLast =
+                          index ===
+                          getTrackingHistory(selectedDispatch).length - 1;
+                        return (
+                          <div key={index} className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                              {event.status === "completed" ? (
+                                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                  <CheckCircle2 className="h-4 w-4 text-white" />
+                                </div>
+                              ) : event.status === "current" ? (
+                                <div className="w-6 h-6 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center flex-shrink-0">
+                                  <Circle className="h-3 w-3 text-white fill-white" />
+                                </div>
+                              ) : (
+                                <div className="w-6 h-6 rounded-full border-2 border-gray-300 bg-white flex-shrink-0" />
+                              )}
+                              {!isLast && (
+                                <div
+                                  className={cn(
+                                    "w-0.5 flex-1 mt-2 min-h-[40px]",
+                                    event.status === "pending"
+                                      ? "bg-gray-200"
+                                      : "bg-green-500"
+                                  )}
+                                />
+                              )}
+                            </div>
+                            <div
+                              className={cn(
+                                "flex-1 pb-2",
+                                event.status === "current" &&
+                                  "border-l-2 border-blue-500 pl-4"
+                              )}
+                            >
+                              <p className="font-semibold text-base">
+                                {event.event}
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {event.location}
+                              </p>
+                              {event.dateTime ? (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {event.dateTime}
+                                </p>
+                              ) : event.status === "pending" ? (
+                                <p className="text-xs text-muted-foreground mt-1 italic">
+                                  Pending
+                                </p>
+                              ) : null}
+                            </div>
                           </div>
-                          <div className={cn(
-                            "flex-1 pb-2",
-                            event.status === "current" && "border-l-2 border-blue-500 pl-4"
-                          )}>
-                            <p className="font-semibold text-base">{event.event}</p>
-                            <p className="text-sm text-muted-foreground mt-1">{event.location}</p>
-                            {event.dateTime ? (
-                              <p className="text-xs text-muted-foreground mt-1">{event.dateTime}</p>
-                            ) : event.status === "pending" ? (
-                              <p className="text-xs text-muted-foreground mt-1 italic">Pending</p>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      }
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -385,7 +451,9 @@ export default function DeliveryTrackingPage() {
               <CardContent className="pt-12 pb-12">
                 <div className="text-center text-muted-foreground">
                   <Truck className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Select a dispatch to view tracking details</p>
+                  <p className="text-lg">
+                    Select a dispatch to view tracking details
+                  </p>
                 </div>
               </CardContent>
             </Card>

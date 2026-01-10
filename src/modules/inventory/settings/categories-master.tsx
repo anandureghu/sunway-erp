@@ -1,6 +1,6 @@
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -326,7 +326,13 @@ const CategoriesMaster = () => {
 
         return matchesSearch && matchesStatus;
       });
-  }, [categories, searchQuery, statusFilter, parentCategories, subcategoriesByParent]);
+  }, [
+    categories,
+    searchQuery,
+    statusFilter,
+    parentCategories,
+    subcategoriesByParent,
+  ]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
@@ -350,8 +356,7 @@ const CategoriesMaster = () => {
           onClick={handleNewCategory}
           className="bg-orange-500 hover:bg-orange-600 text-white"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          + New Category
+          <Plus className="h-4 w-4 mr-2" />+ New Category
         </Button>
       </div>
 
@@ -435,7 +440,7 @@ const CategoriesMaster = () => {
                   handleViewCategoryDetails,
                   handleEditCategory,
                   handleDeleteCategory,
-                  handleNewSubcategory,
+                  // handleNewSubcategory,
                   parentCategories
                 )}
                 data={paginatedCategories}
@@ -444,9 +449,17 @@ const CategoriesMaster = () => {
               {totalPages > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
-                    Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredCategories.length)}-
-                    {Math.min(currentPage * itemsPerPage, filteredCategories.length)} of{" "}
-                    {filteredCategories.length} categories
+                    Showing{" "}
+                    {Math.min(
+                      (currentPage - 1) * itemsPerPage + 1,
+                      filteredCategories.length
+                    )}
+                    -
+                    {Math.min(
+                      currentPage * itemsPerPage,
+                      filteredCategories.length
+                    )}{" "}
+                    of {filteredCategories.length} categories
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -464,7 +477,11 @@ const CategoriesMaster = () => {
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className={currentPage === page ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500" : "min-w-[40px]"}
+                          className={
+                            currentPage === page
+                              ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                              : "min-w-[40px]"
+                          }
                         >
                           {page}
                         </Button>

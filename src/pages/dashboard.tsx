@@ -3,20 +3,20 @@ import { getSidebarItems } from "@/service/companyService";
 import type { SidebarItem } from "@/types/company";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import {
   BarChart3,
   Users,
   FileText,
   Settings,
-  Package,
   ShoppingCart,
-  Receipt,
-  PieChart,
   Wallet,
-  Landmark,
-  TrendingUp,
   DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,8 +30,8 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
     "HR Settings": Settings,
     "Inventory Report": FileText,
     "Inventory (Stocks)": BarChart3,
-    "Sales": DollarSign,
-    "Purchase": ShoppingCart,
+    Sales: DollarSign,
+    Purchase: ShoppingCart,
     "Inventory Settings": Settings,
     "Finance Reports": BarChart3,
     "Accounts Receivable": FileText,
@@ -46,21 +46,36 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
 // Description mapping for modules
 const getModuleDescription = (title: string): string => {
   const descriptions: Record<string, string> = {
-    "HR Analytics": "Comprehensive HR metrics, workforce insights, and data-driven decision making.",
-    "Employee Overview": "Complete employee profiles, organizational structure, and staff directory.",
-    "HR Reports": "Generate detailed reports on attendance, performance, and compliance.",
-    "HR Settings": "Configure departments, positions, benefits, and HR policies.",
-    "Inventory Report": "Real-time stock reports, valuation analysis, and movement tracking.",
-    "Inventory (Stocks)": "Manage stock levels, warehouses, and inventory adjustments.",
-    "Sales": "Sales orders, invoicing, customer management, and revenue tracking.",
-    "Purchase": "Purchase orders, supplier management, and procurement workflows.",
-    "Inventory Settings": "Configure categories, units, warehouses, and inventory parameters.",
-    "Finance Reports": "Financial statements, P&L, balance sheets, and cash flow analysis.",
-    "Accounts Receivable": "Customer invoices, payments received, and aging reports.",
-    "Accounts Payable": "Supplier bills, payment processing, and payables management.",
-    "General Ledger": "Chart of accounts, journal entries, and financial transactions.",
-    "Employee Payroll": "Salary processing, deductions, tax calculations, and payslips.",
-    "Finance Settings": "Configure fiscal periods, currencies, tax rates, and accounting rules.",
+    "HR Analytics":
+      "Comprehensive HR metrics, workforce insights, and data-driven decision making.",
+    "Employee Overview":
+      "Complete employee profiles, organizational structure, and staff directory.",
+    "HR Reports":
+      "Generate detailed reports on attendance, performance, and compliance.",
+    "HR Settings":
+      "Configure departments, positions, benefits, and HR policies.",
+    "Inventory Report":
+      "Real-time stock reports, valuation analysis, and movement tracking.",
+    "Inventory (Stocks)":
+      "Manage stock levels, warehouses, and inventory adjustments.",
+    Sales:
+      "Sales orders, invoicing, customer management, and revenue tracking.",
+    Purchase:
+      "Purchase orders, supplier management, and procurement workflows.",
+    "Inventory Settings":
+      "Configure categories, units, warehouses, and inventory parameters.",
+    "Finance Reports":
+      "Financial statements, P&L, balance sheets, and cash flow analysis.",
+    "Accounts Receivable":
+      "Customer invoices, payments received, and aging reports.",
+    "Accounts Payable":
+      "Supplier bills, payment processing, and payables management.",
+    "General Ledger":
+      "Chart of accounts, journal entries, and financial transactions.",
+    "Employee Payroll":
+      "Salary processing, deductions, tax calculations, and payslips.",
+    "Finance Settings":
+      "Configure fiscal periods, currencies, tax rates, and accounting rules.",
   };
   return descriptions[title] || "Access module features and settings.";
 };
@@ -125,7 +140,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     if (user?.companyId) {
       getSidebarItems(user.companyId).then((items) => {
@@ -151,21 +166,29 @@ const Dashboard = () => {
         {sidebarItems.map((item) => {
           const theme = getSystemTheme(item.title);
           const systemSubtitle = getSystemSubtitle(item.title);
-          
+
           return (
             <div key={item.title} className="space-y-6">
               {/* System Header */}
-              <div className={cn("flex items-center gap-4 p-4 rounded-lg", theme.bgColor)}>
-                <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", theme.iconBg)}>
+              <div
+                className={cn(
+                  "flex items-center gap-4 p-4 rounded-lg",
+                  theme.bgColor
+                )}
+              >
+                <div
+                  className={cn(
+                    "w-12 h-12 rounded-lg flex items-center justify-center",
+                    theme.iconBg
+                  )}
+                >
                   <item.icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h2 className={cn("text-2xl font-semibold", theme.textColor)}>
                     Sunway {item.title} System
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {systemSubtitle}
-                  </p>
+                  <p className="text-sm text-gray-600 mt-1">{systemSubtitle}</p>
                 </div>
               </div>
 
@@ -174,7 +197,7 @@ const Dashboard = () => {
                 {item.items.map((subItem) => {
                   const ModuleIcon = getModuleIcon(subItem.title, subItem.icon);
                   const description = getModuleDescription(subItem.title);
-                  
+
                   return (
                     <Card
                       key={subItem.title}
@@ -190,7 +213,9 @@ const Dashboard = () => {
                       <CardHeader className="flex-1">
                         <div className="flex items-start gap-3">
                           <div className={cn("p-2 rounded-lg", theme.bgColor)}>
-                            <ModuleIcon className={cn("w-5 h-5", theme.textColor)} />
+                            <ModuleIcon
+                              className={cn("w-5 h-5", theme.textColor)}
+                            />
                           </div>
                           <div className="flex-1">
                             <CardTitle className="text-lg font-semibold mb-2">
