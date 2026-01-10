@@ -177,7 +177,7 @@ export default function EmployeeProfileForm(): ReactElement {
 
   const uploadImage = async (file: File): Promise<string> => {
     const { hrService } = await import("@/service/hr.service");
-    return hrService.uploadImage(file);
+    return hrService.uploadImage(Number(id), file);
   };
 
   return (

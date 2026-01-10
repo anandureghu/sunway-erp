@@ -29,12 +29,39 @@ export default function LoginPage() {
         loginId: data.username,
         password: data.password,
       });
+      const responseData = response.data;
 
-      const { accessToken, refreshToken } = response.data;
+      // Normalize token across possible server shapes:
+      // - { token: '...' }
+      // - { accessToken: '...' }
+      // - { access_token: '...' }
+      // - response.data is the raw token string
+      const accessToken =
+        typeof responseData === "string"
+          ? responseData
+          : responseData.token ?? responseData.accessToken ?? responseData.access_token ?? responseData?.access?.token ?? responseData?.access?.accessToken;
 
-      login(accessToken, refreshToken);
-      toast.success("Login successful!");
-      navigate("/");
+      if (!accessToken) {
+        console.error("Login response missing token string:", response.data);
+        toast.error("Login failed: invalid token from server.");
+        return;
+      }
+
+      // store tokens via auth context (refreshToken may be optional)
+      login(
+        accessToken,
+        (responseData.refreshToken as string) ?? (responseData.refresh_token as string) ?? ""
+      );
+
+      const forcePasswordReset =
+        responseData.forcePasswordReset ?? responseData.force_password ?? false;
+
+      if (forcePasswordReset) {
+        navigate("/auth/reset-password");
+      } else {
+        toast.success("Login successful!");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
       // Enhanced error logging
       console.error("Login failed:", error);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 import { Label } from "@/components/ui/label";
 import type { ReactElement } from "react";
 import type { ImmigrationCtx } from "../ImmigrationShell";
@@ -165,7 +166,10 @@ export default function ResidencePermitForm(): ReactElement {
     setDraft(d => ({ ...d, [k]: v })), [setDraft]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Residence permit form">
+  
+ <div className="space-y-3">
+     <div className="text-lg font-semibold">Residence Information </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Residence permit form">
       {/* row 1 */}
       <Field label="Visa Type" required>
         <Select
@@ -201,14 +205,11 @@ export default function ResidencePermitForm(): ReactElement {
         />
       </Field>
       <Field label="Nationality" required>
-        <Input
-          type="text"
-          disabled={!editing}
+        <CountryAutocomplete
           value={draft.nationality}
-          onChange={(e) => patch("nationality", e.target.value)}
-          aria-label="Nationality"
-          aria-required="true"
-          required
+          onChange={(v) => patch("nationality", v)}
+          disabled={!editing}
+          placeholder="Type nationality"
         />
       </Field>
 
@@ -296,6 +297,7 @@ export default function ResidencePermitForm(): ReactElement {
           required
         />
       </Field>
+      </div>
     </div>
   );
 }

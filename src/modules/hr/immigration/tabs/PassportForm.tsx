@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 import { Label } from "@/components/ui/label";
 import type { ReactElement } from "react";
 import type { ImmigrationCtx } from "../ImmigrationShell";
@@ -80,7 +81,6 @@ export default function PassportForm(): ReactElement {
     } as any;
 
     try {
-      
       if (saved && (saved.passportNo || saved.nameAsPassport)) {
         await immigrationService.updatePassport(empId, payload);
         toast.success("Passport updated");
@@ -129,7 +129,9 @@ export default function PassportForm(): ReactElement {
     setDraft(d => ({ ...d, [k]: v })), [setDraft]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Passport information form">
+    <div className="space-y-3">
+     <div className="text-lg font-semibold">Passport Information </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="form" aria-label="Passport information form">
       <Field label="Passport No" required>
         <Input
           type="text"
@@ -143,14 +145,11 @@ export default function PassportForm(): ReactElement {
       </Field>
 
       <Field label="Issue Country" required>
-        <Input
-          type="text"
-          disabled={!editing}
+        <CountryAutocomplete
           value={draft.issueCountry}
-          onChange={(e) => patch("issueCountry", e.target.value)}
-          aria-label="Country of issue"
-          aria-required="true"
-          required
+          onChange={(v) => patch("issueCountry", v)}
+          disabled={!editing}
+          placeholder="Type issue country"
         />
       </Field>
 
@@ -167,14 +166,11 @@ export default function PassportForm(): ReactElement {
       </Field>
 
       <Field label="Nationality" required>
-        <Input
-          type="text"
-          disabled={!editing}
+        <CountryAutocomplete
           value={draft.nationality}
-          onChange={(e) => patch("nationality", e.target.value)}
-          aria-label="Nationality"
-          aria-required="true"
-          required
+          onChange={(v) => patch("nationality", v)}
+          disabled={!editing}
+          placeholder="Type nationality"
         />
       </Field>
 
@@ -201,6 +197,7 @@ export default function PassportForm(): ReactElement {
           required
         />
       </Field>
+      </div>
     </div>
   );
 }
@@ -208,6 +205,7 @@ export default function PassportForm(): ReactElement {
 function Field({ label, children, required }: FieldProps & { required?: boolean }) {
   const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
   return (
+    
     <div className="space-y-1.5" role="group">
       <Label className="text-sm" htmlFor={fieldId}>
         {label}

@@ -49,6 +49,7 @@ import AppLayout from "./components/layout/app-layout";
 
 /* Pages */
 import LoginPage from "./pages/auth/login-page";
+import ResetPasswordPage from "./pages/auth/reset-password";
 import NotFound from "./pages/not-found";
 import DashboardPage from "./pages/dashboard";
 import AccountsReceivablePage from "./pages/finance/accounts-receivable-page";
@@ -90,8 +91,7 @@ import LeavesHistory from "@/modules/hr/leaves/tabs/LeavesHistory";
 
 /* Appraisal */
 import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
-import AppraisalForm from "@/modules/hr/appraisal/tabs/AppraisalForm";
-import PerformanceForm from "@/modules/hr/appraisal/tabs/PerformanceForm";
+import AppraisalsForm from "@/modules/hr/appraisal/AppraisalsForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
@@ -256,8 +256,8 @@ export default function App() {
 
             {/* Appraisal */}
             <Route path="appraisal" element={<AppraisalShell />}>
-              <Route index element={<PerformanceForm />} />
-              <Route path="form" element={<AppraisalForm />} />
+              <Route index element={<AppraisalsForm />} />
+              <Route path="form" element={<AppraisalsForm />} />
             </Route>
           </Route>
         </Route>
@@ -266,7 +266,12 @@ export default function App() {
       {/* Auth */}
       <Route path="/auth" element={<AuthLayout />}>
         <Route path="login" element={<LoginPage />} />
+        //
+  <Route path="reset-password" element={<ResetPasswordPage />} />
+  //
       </Route>
+
+      <Route path="/dashboard" element={<PrivateRoute><AppLayout /><DashboardPage /></PrivateRoute>} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

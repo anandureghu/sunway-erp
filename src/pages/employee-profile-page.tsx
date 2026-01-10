@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from "react";
+import { apiClient } from "@/service/apiClient";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
@@ -106,6 +107,20 @@ export default function EmployeeProfilePage() {
       notes: (emp as any).notes ?? "",
     });
   }, [emp]);
+
+  useEffect(() => {
+    const employeeId = id ? Number(id) : undefined;
+    if (!employeeId) return;
+    apiClient.get(`/employees/${employeeId}/contact-info`).then((res) => {
+      setForm((f) => ({
+        ...f,
+        email: res.data.email ?? "",
+        phone: res.data.phone ?? "",
+        altPhone: res.data.altPhone ?? "",
+        notes: res.data.notes ?? "",
+      }));
+    });
+  }, [id]);
 
   if (!emp) {
     return (

@@ -65,7 +65,7 @@ export default function ImmigrationShell(): ReactElement {
   const [editing, setEditing] = useState(false);
 
   const fire = useCallback((name: ImmigrationEvent) => {
-    document.dispatchEvent(new Event(name));
+    try { document.dispatchEvent(new CustomEvent(name)); } catch { document.dispatchEvent(new Event(name)); }
   }, []);
 
   const startEdit = useCallback(() => {

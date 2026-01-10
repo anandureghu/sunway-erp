@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
 import { leaveService } from "@/service/leaveService";
 import { toast } from "sonner";
@@ -37,15 +36,6 @@ type LeaveRecord = {
   totalDays: number;
 };
 
-function validateLeave(leave: LeaveRecord): boolean {
-  return (
-    leave.leaveCode.trim() !== "" &&
-    leave.leaveType.trim() !== "" &&
-    leave.startDate.trim() !== "" &&
-    leave.endDate.trim() !== "" &&
-    leave.leaveStatus.trim() !== ""
-  );
-}
 
 const SEED: LeaveRecord = {
   leaveCode: "L001",
@@ -130,6 +120,9 @@ export default function LeavesForm(): ReactElement {
         toast.success("Leave applied successfully");
         setPreview(null);
         setSaved(draft);
+        try {
+          document.dispatchEvent(new CustomEvent("leaves:saved"));
+        } catch {}
       })
       .catch((err) => {
         console.error("Apply leave failed", err);
@@ -142,8 +135,21 @@ export default function LeavesForm(): ReactElement {
     else setDraft(SEED);
   }, [saved]);
 
+  /* Listen to shell-level save/cancel events so top Edit/Update buttons control the form */
+  useEffect(() => {
+    const onSaveEvent = () => handleSave();
+    const onCancelEvent = () => handleCancel();
+    document.addEventListener("leaves:save", onSaveEvent as EventListener);
+    document.addEventListener("leaves:cancel", onCancelEvent as EventListener);
+    return () => {
+      document.removeEventListener("leaves:save", onSaveEvent as EventListener);
+      document.removeEventListener("leaves:cancel", onCancelEvent as EventListener);
+    };
+  }, [handleSave, handleCancel]);
+
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-3">
+     <div className="text-lg font-semibold">Employee Leaves </div>
       <Row>
         <Field label="Leave Code:" required>
           <Input
@@ -249,16 +255,7 @@ export default function LeavesForm(): ReactElement {
         </div>
       )}
 
-      {editing && (
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button disabled={!validateLeave(draft) || !preview || preview.balanceAfterLeave < 0} onClick={handleSave}>
-            Save
-          </Button>
-        </div>
-      )}
+      {/* Actions handled by top Edit/Update button in the shell */}
     </div>
   );
 }
