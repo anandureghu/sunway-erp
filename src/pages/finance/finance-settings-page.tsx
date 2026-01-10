@@ -19,7 +19,7 @@ const FinanceSettingsPage = () => {
     },
     {
       value: "vendors",
-      label: "Vendors",
+      label: "Suppliers",
       element: () => <VendorsPage />,
     },
   ];

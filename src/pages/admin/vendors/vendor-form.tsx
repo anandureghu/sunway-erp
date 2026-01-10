@@ -71,10 +71,10 @@ export const VendorForm = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  Vendor Name <span className="text-red-500">*</span>
+                  Supplier Name <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input placeholder="Vendor Name" {...field} />
+                  <Input placeholder="Supplier Name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -307,14 +307,14 @@ export const VendorForm = ({
                     className="h-4 w-4"
                   />
                 </FormControl>
-                <FormLabel className="m-0">1099 Vendor</FormLabel>
+                <FormLabel className="m-0">1099 Supplier</FormLabel>
               </FormItem>
             )}
           />
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Saving..." : "Save Vendor"}
+          {loading ? "Saving..." : "Save Supplier"}
         </Button>
       </form>
     </Form>

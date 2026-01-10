@@ -2,137 +2,134 @@
 
 import type { Warehouse } from "@/types/inventory";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
+
+// Helper component to display optional values
+const OptionalCell = ({
+  value,
+}: {
+  value?: string | number | null | boolean;
+}) => {
+  if (value === null || value === undefined)
+    return <span className="text-gray-500 whitespace-nowrap">-</span>;
+  if (typeof value === "string" && value.trim() === "")
+    return <span className="text-gray-500 whitespace-nowrap">-</span>;
+  return (
+    <span className="text-gray-900 font-normal whitespace-nowrap">
+      {String(value)}
+    </span>
+  );
+};
+
+// Status pill component
+const StatusPill = ({ value }: { value: string }) => {
+  const isActive = value === "active";
+  return (
+    <span
+      className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+        isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"
+      }`}
+    >
+      {isActive ? "YES" : "NO"}
+    </span>
+  );
+};
 
 export function createWarehouseColumns(
   onEdit?: (warehouse: Warehouse) => void,
   onDelete?: (id: string) => void
+  // onView?: (warehouse: Warehouse) => void
 ): ColumnDef<Warehouse>[] {
   return [
     {
       accessorKey: "name",
-      header: "Warehouse Name",
+      header: "WAREHOUSE NAME",
+      enableSorting: true,
       cell: ({ row }) => (
-        <span className="font-medium text-gray-900">{row.original.name}</span>
+        <div className="max-w-[200px] truncate">
+          <span className="text-gray-900 font-normal whitespace-nowrap">
+            {row.original.name}
+          </span>
+        </div>
       ),
     },
-
     {
       id: "address",
-      header: "Address",
+      header: "ADDRESS",
+      enableSorting: false,
       cell: ({ row }) => {
         const { street, city, country, pin } = row.original;
-
         const line1 = [street, city].filter(Boolean).join(", ");
         const line2 = [country, pin].filter(Boolean).join(" - ");
-
         return (
-          <div className="flex items-start gap-2 text-sm text-gray-600">
+          <div className="flex items-start gap-2 text-sm">
             <MapPin className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
             <div className="leading-tight">
-              <div>{line1 || "—"}</div>
-              <div className="text-xs text-gray-500">{line2}</div>
+              <div className="text-gray-900 whitespace-nowrap">
+                {line1 || "-"}
+              </div>
+              {line2 && <div className="text-xs text-gray-500">{line2}</div>}
             </div>
           </div>
         );
       },
     },
-
     {
       accessorKey: "phone",
-      header: "Phone",
-      cell: ({ row }) => (
-        <span className="font-medium text-gray-900">{row.original.phone}</span>
-      ),
+      header: "PHONE",
+      enableSorting: true,
+      cell: ({ row }) => <OptionalCell value={row.original.phone} />,
     },
-
     {
       accessorKey: "contactPersonName",
-      header: "Contact Person",
+      header: "CONTACT PERSON",
+      enableSorting: true,
       cell: ({ row }) => (
-        <span className="font-medium text-gray-900">
-          {row.original.contactPersonName}
-        </span>
+        <OptionalCell value={row.original.contactPersonName} />
       ),
     },
     {
       accessorKey: "managerName",
-      header: "Manager",
-      cell: ({ row }) => (
-        <span className="font-medium text-gray-900">
-          {row.original.managerName}
-        </span>
-      ),
+      header: "MANAGER",
+      enableSorting: true,
+      cell: ({ row }) => <OptionalCell value={row.original.managerName} />,
     },
-
     {
       accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.original.status;
-
-        return (
-          <Badge
-            variant="outline"
-            className={
-              status === "active"
-                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                : "bg-gray-100 text-gray-700 border-gray-200"
-            }
-          >
-            {status}
-          </Badge>
-        );
-      },
+      header: "ACTIVE",
+      enableSorting: true,
+      cell: ({ row }) => <StatusPill value={row.original.status} />,
     },
-
     {
       id: "actions",
+      header: "ACTIONS",
       cell: ({ row }) => {
         const warehouse = row.original;
-
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
-              {onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(warehouse)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Warehouse
-                </DropdownMenuItem>
-              )}
-
-              <DropdownMenuSeparator />
-
-              {onDelete && (
-                <DropdownMenuItem
-                  className="text-red-600 focus:text-red-600"
-                  onClick={() => onDelete(String(warehouse.id))}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(warehouse);
+                }}
+                className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
+              >
+                EDIT
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(String(warehouse.id));
+                }}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
+              >
+                DELETE
+              </button>
+            )}
+          </div>
         );
       },
     },

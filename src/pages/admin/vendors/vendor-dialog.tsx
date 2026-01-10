@@ -53,15 +53,15 @@ export const VendorDialog = ({
 
       toast.success(
         isEditMode
-          ? "Vendor updated successfully"
-          : "Vendor added successfully"
+          ? "Supplier updated successfully"
+          : "Supplier added successfully"
       );
       onSuccess(mappedVendor, isEditMode ? "edit" : "add");
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting vendor:", error);
       toast.error(
-        `Failed to ${isEditMode ? "update" : "add"} vendor. Please try again.`
+        `Failed to ${isEditMode ? "update" : "add"} supplier. Please try again.`
       );
     } finally {
       setSubmitting(false);
@@ -73,12 +73,12 @@ export const VendorDialog = ({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? "Edit Vendor" : "Add Vendor"}
+            {isEditMode ? "Edit Supplier" : "Add Supplier"}
           </DialogTitle>
           <DialogDescription>
             {isEditMode
-              ? "Update the vendor details below."
-              : "Fill in the vendor details below."}
+              ? "Update the supplier details below."
+              : "Fill in the supplier details below."}
           </DialogDescription>
         </DialogHeader>
 

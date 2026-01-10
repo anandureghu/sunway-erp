@@ -1,6 +1,6 @@
-import { DataTable } from "@/components/datatable";
+import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -29,12 +29,15 @@ import {
 import type { ItemCategory } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Search, Plus, Edit, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 const CategoriesMaster = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(
     null
   );
@@ -278,74 +281,227 @@ const CategoriesMaster = () => {
     };
   }, []);
 
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const total = categories.length;
+    const active = categories.filter((c) => c.status === "active").length;
+    const inactive = categories.filter((c) => c.status === "inactive").length;
+    return { total, active, inactive };
+  }, [categories]);
+
+  const filteredCategories = useMemo(() => {
+    return [
+      ...parentCategories.map((cat) => ({
+        ...cat,
+        _sortOrder: 0,
+      })),
+      ...subcategoriesByParent.map((cat) => ({
+        ...cat,
+        _sortOrder: 1,
+      })),
+    ]
+      .sort((a, b) => {
+        if (a._sortOrder !== b._sortOrder) {
+          return a._sortOrder - b._sortOrder;
+        }
+        if (a.parentId && b.parentId) {
+          if (a.parentId !== b.parentId) {
+            return String(a.parentId).localeCompare(String(b.parentId));
+          }
+        }
+        return a.name.localeCompare(b.name);
+      })
+      .filter((cat) => {
+        const matchesSearch =
+          searchQuery === "" ||
+          cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (cat.parentId &&
+            parentCategories
+              .find((p) => p.id === cat.parentId)
+              ?.name.toLowerCase()
+              .includes(searchQuery.toLowerCase()));
+
+        const matchesStatus =
+          statusFilter === "all" || cat.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+      });
+  }, [
+    categories,
+    searchQuery,
+    statusFilter,
+    parentCategories,
+    subcategoriesByParent,
+  ]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+  const paginatedCategories = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCategories.slice(startIndex, endIndex);
+  }, [filteredCategories, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search categories..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <Button onClick={handleNewCategory} className="ml-4">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Category
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Categories</h1>
+        <Button
+          onClick={handleNewCategory}
+          className="bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          <Plus className="h-4 w-4 mr-2" />+ New Category
         </Button>
       </div>
 
-      {/* Categories Table - Show all categories and subcategories */}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  TOTAL CATEGORIES
+                </p>
+                <h2 className="text-2xl font-bold">{stats.total}</h2>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  ACTIVE
+                </p>
+                <h2 className="text-2xl font-bold">{stats.active}</h2>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  INACTIVE
+                </p>
+                <h2 className="text-2xl font-bold">{stats.inactive}</h2>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Categories & Subcategories</CardTitle>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex-1 relative min-w-[300px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search categories..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
-          <DataTable
-            columns={createCategoryColumns(
-              handleViewCategoryDetails,
-              handleEditCategory,
-              handleDeleteCategory,
-              handleNewSubcategory,
-              parentCategories
-            )}
-            data={[
-              ...parentCategories.map((cat) => ({
-                ...cat,
-                _sortOrder: 0,
-              })),
-              ...subcategoriesByParent.map((cat) => ({
-                ...cat,
-                _sortOrder: 1,
-              })),
-            ]
-              .sort((a, b) => {
-                // Sort by parent first, then by name within each group
-                if (a._sortOrder !== b._sortOrder) {
-                  return a._sortOrder - b._sortOrder;
-                }
-                // If both are subcategories, group by parent
-                if (a.parentId && b.parentId) {
-                  if (a.parentId !== b.parentId) {
-                    return String(a.parentId).localeCompare(String(b.parentId));
-                  }
-                }
-                return a.name.localeCompare(b.name);
-              })
-              .filter(
-                (cat) =>
-                  searchQuery === "" ||
-                  cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (cat.parentId &&
-                    parentCategories
-                      .find((p) => p.id === cat.parentId)
-                      ?.name.toLowerCase()
-                      .includes(searchQuery.toLowerCase()))
+
+        <CardContent>
+          {paginatedCategories.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No categories found
+            </div>
+          ) : (
+            <>
+              <DataTable
+                columns={createCategoryColumns(
+                  handleViewCategoryDetails,
+                  handleEditCategory,
+                  handleDeleteCategory,
+                  // handleNewSubcategory,
+                  parentCategories
+                )}
+                data={paginatedCategories}
+              />
+              {/* Pagination */}
+              {totalPages > 0 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing{" "}
+                    {Math.min(
+                      (currentPage - 1) * itemsPerPage + 1,
+                      filteredCategories.length
+                    )}
+                    -
+                    {Math.min(
+                      currentPage * itemsPerPage,
+                      filteredCategories.length
+                    )}{" "}
+                    of {filteredCategories.length} categories
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      ← Previous
+                    </Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={
+                            currentPage === page
+                              ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                              : "min-w-[40px]"
+                          }
+                        >
+                          {page}
+                        </Button>
+                      )
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                    >
+                      Next →
+                    </Button>
+                  </div>
+                </div>
               )}
-          />
+            </>
+          )}
         </CardContent>
       </Card>
 
