@@ -31,6 +31,12 @@ export default function LeavesShell() {
     setSp(next, { replace: true });
   };
 
+  useEffect(() => {
+    const onSaved = () => setEditing(false);
+    document.addEventListener("leaves:saved", onSaved as EventListener);
+    return () => document.removeEventListener("leaves:saved", onSaved as EventListener);
+  }, []);
+
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
       {/* Blue title bar */}
@@ -54,8 +60,13 @@ export default function LeavesShell() {
         <EditUpdateButton
           editing={editing}
           onEdit={() => setEditing(true)}
-          onCancel={() => setEditing(false)}
-          onSave={() => setEditing(false)}
+          onCancel={() => {
+            try { document.dispatchEvent(new CustomEvent("leaves:cancel")); } catch {}
+            setEditing(false);
+          }}
+          onSave={() => {
+            try { document.dispatchEvent(new CustomEvent("leaves:save")); } catch {}
+          }}
         />
       </div>
 

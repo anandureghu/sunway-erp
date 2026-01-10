@@ -19,6 +19,10 @@ type PayrollRow = {
   bankName?: string;
   bankAccount?: string;
 };
+type PayrollRowExtended = PayrollRow & {
+  totalDeductions?: string | number;
+  loanDeduction?: string | number;
+};
 
 
 export default function PayrollTab() {
@@ -66,7 +70,8 @@ export default function PayrollTab() {
   };
 
   return (
-    <div className="space-y-4">
+  <div className="space-y-3">
+     <div className="text-lg font-semibold">Payroll </div>
       <div className="grid grid-cols-3 gap-4 items-end">
         <div>
           <label className="text-sm font-medium">Pay Period Start</label>
@@ -98,27 +103,40 @@ export default function PayrollTab() {
                 <th className="px-3 py-2 font-medium">Pay Period Start</th>
                 <th className="px-3 py-2 font-medium">Pay Period End</th>
                 <th className="px-3 py-2 font-medium">Gross Pay</th>
+                <th className="px-3 py-2 font-medium">Total Deductions</th>
                 <th className="px-3 py-2 font-medium">Pay Date</th>
                 <th className="px-3 py-2 font-medium">Net Payable</th>
               </tr>
             </thead>
             <tbody>
               {history.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-center text-muted-foreground">No payroll history</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No payroll history</td></tr>
               )}
-              {history.map((r) => (
-                <tr key={r.payrollCode} className="border-t">
-                  <td className="px-3 py-2">{r.payrollCode}</td>
-                  <td className="px-3 py-2">{r.payPeriodStart}</td>
-                  <td className="px-3 py-2">{r.payPeriodEnd}</td>
-                  <td className="px-3 py-2">{formatMoney(r.grossPay)}</td>
-                  <td className="px-3 py-2">{r.payDate}</td>
-                  <td className="px-3 py-2">{formatMoney(r.netPayable)}</td>
-                </tr>
-              ))}
+              {history.map((r) => {
+                const row = r as PayrollRowExtended;
+                return (
+                  <tr key={row.payrollCode} className="border-t">
+                    <td className="px-3 py-2">{row.payrollCode}</td>
+                    <td className="px-3 py-2">{row.payPeriodStart}</td>
+                    <td className="px-3 py-2">{row.payPeriodEnd}</td>
+                    <td className="px-3 py-2">{formatMoney(row.grossPay)}</td>
+                    <td className="px-3 py-2 text-red-600">-{formatMoney(String(row.totalDeductions ?? 0))}</td>
+                    <td className="px-3 py-2">{row.payDate}</td>
+                    <td className="px-3 py-2 font-bold text-green-700">{formatMoney(row.netPayable)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        {history.map((r) => {
+          const row = r as PayrollRowExtended;
+          return (
+            <div key={row.payrollCode} className="text-xs text-muted-foreground mt-2">
+              Loan: {formatMoney(String(row.loanDeduction ?? 0))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -30,20 +30,6 @@ export interface PerformanceResponse extends PerformancePayload {
 /* =======================
    API CALLS
 ======================= */
-
-async function get(employeeId: number, month: string, year: number) {
-  const res = await apiClient.get<PerformanceResponse>(
-    `/employees/${employeeId}/performance`,
-    {
-      params: {
-        month: month.toLowerCase(), // IMPORTANT
-        year,
-      },
-    }
-  );
-  return res.data; // may be null
-}
-
 async function create(
   employeeId: number,
   month: string,
@@ -63,24 +49,7 @@ async function create(
   return res.data;
 }
 
-async function update(
-  employeeId: number,
-  month: string,
-  year: number,
-  payload: PerformancePayload
-) {
-  const res = await apiClient.put<PerformanceResponse>(
-    `/employees/${employeeId}/performance`,
-    payload,
-    {
-      params: {
-        month: month.toLowerCase(),
-        year,
-      },
-    }
-  );
-  return res.data;
-}
+ 
 
 function extractErrorMessage(err: any): string {
   return (
@@ -92,9 +61,7 @@ function extractErrorMessage(err: any): string {
 }
 
 export const performanceService = {
-  get,
   create,
-  update,
   extractErrorMessage,
 };
 

@@ -51,6 +51,7 @@ function EditUpdateBar({
 
 export interface ProfileCtx {
   editing: boolean;
+  setEditing?: (v: boolean) => void;
 }
 
 export default function ProfileShell(): ReactElement {
@@ -118,7 +119,7 @@ export default function ProfileShell(): ReactElement {
 
       {/* Active tab content */}
       <div className="p-4" role="tabpanel">
-        <Outlet context={{ editing } satisfies ProfileCtx} />
+        <Outlet context={{ editing, setEditing } satisfies ProfileCtx} />
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { salaryService } from "@/service/salaryService";
 import { formatMoney, generateId } from "@/lib/utils";
 import { useParams } from "react-router-dom";
 import { loanService } from "@/service/loanService";
+import { SelectField } from "@/modules/hr/components/select-field";
 import type { LoanPayload } from "@/types/hr/loan";
 import { toast } from "sonner";
 
@@ -34,19 +35,13 @@ type LoansModel = {
 };
 
 function validateLoan(loan: LoansModel): boolean {
-  return (
-    loan.loanCode.trim() !== "" &&
-    loan.loanAmount.trim() !== "" &&
-    loan.loanType.trim() !== "" &&
-    loan.loanPeriod.trim() !== "" &&
-    loan.startDate.trim() !== "" &&
-    loan.monthlyDeductions.trim() !== "" &&
-    loan.loanStatus.trim() !== "" &&
-    loan.balance.trim() !== "" &&
-    loan.grossPay.trim() !== "" &&
-    loan.deductionAmount.trim() !== "" &&
-    loan.netPay.trim() !== ""
-  );
+  // required fields for backend DTO: loanType, loanAmount, loanPeriod, startDate
+  const amountOk = loan.loanAmount.trim() !== "" && !isNaN(Number(loan.loanAmount)) && Number(loan.loanAmount) > 0;
+  const typeOk = loan.loanType.trim() !== "";
+  const periodNum = Number(loan.loanPeriod);
+  const periodOk = loan.loanPeriod.trim() !== "" && Number.isInteger(periodNum) && periodNum > 0;
+  const dateOk = loan.startDate.trim() !== "";
+  return amountOk && typeOk && periodOk && dateOk;
 }
 
 const INITIAL_LOAN: LoansModel = {
@@ -74,6 +69,7 @@ export default function LoansForm(): ReactElement {
   const employeeId = params.id ? Number(params.id) : undefined;
 
   const [loans, setLoans] = useState<LoansModel[]>([]);
+  const [loanTypeOptions, setLoanTypeOptions] = useState<Array<{value: string; label: string}>>([]);
   const [grossSalary, setGrossSalary] = useState<number>(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -113,18 +109,18 @@ export default function LoansForm(): ReactElement {
   });
 
   const mapFormToPayload = (f: LoansModel): LoanPayload => ({
-    loanCode: f.loanCode,
+    loanType: f.loanType as any,
     loanAmount: Number(f.loanAmount || 0),
     loanPeriod: Number(f.loanPeriod || 0),
-    monthlyDeduction: Number(f.monthlyDeductions || 0),
     startDate: f.startDate || "",
+    notes: f.notes || undefined,
   });
 
   const loadLoans = useCallback(async () => {
     if (!employeeId) return;
     setLoading(true);
     try {
-      const res = await loanService.getAll(employeeId);
+      const res = await loanService.getLoans(employeeId);
       const mapped = (res.data || []).map(mapApiToForm).map(l => {
         const monthly = Number(l.monthlyDeductions || 0);
         const gross = grossSalary || Number(l.grossPay || 0);
@@ -148,6 +144,25 @@ export default function LoansForm(): ReactElement {
 
   useEffect(() => {
     if (!employeeId) return;
+    // fetch loan types for select (server-driven picklist)
+    void loanService.getLoanTypes(employeeId)
+      .then((res) => {
+        const types: string[] = res.data || [];
+        const mapLabel = (t: string) => {
+          switch (t) {
+            case "CAR_LOAN": return "Car Loan";
+            case "PERSONAL_LOAN": return "Personal Loan";
+            case "HOUSING_LOAN": return "Housing Loan";
+            case "EDUCATION_LOAN": return "Education Loan";
+            case "MEDICAL_LOAN": return "Medical Loan";
+            default: return t.replace(/_/g, " ");
+          }
+        };
+        setLoanTypeOptions(types.map(t => ({ value: t, label: mapLabel(t) })));
+      })
+      .catch(() => {
+        // ignore - will fall back to hard-coded options
+      });
     salaryService
       .get(employeeId)
       .then((res) => {
@@ -187,10 +202,10 @@ export default function LoansForm(): ReactElement {
 
     try {
       if (/^\d+$/.test(loan.id)) {
-        await loanService.update(Number(loan.id), payload);
+        await loanService.updateLoan(employeeId!, Number(loan.id), payload);
         toast.success("Loan updated");
       } else {
-        await loanService.create(employeeId, payload);
+        await loanService.applyLoan(employeeId, payload);
         toast.success("Loan created");
       }
       await loadLoans();
@@ -219,9 +234,8 @@ export default function LoansForm(): ReactElement {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Employee Loans</h2>
-        <Button 
+        <Button
           onClick={handleAdd}
-          variant="outline"
           size="sm"
           className="flex items-center gap-2"
         >
@@ -237,13 +251,23 @@ export default function LoansForm(): ReactElement {
               {editingId === loan.id ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Field
-                      label="Loan Code:"
-                      disabled={false}
-                      value={loan.loanCode}
-                      onChange={(v) => handleSave({ ...loan, loanCode: v })}
-                      required
-                    />
+                    <div>
+                      <Label className="text-sm">Loan Type: <span className="text-red-500">*</span></Label>
+                      <SelectField
+                        value={loan.loanType}
+                        onChange={(e) => handleSave({ ...loan, loanType: e.target.value })}
+                        options={loanTypeOptions.length > 0 ? loanTypeOptions : [
+                          { value: "CAR_LOAN", label: "Car Loan" },
+                          { value: "PERSONAL_LOAN", label: "Personal Loan" },
+                          { value: "HOUSING_LOAN", label: "Housing Loan" },
+                          { value: "EDUCATION_LOAN", label: "Education Loan" },
+                          { value: "MEDICAL_LOAN", label: "Medical Loan" },
+                        ]}
+                        placeholder="Select Loan Type"
+                        required
+                      />
+                    </div>
+
                     <Field
                       label="Loan Amount:"
                       disabled={false}
@@ -252,32 +276,22 @@ export default function LoansForm(): ReactElement {
                       ariaLabel="Loan Amount"
                       required
                     />
-                    <div className="md:col-span-1">
-                      <Label className="text-sm">Note/Remarks:</Label>
-                      <Textarea
-                        value={loan.notes}
-                        disabled={false}
-                        onChange={(e) => handleSave({ ...loan, notes: e.target.value })}
-                        className="min-h-[100px]"
+
+                    <div>
+                      <Label className="text-sm">Loan Status:</Label>
+                      <SelectField
+                        value={loan.loanStatus}
+                        onChange={(e) => handleSave({ ...loan, loanStatus: e.target.value })}
+                        options={[
+                          { value: "ACTIVE", label: "ACTIVE" },
+                          { value: "CLOSED", label: "CLOSED" },
+                        ]}
+                        placeholder="Select Status"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Field
-                      label="Loan Type:"
-                      disabled={false}
-                      value={loan.loanType}
-                      onChange={(v) => handleSave({ ...loan, loanType: v })}
-                      required
-                    />
-                    <Field
-                      label="Loan Period:"
-                      disabled={false}
-                      value={loan.loanPeriod}
-                      onChange={(v) => handleSave({ ...loan, loanPeriod: v })}
-                      required
-                    />
                     <Field
                       label="Start Date:"
                       type="date"
@@ -286,31 +300,74 @@ export default function LoansForm(): ReactElement {
                       onChange={(v) => handleSave({ ...loan, startDate: v })}
                       required
                     />
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Field
-                      label="Monthly Deductions:"
-                      disabled={false}
-                      value={formatMoney(loan.monthlyDeductions)}
-                      onChange={(v) => handleSave({ ...loan, monthlyDeductions: v.replace(/[^0-9.]/g, "") })}
-                      ariaLabel="Monthly Deductions"
-                      required
-                    />
-                    <Field
-                      label="Loan Status:"
-                      disabled={false}
-                      value={loan.loanStatus}
-                      onChange={(v) => handleSave({ ...loan, loanStatus: v })}
-                      required
-                    />
+                    <div>
+                      <Label className="text-sm">Loan Period:</Label>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const total = Number(loan.loanPeriod || 0) || 0;
+                          const years = Math.floor(total / 12);
+                          const months = total % 12;
+                          return (
+                            <>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={String(years)}
+                                onChange={(e) => {
+                                  const y = Math.max(0, Number(e.target.value) || 0);
+                                  const newTotal = y * 12 + months;
+                                  handleSave({ ...loan, loanPeriod: String(newTotal) });
+                                }}
+                                aria-label="years"
+                                className="w-24"
+                              />
+                              <span className="text-sm">years</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={11}
+                                value={String(months)}
+                                onChange={(e) => {
+                                  let m = Number(e.target.value) || 0;
+                                  if (m < 0) m = 0;
+                                  if (m > 11) m = 11;
+                                  const newTotal = years * 12 + m;
+                                  handleSave({ ...loan, loanPeriod: String(newTotal) });
+                                }}
+                                aria-label="months"
+                                className="w-24"
+                              />
+                              <span className="text-sm">months</span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{(() => {
+                        const total = Number(loan.loanPeriod || 0) || 0;
+                        const y = Math.floor(total / 12);
+                        const m = total % 12;
+                        return `${y} year(s) ${m} month(s)`;
+                      })()}</p>
+                    </div>
+
                     <Field
                       label="Balance:"
-                      disabled={false}
+                      disabled={true}
                       value={formatMoney(loan.balance)}
                       onChange={(v) => handleSave({ ...loan, balance: v.replace(/[^0-9.]/g, "") })}
                       ariaLabel="Loan Balance"
                       required
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm">Note/Remarks:</Label>
+                    <Textarea
+                      value={loan.notes}
+                      disabled={false}
+                      onChange={(e) => handleSave({ ...loan, notes: e.target.value })}
+                      className="min-h-[100px] mt-2"
                     />
                   </div>
 

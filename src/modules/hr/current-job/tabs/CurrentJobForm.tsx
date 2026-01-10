@@ -155,10 +155,7 @@ export default function CurrentJobForm() {
 
       <FormSection title="Job Information">
         <FormRow columns={3}>
-          <FormField 
-            label="Job Code" 
-            required
-          >
+          <FormField label="Job Code" required>
             <Input
               value={formData.jobCode}
               onChange={e => updateField('jobCode')(e.target.value)}
@@ -167,36 +164,7 @@ export default function CurrentJobForm() {
             />
           </FormField>
 
-          <FormField 
-            label="Department Code"
-            required
-          >
-            <Input
-              value={formData.departmentCode}
-              onChange={e => updateField('departmentCode')(e.target.value)}
-              placeholder="Enter department code"
-              disabled={!editing}
-            />
-          </FormField>
-
-          <FormField 
-            label="Effective From"
-            required
-          >
-            <Input
-              type="date"
-              value={formData.effectiveFrom}
-              onChange={e => updateField('effectiveFrom')(e.target.value)}
-              disabled={!editing}
-            />
-          </FormField>
-        </FormRow>
-
-        <FormRow columns={3}>
-          <FormField 
-            label="Job Title"
-            required
-          >
+          <FormField label="Job Title" required>
             <Input
               value={formData.jobTitle}
               onChange={e => updateField('jobTitle')(e.target.value)}
@@ -205,9 +173,27 @@ export default function CurrentJobForm() {
             />
           </FormField>
 
-          <FormField 
-            label="Department Name"
-          >
+          <FormField label="Job Level">
+            <Input
+              value={formData.jobLevel}
+              onChange={e => updateField('jobLevel')(e.target.value)}
+              placeholder="Enter job level"
+              disabled={!editing}
+            />
+          </FormField>
+        </FormRow>
+
+        <FormRow columns={3}>
+          <FormField label="Department Code" required>
+            <Input
+              value={formData.departmentCode}
+              onChange={e => updateField('departmentCode')(e.target.value)}
+              placeholder="Enter department code"
+              disabled={!editing}
+            />
+          </FormField>
+
+          <FormField label="Department Name">
             <Input
               value={formData.departmentName}
               onChange={e => updateField('departmentName')(e.target.value)}
@@ -216,34 +202,7 @@ export default function CurrentJobForm() {
             />
           </FormField>
 
-          <FormField 
-            label="Start Date"
-            required
-          >
-            <Input
-              type="date"
-              value={formData.startDate}
-              onChange={e => updateField('startDate')(e.target.value)}
-              disabled={!editing}
-            />
-          </FormField>
-        </FormRow>
-
-        <FormRow columns={3}>
-          <FormField 
-            label="Job Level"
-          >
-            <Input
-              value={formData.jobLevel}
-              onChange={e => updateField('jobLevel')(e.target.value)}
-              placeholder="Enter job level"
-              disabled={!editing}
-            />
-          </FormField>
-
-          <FormField 
-            label="Grade"
-          >
+          <FormField label="Grade">
             <Input
               value={formData.grade}
               onChange={e => updateField('grade')(e.target.value)}
@@ -251,10 +210,28 @@ export default function CurrentJobForm() {
               disabled={!editing}
             />
           </FormField>
+        </FormRow>
 
-          <FormField 
-            label="Expected End Date"
-          >
+        <FormRow columns={3}>
+          <FormField label="Start Date" required>
+            <Input
+              type="date"
+              value={formData.startDate}
+              onChange={e => updateField('startDate')(e.target.value)}
+              disabled={!editing}
+            />
+          </FormField>
+
+          <FormField label="Effective From" required>
+            <Input
+              type="date"
+              value={formData.effectiveFrom}
+              onChange={e => updateField('effectiveFrom')(e.target.value)}
+              disabled={!editing}
+            />
+          </FormField>
+
+          <FormField label="Expected End Date">
             <Input
               type="date"
               value={formData.expectedEndDate}

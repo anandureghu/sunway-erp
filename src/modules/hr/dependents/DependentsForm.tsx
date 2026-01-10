@@ -119,11 +119,9 @@ export function DependentsForm() {
         } as any;
 
         if (dependent.id) {
-          
           await dependentService.update(empId, Number(dependent.id), payload);
           toast.success("Dependent updated");
         } else {
-          
           await dependentService.create(empId, payload);
           toast.success("Dependent created");
         }
@@ -183,7 +181,7 @@ export function DependentsForm() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Employee Dependents</h2>
-        <Button onClick={handleAdd} variant="outline" size="sm" className="flex items-center gap-2">
+        <Button onClick={handleAdd} size="sm" className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Dependent
         </Button>
@@ -194,7 +192,7 @@ export function DependentsForm() {
           <Card key={dependent.id}>
             <CardContent className="p-4">
               {editingId === dependent.id ? (
-                <FormSection title="Edit Dependent">
+                <FormSection title="Add Dependent">
                   <FormRow columns={3}>
                     <FormField label="First Name" required error={validateDependent(dependent).firstName}>
                       <Input

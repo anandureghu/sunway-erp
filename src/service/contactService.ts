@@ -4,6 +4,7 @@ export interface ContactInfoPayload {
   email: string;
   phone: string;
   altPhone?: string;
+  notes: string;
 }
 
 const BASE = "/employees";
@@ -15,8 +16,10 @@ export function getContactInfo(employeeId: number) {
 
 export function saveContactInfo(employeeId: number, payload: ContactInfoPayload) {
   if (!payload || !payload.email) {
-    // enforce required email client-side to avoid invalid requests
     return Promise.reject(new Error("email is required"));
+  }
+  if (!payload.notes) {
+    return Promise.reject(new Error("notes is required"));
   }
   return apiClient.put<ContactInfoPayload>(`${BASE}/${employeeId}/contact-info`, payload);
 }

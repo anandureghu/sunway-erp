@@ -200,9 +200,8 @@ export default function PreviousExperiencesForm() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Previous Experiences</h2>
-        <Button 
+        <Button
           onClick={handleAdd}
-          variant="outline"
           size="sm"
           className="flex items-center gap-2"
         >
