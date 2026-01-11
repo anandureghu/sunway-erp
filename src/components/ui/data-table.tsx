@@ -27,7 +27,7 @@ export function DataTable<TData>({ columns, data, onRowClick }: DataTableProps<T
   });
 
   return (
-    <div className="overflow-x-auto rounded-md border">
+    <div className="overflow-x-auto rounded-md border border-gray-200">
       <table className="w-full text-sm">
         <thead className="bg-gray-50">
           {table.getHeaderGroups().map((hg) => (
@@ -36,19 +36,22 @@ export function DataTable<TData>({ columns, data, onRowClick }: DataTableProps<T
                 const canSort = header.column.getCanSort();
                 const sorted = header.column.getIsSorted();
                 return (
-                  <th key={header.id} className="px-4 py-3 text-left select-none">
+                  <th 
+                    key={header.id} 
+                    className="px-4 py-3 text-left select-none font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap"
+                  >
                     {canSort ? (
                       <button
-                        className="inline-flex items-center gap-1 font-medium hover:underline"
+                        className="inline-flex items-center gap-1.5 hover:text-gray-900 transition-colors whitespace-nowrap"
                         onClick={header.column.getToggleSortingHandler()}
                       >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        <span className="text-xs text-gray-500">
-                          {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : ""}
+                        <span className="whitespace-nowrap">{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                        <span className="text-xs text-gray-400">
+                          {sorted === "asc" ? "▲" : sorted === "desc" ? "▼" : "⇅"}
                         </span>
                       </button>
                     ) : (
-                      <span className="font-medium">
+                      <span className="whitespace-nowrap">
                         {flexRender(header.column.columnDef.header, header.getContext())}
                       </span>
                     )}
@@ -64,13 +67,13 @@ export function DataTable<TData>({ columns, data, onRowClick }: DataTableProps<T
               key={row.id}
               onClick={() => onRowClick?.(row.original)}
               className={
-                "border-t cursor-pointer transition-colors " +
-                (idx % 2 ? "bg-gray-50/60" : "bg-white") +
+                "border-t border-gray-200 transition-colors " +
+                (idx % 2 === 0 ? "bg-white" : "bg-gray-50/50") +
                 " hover:bg-gray-100"
               }
             >
               {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="px-4 py-3">
+                <td key={cell.id} className="px-4 py-3 text-gray-900">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}

@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, ArrowLeft } from "lucide-react";
+import { Plus, Search, ArrowLeft, User, Package, X, Save, Check } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import {
@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type PurchaseOrderFormData } from "@/schema/purchase";
@@ -1028,61 +1027,70 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
   );
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">Create New Purchase Order</h1>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="py-10 text-center text-muted-foreground">
-          Loading...
-        </div>
-      ) : loadError ? (
-        <div className="py-10 text-center">
-          <div className="text-red-600 mb-3">{loadError}</div>
-          <Button variant="outline" onClick={() => setReloadSeq((n) => n + 1)}>
-            Retry
-          </Button>
-        </div>
-      ) : (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit(onSubmit, (errors) => {
-              console.error("Form validation errors:", errors);
-              const errorCount = Object.keys(errors).length;
-              toast.error(
-                `Please fix ${errorCount} form error${
-                  errorCount > 1 ? "s" : ""
-                } before submitting.`
-              );
-            })(e);
-          }}
-          className="space-y-6"
-        >
-          {/* Supplier Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Supplier Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-6">
+        {loading ? (
+          <div className="py-10 text-center text-muted-foreground">
+            Loading...
+          </div>
+        ) : loadError ? (
+          <div className="py-10 text-center">
+            <div className="text-red-600 mb-3">{loadError}</div>
+            <Button variant="outline" onClick={() => setReloadSeq((n) => n + 1)}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <Card className="border-0 shadow-lg overflow-hidden">
+            {/* Full width title header */}
+            <div className="bg-blue-900 text-white px-8 py-6 w-full">
+              <h1 className="text-3xl font-bold mb-2">
+                Create New Purchase Order
+              </h1>
+              <p className="text-blue-100">
+                Fill in supplier details and add items to generate your purchase order
+              </p>
+            </div>
+            
+            <CardContent className="p-8">
+              <form
+                id="purchase-order-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit(onSubmit, (errors) => {
+                    console.error("Form validation errors:", errors);
+                    const errorCount = Object.keys(errors).length;
+                    toast.error(
+                      `Please fix ${errorCount} form error${
+                        errorCount > 1 ? "s" : ""
+                      } before submitting.`
+                    );
+                  })(e);
+                }}
+                className="space-y-8"
+              >
+                {/* Supplier Information Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-500 rounded-lg">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <CardTitle className="text-xl text-gray-900">Supplier Information</CardTitle>
+                  </div>
+                  {/* Orange/Yellow divider line */}
+                  <div className="h-1 bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 rounded"></div>
+                  
+                  <div className="grid grid-cols-3 gap-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="supplierId">Supplier *</Label>
+                  <Label htmlFor="supplierId">
+                    Supplier <span className="text-red-500">*</span>
+                  </Label>
                   <Select
                     value={selectedSupplierId || ""}
                     onValueChange={(value) => setValue("supplierId", value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select supplier" />
+                      <SelectValue placeholder="Select a supplier" />
                     </SelectTrigger>
                     <SelectContent>
                       {vendors.length === 0 ? (
@@ -1127,7 +1135,9 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="orderDate">Order Date *</Label>
+                  <Label htmlFor="orderDate">
+                    Order Date <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="orderDate"
                     type="date"
@@ -1141,7 +1151,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="expectedDate">Expected Date</Label>
+                  <Label htmlFor="expectedDate">Expected Delivery Date</Label>
                   <Input
                     id="expectedDate"
                     type="date"
@@ -1150,36 +1160,43 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                 </div>
               </div>
 
-              {selectedSupplier && (
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="font-medium">{selectedSupplier.vendorName}</p>
-                  {selectedSupplier.street && (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedSupplier.street}, {selectedSupplier.city},{" "}
-                      {selectedSupplier.country}
-                    </p>
+                  {selectedSupplier && (
+                    <div className="p-4 bg-gray-50 rounded-lg col-span-3">
+                      <p className="font-medium">{selectedSupplier.vendorName}</p>
+                      {selectedSupplier.street && (
+                        <p className="text-sm text-muted-foreground">
+                          {selectedSupplier.street}, {selectedSupplier.city},{" "}
+                          {selectedSupplier.country}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        Phone: {selectedSupplier.phoneNo} | Email:{" "}
+                        {selectedSupplier.email}
+                      </p>
+                    </div>
                   )}
-                  <p className="text-sm text-muted-foreground">
-                    Phone: {selectedSupplier.phoneNo} | Email:{" "}
-                    {selectedSupplier.email}
-                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Add Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Items to Order</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-6 gap-4">
+                {/* Add Items to Order Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-500 rounded-lg">
+                      <Package className="w-5 h-5 text-white" />
+                    </div>
+                    <CardTitle className="text-xl text-gray-900">Add Items to Order</CardTitle>
+                  </div>
+                  {/* Orange/Yellow divider line */}
+                  <div className="h-1 bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 rounded"></div>
+
+                  {/* First Card: Input Fields */}
+                  <Card className="border shadow-sm mt-4">
+                    <CardContent className="p-6 space-y-4">
+                      <div className="grid grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label>Item</Label>
                   <Select value={selectedItem} onValueChange={setSelectedItem}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select item" />
+                      <SelectValue placeholder="Select an item" />
                     </SelectTrigger>
                     <SelectContent>
                       {items
@@ -1216,6 +1233,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                     onChange={(e) =>
                       setItemUnitPrice(parseFloat(e.target.value) || 0)
                     }
+                    placeholder="0.00"
                   />
                 </div>
 
@@ -1239,7 +1257,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                     onValueChange={setItemWarehouse}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select warehouse" />
+                      <SelectValue placeholder="Main Warehouse" />
                     </SelectTrigger>
                     <SelectContent>
                       {warehouses.map((wh) => (
@@ -1251,150 +1269,151 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                   </Select>
                 </div>
 
-                <div className="flex items-end">
+                      </div>
+                      <div className="pt-2 flex justify-start">
+                        <Button
+                          type="button"
+                          onClick={addItemToOrder}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Item to Order
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Second Card: Items List or Empty State */}
+                  <Card className="border shadow-sm">
+                    <CardContent className="p-6">
+                      {orderItems.length === 0 ? (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="p-4 bg-gray-200 rounded-lg mb-4">
+                              <Package className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-lg font-medium text-gray-700 mb-1">
+                              No items added
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Add items to create the order
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border rounded-lg">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Item</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Quantity</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Unit Price</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Discount</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Tax</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Total</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {orderItems.map((item) => (
+                                <tr key={item.id} className="border-t hover:bg-gray-50">
+                                  <td className="p-3">{item.item?.name}</td>
+                                  <td className="p-3">
+                                    {item.quantity} {item.item?.unit}
+                                  </td>
+                                  <td className="p-3">
+                                    ${item.unitPrice.toFixed(2)}
+                                  </td>
+                                  <td className="p-3">{item.discount}%</td>
+                                  <td className="p-3">${item.tax.toFixed(2)}</td>
+                                  <td className="p-3 font-medium">
+                                    ${item.total.toFixed(2)}
+                                  </td>
+                                  <td className="p-3">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeItem(item.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      Remove
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </form>
+            </CardContent>
+            
+            {/* Full width Total Order Amount Footer */}
+            <div className="bg-blue-900 text-white px-8 py-4 w-full">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-medium">Total Order Amount</span>
+                <span className="text-2xl font-bold">
+                  ${totals.total.toFixed(2)}
+                </span>
+              </div>
+            </div>
+            
+            {/* Action Buttons - outside CardContent */}
+            <div className="px-8 py-4 border-t">
+              <div className="flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  className="bg-white border-gray-300 hover:bg-gray-50"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Button>
+                <div className="flex gap-4">
                   <Button
                     type="button"
-                    onClick={addItemToOrder}
-                    className="w-full"
+                    variant="outline"
+                    onClick={() => {
+                      // Save as draft functionality
+                      toast.info("Save as draft functionality coming soon");
+                    }}
+                    className="bg-white border-gray-300 hover:bg-gray-50"
                   >
-                    Add Item
+                    <Save className="mr-2 h-4 w-4" />
+                    Save as Draft
+                  </Button>
+                  <Button
+                    type="submit"
+                    form="purchase-order-form"
+                    disabled={
+                      orderItems.length === 0 || !selectedSupplierId || submitLoading
+                    }
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {submitLoading ? "Creating..." : "Create Purchase Order"}
                   </Button>
                 </div>
               </div>
-
-              {/* Order Items List */}
-              {orderItems.length > 0 && (
-                <div className="mt-4">
-                  <div className="border rounded-lg">
-                    <table className="w-full">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="p-2 text-left">Item</th>
-                          <th className="p-2 text-left">Quantity</th>
-                          <th className="p-2 text-left">Unit Price</th>
-                          <th className="p-2 text-left">Discount</th>
-                          <th className="p-2 text-left">Tax</th>
-                          <th className="p-2 text-left">Total</th>
-                          <th className="p-2 text-left">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orderItems.map((item) => (
-                          <tr key={item.id} className="border-t">
-                            <td className="p-2">{item.item?.name}</td>
-                            <td className="p-2">
-                              {item.quantity} {item.item?.unit}
-                            </td>
-                            <td className="p-2">
-                              ₹{item.unitPrice.toLocaleString()}
-                            </td>
-                            <td className="p-2">{item.discount}%</td>
-                            <td className="p-2">₹{item.tax.toFixed(2)}</td>
-                            <td className="p-2 font-medium">
-                              ₹{item.total.toLocaleString()}
-                            </td>
-                            <td className="p-2">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeItem(item.id)}
-                              >
-                                Remove
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
               {orderItems.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">
-                  No items added. Add items to create the order.
+                <p className="text-sm text-red-500 text-center pt-2">
+                  Please add at least one item to create the order
                 </p>
               )}
-            </CardContent>
+              {!selectedSupplierId && (
+                <p className="text-sm text-red-500 text-center pt-2">
+                  Please select a supplier
+                </p>
+              )}
+            </div>
           </Card>
-
-          {/* Order Summary */}
-          {orderItems.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span className="font-medium">
-                    ₹{totals.subtotal.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Discount:</span>
-                  <span className="font-medium">
-                    -₹{totals.discount.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (18%):</span>
-                  <span className="font-medium">
-                    ₹{totals.tax.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-lg font-bold border-t pt-2">
-                  <span>Total:</span>
-                  <span>₹{totals.total.toLocaleString()}</span>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="shippingAddress">Shipping Address</Label>
-                  <Textarea
-                    id="shippingAddress"
-                    placeholder="Enter shipping address"
-                    {...register("shippingAddress")}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Additional notes or instructions"
-                    {...register("notes")}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={
-                orderItems.length === 0 || !selectedSupplierId || submitLoading
-              }
-            >
-              {submitLoading ? "Creating..." : "Create Purchase Order"}
-            </Button>
-          </div>
-          {orderItems.length === 0 && (
-            <p className="text-sm text-red-500 text-center">
-              Please add at least one item to create the order
-            </p>
-          )}
-          {!selectedSupplierId && (
-            <p className="text-sm text-red-500 text-center">
-              Please select a supplier
-            </p>
-          )}
-        </form>
-      )}
+        )}
+      </div>
     </div>
   );
 }

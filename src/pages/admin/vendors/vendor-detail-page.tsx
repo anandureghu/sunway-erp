@@ -22,7 +22,7 @@ export default function VendorDetailPage() {
       setVendor(res.data);
     } catch (err) {
       console.error("fetchVendor:", err);
-      toast.error("Failed to load vendor");
+      toast.error("Failed to load supplier");
     } finally {
       setLoading(false);
     }
@@ -31,11 +31,11 @@ export default function VendorDetailPage() {
   const handleDelete = async () => {
     try {
       await apiClient.delete(`/vendors/${id}`);
-      toast.success("Vendor deleted");
+      toast.success("Supplier deleted");
       navigate(-1);
     } catch (err) {
       console.error(err);
-      toast.error("Error deleting vendor");
+      toast.error("Error deleting supplier");
     }
   };
 
@@ -53,7 +53,7 @@ export default function VendorDetailPage() {
   if (!vendor)
     return (
       <div className="p-6">
-        <p className="text-red-500">Vendor not found.</p>
+        <p className="text-red-500">Supplier not found.</p>
       </div>
     );
 
@@ -88,11 +88,11 @@ export default function VendorDetailPage() {
         {/* Vendor Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Vendor Information</CardTitle>
+            <CardTitle className="text-lg">Supplier Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <span className="font-semibold">Vendor Name:</span>{" "}
+              <span className="font-semibold">Supplier Name:</span>{" "}
               {vendor.vendorName}
             </p>
             <p>
@@ -115,7 +115,7 @@ export default function VendorDetailPage() {
               {vendor.active ? "Yes" : "No"}
             </p>
             <p>
-              <span className="font-semibold">1099 Vendor:</span>{" "}
+              <span className="font-semibold">1099 Supplier:</span>{" "}
               {vendor.is1099Vendor ? "Yes" : "No"}
             </p>
           </CardContent>

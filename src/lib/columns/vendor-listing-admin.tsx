@@ -1,19 +1,34 @@
-import { Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { Vendor } from "@/types/vendor";
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
 
 interface VendorColumnsProps {
   onEdit: (vendor: Vendor) => void;
   onDelete: (vendor: Vendor) => void;
+  onView?: (vendor: Vendor) => void;
 }
 
 // Helper component to display optional values
 const OptionalCell = ({ value }: { value?: string | number | null | boolean }) => {
-  if (value === null || value === undefined) return <span>-</span>;
-  if (typeof value === "boolean") return <span>{value ? "Yes" : "No"}</span>;
-  if (typeof value === "string" && value.trim() === "") return <span>-</span>;
-  return <span>{String(value)}</span>;
+  if (value === null || value === undefined) return <span className="text-gray-500 whitespace-nowrap">-</span>;
+  if (typeof value === "boolean") return <span className="text-gray-900 whitespace-nowrap">{value ? "Yes" : "No"}</span>;
+  if (typeof value === "string" && value.trim() === "") return <span className="text-gray-500 whitespace-nowrap">-</span>;
+  return <span className="text-gray-900 font-normal whitespace-nowrap">{String(value)}</span>;
+};
+
+// Status pill component
+const StatusPill = ({ value }: { value: boolean | undefined }) => {
+  const isActive = value !== false;
+  return (
+    <span
+      className={`inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-semibold ${
+        isActive 
+          ? "bg-green-200 text-green-500" 
+          : "bg-red-200 text-red-500"
+      }`}
+    >
+      {isActive ? "YES" : "NO"}
+    </span>
+  );
 };
 
 type CellProps<TData> = CellContext<TData, unknown>;
@@ -21,66 +36,81 @@ type CellProps<TData> = CellContext<TData, unknown>;
 export const getVendorColumns = ({
   onEdit,
   onDelete,
+  onView,
 }: VendorColumnsProps): ColumnDef<Vendor>[] => [
   {
     accessorKey: "id",
     header: "ID",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
-      <OptionalCell value={String(ctx.getValue() ?? "")} />
+        <span className="text-blue-600 font-medium">
+      {String(ctx.getValue() ?? "-")}
+    </span>
     ),
   },
   {
     accessorKey: "vendorName",
-    header: "Vendor Name",
+    header: "VENDOR NAME",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
-      <OptionalCell value={ctx.getValue() as string | undefined} />
+      <div className="max-w-[200px] truncate">
+        <OptionalCell value={ctx.getValue() as string | undefined} />
+      </div>
     ),
   },
   {
     accessorKey: "contactPersonName",
-    header: "Contact Person",
+    header: "CONTACT PERSON",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
       <OptionalCell value={ctx.getValue() as string | undefined} />
     ),
   },
   {
     accessorKey: "email",
-    header: "Email",
+    header: "EMAIL",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
       <OptionalCell value={ctx.getValue() as string | undefined} />
     ),
   },
   {
     accessorKey: "phoneNo",
-    header: "Phone",
+    header: "PHONE",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
       <OptionalCell value={ctx.getValue() as string | undefined} />
     ),
   },
   {
     accessorKey: "city",
-    header: "City",
+    header: "CITY",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
       <OptionalCell value={ctx.getValue() as string | undefined} />
     ),
   },
   {
     accessorKey: "country",
-    header: "Country",
+    header: "COUNTRY",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => (
       <OptionalCell value={ctx.getValue() as string | undefined} />
     ),
   },
   {
     accessorKey: "active",
-    header: "Active",
-    cell: (ctx: CellProps<Vendor>) => (
-      <OptionalCell value={ctx.getValue() as boolean | undefined} />
-    ),
+    header: "ACTIVE",
+    enableSorting: true,
+    cell: (ctx: CellProps<Vendor>) => {
+      const value = ctx.getValue() as boolean | undefined;
+      return <StatusPill value={value} />;
+    },
   },
   {
     accessorKey: "is1099Vendor",
-    header: "1099 Vendor",
+    header: "1099 VENDOR",
+    enableSorting: true,
     cell: (ctx: CellProps<Vendor>) => {
       const vendor = ctx.row.original;
       // Try multiple possible field names
@@ -90,36 +120,45 @@ export const getVendorColumns = ({
         (vendor as any).is1099 !== undefined ? (vendor as any).is1099 :
         ctx.getValue() as boolean | undefined;
       
-      return <OptionalCell value={value} />;
+      return <StatusPill value={value} />;
     },
   },
   {
     id: "actions",
-    header: "Actions",
+    header: "ACTIONS",
     cell: ({ row }) => {
       const vendor = row.original;
       return (
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
+        <div className="flex items-center gap-2">
+          {onView && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onView(vendor);
+              }}
+              className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
+            >
+              VIEW
+            </button>
+          )}
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onEdit(vendor);
             }}
+            className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
           >
-            <Pencil className="h-4 w-4 text-blue-600" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
+            EDIT
+          </button>
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onDelete(vendor);
             }}
+            className="bg-red-50 text-red-600 hover:bg-red-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
           >
-            <Trash2 className="h-4 w-4 text-red-600" />
-          </Button>
+            DELETE
+          </button>
         </div>
       );
     },

@@ -23,7 +23,7 @@ const InventorySettingsPage = () => {
     },
     {
       value: "vendors",
-      label: "Vendors",
+      label: "Suppliers",
       element: () => <VendorsPage />,
     },
   ];
