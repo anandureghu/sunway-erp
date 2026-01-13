@@ -179,6 +179,32 @@ export default function AppraisalsForm(): ReactElement {
   ============================ */
   const handleCancel = () => {
     ignoreNextSaveRef.current = true;
+    setItems((cur) =>
+      cur.filter((it) => {
+        if (String(it._localId ?? it.id) !== String(editingId)) return true;
+        // If it's a new item (has _localId but no id) and empty, remove it
+        if (it._localId && !it.id) {
+          const isEmpty =
+            !it.month?.trim() &&
+            it.year === 2026 &&
+            !it.jobCode?.trim() &&
+            !it.employeeComments?.trim() &&
+            !it.managerComments?.trim() &&
+            !it.kpi1?.trim() &&
+            !it.review1?.trim() &&
+            !it.kpi2?.trim() &&
+            !it.review2?.trim() &&
+            !it.kpi3?.trim() &&
+            !it.review3?.trim() &&
+            !it.kpi4?.trim() &&
+            !it.review4?.trim() &&
+            !it.kpi5?.trim() &&
+            !it.review5?.trim();
+          return !isEmpty;
+        }
+        return true;
+      })
+    );
     setEditingId(null);
   };
 

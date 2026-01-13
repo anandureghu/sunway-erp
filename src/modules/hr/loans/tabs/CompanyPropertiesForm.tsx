@@ -205,7 +205,7 @@ export default function CompanyPropertiesForm(): ReactElement {
         {items.map((it, idx) => {
           const isEditing = editingIndex === idx;
           return (
-            <div key={it.id ?? idx} className="border rounded-md p-4 bg-white">
+            <div key={it.id ?? idx} className="border-2 border-blue-300 rounded-lg p-4 bg-gradient-to-br from-white to-blue-50 shadow-sm hover:shadow-md transition-shadow duration-200">
               {isEditing ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="Item Code:" value={it.itemCode} disabled={!editing && !isEditing}

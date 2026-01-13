@@ -23,7 +23,7 @@ export default function EditUpdateButton({ editing, onEdit, onSave, onCancel }: 
           <Button variant="outline" onClick={onCancel} className="rounded-xl">
             Cancel
           </Button>
-          <Button onClick={onSave} className="rounded-xl bg-emerald-600 hover:bg-emerald-700">
+          <Button onClick={onSave} className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white">
             Save
           </Button>
         </>

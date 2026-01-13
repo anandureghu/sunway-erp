@@ -93,8 +93,10 @@ function Tab({
       to={to}
       className={({ isActive }) =>
         [
-          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm",
-          isActive ? "bg-blue-600 text-white" : "text-black hover:bg-gray-100",
+          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
+          isActive
+            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
         ].join(" ")
       }
     >

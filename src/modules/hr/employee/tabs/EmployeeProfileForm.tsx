@@ -184,7 +184,7 @@ export default function EmployeeProfileForm(): ReactElement {
     <div className="space-y-6" role="form">
       {/* Avatar and header */}
       <div className="flex items-center gap-4 pb-2 border-b mb-4">
-        <Avatar className="h-16 w-16">
+        <Avatar className="h-16 w-16 hover:shadow-lg transition-shadow cursor-pointer">
           {draft.photoUrl ? (
             <AvatarImage
               src={draft.photoUrl}

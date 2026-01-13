@@ -24,23 +24,23 @@ const StatusCell = ({ value }: { value?: string }) => {
 
   const label = mapLabel[key] ?? (raw || "-");
 
-  let variant: "default" | "secondary" | "destructive" | "outline" = "default";
+  let className = "";
   switch (key) {
     case "ACTIVE":
-      variant = "outline";
+      className = "bg-green-100 text-green-900 border-green-300";
       break;
     case "INACTIVE":
-      variant = "destructive";
+      className = "bg-red-100 text-red-900 border-red-300";
       break;
     case "ON_LEAVE":
-      variant = "secondary";
+      className = "bg-amber-100 text-amber-900 border-amber-300";
       break;
     default:
-      variant = "default";
+      className = "bg-gray-100 text-gray-900 border-gray-300";
   }
 
   return (
-    <Badge variant={variant} className="">
+    <Badge variant="outline" className={className}>
       {label}
     </Badge>
   );
