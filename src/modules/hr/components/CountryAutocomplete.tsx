@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { debounce } from "@/lib/debounce";
+import { apiClient } from "@/service/apiClient";
 
 type Props = {
   /** Selected value (controlled by parent) */
@@ -35,13 +36,8 @@ export default function CountryAutocomplete({
 
   /** Active index for keyboard navigation */
   const activeIdx = useRef(-1);
-
-  // track programmatic updates to avoid fetching suggestions when the parent sets value
-  // (defined above) track programmatic updates to avoid fetching suggestions when the parent sets value
-
-  /** Sync input when parent value changes (reset / edit) */
   useEffect(() => {
-    // mark this update as coming from parent so we don't trigger a suggestion fetch
+
     controlledUpdate.current = true;
     setQuery(value || "");
     setOpen(false);
@@ -49,13 +45,11 @@ export default function CountryAutocomplete({
     activeIdx.current = -1;
   }, [value]);
 
-  // track programmatic updates to avoid fetching suggestions when the parent sets value
   const controlledUpdate = useRef(false);
 
-  /** Fetch suggestions (debounced) */
   const fetchSuggestions = useCallback(
     debounce(async (q: string) => {
-      // if the query change came from a parent controlled update, skip fetching
+      
       if (controlledUpdate.current) {
         controlledUpdate.current = false;
         return;
@@ -70,8 +64,8 @@ export default function CountryAutocomplete({
 
       try {
         if (apiUrl) {
-          const res = await fetch(`${apiUrl}?q=${encodeURIComponent(q)}`);
-          const data = await res.json();
+          const response = await apiClient.get(`${apiUrl}?q=${encodeURIComponent(q)}`);
+          const data = response.data;
 
           setSuggestions(
             Array.isArray(data)
@@ -81,12 +75,12 @@ export default function CountryAutocomplete({
               : []
           );
         } else {
-          const res = await fetch(
+          const response = await apiClient.get(
             `https://restcountries.com/v3.1/name/${encodeURIComponent(
               q
             )}?fields=name`
           );
-          const data = await res.json();
+          const data = response.data;
 
           setSuggestions(
             Array.isArray(data)
@@ -97,7 +91,8 @@ export default function CountryAutocomplete({
 
         setOpen(true);
         activeIdx.current = -1;
-      } catch {
+      } catch (error) {
+        console.error("Error fetching countries:", error);
         setSuggestions([]);
         setOpen(false);
       } finally {
@@ -117,8 +112,9 @@ export default function CountryAutocomplete({
     setQuery(s);
     setOpen(false);
     setSuggestions([]);
-    onChange(s); // ✅ ONLY place we update parent
+    onChange(s); 
   }
+
 
   /** Keyboard navigation */
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -147,13 +143,15 @@ export default function CountryAutocomplete({
       <Input
         value={query}
         onChange={(e) => {
-          setQuery(e.target.value); // ✅ typing only
+          const value = e.target.value;
+          setQuery(value);
+          onChange(value); 
         }}
         onFocus={() => {
           if (suggestions.length > 0) setOpen(true);
         }}
         onBlur={() => {
-          // delay so click works
+          
           setTimeout(() => setOpen(false), 150);
         }}
         onKeyDown={onKeyDown}

@@ -1,17 +1,8 @@
 import type { ReactElement } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Eye } from "lucide-react";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { propertyService } from "@/service/propertyService";
@@ -105,7 +96,6 @@ export default function CompanyPropertiesForm(): ReactElement {
   const handleDelete = useCallback((index: number) => {
     const it = items[index];
     if (!window.confirm("Are you sure you want to remove this property?")) return;
-    // if item has an id, try server delete; otherwise just remove locally
     void (async () => {
       try {
         if (empId && it?.id) {
@@ -151,13 +141,12 @@ export default function CompanyPropertiesForm(): ReactElement {
         response = await propertyService.create(empId, payload as any);
         toast.success("Property created");
       }
-      // reload list from server to get canonical data
       await reload();
       setEditingIndex(null);
       try {
         document.dispatchEvent(new CustomEvent("property:saved", { detail: response?.data }));
       } catch (e) {
-        // ignore if not supported
+        // ignore
       }
     } catch (err: any) {
       console.error("Failed to save property", err?.response?.data || err);
@@ -188,141 +177,236 @@ export default function CompanyPropertiesForm(): ReactElement {
   }, [registerSave, editingIndex, items, handleSaveItem]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="text-base font-semibold">Company Properties</div>
-        <Button onClick={handleAdd} size="sm" className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Property
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50 py-8 px-4">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&family=DM+Sans:wght@400;500;700&display=swap');
+        * { font-family: 'DM Sans', sans-serif; }
+        h1,h2,h3 { font-family: 'Crimson Pro', serif; }
+        @keyframes slideIn { from { opacity:0; transform:translateY(30px);} to {opacity:1; transform:translateY(0);} }
+        @keyframes fadeInDown { from { opacity:0; transform:translateY(-20px);} to {opacity:1; transform:translateY(0);} }
+        .container { animation: slideIn 0.6s cubic-bezier(0.22,1,0.36,1); }
+        .header-title { animation: fadeInDown 0.6s cubic-bezier(0.22,1,0.36,1) 0.2s both; }
+        .header-subtitle { animation: fadeInDown 0.6s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
+        input, select, textarea { transition: all 0.3s cubic-bezier(0.22,1,0.36,1); }
+        input:focus, select:focus, textarea:focus { outline: none; }
+        button { transition: all 0.3s cubic-bezier(0.22,1,0.36,1); }
+      `}</style>
 
-      <div className="space-y-3">
-        {items.length === 0 && (
-          <div className="text-sm text-muted-foreground">No properties recorded.</div>
-        )}
+      <div className="container mx-auto max-w-5xl bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] overflow-hidden">
+        <div className="relative bg-gradient-to-br from-white to-gray-50 p-8 md:p-12 border-b border-gray-200 overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-orange-500/5 to-transparent rounded-full -mr-48 -mt-48"></div>
+          <h1 className="header-title relative text-2xl md:text-3xl font-semibold text-gray-800 mb-1">
+            Company Properties
+          </h1>
+          <p className="header-subtitle relative text-gray-600 text-base">
+            Track and manage company assets and equipment
+          </p>
+        </div>
 
-        {items.map((it, idx) => {
-          const isEditing = editingIndex === idx;
-          return (
-            <div key={it.id ?? idx} className="border-2 border-blue-300 rounded-lg p-4 bg-gradient-to-br from-white to-blue-50 shadow-sm hover:shadow-md transition-shadow duration-200">
-              {isEditing ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Item Code:" value={it.itemCode} disabled={!editing && !isEditing}
-                    onChange={(v) => updateItem(idx, { itemCode: v })} required />
+        <div className="p-6 md:p-10">
+          <div className="flex items-start gap-4 mb-8 p-6 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50/50 border-l-4 border-green-500 shadow-sm">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl shadow-sm">
+              📦
+            </div>
+            <div className="flex-1">
+              <div className="font-semibold text-gray-800 mb-1">New Property Assignment</div>
+              <div className="text-sm text-gray-600">Fill in the details below to assign company property to an employee</div>
+            </div>
+          </div>
 
-                  <Field label="Date Given:" type="date" value={it.dateGiven}
-                    disabled={!editing && !isEditing} onChange={(v) => updateItem(idx, { dateGiven: v })} required />
+          <div className="space-y-8">
+            <div className="flex items-center justify-between pb-4 border-b-2 border-gray-200">
+              <h2 className="text-2xl font-semibold text-gray-800">Company Properties</h2>
+              <button
+                onClick={handleAdd}
+                className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white shadow-lg hover:shadow-xl px-6 py-3 rounded-xl font-semibold hover:-translate-y-0.5"
+              >
+                <Plus className="h-5 w-5" />
+                Add Property
+              </button>
+            </div>
 
-                  <Field label="Item Name:" value={it.itemName}
-                    disabled={!editing && !isEditing} onChange={(v) => updateItem(idx, { itemName: v })} required />
-
-                  <Field
-                    label="Return Date:"
-                    type="date"
-                    value={it.returnDate}
-                    disabled={(!editing && !isEditing) || it.itemStatus === "ASSIGNED"}
-                    onChange={(v) => updateItem(idx, { returnDate: v })}
-                    ariaLabel="Return Date"
-                    required={it.itemStatus === "RETURNED" || it.itemStatus === "LOST"}
-                  />
-
-                  <div>
-                    <Label className="text-sm">Item Status:<span className="text-red-500 ml-1">*</span></Label>
-                    <Select
-                      value={it.itemStatus || ""}
-                      onValueChange={(v) => updateItem(idx, { itemStatus: v as any })}
-                      disabled={!editing && !isEditing}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue>{it.itemStatus || "Select status"}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                        <SelectItem value="RETURNED">Returned</SelectItem>
-                        <SelectItem value="LOST">Lost</SelectItem>
-                        <SelectItem value="DAMAGED">Damaged</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label className="text-sm">Item Description:<span className="text-red-500 ml-1">*</span></Label>
-                    <Textarea value={it.description}
-                      disabled={!editing && !isEditing}
-                      onChange={(e) => updateItem(idx, { description: e.target.value })}
-                      className="min-h-[120px]" />
-                  </div>
-
-                  <div className="md:col-span-2 flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => handleCancel()}>Cancel</Button>
-                    <Button onClick={() => void handleSaveItem(it)}>Save</Button>
-                  </div>
-                </div>
-                  ) : (
-                <div className="space-y-3">
-                  {viewingIndex !== idx ? (
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium">{it.itemCode} — {it.itemName}</div>
-                        <div className="text-sm text-muted-foreground">{it.dateGiven} • {it.itemStatus || "-"}</div>
-                        <div className="mt-2 text-sm">{it.description}</div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setViewingIndex(idx)} className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(idx)}>Edit</Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(idx)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600 uppercase">Item Code</p>
-                          <p className="text-sm mt-1">{it.itemCode || "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600 uppercase">Item Name</p>
-                          <p className="text-sm mt-1">{it.itemName || "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600 uppercase">Date Given</p>
-                          <p className="text-sm mt-1">{it.dateGiven ? new Date(it.dateGiven).toLocaleDateString() : "—"}</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600 uppercase">Status</p>
-                          <p className="text-sm mt-1">{it.itemStatus || "—"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600 uppercase">Return Date</p>
-                          <p className="text-sm mt-1">{it.returnDate ? new Date(it.returnDate).toLocaleDateString() : "—"}</p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600 uppercase">Description</p>
-                        <p className="text-sm mt-1 whitespace-pre-wrap">{it.description || "—"}</p>
-                      </div>
-
-                      <div className="flex justify-end gap-2 pt-4 border-t">
-                        <Button variant="outline" size="sm" onClick={() => setViewingIndex(null)}>Close</Button>
-                        <Button size="sm" onClick={() => { setViewingIndex(null); handleEdit(idx); }}>Edit</Button>
-                      </div>
-                    </div>
-                  )}
+            <div className="space-y-4">
+              {items.length === 0 && (
+                <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                  <div className="text-4xl mb-3">📋</div>
+                  <div className="font-medium">No properties recorded yet</div>
+                  <div className="text-sm mt-1">Click "Add Property" to get started</div>
                 </div>
               )}
+
+              {items.map((it, idx) => {
+                const isEditing = editingIndex === idx;
+                return (
+                  <div
+                    key={it.id ?? idx}
+                    className="border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-white to-blue-50/30 shadow-sm hover:shadow-md"
+                  >
+                    {isEditing ? (
+                      <div className="space-y-6">
+                        <h3 className="text-xl font-semibold text-gray-800 pb-3 border-b-2 border-gray-200">Item Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <Field
+                            label="Item Code"
+                            value={it.itemCode}
+                            onChange={(v) => updateItem(idx, { itemCode: v })}
+                            required
+                            helpText="Unique identifier for this item"
+                          />
+
+                          <Field
+                            label="Item Name"
+                            value={it.itemName}
+                            onChange={(v) => updateItem(idx, { itemName: v })}
+                            required
+                          />
+
+                          <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                              Item Status<span className="text-orange-500">*</span>
+                            </label>
+                            <select
+                              value={it.itemStatus || ""}
+                              onChange={(e) => updateItem(idx, { itemStatus: e.target.value as any })}
+                              className="w-full h-12 px-4 border-2 border-gray-200 rounded-xl hover:border-orange-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 bg-white"
+                              disabled={!(editing || isEditing)}
+                            >
+                              <option value="">Select status</option>
+                              <option value="ASSIGNED">Assigned</option>
+                              <option value="RETURNED">Returned</option>
+                              <option value="LOST">Lost</option>
+                              <option value="DAMAGED">Damaged</option>
+                            </select>
+                          </div>
+
+                          <Field
+                            label="Date Given"
+                            type="date"
+                            value={it.dateGiven}
+                            onChange={(v) => updateItem(idx, { dateGiven: v })}
+                            required
+                          />
+
+                          <Field
+                            label="Return Date"
+                            type="date"
+                            value={it.returnDate}
+                            onChange={(v) => updateItem(idx, { returnDate: v })}
+                            disabled={it.itemStatus === "ASSIGNED"}
+                            required={it.itemStatus === "RETURNED" || it.itemStatus === "LOST"}
+                            helpText="Expected or actual return date"
+                          />
+
+                          <div className="md:col-span-2">
+                            <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                              Item Description<span className="text-orange-500">*</span>
+                            </label>
+                            <Textarea
+                              value={it.description}
+                              disabled={!(editing || isEditing)}
+                              onChange={(e) => updateItem(idx, { description: e.target.value })}
+                              className="w-full min-h-[120px] px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-orange-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 resize-y"
+                              placeholder="Provide detailed description including model, serial number, specifications, condition, etc."
+                            />
+                          </div>
+
+                          <div className="md:col-span-2 flex justify-end gap-3 pt-6 border-t border-gray-200">
+                            <button
+                              onClick={() => handleCancel()}
+                              className="px-6 py-2.5 border-2 border-gray-200 hover:bg-gray-50 rounded-xl font-medium text-gray-700"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => void handleSaveItem(it)}
+                              className="px-8 py-2.5 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white shadow-lg hover:shadow-xl rounded-xl font-semibold hover:-translate-y-0.5"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {viewingIndex !== idx ? (
+                          <div className="flex justify-between items-start gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                <div className="font-semibold text-lg text-gray-800">{it.itemCode} — {it.itemName}</div>
+                                {getStatusBadge(it.itemStatus)}
+                              </div>
+                              <div className="text-sm text-gray-600 mb-3">
+                                📅 {it.dateGiven ? new Date(it.dateGiven).toLocaleDateString() : "—"}
+                              </div>
+                              <div className="text-sm text-gray-700 line-clamp-2">{it.description}</div>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <button
+                                onClick={() => setViewingIndex(idx)}
+                                className="flex items-center gap-1.5 px-3 py-2 hover:bg-blue-50 rounded-lg text-sm font-medium text-gray-700"
+                              >
+                                <Eye className="h-4 w-4" />
+                                View
+                              </button>
+                              <button
+                                onClick={() => handleEdit(idx)}
+                                className="px-3 py-2 hover:bg-orange-50 hover:text-orange-600 rounded-lg text-sm font-medium"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(idx)}
+                                className="px-3 py-2 hover:bg-red-50 hover:text-red-600 rounded-lg text-sm font-medium"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <ViewField label="Item Code" value={it.itemCode} />
+                              <ViewField label="Item Name" value={it.itemName} />
+                              <ViewField label="Date Given" value={it.dateGiven ? new Date(it.dateGiven).toLocaleDateString() : "—"} />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Status</p>
+                                <div>{getStatusBadge(it.itemStatus)}</div>
+                              </div>
+                              <ViewField label="Return Date" value={it.returnDate ? new Date(it.returnDate).toLocaleDateString() : "—"} />
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Description</p>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded-xl">{it.description || "—"}</p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                              <button
+                                onClick={() => setViewingIndex(null)}
+                                className="px-4 py-2 border-2 border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50"
+                              >
+                                Close
+                              </button>
+                              <button
+                                onClick={() => { setViewingIndex(null); handleEdit(idx); }}
+                                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white rounded-lg text-sm font-semibold"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -334,24 +418,49 @@ function Field(props: {
   onChange: (v: string) => void;
   type?: string;
   disabled?: boolean;
-  ariaLabel?: string;
   required?: boolean;
+  helpText?: string;
 }) {
-  const { label, value, onChange, type = "text", disabled, ariaLabel, required } = props;
+  const { label, value, onChange, type = "text", disabled, required, helpText } = props;
   return (
-    <div className="space-y-1.5">
-      <Label className="text-sm">
+    <div className="space-y-2">
+      <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </Label>
+        {required && <span className="text-orange-500">*</span>}
+      </label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        aria-label={ariaLabel}
-        required={required}
+        className="w-full h-12 px-4 border-2 border-gray-200 rounded-xl hover:border-orange-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 disabled:bg-gray-100 disabled:cursor-not-allowed"
       />
+      {helpText && <p className="text-xs text-gray-500">{helpText}</p>}
     </div>
+  );
+}
+
+function ViewField(props: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{props.label}</p>
+      <p className="text-sm text-gray-700">{props.value || "—"}</p>
+    </div>
+  );
+}
+
+function getStatusBadge(status: string) {
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    ASSIGNED: { label: "Assigned", className: "bg-blue-50 text-blue-700" },
+    RETURNED: { label: "Returned", className: "bg-gray-100 text-gray-700" },
+    LOST: { label: "Lost", className: "bg-red-50 text-red-700" },
+    DAMAGED: { label: "Damaged", className: "bg-red-50 text-red-700" },
+    "": { label: "-", className: "bg-gray-100 text-gray-700" },
+  };
+  const cfg = statusConfig[status] ?? { label: status || "-", className: "bg-gray-100 text-gray-700" };
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide ${cfg.className}`}>
+      {cfg.label}
+    </span>
   );
 }
