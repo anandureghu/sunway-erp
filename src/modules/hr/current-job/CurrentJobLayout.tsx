@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
@@ -32,9 +31,21 @@ export default function CurrentJobLayout() {
         <div className="border-x border-b rounded-b-lg">
           {/* Tab strip */}
           <div className="flex items-center gap-2 border-b bg-white px-3">
-            <TabLink to="current-job" label="Current Job" icon={<Wrench className="w-4 h-4" />} />
-            <TabLink to="previous-experiences" label="Previous Experiences" icon={<Hourglass className="w-4 h-4" />} />
-            <TabLink to="education" label="Education and Qualifications" icon={<GraduationCap className="w-4 h-4" />} />
+            <TabLink
+              to="current-job"
+              label="Current Job"
+              icon={<Wrench className="w-4 h-4" />}
+            />
+            <TabLink
+              to="previous-experiences"
+              label="Previous Experiences"
+              icon={<Hourglass className="w-4 h-4" />}
+            />
+            <TabLink
+              to="education"
+              label="Education and Qualifications"
+              icon={<GraduationCap className="w-4 h-4" />}
+            />
           </div>
 
           {/* Tab content */}
@@ -71,10 +82,12 @@ function TabLink({
       to={to}
       end
       className={({ isActive }) =>
-        cn(
-          "inline-flex items-center gap-2 px-3 py-2 text-sm rounded-t-md",
-          isActive ? "bg-blue-600 text-white" : "text-gray-800 hover:bg-gray-100"
-        )
+        [
+          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
+          isActive
+            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
+        ].join(" ")
       }
     >
       {icon}

@@ -31,16 +31,16 @@ function EditUpdateBar({
     </Button>
   ) : (
     <div className="flex gap-2">
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={onCancel}
         aria-label="Cancel editing profile"
       >
         Cancel
       </Button>
-      <Button 
-        onClick={onSave} 
-        className="bg-emerald-600 hover:bg-emerald-700"
+      <Button
+        onClick={onSave}
+        className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200"
         aria-label="Save profile changes"
       >
         Save
@@ -97,8 +97,8 @@ export default function ProfileShell(): ReactElement {
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden" role="region" aria-label="Employee profile section">
-      {/* Blue title bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
         <div className="text-lg font-semibold" role="heading" aria-level={1}>{title}</div>
       </div>
 
@@ -138,8 +138,10 @@ function Tab({ to, icon, label }: TabProps): ReactElement {
       to={to}
       className={({ isActive }) =>
         [
-          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm",
-          isActive ? "bg-blue-600 text-white" : "text-black hover:bg-gray-100",
+          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
+          isActive
+            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
         ].join(" ")
       }
       role="tab"

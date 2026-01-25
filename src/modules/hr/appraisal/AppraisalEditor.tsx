@@ -17,16 +17,10 @@ export default function AppraisalEditor({
 }: Props) {
   const [form, setForm] = useState<AppModel>({ ...value });
 
-  /* ============================
-     SYNC FROM PARENT
-  ============================ */
   useEffect(() => {
     setForm({ ...value });
   }, [value]);
 
-  /* ============================
-     UPDATE LOCAL + PARENT
-  ============================ */
   const updateLocal = (k: keyof AppModel, v: any) => {
     if (k === "id" || k === "_localId") return;
 
@@ -36,10 +30,6 @@ export default function AppraisalEditor({
       return next;
     });
   };
-
-  /* ============================
-     SAVE (CRITICAL FIX)
-  ============================ */
   const handleSave = () => {
     // push full latest state to parent FIRST
     onChange({ ...form });
@@ -99,6 +89,19 @@ export default function AppraisalEditor({
               onChange={(e) =>
                 updateLocal("year", Number(e.target.value) || "")
               }
+            />
+          </div>
+        </div>
+
+        {/* JOB CODE */}
+        <div className="ae-period" style={{ marginBottom: 16 }}>
+          <div style={{ flex: 1 }}>
+            <label>Job Code</label>
+            <input
+              type="text"
+              value={form.jobCode || ""}
+              onChange={(e) => updateLocal("jobCode", e.target.value)}
+              placeholder="Enter job code"
             />
           </div>
         </div>

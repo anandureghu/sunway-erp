@@ -34,7 +34,6 @@ import {
   CreditCard,
   Shield,
   CalendarDays,
-  GraduationCap,
   Star,
   Building2,
 } from "lucide-react";
@@ -98,11 +97,6 @@ export function AppSidebar() {
       title: "Immigration",
       icon: Shield,
       to: empBase ? `${empBase}/immigration` : "#",
-    },
-    {
-      title: "Trainings",
-      icon: GraduationCap,
-      to: empBase ? `${empBase}/trainings` : "#",
     },
   ];
 

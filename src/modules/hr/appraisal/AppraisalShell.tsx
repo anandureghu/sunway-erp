@@ -34,7 +34,7 @@ function EditUpdateBar(props: {
       <Button variant="outline" onClick={onCancel} aria-label="Cancel editing">
         Cancel
       </Button>
-      <Button onClick={onSave} className="bg-emerald-600 hover:bg-emerald-700" aria-label="Save changes">
+      <Button onClick={onSave} className="bg-orange-500 hover:bg-orange-600 text-white" aria-label="Save changes">
         Save
       </Button>
     </div>
@@ -92,10 +92,12 @@ export default function AppraisalShell(): ReactElement {
   useEffect(() => setEditing(false), [id]);
 
   return (
-    <div className="rounded-xl border bg-white overflow-hidden">
-      {/* Blue header */}
-      <div className="px-4 py-3 bg-blue-600 text-white text-lg font-semibold rounded-t-xl">
-        Employee Appraisal – {title}
+    <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300">
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <span>Employee Appraisal – {title}</span>
+        </div>
       </div>
 
       {/* Action row */}

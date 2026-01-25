@@ -66,7 +66,7 @@ const EmployeeSearchBar = ({
       <div className="flex-shrink-0">
         <Button
           variant="default"
-          className="bg-blue-600 hover:bg-blue-700 h-9"
+          className="bg-orange-500 hover:bg-orange-600 text-white h-9"
           onClick={onAddClick}
         >
           + Add Employee
