@@ -52,27 +52,28 @@ export function EmployeeStats({ employees, onFilter }: EmployeeStatsProps & { on
         label="Total Employees"
         value={stats.total}
         icon={<UsersRound size={24} />}
+        className="border-blue-200 bg-blue-50"
         onClick={() => onFilter && onFilter(null)}
       />
       <StatCard
         label="Active Employees"
         value={stats.active}
         icon={<UserCheck size={24} />}
-        className="border-green-200"
+        className="border-green-200 bg-green-50"
         onClick={() => onFilter && onFilter("ACTIVE")}
       />
       <StatCard
         label="On Leave"
         value={stats.onLeave}
         icon={<UserCog2 size={24} />}
-        className="border-amber-200"
+        className="border-amber-200 bg-amber-50"
         onClick={() => onFilter && onFilter("ON_LEAVE")}
       />
       <StatCard
         label="Inactive"
         value={stats.inactive}
         icon={<UserRoundCog size={24} />}
-        className="border-red-200"
+        className="border-red-200 bg-red-50"
         onClick={() => onFilter && onFilter("INACTIVE")}
       />
     </div>

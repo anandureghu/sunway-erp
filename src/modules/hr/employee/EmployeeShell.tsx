@@ -1,5 +1,6 @@
 import { Link, Outlet } from "react-router-dom";
 import { useEmployeeSelection } from "@/context/employee-selection";
+import { User } from "lucide-react";
 
 export default function EmployeeShell() {
   const { selected } = useEmployeeSelection();
@@ -7,9 +8,10 @@ export default function EmployeeShell() {
   
   if (!selected) {
     return (
-      <div className="p-6">
+      <div className="p-6 flex flex-col items-center justify-center min-h-[400px] text-center">
+        <User className="h-16 w-16 text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold mb-2">Select an employee</h2>
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-sm text-muted-foreground mb-4 max-w-md">
           Go back to the Employee Overview and pick an employee to view their details.
         </p>
         <Link

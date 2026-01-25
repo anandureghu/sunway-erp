@@ -49,14 +49,12 @@ const INITIAL_ADDRESS: Address = {
 };
 
 function isAddressValid(address: Address) {
-  
   return (
     Boolean(address.line1?.trim()) &&
     Boolean(address.city?.trim()) &&
     Boolean(address.country?.trim())
   );
 }
-
 
 export default function ContactInfoForm() {
   const { editing, setEditing } = useOutletContext<Ctx>();
@@ -70,7 +68,6 @@ export default function ContactInfoForm() {
   const params = useParams<{ id?: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
 
-  
   useEffect(() => {
     let mounted = true;
     if (!employeeId) return;
@@ -98,7 +95,6 @@ export default function ContactInfoForm() {
     };
   }, [employeeId]);
 
-  
   useEffect(() => {
     let mounted = true;
     if (!employeeId) return;
@@ -123,20 +119,18 @@ export default function ContactInfoForm() {
         }));
       })
       .catch(() => {
-        
+        /* silent */
       });
     return () => {
       mounted = false;
     };
   }, [employeeId]);
 
-  
   useEffect(() => {
     const onSave = async () => {
       setSaved(draft);
       if (!employeeId) return;
       try {
-        
         try {
           await contactService.saveContactInfo(employeeId, {
             email: draft.email,
@@ -167,7 +161,6 @@ export default function ContactInfoForm() {
           }
         }
 
-        // reload addresses from server to ensure authoritative state
         try {
           const resAddrs = await addressService.getAddressesByEmployee(employeeId);
           const mapped = (resAddrs || []).map((a) => ({
@@ -227,7 +220,7 @@ export default function ContactInfoForm() {
     setAddresses((current) =>
       current.filter((a) => {
         if (a.id !== editingAddressId) return true;
-        
+
         const isEmpty = !(
           a.line1?.trim() ||
           a.city?.trim() ||
@@ -242,7 +235,7 @@ export default function ContactInfoForm() {
 
   const handleDeleteAddress = useCallback((id: string) => {
     if (!window.confirm("Are you sure you want to delete this address?")) return;
-    
+
     (async () => {
       try {
         if (/^\d+$/.test(id)) {
@@ -260,6 +253,33 @@ export default function ContactInfoForm() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-gradient-to-r from-slate-50 to-white rounded-2xl p-6 shadow-md border border-slate-100">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-indigo-600 to-cyan-500 text-white p-3 rounded-xl shadow-lg">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="opacity-95" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5C3 6.29 4.79 4.5 7 4.5H17C19.21 4.5 21 6.29 21 8.5V15.5C21 17.71 19.21 19.5 17 19.5H7C4.79 19.5 3 17.71 3 15.5V8.5Z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-800">Contact Information</h2>
+              <p className="text-sm text-slate-500">Update email, phone and addresses for this employee</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => {
+                setEditing?.(true);
+                handleAddAddress();
+              }}
+              className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-md hover:shadow-lg rounded-lg flex items-center gap-2 px-4 py-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Address
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <FormSection title="Contact Information">
         <FormRow columns={3}>
           <FormField label="Email" required>
@@ -267,9 +287,10 @@ export default function ContactInfoForm() {
               disabled={!editing}
               value={draft.email}
               onChange={(e) => set("email", e.target.value)}
-              placeholder="Enter email"
+              placeholder="you@example.com"
               aria-required="true"
               required
+              className="ring-0 focus:ring-2 focus:ring-indigo-200"
             />
           </FormField>
           <FormField label="Phone" required>
@@ -277,9 +298,10 @@ export default function ContactInfoForm() {
               disabled={!editing}
               value={draft.phone}
               onChange={(e) => set("phone", e.target.value)}
-              placeholder="Enter phone"
+              placeholder="+1 (555) 000-0000"
               aria-required="true"
               required
+              className="ring-0 focus:ring-2 focus:ring-indigo-200"
             />
           </FormField>
           <FormField label="Alt Phone">
@@ -287,33 +309,22 @@ export default function ContactInfoForm() {
               disabled={!editing}
               value={draft.altPhone}
               onChange={(e) => set("altPhone", e.target.value)}
-              placeholder="Enter alternate phone"
+              placeholder="+1 (555) 000-0000"
+              className="ring-0 focus:ring-2 focus:ring-indigo-200"
             />
           </FormField>
         </FormRow>
       </FormSection>
 
-      {/* Addresses Section */}
       <div>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Addresses</h3>
-          <Button
-            onClick={() => {
-              setEditing?.(true);
-              handleAddAddress();
-            }}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Address
-          </Button>
+          <h3 className="text-lg font-semibold text-slate-800">Addresses</h3>
+          <div className="text-sm text-slate-500">Manage home addresses for the employee</div>
         </div>
 
         <div className="grid gap-4">
           {addresses.map((address) => (
-            <Card key={address.id}>
+            <Card key={address.id} className="rounded-xl shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 {editingAddressId === address.id ? (
                   <div className="space-y-4">
@@ -405,10 +416,10 @@ export default function ContactInfoForm() {
                     </FormRow>
 
                     <div className="flex justify-end gap-2 mt-4">
-                      <Button variant="outline" onClick={handleCancelAddress}>
+                      <Button variant="outline" onClick={handleCancelAddress} className="rounded-md px-4">
                         Cancel
                       </Button>
-                      <Button disabled={!isAddressValid(address)} onClick={() => setEditingAddressId(null)}>
+                      <Button disabled={!isAddressValid(address)} onClick={() => setEditingAddressId(null)} className="rounded-md px-4 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white">
                         Save
                       </Button>
                     </div>
@@ -418,14 +429,14 @@ export default function ContactInfoForm() {
                     {viewingAddressId !== address.id && (
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-medium">{address.line1 || "Unnamed Address"}</p>
-                          <div className="text-sm text-gray-500 mt-1">
+                          <p className="font-medium text-slate-800">{address.line1 || "Unnamed Address"}</p>
+                          <div className="text-sm text-slate-500 mt-1">
                             <p>
                               {address.line2 && address.line2 + ", "}
                               {address.city}
                             </p>
                             <p>
-                              {address.state} {address.zipcode}, {address.country}
+                              {address.state} {address.zipcode}{address.state || address.zipcode ? ", " : ""}{address.country}
                             </p>
                           </div>
                         </div>
@@ -434,7 +445,7 @@ export default function ContactInfoForm() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingAddressId(address.id)}
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-2"
                           >
                             <Eye className="h-4 w-4" />
                             View
@@ -461,37 +472,37 @@ export default function ContactInfoForm() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 uppercase">Address Line 1</p>
-                            <p className="text-sm mt-1">{address.line1 || "—"}</p>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Address Line 1</p>
+                            <p className="text-sm mt-1 text-slate-800">{address.line1 || "—"}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 uppercase">Address Line 2</p>
-                            <p className="text-sm mt-1">{address.line2 || "—"}</p>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Address Line 2</p>
+                            <p className="text-sm mt-1 text-slate-800">{address.line2 || "—"}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 uppercase">City</p>
-                            <p className="text-sm mt-1">{address.city || "—"}</p>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">City</p>
+                            <p className="text-sm mt-1 text-slate-800">{address.city || "—"}</p>
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 uppercase">State</p>
-                            <p className="text-sm mt-1">{address.state || "—"}</p>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">State</p>
+                            <p className="text-sm mt-1 text-slate-800">{address.state || "—"}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 uppercase">Postal Code</p>
-                            <p className="text-sm mt-1">{address.zipcode || "—"}</p>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Postal Code</p>
+                            <p className="text-sm mt-1 text-slate-800">{address.zipcode || "—"}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-gray-600 uppercase">Country</p>
-                            <p className="text-sm mt-1">{address.country || "—"}</p>
+                            <p className="text-xs font-semibold text-slate-500 uppercase">Country</p>
+                            <p className="text-sm mt-1 text-slate-800">{address.country || "—"}</p>
                           </div>
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4 border-t">
-                          <Button variant="outline" size="sm" onClick={() => setViewingAddressId(null)}>Close</Button>
-                          <Button size="sm" onClick={() => { setViewingAddressId(null); handleEditAddress(address); }}>Edit</Button>
+                          <Button variant="outline" size="sm" onClick={() => setViewingAddressId(null)} className="rounded-md px-3">Close</Button>
+                          <Button size="sm" onClick={() => { setViewingAddressId(null); handleEditAddress(address); }} className="rounded-md px-3 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white">Edit</Button>
                         </div>
                       </div>
                     )}
@@ -503,20 +514,19 @@ export default function ContactInfoForm() {
         </div>
 
         {addresses.length === 0 && (
-          <div className="text-center p-8 text-gray-500">
+          <div className="text-center p-6 text-slate-500 bg-white rounded-lg border border-slate-100">
             No addresses added yet. Click "Add Address" to add one.
           </div>
         )}
       </div>
 
-      {/* Notes */}
       <div className="space-y-1.5">
-        <Label className="text-sm">Notes/Remarks:</Label>
+        <Label className="text-sm">Notes / Remarks</Label>
         <Textarea
           disabled={!editing}
           value={draft.notes}
           onChange={(e) => set("notes", e.target.value)}
-          className="min-h-[100px] w-full"
+          className="min-h-[120px] w-full rounded-lg border-slate-200"
           placeholder="Enter any additional notes"
         />
       </div>

@@ -37,12 +37,12 @@ export default function EmployeeAddresses({ employeeId }: { employeeId?: number 
   return (
     <div className="space-y-3">
       {addresses.map((addr) => (
-        <div key={addr.id} className="rounded-md border p-3 bg-white">
+        <div key={addr.id} className="rounded-lg border-2 border-gradient-to-r from-blue-200 to-purple-200 p-4 bg-gradient-to-br from-white to-blue-50 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between">
             <div>
-              <div className="font-medium">{addr.line1} {addr.line2 ? `, ${addr.line2}` : ""}</div>
-              <div className="text-sm text-muted-foreground">{addr.city}, {addr.state} {addr.postalCode} — {addr.country}</div>
-              <div className="text-xs text-gray-500 mt-1">{addr.addressType}</div>
+              <div className="font-medium text-gray-800">{addr.line1} {addr.line2 ? `, ${addr.line2}` : ""}</div>
+              <div className="text-sm text-gray-600">{addr.city}, {addr.state} {addr.postalCode} — {addr.country}</div>
+              <div className="text-xs text-blue-600 mt-1 font-medium">{addr.addressType}</div>
             </div>
           </div>
         </div>

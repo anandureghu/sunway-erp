@@ -33,11 +33,11 @@ export default function CurrentJobShell() {
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
-      {/* Title bar shows the employee NAME */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
-        <div className="flex items-center gap-2">
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
+        <div className="flex items-center gap-2 text-lg font-semibold">
           <BriefcaseBusiness className="w-5 h-5" />
-          <span className="font-semibold">Current Job Info – {employeeTitle}</span>
+          <span>Current Job Info – {employeeTitle}</span>
         </div>
       </div>
 
@@ -92,12 +92,14 @@ function TabLink({
 }) {
   return (
     <NavLink
-      to={to}              
+      to={to}
       end={end}
       className={({ isActive }) =>
         [
-          "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm",
-          isActive ? "bg-blue-600 text-white" : "hover:bg-gray-100",
+          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
+          isActive
+            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
         ].join(" ")
       }
     >

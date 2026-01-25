@@ -66,7 +66,7 @@ export default function AddressList({ employeeId }: { employeeId: number }) {
         <h3 className="text-lg font-semibold">Addresses</h3>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={load}>Refresh</Button>
-          <Button onClick={() => setShowForm((s) => !s)} size="sm">{showForm ? "Cancel" : "+ Add Address"}</Button>
+          <Button onClick={() => setShowForm((s) => !s)} size="sm" className="bg-blue-500 text-white hover:bg-blue-600">{showForm ? "Cancel" : "+ Add Address"}</Button>
         </div>
       </div>
 
