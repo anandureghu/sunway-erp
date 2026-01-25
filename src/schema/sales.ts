@@ -23,9 +23,13 @@ export const SALES_ORDER_ITEM_SCHEMA = z.object({
   itemId: z.string().min(1, "Item is required"),
   quantity: z.number().min(0.01, "Quantity must be greater than 0"),
   unitPrice: z.number().min(0, "Unit price must be positive"),
-  discount: z.number().min(0).max(100, "Discount cannot exceed 100%").default(0),
+  discount: z
+    .number()
+    .min(0)
+    .max(100, "Discount cannot exceed 100%")
+    .default(0),
   tax: z.number().min(0).default(0),
-  warehouseId: z.string().optional(),
+  warehouseId: z.number().optional(),
 });
 
 // Sales Order Schema
@@ -33,7 +37,9 @@ export const SALES_ORDER_SCHEMA = z.object({
   customerId: z.string().min(1, "Customer is required"),
   orderDate: z.string().min(1, "Order date is required"),
   requiredDate: z.string().optional(),
-  items: z.array(SALES_ORDER_ITEM_SCHEMA).min(1, "At least one item is required"),
+  items: z
+    .array(SALES_ORDER_ITEM_SCHEMA)
+    .min(1, "At least one item is required"),
   shippingAddress: z.string().optional(),
   notes: z.string().optional(),
   salesPerson: z.string().optional(),
@@ -42,7 +48,7 @@ export const SALES_ORDER_SCHEMA = z.object({
 // Picklist Schema
 export const PICKLIST_SCHEMA = z.object({
   orderId: z.string().min(1, "Sales order is required"),
-  warehouseId: z.string().optional(), // Optional - backend API doesn't accept it, but we collect for display
+  warehouseId: z.number().optional(), // Optional - backend API doesn't accept it, but we collect for display
   assignedTo: z.string().optional(),
 });
 
@@ -63,7 +69,13 @@ export const DISPATCH_SCHEMA = z.object({
 export const DELIVERY_TRACKING_SCHEMA = z.object({
   dispatchId: z.string().min(1, "Dispatch is required"),
   location: z.string().optional(),
-  status: z.enum(["dispatched", "in_transit", "out_for_delivery", "delivered", "failed"]),
+  status: z.enum([
+    "dispatched",
+    "in_transit",
+    "out_for_delivery",
+    "delivered",
+    "failed",
+  ]),
   notes: z.string().optional(),
   deliveredBy: z.string().optional(),
 });
@@ -76,6 +88,8 @@ export const INVOICE_SCHEMA = z.object({
   dueDate: z.string().min(1, "Due date is required"),
   paymentTerms: z.string().optional(),
   notes: z.string().optional(),
+  debitAccount: z.string().optional(),
+  creditAccount: z.string().optional(),
 });
 
 // Type exports for form data
@@ -86,4 +100,3 @@ export type PicklistFormData = z.infer<typeof PICKLIST_SCHEMA>;
 export type DispatchFormData = z.infer<typeof DISPATCH_SCHEMA>;
 export type DeliveryTrackingFormData = z.infer<typeof DELIVERY_TRACKING_SCHEMA>;
 export type InvoiceFormData = z.infer<typeof INVOICE_SCHEMA>;
-

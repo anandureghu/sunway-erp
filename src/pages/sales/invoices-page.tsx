@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
-import { invoices, salesOrders } from "@/lib/sales-data";
 import { Search, Plus, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -19,26 +18,49 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { INVOICE_SCHEMA, type InvoiceFormData } from "@/schema/sales";
 import { Link, useLocation } from "react-router-dom";
+import { type SalesOrderResponseDTO } from "@/service/erpApiTypes";
+import { type Invoice } from "@/types/sales";
+import { apiClient } from "@/service/apiClient";
+import SelectAccount from "@/components/select-account";
 
 export default function InvoicesPage() {
   const location = useLocation();
+
   const [searchQuery, setSearchQuery] = useState(
     (location.state as { searchQuery?: string })?.searchQuery || ""
   );
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [salesOrders, setSalesOrders] = useState<SalesOrderResponseDTO[]>([]);
+
+  useEffect(() => {
+    apiClient.get<Invoice[]>("/invoices").then((res) => setInvoices(res.data));
+    apiClient
+      .get<SalesOrderResponseDTO[]>("/sales/orders")
+      .then((res) => setSalesOrders(res.data));
+  }, []);
 
   const filteredInvoices = invoices.filter((invoice) => {
+    const q = searchQuery.toLowerCase();
+
     const matchesSearch =
-      invoice.invoiceNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.customerName?.toLowerCase().includes(searchQuery.toLowerCase());
+      invoice.invoiceId?.toLowerCase().includes(q) ||
+      invoice.toParty?.toLowerCase().includes(q);
+
     const matchesStatus =
       statusFilter === "all" || invoice.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
   if (showCreateForm) {
-    return <CreateInvoiceForm onCancel={() => setShowCreateForm(false)} />;
+    return (
+      <CreateInvoiceForm
+        salesOrders={salesOrders}
+        onCancel={() => setShowCreateForm(false)}
+      />
+    );
   }
 
   return (
@@ -51,7 +73,7 @@ export default function InvoicesPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold mb-2">Sales Invoices</h1>
+            <h1 className="text-3xl font-bold">Sales Invoices</h1>
             <p className="text-muted-foreground">
               Manage invoices and payments
             </p>
@@ -65,7 +87,7 @@ export default function InvoicesPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex justify-between items-center">
             <CardTitle>All Invoices</CardTitle>
             <div className="flex gap-2">
               <div className="relative">
@@ -79,10 +101,10 @@ export default function InvoicesPage() {
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder="Filter status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="Paid">Paid</SelectItem>
                   <SelectItem value="Unpaid">Unpaid</SelectItem>
                   <SelectItem value="Partially Paid">Partially Paid</SelectItem>
@@ -93,22 +115,28 @@ export default function InvoicesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable columns={SALES_INVOICE_COLUMNS} data={filteredInvoices} />
+          <DataTable data={filteredInvoices} columns={SALES_INVOICE_COLUMNS} />
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
-  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+function CreateInvoiceForm({
+  salesOrders,
+  onCancel,
+}: {
+  salesOrders: SalesOrderResponseDTO[];
+  onCancel: () => void;
+}) {
+  const [selectedOrderId, setSelectedOrderId] = useState("");
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
     setValue,
     watch,
+    formState: { errors },
   } = useForm<InvoiceFormData>({
     resolver: zodResolver(INVOICE_SCHEMA),
     defaultValues: {
@@ -116,29 +144,36 @@ function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
     },
   });
 
-  const selectedOrder = salesOrders.find((o) => o.id === selectedOrderId);
+  const selectedOrder = salesOrders.find(
+    (o) => o.id.toString() === selectedOrderId
+  );
 
-  const onSubmit = (data: InvoiceFormData) => {
-    console.log("Creating invoice:", data);
-    // TODO: Make API call to create invoice
-    alert("Invoice created successfully!");
-    onCancel();
-  };
-
-  // Calculate due date (30 days from invoice date by default)
   const invoiceDate = watch("date");
-  const calculateDueDate = () => {
+
+  useEffect(() => {
     if (invoiceDate) {
-      const date = new Date(invoiceDate);
-      date.setDate(date.getDate() + 30);
-      return format(date, "yyyy-MM-dd");
+      const d = new Date(invoiceDate);
+      d.setDate(d.getDate() + 30);
+      setValue("dueDate", format(d, "yyyy-MM-dd"));
     }
-    return "";
+  }, [invoiceDate, setValue]);
+
+  const onSubmit = async (data: InvoiceFormData) => {
+    try {
+      await apiClient.post("/invoices", {
+        ...data,
+        type: "SALES",
+      });
+      onCancel();
+    } catch (e) {
+      console.error(e);
+      alert("Failed to create invoice");
+    }
   };
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex justify-between mb-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <ArrowLeft className="h-4 w-4" />
@@ -155,128 +190,107 @@ function CreateInvoiceForm({ onCancel }: { onCancel: () => void }) {
           <CardHeader>
             <CardTitle>Invoice Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="orderId">Sales Order *</Label>
-                <Select
-                  value={selectedOrderId}
-                  onValueChange={(value) => {
-                    setSelectedOrderId(value);
-                    setValue("orderId", value);
-                    if (selectedOrder) {
-                      setValue("customerId", selectedOrder.customerId);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sales order" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {salesOrders
-                      .filter(
-                        (o) => o.status !== "cancelled" && o.status !== "draft"
-                      )
-                      .map((order) => (
-                        <SelectItem key={order.id} value={order.id}>
-                          {order.orderNo} - {order.customer?.name} - ₹
-                          {order.total.toLocaleString()}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {errors.orderId && (
-                  <p className="text-sm text-red-500">
-                    {errors.orderId.message}
-                  </p>
-                )}
-              </div>
+          <CardContent className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Sales Order *</Label>
+              <Select
+                value={selectedOrderId}
+                onValueChange={(val) => {
+                  setSelectedOrderId(val);
+                  setValue("orderId", val);
 
-              <div className="space-y-2">
-                <Label htmlFor="customerId">Customer *</Label>
-                <Input
-                  id="customerId"
-                  value={selectedOrder?.customerId || ""}
-                  disabled
-                  {...register("customerId")}
-                />
-                {errors.customerId && (
-                  <p className="text-sm text-red-500">
-                    {errors.customerId.message}
-                  </p>
-                )}
-              </div>
+                  const order = salesOrders.find(
+                    (o) => o.id.toString() === val
+                  );
 
-              <div className="space-y-2">
-                <Label htmlFor="date">Invoice Date *</Label>
-                <Input id="date" type="date" {...register("date")} />
-                {errors.date && (
-                  <p className="text-sm text-red-500">{errors.date.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dueDate">Due Date *</Label>
-                <Input
-                  id="dueDate"
-                  type="date"
-                  {...register("dueDate")}
-                  defaultValue={calculateDueDate()}
-                />
-                {errors.dueDate && (
-                  <p className="text-sm text-red-500">
-                    {errors.dueDate.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="paymentTerms">Payment Terms</Label>
-                <Input
-                  id="paymentTerms"
-                  placeholder="Net 30, Net 45, etc."
-                  {...register("paymentTerms")}
-                />
-              </div>
-
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Input
-                  id="notes"
-                  placeholder="Additional notes"
-                  {...register("notes")}
-                />
-              </div>
+                  if (order) {
+                    setValue("customerId", order.customerId?.toString() || "");
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select order" />
+                </SelectTrigger>
+                <SelectContent>
+                  {salesOrders
+                    .filter(
+                      (o) => o.status !== "cancelled" && o.status !== "draft"
+                    )
+                    .map((order) => (
+                      <SelectItem key={order.id} value={order.id.toString()}>
+                        {order.orderNumber} – {order.customerName} – ₹
+                        {order.totalAmount?.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {errors.orderId && (
+                <p className="text-sm text-red-500">{errors.orderId.message}</p>
+              )}
             </div>
 
-            {selectedOrder && (
-              <div className="mt-4 p-4 bg-muted rounded-lg">
-                <h3 className="font-medium mb-2">Order Summary:</h3>
-                <div className="space-y-1 text-sm">
-                  <p>
-                    <span className="text-muted-foreground">Order No:</span>{" "}
-                    {selectedOrder.orderNo}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Customer:</span>{" "}
-                    {selectedOrder.customer?.name}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Items:</span>{" "}
-                    {selectedOrder.items.length} items
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Total:</span> ₹
-                    {selectedOrder.total.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Customer</Label>
+              <Input value={selectedOrder?.customerName || ""} disabled />
+            </div>
+
+            <SelectAccount
+              label="Debit Account"
+              useId
+              value={watch("debitAccount")}
+              onChange={(val) => setValue("debitAccount", val)}
+            />
+
+            <SelectAccount
+              label="Credit Account"
+              useId
+              value={watch("creditAccount")}
+              onChange={(val) => setValue("creditAccount", val)}
+            />
+
+            <div className="space-y-2">
+              <Label>Invoice Date *</Label>
+              <Input type="date" {...register("date")} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Due Date *</Label>
+              <Input type="date" {...register("dueDate")} />
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label>Payment Terms</Label>
+              <Input {...register("paymentTerms")} />
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label>Notes</Label>
+              <Input {...register("notes")} />
+            </div>
           </CardContent>
         </Card>
 
+        {selectedOrder && (
+          <Card>
+            <CardContent className="text-sm space-y-1">
+              <p>
+                <span className="text-muted-foreground">Order:</span>{" "}
+                {selectedOrder.orderNumber}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Customer:</span>{" "}
+                {selectedOrder.customerName}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Total:</span> ₹
+                {selectedOrder.totalAmount?.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button variant="outline" type="button" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="submit" disabled={!selectedOrderId}>

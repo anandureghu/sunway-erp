@@ -70,6 +70,9 @@ function CreateItemForm({
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(
+    null
+  );
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [showCreateCategoryDialog, setShowCreateCategoryDialog] =
     useState(false);
@@ -291,7 +294,12 @@ function CreateItemForm({
             </Button>
           </div>
           <Select
-            onValueChange={(value) => setValue("category", value)}
+            onValueChange={(value) => {
+              setValue("category", value);
+              setValue("subcategory", "");
+              const category = categories.find((cat) => cat.name === value);
+              if (category) setSelectedCategory(category);
+            }}
             value={watch("category")}
             disabled={loadingCategories}
           >
@@ -342,7 +350,7 @@ function CreateItemForm({
           )}
         </div>
 
-        <div>
+        {/* <div>
           <label className="text-sm font-medium mb-2 block">Subcategory</label>
           <Input
             placeholder="Optional subcategory"
@@ -351,6 +359,45 @@ function CreateItemForm({
           {errors.subcategory && (
             <p className="text-sm text-red-500 mt-1">
               {errors.subcategory.message}
+            </p>
+          )}
+        </div> */}
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium">Sub Category</label>
+          </div>
+          <Select
+            onValueChange={(value) => setValue("subcategory", value)}
+            value={watch("subcategory")}
+            disabled={selectedCategory?.subCategories?.length === 0}
+          >
+            <SelectTrigger>
+              <SelectValue
+                placeholder={
+                  loadingCategories
+                    ? "Loading subcategories..."
+                    : "Select sub category"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {!selectedCategory ? (
+                <div className="p-2 text-sm text-muted-foreground text-center">
+                  please select a category first.
+                </div>
+              ) : (
+                (selectedCategory.subCategories || []).map((cat) => (
+                  <SelectItem key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {errors.category && (
+            <p className="text-sm text-red-500 mt-1">
+              {errors.category.message}
             </p>
           )}
         </div>

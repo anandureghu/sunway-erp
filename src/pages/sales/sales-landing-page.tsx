@@ -29,7 +29,7 @@ export default function SalesLandingPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Calculate KPIs
-  const totalSales = invoices.reduce((sum, inv) => sum + inv.total!, 0);
+  const totalSales = invoices.reduce((sum, inv) => sum + inv.amount!, 0);
   const pendingOrders = salesOrders.filter(
     (o) => o.status === "draft" || o.status === "confirmed"
   ).length;
@@ -52,7 +52,7 @@ export default function SalesLandingPage() {
     const foundOrder = salesOrders.find(
       (o) =>
         o.orderNo.toLowerCase().includes(lowerQuery) ||
-        o.customer?.name.toLowerCase().includes(lowerQuery)
+        o.customerName.toLowerCase().includes(lowerQuery)
     );
 
     // Search in customers
@@ -63,20 +63,11 @@ export default function SalesLandingPage() {
         c.contactPerson?.toLowerCase().includes(lowerQuery)
     );
 
-    // Search in invoices
-    const foundInvoice = invoices.find(
-      (inv) =>
-        inv.invoiceNo?.toLowerCase().includes(lowerQuery) ||
-        inv.customerName?.toLowerCase().includes(lowerQuery)
-    );
-
     // Navigate to the first match found, prioritizing orders
     if (foundOrder) {
       navigate("/inventory/sales/orders", { state: { searchQuery: query } });
     } else if (foundCustomer) {
       navigate("/inventory/sales/customers", { state: { searchQuery: query } });
-    } else if (foundInvoice) {
-      navigate("/inventory/sales/invoices", { state: { searchQuery: query } });
     } else {
       // Show search results in a modal or navigate to search results page
       alert(

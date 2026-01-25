@@ -29,7 +29,7 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
     header: "Invoice Date",
     cell: ({ row }) => {
       const date = row.getValue("date") as string;
-      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      return <span>{date}</span>;
     },
   },
   {
@@ -82,7 +82,9 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id || "")}
+              onClick={() =>
+                navigator.clipboard.writeText(payment.id.toString() || "")
+              }
             >
               Copy payment ID
             </DropdownMenuItem>

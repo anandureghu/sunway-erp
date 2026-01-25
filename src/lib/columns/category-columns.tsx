@@ -46,7 +46,8 @@ export function createCategoryColumns(
                   isSubcategory ? "text-blue-700" : "text-gray-900"
                 }`}
               >
-                {category.name}
+                {category.name}{" "}
+                {!isSubcategory && `(${category.subCategories?.length || 0})`}
               </span>
             </div>
             {isSubcategory && parentName && (
