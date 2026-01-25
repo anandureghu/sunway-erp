@@ -146,4 +146,5 @@ export type ItemCategory = {
   status?: string;
   parentId?: string; // For hierarchical categories
   createdAt: string;
+  subCategories?: ItemCategory[]; // Nested subcategories
 };

@@ -26,7 +26,7 @@ import {
   type PicklistFormData,
   type DispatchFormData,
 } from "@/schema/sales";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Dispatch, Picklist, SalesOrder } from "@/types/sales";
 import { listItems, listWarehouses } from "@/service/inventoryService";
 import {
@@ -57,6 +57,8 @@ export default function PicklistDispatchPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const navigate = useNavigate();
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -73,6 +75,7 @@ export default function PicklistDispatchPage() {
         shps,
         items
       );
+      console.log(orders);
       setSalesOrders(orders);
       setPicklists(picklistsEnriched);
       setDispatches(dispatchesEnriched);
@@ -291,7 +294,13 @@ export default function PicklistDispatchPage() {
                   </Button>
                 </div>
               ) : (
-                <DataTable columns={picklistColumns} data={picklists} />
+                <DataTable
+                  columns={picklistColumns}
+                  data={picklists}
+                  onRowClick={(row) =>
+                    navigate(`/inventory/sales/picklist/${row.original.id}`)
+                  }
+                />
               )}
             </CardContent>
           </Card>
@@ -408,12 +417,12 @@ function CreatePicklistForm({
         // If no warehouse in items, try to use first warehouse from list
         // This handles cases where backend will determine warehouse
         if (warehouses.length > 0) {
-          setValue("warehouseId", warehouses[0].id);
+          setValue("warehouseId", Number(warehouses[0].id));
         }
       }
     } else if (!selectedOrderId) {
       // Clear warehouse when no order is selected
-      setValue("warehouseId", "");
+      setValue("warehouseId", 0);
     }
   }, [selectedOrder, selectedOrderId, warehouses, setValue]);
 
@@ -459,7 +468,8 @@ function CreatePicklistForm({
               <h2 className="text-2xl font-bold">Generate Picklist</h2>
               <p className="text-sm text-muted-foreground">
                 Select a confirmed sales order to generate a picklist. The
-                warehouse will be auto-selected from the order items if available.
+                warehouse will be auto-selected from the order items if
+                available.
               </p>
             </div>
 
@@ -468,24 +478,23 @@ function CreatePicklistForm({
 
             {/* Picklist Number Section */}
             <div className="relative bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-4">
-
               {/* Left green accent line */}
               <div className="absolute left-0 top-0 h-full w-1 bg-green-500 rounded-l-lg" />
 
               {/* Icon */}
               <div className="bg-white rounded-full h-11 w-11 flex items-center justify-center flex-shrink-0 shadow-sm border">
                 <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-gray-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
                 >
                   <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 5h6M9 9h6M9 13h6M5 5h.01M5 9h.01M5 13h.01M5 17h.01M9 17h6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5h6M9 9h6M9 13h6M5 5h.01M5 9h.01M5 13h.01M5 17h.01M9 17h6"
                   />
                 </svg>
               </div>
@@ -500,7 +509,6 @@ function CreatePicklistForm({
                 </div>
               </div>
             </div>
-
 
             {/* Separator Line */}
             <hr className="border-t" />
@@ -528,7 +536,7 @@ function CreatePicklistForm({
                         .filter((o) => o.status === "confirmed")
                         .map((order) => (
                           <SelectItem key={order.id} value={order.id}>
-                            {order.orderNo} - {order.customer?.name}
+                            {order.orderNo} - {order.customerName}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -545,9 +553,11 @@ function CreatePicklistForm({
                 <div className="space-y-2">
                   <Label htmlFor="warehouseId">Warehouse (Optional)</Label>
                   <Select
-                    value={watch("warehouseId") || ""}
+                    value={watch("warehouseId")?.toString()}
                     onValueChange={(value) => {
-                      setValue("warehouseId", value, { shouldValidate: true });
+                      setValue("warehouseId", Number(value), {
+                        shouldValidate: true,
+                      });
                     }}
                     disabled={!selectedOrderId}
                   >
@@ -611,7 +621,9 @@ function CreatePicklistForm({
                   ) : selectedOrder.items.length === 0 ? (
                     <div className="py-12 text-center">
                       <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">No items in this order</p>
+                      <p className="text-muted-foreground">
+                        No items in this order
+                      </p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -631,20 +643,21 @@ function CreatePicklistForm({
                         </thead>
                         <tbody>
                           {selectedOrder.items.map((item) => {
-                            const warehouse = item.warehouseId
-                              ? warehouses.find((w) => w.id === item.warehouseId)
-                              : null;
+                            console.log(item);
                             return (
-                              <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <tr
+                                key={item.id}
+                                className="border-b border-gray-100 hover:bg-gray-50"
+                              >
                                 <td className="text-left py-4 px-6 text-sm text-gray-900">
-                                  {item.item?.name || "Unknown Item"}
+                                  {item.itemName || "Unknown Item"}
                                 </td>
                                 <td className="text-center py-4 px-6 text-sm text-gray-900">
                                   {item.quantity}
                                 </td>
                                 <td className="text-right py-4 px-6 text-sm text-gray-900">
-                                  {warehouse
-                                    ? `${warehouse.name}${warehouse.location ? ` - ${warehouse.location}` : ""}`
+                                  {item.warehouseId
+                                    ? `${item.warehouseName}`
                                     : "Not assigned"}
                                 </td>
                               </tr>

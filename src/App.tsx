@@ -99,6 +99,8 @@ import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
 import FinanceSettingsPage from "./pages/finance/finance-settings-page";
 import WarehouseDetail from "./modules/inventory/warehouse/warehouse-detail";
+import SalesOrdersDetailPage from "./pages/sales/sales-orders-detail-page";
+import PicklistDetailPage from "./pages/sales/picklist-detail-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -154,25 +156,39 @@ export default function App() {
           <Route path="reports" element={<InventoryReportsPage />} />
           <Route path="sales" element={<SalesLandingPage />} />
           <Route path="sales/orders" element={<SalesOrdersPage />} />
+          <Route path="sales/orders/:id" element={<SalesOrdersDetailPage />} />
           <Route path="sales/orders/new" element={<SalesOrdersPage />} />
           <Route path="sales/customers" element={<SalesCustomersPage />} />
           <Route path="sales/picklist" element={<PicklistDispatchPage />} />
+          <Route path="sales/picklist/:id" element={<PicklistDetailPage />} />
           <Route path="sales/tracking" element={<DeliveryTrackingPage />} />
           <Route path="sales/invoices" element={<InvoicesPage />} />
           <Route path="purchase" element={<PurchaseLandingPage />} />
           <Route path="purchase/orders" element={<PurchaseOrdersPage />} />
           <Route path="purchase/orders/new" element={<PurchaseOrdersPage />} />
-          <Route path="purchase/orders/:id" element={<PurchaseOrderDetailPage />} />
+          <Route
+            path="purchase/orders/:id"
+            element={<PurchaseOrderDetailPage />}
+          />
           <Route path="purchase/suppliers" element={<SuppliersPage />} />
           <Route path="purchase/invoices" element={<PurchaseInvoicesPage />} />
-          <Route path="purchase/invoices/:id" element={<PurchaseInvoiceDetailPage />} />
+          <Route
+            path="purchase/invoices/:id"
+            element={<PurchaseInvoiceDetailPage />}
+          />
           <Route path="purchase/receiving" element={<ReceivingPage />} />
-          <Route path="purchase/receiving/:id" element={<GoodsReceiptDetailPage />} />
+          <Route
+            path="purchase/receiving/:id"
+            element={<GoodsReceiptDetailPage />}
+          />
           <Route
             path="purchase/requisitions"
             element={<PurchaseRequisitionsPage />}
           />
-          <Route path="purchase/requisitions/:id" element={<PurchaseRequisitionDetailPage />} />
+          <Route
+            path="purchase/requisitions/:id"
+            element={<PurchaseRequisitionDetailPage />}
+          />
           <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="vendors/:id" element={<VendorDetailPage />} />
         </Route>
@@ -267,11 +283,19 @@ export default function App() {
       <Route path="/auth" element={<AuthLayout />}>
         <Route path="login" element={<LoginPage />} />
         //
-  <Route path="reset-password" element={<ResetPasswordPage />} />
-  //
+        <Route path="reset-password" element={<ResetPasswordPage />} />
+        //
       </Route>
 
-      <Route path="/dashboard" element={<PrivateRoute><AppLayout /><DashboardPage /></PrivateRoute>} />
+      <Route
+        path="/dashboard"
+        element={
+          <PrivateRoute>
+            <AppLayout />
+            <DashboardPage />
+          </PrivateRoute>
+        }
+      />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

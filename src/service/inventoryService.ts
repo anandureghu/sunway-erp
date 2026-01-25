@@ -49,6 +49,9 @@ function toCategory(dto: CategoryResponseDTO): ItemCategory {
     status: dto.status,
     parentId: dto.parentId ? String(dto.parentId) : undefined,
     createdAt: "",
+    subCategories: dto.subCategories
+      ? dto.subCategories.map(toCategory)
+      : undefined,
   };
 }
 

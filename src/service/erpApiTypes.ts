@@ -1,6 +1,8 @@
 // Minimal DTO typings extracted from `https://api.picominds.com/v3/api-docs`
 // Keep this file focused on the modules we use in the UI (Inventory + Sales flow).
 
+import type { Warehouse } from "@/types/inventory";
+
 export type Id = number; // OpenAPI uses int64 for most IDs
 
 // --- Auth ---
@@ -40,6 +42,7 @@ export type CategoryResponseDTO = {
   name?: string;
   status?: string;
   parentId?: Id;
+  subCategories?: CategoryResponseDTO[];
 };
 
 export type CategoryCreateDTO = {
@@ -180,15 +183,21 @@ export type SalesOrderUpdateDTO = {
 
 export type SalesOrderItemResponseDTO = {
   itemId?: Id;
+  itemName?: string;
   quantity?: number;
   unitPrice?: number;
   lineTotal?: number;
+  warehouseName?: string;
+  warehouseId?: number;
 };
 
 export type SalesOrderResponseDTO = {
   id: Id;
   orderNumber?: string;
   customerId?: Id;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   orderDate?: string; // date
   status?: string;
   totalAmount?: number;
@@ -198,6 +207,7 @@ export type SalesOrderResponseDTO = {
 export type PicklistItemDTO = {
   itemId?: Id;
   quantity?: number;
+  itemName?: string;
 };
 
 export type PicklistResponseDTO = {
@@ -207,6 +217,8 @@ export type PicklistResponseDTO = {
   status?: string;
   createdAt?: string;
   items?: PicklistItemDTO[];
+  warehouseId?: number;
+  warehouse?: Warehouse;
 };
 
 export type ShipmentItemDTO = {

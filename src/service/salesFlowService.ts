@@ -1,5 +1,11 @@
 import { apiClient } from "@/service/apiClient";
-import type { SalesOrder, SalesOrderItem, Picklist, PicklistItem, Dispatch } from "@/types/sales";
+import type {
+  SalesOrder,
+  SalesOrderItem,
+  Picklist,
+  PicklistItem,
+  Dispatch,
+} from "@/types/sales";
 import type { Item } from "@/types/inventory";
 import type {
   Id,
@@ -20,6 +26,9 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     id: `soi-${dto.id}-${idx}`,
     orderId: String(dto.id),
     itemId: String(li.itemId || ""),
+    itemName: li.itemName,
+    warehouseId: li.warehouseId,
+    warehouseName: li.warehouseName,
     quantity: Number(li.quantity || 0),
     unitPrice: Number(li.unitPrice || 0),
     discount: 0,
@@ -33,6 +42,9 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     id: String(dto.id),
     orderNo: dto.orderNumber || `SO-${dto.id}`,
     customerId: String(dto.customerId || ""),
+    customerName: dto.customerName || "",
+    customerEmail: dto.customerEmail || "",
+    customerPhone: dto.customerPhone || "",
     orderDate: dto.orderDate || "",
     requiredDate: undefined,
     status: (normalizeStatus(dto.status) as any) || "draft",
@@ -57,16 +69,14 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     orderItemId: "",
     itemId: String(li.itemId || ""),
     quantity: Number(li.quantity || 0),
+    warehouse: dto.warehouse,
+    warehouseId: dto.warehouseId,
   }));
 
   // Map backend status -> UI picklist statuses (created, picked, cancelled)
   const s = normalizeStatus(dto.status);
   const status =
-    s === "picked"
-      ? "picked"
-      : s === "cancelled"
-        ? "cancelled"
-        : "created"; // Default to "created"
+    s === "picked" ? "picked" : s === "cancelled" ? "cancelled" : "created"; // Default to "created"
 
   return {
     id: String(dto.id),
@@ -91,12 +101,12 @@ function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
     s === "delivered"
       ? "delivered"
       : s === "in_transit"
-        ? "in_transit"
-        : s === "dispatched"
-          ? "dispatched"
-          : s === "cancelled"
-            ? "cancelled"
-            : "created"; // Default to "created"
+      ? "in_transit"
+      : s === "dispatched"
+      ? "dispatched"
+      : s === "cancelled"
+      ? "cancelled"
+      : "created"; // Default to "created"
 
   return {
     id: String(dto.id),
@@ -126,28 +136,43 @@ export async function listSalesOrders(): Promise<SalesOrder[]> {
 }
 
 export async function createSalesOrder(payload: SalesOrderCreateDTO) {
-  const res = await apiClient.post<SalesOrderResponseDTO>("/sales/orders", payload);
+  const res = await apiClient.post<SalesOrderResponseDTO>(
+    "/sales/orders",
+    payload
+  );
   return toSalesOrder(res.data);
 }
 
 export async function confirmSalesOrder(id: Id | string) {
-  const res = await apiClient.post<SalesOrderResponseDTO>(`/sales/orders/${id}/confirm`);
+  const res = await apiClient.post<SalesOrderResponseDTO>(
+    `/sales/orders/${id}/confirm`
+  );
   return toSalesOrder(res.data);
 }
 
 export async function cancelSalesOrder(id: Id | string) {
-  const res = await apiClient.post<SalesOrderResponseDTO>(`/sales/orders/${id}/cancel`);
+  const res = await apiClient.post<SalesOrderResponseDTO>(
+    `/sales/orders/${id}/cancel`
+  );
   return toSalesOrder(res.data);
 }
 
-export async function updateSalesOrder(id: Id | string, payload: SalesOrderUpdateDTO) {
-  const res = await apiClient.put<SalesOrderResponseDTO>(`/sales/orders/${id}`, payload);
+export async function updateSalesOrder(
+  id: Id | string,
+  payload: SalesOrderUpdateDTO
+) {
+  const res = await apiClient.put<SalesOrderResponseDTO>(
+    `/sales/orders/${id}`,
+    payload
+  );
   return toSalesOrder(res.data);
 }
 
 // --- Picklists ---
 export async function listPicklists(): Promise<Picklist[]> {
-  const res = await apiClient.get<PicklistResponseDTO[]>("/warehouse/picklists");
+  const res = await apiClient.get<PicklistResponseDTO[]>(
+    "/warehouse/picklists"
+  );
   return (res.data || []).map(toPicklist);
 }
 
@@ -157,28 +182,39 @@ export async function generatePicklistFromSalesOrder(
 ) {
   const res = await apiClient.post<PicklistResponseDTO>(
     `/warehouse/picklists/from-sales-order/${salesOrderId}`,
-    options?.warehouseId ? { warehouseId: Number(options.warehouseId) } : undefined
+    options?.warehouseId
+      ? { warehouseId: Number(options.warehouseId) }
+      : undefined
   );
   return toPicklist(res.data);
 }
 
 export async function markPicklistPicked(id: Id | string) {
-  const res = await apiClient.post<PicklistResponseDTO>(`/warehouse/picklists/${id}/picked`);
+  const res = await apiClient.post<PicklistResponseDTO>(
+    `/warehouse/picklists/${id}/picked`
+  );
   return toPicklist(res.data);
 }
 
 export async function cancelPicklist(id: Id | string) {
-  const res = await apiClient.post<PicklistResponseDTO>(`/warehouse/picklists/${id}/cancel`);
+  const res = await apiClient.post<PicklistResponseDTO>(
+    `/warehouse/picklists/${id}/cancel`
+  );
   return toPicklist(res.data);
 }
 
 // --- Shipments (mapped to UI Dispatch type) ---
 export async function listShipmentsAsDispatches(): Promise<Dispatch[]> {
-  const res = await apiClient.get<ShipmentResponseDTO[]>("/warehouse/shipments");
+  const res = await apiClient.get<ShipmentResponseDTO[]>(
+    "/warehouse/shipments"
+  );
   return (res.data || []).map(toShipmentAsDispatch);
 }
 
-export async function createShipmentFromPicklist(picklistId: Id | string, payload: ShipmentCreateDTO) {
+export async function createShipmentFromPicklist(
+  picklistId: Id | string,
+  payload: ShipmentCreateDTO
+) {
   const res = await apiClient.post<ShipmentResponseDTO>(
     `/warehouse/shipments/from-picklist/${picklistId}`,
     payload
@@ -187,22 +223,30 @@ export async function createShipmentFromPicklist(picklistId: Id | string, payloa
 }
 
 export async function dispatchShipment(id: Id | string) {
-  const res = await apiClient.post<ShipmentResponseDTO>(`/warehouse/shipments/${id}/dispatch`);
+  const res = await apiClient.post<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}/dispatch`
+  );
   return toShipmentAsDispatch(res.data);
 }
 
 export async function markShipmentInTransit(id: Id | string) {
-  const res = await apiClient.post<ShipmentResponseDTO>(`/warehouse/shipments/${id}/in-transit`);
+  const res = await apiClient.post<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}/in-transit`
+  );
   return toShipmentAsDispatch(res.data);
 }
 
 export async function markShipmentDelivered(id: Id | string) {
-  const res = await apiClient.post<ShipmentResponseDTO>(`/warehouse/shipments/${id}/delivered`);
+  const res = await apiClient.post<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}/delivered`
+  );
   return toShipmentAsDispatch(res.data);
 }
 
 export async function cancelShipment(id: Id | string) {
-  const res = await apiClient.post<ShipmentResponseDTO>(`/warehouse/shipments/${id}/cancel`);
+  const res = await apiClient.post<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}/cancel`
+  );
   return toShipmentAsDispatch(res.data);
 }
 
@@ -222,9 +266,9 @@ export function attachOrderAndItems(
     let warehouseId = p.warehouseId || "";
     if (!warehouseId && order && order.items.length > 0) {
       const itemWithWarehouse = order.items.find((item) => item.warehouseId);
-      warehouseId = itemWithWarehouse?.warehouseId || "";
+      warehouseId = itemWithWarehouse?.warehouseId?.toString() || "";
     }
-    
+
     return {
       ...p,
       warehouseId,
@@ -248,5 +292,3 @@ export function attachOrderAndItems(
 
   return { picklistsEnriched, dispatchesEnriched };
 }
-
-

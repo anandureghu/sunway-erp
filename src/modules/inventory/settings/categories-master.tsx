@@ -74,8 +74,6 @@ const CategoriesMaster = () => {
   const watchCategoryName = watchCategory("name");
 
   // Filter categories - separate parent categories from subcategories
-  const parentCategories = categories.filter((cat) => !cat.parentId);
-  const subcategoriesByParent = categories.filter((cat) => cat.parentId);
 
   const handleViewCategoryDetails = async (id: string) => {
     try {
@@ -101,25 +99,7 @@ const CategoriesMaster = () => {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    const category = categories.find((c) => c.id === id);
-    if (!category) {
-      toast.error("Category not found");
-      return;
-    }
-
-    const isSubcategory = !!category.parentId;
-    const hasSubcategories = subcategoriesByParent.some(
-      (sub) => sub.parentId === id
-    );
-
-    if (hasSubcategories) {
-      toast.error(
-        "Cannot delete category. Please delete all subcategories first."
-      );
-      return;
-    }
-
-    const confirmMessage = isSubcategory
+    const confirmMessage = selectedCategoryForDetails
       ? "Are you sure you want to delete this subcategory?"
       : "Are you sure you want to delete this category?";
 
@@ -128,7 +108,7 @@ const CategoriesMaster = () => {
     try {
       await deleteCategory(id);
       toast.success(
-        isSubcategory
+        selectedCategoryForDetails
           ? "Subcategory deleted successfully!"
           : "Category deleted successfully!"
       );
@@ -291,13 +271,9 @@ const CategoriesMaster = () => {
 
   const filteredCategories = useMemo(() => {
     return [
-      ...parentCategories.map((cat) => ({
+      ...categories.map((cat) => ({
         ...cat,
         _sortOrder: 0,
-      })),
-      ...subcategoriesByParent.map((cat) => ({
-        ...cat,
-        _sortOrder: 1,
       })),
     ]
       .sort((a, b) => {
@@ -316,7 +292,7 @@ const CategoriesMaster = () => {
           searchQuery === "" ||
           cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (cat.parentId &&
-            parentCategories
+            categories
               .find((p) => p.id === cat.parentId)
               ?.name.toLowerCase()
               .includes(searchQuery.toLowerCase()));
@@ -326,13 +302,7 @@ const CategoriesMaster = () => {
 
         return matchesSearch && matchesStatus;
       });
-  }, [
-    categories,
-    searchQuery,
-    statusFilter,
-    parentCategories,
-    subcategoriesByParent,
-  ]);
+  }, [categories, searchQuery, statusFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
@@ -347,6 +317,8 @@ const CategoriesMaster = () => {
       setCurrentPage(1);
     }
   }, [totalPages, currentPage]);
+
+  console.log(categories);
 
   return (
     <div className="space-y-6">
@@ -441,9 +413,13 @@ const CategoriesMaster = () => {
                   handleEditCategory,
                   handleDeleteCategory,
                   // handleNewSubcategory,
-                  parentCategories
+                  categories
                 )}
                 data={paginatedCategories}
+                getSubRows={(row) => {
+                  console.log(row);
+                  return row.subCategories;
+                }}
               />
               {/* Pagination */}
               {totalPages > 0 && (
@@ -579,7 +555,7 @@ const CategoriesMaster = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None (Main Category)</SelectItem>
-                    {parentCategories.map((cat) => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                       </SelectItem>
@@ -589,9 +565,8 @@ const CategoriesMaster = () => {
                 {editingCategory && editingCategory.parentId && (
                   <p className="text-xs text-gray-500 mt-1">
                     Current parent:{" "}
-                    {parentCategories.find(
-                      (p) => p.id === editingCategory?.parentId
-                    )?.name || "Unknown"}
+                    {categories.find((p) => p.id === editingCategory?.parentId)
+                      ?.name || "Unknown"}
                   </p>
                 )}
               </div>
@@ -686,7 +661,66 @@ const CategoriesMaster = () => {
                     Add Subcategory
                   </Button>
                 </div>
-                {subcategoriesByParent.filter(
+                {selectedCategoryForDetails.subCategories &&
+                selectedCategoryForDetails.subCategories.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedCategoryForDetails.subCategories.map((sub) => (
+                      <div
+                        key={sub.id}
+                        className="p-3 border rounded-md flex items-center justify-between hover:bg-gray-50"
+                      >
+                        <div className="flex-1">
+                          <span className="font-medium">{sub.name}</span>
+                          {sub.description && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              {sub.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2"></div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            handleEditCategory(sub);
+                            setShowCategoryDetailsDialog(false);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => {
+                            setShowCategoryDetailsDialog(false);
+                            handleDeleteCategory(sub.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border rounded-md">
+                    <p className="text-sm text-gray-500 mb-3">
+                      No subcategories found.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        handleNewSubcategory(selectedCategoryForDetails);
+                        setShowCategoryDetailsDialog(false);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Subcategory
+                    </Button>
+                  </div>
+                )}
+                {/* {subcategoriesByParent.filter(
                   (sub) => sub.parentId === selectedCategoryForDetails.id
                 ).length > 0 ? (
                   <div className="space-y-2">
@@ -750,7 +784,7 @@ const CategoriesMaster = () => {
                       Add First Subcategory
                     </Button>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           )}

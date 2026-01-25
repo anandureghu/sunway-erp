@@ -26,7 +26,7 @@ type TrackingEvent = {
 export default function DeliveryTrackingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDispatch, setSelectedDispatch] = useState<Dispatch | null>(
-    null
+    null,
   );
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function DeliveryTrackingPage() {
           orders,
           picklists,
           shipments,
-          items
+          items,
         );
         setDispatches(dispatchesEnriched);
       } catch (e: any) {
@@ -70,7 +70,7 @@ export default function DeliveryTrackingPage() {
         dispatch.dispatchNo.toLowerCase().includes(q) ||
         dispatch.trackingNumber?.toLowerCase().includes(q) ||
         dispatch.order?.orderNo.toLowerCase().includes(q) ||
-        dispatch.order?.customer?.name.toLowerCase().includes(q)
+        dispatch.order?.customerName.toLowerCase().includes(q)
       );
     });
   }, [dispatches, searchQuery]);
@@ -82,8 +82,8 @@ export default function DeliveryTrackingPage() {
     const createdAt = dispatch.createdAt
       ? new Date(dispatch.createdAt)
       : new Date();
-    const originCity = dispatch.order?.customer?.city || "Origin";
-    const originCountry = dispatch.order?.customer?.country || "";
+    const originCity = "Origin";
+    const originCountry = "";
     const destination = getDestination(dispatch);
 
     // Order Confirmed
@@ -155,7 +155,7 @@ export default function DeliveryTrackingPage() {
         dateTime: dispatch.actualDeliveryDate
           ? format(
               new Date(dispatch.actualDeliveryDate),
-              "MMM dd, yyyy - h:mm a"
+              "MMM dd, yyyy - h:mm a",
             )
           : undefined,
         status: "completed",
@@ -180,18 +180,18 @@ export default function DeliveryTrackingPage() {
       }
       return dispatch.deliveryAddress;
     }
-    if (dispatch.order?.customer) {
-      const { city, country } = dispatch.order.customer;
-      if (city && country) return `${city}, ${country}`;
-      if (city) return city;
-      if (country) return country;
-    }
+    // if (dispatch.order?.customerId) {
+    //   const { city, country } = dispatch.order.customer;
+    //   if (city && country) return `${city}, ${country}`;
+    //   if (city) return city;
+    //   if (country) return country;
+    // }
     return "Unknown";
   };
 
   // Get status display
   const getStatusDisplay = (
-    status: string
+    status: string,
   ): { label: string; color: string } => {
     switch (status) {
       case "delivered":
@@ -266,7 +266,7 @@ export default function DeliveryTrackingPage() {
                         "p-4 border-2 rounded-lg cursor-pointer transition-all",
                         isSelected
                           ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200 hover:border-gray-300 hover:bg-muted/50"
+                          : "border-gray-200 hover:border-gray-300 hover:bg-muted/50",
                       )}
                       onClick={() => setSelectedDispatch(dispatch)}
                     >
@@ -278,7 +278,7 @@ export default function DeliveryTrackingPage() {
                           <Badge
                             className={cn(
                               "text-xs font-medium",
-                              statusDisplay.color
+                              statusDisplay.color,
                             )}
                           >
                             {statusDisplay.label}
@@ -287,7 +287,7 @@ export default function DeliveryTrackingPage() {
                         <div className="space-y-1 text-sm">
                           <p className="text-muted-foreground">
                             <span className="font-medium">Customer:</span>{" "}
-                            {dispatch.order?.customer?.name || "Unknown"}
+                            {dispatch.order?.customerName || "Unknown"}
                           </p>
                           <p className="text-muted-foreground">
                             <span className="font-medium">Destination:</span>{" "}
@@ -298,7 +298,7 @@ export default function DeliveryTrackingPage() {
                             {dispatch.estimatedDeliveryDate
                               ? format(
                                   new Date(dispatch.estimatedDeliveryDate),
-                                  "MMM dd, yyyy"
+                                  "MMM dd, yyyy",
                                 )
                               : "Not set"}
                           </p>
@@ -323,14 +323,14 @@ export default function DeliveryTrackingPage() {
                       {selectedDispatch.dispatchNo}
                     </CardTitle>
                     <p className="text-muted-foreground">
-                      {selectedDispatch.order?.customer?.name || "Unknown"} →{" "}
+                      {selectedDispatch.order?.customerName || "Unknown"} →{" "}
                       {getDestination(selectedDispatch)}
                     </p>
                   </div>
                   <Badge
                     className={cn(
                       "text-sm font-medium",
-                      getStatusDisplay(selectedDispatch.status).color
+                      getStatusDisplay(selectedDispatch.status).color,
                     )}
                   >
                     {getStatusDisplay(selectedDispatch.status).label}
@@ -359,7 +359,7 @@ export default function DeliveryTrackingPage() {
                         {selectedDispatch.estimatedDeliveryDate
                           ? format(
                               new Date(selectedDispatch.estimatedDeliveryDate),
-                              "MMM dd, yyyy"
+                              "MMM dd, yyyy",
                             )
                           : "Not set"}
                       </p>
@@ -374,8 +374,8 @@ export default function DeliveryTrackingPage() {
                         {selectedDispatch.status === "in_transit"
                           ? "In Transit"
                           : selectedDispatch.status === "delivered"
-                          ? getDestination(selectedDispatch)
-                          : "Origin"}
+                            ? getDestination(selectedDispatch)
+                            : "Origin"}
                       </p>
                     </CardContent>
                   </Card>
@@ -410,7 +410,7 @@ export default function DeliveryTrackingPage() {
                                     "w-0.5 flex-1 mt-2 min-h-[40px]",
                                     event.status === "pending"
                                       ? "bg-gray-200"
-                                      : "bg-green-500"
+                                      : "bg-green-500",
                                   )}
                                 />
                               )}
@@ -419,7 +419,7 @@ export default function DeliveryTrackingPage() {
                               className={cn(
                                 "flex-1 pb-2",
                                 event.status === "current" &&
-                                  "border-l-2 border-blue-500 pl-4"
+                                  "border-l-2 border-blue-500 pl-4",
                               )}
                             >
                               <p className="font-semibold text-base">
@@ -440,7 +440,7 @@ export default function DeliveryTrackingPage() {
                             </div>
                           </div>
                         );
-                      }
+                      },
                     )}
                   </div>
                 </div>

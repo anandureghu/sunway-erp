@@ -37,9 +37,9 @@ import {
   confirmSalesOrder,
   cancelSalesOrder,
 } from "@/service/salesFlowService";
-import type { Customer } from "@/types/sales";
 import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
 import { toast } from "sonner";
+import type { Item } from "@/types/inventory";
 
 export default function SalesOrdersPage() {
   const location = useLocation();
@@ -52,7 +52,6 @@ export default function SalesOrdersPage() {
     location.pathname.includes("/new")
   );
   const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -71,18 +70,9 @@ export default function SalesOrdersPage() {
       try {
         setLoading(true);
         setLoadError(null);
-        const [ordersData, customersData] = await Promise.all([
-          listSalesOrders(),
-          listCustomers(),
-        ]);
+        const [ordersData] = await Promise.all([listSalesOrders()]);
         if (!cancelled) {
-          setCustomers(customersData);
-          // Enrich orders with customer data
-          const enrichedOrders = ordersData.map((order) => ({
-            ...order,
-            customer: customersData.find((c) => c.id === order.customerId),
-          }));
-          setOrders(enrichedOrders);
+          setOrders(ordersData);
         }
       } catch (e: any) {
         if (!cancelled)
@@ -100,7 +90,7 @@ export default function SalesOrdersPage() {
     return orders.filter((order) => {
       const matchesSearch =
         order.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customer?.name.toLowerCase().includes(searchQuery.toLowerCase());
+        order.customerName.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || order.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -337,7 +327,13 @@ export default function SalesOrdersPage() {
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
-            <DataTable columns={columns} data={filteredOrders} />
+            <DataTable
+              columns={columns}
+              data={filteredOrders}
+              onRowClick={(row) =>
+                navigate(`/inventory/sales/orders/${row.original.id}`)
+              }
+            />
           )}
         </CardContent>
       </Card>
@@ -430,39 +426,39 @@ export default function SalesOrdersPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {selectedOrderForDetails.customer ? (
+                  {selectedOrderForDetails.customerName ? (
                     <>
                       <div>
                         <p className="text-sm text-muted-foreground">
                           Customer Name
                         </p>
                         <p className="font-medium">
-                          {selectedOrderForDetails.customer.name}
+                          {selectedOrderForDetails.customerName}
                         </p>
                       </div>
-                      {selectedOrderForDetails.customer.code && (
+                      {selectedOrderForDetails.customerId && (
                         <div>
                           <p className="text-sm text-muted-foreground">
-                            Customer Code
+                            Customer ID
                           </p>
                           <p className="font-medium">
-                            {selectedOrderForDetails.customer.code}
+                            {selectedOrderForDetails.customerId}
                           </p>
                         </div>
                       )}
-                      {selectedOrderForDetails.customer.email && (
+                      {selectedOrderForDetails.customerEmail && (
                         <div>
                           <p className="text-sm text-muted-foreground">Email</p>
                           <p className="font-medium">
-                            {selectedOrderForDetails.customer.email}
+                            {selectedOrderForDetails.customerEmail}
                           </p>
                         </div>
                       )}
-                      {selectedOrderForDetails.customer.phone && (
+                      {selectedOrderForDetails.customerPhone && (
                         <div>
                           <p className="text-sm text-muted-foreground">Phone</p>
                           <p className="font-medium">
-                            {selectedOrderForDetails.customer.phone}
+                            {selectedOrderForDetails.customerPhone}
                           </p>
                         </div>
                       )}
@@ -497,7 +493,7 @@ export default function SalesOrdersPage() {
                         >
                           <div>
                             <p className="font-medium">
-                              {item.item?.name || `Item ${item.itemId}`}
+                              {item.itemName || `Item ${item.itemId}`}
                             </p>
                             {item.item?.sku && (
                               <p className="text-xs text-muted-foreground">
@@ -621,7 +617,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   const [itemDiscount, setItemDiscount] = useState<number>(0);
   const [itemWarehouse, setItemWarehouse] = useState<string>("");
   const [customers, setCustomers] = useState<any[]>([]);
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -723,12 +719,13 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       orderId: "",
       itemId: item.id,
       item,
+      itemName: item.name,
       quantity: itemQuantity,
       unitPrice,
       discount: itemDiscount,
       tax,
       total,
-      warehouseId: itemWarehouse || undefined,
+      warehouseId: Number(itemWarehouse),
     };
 
     setOrderItems([...orderItems, newItem]);

@@ -34,13 +34,15 @@ export type SalesOrderItem = {
   id: string;
   orderId: string;
   itemId: string;
+  itemName?: string;
   item?: Item;
   quantity: number;
   unitPrice: number;
   discount: number;
   tax: number;
   total: number;
-  warehouseId?: string;
+  warehouseId?: number;
+  warehouseName?: string;
   reservedQuantity?: number;
 };
 
@@ -48,7 +50,9 @@ export type SalesOrder = {
   id: string;
   orderNo: string;
   customerId: string;
-  customer?: Customer;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   orderDate: string;
   requiredDate?: string;
   status: SalesOrderStatus;
@@ -85,6 +89,8 @@ export type PicklistItem = {
   location?: string;
   batchNo?: string;
   lotNo?: string;
+  warehouse?: Warehouse;
+  warehouseId?: number;
 };
 
 export type Picklist = {
@@ -169,26 +175,65 @@ export type InvoiceItem = {
   total: number;
 };
 
+// export type Invoice = {
+//   id?: string;
+//   invoiceNo?: string;
+//   orderId?: string;
+//   order?: SalesOrder;
+//   customerId?: string;
+//   customer?: Customer;
+//   customerName?: string;
+//   date?: string;
+//   dueDate?: string;
+//   items?: InvoiceItem[];
+//   subtotal?: number;
+//   tax?: number;
+//   discount?: number;
+//   total?: number;
+//   paidAmount?: number;
+//   status?: InvoiceStatus;
+//   paymentTerms?: string;
+//   notes?: string;
+//   createdAt?: string;
+//   updatedAt?: string;
+//   amount?: number;
+// };
+
 export type Invoice = {
-  id?: string;
-  invoiceNo?: string;
-  orderId?: string;
-  order?: SalesOrder;
-  customerId?: string;
-  customer?: Customer;
-  customerName?: string;
-  date?: string;
-  dueDate?: string;
-  items?: InvoiceItem[];
-  subtotal?: number;
-  tax?: number;
-  discount?: number;
-  total?: number;
-  paidAmount?: number;
-  status?: InvoiceStatus;
-  paymentTerms?: string;
-  notes?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  amount?: number;
+  id: number;
+  invoiceId: string;
+
+  companyId: number;
+  companyName: string;
+
+  type: "SALES" | "PURCHASE" | string;
+  orderId?: number;
+
+  toParty: string;
+  partyClassification: string;
+
+  status: string;
+
+  invoiceDate: string; // ISO string
+  dueDate: string;
+  paidDate?: string;
+
+  amount: number;
+  openAmount: number;
+  outstanding: number;
+
+  itemDescription?: string;
+  notesRemarks?: string;
+
+  gracePeriod?: number;
+  interestRate?: number;
+
+  creditAccountId?: number;
+  debitAccountId?: number;
+  creditAccountName?: string;
+  debitAccountName?: string;
+
+  pdfUrl?: string;
+
+  createdAt: string;
 };
