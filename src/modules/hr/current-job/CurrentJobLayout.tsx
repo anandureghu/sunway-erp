@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
@@ -32,9 +31,21 @@ export default function CurrentJobLayout() {
         <div className="border-x border-b rounded-b-lg">
           {/* Tab strip */}
           <div className="flex items-center gap-2 border-b bg-white px-3">
-            <TabLink to="current-job" label="Current Job" icon={<Wrench className="w-4 h-4" />} />
-            <TabLink to="previous-experiences" label="Previous Experiences" icon={<Hourglass className="w-4 h-4" />} />
-            <TabLink to="education" label="Education and Qualifications" icon={<GraduationCap className="w-4 h-4" />} />
+            <TabLink
+              to="current-job"
+              label="Current Job"
+              icon={<Wrench className="w-4 h-4" />}
+            />
+            <TabLink
+              to="previous-experiences"
+              label="Previous Experiences"
+              icon={<Hourglass className="w-4 h-4" />}
+            />
+            <TabLink
+              to="education"
+              label="Education and Qualifications"
+              icon={<GraduationCap className="w-4 h-4" />}
+            />
           </div>
 
           {/* Tab content */}
