@@ -17,17 +17,24 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { INVOICE_SCHEMA, type InvoiceFormData } from "@/schema/sales";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { type Invoice } from "@/types/sales";
 import { apiClient } from "@/service/apiClient";
 import SelectAccount from "@/components/select-account";
+import { toast } from "sonner";
+import type { Row } from "@tanstack/react-table";
 
-export default function InvoicesPage() {
+export default function InvoicesPage({
+  disableHeader = false,
+}: {
+  disableHeader?: boolean;
+}) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState(
-    (location.state as { searchQuery?: string })?.searchQuery || ""
+    (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -65,25 +72,27 @@ export default function InvoicesPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/inventory/sales">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Sales Invoices</h1>
-            <p className="text-muted-foreground">
-              Manage invoices and payments
-            </p>
+      {!disableHeader && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/inventory/sales">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Sales Invoices</h1>
+              <p className="text-muted-foreground">
+                Manage invoices and payments
+              </p>
+            </div>
           </div>
+          <Button onClick={() => setShowCreateForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Invoice
+          </Button>
         </div>
-        <Button onClick={() => setShowCreateForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Invoice
-        </Button>
-      </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -115,7 +124,13 @@ export default function InvoicesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable data={filteredInvoices} columns={SALES_INVOICE_COLUMNS} />
+          <DataTable
+            data={filteredInvoices}
+            columns={SALES_INVOICE_COLUMNS}
+            onRowClick={(row: Row<Invoice>) =>
+              navigate(`/sales/invoices/${row.original.id}`)
+            }
+          />
         </CardContent>
       </Card>
     </div>
@@ -145,7 +160,7 @@ function CreateInvoiceForm({
   });
 
   const selectedOrder = salesOrders.find(
-    (o) => o.id.toString() === selectedOrderId
+    (o) => o.id.toString() === selectedOrderId,
   );
 
   const invoiceDate = watch("date");
@@ -163,11 +178,15 @@ function CreateInvoiceForm({
       await apiClient.post("/invoices", {
         ...data,
         type: "SALES",
+        amount: selectedOrder?.totalAmount,
       });
       onCancel();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Failed to create invoice");
+      toast.error("Failed to create invoice", {
+        description: e?.response?.data?.message || "",
+      });
+      console.log(e);
     }
   };
 
@@ -200,7 +219,7 @@ function CreateInvoiceForm({
                   setValue("orderId", val);
 
                   const order = salesOrders.find(
-                    (o) => o.id.toString() === val
+                    (o) => o.id.toString() === val,
                   );
 
                   if (order) {
@@ -214,7 +233,7 @@ function CreateInvoiceForm({
                 <SelectContent>
                   {salesOrders
                     .filter(
-                      (o) => o.status !== "cancelled" && o.status !== "draft"
+                      (o) => o.status !== "cancelled" && o.status !== "draft",
                     )
                     .map((order) => (
                       <SelectItem key={order.id} value={order.id.toString()}>
@@ -234,19 +253,23 @@ function CreateInvoiceForm({
               <Input value={selectedOrder?.customerName || ""} disabled />
             </div>
 
-            <SelectAccount
-              label="Debit Account"
-              useId
-              value={watch("debitAccount")}
-              onChange={(val) => setValue("debitAccount", val)}
-            />
+            <div>
+              <SelectAccount
+                label="Debit Account"
+                useId
+                value={watch("debitAccount")}
+                onChange={(val) => setValue("debitAccount", val)}
+              />
+            </div>
 
-            <SelectAccount
-              label="Credit Account"
-              useId
-              value={watch("creditAccount")}
-              onChange={(val) => setValue("creditAccount", val)}
-            />
+            <div>
+              <SelectAccount
+                label="Credit Account"
+                useId
+                value={watch("creditAccount")}
+                onChange={(val) => setValue("creditAccount", val)}
+              />
+            </div>
 
             <div className="space-y-2">
               <Label>Invoice Date *</Label>

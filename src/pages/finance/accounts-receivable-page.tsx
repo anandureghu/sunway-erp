@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { DataTable } from "@/components/datatable";
-import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
 import { dummyInvoices } from "@/lib/data";
 import type { Invoice } from "@/types/sales";
 import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
+import InvoicesPage from "../sales/invoices-page";
 
 interface AccountsReceivableProps {
   invoices: Invoice[];
@@ -30,9 +29,14 @@ const AccountsReceivablePage = () => {
     {
       value: "invoices",
       label: "Sales Invoices",
-      element: ({ invoices }: AccountsReceivableProps) => (
-        <DataTable columns={SALES_INVOICE_COLUMNS} data={invoices} />
-      ),
+      element: () => {
+        return (
+          <>
+            <h1 className="text-2xl font-semibold pl-5 pt-5">Sales Invoices</h1>
+            <InvoicesPage disableHeader />
+          </>
+        );
+      },
     },
     {
       value: "payments",
@@ -41,9 +45,9 @@ const AccountsReceivablePage = () => {
         <PaymentsPage companyId={companyId || 0} />
       ),
     },
-    { value: "agreements", label: "Agreements" },
-    { value: "credits", label: "Customer Credit Accounts" },
-    { value: "charges", label: "Other Finance Charges" },
+    // { value: "agreements", label: "Agreements" },
+    // { value: "credits", label: "Customer Credit Accounts" },
+    // { value: "charges", label: "Other Finance Charges" },
   ];
 
   return (

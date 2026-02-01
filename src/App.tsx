@@ -101,6 +101,7 @@ import FinanceSettingsPage from "./pages/finance/finance-settings-page";
 import WarehouseDetail from "./modules/inventory/warehouse/warehouse-detail";
 import SalesOrdersDetailPage from "./pages/sales/sales-orders-detail-page";
 import PicklistDetailPage from "./pages/sales/picklist-detail-page";
+import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -135,6 +136,10 @@ export default function App() {
           </Route>
           <Route path="customers/:id" element={<CustomerDetailPage />} />
           <Route path="vendors/:id" element={<VendorDetailPage />} />
+        </Route>
+
+        <Route path="sales">
+          <Route path="invoices/:id" element={<InvoiceDetailPage />} />
         </Route>
 
         {/* Admin */}
