@@ -40,16 +40,17 @@ import {
 import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
 import { toast } from "sonner";
 import type { Item } from "@/types/inventory";
+import { Separator } from "@/components/ui/separator";
 
 export default function SalesOrdersPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
-    (location.state as { searchQuery?: string })?.searchQuery || ""
+    (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(
-    location.pathname.includes("/new")
+    location.pathname.includes("/new"),
   );
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,14 +134,14 @@ export default function SalesOrdersPage() {
       // Check if order can be cancelled according to spec
       if (order.status !== "draft" && order.status !== "confirmed") {
         toast.error(
-          `Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`
+          `Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`,
         );
         return;
       }
 
       if (
         !confirm(
-          `Are you sure you want to cancel order ${order.orderNo}? This action cannot be undone.`
+          `Are you sure you want to cancel order ${order.orderNo}? This action cannot be undone.`,
         )
       )
         return;
@@ -212,7 +213,7 @@ export default function SalesOrdersPage() {
         }
       }
     },
-    [orders]
+    [orders],
   );
 
   const handleGeneratePicklist = useCallback(
@@ -221,7 +222,7 @@ export default function SalesOrdersPage() {
         state: { salesOrderId: id },
       });
     },
-    [navigate]
+    [navigate],
   );
 
   const [selectedOrderForDetails, setSelectedOrderForDetails] =
@@ -236,7 +237,7 @@ export default function SalesOrdersPage() {
         setShowOrderDetailsDialog(true);
       }
     },
-    [orders]
+    [orders],
   );
 
   const handleEdit = useCallback(() => {
@@ -251,7 +252,7 @@ export default function SalesOrdersPage() {
         handleCancelOrder,
         handleGeneratePicklist,
         handleViewDetails,
-        handleEdit
+        handleEdit,
       ),
     [
       handleConfirmOrder,
@@ -259,7 +260,7 @@ export default function SalesOrdersPage() {
       handleGeneratePicklist,
       handleViewDetails,
       handleEdit,
-    ]
+    ],
   );
 
   if (showCreateForm) {
@@ -376,10 +377,10 @@ export default function SalesOrdersPage() {
                           selectedOrderForDetails.status === "confirmed"
                             ? "bg-blue-100 text-blue-800"
                             : selectedOrderForDetails.status === "draft"
-                            ? "bg-gray-100 text-gray-800"
-                            : selectedOrderForDetails.status === "cancelled"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-gray-100 text-gray-800"
+                              ? "bg-gray-100 text-gray-800"
+                              : selectedOrderForDetails.status === "cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-gray-100 text-gray-800"
                         }
                       >
                         {selectedOrderForDetails.status
@@ -396,7 +397,7 @@ export default function SalesOrdersPage() {
                         {selectedOrderForDetails.orderDate
                           ? format(
                               new Date(selectedOrderForDetails.orderDate),
-                              "MMM dd, yyyy"
+                              "MMM dd, yyyy",
                             )
                           : "N/A"}
                       </p>
@@ -409,7 +410,7 @@ export default function SalesOrdersPage() {
                         <p className="font-medium">
                           {format(
                             new Date(selectedOrderForDetails.requiredDate),
-                            "MMM dd, yyyy"
+                            "MMM dd, yyyy",
                           )}
                         </p>
                       </div>
@@ -640,7 +641,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         notes: z.string().optional(),
         salesPerson: z.string().optional(),
         items: z.array(z.any()).optional(), // Items validated separately
-      })
+      }),
     ),
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
@@ -667,7 +668,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         console.log("Customers loaded:", c.length);
         console.log(
           "Active customers:",
-          c.filter((cust) => cust.status === "active").length
+          c.filter((cust) => cust.status === "active").length,
         );
         if (c.length > 0) {
           console.log("First customer:", c[0]);
@@ -676,7 +677,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         console.log("Items loaded:", it.length);
         console.log(
           "Active items:",
-          it.filter((item) => item.status === "active").length
+          it.filter((item) => item.status === "active").length,
         );
         if (it.length > 0) {
           console.log("First item:", it[0]);
@@ -687,7 +688,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
           setLoadError(
             e?.response?.data?.message ||
               e?.message ||
-              "Failed to load customers/items/warehouses"
+              "Failed to load customers/items/warehouses",
           );
         }
       } finally {
@@ -742,13 +743,13 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   const calculateTotals = () => {
     const subtotal = orderItems.reduce(
       (sum, item) => sum + item.total - item.tax,
-      0
+      0,
     );
     const tax = orderItems.reduce((sum, item) => sum + item.tax, 0);
     const discount = orderItems.reduce(
       (sum, item) =>
         sum + (item.unitPrice * item.quantity * item.discount) / 100,
-      0
+      0,
     );
     const total = subtotal + tax;
 
@@ -820,7 +821,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         toast.error(
           error?.response?.data?.message ||
             error?.message ||
-            "Failed to create sales order. Please try again."
+            "Failed to create sales order. Please try again.",
         );
       })
       .finally(() => setSubmitLoading(false));
@@ -836,7 +837,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Create New Sales Order</h1>
         </div>
         <Button variant="outline" onClick={onCancel}>
           Cancel
@@ -865,7 +865,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
               toast.error(
                 `Please fix ${errorCount} form error${
                   errorCount > 1 ? "s" : ""
-                } before submitting.`
+                } before submitting.`,
               );
             })(e);
           }}
@@ -874,9 +874,60 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
           {/* Customer Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Customer Information</CardTitle>
+              <CardTitle>
+                <h1 className="text-3xl font-bold font-serif">
+                  Create New Sales Order
+                </h1>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="my-3">
+                <div className="rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 px-8 py-8 shadow-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 text-center text-white">
+                    {/* ITEMS */}
+                    <div>
+                      <p className="text-xs uppercase tracking-widest opacity-80">
+                        Items
+                      </p>
+                      <p className="mt-2 text-4xl font-bold">
+                        {orderItems.length}
+                      </p>
+                    </div>
+
+                    {/* SUBTOTAL */}
+                    <div>
+                      <p className="text-xs uppercase tracking-widest opacity-80">
+                        Subtotal
+                      </p>
+                      <p className="mt-2 text-3xl font-semibold">
+                        ₹{totals.subtotal.toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* DISCOUNT */}
+                    <div>
+                      <p className="text-xs uppercase tracking-widest opacity-80">
+                        Discount
+                      </p>
+                      <p className="mt-2 text-3xl font-semibold">
+                        ₹{totals.discount.toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* TOTAL */}
+                    <div>
+                      <p className="text-xs uppercase tracking-widest opacity-80">
+                        Total
+                      </p>
+                      <p className="mt-2 text-4xl font-bold">
+                        ₹{totals.total.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <h2 className="mt-5 text-2xl font-serif">Customer Information</h2>
+              <Separator />
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customerId">Customer *</Label>
@@ -983,15 +1034,9 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Add Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Items to Order</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              <h4 className="mt-5 text-2xl font-serif">Add items to order</h4>
+              <Separator />
               <div className="grid grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label>Item</Label>
@@ -1007,7 +1052,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                         {selectedItem && items.length > 0
                           ? (() => {
                               const selected = items.find(
-                                (i) => String(i.id) === String(selectedItem)
+                                (i) => String(i.id) === String(selectedItem),
                               );
                               return selected
                                 ? `${selected.name} - ₹${
@@ -1113,7 +1158,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   <Button
                     type="button"
                     onClick={addItemToOrder}
-                    className="w-full"
+                    className="w-full bg-green-600 hover:bg-green-700 text-sm sm:text-sm lg:text-base"
                   >
                     Add Item
                   </Button>

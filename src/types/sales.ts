@@ -1,4 +1,5 @@
 import type { Item, Warehouse } from "./inventory";
+import type { PurchaseOrder } from "./purchase";
 
 // Customer Types
 export type Customer = {
@@ -67,6 +68,7 @@ export type SalesOrder = {
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
+  totalAmount?: number;
 };
 
 // Picklist Types
@@ -236,4 +238,7 @@ export type Invoice = {
   pdfUrl?: string;
 
   createdAt: string;
+
+  salesOrder?: SalesOrder;
+  purchaseOrder?: PurchaseOrder;
 };

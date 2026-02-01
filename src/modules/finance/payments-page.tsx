@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 
 import type { PaymentResponseDTO } from "@/types/payment";
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
@@ -37,37 +37,38 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
 
   const handleDialogSuccess = (
     updated: PaymentResponseDTO,
-    mode: "add" | "edit"
+    mode: "add" | "edit",
   ) => {
     if (mode === "add") setPayments((prev) => [...prev, updated]);
     else
       setPayments((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p))
+        prev.map((p) => (p.id === updated.id ? updated : p)),
       );
 
     setSelected(null);
   };
 
-  const handleEdit = (payment: PaymentResponseDTO) => {
-    setSelected(payment);
-    setOpen(true);
-  };
+  // const handleEdit = (payment: PaymentResponseDTO) => {
+  //   setSelected(payment);
+  //   setOpen(true);
+  // };
 
-  const handleDelete = async (payment: PaymentResponseDTO) => {
-    try {
-      await apiClient.delete(`/finance/payments/${payment.id}`);
-      toast.success("Payment deleted");
-      setPayments((prev) => prev.filter((p) => p.id !== payment.id));
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete payment");
-    }
-  };
+  // const handleDelete = async (payment: PaymentResponseDTO) => {
+  //   try {
+  //     await apiClient.delete(`/finance/payments/${payment.id}`);
+  //     toast.success("Payment deleted");
+  //     setPayments((prev) => prev.filter((p) => p.id !== payment.id));
+  //   } catch (err) {
+  //     console.error(err);
+  //     toast.error("Failed to delete payment");
+  //   }
+  // };
 
-  const columns = PAYMENT_COLUMNS({
-    onEdit: handleEdit,
-    onDelete: handleDelete,
-  });
+  const columns = PAYMENT_COLUMNS();
+  //   {
+  //   onEdit: handleEdit,
+  //   onDelete: handleDelete,
+  // }
 
   if (loading)
     return (
@@ -88,14 +89,14 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
               <Input placeholder="Search payments..." className="pl-10" />
             </div>
 
-            <Button
+            {/* <Button
               onClick={() => {
                 setSelected(null);
                 setOpen(true);
               }}
             >
               Add Payment
-            </Button>
+            </Button> */}
           </div>
         </CardHeader>
 

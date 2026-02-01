@@ -17,18 +17,26 @@ import { format } from "date-fns";
 
 export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
   {
-    accessorKey: "invoiceNo",
+    accessorKey: "invoiceId",
     header: "Invoice No",
   },
   {
     accessorKey: "customerName",
     header: "Customer Name",
+    cell: ({ row }) => {
+      const type = row.original.type;
+      const customerName =
+        type === "SALES"
+          ? row.original.salesOrder?.customerName
+          : row.original.purchaseOrder?.supplier?.name || "N/A";
+      return <span>{customerName}</span>;
+    },
   },
   {
-    accessorKey: "date",
+    accessorKey: "invoiceDate",
     header: "Invoice Date",
     cell: ({ row }) => {
-      const date = row.getValue("date") as string;
+      const date = row.getValue("invoiceDate") as string;
       return <span>{date}</span>;
     },
   },
@@ -62,7 +70,11 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
     accessorKey: "total",
     header: "Amount (₹)",
     cell: ({ row }) => {
-      const total = row.getValue("amount") as number;
+      const type = row.original.type;
+      const total =
+        type === "SALES"
+          ? row.original.salesOrder?.totalAmount
+          : row.original.purchaseOrder?.total;
       return <span className="font-semibold">₹ {total?.toLocaleString()}</span>;
     },
   },
