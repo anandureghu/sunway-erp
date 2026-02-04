@@ -3,7 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Eye, DollarSign, Calendar, TrendingUp, FileText } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { salaryService } from "@/service/salaryService";
@@ -224,33 +223,37 @@ export default function LoansForm(): ReactElement {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full opacity-20 blur-3xl -mr-32 -mt-32"></div>
-          <div className="relative">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-slate-800 mb-2">Employee Loans</h1>
-                <p className="text-slate-600">Manage employee loan details and repayment schedules</p>
-              </div>
-              <Button
-                onClick={handleAdd}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 px-6 py-3 rounded-xl"
-              >
-                <Plus className="h-5 w-5" />
-                Add Loan
-              </Button>
-            </div>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-blue-600" />
+              Employee Loans
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Manage loan details and repayment schedules</p>
           </div>
+          <Button
+            onClick={handleAdd}
+            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <Plus className="h-5 w-5" />
+            Add Loan
+          </Button>
         </div>
+      </div>
+
+      {/* Loans Details Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-blue-600" />
+          Loans Details
+        </h3>
 
         {/* Loans Grid */}
         <div className="grid gap-6">
           {loans.map((loan) => (
-            <Card key={loan.id} className="border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-              <CardContent className="p-0">
+            <div key={loan.id} className="border border-slate-200 rounded-lg p-6 mb-6">
                 {editingId === loan.id ? (
                   <div className="p-6 bg-gradient-to-br from-white to-slate-50">
                     {/* Summary Cards */}
@@ -307,14 +310,24 @@ export default function LoansForm(): ReactElement {
                           />
                         </div>
 
-                        <Field
-                          label="Loan Amount"
-                          disabled={false}
-                          value={formatMoney(loan.loanAmount)}
-                          onChange={(v) => handleSave({ ...loan, loanAmount: v.replace(/[^0-9.]/g, "") })}
-                          ariaLabel="Loan Amount"
-                          required
-                        />
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Loan Amount <span className="text-red-500">*</span>
+                          </Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 font-medium">$</span>
+                            <Input
+                              type="number"
+                              value={loan.loanAmount || ''}
+                              onChange={(e) => handleSave({ ...loan, loanAmount: e.target.value })}
+                              placeholder="Enter loan amount"
+                              disabled={false}
+                              className="rounded-lg border-slate-300 pl-8"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
 
                         <div>
                           <Label className="text-sm font-medium text-slate-700">Loan Status</Label>
@@ -444,10 +457,10 @@ export default function LoansForm(): ReactElement {
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={handleCancel}
-                        className="px-6 rounded-lg border-slate-300 hover:bg-slate-50"
+                        className="px-6 rounded-lg border-slate-300"
                       >
                         Cancel
                       </Button>
@@ -458,7 +471,7 @@ export default function LoansForm(): ReactElement {
                           await persistLoan(loan);
                           setEditingId(null);
                         }}
-                        className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow-lg"
+                        className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg"
                       >
                         Save Loan
                       </Button>
@@ -500,28 +513,28 @@ export default function LoansForm(): ReactElement {
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => setViewingId(loan.id)}
-                            className="flex items-center gap-1 hover:bg-blue-50 rounded-lg"
+                            className="flex items-center gap-1 rounded-lg"
                           >
                             <Eye className="h-4 w-4" />
                             View
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleEdit(loan)}
-                            className="hover:bg-indigo-50 rounded-lg"
+                            className="rounded-lg"
                           >
                             Edit
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDelete(loan.id)}
-                            className="hover:bg-red-50 text-red-600 rounded-lg"
+                            className="text-red-600 rounded-lg"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -584,7 +597,7 @@ export default function LoansForm(): ReactElement {
                           <Button 
                             size="sm" 
                             onClick={() => { setViewingId(null); handleEdit(loan); }}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg"
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg"
                           >
                             Edit Loan
                           </Button>
@@ -593,8 +606,7 @@ export default function LoansForm(): ReactElement {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </div>
           ))}
         </div>
 

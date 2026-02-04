@@ -1,14 +1,11 @@
-import type { ReactElement } from "react";
-import { useParams } from "react-router-dom";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import AppraisalEditor from "./AppraisalEditor";
 import { Plus, Trash2, Eye, FileText, Calendar, TrendingUp, MessageSquare } from "lucide-react";
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { appraisalService } from "@/service/appraisalService";
+import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
-
-/* ================= TYPES ================= */
+import AppraisalEditor from "./AppraisalEditor";
 
 export type AppModel = {
   id?: number | string;
@@ -42,8 +39,6 @@ const EMPTY: AppModel = {
   managerComments: "",
 };
 
-/* ================= PAYLOAD ================= */
-
 function toPayload(it: AppModel) {
   return {
     month: String(it.month).toLowerCase(),
@@ -66,18 +61,15 @@ function toPayload(it: AppModel) {
   };
 }
 
-/* ================= COMPONENT ================= */
-
-export default function AppraisalsForm(): ReactElement {
+export default function AppraisalsForm() {
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
   const [items, setItems] = useState<AppModel[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [employee, setEmployee] = useState<{ firstName?: string; middleName?: string; lastName?: string } | null>(null);
   const ignoreNextSaveRef = useRef(false);
-
-  /* ================= LOAD ================= */
 
   const reload = useCallback(async (): Promise<void> => {
     if (!empId) return;
@@ -112,7 +104,19 @@ export default function AppraisalsForm(): ReactElement {
 
   useEffect(() => { void reload(); }, [reload]);
 
-  /* ================= ACTIONS ================= */
+  useEffect(() => {
+    if (!empId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const e = await hrService.getEmployee(empId);
+        if (mounted) setEmployee({ firstName: e.firstName, middleName: (e as any).middleName, lastName: e.lastName });
+      } catch (err) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, [empId]);
 
   const handleAdd = () => {
     const newItem: AppModel = { ...EMPTY, _localId: String(Date.now()) };
@@ -130,15 +134,13 @@ export default function AppraisalsForm(): ReactElement {
     );
   };
 
-  const handleSave = async (it: AppModel) => {
+  const handleSave = useCallback(async (it: AppModel) => {
     if (!empId) return;
 
     if (!it.month || !it.year) {
       toast.error("Month and year required");
       return;
     }
-
-
 
     try {
       if (it.id && Number(it.id)) {
@@ -155,7 +157,7 @@ export default function AppraisalsForm(): ReactElement {
       console.error("Save failed:", err);
       toast.error(err?.response?.data?.message || "Failed to save appraisal");
     }
-  };
+  }, [empId, reload]);
 
   const handleDelete = async (appId?: number | string) => {
     if (!empId) return;
@@ -203,8 +205,6 @@ export default function AppraisalsForm(): ReactElement {
     setEditingId(null);
   };
 
-  /* ================= GLOBAL SAVE ================= */
-
   useEffect(() => {
     const onSaveEvent = () => {
       if (ignoreNextSaveRef.current) {
@@ -220,32 +220,41 @@ export default function AppraisalsForm(): ReactElement {
 
     document.addEventListener("appraisal:save", onSaveEvent);
     return () => document.removeEventListener("appraisal:save", onSaveEvent);
-  }, [editingId, items]);
-
-  /* ================= RENDER ================= */
+  }, [editingId, items, handleSave]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-6">
-      <div className="max-w-6xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden">
-
-        {/* HEADER */}
-        <div className="p-8 border-b bg-gradient-to-r from-white to-slate-50">
-          <h2 className="font-serif text-3xl font-semibold text-slate-800">
-            Employee Performance Review
-          </h2>
-          <p className="text-slate-500 mt-1">
-            Comprehensive performance evaluation
-          </p>
-        </div>
-
-        {/* CONTENT */}
-        <div className="p-8 space-y-6">
-          <div className="flex justify-end">
-            <Button onClick={handleAdd} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Appraisal
-            </Button>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Employee Performance Review
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Comprehensive performance evaluation</p>
+            {employee && (
+              <p className="text-sm text-slate-600 mt-1">{`${employee.firstName || ""} ${employee.middleName || ""} ${employee.lastName || ""}`.trim()}</p>
+            )}
           </div>
+          <Button
+            onClick={handleAdd}
+            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <Plus className="h-5 w-5" />
+            Add Appraisal
+          </Button>
+        </div>
+      </div>
+
+      {/* Performance Review Details Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-blue-600" />
+          Performance Review Details
+        </h3>
+
+        {/* Performance Reviews Grid */}
+        <div className="grid gap-6">
 
           {items.map((it) => {
             const key = String(it._localId ?? it.id);
@@ -253,8 +262,7 @@ export default function AppraisalsForm(): ReactElement {
             const viewing = viewingId === key;
 
             return (
-              <Card key={key} className="rounded-2xl shadow-sm">
-                <CardContent className="p-6">
+              <div key={key} className="border border-slate-200 rounded-lg p-6 mb-6">
 
                   {/* EDIT MODE */}
                   {editing ? (
@@ -322,7 +330,7 @@ export default function AppraisalsForm(): ReactElement {
                               size="sm"
                               variant="ghost"
                               onClick={() => setViewingId(key)}
-                              className="hover:bg-blue-50 rounded-lg"
+                              className="rounded-lg"
                             >
                               <Eye className="h-4 w-4" />
                               View
@@ -331,17 +339,18 @@ export default function AppraisalsForm(): ReactElement {
                               size="sm"
                               variant="ghost"
                               onClick={() => setEditingId(key)}
-                              className="hover:bg-indigo-50 rounded-lg"
+                              className="rounded-lg"
                             >
                               Edit
                             </Button>
                             <Button
-                              size="sm"
                               variant="ghost"
+                              size="sm"
                               onClick={() => handleDelete(it._localId ?? it.id)}
-                              className="hover:bg-red-50 text-red-600 rounded-lg"
+                              className="text-red-600 rounded-lg flex-1"
                             >
                               <Trash2 className="h-4 w-4" />
+                              Delete
                             </Button>
                           </div>
                         </div>
@@ -349,8 +358,9 @@ export default function AppraisalsForm(): ReactElement {
                         <div className="space-y-6">
                           <div className="flex items-center justify-between mb-6">
                             <h3 className="text-2xl font-bold text-slate-800">
-                              {it.month || "—"} {it.year || "—"} Performance Review
+                              {employee ? `${employee.firstName || ""} ${employee.middleName || ""} ${employee.lastName || ""}`.trim() : "Employee"}
                             </h3>
+                            <p className="text-sm text-slate-600">{it.month || "—"} {it.year || "—"} Performance Review</p>
                             <div className="flex gap-2">
                               <Button size="sm" variant="ghost" onClick={() => setViewingId(null)}>Close</Button>
                               <Button size="sm" onClick={() => { setViewingId(null); setEditingId(key); }} className="bg-gradient-to-r from-amber-500 to-orange-400 text-white">Edit</Button>
@@ -489,21 +499,34 @@ export default function AppraisalsForm(): ReactElement {
                              ) : null;
                            })()}
                         </div>
-                      )
-                    }
-                  </>
+                      )}
+                    </>
                   )}
-                </CardContent>
-              </Card>
+              </div>
             );
           })}
         </div>
+
+        {items.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center mt-6">
+            <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
+              <FileText className="h-12 w-12 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">No appraisals added yet</h3>
+            <p className="text-slate-600 mb-6">Click "Add Appraisal" to create your first employee appraisal</p>
+            <Button
+              onClick={handleAdd}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add Your First Appraisal
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
-/* ================= DETAIL ITEM ================= */
 
 function DetailItem({
   label,
@@ -521,8 +544,6 @@ function DetailItem({
     </div>
   );
 }
-
-/* ================= INFO CARD ================= */
 
 function InfoCard({
   icon: Icon,
@@ -577,7 +598,6 @@ function InfoCard({
   );
 }
 
-// add helper to normalize DTO field names
 function readDtoField(dto: any, base: string, n?: number) {
   if (!dto) return "";
 
