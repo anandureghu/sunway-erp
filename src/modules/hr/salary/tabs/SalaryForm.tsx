@@ -8,7 +8,7 @@ import { isValidAmount, isValidDate } from "@/modules/hr/utils/validation";
 import { formatMoney } from "@/lib/utils";
 import { salaryService } from "@/service/salaryService";
 import { toast } from "sonner";
-import { DollarSign, TrendingUp, Calendar, CheckCircle } from "lucide-react";
+import { DollarSign, TrendingUp, Calendar, CheckCircle, Plane, Home, Car, Sparkles } from "lucide-react";
 
 interface SalaryCtx {
   editing: boolean;
@@ -277,18 +277,19 @@ export default function SalaryForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-width mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full opacity-20 blur-3xl -mr-32 -mt-32"></div>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full opacity-20 blur-3xl -mr-20 -mt-20"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-blue-100 to-indigo-100 rounded-full opacity-20 blur-2xl -ml-16 -mb-16"></div>
           <div className="relative">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-bold text-slate-800 mb-2">Salary Information</h1>
-                <p className="text-slate-600">Enter compensation details and benefits</p>
+                <h1 className="text-3xl font-bold text-slate-800 mb-2 tracking-tight">Salary Information</h1>
+                <p className="text-slate-600 text-base">Manage employee compensation details and benefits</p>
               </div>
               {formData.compensationStatus && (
-                <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(formData.compensationStatus)}`}>
+                <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getStatusColor(formData.compensationStatus)}`}>
                   {formData.compensationStatus}
                 </span>
               )}
@@ -297,185 +298,251 @@ export default function SalaryForm() {
         </div>
 
         {/* Total Compensation Card */}
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-white/20 rounded-xl">
-              <TrendingUp className="h-6 w-6" />
+        <div className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-400/20 rounded-full blur-2xl -ml-24 -mb-24"></div>
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <span className="text-sm font-semibold opacity-95">Total Compensation Package</span>
             </div>
-            <span className="text-sm font-medium opacity-90">Total Compensation</span>
+            <p className="text-4xl font-bold mb-2">{formatMoney(grossPay)}</p>
+            <div className="flex items-center gap-4 text-sm opacity-90">
+              <span>Basic: {formatMoney(String(formData.basicSalary))}</span>
+              <span>•</span>
+              <span>Allowances: {formatMoney(totalAllowance)}</span>
+            </div>
           </div>
-          <p className="text-4xl font-bold">{formatMoney(grossPay)}</p>
-          <p className="text-sm opacity-75 mt-2">
-            Basic Salary: {formatMoney(String(formData.basicSalary))} + Allowances: {formatMoney(totalAllowance)}
-          </p>
         </div>
 
         {/* Compensation Components Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-6 pb-3 border-b border-slate-200">
-            Compensation Components
-          </h2>
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+          <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-200">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+              <DollarSign className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">Compensation Components</h2>
+          </div>
 
           {/* Basic Salary */}
-          <div className="mb-6">
+          <div className="mb-8">
             <FormRow columns={1}>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   Basic Salary <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  value={formatMoney(String(formData.basicSalary))}
-                  onChange={e => updateField('basicSalary')(e.target.value)}
-                  placeholder="Enter basic salary"
-                  disabled={!editing}
-                  className="rounded-lg border-slate-300 text-lg font-semibold"
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-600 font-semibold text-lg">$</span>
+                  <Input
+                    type="number"
+                    value={formData.basicSalary || ''}
+                    onChange={e => updateField('basicSalary')(e.target.value)}
+                    placeholder="0.00"
+                    disabled={!editing}
+                    className="rounded-xl border-slate-300 text-xl font-bold pl-10 h-14 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
                 {validateForm(formData).basicSalary && (
-                  <p className="text-xs text-red-500">{validateForm(formData).basicSalary}</p>
+                  <p className="text-xs text-red-500 flex items-center gap-1">
+                    <span className="font-medium">⚠</span> {validateForm(formData).basicSalary}
+                  </p>
                 )}
               </div>
             </FormRow>
           </div>
 
-          {/* Transportation */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 mb-4 border border-blue-100">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-blue-600" />
-              Transportation
-            </h3>
-            <FormRow columns={2}>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Transportation Type <span className="text-red-500">*</span></Label>
-                <SelectField
-                  options={BENEFIT_OPTIONS}
-                  value={formData.transportationType}
-                  onChange={e => updateField('transportationType')(e.target.value)}
-                  disabled={!editing}
-                />
-              </div>
-
-              {formData.transportationType === 'ALLOWANCE' && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Transportation Allowance <span className="text-red-500">*</span></Label>
-                  <Input
-                    value={formatMoney(String(formData.transportationAllowance))}
-                    onChange={e => updateField('transportationAllowance')(e.target.value)}
-                    placeholder="Enter transportation allowance"
-                    disabled={!editing}
-                    className="rounded-lg border-slate-300"
-                  />
-                  {validateForm(formData).transportationAllowance && (
-                    <p className="text-xs text-red-500">{validateForm(formData).transportationAllowance}</p>
-                  )}
+          <div className="space-y-8">
+            {/* Transportation */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/50 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md">
+                  <Car className="h-5 w-5 text-white" />
                 </div>
-              )}
-            </FormRow>
-          </div>
-
-          {/* Travel */}
-          <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-5 mb-4 border border-violet-100">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-violet-600" />
-              Travel
-            </h3>
-            <FormRow columns={2}>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Travel Type <span className="text-red-500">*</span></Label>
-                <SelectField
-                  options={BENEFIT_OPTIONS}
-                  value={formData.travelType}
-                  onChange={e => updateField('travelType')(e.target.value)}
-                  disabled={!editing}
-                />
-              </div>
-
-              {formData.travelType === 'ALLOWANCE' && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Travel Allowance <span className="text-red-500">*</span></Label>
-                  <Input
-                    value={formatMoney(String(formData.travelAllowance))}
-                    onChange={e => updateField('travelAllowance')(e.target.value)}
-                    placeholder="Enter travel allowance"
-                    disabled={!editing}
-                    className="rounded-lg border-slate-300"
-                  />
-                  {validateForm(formData).travelAllowance && (
-                    <p className="text-xs text-red-500">{validateForm(formData).travelAllowance}</p>
-                  )}
+                <div>
+                  <h4 className="text-base font-bold text-blue-900">Transportation</h4>
+                  <p className="text-xs text-blue-700">Vehicle and commute benefits</p>
                 </div>
-              )}
-            </FormRow>
-          </div>
-
-          {/* Housing */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-5 mb-4 border border-amber-100">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-amber-600" />
-              Housing
-            </h3>
-            <FormRow columns={2}>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Housing Type <span className="text-red-500">*</span></Label>
-                <SelectField
-                  options={BENEFIT_OPTIONS}
-                  value={formData.housingType}
-                  onChange={e => updateField('housingType')(e.target.value)}
-                  disabled={!editing}
-                />
               </div>
-
-              {formData.housingType === 'ALLOWANCE' && (
+              <FormRow columns={2}>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Housing Allowance <span className="text-red-500">*</span></Label>
-                  <Input
-                    value={formatMoney(String(formData.housingAllowance))}
-                    onChange={e => updateField('housingAllowance')(e.target.value)}
-                    placeholder="Enter housing allowance"
+                  <Label className="text-sm font-medium text-slate-700">Benefit Type <span className="text-red-500">*</span></Label>
+                  <SelectField
+                    options={BENEFIT_OPTIONS}
+                    value={formData.transportationType}
+                    onChange={e => updateField('transportationType')(e.target.value)}
                     disabled={!editing}
-                    className="rounded-lg border-slate-300"
                   />
-                  {validateForm(formData).housingAllowance && (
-                    <p className="text-xs text-red-500">{validateForm(formData).housingAllowance}</p>
-                  )}
                 </div>
-              )}
-            </FormRow>
-          </div>
 
-          {/* Other Allowance */}
-          <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-5 border border-slate-200">
-            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-slate-600" />
-              Other Allowance
-            </h3>
-            <FormRow columns={1}>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Other Allowance <span className="text-red-500">*</span></Label>
-                <Input
-                  value={formatMoney(String(formData.otherAllowance))}
-                  onChange={e => updateField('otherAllowance')(e.target.value)}
-                  placeholder="Enter other allowance"
-                  disabled={!editing}
-                  className="rounded-lg border-slate-300"
-                />
-                {validateForm(formData).otherAllowance && (
-                  <p className="text-xs text-red-500">{validateForm(formData).otherAllowance}</p>
+                {formData.transportationType === 'ALLOWANCE' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                      <Input
+                        type="number"
+                        value={formData.transportationAllowance || ''}
+                        onChange={e => updateField('transportationAllowance')(e.target.value)}
+                        placeholder="0.00"
+                        disabled={!editing}
+                        className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-blue-400"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    {validateForm(formData).transportationAllowance && (
+                      <p className="text-xs text-red-500">{validateForm(formData).transportationAllowance}</p>
+                    )}
+                  </div>
                 )}
+              </FormRow>
+            </div>
+
+            {/* Travel */}
+            <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-200/50 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl shadow-md">
+                  <Plane className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-violet-900">Travel</h4>
+                  <p className="text-xs text-violet-700">Business travel and trip benefits</p>
+                </div>
               </div>
-            </FormRow>
+              <FormRow columns={2}>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">Benefit Type <span className="text-red-500">*</span></Label>
+                  <SelectField
+                    options={BENEFIT_OPTIONS}
+                    value={formData.travelType}
+                    onChange={e => updateField('travelType')(e.target.value)}
+                    disabled={!editing}
+                  />
+                </div>
+
+                {formData.travelType === 'ALLOWANCE' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                      <Input
+                        type="number"
+                        value={formData.travelAllowance || ''}
+                        onChange={e => updateField('travelAllowance')(e.target.value)}
+                        placeholder="0.00"
+                        disabled={!editing}
+                        className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-violet-400"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    {validateForm(formData).travelAllowance && (
+                      <p className="text-xs text-red-500">{validateForm(formData).travelAllowance}</p>
+                    )}
+                  </div>
+                )}
+              </FormRow>
+            </div>
+
+            {/* Housing */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200/50 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-md">
+                  <Home className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-amber-900">Housing</h4>
+                  <p className="text-xs text-amber-700">Accommodation and residence benefits</p>
+                </div>
+              </div>
+              <FormRow columns={2}>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">Benefit Type <span className="text-red-500">*</span></Label>
+                  <SelectField
+                    options={BENEFIT_OPTIONS}
+                    value={formData.housingType}
+                    onChange={e => updateField('housingType')(e.target.value)}
+                    disabled={!editing}
+                  />
+                </div>
+
+                {formData.housingType === 'ALLOWANCE' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                      <Input
+                        type="number"
+                        value={formData.housingAllowance || ''}
+                        onChange={e => updateField('housingAllowance')(e.target.value)}
+                        placeholder="0.00"
+                        disabled={!editing}
+                        className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-amber-400"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    {validateForm(formData).housingAllowance && (
+                      <p className="text-xs text-red-500">{validateForm(formData).housingAllowance}</p>
+                    )}
+                  </div>
+                )}
+              </FormRow>
+            </div>
+
+            {/* Other Allowance */}
+            <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-2xl p-6 border border-slate-200/50 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-slate-600 to-gray-700 rounded-xl shadow-md">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-900">Other Allowance</h4>
+                  <p className="text-xs text-slate-700">Additional compensation and perks</p>
+                </div>
+              </div>
+              <FormRow columns={1}>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                    <Input
+                      type="number"
+                      value={formData.otherAllowance || ''}
+                      onChange={e => updateField('otherAllowance')(e.target.value)}
+                      placeholder="0.00"
+                      disabled={!editing}
+                      className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-slate-400"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  {validateForm(formData).otherAllowance && (
+                    <p className="text-xs text-red-500">{validateForm(formData).otherAllowance}</p>
+                  )}
+                </div>
+              </FormRow>
+            </div>
           </div>
         </div>
 
         {/* Compensation Status Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-6 pb-3 border-b border-slate-200 flex items-center gap-2">
-            <CheckCircle className="h-6 w-6 text-emerald-600" />
-            Compensation Status
-          </h2>
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+          <div className="flex items-center gap-3 mb-8 pb-4 border-b border-slate-200">
+            <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
+              <CheckCircle className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">Compensation Status & Dates</h2>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700">Compensation Status <span className="text-red-500">*</span></Label>
+              <Label className="text-sm font-semibold text-slate-700">Status <span className="text-red-500">*</span></Label>
               <SelectField
                 options={COMPENSATION_STATUS_OPTIONS}
                 value={formData.compensationStatus}
@@ -485,8 +552,8 @@ export default function SalaryForm() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-emerald-600" />
                 Effective From <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -494,7 +561,7 @@ export default function SalaryForm() {
                 value={formData.effectiveFrom}
                 onChange={e => updateField('effectiveFrom')(e.target.value)}
                 disabled={!editing}
-                className="rounded-lg border-slate-300"
+                className="rounded-xl border-slate-300 h-11 shadow-sm focus:ring-2 focus:ring-emerald-400"
               />
               {validateForm(formData).effectiveFrom && (
                 <p className="text-xs text-red-500">{validateForm(formData).effectiveFrom}</p>
@@ -502,8 +569,8 @@ export default function SalaryForm() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-slate-600" />
                 Effective To
               </Label>
               <Input
@@ -511,7 +578,7 @@ export default function SalaryForm() {
                 value={formData.effectiveTo}
                 onChange={e => updateField('effectiveTo')(e.target.value)}
                 disabled={!editing}
-                className="rounded-lg border-slate-300"
+                className="rounded-xl border-slate-300 h-11 shadow-sm focus:ring-2 focus:ring-slate-400"
               />
               {validateForm(formData).effectiveTo && (
                 <p className="text-xs text-red-500">{validateForm(formData).effectiveTo}</p>

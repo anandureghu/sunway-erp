@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
 import { DependentsForm } from "@/modules/hr/dependents/DependentsForm";
+import { User } from "lucide-react";
 import type { Employee, EmployeeStatus } from "../types/hr";
 
 export default function EmployeeProfilePage() {
@@ -304,6 +305,14 @@ export default function EmployeeProfilePage() {
         </div>
 
         <div className="rounded-b-lg bg-white p-5">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6">
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <User className="h-5 w-5 text-blue-600" />
+              Personal Information
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Basic employee details and contact information</p>
+          </div>
+
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <Field label="Employee No">
               <input

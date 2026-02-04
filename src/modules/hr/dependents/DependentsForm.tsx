@@ -1,10 +1,9 @@
 import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Eye, Users, User, Calendar, Globe } from "lucide-react";
-import { FormRow, } from "@/modules/hr/components/form-components";
+import { FormRow } from "@/modules/hr/components/form-components";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import type { Dependent, Gender, MaritalStatus } from "@/types/hr";
 import { useParams, useNavigate } from "react-router-dom";
@@ -202,36 +201,37 @@ export function DependentsForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full opacity-20 blur-3xl -mr-32 -mt-32"></div>
-          <div className="relative">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-slate-800 mb-2">Employee Dependents</h1>
-                <p className="text-slate-600">Manage employee dependent information</p>
-              </div>
-              <Button
-                onClick={handleAdd}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 px-6 py-3 rounded-xl"
-              >
-                <Plus className="h-5 w-5" />
-                Add Dependent
-              </Button>
-            </div>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              Employee Dependents
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Manage dependent information</p>
           </div>
+          <Button
+            onClick={handleAdd}
+            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <Plus className="h-5 w-5" />
+            Add Dependent
+          </Button>
         </div>
+      </div>
 
-        {/* Dependents Grid */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <User className="h-4 w-4 text-blue-600" />
+          Dependents Details
+        </h3>
+
         <div className="grid gap-6">
           {dependents.map(dependent => (
-            <Card key={dependent.id} className="border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-              <CardContent className="p-0">
-                {editingId === dependent.id ? (
+            <div key={dependent.id} className="border border-slate-200 rounded-lg p-6 mb-6">
+              {editingId === dependent.id ? (
                   <div className="p-6 bg-gradient-to-br from-white to-slate-50">
-                    {/* Info Banner */}
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -246,7 +246,6 @@ export function DependentsForm() {
                       </div>
                     </div>
 
-                    {/* Personal Information Section */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">Personal Information</h3>
                       
@@ -362,7 +361,6 @@ export function DependentsForm() {
                       </FormRow>
                     </div>
 
-                    {/* Identification Section */}
                     <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4">Identification</h3>
                       
@@ -413,10 +411,10 @@ export function DependentsForm() {
                     </div>
 
                     <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={handleCancel}
-                        className="px-6 rounded-lg border-slate-300 hover:bg-slate-50"
+                        className="px-6 rounded-lg border-slate-300"
                       >
                         Cancel
                       </Button>
@@ -426,7 +424,7 @@ export function DependentsForm() {
                           await handleSave(dependent);
                           setEditingId(null);
                         }}
-                        className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow-lg"
+                        className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg"
                       >
                         Save Dependent
                       </Button>
@@ -436,8 +434,8 @@ export function DependentsForm() {
                   <div className="p-6">
                     {/* Summary View */}
                     {viewingId !== dependent.id && (
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
+                      <div className="relative">
+                        <div className="pr-52">
                           <div className="flex items-center gap-3 mb-3">
                             <h3 className="text-xl font-bold text-slate-800">
                               {dependent.firstName} {dependent.middleName} {dependent.lastName}
@@ -473,37 +471,37 @@ export function DependentsForm() {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2 ml-4">
+                        <div className="absolute top-0 right-0 flex gap-2 w-48">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingId(dependent.id)}
-                            className="flex items-center gap-1 hover:bg-blue-50 rounded-lg"
+                            className="flex items-center gap-1 rounded-lg flex-1"
                           >
                             <Eye className="h-4 w-4" />
                             View
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleEdit(dependent)}
-                            className="hover:bg-indigo-50 rounded-lg"
+                            className="rounded-lg flex-1"
                           >
                             Edit
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDelete(dependent.id)}
-                            className="hover:bg-red-50 text-red-600 rounded-lg"
+                            className="text-red-600 rounded-lg flex-1"
                           >
                             <Trash2 className="h-4 w-4" />
+                            Delete
                           </Button>
                         </div>
                       </div>
                     )}
 
-                    {/* Full Details View */}
                     {viewingId === dependent.id && (
                       <div className="space-y-6">
                         <div className="flex items-center justify-between mb-6">
@@ -518,9 +516,33 @@ export function DependentsForm() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <InfoCard icon={User} label="Gender" value={dependent.gender || "—"} color="blue" />
-                          <InfoCard icon={Calendar} label="Date of Birth" value={dependent.dob ? new Date(dependent.dob).toLocaleDateString() : "—"} color="emerald" />
-                          <InfoCard icon={Globe} label="Nationality" value={dependent.nationality || "—"} color="violet" />
+                          <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                <User className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <span className="text-sm font-medium text-blue-700">Gender</span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-800">{dependent.gender || "—"}</p>
+                          </div>
+                          <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <Calendar className="h-5 w-5 text-emerald-600" />
+                              </div>
+                              <span className="text-sm font-medium text-emerald-700">Date of Birth</span>
+                            </div>
+                            <p className="text-2xl font-bold text-emerald-800">{dependent.dob ? new Date(dependent.dob).toLocaleDateString() : "—"}</p>
+                          </div>
+                          <div className="bg-violet-50 p-5 rounded-lg border border-violet-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-violet-100 rounded-lg">
+                                <Globe className="h-5 w-5 text-violet-600" />
+                              </div>
+                              <span className="text-sm font-medium text-violet-700">Nationality</span>
+                            </div>
+                            <p className="text-2xl font-bold text-violet-800">{dependent.nationality || "—"}</p>
+                          </div>
                         </div>
 
                         <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
@@ -534,7 +556,7 @@ export function DependentsForm() {
                         </div>
 
                         {dependent.nationalId && (
-                          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+                          <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-200">
                             <h4 className="text-lg font-semibold text-slate-800 mb-4">Identification</h4>
                             <DetailItem label="National ID" value={dependent.nationalId} />
                           </div>
@@ -564,7 +586,7 @@ export function DependentsForm() {
                               setViewingId(null);
                               handleEdit(dependent);
                             }}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg"
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg"
                           >
                             Edit Dependent
                           </Button>
@@ -573,8 +595,7 @@ export function DependentsForm() {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </div>
           ))}
         </div>
 
@@ -587,7 +608,7 @@ export function DependentsForm() {
             <p className="text-slate-600 mb-6">Click "Add Dependent" to create your first employee dependent</p>
             <Button
               onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg rounded-xl px-6"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
             >
               <Plus className="h-5 w-5 mr-2" />
               Add Your First Dependent
@@ -599,25 +620,6 @@ export function DependentsForm() {
   );
 }
 
-function InfoCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
-  const colorClasses = {
-    blue: 'from-blue-500 to-indigo-600',
-    emerald: 'from-emerald-500 to-teal-600',
-    violet: 'from-violet-500 to-purple-600',
-  };
-  
-  return (
-    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} rounded-xl p-5 text-white shadow-lg`}>
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-white/20 rounded-lg">
-          <Icon className="h-5 w-5" />
-        </div>
-        <span className="text-sm font-medium opacity-90">{label}</span>
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
-    </div>
-  );
-}
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (

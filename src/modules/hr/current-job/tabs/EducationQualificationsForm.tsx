@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -207,38 +206,32 @@ export default function EducationQualificationsForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-
-        {/* HEADER */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full opacity-20 blur-3xl -mr-32 -mt-32"></div>
-          <div className="relative">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white">
-                    <GraduationCap className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-slate-800">Education & Qualifications</h1>
-                    <p className="text-slate-600">Add or update educational background</p>
-                  </div>
-                </div>
-                <div className="inline-block mt-3 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg text-sm font-semibold shadow-lg">
-                  🎓 Edit Education
-                </div>
-              </div>
-              <Button
-                onClick={handleAdd}
-                className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 px-6 py-3 rounded-xl"
-              >
-                <Plus className="h-5 w-5" />
-                Add Education
-              </Button>
-            </div>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-blue-600" />
+              Education & Qualifications
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Manage educational background</p>
           </div>
+          <Button
+            onClick={handleAdd}
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <Plus className="h-5 w-5" />
+            Add Education
+          </Button>
         </div>
+      </div>
+
+      {/* Education Details Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <School className="h-4 w-4 text-blue-600" />
+          Education Details
+        </h3>
 
         {/* EDUCATIONS */}
         {educations.map((edu) => {
@@ -248,8 +241,7 @@ export default function EducationQualificationsForm() {
           const yearsAgoText = calculateYearsAgo(edu.yearGraduated);
 
           return (
-            <Card key={edu.id} className="border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-              <CardContent className="p-0">
+            <div key={edu.id} className="border border-slate-200 rounded-lg p-4 mb-4">
 
                 {/* EDIT MODE */}
                 {editing ? (
@@ -480,6 +472,7 @@ export default function EducationQualificationsForm() {
                             className="hover:bg-red-50 text-red-600 rounded-lg"
                           >
                             <Trash2 className="h-4 w-4" />
+                            Delete
                           </Button>
                         </div>
                       </div>
@@ -547,8 +540,7 @@ export default function EducationQualificationsForm() {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </div>
           );
         })}
 

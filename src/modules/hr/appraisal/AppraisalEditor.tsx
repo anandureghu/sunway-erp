@@ -53,7 +53,6 @@ export default function AppraisalEditor({
       `}</style>
 
       <div className="ae-container">
-        {/* PERIOD */}
         <div className="ae-period">
           <div style={{ flex: 1 }}>
             <label>

@@ -27,6 +27,7 @@ const deletePassport = (employeeId: number) =>
 /* ================= RESIDENCE PERMIT ================= */
 
 export interface ResidencePermitPayload {
+  permitIdNumber: string; // ✅ ADDED
   visaType: string;
   durationType: string;
   visaDuration: string;

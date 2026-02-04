@@ -3,12 +3,11 @@ import type { ReactElement } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { useParams } from "react-router-dom";
 import { leaveService } from "@/service/leaveService";
 import { toast } from "sonner";
 import type { LeavePreview } from "@/service/leaveService";
-import { Calendar, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, CheckCircle, AlertCircle, FileText, TrendingUp } from "lucide-react";
 
 type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
@@ -156,243 +155,273 @@ export default function LeavesForm(): ReactElement {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
+  const getStatusIcon = () => {
+    switch (draft.leaveStatus) {
+      case "Approved": return <CheckCircle className="h-4 w-4" />;
+      case "Rejected": return <AlertCircle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
+    }
+  };
 
-        {/* HEADER */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full opacity-20 blur-3xl -mr-32 -mt-32"></div>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl text-white">
-                <Calendar className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-800">🏖️ Employee Leaves</h1>
-                <p className="text-slate-600">Manage and apply for employee leave requests</p>
-              </div>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="flex items-start gap-4">
+          <div className="bg-blue-100 p-3 rounded-xl">
+            <Calendar className="h-6 w-6 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold text-slate-800">Leave Management</h2>
+            <p className="text-sm text-slate-500 mt-1">Apply for and track employee leave requests</p>
+          </div>
+          {draft.leaveStatus && (
+            <div className={`px-4 py-2 rounded-lg border font-medium text-sm flex items-center gap-2 ${getStatusColor()}`}>
+              {getStatusIcon()}
+              {draft.leaveStatus}
             </div>
-            <div className="inline-block mt-3 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg text-sm font-semibold shadow-lg">
-              ✨ Smart Leave Management System
-            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Leave Application Form */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-slate-600" />
+            <h3 className="text-base font-semibold text-slate-800">Leave Application</h3>
           </div>
         </div>
 
-        {/* STATS CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-slate-200 shadow-lg overflow-hidden">
-            <CardContent className="p-0">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Clock className="h-5 w-5" />
-                  </div>
-                  <span className="text-sm font-medium opacity-90">Total Balance</span>
+        <div className="p-6 space-y-8">
+          {/* Stats Cards - Always Visible */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-6 border-b border-slate-200">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-600 p-2.5 rounded-lg">
+                  <Clock className="h-5 w-5 text-white" />
                 </div>
-                <p className="text-3xl font-bold">{preview?.currentBalance ?? draft.leaveBalance ?? "—"}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200 shadow-lg overflow-hidden">
-            <CardContent className="p-0">
-              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <span className="text-sm font-medium opacity-90">Days Requested</span>
-                </div>
-                <p className="text-3xl font-bold">{draft.totalDays ?? 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-slate-200 shadow-lg overflow-hidden">
-            <CardContent className="p-0">
-              <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-6 text-white">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <CheckCircle className="h-5 w-5" />
-                  </div>
-                  <span className="text-sm font-medium opacity-90">Balance After</span>
-                </div>
-                <p className="text-3xl font-bold">{preview?.balanceAfterLeave ?? "—"}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* FORM */}
-        <Card className="border-slate-200 shadow-lg overflow-hidden">
-          <CardContent className="p-0">
-            <div className="p-6 bg-gradient-to-br from-white to-slate-50 space-y-6">
-
-              {/* Leave Details Section */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-slate-800 pb-3 border-b border-slate-200 flex items-center gap-2 flex-1">
-                    <Calendar className="h-5 w-5 text-purple-600" />
-                    Leave Details
-                  </h3>
-                  {draft.leaveStatus && (
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor()}`}>
-                      {draft.leaveStatus}
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Field label="Leave Code" required>
-                    <Input
-                      disabled={!editing}
-                      value={draft.leaveCode}
-                      onChange={(e) => patch("leaveCode", e.target.value)}
-                      placeholder="e.g., L001"
-                      className="rounded-lg border-slate-300"
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Start Date" required>
-                    <Input
-                      type="date"
-                      disabled={!editing}
-                      value={draft.startDate}
-                      onChange={(e) => patch("startDate", e.target.value)}
-                      className="rounded-lg border-slate-300"
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Date Reported">
-                    <Input
-                      type="date"
-                      disabled={!editing}
-                      value={draft.dateReported}
-                      onChange={(e) => patch("dateReported", e.target.value)}
-                      className="rounded-lg border-slate-300"
-                    />
-                  </Field>
+                <div>
+                  <p className="text-xs text-blue-600 font-medium">Available Balance</p>
+                  <p className="text-2xl font-bold text-blue-900">{preview?.currentBalance ?? (draft.leaveBalance || "—")}</p>
                 </div>
               </div>
-
-              {/* Leave Configuration Section */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 shadow-sm border border-purple-100">
-                <h3 className="text-lg font-semibold text-slate-800 mb-6 pb-3 border-b border-purple-200 flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-purple-600" />
-                  Leave Configuration
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Field label="Leave Type" required>
-                    <select
-                      disabled={!editing}
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100 disabled:text-slate-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 bg-white"
-                      value={draft.leaveType}
-                      onChange={(e) => patch("leaveType", e.target.value as LeaveType)}
-                      required
-                    >
-                      {TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-
-                  <Field label="End Date" required>
-                    <Input
-                      type="date"
-                      disabled={!editing}
-                      value={draft.endDate}
-                      onChange={(e) => patch("endDate", e.target.value)}
-                      className="rounded-lg border-slate-300 bg-white"
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Leave Balance">
-                    <Input
-                      disabled={!editing}
-                      value={draft.leaveBalance}
-                      onChange={(e) => patch("leaveBalance", e.target.value)}
-                      placeholder="Auto-calculated"
-                      className="rounded-lg border-slate-300 bg-white"
-                    />
-                  </Field>
-                </div>
-              </div>
-
-              {/* Status and Summary Section */}
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 shadow-sm border border-blue-100">
-                <h3 className="text-lg font-semibold text-slate-800 mb-6 pb-3 border-b border-blue-200 flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-blue-600" />
-                  Status and Summary
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Field label="Leave Status" required>
-                    <select
-                      disabled={!editing}
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-100 disabled:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 bg-white"
-                      value={draft.leaveStatus}
-                      onChange={(e) => patch("leaveStatus", e.target.value as LeaveStatus)}
-                      required
-                    >
-                      {STATUS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-
-                  <Field label="Total Days on Vacation">
-                    <Input 
-                      disabled 
-                      value={String(draft.totalDays)} 
-                      className="rounded-lg border-slate-300 bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200 font-semibold text-emerald-700"
-                    />
-                  </Field>
-
-                  <div />
-                </div>
-              </div>
-
-              {/* Preview Section */}
-              {preview && (
-                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
-                      <CheckCircle className="h-6 w-6" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-800 mb-3">Leave Preview</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Total Days</p>
-                          <p className="text-base text-slate-800 font-bold">{preview.totalDays}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Current Balance</p>
-                          <p className="text-base text-slate-800 font-bold">{preview.currentBalance}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Balance After Leave</p>
-                          <p className="text-base text-slate-800 font-bold">{preview.balanceAfterLeave}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-5 border border-emerald-200">
+              <div className="flex items-center gap-3">
+                <div className="bg-emerald-600 p-2.5 rounded-lg">
+                  <Calendar className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-emerald-600 font-medium">Days Requested</p>
+                  <p className="text-2xl font-bold text-emerald-900">{draft.totalDays ?? 0}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-xl p-5 border border-violet-200">
+              <div className="flex items-center gap-3">
+                <div className="bg-violet-600 p-2.5 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-violet-600 font-medium">Balance After</p>
+                  <p className="text-2xl font-bold text-violet-900">{preview?.balanceAfterLeave ?? "—"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Leave Details */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+              Leave Details
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Field label="Leave Code" required>
+                <div className="relative">
+                  <Input
+                    disabled={!editing}
+                    value={draft.leaveCode}
+                    onChange={(e) => patch("leaveCode", e.target.value)}
+                    placeholder="e.g., L001"
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    required
+                  />
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Leave Type" required>
+                <div className="relative">
+                  <select
+                    disabled={!editing}
+                    className="h-10 w-full rounded-lg border border-slate-300 pl-10 pr-3 text-sm disabled:bg-slate-50 disabled:text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white transition-all appearance-none"
+                    value={draft.leaveType}
+                    onChange={(e) => patch("leaveType", e.target.value as LeaveType)}
+                    required
+                  >
+                    {TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </Field>
+
+              <Field label="Leave Status" required>
+                <div className="relative">
+                  <select
+                    disabled={!editing}
+                    className="h-10 w-full rounded-lg border border-slate-300 pl-10 pr-3 text-sm disabled:bg-slate-50 disabled:text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white transition-all appearance-none"
+                    value={draft.leaveStatus}
+                    onChange={(e) => patch("leaveStatus", e.target.value as LeaveStatus)}
+                    required
+                  >
+                    {STATUS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-slate-200"></div>
+
+          {/* Leave Period */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-emerald-600 rounded-full"></div>
+              Leave Period
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Field label="Start Date" required>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    disabled={!editing}
+                    value={draft.startDate}
+                    onChange={(e) => patch("startDate", e.target.value)}
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    required
+                  />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="End Date" required>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    disabled={!editing}
+                    value={draft.endDate}
+                    onChange={(e) => patch("endDate", e.target.value)}
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    required
+                  />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Date Reported">
+                <div className="relative">
+                  <Input
+                    type="date"
+                    disabled={!editing}
+                    value={draft.dateReported}
+                    onChange={(e) => patch("dateReported", e.target.value)}
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                  />
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-slate-200"></div>
+
+          {/* Leave Summary */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-violet-600 rounded-full"></div>
+              Leave Summary
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Field label="Total Days">
+                <div className="relative">
+                  <Input 
+                    disabled 
+                    value={String(draft.totalDays)} 
+                    className="h-10 pl-10 border-slate-300 bg-slate-50 font-semibold text-slate-700"
+                  />
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Leave Balance">
+                <div className="relative">
+                  <Input
+                    disabled={!editing}
+                    value={draft.leaveBalance}
+                    onChange={(e) => patch("leaveBalance", e.target.value)}
+                    placeholder="Auto-calculated"
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                  />
+                  <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Preview Section */}
+      {preview && (
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-6">
+          <div className="flex items-start gap-4">
+            <div className="bg-emerald-600 p-3 rounded-xl">
+              <CheckCircle className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Leave Preview</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white rounded-lg p-4 border border-emerald-200">
+                  <p className="text-xs font-medium text-emerald-600 mb-1">Total Days</p>
+                  <p className="text-2xl font-bold text-slate-800">{preview.totalDays}</p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-emerald-200">
+                  <p className="text-xs font-medium text-emerald-600 mb-1">Current Balance</p>
+                  <p className="text-2xl font-bold text-slate-800">{preview.currentBalance}</p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-emerald-200">
+                  <p className="text-xs font-medium text-emerald-600 mb-1">Balance After Leave</p>
+                  <p className="text-2xl font-bold text-slate-800">{preview.balanceAfterLeave}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

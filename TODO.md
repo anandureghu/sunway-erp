@@ -1,34 +1,76 @@
-# HR Module Code Quality and Comment Cleanup
+# HR Module Code Quality Update Tasks
 
 ## Overview
-Walk through all modified components in the HR module, maintain code quality, and remove unnecessary comments.
+Review and update all components in the HR module for code quality improvements and remove unnecessary comments.
 
-## Files to Review and Edit
-- sunway-erp/src/modules/hr/salary/tabs/BankForm.tsx
-- sunway-erp/src/modules/hr/loans/tabs/CompanyPropertiesForm.tsx
-- sunway-erp/src/modules/hr/immigration/tabs/ResidencePermitForm.tsx
-- sunway-erp/src/modules/hr/employee/address-list.tsx
-- sunway-erp/src/modules/hr/employee/tabs/EmployeeProfileForm.tsx
-- sunway-erp/src/modules/hr/appraisal/AppraisalsForm.tsx
-- sunway-erp/src/modules/hr/appraisal/tabs/PerformanceForm.tsx
-- sunway-erp/src/modules/hr/appraisal/tabs/AppraisalForm.tsx
-- sunway-erp/src/modules/hr/appraisal/AppraisalEditor.tsx
+## Tasks
 
-## Steps
-1. Read each file and identify unnecessary comments.
-2. Remove comments that are obvious or redundant.
-3. Keep comments that explain complex logic or business rules.
-4. Ensure code quality: proper formatting, no linting errors, maintain functionality.
-5. Test changes by running the application or relevant tests.
+### 1. DependentsForm.tsx
+- [x] Remove unnecessary section comments (e.g., "/* Info Banner */", "/* Personal Information Section */")
+- [x] Clean up trailing commas in imports
+- [x] Optimize repetitive JSX structures
+- [x] Review and remove redundant code
 
-## Progress
-- [ ] Review and edit BankForm.tsx
-- [ ] Review and edit CompanyPropertiesForm.tsx
-- [ ] Review and edit ResidencePermitForm.tsx
-- [ ] Review and edit address-list.tsx
-- [ ] Review and edit EmployeeProfileForm.tsx
-- [ ] Review and edit AppraisalsForm.tsx
-- [ ] Review and edit PerformanceForm.tsx
-- [ ] Review and edit AppraisalForm.tsx
-- [ ] Review and edit AppraisalEditor.tsx
-- [ ] Verify all changes and run tests
+### 2. Appraisal Components
+- [x] Review AppraisalEditor.tsx
+- [ ] Review AppraisalsForm.tsx
+- [ ] Review AppraisalShell.tsx
+- [ ] Review tabs/AppraisalForm.tsx
+- [ ] Review tabs/PerformanceForm.tsx
+
+### 3. Employee Components
+- [ ] Review EmployeeShell.tsx
+- [ ] Review EmployeeAddresses.tsx
+- [ ] Review CurrentJobShell.tsx
+- [ ] Review DependentsShell.tsx
+- [ ] Review LeavesShell.tsx
+- [ ] Review AppraisalShell.tsx
+- [ ] Review tabs/EmployeeProfileForm.tsx
+- [ ] Review tabs/ContactInfoForm.tsx
+- [ ] Review tabs/CurrentJobTab.tsx
+- [ ] Review tabs/ProfileShell.tsx
+- [ ] Review address-list.tsx
+- [ ] Review Dependents.tsx
+
+### 4. Current Job Components
+- [ ] Review CurrentJobLayout.tsx
+- [ ] Review tabs/CurrentJobForm.tsx
+- [ ] Review tabs/EducationQualificationsForm.tsx
+- [ ] Review tabs/PreviousExperiencesForm.tsx
+
+### 5. Immigration Components
+- [ ] Review ImmigrationShell.tsx
+- [ ] Review tabs/PassportForm.tsx
+- [ ] Review tabs/ResidencePermitForm.tsx
+
+### 6. Leaves Components
+- [ ] Review tabs/LeavesForm.tsx
+- [ ] Review tabs/LeavesHistory.tsx
+
+### 7. Loans Components
+- [ ] Review LoansShell.tsx
+- [ ] Review tabs/CompanyPropertiesForm.tsx
+- [ ] Review tabs/LoansForm.tsx
+
+### 8. Salary Components
+- [ ] Review SalaryShell.tsx
+- [ ] Review tabs/SalaryForm.tsx
+- [ ] Review tabs/BankForm.tsx
+- [ ] Review tabs/PayrollTab.tsx
+
+### 9. Shared Components
+- [ ] Review components/CountryAutocomplete.tsx
+- [ ] Review components/employee-filters.tsx
+- [ ] Review components/employee-stats.tsx
+- [ ] Review components/form-components.tsx
+- [ ] Review components/select-field.tsx
+- [ ] Review columns/employees-columns.tsx
+
+### 10. Hooks and Utils
+- [ ] Review hooks/use-editable-form.ts
+- [ ] Review utils/validation.ts
+
+### 11. Testing and Validation
+- [ ] Run linting checks
+- [ ] Verify no breaking changes
+- [ ] Test component functionality
