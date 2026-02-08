@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { type CompanyFormData, COMPANY_SCHEMA } from "@/schema/company";
 import { useForm, type SubmitHandler } from "react-hook-form";
+import SelectCurrency from "@/components/select-currency";
 
 interface CompanyFormProps {
   onSubmit: (data: CompanyFormData) => Promise<void> | void;
@@ -36,6 +37,7 @@ export const CompanyForm = ({
       state: "",
       country: "India",
       phoneNo: "",
+      currencyId: 0,
       ...defaultValues, // merge defaults safely
     },
   });
@@ -80,7 +82,7 @@ export const CompanyForm = ({
                     {...field}
                     onChange={(e) =>
                       field.onChange(
-                        e.target.value ? Number(e.target.value) : undefined
+                        e.target.value ? Number(e.target.value) : undefined,
                       )
                     }
                   />
@@ -103,7 +105,7 @@ export const CompanyForm = ({
                     {...field}
                     onChange={(e) =>
                       field.onChange(
-                        e.target.value ? Number(e.target.value) : undefined
+                        e.target.value ? Number(e.target.value) : undefined,
                       )
                     }
                   />
@@ -190,6 +192,17 @@ export const CompanyForm = ({
                 </FormControl>
               </FormItem>
             )}
+          />
+        </div>
+
+        <div>
+          <SelectCurrency
+            value={
+              form.getValues("currencyId")
+                ? String(form.getValues("currencyId"))
+                : undefined
+            }
+            onChange={(v) => form.setValue("currencyId", Number(v))}
           />
         </div>
 

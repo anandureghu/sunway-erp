@@ -307,7 +307,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link to="/settings" className="flex gap-2 items-center">
+              <Link to={`/settings/${user?.companyId}`} className="flex gap-2 items-center">
                 <Settings className="w-5 h-5" />
                 <span>Settings</span>
               </Link>
