@@ -14,11 +14,13 @@ export interface Company {
   hrEnabled: boolean;
   financeEnabled: boolean;
   inventoryEnabled: boolean;
+  currency?: Currency;
 }
 
 export type IModules = "hr" | "finance" | "inventory";
 
 import type { LucideIcon } from "lucide-react";
+import type { Currency } from "./currency";
 
 export interface SidebarSubItem {
   title: string;

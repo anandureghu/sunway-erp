@@ -28,7 +28,12 @@ export type Supplier = {
 };
 
 // Purchase Requisition Types
-export type PurchaseRequisitionStatus = "draft" | "pending" | "approved" | "rejected" | "cancelled";
+export type PurchaseRequisitionStatus =
+  | "draft"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "cancelled";
 
 export type PurchaseRequisitionItem = {
   id: string;
@@ -62,7 +67,14 @@ export type PurchaseRequisition = {
 };
 
 // Purchase Order Types
-export type PurchaseOrderStatus = "draft" | "pending" | "approved" | "ordered" | "partially_received" | "received" | "cancelled";
+export type PurchaseOrderStatus =
+  | "draft"
+  | "pending"
+  | "approved"
+  | "ordered"
+  | "partially_received"
+  | "received"
+  | "cancelled";
 
 export type PurchaseOrderItem = {
   id: string;
@@ -83,6 +95,7 @@ export type PurchaseOrderItem = {
 export type PurchaseOrder = {
   id: string;
   orderNo: string;
+  orderNumber?: string;
   requisitionId?: string;
   requisition?: PurchaseRequisition;
   supplierId: string;
@@ -107,9 +120,17 @@ export type PurchaseOrder = {
 };
 
 // Goods Receipt Types
-export type GoodsReceiptStatus = "pending" | "in_progress" | "completed" | "cancelled";
+export type GoodsReceiptStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 
-export type QualityInspectionStatus = "pending" | "passed" | "failed" | "partial";
+export type QualityInspectionStatus =
+  | "pending"
+  | "passed"
+  | "failed"
+  | "partial";
 
 export type GoodsReceiptItem = {
   id: string;
@@ -150,7 +171,13 @@ export type GoodsReceipt = {
 };
 
 // Purchase Invoice Types
-export type PurchaseInvoiceStatus = "draft" | "pending" | "paid" | "partially_paid" | "overdue" | "cancelled";
+export type PurchaseInvoiceStatus =
+  | "draft"
+  | "pending"
+  | "paid"
+  | "partially_paid"
+  | "overdue"
+  | "cancelled";
 
 export type PurchaseInvoiceItem = {
   id: string;
@@ -187,4 +214,3 @@ export type PurchaseInvoice = {
   createdAt: string;
   updatedAt: string;
 };
-

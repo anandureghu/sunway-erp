@@ -102,6 +102,7 @@ import WarehouseDetail from "./modules/inventory/warehouse/warehouse-detail";
 import SalesOrdersDetailPage from "./pages/sales/sales-orders-detail-page";
 import PicklistDetailPage from "./pages/sales/picklist-detail-page";
 import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
+import SettingsPage from "./pages/settings/settings-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -141,6 +142,8 @@ export default function App() {
         <Route path="sales">
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
         </Route>
+
+        <Route path="settings/:id" element={<SettingsPage/>}/>
 
         {/* Admin */}
         <Route path="admin">
