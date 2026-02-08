@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { FormRow, FormField } from "@/modules/hr/components/form-components";
+import { User, Upload, Camera, Calendar, Briefcase } from "lucide-react";
 
 type Prefix = "" | "Mr." | "Mrs." | "Ms." | "Miss" | "Dr.";
 
@@ -37,6 +40,7 @@ export default function EmployeeProfileForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState<EmpProfile>(NEW_EMP);
   const [draft, setDraft] = useState<EmpProfile>(NEW_EMP);
+  const [imageHover, setImageHover] = useState(false);
 
   const set = useCallback(
     <K extends keyof EmpProfile>(k: K, v: EmpProfile[K]) =>
@@ -134,7 +138,7 @@ export default function EmployeeProfileForm() {
     } catch {
       // errors are handled inside persistChanges via toast
     }
-  }, [draft]);
+  }, [draft, persistChanges]);
 
   const handleCancel = useCallback(() => {
     setDraft(saved);
@@ -189,284 +193,237 @@ export default function EmployeeProfileForm() {
     }
   };
 
+  const getStatusBadge = (status?: string) => {
+    switch (status) {
+      case "Active":
+        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      case "On Leave":
+        return "bg-amber-100 text-amber-700 border-amber-200";
+      case "Inactive":
+        return "bg-slate-100 text-slate-700 border-slate-200";
+      default:
+        return "bg-slate-100 text-slate-700 border-slate-200";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
-          {/* Modern Header with Gradient */}
-          <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-8">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent"></div>
-              <div className="relative flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2">Employee Profile</h1>
-                <p className="text-blue-100">Manage personal and employment information</p>
-              </div>
-              {/* Edit/Update control moved to the Profile shell; form listens for shell events */}
-            </div>
-          </div>
-
-          <div className="p-8 space-y-8">
-            {/* Avatar Section - Enhanced */}
-            <div className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 rounded-2xl p-8 border-2 border-blue-100 shadow-sm">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-                <div className="relative group">
-                  <div className={`h-32 w-32 rounded-2xl overflow-hidden flex items-center justify-center text-white text-3xl font-bold shadow-xl ring-4 ring-white ${draft.photoUrl ? "bg-transparent" : "bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600"}`}>
-                    {draft.photoUrl ? (
-                      <img src={draft.photoUrl} alt={`${draft.firstName} ${draft.lastName}`} className="h-full w-full object-cover" />
-                    ) : (
-                      <span>{`${(draft.firstName?.[0] ?? "?")}${(draft.lastName?.[0] ?? "")}`.toUpperCase()}</span>
-                    )}
-                  </div>
-                  {editing && (
-                    <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 text-center md:text-left">
-                  <div className="text-2xl font-bold text-slate-800 mb-1">
-                    {`${draft.prefix ? `${draft.prefix} ` : ""}${draft.firstName} ${draft.lastName}`.trim()}
-                  </div>
-                  <div className="text-sm text-slate-500 mb-3">Employee #{draft.employeeNo}</div>
-
-                  <div
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${
-                      (draft.status ?? "Active").toLowerCase().includes("active")
-                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                        : (draft.status ?? "").toLowerCase().includes("leave")
-                        ? "bg-amber-100 text-amber-700 border border-amber-200"
-                        : "bg-red-100 text-red-700 border border-red-200"
-                    }`}
-                  >
-                    <span className={`h-2 w-2 rounded-full ${
-                      (draft.status ?? "Active").toLowerCase().includes("active")
-                        ? "bg-emerald-500"
-                        : (draft.status ?? "").toLowerCase().includes("leave")
-                        ? "bg-amber-500"
-                        : "bg-red-500"
-                    }`} />
-                    <span>{draft.status ?? "Active"}</span>
-                  </div>
-                </div>
-
-                <div className={`flex flex-col gap-3 ${editing ? "" : "opacity-50 pointer-events-none"}`}>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    Upload Photo
-                  </button>
-
-                  {draft.photoUrl && (
-                    <button
-                      type="button"
-                      onClick={() => set("photoUrl", "")}
-                      className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Remove
-                    </button>
-                  )}
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const url = await uploadImage(file);
-                        set("photoUrl", url);
-                      }
-                    }}
+    <div className="space-y-6">
+      {/* Header Card with Photo */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-blue-600 h-24"></div>
+        <div className="px-8 pb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-end gap-6 -mt-12">
+            {/* Profile Photo */}
+            <div className="relative">
+              <div
+                className={`relative w-28 h-28 rounded-xl border-4 border-white shadow-md bg-slate-100 overflow-hidden transition-all duration-200 ${
+                  imageHover ? "shadow-lg" : ""
+                }`}
+                onMouseEnter={() => setImageHover(true)}
+                onMouseLeave={() => setImageHover(false)}
+              >
+                {draft.photoUrl ? (
+                  <img
+                    src={draft.photoUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
                   />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User className="h-12 w-12 text-slate-400" />
+                  </div>
+                )}
+                
+                {/* Hover Overlay */}
+                <div
+                  className={`absolute inset-0 bg-slate-900/60 flex items-center justify-center transition-opacity duration-200 cursor-pointer ${
+                    imageHover ? "opacity-100" : "opacity-0"
+                  }`}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Camera className="h-6 w-6 text-white" />
                 </div>
               </div>
+              
+              {/* Upload Button Badge */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg shadow-md transition-all duration-200"
+              >
+                <Upload className="h-3.5 w-3.5" />
+              </button>
             </div>
 
-            {/* Personal Information - Enhanced */}
-            <div className="rounded-2xl p-8 border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm">
-              <div className="mb-6 flex items-center gap-3 pb-4 border-b-2 border-blue-100">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+            {/* Employee Info */}
+            <div className="flex-1">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-semibold text-slate-800">
+                    {draft.prefix && `${draft.prefix} `}
+                    {draft.firstName || "New"} {draft.lastName || "Employee"}
+                  </h2>
+                  <p className="text-slate-600 mt-1 text-sm">
+                    {draft.employeeNo || "Employee Number Not Assigned"}
+                  </p>
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Personal Information</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                    </svg>
-                    Employee No
-                  </label>
-                  <input value={draft.employeeNo} disabled readOnly className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm bg-slate-100 font-semibold" />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Gender
-                  </label>
-                  <select
-                    disabled={!editing}
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                    value={draft.gender}
-                    onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
-                  >
-                    <option value="" hidden>Select…</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Status
-                  </label>
-                  <select
-                    disabled={!editing}
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all font-semibold"
-                    value={draft.status ?? "Active"}
-                    onChange={(e) => set("status", e.target.value as EmpProfile["status"])}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="On Leave">On Leave</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    Prefix
-                  </label>
-                  <select
-                    disabled={!editing}
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                    value={draft.prefix}
-                    onChange={(e) => set("prefix", e.target.value as EmpProfile["prefix"])}
-                  >
-                    <option value="">Select…</option>
-                    <option value="Mr.">Mr.</option>
-                    <option value="Mrs.">Mrs.</option>
-                    <option value="Ms.">Ms.</option>
-                    <option value="Miss">Miss</option>
-                    <option value="Dr.">Dr.</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    First Name
-                  </label>
-                  <input
-                    value={draft.firstName}
-                    disabled={!editing}
-                    onChange={(e) => set("firstName", e.target.value)}
-                    placeholder="Enter first name"
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Last Name
-                  </label>
-                  <input
-                    value={draft.lastName}
-                    disabled={!editing}
-                    onChange={(e) => set("lastName", e.target.value)}
-                    placeholder="Enter last name"
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Date of Birth
-                  </label>
-                  <input
-                    type="date"
-                    value={draft.dateOfBirth}
-                    disabled={!editing}
-                    onChange={(e) => set("dateOfBirth", e.target.value)}
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    Marital Status
-                  </label>
-                  <select
-                    disabled={!editing}
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                    value={draft.maritalStatus ?? ""}
-                    onChange={(e) => set("maritalStatus", e.target.value as EmpProfile["maritalStatus"])}
-                  >
-                    <option value="" hidden>Select…</option>
-                    <option value="Single">Single</option>
-                    <option value="Married">Married</option>
-                    <option value="Divorced">Divorced</option>
-                    <option value="Widowed">Widowed</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wide text-slate-600 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Join Date
-                  </label>
-                  <input
-                    type="date"
-                    value={draft.joinDate}
-                    disabled={!editing}
-                    onChange={(e) => set("joinDate", e.target.value)}
-                    className="h-10 w-full rounded-lg border-2 border-slate-200 px-3 text-sm disabled:bg-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                  />
+                
+                {/* Status Badge */}
+                <div className={`px-3 py-1.5 rounded-lg border font-medium text-sm ${getStatusBadge(draft.status)}`}>
+                  {draft.status || "Active"}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Personal Information Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+          <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <User className="h-5 w-5 text-slate-600" />
+            Personal Information
+          </h3>
+          <p className="text-sm text-slate-500 mt-1">Basic employee details and identification</p>
+        </div>
+
+        <div className="p-6">
+          <FormRow columns={3}>
+            <FormField label="Employee No">
+              <div className="relative">
+                <Input
+                  disabled
+                  value={draft.employeeNo}
+                  readOnly
+                  className="pl-10 bg-slate-50 font-mono"
+                />
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              </div>
+            </FormField>
+
+            <FormField label="Prefix">
+              <select
+                disabled={!editing}
+                value={draft.prefix}
+                onChange={(e) => set("prefix", e.target.value as Prefix)}
+                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              >
+                <option value="">Select prefix</option>
+                <option value="Mr.">Mr.</option>
+                <option value="Mrs.">Mrs.</option>
+                <option value="Ms.">Ms.</option>
+                <option value="Miss">Miss</option>
+                <option value="Dr.">Dr.</option>
+              </select>
+            </FormField>
+
+            <FormField label="First Name" required>
+              <Input
+                disabled={!editing}
+                value={draft.firstName}
+                onChange={(e) => set("firstName", e.target.value)}
+                placeholder="Enter first name"
+                required
+                className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              />
+            </FormField>
+
+            <FormField label="Last Name" required>
+              <Input
+                disabled={!editing}
+                value={draft.lastName}
+                onChange={(e) => set("lastName", e.target.value)}
+                placeholder="Enter last name"
+                required
+                className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              />
+            </FormField>
+
+            <FormField label="Date of Birth">
+              <div className="relative">
+                <Input
+                  type="date"
+                  disabled={!editing}
+                  value={draft.dateOfBirth}
+                  onChange={(e) => set("dateOfBirth", e.target.value)}
+                  className="pl-10 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+                />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              </div>
+            </FormField>
+
+            <FormField label="Gender">
+              <select
+                disabled={!editing}
+                value={draft.gender}
+                onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
+                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              >
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </FormField>
+
+            <FormField label="Marital Status">
+              <select
+                disabled={!editing}
+                value={draft.maritalStatus ?? ""}
+                onChange={(e) => set("maritalStatus", e.target.value as EmpProfile["maritalStatus"])}
+                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              >
+                <option value="">Select status</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </FormField>
+
+            <FormField label="Join Date">
+              <div className="relative">
+                <Input
+                  type="date"
+                  disabled={!editing}
+                  value={draft.joinDate}
+                  onChange={(e) => set("joinDate", e.target.value)}
+                  className="pl-10 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+                />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              </div>
+            </FormField>
+
+            <FormField label="Employment Status">
+              <select
+                disabled={!editing}
+                value={draft.status ?? "Active"}
+                onChange={(e) => set("status", e.target.value as EmpProfile["status"])}
+                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              >
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </FormField>
+          </FormRow>
+        </div>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const url = await uploadImage(file);
+            set("photoUrl", url);
+            toast.success("Photo uploaded successfully!");
+          }
+        }}
+      />
     </div>
   );
 }

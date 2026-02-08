@@ -35,6 +35,10 @@ const SEED: BankModel = {
   iban: "",
 };
 
+interface ValidationErrors {
+  [key: string]: string;
+}
+
 export default function BankForm() {
   const { editing } = useOutletContext<SalaryCtx>();
   const { id } = useParams<{ id: string }>();
@@ -112,145 +116,246 @@ export default function BankForm() {
   const patch = <K extends keyof BankModel>(k: K, v: BankModel[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
 
+  const validateForm = (data: BankModel): ValidationErrors => {
+    const errors: ValidationErrors = {};
+
+    if (!data.bankName) errors.bankName = "Bank name is required";
+    if (!data.bankBranch) errors.bankBranch = "Bank branch is required";
+    if (!data.accountType) errors.accountType = "Account type is required";
+    if (!data.accountNo) errors.accountNo = "Account number is required";
+    if (!data.country) errors.country = "Country is required";
+
+    return errors;
+  };
+
+  const errors = validateForm(draft);
+
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-        <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-blue-600" />
-          Bank Details
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">Provide banking information for salary payment</p>
-      </div>
-
-      {/* Bank Information Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-blue-600" />
-          Bank Information
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Bank Name" required icon={<Building2 className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              disabled={!editing}
-              value={draft.bankName}
-              onChange={(e) => patch("bankName", e.target.value)}
-              required
-              placeholder="Enter bank name"
-            />
-          </Field>
-          <Field label="Bank Branch" required icon={<Building2 className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              disabled={!editing}
-              value={draft.bankBranch}
-              onChange={(e) => patch("bankBranch", e.target.value)}
-              required
-              placeholder="Enter branch name"
-            />
-          </Field>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="flex items-start gap-4">
+          <div className="bg-blue-100 p-3 rounded-xl">
+            <Building2 className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800">Bank Details</h2>
+            <p className="text-sm text-slate-500 mt-1">Provide banking information for salary payment</p>
+          </div>
         </div>
       </div>
 
-      {/* Account Details Section */}
-      <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-lg border border-blue-100 p-6">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <CreditCard className="h-4 w-4 text-blue-600" />
-          Account Details
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Field label="Account Type" required icon={<CreditCard className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white"
-              disabled={!editing}
-              value={draft.accountType}
-              onChange={(e) => patch("accountType", e.target.value)}
-              required
-              placeholder="e.g., Savings, Checking"
-            />
-          </Field>
+      {/* Quick Summary Cards - Always Visible */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-blue-600 font-medium">Bank Name</p>
+              <p className="text-sm font-semibold text-blue-900">{draft.bankName || "Not set"}</p>
+            </div>
+          </div>
+        </div>
 
-          <Field label="Account No" required icon={<FileText className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white"
-              disabled={!editing}
-              value={draft.accountNo}
-              onChange={(e) => patch("accountNo", e.target.value)}
-              required
-              placeholder="Enter account number"
-            />
-          </Field>
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-600 p-2 rounded-lg">
+              <CreditCard className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-emerald-600 font-medium">Account Type</p>
+              <p className="text-sm font-semibold text-emerald-900">{draft.accountType || "Not set"}</p>
+            </div>
+          </div>
+        </div>
 
-          <Field label="IBAN/SWIFT Code" icon={<Globe className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white"
-              disabled={!editing}
-              value={draft.iban}
-              onChange={(e) => patch("iban", e.target.value)}
-              placeholder="International code"
-            />
-          </Field>
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-600 p-2 rounded-lg">
+              <FileText className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-amber-600 font-medium">Account Number</p>
+              <p className="text-sm font-semibold text-amber-900">{draft.accountNo || "Not set"}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Location Details Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-blue-600" />
-          Location Details
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Field label="Location" icon={<MapPin className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              disabled={!editing}
-              value={draft.location}
-              onChange={(e) => patch("location", e.target.value)}
-              placeholder="Enter location"
-            />
-          </Field>
-          <Field label="City" icon={<MapPin className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              disabled={!editing}
-              value={draft.city}
-              onChange={(e) => patch("city", e.target.value)}
-              placeholder="Enter city"
-            />
-          </Field>
-          <Field label="State" icon={<MapPin className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              disabled={!editing}
-              value={draft.state}
-              onChange={(e) => patch("state", e.target.value)}
-              placeholder="Enter state/province"
-            />
-          </Field>
-          <Field label="Country" required icon={<Globe className="h-4 w-4" />}>
-            <Input
-              className="h-11 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              disabled={!editing}
-              value={draft.country}
-              onChange={(e) => patch("country", e.target.value)}
-              required
-              placeholder="Enter country"
-            />
-          </Field>
+      {/* All Bank Information in One Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-blue-600" />
+            <h3 className="text-base font-semibold text-slate-800">Bank Information</h3>
+          </div>
         </div>
-      </div>
 
-      {/* Remarks Section */}
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg border border-slate-200 p-6">
-        <Field label="Bank Remarks" icon={<FileText className="h-4 w-4" />}>
-          <Textarea
-            className="min-h-[100px] border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none bg-white"
-            disabled={!editing}
-            value={draft.remarks}
-            onChange={(e) => patch("remarks", e.target.value)}
-            placeholder="Enter any additional information or special instructions..."
-          />
-        </Field>
+        <div className="p-6 space-y-8">
+          {/* Bank Information */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+              Bank Information
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Bank Name" required error={errors.bankName}>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.bankName}
+                    onChange={(e) => patch("bankName", e.target.value)}
+                    required
+                    placeholder="Enter bank name"
+                  />
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Bank Branch" required error={errors.bankBranch}>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.bankBranch}
+                    onChange={(e) => patch("bankBranch", e.target.value)}
+                    required
+                    placeholder="Enter branch name"
+                  />
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-slate-200"></div>
+
+          {/* Account Details */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-emerald-600 rounded-full"></div>
+              Account Details
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Field label="Account Type" required>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.accountType}
+                    onChange={(e) => patch("accountType", e.target.value)}
+                    required
+                    placeholder="e.g., Savings, Checking"
+                  />
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Account No" required>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.accountNo}
+                    onChange={(e) => patch("accountNo", e.target.value)}
+                    required
+                    placeholder="Enter account number"
+                  />
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="IBAN/SWIFT Code">
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.iban}
+                    onChange={(e) => patch("iban", e.target.value)}
+                    placeholder="International code"
+                  />
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-slate-200"></div>
+
+          {/* Location Details */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-amber-600 rounded-full"></div>
+              Location Details
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Field label="City">
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.city}
+                    onChange={(e) => patch("city", e.target.value)}
+                    placeholder="Enter city"
+                  />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="State">
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.state}
+                    onChange={(e) => patch("state", e.target.value)}
+                    placeholder="Enter state/province"
+                  />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Country" required>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={draft.country}
+                    onChange={(e) => patch("country", e.target.value)}
+                    required
+                    placeholder="Enter country"
+                  />
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-slate-200"></div>
+
+          {/* Remarks */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-purple-600 rounded-full"></div>
+              Additional Information
+            </h4>
+            <Field label="Bank Remarks">
+              <Textarea
+                className="min-h-[100px] border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                disabled={!editing}
+                value={draft.remarks}
+                onChange={(e) => patch("remarks", e.target.value)}
+                placeholder="Enter any additional information or special instructions..."
+              />
+            </Field>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -260,21 +365,26 @@ function Field({
   label,
   children,
   required,
-  icon
+  error
 }: {
   label: string;
   required?: boolean;
   children: React.ReactNode;
-  icon?: React.ReactElement;
+  error?: string;
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-        {icon && <span className="text-slate-400">{icon}</span>}
+      <Label className="text-sm font-medium text-slate-700">
         {label}
-        {required && <span className="text-red-500">*</span>}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       {children}
+      {error && (
+        <p className="text-xs text-red-500 flex items-center gap-1">
+          <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

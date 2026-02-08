@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label";  
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Eye, Briefcase, Building, Calendar, FileText } from "lucide-react";
+import { Plus, Trash2, Eye, Briefcase, Building, FileText } from "lucide-react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
@@ -48,6 +47,45 @@ const INITIAL_EXPERIENCE: Experience = {
   companyAddress: "",
   notes: "",
 };
+
+/* ================= HELPERS ================= */
+
+function Field({
+  label,
+  error,
+  children,
+  required,
+  containerClassName = "",
+  icon,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+  required?: boolean;
+  containerClassName?: string;
+  icon?: React.ReactElement;
+}) {
+  return (
+    <div className={`space-y-2 ${containerClassName}`}>
+      <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+        {icon && <span className="text-slate-400">{icon}</span>}
+        {label}
+        {required && <span className="text-red-500">*</span>}
+      </Label>
+      {children}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">{label}</p>
+      <p className="text-base text-slate-800 font-medium">{value || "—"}</p>
+    </div>
+  );
+}
 
 /* ================= COMPONENT ================= */
 
@@ -187,38 +225,32 @@ export default function PreviousExperiencesForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-
-        {/* HEADER */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-100 to-amber-100 rounded-full opacity-20 blur-3xl -mr-32 -mt-32"></div>
-          <div className="relative">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl text-white">
-                    <Briefcase className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-slate-800">Work Experience</h1>
-                    <p className="text-slate-600">Add or update employment history</p>
-                  </div>
-                </div>
-                <div className="inline-block mt-3 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg text-sm font-semibold shadow-lg">
-                  ✏️ Edit Experience
-                </div>
-              </div>
-              <Button
-                onClick={handleAdd}
-                className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 px-6 py-3 rounded-xl"
-              >
-                <Plus className="h-5 w-5" />
-                Add Experience
-              </Button>
-            </div>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-blue-600" />
+              Work Experience
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Manage previous employment history</p>
           </div>
+          <Button
+            onClick={handleAdd}
+            className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <Plus className="h-5 w-5" />
+            Add Experience
+          </Button>
         </div>
+      </div>
+
+      {/* Employment Details Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <Building className="h-4 w-4 text-blue-600" />
+          Employment Details
+        </h3>
 
         {/* EXPERIENCES */}
         {experiences.map((exp) => {
@@ -227,118 +259,97 @@ export default function PreviousExperiencesForm() {
           const viewing = viewingId === exp.id;
 
           return (
-            <Card key={exp.id} className="border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-              <CardContent className="p-0">
+            <div key={exp.id} className="border border-slate-200 rounded-lg p-6 mb-6">
+              {/* EDIT MODE */}
+              {editing ? (
+                <div className="space-y-6">
+                  {/* Employment Details Section */}
+                  <div className="bg-white rounded-lg p-6 shadow-sm border border-slate-100">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200 flex items-center gap-2">
+                      <Building className="h-5 w-5 text-orange-600" />
+                      Employment Details
+                    </h3>
 
-                {/* EDIT MODE */}
-                {editing ? (
-                  <div className="p-6 bg-gradient-to-br from-white to-slate-50">
-                    
-                    {/* Experience Duration Summary */}
-                    {exp.numberOfYears && (
-                      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 mb-6">
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl text-white shadow-lg">
-                            <Briefcase className="h-6 w-6" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold text-slate-800 mb-1">Total Experience Duration</h3>
-                            <p className="text-sm text-slate-600">{exp.numberOfYears} years total</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <Field label="Company Name" error={errors.companyName} required>
+                        <Input
+                          value={exp.companyName}
+                          onChange={(e) =>
+                            handleLocalChange(exp.id, {
+                              companyName: e.target.value,
+                            })
+                          }
+                          placeholder="Enter company name"
+                          className="rounded-lg border-slate-300"
+                        />
+                      </Field>
 
-                    {/* Employment Details Section */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200 flex items-center gap-2">
-                        <Building className="h-5 w-5 text-orange-600" />
-                        Employment Details
-                      </h3>
+                      <Field label="Job Title" error={errors.jobTitle} required>
+                        <Input
+                          value={exp.jobTitle}
+                          onChange={(e) =>
+                            handleLocalChange(exp.id, {
+                              jobTitle: e.target.value,
+                            })
+                          }
+                          placeholder="e.g., Senior Software Engineer"
+                          className="rounded-lg border-slate-300"
+                        />
+                      </Field>
 
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <Field label="Company Name" error={errors.companyName} required>
-                          <Input
-                            value={exp.companyName}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                companyName: e.target.value,
-                              })
-                            }
-                            placeholder="Enter company name"
-                            className="rounded-lg border-slate-300"
-                          />
-                        </Field>
+                      <Field label="Last Date Worked" error={errors.lastDateWorked} required>
+                        <Input
+                          type="date"
+                          value={exp.lastDateWorked}
+                          onChange={(e) =>
+                            handleLocalChange(exp.id, {
+                              lastDateWorked: e.target.value,
+                            })
+                          }
+                          className="rounded-lg border-slate-300"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Date when employment ended (or current date if still employed)
+                        </p>
+                      </Field>
 
-                        <Field label="Job Title" error={errors.jobTitle} required>
-                          <Input
-                            value={exp.jobTitle}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                jobTitle: e.target.value,
-                              })
-                            }
-                            placeholder="e.g., Senior Software Engineer"
-                            className="rounded-lg border-slate-300"
-                          />
-                        </Field>
+                      <Field label="Number of Years">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={exp.numberOfYears}
+                          onChange={(e) =>
+                            handleLocalChange(exp.id, {
+                              numberOfYears: e.target.value,
+                            })
+                          }
+                          placeholder="Enter number of years"
+                          className="rounded-lg border-slate-300"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Enter the total number of years worked at this company
+                        </p>
+                      </Field>
 
-                        <Field label="Last Date Worked" error={errors.lastDateWorked} required>
-                          <Input
-                            type="date"
-                            value={exp.lastDateWorked}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                lastDateWorked: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            Date when employment ended (or current date if still employed)
-                          </p>
-                        </Field>
-
-                        <Field label="Number of Years">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            value={exp.numberOfYears}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                numberOfYears: e.target.value,
-                              })
-                            }
-                            placeholder="Enter number of years"
-                            className="rounded-lg border-slate-300"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">
-                            Enter the total number of years worked at this company
-                          </p>
-                        </Field>
-
-                        <Field label="Company Address" containerClassName="md:col-span-2">
-                          <Input
-                            value={exp.companyAddress}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                companyAddress: e.target.value,
-                              })
-                            }
-                            placeholder="Enter company address"
-                            className="rounded-lg border-slate-300"
-                          />
-                        </Field>
-                      </div>
+                      <Field label="Company Address" containerClassName="md:col-span-2">
+                        <Input
+                          value={exp.companyAddress}
+                          onChange={(e) =>
+                            handleLocalChange(exp.id, {
+                              companyAddress: e.target.value,
+                            })
+                          }
+                          placeholder="Enter company address"
+                          className="rounded-lg border-slate-300"
+                        />
+                      </Field>
                     </div>
+                  </div>
 
-                    {/* Notes Section */}
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-blue-600" />
-                        Notes / Remarks
-                      </h3>
+                  {/* Notes Section */}
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg border border-slate-200 p-6">
+                    <Field label="Notes / Remarks" icon={<FileText className="h-4 w-4" />}>
                       <Textarea
                         value={exp.notes}
                         onChange={(e) =>
@@ -347,149 +358,137 @@ export default function PreviousExperiencesForm() {
                           })
                         }
                         placeholder="Add any additional notes, achievements, or responsibilities"
-                        className="min-h-[100px] rounded-lg border-slate-300"
+                        className="min-h-[100px] rounded-lg border-slate-300 resize-none bg-white"
                         maxLength={1000}
                       />
-                      <p className="text-xs text-slate-500 mt-2 text-right">
-                        {exp.notes.length} / 1000 characters
-                      </p>
-                    </div>
-
-                    <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                      <Button 
-                        variant="outline" 
-                        onClick={handleCancel}
-                        className="px-6 rounded-lg border-slate-300 hover:bg-slate-50"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={() => handleSave(exp)}
-                        disabled={Object.values(errors).some(Boolean)}
-                        className="px-6 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg shadow-lg"
-                      >
-                        Save Experience
-                      </Button>
-                    </div>
+                    </Field>
                   </div>
-                ) : (
-                  /* VIEW MODE */
-                  <div className="p-6">
-                    {!viewing ? (
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-slate-800">
-                              {exp.companyName || "Unnamed Company"}
-                            </h3>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-lg border border-orange-100">
-                              <p className="text-xs text-slate-600 mb-1">Job Title</p>
-                              <p className="text-sm font-semibold text-orange-700">{exp.jobTitle || "No title"}</p>
-                            </div>
-                            {exp.lastDateWorked && (
-                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                                <p className="text-xs text-slate-600 mb-1">Last Date</p>
-                                <p className="text-sm font-semibold text-blue-700">
-                                  {new Date(exp.lastDateWorked).toLocaleDateString()}
-                                </p>
-                              </div>
-                            )}
-                            {exp.numberOfYears && (
-                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
-                                <p className="text-xs text-slate-600 mb-1">Duration</p>
-                                <p className="text-sm font-semibold text-emerald-700">{exp.numberOfYears} yrs</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 ml-4">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setViewingId(exp.id)}
-                            className="hover:bg-blue-50 rounded-lg"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(exp)}
-                            className="hover:bg-indigo-50 rounded-lg"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(exp.id)}
-                            className="hover:bg-red-50 text-red-600 rounded-lg"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+
+                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
+                    <Button
+                      variant="outline"
+                      onClick={handleCancel}
+                      className="px-6 rounded-lg border-slate-300 hover:bg-slate-50"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => handleSave(exp)}
+                      disabled={Object.values(errors).some(Boolean)}
+                      className="px-6 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg shadow-lg"
+                    >
+                      Save Experience
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* VIEW MODE */
+                <div className="space-y-6">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold text-slate-800">
+                          {exp.companyName || "Unnamed Company"}
+                        </h3>
                       </div>
-                    ) : (
-                      <div className="space-y-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-2xl font-bold text-slate-800">{exp.companyName || "Experience Details"}</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-lg border border-orange-100">
+                          <p className="text-xs text-slate-600 mb-1">Job Title</p>
+                          <p className="text-sm font-semibold text-orange-700">{exp.jobTitle || "No title"}</p>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <InfoCard icon={Building} label="Company" value={exp.companyName || "—"} color="orange" />
-                          <InfoCard icon={Briefcase} label="Job Title" value={exp.jobTitle || "—"} color="blue" />
-                          <InfoCard icon={Calendar} label="Duration" value={exp.numberOfYears ? `${exp.numberOfYears} years` : "—"} color="emerald" />
-                        </div>
-
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-4">Employment Information</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Detail label="Last Date Worked" value={exp.lastDateWorked ? new Date(exp.lastDateWorked).toLocaleDateString() : "—"} />
-                            <Detail label="Company Address" value={exp.companyAddress || "—"} />
-                          </div>
-                        </div>
-
-                        {exp.notes && (
-                          <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-2">Notes / Remarks</h4>
-                            <p className="text-slate-700 whitespace-pre-wrap">{exp.notes}</p>
+                        {exp.lastDateWorked && (
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
+                            <p className="text-xs text-slate-600 mb-1">Last Date</p>
+                            <p className="text-sm font-semibold text-blue-700">
+                              {new Date(exp.lastDateWorked).toLocaleDateString()}
+                            </p>
                           </div>
                         )}
+                        {exp.numberOfYears && (
+                          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
+                            <p className="text-xs text-slate-600 mb-1">Duration</p>
+                            <p className="text-sm font-semibold text-emerald-700">{exp.numberOfYears} yrs</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setViewingId(exp.id)}
+                        className="hover:bg-blue-50 rounded-lg"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEdit(exp)}
+                        className="hover:bg-indigo-50 rounded-lg"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(exp.id)}
+                        className="hover:bg-red-50 text-red-600 rounded-lg"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
 
-                        <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setViewingId(null)}
-                            className="rounded-lg border-slate-300"
-                          >
-                            Close
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setViewingId(null);
-                              handleEdit(exp);
-                            }}
-                            className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg"
-                          >
-                            Edit Experience
-                          </Button>
+                  {viewing && (
+                    <div className="space-y-6">
+                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg p-6 border border-blue-100">
+                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Employment Information</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Detail label="Last Date Worked" value={exp.lastDateWorked ? new Date(exp.lastDateWorked).toLocaleDateString() : "—"} />
+                          <Detail label="Company Address" value={exp.companyAddress || "—"} />
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+
+                      {exp.notes && (
+                        <div className="bg-amber-50 rounded-lg p-6 border border-amber-100">
+                          <h4 className="text-lg font-semibold text-slate-800 mb-2">Notes / Remarks</h4>
+                          <p className="text-slate-700 whitespace-pre-wrap">{exp.notes}</p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewingId(null)}
+                          className="rounded-lg border-slate-300"
+                        >
+                          Close
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setViewingId(null);
+                            handleEdit(exp);
+                          }}
+                          className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg"
+                        >
+                          Edit Experience
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
 
         {experiences.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center">
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-16 text-center">
             <div className="inline-block p-4 bg-gradient-to-br from-orange-100 to-amber-100 rounded-full mb-4">
               <Briefcase className="h-12 w-12 text-orange-600" />
             </div>
@@ -497,7 +496,7 @@ export default function PreviousExperiencesForm() {
             <p className="text-slate-600 mb-6">Click "Add Experience" to create your first work experience entry</p>
             <Button
               onClick={handleAdd}
-              className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg rounded-xl px-6"
+              className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg px-6"
             >
               <Plus className="h-5 w-5 mr-2" />
               Add Your First Experience
@@ -505,62 +504,6 @@ export default function PreviousExperiencesForm() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ================= HELPERS ================= */
-
-function Field({
-  label,
-  error,
-  children,
-  required,
-  containerClassName = "",
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  required?: boolean;
-  containerClassName?: string;
-}) {
-  return (
-    <div className={`space-y-2 ${containerClassName}`}>
-      <Label className="text-sm font-medium text-slate-700">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </Label>
-      {children}
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
-  );
-}
-
-function Detail({ label, value }: { label: string; value?: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">{label}</p>
-      <p className="text-base text-slate-800 font-medium">{value || "—"}</p>
-    </div>
-  );
-}
-
-function InfoCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
-  const colorClasses = {
-    orange: 'from-orange-500 to-amber-600',
-    blue: 'from-blue-500 to-indigo-600',
-    emerald: 'from-emerald-500 to-teal-600',
-  };
-  
-  return (
-    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} rounded-xl p-5 text-white shadow-lg`}>
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-white/20 rounded-lg">
-          <Icon className="h-5 w-5" />
-        </div>
-        <span className="text-sm font-medium opacity-90">{label}</span>
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
     </div>
   );
 }

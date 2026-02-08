@@ -16,7 +16,7 @@ export function EditUpdateBar(props: {
   return !editing ? (
     <Button
       variant="outline"
-      className="rounded-full shadow-sm hover:shadow bg-white"
+      className="rounded-full shadow-sm bg-white"
       onClick={onEdit}
     >
       <span className="mr-2">✏️</span> Edit/Update
@@ -24,7 +24,7 @@ export function EditUpdateBar(props: {
   ) : (
     <div className="flex gap-2">
       <Button variant="outline" onClick={onCancel}>Cancel</Button>
-      <Button onClick={onSave} className="bg-orange-500 hover:bg-orange-600 text-white">Save</Button>
+      <Button onClick={onSave} className="bg-orange-500 text-white">Save</Button>
     </div>
   );
 }
@@ -49,7 +49,7 @@ export default function LoansShell() {
   };
 
   return (
-    <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300">
+    <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden shadow-xl">
       {/* Title bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
         <div className="flex items-center gap-2 text-lg font-semibold">
@@ -101,10 +101,10 @@ function Tab({ to, icon, label }: { to: string; icon: React.ReactNode; label: st
       to={to}
       className={({ isActive }) =>
         [
-          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
+          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm",
           isActive
             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
-            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
+            : "text-gray-700",
         ].join(" ")
       }
     >

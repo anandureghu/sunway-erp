@@ -21,7 +21,7 @@ function EditUpdateBar(props: {
     return (
       <Button
         variant="outline"
-        className="rounded-full shadow-sm hover:shadow bg-white"
+          className="rounded-full shadow-sm bg-white"
         onClick={onEdit}
         aria-label="Edit appraisal"
       >
@@ -92,7 +92,7 @@ export default function AppraisalShell(): ReactElement {
   useEffect(() => setEditing(false), [id]);
 
   return (
-    <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300">
+    <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden shadow-xl">
       {/* Title bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
         <div className="flex items-center gap-2 text-lg font-semibold">
