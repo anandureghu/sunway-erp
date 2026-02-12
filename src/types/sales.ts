@@ -50,6 +50,7 @@ export type SalesOrderItem = {
 export type SalesOrder = {
   id: string;
   orderNo: string;
+  orderNumber?: string;
   customerId: string;
   customerName: string;
   customerEmail: string;

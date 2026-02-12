@@ -25,6 +25,8 @@ export const COMPANY_SCHEMA = z.object({
   hrEnabled: z.boolean().optional(),
   financeEnabled: z.boolean().optional(),
   inventoryEnabled: z.boolean().optional(),
+
+  currencyId: z.number().optional(),
 });
 
 export type CompanyFormData = z.infer<typeof COMPANY_SCHEMA>;

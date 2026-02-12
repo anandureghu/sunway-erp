@@ -33,6 +33,7 @@
     "html2pdf.js": "^0.14.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.546.0",
+    "radix-ui": "^1.4.3",
     "react": "^19.1.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.1.1",

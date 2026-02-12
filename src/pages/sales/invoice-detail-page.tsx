@@ -3,12 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { Invoice } from "@/types/sales";
 
 /* =======================
    CONSTANTS
 ======================= */
 
-const MISSING = "MISSING_DATA";
+const MISSING = "N/A";
 
 const COLORS = {
   white: "rgb(255, 255, 255)",
@@ -66,7 +67,7 @@ export default function InvoiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [invoice, setInvoice] = useState<any>(null);
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [tab, setTab] = useState<"invoice" | "receipt">("invoice");
 
   useEffect(() => {
@@ -199,7 +200,15 @@ export default function InvoiceDetailPage() {
               >
                 {isSales ? "Bill To" : "Supplier"}
               </p>
-              <p className="font-semibold">{safe(invoice.toParty)}</p>
+              {isSales && (
+                <>
+                  <p className="font-semibold">
+                    {invoice?.salesOrder?.customerName}
+                  </p>
+                  <p className="">{invoice?.salesOrder?.customerEmail}</p>
+                  <p className="">{invoice?.salesOrder?.customerPhone}</p>
+                </>
+              )}
               <p style={{ color: COLORS.gray600 }}>
                 Status: {safe(invoice.status)}
               </p>
@@ -224,9 +233,15 @@ export default function InvoiceDetailPage() {
               >
                 Reference
               </p>
-              <p>Order ID: {safe(invoice.orderId)}</p>
-              <p>Debit: {safe(invoice.debitAccountName)}</p>
-              <p>Credit: {safe(invoice.creditAccountName)}</p>
+              <p>
+                <strong>{isSales ? "Sales" : "Purchase"} Order ID: </strong>{" "}
+                <br />
+                {isSales
+                  ? invoice.salesOrder?.orderNumber
+                  : invoice.purchaseOrder?.orderNumber}
+              </p>
+              {/* <p>Debit: {safe(invoice.debitAccountName)}</p>
+              <p>Credit: {safe(invoice.creditAccountName)}</p> */}
             </div>
           </div>
 

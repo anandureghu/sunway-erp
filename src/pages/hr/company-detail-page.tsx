@@ -9,6 +9,7 @@ import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { CompanyDialog } from "../admin/hr/company/company-dialog";
 import { EmployeeDialog } from "../admin/hr/employee/employee-dialog";
 import type { Employee } from "@/types/hr";
+import { CompanyBankAccounts } from "../admin/hr/company/company-bank-accounts";
 
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -158,6 +159,17 @@ export default function CompanyDetailPage() {
               <span className="font-semibold">Computer Card:</span>{" "}
               {company.computerCard || "-"}
             </p>
+
+            <p>
+              <span className="font-semibold">Currency:</span>{" "}
+              {company.currency?.currencyCode} (
+              {company.currency?.currencySymbol}) -{" "}
+              {company.currency?.currencyName}
+            </p>
+            <p>
+              <span className="font-semibold">Currency Country:</span>{" "}
+              {company.currency?.countryName}
+            </p>
           </CardContent>
         </Card>
 
@@ -278,6 +290,8 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <CompanyBankAccounts companyId={company.id} />
 
       {/* Edit Dialog */}
       <CompanyDialog
