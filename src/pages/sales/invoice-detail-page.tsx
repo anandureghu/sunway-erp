@@ -355,7 +355,7 @@ export default function InvoiceDetailPage() {
                   REFERENCE
                 </p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">
-                  INV-2025-001
+                  {invoice.invoiceId}
                 </p>
               </div>
             </div>
