@@ -9,4 +9,5 @@ export const createEmployeeSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   departmentId: z.string().optional(),
+  role: z.enum(["ADMIN", "HR", "USER", "SUPER_ADMIN", "FINANCE_MANAGER", "ACCOUNTANT", "AP_AR_CLERK", "CONTROLLER", "AUDITOR_EXTERNAL"]),
 });

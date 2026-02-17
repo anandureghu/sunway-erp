@@ -11,7 +11,7 @@ const AppLayout = () => {
         {/* 👇 The provider must wrap AppSidebar AND the routed content */}
         <EmployeeSelectionProvider>
           <AppSidebar />
-          <main className="w-full bg-secondary max-h-screen overflow-auto pt-14">
+          <main className="w-full bg-secondary max-h-screen overflow-auto pt-[70px]">
             <Navbar />
             <Outlet />
           </main>

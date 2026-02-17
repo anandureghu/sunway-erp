@@ -25,6 +25,16 @@ export const fetchCompany = async (id: string) => {
   }
 };
 
+export const getAllCompanies = async () => {
+  try {
+    const res = await apiClient.get("/companies");
+    return res.data;
+  } catch (err) {
+    console.error("getAllCompanies:", err);
+    toast.error("Failed to load companies");
+  }
+};
+
 export const getSidebarItems = async (
   companyId: string
 ): Promise<SidebarItem[]> => {

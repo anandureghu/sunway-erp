@@ -12,6 +12,8 @@ import { loanService } from "@/service/loanService";
 import { SelectField } from "@/modules/hr/components/select-field";
 import type { LoanPayload } from "@/types/hr/loan";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { fetchCompany } from "@/service/companyService";
 
 type LoansModel = {
   id: string;
@@ -57,6 +59,7 @@ const INITIAL_LOAN: LoansModel = {
 export default function LoansForm(): ReactElement {
   const params = useParams<{ id: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
+  const { user } = useAuth();
 
   const [loans, setLoans] = useState<LoansModel[]>([]);
   const [loanTypeOptions, setLoanTypeOptions] = useState<Array<{value: string; label: string}>>([]);
@@ -64,6 +67,7 @@ export default function LoansForm(): ReactElement {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [, setLoading] = useState(false);
+  const [currencySymbol, setCurrencySymbol] = useState("$");
 
   const handleAdd = useCallback(() => {
     const gross = grossSalary || 0;
@@ -161,6 +165,20 @@ export default function LoansForm(): ReactElement {
   useEffect(() => {
     void loadLoans();
   }, [loadLoans]);
+
+  useEffect(() => {
+    if (user?.companyId) {
+      fetchCompany(user.companyId.toString())
+        .then((company) => {
+          if (company?.currency?.currencySymbol) {
+            setCurrencySymbol(company.currency.currencySymbol);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load company currency", err);
+        });
+    }
+  }, [user?.companyId]);
 
   const handleEdit = useCallback((loan: LoansModel) => {
     setEditingId(loan.id);
@@ -265,7 +283,7 @@ export default function LoansForm(): ReactElement {
                           </div>
                           <span className="text-sm font-medium opacity-90">Loan Amount</span>
                         </div>
-                        <p className="text-2xl font-bold">{formatMoney(loan.loanAmount) || '$0.00'}</p>
+                        <p className="text-2xl font-bold">{formatMoney(loan.loanAmount, currencySymbol) || `${currencySymbol}0.00`}</p>
                       </div>
                       
                       <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 text-white shadow-lg">
@@ -275,7 +293,7 @@ export default function LoansForm(): ReactElement {
                           </div>
                           <span className="text-sm font-medium opacity-90">Monthly Payment</span>
                         </div>
-                        <p className="text-2xl font-bold">{formatMoney(loan.monthlyDeductions) || '$0.00'}</p>
+                        <p className="text-2xl font-bold">{formatMoney(loan.monthlyDeductions, currencySymbol) || `${currencySymbol}0.00`}</p>
                       </div>
                       
                       <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
@@ -285,7 +303,7 @@ export default function LoansForm(): ReactElement {
                           </div>
                           <span className="text-sm font-medium opacity-90">Balance</span>
                         </div>
-                        <p className="text-2xl font-bold">{formatMoney(loan.balance) || '$0.00'}</p>
+                        <p className="text-2xl font-bold">{formatMoney(loan.balance, currencySymbol) || `${currencySymbol}0.00`}</p>
                       </div>
                     </div>
 
@@ -432,7 +450,7 @@ export default function LoansForm(): ReactElement {
                         <Field
                           label="Gross Pay"
                           disabled={false}
-                          value={formatMoney(loan.grossPay)}
+                          value={formatMoney(loan.grossPay, currencySymbol)}
                           onChange={(v) => handleSave({ ...loan, grossPay: v.replace(/[^0-9.]/g, "") })}
                           ariaLabel="Gross Pay"
                           required
@@ -440,7 +458,7 @@ export default function LoansForm(): ReactElement {
                         <Field
                           label="Deduction Amount"
                           disabled={false}
-                          value={formatMoney(loan.deductionAmount)}
+                          value={formatMoney(loan.deductionAmount, currencySymbol)}
                           onChange={(v) => handleSave({ ...loan, deductionAmount: v.replace(/[^0-9.]/g, "") })}
                           ariaLabel="Deduction Amount"
                           required
@@ -448,7 +466,7 @@ export default function LoansForm(): ReactElement {
                         <Field
                           label="Net Pay"
                           disabled={false}
-                          value={formatMoney(loan.netPay)}
+                          value={formatMoney(loan.netPay, currencySymbol)}
                           onChange={(v) => handleSave({ ...loan, netPay: v.replace(/[^0-9.]/g, "") })}
                           ariaLabel="Net Pay"
                           required
@@ -496,7 +514,7 @@ export default function LoansForm(): ReactElement {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
                               <p className="text-xs text-slate-600 mb-1">Amount</p>
-                              <p className="text-lg font-bold text-blue-700">{formatMoney(loan.loanAmount)}</p>
+                              <p className="text-lg font-bold text-blue-700">{formatMoney(loan.loanAmount, currencySymbol)}</p>
                             </div>
                             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
                               <p className="text-xs text-slate-600 mb-1">Type</p>
@@ -508,7 +526,7 @@ export default function LoansForm(): ReactElement {
                             </div>
                             <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-100">
                               <p className="text-xs text-slate-600 mb-1">Balance</p>
-                              <p className="text-lg font-bold text-amber-700">{formatMoney(loan.balance)}</p>
+                              <p className="text-lg font-bold text-amber-700">{formatMoney(loan.balance, currencySymbol)}</p>
                             </div>
                           </div>
                         </div>
@@ -555,9 +573,9 @@ export default function LoansForm(): ReactElement {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <InfoCard icon={DollarSign} label="Loan Amount" value={formatMoney(loan.loanAmount)} color="blue" />
+                          <InfoCard icon={DollarSign} label="Loan Amount" value={formatMoney(loan.loanAmount, currencySymbol)} color="blue" />
                           <InfoCard icon={Calendar} label="Start Date" value={loan.startDate ? new Date(loan.startDate).toLocaleDateString() : "—"} color="emerald" />
-                          <InfoCard icon={TrendingUp} label="Monthly Deduction" value={formatMoney(loan.monthlyDeductions)} color="violet" />
+                          <InfoCard icon={TrendingUp} label="Monthly Deduction" value={formatMoney(loan.monthlyDeductions, currencySymbol)} color="violet" />
                         </div>
 
                         <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
@@ -565,16 +583,16 @@ export default function LoansForm(): ReactElement {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <DetailItem label="Loan Type" value={loan.loanType || "—"} />
                             <DetailItem label="Loan Period" value={loan.loanPeriod ? `${loan.loanPeriod} months` : "—"} />
-                            <DetailItem label="Balance" value={formatMoney(loan.balance)} />
+                            <DetailItem label="Balance" value={formatMoney(loan.balance, currencySymbol)} />
                           </div>
                         </div>
 
                         <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">Salary Breakdown</h4>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <DetailItem label="Gross Pay" value={formatMoney(loan.grossPay)} />
-                            <DetailItem label="Deduction Amount" value={formatMoney(loan.deductionAmount)} />
-                            <DetailItem label="Net Pay" value={formatMoney(loan.netPay)} />
+                            <DetailItem label="Gross Pay" value={formatMoney(loan.grossPay, currencySymbol)} />
+                            <DetailItem label="Deduction Amount" value={formatMoney(loan.deductionAmount, currencySymbol)} />
+                            <DetailItem label="Net Pay" value={formatMoney(loan.netPay, currencySymbol)} />
                           </div>
                         </div>
 

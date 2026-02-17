@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
 import { payrollService } from "@/service/payrollService";
+import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 type SalaryCtx = { editing: boolean };
 
@@ -29,9 +31,11 @@ export default function PayrollTab() {
   const { editing } = useOutletContext<SalaryCtx>();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
+  const { user } = useAuth();
 
   const [payroll, setPayroll] = useState({ payPeriodStart: "", payPeriodEnd: "", payDate: "" });
   const [history, setHistory] = useState<PayrollRow[]>([]);
+  const [currencySymbol, setCurrencySymbol] = useState("$");
 
   const loadPayrollHistory = useCallback(async () => {
     if (!employeeId) return;
@@ -47,6 +51,20 @@ export default function PayrollTab() {
   useEffect(() => {
     void loadPayrollHistory();
   }, [loadPayrollHistory]);
+
+  useEffect(() => {
+    if (user?.companyId) {
+      fetchCompany(user.companyId.toString())
+        .then((company) => {
+          if (company?.currency?.currencySymbol) {
+            setCurrencySymbol(company.currency.currencySymbol);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load company currency", err);
+        });
+    }
+  }, [user?.companyId]);
 
   const patch = (k: keyof typeof payroll, v: string) => setPayroll((p) => ({ ...p, [k]: v }));
 
@@ -119,10 +137,10 @@ export default function PayrollTab() {
                     <td className="px-3 py-2">{row.payrollCode}</td>
                     <td className="px-3 py-2">{row.payPeriodStart}</td>
                     <td className="px-3 py-2">{row.payPeriodEnd}</td>
-                    <td className="px-3 py-2">{formatMoney(row.grossPay)}</td>
-                    <td className="px-3 py-2 text-red-600">-{formatMoney(String(row.totalDeductions ?? 0))}</td>
+                    <td className="px-3 py-2">{formatMoney(row.grossPay, currencySymbol)}</td>
+                    <td className="px-3 py-2 text-red-600">-{formatMoney(String(row.totalDeductions ?? 0), currencySymbol)}</td>
                     <td className="px-3 py-2">{row.payDate}</td>
-                    <td className="px-3 py-2 font-bold text-green-700">{formatMoney(row.netPayable)}</td>
+                    <td className="px-3 py-2 font-bold text-green-700">{formatMoney(row.netPayable, currencySymbol)}</td>
                   </tr>
                 );
               })}

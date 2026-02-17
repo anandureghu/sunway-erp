@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/form";
 import type { Department } from "@/types/department";
 import { createEmployeeSchema } from "@/schema/employee";
-import type { Employee } from "@/types/hr";
+import type { Employee, Role } from "@/types/hr";
 
 type EmployeeDialogProps = {
   open: boolean;
@@ -76,6 +76,7 @@ export function EmployeeDialog({
       username: "",
       password: "",
       departmentId: "",
+      role: presetRole,
     },
   });
 
@@ -132,6 +133,7 @@ export function EmployeeDialog({
     username: string;
     password?: string | null;
     departmentId?: string | number | null;
+    role?: Role;
   };
 
   const onSubmit = async (values: FormValues): Promise<void> => {
@@ -146,7 +148,7 @@ export function EmployeeDialog({
       password: values.password || null, // if empty, backend should ignore
       companyId,
       departmentId: values.departmentId ? Number(values.departmentId) : null,
-      role: employee?.role || presetRole,
+      role: values.role || presetRole,
     };
 
     try {
@@ -349,15 +351,33 @@ export function EmployeeDialog({
               )}
             />
 
-            {/* ROLE FIXED */}
-            <div>
-              <FormLabel>User Role</FormLabel>
-              <Input
-                disabled
-                value={employee?.role || presetRole}
-                className="bg-muted/50 font-semibold mt-1"
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>User Role</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="USER">User</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="HR">HR</SelectItem>
+                      <SelectItem value="FINANCE_MANAGER">Finance Manager</SelectItem>
+                      <SelectItem value="ACCOUNTANT">Accountant</SelectItem>
+                      <SelectItem value="AP_AR_CLERK">AP/AR Clerk</SelectItem>
+                      <SelectItem value="CONTROLLER">Controller</SelectItem>
+                      <SelectItem value="AUDITOR_EXTERNAL">Auditor (External)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading

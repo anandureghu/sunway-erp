@@ -27,9 +27,19 @@ export interface Employee {
   username?: string;
   role?: Role;
   companyName?: string;
+  imageUrl?: string;
 }
 
-export type Role = "ADMIN" | "SUPER_ADMIN" | "USER";
+export type Role =
+  | "ADMIN"
+  | "HR"
+  | "USER"
+  | "SUPER_ADMIN"
+  | "FINANCE_MANAGER"
+  | "ACCOUNTANT"
+  | "AP_AR_CLERK"
+  | "CONTROLLER"
+  | "AUDITOR_EXTERNAL";
 
 export interface CurrentJob {
   jobCode: string;
@@ -41,6 +51,9 @@ export interface CurrentJob {
   startDate: string; // yyyy-mm-dd
   effectiveFrom: string; // yyyy-mm-dd
   expectedEndDate?: string; // yyyy-mm-dd
+  workLocation: string;
+  workCity: string;
+  workCountry: string;
 }
 
 export type LeaveStatus = "Pending" | "Approved" | "Rejected";
@@ -48,7 +61,8 @@ export type LeaveType =
   | "Annual Leave"
   | "Sick Leave"
   | "Emergency Leave"
-  | "Unpaid Leave";
+  | "Unpaid Leave"
+  | "Maternity Leave";
 
 export interface LeaveRecord {
   leaveCode: string;
@@ -59,6 +73,16 @@ export interface LeaveRecord {
   leaveBalance: string;
   leaveStatus: LeaveStatus;
   totalDays: number;
+}
+
+export interface LeavePolicy {
+  role: Role;
+  leaveType: LeaveType;
+  daysAllowed: number;
+  paid?: boolean;
+  genderRestricted?: boolean;
+  allowedGender?: string | null;
+  defaultDays?: number;
 }
 
 export interface Salary {

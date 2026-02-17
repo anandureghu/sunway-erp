@@ -12,19 +12,9 @@ import { Calendar, Clock, CheckCircle, AlertCircle, FileText, TrendingUp } from 
 type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
 type LeaveStatus = "Pending" | "Approved" | "Rejected";
-type LeaveType =
-  | "Annual Leave"
-  | "Sick Leave"
-  | "Emergency Leave"
-  | "Unpaid Leave";
+type LeaveType = string;
 
 const STATUS: LeaveStatus[] = ["Pending", "Approved", "Rejected"];
-const TYPES: LeaveType[] = [
-  "Annual Leave",
-  "Sick Leave",
-  "Emergency Leave",
-  "Unpaid Leave",
-];
 
 type LeaveRecord = {
   leaveCode: string;
@@ -62,14 +52,41 @@ export default function LeavesForm(): ReactElement {
   });
   const [saved, setSaved] = useState<LeaveRecord | null>(null);
   const [preview, setPreview] = useState<LeavePreview | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!employeeId) return;
+
+    leaveService.fetchAvailableLeaveTypes(employeeId)
+      .then(res => {
+        setAvailableTypes(res.data);
+
+        if (res.data.length > 0) {
+          setDraft(d => ({
+            ...d,
+            leaveType: res.data[0]
+          }));
+        }
+      })
+      .catch(() => {
+        toast.error("Failed to load leave types");
+      });
+
+  }, [employeeId]);
 
   useEffect(() => {
     if (!preview) return;
-    setDraft((d) =>
-      d.leaveBalance === String(preview.currentBalance)
-        ? d
-        : { ...d, leaveBalance: String(preview.currentBalance) }
-    );
+    // Guard against undefined values from the API (snake_case/camelCase differences)
+    const avail = preview.availableBalance ?? (preview as any).available_balance ?? 0;
+    const availStr = avail === null || avail === undefined ? "" : String(avail);
+    setDraft((d) => (d.leaveBalance === availStr ? d : { ...d, leaveBalance: availStr }));
+  }, [preview]);
+
+  // Clear leaveBalance when preview is removed
+  useEffect(() => {
+    if (!preview) {
+      setDraft(d => ({ ...d, leaveBalance: "" }));
+    }
   }, [preview]);
 
   useEffect(() => {
@@ -92,10 +109,19 @@ export default function LeavesForm(): ReactElement {
     let mounted = true;
     leaveService
       .previewLeave(employeeId, draft.leaveType, draft.startDate, draft.endDate)
-      .then((res) => mounted && setPreview(res.data))
+      .then((res) => {
+        if (!mounted) return;
+        const d = res.data as any;
+        const normalized = normalizePreview(d);
+        setPreview(normalized);
+      })
       .catch((err) => {
         console.error("Preview error", err);
-        setPreview(null);
+        setPreview({
+          totalDays: 0,
+          availableBalance: 0,
+          remainingAfter: 0
+        });
         toast.error(err?.response?.data?.message || "Preview failed");
       });
     return () => {
@@ -118,11 +144,17 @@ export default function LeavesForm(): ReactElement {
       .applyLeave(employeeId, payload)
       .then(() => {
         toast.success("Leave applied successfully");
-        setPreview(null);
+
+        // Refresh preview after apply
+        leaveService
+          .previewLeave(employeeId, draft.leaveType, draft.startDate, draft.endDate)
+          .then((res) => {
+            const d = res.data as any;
+            const normalized = normalizePreview(d);
+            setPreview(normalized);
+          });
+
         setSaved(draft);
-        try {
-          document.dispatchEvent(new CustomEvent("leaves:saved"));
-        } catch {}
       })
       .catch((err) => {
         console.error("Apply leave failed", err);
@@ -203,7 +235,7 @@ export default function LeavesForm(): ReactElement {
                 </div>
                 <div>
                   <p className="text-xs text-blue-600 font-medium">Available Balance</p>
-                  <p className="text-2xl font-bold text-blue-900">{preview?.currentBalance ?? (draft.leaveBalance || "—")}</p>
+                  <p className="text-2xl font-bold text-blue-900">{preview ? (preview.availableBalance ?? 0) : 0}</p>
                 </div>
               </div>
             </div>
@@ -215,7 +247,7 @@ export default function LeavesForm(): ReactElement {
                 </div>
                 <div>
                   <p className="text-xs text-emerald-600 font-medium">Days Requested</p>
-                  <p className="text-2xl font-bold text-emerald-900">{draft.totalDays ?? 0}</p>
+                  <p className="text-2xl font-bold text-emerald-900">{preview ? (preview.totalDays ?? draft.totalDays) : draft.totalDays}</p>
                 </div>
               </div>
             </div>
@@ -227,7 +259,7 @@ export default function LeavesForm(): ReactElement {
                 </div>
                 <div>
                   <p className="text-xs text-violet-600 font-medium">Balance After</p>
-                  <p className="text-2xl font-bold text-violet-900">{preview?.balanceAfterLeave ?? "—"}</p>
+                  <p className="text-2xl font-bold text-violet-900">{preview ? (preview.remainingAfter ?? 0) : 0}</p>
                 </div>
               </div>
             </div>
@@ -263,7 +295,7 @@ export default function LeavesForm(): ReactElement {
                     onChange={(e) => patch("leaveType", e.target.value as LeaveType)}
                     required
                   >
-                    {TYPES.map((t) => (
+                    {availableTypes.map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
@@ -411,11 +443,11 @@ export default function LeavesForm(): ReactElement {
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-emerald-200">
                   <p className="text-xs font-medium text-emerald-600 mb-1">Current Balance</p>
-                  <p className="text-2xl font-bold text-slate-800">{preview.currentBalance}</p>
+                  <p className="text-2xl font-bold text-slate-800">{preview.availableBalance}</p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-emerald-200">
                   <p className="text-xs font-medium text-emerald-600 mb-1">Balance After Leave</p>
-                  <p className="text-2xl font-bold text-slate-800">{preview.balanceAfterLeave}</p>
+                  <p className="text-2xl font-bold text-slate-800">{preview.remainingAfter}</p>
                 </div>
               </div>
             </div>
@@ -436,4 +468,32 @@ function Field({ label, required, children }: { label: string; required?: boolea
       {children}
     </div>
   );
+}
+
+// Helper: normalize preview response from API which may use snake_case or different keys
+function normalizePreview(d: any): LeavePreview {
+  const pickNumber = (...keys: string[]) => {
+    for (const k of keys) {
+      if (d == null) break;
+      const v = d[k];
+      if (v !== undefined && v !== null && v !== "") return Number(v);
+    }
+    return 0;
+  };
+
+  return {
+    totalDays: pickNumber("totalDays", "total_days", "total", "days", "daysRequested"),
+    availableBalance: pickNumber("availableBalance", "available_balance", "available", "balance", "currentBalance", "current_balance"),
+    remainingAfter: pickNumber(
+      "remainingAfter",
+      "remaining_after",
+      "remaining",
+      "balanceAfter",
+      "balance_after",
+      "remaining_balance",
+      "balanceAfterLeave",
+      "balance_after_leave",
+      "balance_after_leave"
+    ),
+  };
 }

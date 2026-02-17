@@ -319,7 +319,6 @@ export default function ContactInfoForm() {
       <div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-slate-800">Addresses</h3>
-          <div className="text-sm text-slate-500">Manage home addresses for the employee</div>
         </div>
 
         <div className="grid gap-4">
@@ -461,8 +460,10 @@ export default function ContactInfoForm() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteAddress(address.id)}
+                            className="text-red-600 rounded-lg flex-1"
                           >
                             <Trash2 className="h-4 w-4" />
+                            Delete
                           </Button>
                         </div>
                       </div>
