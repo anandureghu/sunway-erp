@@ -4,6 +4,7 @@ import { Plus, Trash2, Eye, FileText, Calendar, TrendingUp, MessageSquare } from
 import { useParams } from "react-router-dom";
 import { appraisalService } from "@/service/appraisalService";
 import { hrService } from "@/service/hr.service";
+import { currentJobService } from "@/service/currentJobService";
 import { toast } from "sonner";
 import AppraisalEditor from "./AppraisalEditor";
 
@@ -18,11 +19,13 @@ export type AppModel = {
   employeeComments?: string;
   managerComments?: string;
 
-  kpi1?: string; review1?: string;
-  kpi2?: string; review2?: string;
-  kpi3?: string; review3?: string;
-  kpi4?: string; review4?: string;
-  kpi5?: string; review5?: string;
+  kpi1?: string; review1?: string; rating1?: string;
+  kpi2?: string; review2?: string; rating2?: string;
+  kpi3?: string; review3?: string; rating3?: string;
+  kpi4?: string; review4?: string; rating4?: string;
+  kpi5?: string; review5?: string; rating5?: string;
+
+  overallPerformance?: number;
 };
 
 const EMPTY: AppModel = {
@@ -50,14 +53,21 @@ function toPayload(it: AppModel) {
 
     kpi1: it.kpi1 || undefined,
     review1: it.review1 || undefined,
+    rating1: it.rating1 ? Number(it.rating1) : undefined,
     kpi2: it.kpi2 || undefined,
     review2: it.review2 || undefined,
+    rating2: it.rating2 ? Number(it.rating2) : undefined,
     kpi3: it.kpi3 || undefined,
     review3: it.review3 || undefined,
+    rating3: it.rating3 ? Number(it.rating3) : undefined,
     kpi4: it.kpi4 || undefined,
     review4: it.review4 || undefined,
+    rating4: it.rating4 ? Number(it.rating4) : undefined,
     kpi5: it.kpi5 || undefined,
     review5: it.review5 || undefined,
+    rating5: it.rating5 ? Number(it.rating5) : undefined,
+
+    overallPerformance: it.overallPerformance || undefined,
   };
 }
 
@@ -69,6 +79,7 @@ export default function AppraisalsForm() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [employee, setEmployee] = useState<{ firstName?: string; middleName?: string; lastName?: string } | null>(null);
+  const [currentJobCode, setCurrentJobCode] = useState<string>("");
   const ignoreNextSaveRef = useRef(false);
 
   const reload = useCallback(async (): Promise<void> => {
@@ -118,8 +129,22 @@ export default function AppraisalsForm() {
     return () => { mounted = false; };
   }, [empId]);
 
+  useEffect(() => {
+    if (!empId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const job = await currentJobService.get(empId);
+        if (mounted) setCurrentJobCode(job?.jobCode || "");
+      } catch (err) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, [empId]);
+
   const handleAdd = () => {
-    const newItem: AppModel = { ...EMPTY, _localId: String(Date.now()) };
+    const newItem: AppModel = { ...EMPTY, _localId: String(Date.now()), jobCode: currentJobCode || undefined };
     setItems((c) => [...c, newItem]);
     setEditingId(String(newItem._localId));
   };
@@ -437,6 +462,15 @@ export default function AppraisalsForm() {
                                                 <p className="text-sm text-slate-800">{revVal}</p>
                                               </div>
                                             )}
+                                            {(() => {
+                                              const ratingVal = read("rating", n);
+                                              return ratingVal ? (
+                                                <div>
+                                                  <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Rating</p>
+                                                  <p className="text-sm text-slate-800">{ratingVal}</p>
+                                                </div>
+                                              ) : null;
+                                            })()}
                                           </div>
                                         </div>
                                       </div>

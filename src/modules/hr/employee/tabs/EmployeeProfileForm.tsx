@@ -41,6 +41,8 @@ export default function EmployeeProfileForm() {
   const [saved, setSaved] = useState<EmpProfile>(NEW_EMP);
   const [draft, setDraft] = useState<EmpProfile>(NEW_EMP);
   const [imageHover, setImageHover] = useState(false);
+  const [, setPendingFile] = useState<File | null>(null);
+
 
   const set = useCallback(
     <K extends keyof EmpProfile>(k: K, v: EmpProfile[K]) =>
@@ -64,7 +66,7 @@ export default function EmployeeProfileForm() {
             if (up === "ON_LEAVE") return "On Leave";
             return String(s);
           };
-          const merged = { ...NEW_EMP, ...emp, status: fromBackendStatus((emp as any).status) } as EmpProfile;
+          const merged = { ...NEW_EMP, ...emp, photoUrl: (emp as any).imageUrl, status: fromBackendStatus((emp as any).status) } as EmpProfile;
           setSaved(merged);
           setDraft(merged);
           setEditing(false);
@@ -102,6 +104,7 @@ export default function EmployeeProfileForm() {
 
         dateOfBirth: updated.dateOfBirth || null,
         joinDate: updated.joinDate || null,
+        imageUrl: updated.photoUrl || null,
       };
 
       if (statusVal != null) payload.status = statusVal;
@@ -170,11 +173,11 @@ export default function EmployeeProfileForm() {
     };
   }, [saved, handleSave, handleCancel]);
 
-  const uploadImage = async (file: File): Promise<string> => {
+  const uploadImage = async (file: File, employeeId?: number): Promise<string> => {
     try {
       const { hrService } = await import("@/service/hr.service");
-      if (id) {
-        return hrService.uploadImage(Number(id), file);
+      if (employeeId) {
+        return hrService.uploadImage(employeeId, file);
       }
       // fallback to dataURL for preview when no id yet
       return await new Promise((resolve) => {
@@ -418,9 +421,19 @@ export default function EmployeeProfileForm() {
         onChange={async (e) => {
           const file = e.target.files?.[0];
           if (file) {
-            const url = await uploadImage(file);
-            set("photoUrl", url);
-            toast.success("Photo uploaded successfully!");
+            if (id) {
+              // Existing employee: upload immediately
+              const url = await uploadImage(file, Number(id));
+              set("photoUrl", url);
+              setSaved(prev => ({ ...prev, photoUrl: url })); // Update saved state too
+              toast.success("Photo uploaded successfully!");
+            } else {
+              // New employee: store file for later upload
+              setPendingFile(file);
+              const url = await uploadImage(file); // dataURL for preview
+              set("photoUrl", url);
+              toast.success("Photo selected successfully!");
+            }
           }
         }}
       />

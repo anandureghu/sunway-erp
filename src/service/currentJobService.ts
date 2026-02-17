@@ -14,6 +14,9 @@ export interface CurrentJobPayload {
   startDate?: string;
   effectiveFrom?: string;
   expectedEndDate?: string;
+  workLocation?: string;
+  workCity?: string;
+  workCountry?: string;
 }
 
 export interface CurrentJobResponse extends CurrentJobPayload {
@@ -67,6 +70,9 @@ export type CurrentJobModel = {
   startDate?: string;
   effectiveFrom?: string;
   expectedEndDate?: string;
+  workLocation?: string;
+  workCity?: string;
+  workCountry?: string;
 };
 
 export default currentJobService;

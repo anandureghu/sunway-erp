@@ -21,6 +21,9 @@ const INITIAL_DATA: CurrentJob = {
   startDate: "",
   effectiveFrom: "",
   expectedEndDate: "",
+  workLocation: "",
+  workCity: "",
+  workCountry: ""
 };
 
 interface ValidationErrors {
@@ -137,6 +140,7 @@ export default function CurrentJobForm() {
     if (!data.jobCode) errors.jobCode = "Job code is required";
     if (!data.departmentCode) errors.departmentCode = "Department code is required";
     if (!data.jobTitle) errors.jobTitle = "Job title is required";
+    if (!data.workLocation) errors.workLocation = "Work location is required";
     if (!isValidDate(data.startDate)) errors.startDate = "Valid start date is required";
     if (!isValidDate(data.effectiveFrom)) errors.effectiveFrom = "Valid effective date is required";
     if (data.expectedEndDate && !isValidDate(data.expectedEndDate)) {
@@ -166,7 +170,7 @@ export default function CurrentJobForm() {
       </div>
 
       {/* Quick Summary Cards - Always Visible */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
@@ -207,6 +211,18 @@ export default function CurrentJobForm() {
                     })
                   : "Not set"}
               </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-600 p-2 rounded-lg">
+              <MapPin className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-purple-600 font-medium">Work Location</p>
+              <p className="text-sm font-semibold text-purple-900">{formData.workLocation || "Not set"}</p>
             </div>
           </div>
         </div>
@@ -372,6 +388,58 @@ export default function CurrentJobForm() {
                     onChange={(e) => updateField("expectedEndDate")(e.target.value)}
                   />
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-slate-200"></div>
+
+          {/* Work Location */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+              <div className="w-1 h-4 bg-purple-600 rounded-full"></div>
+              Work Location
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Field label="Work Location" required error={errors.workLocation}>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={formData.workLocation}
+                    onChange={(e) => updateField("workLocation")(e.target.value)}
+                    required
+                    placeholder="e.g., Office, Remote, Hybrid"
+                  />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Work City" error={errors.workCity}>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={formData.workCity}
+                    onChange={(e) => updateField("workCity")(e.target.value)}
+                    placeholder="e.g., New York"
+                  />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Work Country" error={errors.workCountry}>
+                <div className="relative">
+                  <Input
+                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                    disabled={!editing}
+                    value={formData.workCountry}
+                    onChange={(e) => updateField("workCountry")(e.target.value)}
+                    placeholder="e.g., United States"
+                  />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 </div>
               </Field>
             </div>

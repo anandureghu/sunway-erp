@@ -24,6 +24,14 @@ export interface AppraisalPayload {
   employeeComments?: string;
   managerComments?: string;
 
+  // Ratings
+  rating1?: number;
+  rating2?: number;
+  rating3?: number;
+  rating4?: number;
+  rating5?: number;
+  overallPerformance?: number;
+
   // Rating
   rating?: number;
   annualIncrement?: number;

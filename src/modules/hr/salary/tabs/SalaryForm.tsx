@@ -7,8 +7,10 @@ import { SelectField } from "@/modules/hr/components/select-field";
 import { isValidAmount, isValidDate } from "@/modules/hr/utils/validation";
 import { formatMoney } from "@/lib/utils";
 import { salaryService } from "@/service/salaryService";
+import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
 import { DollarSign, TrendingUp, Calendar, CheckCircle, Plane, Home, Car, Sparkles } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface SalaryCtx {
   editing: boolean;
@@ -83,9 +85,11 @@ export default function SalaryForm() {
   const { editing, cancelEdit, saveEdit } = useOutletContext<SalaryCtx>();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState<SalaryFormState>(INITIAL_STATE);
   const [exists, setExists] = useState(false);
+  const [currencySymbol, setCurrencySymbol] = useState("$");
 
   const validateForm = useCallback((data: SalaryFormState): ValidationErrors => {
     const errors: ValidationErrors = {};
@@ -239,6 +243,20 @@ export default function SalaryForm() {
     };
   }, [employeeId]);
 
+  useEffect(() => {
+    if (user?.companyId) {
+      fetchCompany(user.companyId.toString())
+        .then((company) => {
+          if (company?.currency?.currencySymbol) {
+            setCurrencySymbol(company.currency.currencySymbol);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load company currency", err);
+        });
+    }
+  }, [user?.companyId]);
+
   const updateField = (field: keyof SalaryFormState) => (value: string) => {
     if (field === 'basicSalary' || field === 'transportationAllowance' || field === 'travelAllowance' || field === 'otherAllowance' || field === 'housingAllowance') {
       const num = Number(value.replace(/[^0-9.]/g, '')) || 0;
@@ -308,11 +326,11 @@ export default function SalaryForm() {
               </div>
               <span className="text-sm font-semibold opacity-95">Total Compensation Package</span>
             </div>
-            <p className="text-4xl font-bold mb-2">{formatMoney(grossPay)}</p>
+            <p className="text-4xl font-bold mb-2">{formatMoney(grossPay, currencySymbol)}</p>
             <div className="flex items-center gap-4 text-sm opacity-90">
-              <span>Basic: {formatMoney(String(formData.basicSalary))}</span>
+              <span>Basic: {formatMoney(String(formData.basicSalary), currencySymbol)}</span>
               <span>•</span>
-              <span>Allowances: {formatMoney(totalAllowance)}</span>
+              <span>Allowances: {formatMoney(totalAllowance, currencySymbol)}</span>
             </div>
           </div>
         </div>
@@ -335,7 +353,7 @@ export default function SalaryForm() {
                   Basic Salary <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-600 font-semibold text-lg">$</span>
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-600 font-semibold text-lg">{currencySymbol}</span>
                   <Input
                     type="number"
                     value={formData.basicSalary || ''}
@@ -383,7 +401,7 @@ export default function SalaryForm() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
                       <Input
                         type="number"
                         value={formData.transportationAllowance || ''}
@@ -429,7 +447,7 @@ export default function SalaryForm() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
                       <Input
                         type="number"
                         value={formData.travelAllowance || ''}
@@ -475,7 +493,7 @@ export default function SalaryForm() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
                       <Input
                         type="number"
                         value={formData.housingAllowance || ''}
@@ -510,7 +528,7 @@ export default function SalaryForm() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">$</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
                     <Input
                       type="number"
                       value={formData.otherAllowance || ''}

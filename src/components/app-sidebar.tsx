@@ -109,6 +109,7 @@ export function AppSidebar() {
       items: [
         { title: "Company", url: "/admin/company", icon: LayoutDashboard },
         { title: "Department", url: "/admin/department", icon: FileText },
+        { title: "Leaves", url: "/admin/leaves", icon: CalendarDays },
         { title: "Customers", url: "/admin/customers", icon: Users },
         { title: "Vendors", url: "/admin/vendors", icon: Building2 },
       ],

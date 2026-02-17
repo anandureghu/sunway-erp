@@ -16,12 +16,9 @@ export function formatDate(date: string) {
   return new Date(date).toLocaleDateString();
 }
 
-export function formatMoney(amount: string | number) {
+export function formatMoney(amount: string | number, currencySymbol: string = "$") {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(num);
+  return `${currencySymbol}${num.toLocaleString("en-US")}`;
 }
 
 export const toISO = (date: string) => new Date(date).toISOString();

@@ -150,7 +150,6 @@ export default function EmployeesPage() {
         dateOfBirth: newEmployee.dateOfBirth ?? undefined,
         joinDate: newEmployee.joinDate ?? undefined,
         phoneNo: newEmployee.phoneNo ?? undefined,
-        altPhone: newEmployee.altPhone ?? undefined,
         departmentId: newEmployee.departmentId !== undefined && newEmployee.departmentId !== "" ? Number(newEmployee.departmentId) : undefined,
         role: newEmployee.role ?? "USER",
       };

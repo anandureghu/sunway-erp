@@ -75,6 +75,7 @@ export interface UpdateEmployeePayload {
 
   departmentId?: number;
   notes?: string;
+  imageUrl?: string;
 }
 
 async function updateEmployee(
@@ -110,7 +111,7 @@ async function uploadImage(employeeId: number, file: File): Promise<string> {
     }
   );
 
-  return res.data.url;
+  return res.data.url + '?t=' + Date.now();
 }
 
 /* =====================================================

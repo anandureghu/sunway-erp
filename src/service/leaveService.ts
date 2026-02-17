@@ -2,11 +2,11 @@ import { apiClient } from "@/service/apiClient";
 
 const BASE = "/employees";
 
-export type LeavePreview = {
+export interface LeavePreview {
   totalDays: number;
-  currentBalance: number;
-  balanceAfterLeave: number;
-};
+  availableBalance: number;
+  remainingAfter: number;
+}
 
 export const leaveService = {
   previewLeave(employeeId: number, leaveType: string, startDate: string, endDate: string) {
@@ -21,5 +21,9 @@ export const leaveService = {
 
   fetchLeaveHistory(employeeId: number) {
     return apiClient.get(`${BASE}/${employeeId}/leaves/history`);
+  },
+
+  fetchAvailableLeaveTypes(employeeId: number) {
+    return apiClient.get(`${BASE}/${employeeId}/leaves/available-types`);
   },
 };

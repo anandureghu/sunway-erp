@@ -59,18 +59,12 @@ export function AddEmployeeModal({
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
-
     gender: "",
     prefix: "",
     maritalStatus: "",
-
     dateOfBirth: "",
-    joinDate: "",
-
     phoneNo: "",
-    altPhone: "",
 
-    departmentId: "",
     role: "USER",
   });
 
@@ -82,8 +76,8 @@ export function AddEmployeeModal({
   };
 
   const handleSubmit = () => {
-    if (!form.firstName || !form.lastName || !form.joinDate || !form.phoneNo) {
-      toast.error("First name, Last name, Join Date and Phone are required");
+    if (!form.firstName || !form.lastName || !form.phoneNo) {
+      toast.error("First name, Last name and Phone are required");
       return;
     }
 
@@ -92,14 +86,11 @@ export function AddEmployeeModal({
       lastName: form.lastName,
 
       phoneNo: form.phoneNo || undefined,
-      altPhone: form.altPhone || undefined,
       gender: form.gender || undefined,
       prefix: form.prefix || undefined,
       maritalStatus: form.maritalStatus || undefined,
       dateOfBirth: form.dateOfBirth || undefined,
-      joinDate: form.joinDate || undefined,
 
-      departmentId: form.departmentId ? Number(form.departmentId) : undefined,
       role: form.role || "USER",
     };
     onAdd(payload);
@@ -139,10 +130,8 @@ export function AddEmployeeModal({
                 <label className="text-sm font-medium">Phone</label>
                 <input name="phoneNo" placeholder="Phone number" value={form.phoneNo} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
               </div>
-              <div>
-                <label className="text-sm font-medium">Alt Phone</label>
-                <input name="altPhone" placeholder="Alt phone" value={form.altPhone} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+
+              
 
               <div>
                 <label className="text-sm font-medium">Gender</label>
@@ -167,20 +156,17 @@ export function AddEmployeeModal({
                 <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Join Date</label>
-                <input type="date" name="joinDate" value={form.joinDate} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Department Id</label>
-                <input name="departmentId" placeholder="Department Id" value={form.departmentId} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+              
               <div>
                 <label className="text-sm font-medium">Role</label>
                 <select name="role" value={form.role} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2">
                   <option value="USER">User</option>
                   <option value="ADMIN">Admin</option>
+                  <option value="FINANCE_MANAGER">Finance Manager</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="AP_AR_CLERK">AP/AR Clerk</option>
+                  <option value="CONTROLLER">Controller</option>
+                  <option value="AUDITOR_EXTERNAL">Auditor (External)</option>
                 </select>
               </div>
           </div>
