@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 
 export interface TabItem<
-  TProps extends Record<string, unknown> = Record<string, unknown>
+  TProps extends Record<string, unknown> = Record<string, unknown>,
 > {
   value: string;
   label: string;
@@ -11,7 +11,7 @@ export interface TabItem<
 }
 
 interface AppTabProps<
-  TProps extends Record<string, unknown> = Record<string, unknown>
+  TProps extends Record<string, unknown> = Record<string, unknown>,
 > {
   title?: string;
   tabs: TabItem<TProps>[];
@@ -43,7 +43,7 @@ export const AppTab = <TProps extends Record<string, unknown>>({
         <CardContent>
           <Tabs
             defaultValue={defaultValue ?? tabs[0]?.value}
-            className="w-full max-w-5xl"
+            className="w-full"
           >
             <TabsList>
               {tabs.map((tab) => (

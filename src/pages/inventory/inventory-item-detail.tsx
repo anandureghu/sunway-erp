@@ -1,12 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  Warehouse as WarehouseIcon,
-  AlertTriangle,
-} from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import {
@@ -16,24 +11,42 @@ import {
 } from "@/service/inventoryService";
 import type { Stock, Item, Warehouse } from "@/types/inventory";
 
-// Reusable InfoCard Component
-const InfoCard = ({
+const LabelRow = ({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  highlight?: boolean;
+}) => (
+  <div className="flex justify-between py-3 border-b border-gray-100 text-sm">
+    <span className="text-gray-500">{label}</span>
+    <span
+      className={`font-medium ${
+        highlight ? "text-red-600 font-semibold" : "text-gray-900"
+      }`}
+    >
+      {value}
+    </span>
+  </div>
+);
+
+const Section = ({
   title,
   children,
-  span = "",
 }: {
   title: string;
   children: React.ReactNode;
-  span?: string;
 }) => (
-  <Card className={`hover:shadow-md transition-shadow duration-200 ${span}`}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-xs uppercase tracking-wide text-blue-800 bg-blue-50 px-3 py-2 rounded-md font-medium">
-        {title}
-      </CardTitle>
-    </CardHeader>
-    <CardContent>{children}</CardContent>
-  </Card>
+  <div className="space-y-4 w-full">
+    <h2 className="text-base font-semibold text-gray-900 tracking-tight">
+      {title}
+    </h2>
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      {children}
+    </div>
+  </div>
 );
 
 const InventoryItemDetail = () => {
@@ -47,12 +60,12 @@ const InventoryItemDetail = () => {
 
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Fetch all data in parallel
         const [stockList, itemsList, warehousesList] = await Promise.all([
           listStock(),
           listItems(),
@@ -60,28 +73,22 @@ const InventoryItemDetail = () => {
         ]);
 
         if (!cancelled) {
-          // Enrich stock with item and warehouse details
           const enrichedStock = stockList
             .map((s) => {
               const item = itemsList.find((i) => i.id === s.itemId);
               const warehouse = warehousesList.find(
-                (w) => w.id === s.warehouse_id?.toString()
+                (w) => w.id === s.warehouse_id?.toString(),
               );
 
               if (!item || !warehouse) return null;
 
-              return {
-                ...s,
-                item,
-                warehouse,
-              };
+              return { ...s, item, warehouse };
             })
             .filter(
               (s): s is Stock & { item: Item; warehouse: Warehouse } =>
-                s !== null
+                s !== null,
             );
 
-          // Find the stock by ID
           const foundStock = enrichedStock.find((s) => s.id === id);
 
           if (foundStock) {
@@ -90,10 +97,9 @@ const InventoryItemDetail = () => {
             setError("Stock record not found");
           }
         }
-      } catch (error: any) {
+      } catch (err: any) {
         if (!cancelled) {
-          console.error("Failed to load stock details:", error);
-          setError(error?.message || "Failed to load item details");
+          setError(err?.message || "Failed to load item details");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -107,275 +113,168 @@ const InventoryItemDetail = () => {
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/inventory/stocks")}
-            className="flex items-center gap-2 rounded-full px-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Inventory
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-gray-500">Loading item details...</p>
-          </CardContent>
-        </Card>
+      <div className="p-8 min-h-screen bg-gray-50">
+        <p className="text-center text-gray-500">Loading item details...</p>
       </div>
     );
   }
 
   if (error || !stock) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/inventory/stocks")}
-            className="flex items-center gap-2 rounded-full px-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Inventory
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-gray-500">
-              {error || "Item not found"}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="p-8 min-h-screen bg-gray-50">
+        <p className="text-center text-gray-500">{error || "Item not found"}</p>
       </div>
     );
   }
 
   const { item, warehouse } = stock;
+
+  const isLowStock = stock.quantity <= (item.reorderLevel || 0);
+
   const statusColors = {
     active: "bg-green-100 text-green-800",
     discontinued: "bg-gray-100 text-gray-800",
     out_of_stock: "bg-red-100 text-red-800",
   };
 
-  const isLowStock = stock.quantity <= (item.reorderLevel || 0);
-
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-8 space-y-10 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div>
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={() => navigate("/inventory/stocks")}
-            className="flex items-center gap-2 rounded-full px-4"
+            className="mb-4 px-0 text-sm text-gray-600"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Inventory
           </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">{item.name}</h1>
-            <p className="text-gray-600 text-sm mt-1">Inventory Item Details</p>
+
+          <div className="flex items-center gap-5">
+            {item.imageUrl ? (
+              <img
+                src={item.imageUrl}
+                className="w-[100px] h-[100px] object-cover rounded-full bg-gray-500"
+              />
+            ) : (
+              <div className="w-[100px] h-[100px] flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-[40px] h-[40px]"
+                >
+                  <path d="M4 5V19H20V7H11.5858L9.58579 5H4ZM12.4142 5H21C21.5523 5 22 5.44772 22 6V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H10.4142L12.4142 5ZM10 10.5C10 11.3284 9.32843 12 8.5 12C7.67157 12 7 11.3284 7 10.5C7 9.67157 7.67157 9 8.5 9C9.32843 9 10 9.67157 10 10.5ZM18 17L14 11L7 17H18Z"></path>
+                </svg>
+              </div>
+            )}
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight">
+                {item.name}
+              </h1>
+              <p className="text-sm text-gray-500">
+                {item.sku} • {item.category} • {item.brand || "No Brand"}
+              </p>
+            </div>
           </div>
         </div>
+
+        <Badge
+          variant="outline"
+          className={`${
+            statusColors[item.status] || "bg-gray-100 text-gray-800"
+          } px-3 py-1 rounded-full text-xs font-semibold`}
+        >
+          {item.status.replace("_", " ").toUpperCase()}
+        </Badge>
       </div>
 
-      {/* Item Basic Info Section */}
-      <div className="space-y-4">
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          className="max-w-[300px] max-h-[200px] object-contain"
-        />
-        <h2 className="text-lg font-semibold text-gray-900">Item Basic Info</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <InfoCard title="SKU / Item Code">
-            <div className="flex flex-col">
-              <span className="text-lg font-semibold">{item.sku}</span>
-              {item.barcode && (
-                <span className="text-xs text-gray-500 mt-1">
-                  Barcode: {item.barcode}
-                </span>
-              )}
-            </div>
-          </InfoCard>
+      <div className="flex items-start justify-between gap-5">
+        <Section title="general">
+          <LabelRow label="SKU" value={item.sku} />
+          <LabelRow label="Brand" value={item.brand} />
+          <LabelRow label="Category" value={item.category} />
+        </Section>
 
-          <InfoCard title="Item Name">
-            <span className="text-lg font-semibold">{item.name}</span>
-          </InfoCard>
-
-          <InfoCard title="Item Type">
-            <span className="text-gray-900">{item.itemType || "-"}</span>
-          </InfoCard>
-
-          <InfoCard title="Category">
-            <span className="text-gray-900">{item.category}</span>
-          </InfoCard>
-
-          <InfoCard title="Subcategory">
-            <span className="text-gray-900">{item.subcategory || "-"}</span>
-          </InfoCard>
-
-          <InfoCard title="Brand">
-            <span className="text-gray-900">{item.brand || "-"}</span>
-          </InfoCard>
-        </div>
-      </div>
-
-      <div className="border-b my-4"></div>
-
-      {/* Stock & Warehouse Details Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Stock & Warehouse Details
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <InfoCard title="Location">
-            <div className="flex items-center gap-2">
-              <WarehouseIcon className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-900">{warehouse.location}</span>
-            </div>
-          </InfoCard>
-
-          <InfoCard title="Quantity">
-            <div className="flex flex-col">
-              <span
-                className={`text-lg font-semibold ${
-                  isLowStock ? "text-red-600" : "text-gray-900"
-                }`}
-              >
-                {stock.quantity.toLocaleString()} {item.unit}
-              </span>
-              {isLowStock && (
-                <div className="flex items-center gap-2 text-red-600 text-sm mt-1">
-                  <AlertTriangle className="h-4 w-4" />
-                  Low Stock – Needs Reorder
-                </div>
-              )}
-            </div>
-          </InfoCard>
-
-          <InfoCard title="Available">
-            <span className="text-lg font-semibold text-gray-900">
-              {stock.availableQuantity.toLocaleString()} {item.unit}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Reserved">
-            <span
-              className={`text-lg font-semibold ${
-                stock.reservedQuantity && stock.reservedQuantity > 0
-                  ? "text-amber-600"
-                  : "text-gray-400"
-              }`}
-            >
-              {stock.reservedQuantity
-                ? stock.reservedQuantity.toLocaleString()
-                : "-"}{" "}
-              {stock.reservedQuantity ? item.unit : ""}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Minimum">
-            <span
-              className={`text-gray-900 ${
-                isLowStock ? "text-red-600 font-semibold" : ""
-              }`}
-            >
-              {item.reorderLevel.toLocaleString()} {item.unit}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Maximum">
-            <span className="text-gray-900">
-              {item.maximum
-                ? `${item.maximum.toLocaleString()} ${item.unit}`
-                : "-"}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Serial No.">
-            <span className="text-gray-900">{stock.serialNo || "-"}</span>
-          </InfoCard>
-        </div>
-      </div>
-
-      <div className="border-b my-4"></div>
-
-      {/* Pricing Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Pricing</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <InfoCard title="Retail Price">
-            <span className="text-lg font-semibold">
-              ₹ {item.sellingPrice.toLocaleString()}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Unit Sale">
-            <span className="text-gray-900">{item.unit}</span>
-          </InfoCard>
-
-          <InfoCard title="Unit of Measure">
-            <span className="text-gray-900">{item.unit}</span>
-          </InfoCard>
-        </div>
-      </div>
-
-      <div className="border-b my-4"></div>
-
-      {/* Metadata Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Metadata</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <InfoCard title="Date Received">
-            <span className="text-gray-900">
-              {stock.dateReceived
+        {/* Warehouse */}
+        <Section title="Warehouse Details">
+          <LabelRow label="Location" value={warehouse.location} />
+          <LabelRow label="Serial No." value={stock.serialNo || "-"} />
+          <LabelRow
+            label="Date Received"
+            value={
+              stock.dateReceived
                 ? format(new Date(stock.dateReceived), "MMM dd, yyyy")
-                : "-"}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Sale By Date">
-            <span className="text-gray-900">
-              {stock.saleByDate
-                ? format(new Date(stock.saleByDate), "MMM dd, yyyy")
-                : "-"}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Last Updated">
-            <span className="text-gray-900">
-              {format(new Date(stock.lastUpdated), "MMM dd, yyyy")}
-            </span>
-          </InfoCard>
-
-          <InfoCard title="Updated By">
-            <span className="text-gray-900">{stock.updatedBy || "-"}</span>
-          </InfoCard>
-
-          <InfoCard title="Status">
-            <Badge
-              variant="outline"
-              className={`${
-                statusColors[item.status] || "bg-gray-100 text-gray-800"
-              } px-3 py-1 rounded-full text-xs font-semibold`}
-            >
-              {item.status.replace("_", " ").toUpperCase()}
-            </Badge>
-          </InfoCard>
-        </div>
+                : "-"
+            }
+          />
+        </Section>
       </div>
 
-      <div className="border-b my-4"></div>
+      <div className="flex items-start justify-between gap-5">
+        <Section title="Overview">
+          <LabelRow
+            label="Available Stock"
+            value={`${stock.availableQuantity.toLocaleString()} ${item.unit}`}
+            highlight={isLowStock}
+          />
 
-      {/* Item Description */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Description</h2>
-        <InfoCard title="Item Description" span="md:col-span-2 lg:col-span-3">
-          <p className="text-gray-900">{item.description || "-"}</p>
-        </InfoCard>
+          {isLowStock && (
+            <div className="flex items-center gap-2 text-red-600 text-xs mt-2">
+              <AlertTriangle className="h-4 w-4" />
+              Low stock. Reorder recommended.
+            </div>
+          )}
+
+          <LabelRow
+            label="Reserved"
+            value={
+              stock.reservedQuantity
+                ? `${stock.reservedQuantity.toLocaleString()} ${item.unit}`
+                : "-"
+            }
+          />
+
+          <LabelRow
+            label="Reorder Level"
+            value={`${item.reorderLevel.toLocaleString()} ${item.unit}`}
+          />
+
+          <LabelRow
+            label="Maximum"
+            value={
+              item.maximum
+                ? `${item.maximum.toLocaleString()} ${item.unit}`
+                : "-"
+            }
+          />
+
+          <LabelRow
+            label="Retail Price"
+            value={`₹ ${item.sellingPrice.toLocaleString()}`}
+          />
+        </Section>
+
+        {/* Additional Info */}
+        <Section title="Additional Information">
+          <LabelRow label="Item Type" value={item.itemType || "-"} />
+          <LabelRow label="Subcategory" value={item.subcategory || "-"} />
+          <LabelRow label="Unit of Measure" value={item.unit} />
+          <LabelRow
+            label="Last Updated"
+            value={format(new Date(stock.lastUpdated), "MMM dd, yyyy")}
+          />
+          <LabelRow label="Updated By" value={stock.updatedBy || "-"} />
+        </Section>
       </div>
+
+      {/* Description */}
+      <Section title="Description">
+        <p className="text-sm text-gray-700 leading-relaxed">
+          {item.description || "No description available."}
+        </p>
+      </Section>
     </div>
   );
 };
