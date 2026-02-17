@@ -70,6 +70,19 @@ export default function InvoicesPage({
     );
   }
 
+  const unpaidCount = invoices.filter((inv) => inv.status === "UNPAID").length;
+
+  const paidCount = invoices.filter((inv) => inv.status === "PAID").length;
+
+  const overdueCount = invoices.filter(
+    (inv) => inv.status === "OVERDUE",
+  ).length;
+
+  const draftCount = invoices.filter((inv) => inv.status === "DRAFT").length;
+
+  // No partial payment logic yet
+  const partialCount = 0;
+
   return (
     <div className="p-6">
       {!disableHeader && (
@@ -93,6 +106,46 @@ export default function InvoicesPage({
           </Button>
         </div>
       )}
+
+      {/* Invoice Summary Section */}
+      <div className="grid grid-cols-5 gap-4 mb-6">
+        <div className="rounded-lg border p-4 bg-red-50">
+          <p className="text-sm text-red-600 font-medium">Unpaid (0%)</p>
+          <p className="text-lg font-semibold">
+            {unpaidCount} / {invoices.length}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4 bg-green-50">
+          <p className="text-sm text-green-600 font-medium">Paid (0%)</p>
+          <p className="text-lg font-semibold">
+            {paidCount} / {invoices.length}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4 bg-yellow-50">
+          <p className="text-sm text-yellow-600 font-medium">
+            Partially Paid (0%)
+          </p>
+          <p className="text-lg font-semibold">
+            {partialCount} / {invoices.length}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4 bg-orange-50">
+          <p className="text-sm text-orange-600 font-medium">Overdue (0%)</p>
+          <p className="text-lg font-semibold">
+            {overdueCount} / {invoices.length}
+          </p>
+        </div>
+
+        <div className="rounded-lg border p-4 bg-gray-50">
+          <p className="text-sm text-gray-600 font-medium">Draft (0%)</p>
+          <p className="text-lg font-semibold">
+            {draftCount} / {invoices.length}
+          </p>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>

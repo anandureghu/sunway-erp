@@ -4,6 +4,7 @@ import BudgetPage from "@/modules/finance/budget-page";
 import GLBalancePage from "@/modules/finance/gl-balance-page";
 import JournalPage from "@/modules/finance/journal-page";
 import TransactionPage from "@/modules/finance/transaction-page";
+import CreditNotePage from "./credit-note-page";
 
 const GeneralLedgerPage = () => {
   const { user } = useAuth();
@@ -33,6 +34,11 @@ const GeneralLedgerPage = () => {
       element: ({ companyId }: { companyId: number }) => (
         <BudgetPage companyId={companyId} />
       ),
+    },
+    {
+      value: "credit-note",
+      label: "Credit Notes",
+      element: () => <CreditNotePage />,
     },
   ];
 
