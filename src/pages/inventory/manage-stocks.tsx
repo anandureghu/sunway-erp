@@ -71,7 +71,7 @@ function CreateItemForm({
   const [submitting, setSubmitting] = useState(false);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(
-    null
+    null,
   );
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [showCreateCategoryDialog, setShowCreateCategoryDialog] =
@@ -105,7 +105,7 @@ function CreateItemForm({
               error?.response?.data?.message ||
               error?.message ||
               "Unknown error"
-            }`
+            }`,
           );
           // Set empty array so the UI shows the "no categories" message
           setCategories([]);
@@ -148,7 +148,7 @@ function CreateItemForm({
       console.error("Failed to create category:", error);
       toast.error(
         error?.response?.data?.message ||
-          "Failed to create category. Please try again."
+          "Failed to create category. Please try again.",
       );
     } finally {
       setCreatingCategory(false);
@@ -201,7 +201,7 @@ function CreateItemForm({
         "data",
         new Blob([JSON.stringify(payload)], {
           type: "application/json",
-        })
+        }),
       );
 
       if (data.image) {
@@ -216,7 +216,7 @@ function CreateItemForm({
       console.error("Failed to create item:", error);
       toast.error(
         error?.response?.data?.message ||
-          "Failed to create item. Please try again."
+          "Failed to create item. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -691,7 +691,7 @@ const ManageStocks = () => {
   const [varianceItem, setVarianceItem] = useState<Item | null>(null);
   const [varianceItemSearchQuery, setVarianceItemSearchQuery] = useState("");
   const [varianceSearchResults, setVarianceSearchResults] = useState<Item[]>(
-    []
+    [],
   );
   const varianceWarehouseId = watchVariance("warehouseId");
   const adjustmentQuantity = watchVariance("adjustmentQuantity");
@@ -739,7 +739,7 @@ const ManageStocks = () => {
             .map((stock) => {
               const item = itemsList.find((i) => i.id === stock.itemId);
               const warehouse = warehousesList.find(
-                (w) => w.id === String(stock.warehouse_id)
+                (w) => w.id === String(stock.warehouse_id),
               );
 
               // if (!item || !warehouse) return null;
@@ -752,7 +752,7 @@ const ManageStocks = () => {
             })
             .filter(
               (s): s is Stock & { item: Item; warehouse: Warehouse } =>
-                s !== null
+                s !== null,
             );
 
           setStockData(enrichedStock);
@@ -782,7 +782,7 @@ const ManageStocks = () => {
         (item) =>
           item.name.toLowerCase().includes(lowerQuery) ||
           item.sku.toLowerCase().includes(lowerQuery) ||
-          item.barcode?.toLowerCase().includes(lowerQuery)
+          item.barcode?.toLowerCase().includes(lowerQuery),
       );
       setSearchResults(results);
     } else {
@@ -798,7 +798,7 @@ const ManageStocks = () => {
         (item) =>
           item.name.toLowerCase().includes(lowerQuery) ||
           item.sku.toLowerCase().includes(lowerQuery) ||
-          item.barcode?.toLowerCase().includes(lowerQuery)
+          item.barcode?.toLowerCase().includes(lowerQuery),
       );
       setVarianceSearchResults(results);
     } else {
@@ -809,7 +809,7 @@ const ManageStocks = () => {
   // Get current stock quantity for selected item and warehouse
   const getCurrentStock = (itemId: string, warehouseId: string): number => {
     const stock = stockData.find(
-      (s) => s.itemId === itemId && String(s.warehouse_id) === warehouseId
+      (s) => s.itemId === itemId && String(s.warehouse_id) === warehouseId,
     );
     return stock?.quantity || 0;
   };
@@ -836,7 +836,7 @@ const ManageStocks = () => {
     const existingStockIndex = stockData.findIndex(
       (s) =>
         s.itemId === data.itemId &&
-        s.warehouse_id?.toString() === data.warehouseId
+        s.warehouse_id?.toString() === data.warehouseId,
     );
 
     if (existingStockIndex >= 0) {
@@ -890,7 +890,7 @@ const ManageStocks = () => {
     const existingStockIndex = stockData.findIndex(
       (s) =>
         s.itemId === data.itemId &&
-        s.warehouse_id?.toString() === data.warehouseId
+        s.warehouse_id?.toString() === data.warehouseId,
     );
 
     if (existingStockIndex >= 0) {
@@ -908,7 +908,7 @@ const ManageStocks = () => {
 
       if (newQuantity < 0) {
         alert(
-          "Adjustment would result in negative stock. Please check the quantity."
+          "Adjustment would result in negative stock. Please check the quantity.",
         );
         return;
       }
@@ -954,11 +954,11 @@ const ManageStocks = () => {
   // Calculate stats
   const totalItems = stockData.length;
   const lowStockItems = stockData.filter(
-    (s) => s.quantity <= (s.item?.reorderLevel || 0)
+    (s) => s.quantity <= (s.item?.reorderLevel || 0),
   ).length;
   const totalValue = stockData.reduce(
     (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
-    0
+    0,
   );
 
   return (
@@ -1226,7 +1226,7 @@ const ManageStocks = () => {
                               selectedWarehouseId && selectedItem
                                 ? `${getCurrentStock(
                                     selectedItem.id,
-                                    selectedWarehouseId
+                                    selectedWarehouseId,
                                   )} ${selectedItem.unit}`
                                 : "-"
                             }
@@ -1301,7 +1301,7 @@ const ManageStocks = () => {
                                 .filter(
                                   (po) =>
                                     po.status === "approved" ||
-                                    po.status === "ordered"
+                                    po.status === "ordered",
                                 )
                                 .map((po) => (
                                   <SelectItem key={po.id} value={po.orderNo}>
@@ -1597,7 +1597,7 @@ const ManageStocks = () => {
                           value={
                             getCurrentStock(
                               varianceItem.id,
-                              varianceWarehouseId
+                              varianceWarehouseId,
                             ).toLocaleString() +
                             " " +
                             varianceItem.unit
@@ -1659,7 +1659,7 @@ const ManageStocks = () => {
                                 New Quantity:{" "}
                                 {getCurrentStock(
                                   varianceItem.id,
-                                  varianceWarehouseId
+                                  varianceWarehouseId,
                                 ) + (adjustmentQuantity || 0)}{" "}
                                 {varianceItem.unit}
                               </p>

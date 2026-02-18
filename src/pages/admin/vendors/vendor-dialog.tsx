@@ -29,6 +29,7 @@ export const VendorDialog = ({
   const isEditMode = !!vendor;
 
   const handleSubmit = async (data: VendorFormData) => {
+    console.log(data);
     try {
       setSubmitting(true);
       const payload = {
@@ -44,24 +45,32 @@ export const VendorDialog = ({
       // Map the response to ensure consistent field names
       const mappedVendor = {
         ...res.data,
-        createdAt: res.data.createdAt || res.data.created_at || res.data.dateCreated || res.data.date_created,
-        is1099Vendor: res.data.is1099Vendor !== undefined ? res.data.is1099Vendor :
-                     res.data.is_1099_vendor !== undefined ? res.data.is_1099_vendor :
-                     res.data.is1099 !== undefined ? res.data.is1099 :
-                     payload.is1099Vendor ?? false,
+        createdAt:
+          res.data.createdAt ||
+          res.data.created_at ||
+          res.data.dateCreated ||
+          res.data.date_created,
+        is1099Vendor:
+          res.data.is1099Vendor !== undefined
+            ? res.data.is1099Vendor
+            : res.data.is_1099_vendor !== undefined
+              ? res.data.is_1099_vendor
+              : res.data.is1099 !== undefined
+                ? res.data.is1099
+                : (payload.is1099Vendor ?? false),
       };
 
       toast.success(
         isEditMode
           ? "Supplier updated successfully"
-          : "Supplier added successfully"
+          : "Supplier added successfully",
       );
       onSuccess(mappedVendor, isEditMode ? "edit" : "add");
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting vendor:", error);
       toast.error(
-        `Failed to ${isEditMode ? "update" : "add"} supplier. Please try again.`
+        `Failed to ${isEditMode ? "update" : "add"} supplier. Please try again.`,
       );
     } finally {
       setSubmitting(false);
@@ -99,4 +108,3 @@ export const VendorDialog = ({
     </Dialog>
   );
 };
-

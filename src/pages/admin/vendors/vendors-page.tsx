@@ -37,40 +37,20 @@ export default function VendorsPage() {
       const res = await apiClient.get("/vendors");
       const mappedVendors = res.data.map((vendor: any) => {
         // Debug: Log first vendor to see what fields are available
-        if (res.data.indexOf(vendor) === 0) {
-          console.log("Sample vendor data from API:", vendor);
-          console.log("All vendor keys:", Object.keys(vendor));
-        }
 
         const mapped = {
           ...vendor,
           // Map createdAt from various possible field names
-          createdAt:
-            vendor.createdAt ||
-            vendor.created_at ||
-            vendor.dateCreated ||
-            vendor.date_created ||
-            vendor.createdDate ||
-            vendor.created_date,
+          // createdAt:
+          //   vendor.createdAt ||
+          //   vendor.created_at ||
+          //   vendor.dateCreated ||
+          //   vendor.date_created ||
+          //   vendor.createdDate ||
+          //   vendor.created_date,
           // Map is1099Vendor from various possible field names
-          is1099Vendor:
-            vendor.is1099Vendor !== undefined
-              ? vendor.is1099Vendor
-              : vendor.is_1099_vendor !== undefined
-              ? vendor.is_1099_vendor
-              : vendor.is1099 !== undefined
-              ? vendor.is1099
-              : vendor.is_1099 !== undefined
-              ? vendor.is_1099
-              : false, // Default to false if not provided
+          is1099Vendor: vendor["1099Vendor"],
         };
-
-        if (res.data.indexOf(vendor) === 0) {
-          console.log("Mapped vendor data:", mapped);
-          console.log("Mapped createdAt:", mapped.createdAt);
-          console.log("Mapped is1099Vendor:", mapped.is1099Vendor);
-        }
-
         return mapped;
       });
       setVendors(mappedVendors);
@@ -93,7 +73,7 @@ export default function VendorsPage() {
     } else {
       // For edit, update the local state but also refresh to ensure we have latest data
       setVendors((prev) =>
-        prev.map((v) => (v.id === updated.id ? updated : v))
+        prev.map((v) => (v.id === updated.id ? updated : v)),
       );
       // Also refresh to get any server-computed fields like createdAt
       fetchVendors();
@@ -172,7 +152,9 @@ export default function VendorsPage() {
         (vendorTypeFilter === "1099" && vendor.is1099Vendor === true) ||
         (vendorTypeFilter === "non1099" && vendor.is1099Vendor !== true);
 
-      return matchesSearch && matchesStatus && matchesCountry && matchesVendorType;
+      return (
+        matchesSearch && matchesStatus && matchesCountry && matchesVendorType
+      );
     });
   }, [vendors, searchQuery, statusFilter, countryFilter, vendorTypeFilter]);
 
@@ -325,17 +307,22 @@ export default function VendorsPage() {
             </div>
           ) : (
             <>
-              <DataTable
-                columns={columns}
-                data={paginatedVendors}
-              />
+              <DataTable columns={columns} data={paginatedVendors} />
               {/* Pagination */}
               {totalPages > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
-                    Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredVendors.length)}-
-                    {Math.min(currentPage * itemsPerPage, filteredVendors.length)} of{" "}
-                    {filteredVendors.length} suppliers
+                    Showing{" "}
+                    {Math.min(
+                      (currentPage - 1) * itemsPerPage + 1,
+                      filteredVendors.length,
+                    )}
+                    -
+                    {Math.min(
+                      currentPage * itemsPerPage,
+                      filteredVendors.length,
+                    )}{" "}
+                    of {filteredVendors.length} suppliers
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -353,11 +340,15 @@ export default function VendorsPage() {
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className={currentPage === page ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500" : "min-w-[40px]"}
+                          className={
+                            currentPage === page
+                              ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                              : "min-w-[40px]"
+                          }
                         >
                           {page}
                         </Button>
-                      )
+                      ),
                     )}
                     <Button
                       variant="outline"

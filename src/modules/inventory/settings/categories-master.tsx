@@ -39,7 +39,7 @@ const CategoriesMaster = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(
-    null
+    null,
   );
   // Categories management state
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -83,7 +83,7 @@ const CategoriesMaster = () => {
     } catch (error: any) {
       console.error("Failed to load category details:", error);
       toast.error(
-        error?.response?.data?.message || "Failed to load category details."
+        error?.response?.data?.message || "Failed to load category details.",
       );
     }
   };
@@ -110,7 +110,7 @@ const CategoriesMaster = () => {
       toast.success(
         selectedCategoryForDetails
           ? "Subcategory deleted successfully!"
-          : "Category deleted successfully!"
+          : "Category deleted successfully!",
       );
 
       // Reload categories
@@ -126,7 +126,7 @@ const CategoriesMaster = () => {
         errorMessage.includes("child")
       ) {
         toast.error(
-          "Cannot delete category. This category has subcategories. Please delete all subcategories first."
+          "Cannot delete category. This category has subcategories. Please delete all subcategories first.",
         );
       } else {
         toast.error(errorMessage);
@@ -170,7 +170,7 @@ const CategoriesMaster = () => {
         toast.success(
           editingCategory.parentId
             ? "Subcategory updated successfully!"
-            : "Category updated successfully!"
+            : "Category updated successfully!",
         );
       } else {
         // Generate code from name for new categories
@@ -188,7 +188,7 @@ const CategoriesMaster = () => {
         toast.success(
           data.parentId
             ? "Subcategory created successfully!"
-            : "Category created successfully!"
+            : "Category created successfully!",
         );
       }
 
@@ -213,11 +213,11 @@ const CategoriesMaster = () => {
           (errorMessage.toLowerCase().includes("code") ? "code" : "name");
         if (conflictField === "code") {
           toast.error(
-            `Category code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`
+            `Category code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`,
           );
         } else {
           toast.error(
-            `Category name "${data.name}" already exists. Please use a different name.`
+            `Category name "${data.name}" already exists. Please use a different name.`,
           );
         }
       } else if (errorMessage) {
@@ -226,7 +226,7 @@ const CategoriesMaster = () => {
         toast.error(
           editingCategory
             ? "Failed to update category. Please try again."
-            : "Failed to create category. Please try again."
+            : "Failed to create category. Please try again.",
         );
       }
     }
@@ -328,7 +328,7 @@ const CategoriesMaster = () => {
           onClick={handleNewCategory}
           className="bg-orange-500 hover:bg-orange-600 text-white"
         >
-          <Plus className="h-4 w-4 mr-2" />+ New Category
+          <Plus className="h-4 w-4 mr-2" /> New Category
         </Button>
       </div>
 
@@ -413,7 +413,7 @@ const CategoriesMaster = () => {
                   handleEditCategory,
                   handleDeleteCategory,
                   // handleNewSubcategory,
-                  categories
+                  categories,
                 )}
                 data={paginatedCategories}
                 getSubRows={(row) => {
@@ -428,12 +428,12 @@ const CategoriesMaster = () => {
                     Showing{" "}
                     {Math.min(
                       (currentPage - 1) * itemsPerPage + 1,
-                      filteredCategories.length
+                      filteredCategories.length,
                     )}
                     -
                     {Math.min(
                       currentPage * itemsPerPage,
-                      filteredCategories.length
+                      filteredCategories.length,
                     )}{" "}
                     of {filteredCategories.length} categories
                   </div>
@@ -461,7 +461,7 @@ const CategoriesMaster = () => {
                         >
                           {page}
                         </Button>
-                      )
+                      ),
                     )}
                     <Button
                       variant="outline"
@@ -544,7 +544,7 @@ const CategoriesMaster = () => {
                   onValueChange={(value) =>
                     setCategoryValue(
                       "parentId",
-                      value === "none" ? undefined : value
+                      value === "none" ? undefined : value,
                     )
                   }
                   value={categoryParentId || "none"}

@@ -31,7 +31,7 @@ const WarehouseMaster = () => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
-    null
+    null,
   );
 
   // TODO: set loading and error states properly
@@ -100,11 +100,11 @@ const WarehouseMaster = () => {
           (errorMessage.toLowerCase().includes("code") ? "code" : "name");
         if (conflictField === "code") {
           toast.error(
-            `Warehouse code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`
+            `Warehouse code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`,
           );
         } else {
           toast.error(
-            `Warehouse name "${data.name}" already exists. Please use a different name.`
+            `Warehouse name "${data.name}" already exists. Please use a different name.`,
           );
         }
       } else if (errorMessage) {
@@ -113,7 +113,7 @@ const WarehouseMaster = () => {
         toast.error(
           editingWarehouse
             ? "Failed to update warehouse. Please try again."
-            : "Failed to create warehouse. Please try again."
+            : "Failed to create warehouse. Please try again.",
         );
       }
     }
@@ -122,6 +122,7 @@ const WarehouseMaster = () => {
   const handleEditWarehouse = (warehouse: Warehouse) => {
     setEditingWarehouse(warehouse);
     resetWarehouse({
+      ...warehouse,
       name: warehouse.name,
       status: warehouse.status,
     });
@@ -142,7 +143,7 @@ const WarehouseMaster = () => {
       console.error("Failed to delete warehouse:", error);
       toast.error(
         error?.response?.data?.message ||
-          "Failed to delete warehouse. Please try again."
+          "Failed to delete warehouse. Please try again.",
       );
     }
   };
@@ -228,7 +229,7 @@ const WarehouseMaster = () => {
           onClick={handleNewWarehouse}
           className="bg-orange-500 hover:bg-orange-600 text-white"
         >
-          <Plus className="h-4 w-4 mr-2" />+ New Warehouse
+          <Plus className="h-4 w-4 mr-2" /> New Warehouse
         </Button>
       </div>
 
@@ -495,7 +496,7 @@ const WarehouseMaster = () => {
               <DataTable
                 columns={createWarehouseColumns(
                   handleEditWarehouse,
-                  handleDeleteWarehouse
+                  handleDeleteWarehouse,
                 )}
                 data={paginatedWarehouses}
               />
@@ -506,12 +507,12 @@ const WarehouseMaster = () => {
                     Showing{" "}
                     {Math.min(
                       (currentPage - 1) * itemsPerPage + 1,
-                      filteredWarehouses.length
+                      filteredWarehouses.length,
                     )}
                     -
                     {Math.min(
                       currentPage * itemsPerPage,
-                      filteredWarehouses.length
+                      filteredWarehouses.length,
                     )}{" "}
                     of {filteredWarehouses.length} warehouses
                   </div>
@@ -539,7 +540,7 @@ const WarehouseMaster = () => {
                         >
                           {page}
                         </Button>
-                      )
+                      ),
                     )}
                     <Button
                       variant="outline"

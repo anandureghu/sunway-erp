@@ -27,6 +27,8 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [countryFilter, setCountryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [cityFilter, setCityFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { pathname } = useLocation();
@@ -71,7 +73,7 @@ export default function CustomersPage() {
       setCustomers((prev) => [...prev, updated]);
     } else {
       setCustomers((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c))
+        prev.map((c) => (c.id === updated.id ? updated : c)),
       );
     }
     setSelected(null);
@@ -106,9 +108,14 @@ export default function CustomersPage() {
   const stats = useMemo(() => {
     const total = customers.length;
     const active = customers.filter((c) => {
-      const isActive = c.active !== undefined ? c.active : 
-                       (c as any).isActive !== undefined ? (c as any).isActive :
-                       (c as any).is_active !== undefined ? (c as any).is_active : true;
+      const isActive =
+        c.active !== undefined
+          ? c.active
+          : (c as any).isActive !== undefined
+            ? (c as any).isActive
+            : (c as any).is_active !== undefined
+              ? (c as any).is_active
+              : true;
       return isActive !== false;
     }).length;
     const inactive = total - active;
@@ -122,6 +129,14 @@ export default function CustomersPage() {
       if (c.country) countrySet.add(c.country);
     });
     return Array.from(countrySet).sort();
+  }, [customers]);
+
+  const cities = useMemo(() => {
+    const citySet = new Set<string>();
+    customers.forEach((c) => {
+      if (c.city) citySet.add(c.city);
+    });
+    return Array.from(citySet).sort();
   }, [customers]);
 
   const columns = getCustomerColumns({
@@ -141,9 +156,14 @@ export default function CustomersPage() {
         (customer.phoneNo?.toLowerCase() ?? "").includes(query) ||
         (customer.city?.toLowerCase() ?? "").includes(query);
 
-      const isActive = customer.active !== undefined ? customer.active :
-                       (customer as any).isActive !== undefined ? (customer as any).isActive :
-                       (customer as any).is_active !== undefined ? (customer as any).is_active : true;
+      const isActive =
+        customer.active !== undefined
+          ? customer.active
+          : (customer as any).isActive !== undefined
+            ? (customer as any).isActive
+            : (customer as any).is_active !== undefined
+              ? (customer as any).is_active
+              : true;
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -153,9 +173,27 @@ export default function CustomersPage() {
       const matchesCountry =
         countryFilter === "all" || customer.country === countryFilter;
 
-      return matchesSearch && matchesStatus && matchesCountry;
+      const matchesCity = cityFilter === "all" || customer.city === cityFilter;
+
+      const matchesType =
+        typeFilter === "all" || customer.customerType === typeFilter;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesCountry &&
+        matchesCity &&
+        matchesType
+      );
     });
-  }, [customers, searchQuery, statusFilter, countryFilter]);
+  }, [
+    customers,
+    searchQuery,
+    statusFilter,
+    countryFilter,
+    cityFilter,
+    typeFilter,
+  ]);
 
   // Pagination
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
@@ -179,7 +217,7 @@ export default function CustomersPage() {
     );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 w-full">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Customers</h1>
         <Button
@@ -270,6 +308,31 @@ export default function CustomersPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="retail">Retail</SelectItem>
+                  <SelectItem value="wholesale">Wholesale</SelectItem>
+                  <SelectItem value="corporate">Corporate</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={cityFilter} onValueChange={setCityFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Cities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -281,17 +344,22 @@ export default function CustomersPage() {
             </div>
           ) : (
             <>
-              <DataTable
-                columns={columns}
-                data={paginatedCustomers}
-              />
+              <DataTable columns={columns} data={paginatedCustomers} />
               {/* Pagination */}
               {totalPages > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="text-sm text-muted-foreground">
-                    Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredCustomers.length)}-
-                    {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of{" "}
-                    {filteredCustomers.length} customers
+                    Showing{" "}
+                    {Math.min(
+                      (currentPage - 1) * itemsPerPage + 1,
+                      filteredCustomers.length,
+                    )}
+                    -
+                    {Math.min(
+                      currentPage * itemsPerPage,
+                      filteredCustomers.length,
+                    )}{" "}
+                    of {filteredCustomers.length} customers
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -309,11 +377,15 @@ export default function CustomersPage() {
                           variant={currentPage === page ? "default" : "outline"}
                           size="sm"
                           onClick={() => setCurrentPage(page)}
-                          className={currentPage === page ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500" : "min-w-[40px]"}
+                          className={
+                            currentPage === page
+                              ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                              : "min-w-[40px]"
+                          }
                         >
                           {page}
                         </Button>
-                      )
+                      ),
                     )}
                     <Button
                       variant="outline"

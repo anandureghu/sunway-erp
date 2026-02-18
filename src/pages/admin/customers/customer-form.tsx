@@ -70,7 +70,9 @@ export const CustomerForm = ({
             name="customerName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Customer Name <span className="text-red-500">*</span></FormLabel>
+                <FormLabel>
+                  Customer Name <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Customer Name" {...field} />
                 </FormControl>
@@ -100,7 +102,11 @@ export const CustomerForm = ({
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="email@example.com" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="email@example.com"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -179,7 +185,10 @@ export const CustomerForm = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Currency Code</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || "USD"}>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value || "USD"}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select currency" />
@@ -211,7 +220,7 @@ export const CustomerForm = ({
                     {...field}
                     onChange={(e) =>
                       field.onChange(
-                        e.target.value ? Number(e.target.value) : 0
+                        e.target.value ? Number(e.target.value) : 0,
                       )
                     }
                   />
@@ -290,6 +299,33 @@ export const CustomerForm = ({
               </FormItem>
             )}
           />
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">
+              Status <span className="text-red-500">*</span>
+            </label>
+            <Select
+              // onValueChange={(value) =>
+              //   resetWarehouse({
+              //     ...watchWarehouse(),
+              //     status: value as "active" | "inactive",
+              //   })
+              // }
+              // value={watchWarehouse("status")}
+              value={form.watch("isActive") ? "active" : "inactive"}
+              onValueChange={(val) => {
+                form.setValue("isActive", val === "active" ? true : false);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>
@@ -299,4 +335,3 @@ export const CustomerForm = ({
     </Form>
   );
 };
-
