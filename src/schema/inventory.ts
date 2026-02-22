@@ -1,40 +1,81 @@
 import { z } from "zod";
+export const ITEM_SCHEMA = z
+  .object({
+    id: z.string().optional(),
 
-// Item Schema
-export const ITEM_SCHEMA = z.object({
-  sku: z.string().min(1, "SKU is required"),
-  name: z.string().min(1, "Item name is required"),
-  description: z.string().optional(),
-  itemType: z.string().optional(), // Item Type (e.g., Raw Material, Finished Good)
-  category: z.string().min(1, "Category is required"),
-  subcategory: z.string().optional(),
-  brand: z.string().optional(), // Brand name
-  unit: z.enum([
-    "pcs",
-    "kg",
-    "g",
-    "box",
-    "pallet",
-    "liter",
-    "meter",
-    "carton",
-    "bag",
-    "bucket",
-  ]),
-  warehouse: z.number().min(1, "Warehouse location is required"), // Warehouse
-  quantity: z.number().min(0, "Quantity must be positive"), // Initial quantity
-  costPrice: z.number().min(0, "Cost price must be positive"),
-  sellingPrice: z.number().min(0, "Selling price must be positive"),
-  reorderLevel: z.number().min(0, "Reorder level must be positive"),
-  reorderQuantity: z.number().min(0).optional(),
-  status: z.enum(["active", "discontinued", "out_of_stock"]),
-  barcode: z.string().optional(),
-  rfidTag: z.string().optional(),
-  image: z
-    .any()
-    .optional()
-    .refine((file) => !file || file instanceof File, "Invalid image file"),
-});
+    sku: z.string().optional(),
+    name: z.string().min(1),
+    itemType: z.string().optional(),
+    category: z.string().min(1),
+    subcategory: z.string().optional(),
+    brand: z.string().optional(),
+    description: z.string().optional(),
+
+    unit: z
+      .enum([
+        "pcs",
+        "kg",
+        "g",
+        "box",
+        "pallet",
+        "liter",
+        "meter",
+        "carton",
+        "bag",
+        "bucket",
+      ])
+      .optional(),
+
+    warehouse: z.number().min(1),
+
+    quantity: z.number().optional(),
+    reorderLevel: z.number().optional(),
+
+    costPrice: z.number().min(0),
+    sellingPrice: z.number().min(0),
+
+    status: z.enum(["active", "discontinued", "out_of_stock"]),
+
+    barcode: z.string().optional(),
+    image: z.any().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const isEdit = !!data.id;
+
+    if (!isEdit) {
+      if (!data.sku) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "SKU is required",
+          path: ["sku"],
+        });
+      }
+
+      if (!data.unit) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Unit is required",
+          path: ["unit"],
+        });
+      }
+
+      if (data.quantity === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Initial quantity is required",
+          path: ["quantity"],
+        });
+      }
+
+      if (data.reorderLevel === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Reorder level is required",
+          path: ["reorderLevel"],
+        });
+      }
+    }
+  });
 
 // Warehouse Schema
 export const WAREHOUSE_SCHEMA = z.object({
@@ -108,6 +149,7 @@ export const CATEGORY_SCHEMA = z.object({
 
 // Export types from schemas
 export type ItemFormData = z.infer<typeof ITEM_SCHEMA>;
+export type ItemFormValues = z.infer<typeof ITEM_SCHEMA>;
 export type WarehouseFormData = z.infer<typeof WAREHOUSE_SCHEMA>;
 export type ReceiveItemFormData = z.infer<typeof RECEIVE_ITEM_SCHEMA>;
 export type StockTransferFormData = z.infer<typeof STOCK_TRANSFER_SCHEMA>;

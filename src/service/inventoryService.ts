@@ -11,6 +11,7 @@ import type {
   WarehouseUpdateDTO,
   Id,
 } from "@/service/erpApiTypes";
+import type { ItemFormData } from "@/schema/inventory";
 
 function normalizeStatus(status?: string) {
   return (status || "").toLowerCase();
@@ -77,8 +78,8 @@ function toItem(dto: ItemResponseDTO): Item {
       normalizeStatus(dto.status) === "discontinued"
         ? "discontinued"
         : normalizeStatus(dto.status) === "out_of_stock"
-        ? "out_of_stock"
-        : "active",
+          ? "out_of_stock"
+          : "active",
     barcode: dto.barcode || undefined,
     rfidTag: undefined,
     createdAt: dto.createdAt || "",
@@ -90,7 +91,7 @@ function toItem(dto: ItemResponseDTO): Item {
 // ---- Categories ----
 export async function listCategories(): Promise<ItemCategory[]> {
   const res = await apiClient.get<CategoryResponseDTO[]>(
-    "/inventory/categories"
+    "/inventory/categories",
   );
   return (res.data || []).map(toCategory);
 }
@@ -98,25 +99,25 @@ export async function listCategories(): Promise<ItemCategory[]> {
 export async function createCategory(payload: CategoryCreateDTO) {
   const res = await apiClient.post<CategoryResponseDTO>(
     "/inventory/categories",
-    payload
+    payload,
   );
   return toCategory(res.data);
 }
 
 export async function updateCategory(
   id: Id | string,
-  payload: CategoryUpdateDTO
+  payload: CategoryUpdateDTO,
 ) {
   const res = await apiClient.put<CategoryResponseDTO>(
     `/inventory/categories/${id}`,
-    payload
+    payload,
   );
   return toCategory(res.data);
 }
 
 export async function getCategory(id: Id | string): Promise<ItemCategory> {
   const res = await apiClient.get<CategoryResponseDTO>(
-    `/inventory/categories/${id}`
+    `/inventory/categories/${id}`,
   );
   return toCategory(res.data);
 }
@@ -128,7 +129,7 @@ export async function deleteCategory(id: Id | string) {
 // ---- Warehouses ----
 export async function listWarehouses(): Promise<Warehouse[]> {
   const res = await apiClient.get<WarehouseResponseDTO[]>(
-    "/inventory/warehouses"
+    "/inventory/warehouses",
   );
   return (res.data || []).map(toWarehouse);
 }
@@ -136,25 +137,25 @@ export async function listWarehouses(): Promise<Warehouse[]> {
 export async function createWarehouse(payload: WarehouseCreateDTO) {
   const res = await apiClient.post<WarehouseResponseDTO>(
     "/inventory/warehouses",
-    payload
+    payload,
   );
   return toWarehouse(res.data);
 }
 
 export async function updateWarehouse(
   id: Id | string,
-  payload: WarehouseUpdateDTO
+  payload: WarehouseUpdateDTO,
 ) {
   const res = await apiClient.put<WarehouseResponseDTO>(
     `/inventory/warehouses/${id}`,
-    payload
+    payload,
   );
   return toWarehouse(res.data);
 }
 
 export async function getWarehouse(id: Id | string): Promise<Warehouse> {
   const res = await apiClient.get<WarehouseResponseDTO>(
-    `/inventory/warehouses/${id}`
+    `/inventory/warehouses/${id}`,
   );
   return toWarehouse(res.data);
 }
@@ -164,10 +165,15 @@ export async function deleteWarehouse(id: Id | string) {
 }
 
 // ---- Items ----
-export async function listItems(): Promise<Item[]> {
+export async function listItems(): Promise<ItemResponseDTO[]> {
   const res = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
-  return (res.data || []).map(toItem);
+  return res.data || [];
 }
+
+export const getItemById = async (id: string) => {
+  const res = await apiClient.get<ItemResponseDTO>(`/inventory/items/${id}`);
+  return res.data;
+};
 
 // export async function createItem(payload: ItemCreateDTO) {
 //   const res = await apiClient.post<ItemResponseDTO>(
@@ -183,15 +189,15 @@ export const createItem = async (formData: FormData) => {
       "Content-Type": "multipart/form-data",
     },
   });
-  return toItem(res.data);
+  return res.data;
 };
 
-export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
+export async function updateItem(id: Id | string, payload: FormData) {
   const res = await apiClient.put<ItemResponseDTO>(
     `/inventory/items/${id}`,
-    payload
+    payload,
   );
-  return toItem(res.data);
+  return res.data;
 }
 
 // ---- Stock ----
@@ -217,7 +223,7 @@ export type StockResponseDTO = {
 function toStock(
   dto: StockResponseDTO,
   itemId: string,
-  warehouseId: string
+  warehouseId: string,
 ): Stock {
   return {
     id: String(dto.id || `${itemId}-${warehouseId}`),
@@ -242,20 +248,19 @@ export async function listStock(): Promise<Stock[]> {
     // Try dedicated stock endpoint
     const res = await apiClient.get<StockResponseDTO[]>("/inventory/stock");
     return (res.data || []).map((s) =>
-      toStock(s, String(s.itemId || ""), String(s.warehouseId || ""))
+      toStock(s, String(s.itemId || ""), String(s.warehouseId || "")),
     );
   } catch (error: any) {
     // If stock endpoint doesn't exist (404) or fails (500), fetch items and create stock from item data
     const status = error?.response?.status;
     if (status === 404 || status === 500) {
       console.warn(
-        `Stock endpoint returned ${status}, falling back to items-based stock creation`
+        `Stock endpoint returned ${status}, falling back to items-based stock creation`,
       );
 
       // Fetch items directly from API to get quantity/available/reserved data from DTOs
-      const itemsRes = await apiClient.get<ItemResponseDTO[]>(
-        "/inventory/items"
-      );
+      const itemsRes =
+        await apiClient.get<ItemResponseDTO[]>("/inventory/items");
       const itemsList = itemsRes.data || [];
 
       // Create stock records from items

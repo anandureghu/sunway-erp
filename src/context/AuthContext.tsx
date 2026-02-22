@@ -5,6 +5,8 @@ import { apiClient } from "@/service/apiClient";
 import type { Employee, Role } from "@/types/hr";
 import { useAppDispatch } from "@/store/store";
 import { setAdminView } from "@/store/uiSlice";
+import type { Company } from "@/types/company";
+import { toast } from "sonner";
 
 // JWT shape differs between environments/backends.
 // Keep this type permissive and guard at runtime.
@@ -24,6 +26,7 @@ type AuthContextType = {
   login: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  company: Company | null;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -33,12 +36,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useAppDispatch();
 
   const [user, setUser] = useState<Employee | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(
-    localStorage.getItem("accessToken")
+    localStorage.getItem("accessToken"),
   );
   const [refreshToken, setRefreshToken] = useState<string | null>(
-    localStorage.getItem("refreshToken")
+    localStorage.getItem("refreshToken"),
   );
+
+  const fetchCompany = async (id: string) => {
+    try {
+      const res = await apiClient.get(`/companies/${id}`);
+      setCompany(res.data);
+    } catch (err) {
+      console.error("fetchCompany:", err);
+      toast.error("Failed to load company");
+    }
+  };
 
   const applyUserFromToken = (token: string) => {
     const decoded: DecodedToken = jwtDecode(token);
@@ -59,10 +73,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (decoded.userId != null) {
       apiClient
         .get("/users/" + decoded.userId)
-        .then((response) => setUser(response.data))
+        .then((response) => {
+          setUser(response.data);
+          if (response.data.companyId) {
+            fetchCompany(response.data.companyId);
+          }
+        })
         .catch((e) => {
           // Don't hard-logout on profile fetch failure; token may still be valid.
-          console.warn("Failed to load user profile:", e?.response?.status || e);
+          console.warn(
+            "Failed to load user profile:",
+            e?.response?.status || e,
+          );
         });
     }
   };
@@ -70,9 +92,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   /** Initialize session on app start */
   useEffect(() => {
     if (accessToken) {
-      apiClient.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${accessToken}`;
+      apiClient.defaults.headers.common["Authorization"] =
+        `Bearer ${accessToken}`;
 
       try {
         applyUserFromToken(accessToken);
@@ -95,9 +116,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (expiryTime <= now) {
         refreshAccessToken();
       } else {
-        const timeout = setTimeout(() => {
-          refreshAccessToken();
-        }, expiryTime - now - 5000); // refresh 5s before expiry
+        const timeout = setTimeout(
+          () => {
+            refreshAccessToken();
+          },
+          expiryTime - now - 5000,
+        ); // refresh 5s before expiry
 
         return () => clearTimeout(timeout);
       }
@@ -115,9 +139,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem("refreshToken", refreshToken);
 
     // ✅ Set token to Axios default header
-    apiClient.defaults.headers.common[
-      "Authorization"
-    ] = `Bearer ${accessToken}`;
+    apiClient.defaults.headers.common["Authorization"] =
+      `Bearer ${accessToken}`;
 
     try {
       applyUserFromToken(accessToken);
@@ -142,9 +165,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem("accessToken", newAccessToken);
 
         // ✅ Update Axios default header here too
-        apiClient.defaults.headers.common[
-          "Authorization"
-        ] = `Bearer ${newAccessToken}`;
+        apiClient.defaults.headers.common["Authorization"] =
+          `Bearer ${newAccessToken}`;
       } else {
         logout();
       }
@@ -177,6 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         refreshToken,
         login,
         logout,
+        company,
         isAuthenticated: !!accessToken,
       }}
     >

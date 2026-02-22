@@ -4,19 +4,10 @@ import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { STOCK_COLUMNS } from "@/lib/columns/inventory-columns";
-import { getStockWithDetails } from "@/lib/inventory-data";
-import {
-  createItem,
-  listCategories,
-  createCategory,
-  listItems,
-  listWarehouses,
-  listStock,
-} from "@/service/inventoryService";
-import type { ItemCategory, Item, Warehouse, Stock } from "@/types/inventory";
-import { toast } from "sonner";
+import { listItems, listWarehouses } from "@/service/inventoryService";
+import type { Warehouse } from "@/types/inventory";
 import { purchaseOrders } from "@/lib/purchase-data";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -37,8 +28,6 @@ import {
   type ReceiveItemFormData,
   STOCK_ADJUSTMENT_SCHEMA,
   type StockAdjustmentFormData,
-  ITEM_SCHEMA,
-  type ItemFormData,
 } from "@/schema/inventory";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,593 +46,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-
-// Create Item Form Component
-function CreateItemForm({
-  onSuccess,
-  onCancel,
-  warehouses,
-}: {
-  onSuccess: (item: Item) => void;
-  onCancel: () => void;
-  warehouses: Warehouse[];
-}) {
-  const [submitting, setSubmitting] = useState(false);
-  const [categories, setCategories] = useState<ItemCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(
-    null,
-  );
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [showCreateCategoryDialog, setShowCreateCategoryDialog] =
-    useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [creatingCategory, setCreatingCategory] = useState(false);
-
-  // Load categories from API
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoadingCategories(true);
-        const cats = await listCategories();
-        if (!cancelled) {
-          setCategories(cats);
-          if (cats.length === 0) {
-            console.warn("No categories returned from API");
-          }
-        }
-      } catch (error: any) {
-        console.error("Failed to load categories:", error);
-        console.error("Error details:", {
-          status: error?.response?.status,
-          data: error?.response?.data,
-          message: error?.message,
-        });
-        if (!cancelled) {
-          toast.error(
-            `Failed to load categories: ${
-              error?.response?.data?.message ||
-              error?.message ||
-              "Unknown error"
-            }`,
-          );
-          // Set empty array so the UI shows the "no categories" message
-          setCategories([]);
-        }
-      } finally {
-        if (!cancelled) setLoadingCategories(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Handle creating a new category
-  const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) {
-      toast.error("Please enter a category name");
-      return;
-    }
-
-    try {
-      setCreatingCategory(true);
-      const newCategory = await createCategory({
-        name: newCategoryName.trim(),
-        code: newCategoryName.trim().toUpperCase().replace(/\s+/g, "_"),
-      });
-      toast.success("Category created successfully!");
-
-      // Reload categories
-      const cats = await listCategories();
-      setCategories(cats);
-
-      // Set the new category as selected
-      setValue("category", newCategory.name);
-
-      // Reset form
-      setNewCategoryName("");
-      setShowCreateCategoryDialog(false);
-    } catch (error: any) {
-      console.error("Failed to create category:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to create category. Please try again.",
-      );
-    } finally {
-      setCreatingCategory(false);
-    }
-  };
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<ItemFormData>({
-    resolver: zodResolver(ITEM_SCHEMA),
-    defaultValues: {
-      status: "active",
-      unit: "pcs",
-      costPrice: 0,
-      sellingPrice: 0,
-      reorderLevel: 0,
-    },
-  });
-
-  const onSubmit = async (data: ItemFormData) => {
-    try {
-      setSubmitting(true);
-
-      const formData = new FormData();
-
-      // JSON payload
-      const payload = {
-        sku: data.sku?.toUpperCase(),
-        name: data.name,
-        description: data.description,
-        type: data.itemType,
-        category: data.category,
-        subCategory: data.subcategory,
-        brand: data.brand,
-        warehouse: data.warehouse,
-        quantity: data.quantity || 0,
-        costPrice: data.costPrice || 0,
-        sellingPrice: data.sellingPrice || 0,
-        unitMeasure: data.unit || "pcs",
-        reorderLevel: data.reorderLevel || 0,
-        status: data.status || "active",
-        barcode: data.barcode,
-      };
-
-      formData.append(
-        "data",
-        new Blob([JSON.stringify(payload)], {
-          type: "application/json",
-        }),
-      );
-
-      if (data.image) {
-        formData.append("image", data.image);
-      }
-
-      const createdItem = await createItem(formData);
-
-      toast.success("Item created successfully!");
-      onSuccess(createdItem);
-    } catch (error: any) {
-      console.error("Failed to create item:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to create item. Please try again.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <label className="text-sm font-medium mb-2 block">Item Image</label>
-
-          <div className="flex items-center gap-4">
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setValue("image", file);
-                }
-              }}
-            />
-
-            {watch("image") && (
-              <span className="text-sm text-green-600">
-                {(watch("image") as File)?.name}
-              </span>
-            )}
-          </div>
-
-          <p className="text-xs text-muted-foreground mt-1">
-            JPG / PNG · Max 5MB
-          </p>
-        </div>
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            SKU <span className="text-red-500">*</span>
-          </label>
-          <Input placeholder="SKU-001" {...register("sku")} />
-          {errors.sku && (
-            <p className="text-sm text-red-500 mt-1">{errors.sku.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Item Name <span className="text-red-500">*</span>
-          </label>
-          <Input placeholder="Item name" {...register("name")} />
-          {errors.name && (
-            <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
-          )}
-        </div>
-
-        <div className="col-span-2">
-          <label className="text-sm font-medium mb-2 block">Description</label>
-          <Input placeholder="Item description" {...register("description")} />
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium">
-              Category <span className="text-red-500">*</span>
-            </label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCreateCategoryDialog(true)}
-              className="h-7 text-xs"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              New Category
-            </Button>
-          </div>
-          <Select
-            onValueChange={(value) => {
-              setValue("category", value);
-              setValue("subcategory", "");
-              const category = categories.find((cat) => cat.name === value);
-              if (category) setSelectedCategory(category);
-            }}
-            value={watch("category")}
-            disabled={loadingCategories}
-          >
-            <SelectTrigger>
-              <SelectValue
-                placeholder={
-                  loadingCategories
-                    ? "Loading categories..."
-                    : "Select category"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {loadingCategories ? (
-                <div className="p-2 text-sm text-muted-foreground text-center">
-                  Loading categories...
-                </div>
-              ) : categories.length === 0 ? (
-                <div className="p-2 text-sm text-muted-foreground text-center">
-                  No categories available. Click "New Category" to create one.
-                </div>
-              ) : (
-                categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-          {errors.category && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.category.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">Item Type</label>
-          <Input
-            placeholder="e.g., Raw Material, Finished Good"
-            {...register("itemType")}
-          />
-          {errors.itemType && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.itemType.message}
-            </p>
-          )}
-        </div>
-
-        {/* <div>
-          <label className="text-sm font-medium mb-2 block">Subcategory</label>
-          <Input
-            placeholder="Optional subcategory"
-            {...register("subcategory")}
-          />
-          {errors.subcategory && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.subcategory.message}
-            </p>
-          )}
-        </div> */}
-
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium">Sub Category</label>
-          </div>
-          <Select
-            onValueChange={(value) => setValue("subcategory", value)}
-            value={watch("subcategory")}
-            disabled={selectedCategory?.subCategories?.length === 0}
-          >
-            <SelectTrigger>
-              <SelectValue
-                placeholder={
-                  loadingCategories
-                    ? "Loading subcategories..."
-                    : "Select sub category"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {!selectedCategory ? (
-                <div className="p-2 text-sm text-muted-foreground text-center">
-                  please select a category first.
-                </div>
-              ) : (
-                (selectedCategory.subCategories || []).map((cat) => (
-                  <SelectItem key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-          {errors.category && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.category.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">Brand</label>
-          <Input placeholder="Optional brand name" {...register("brand")} />
-          {errors.brand && (
-            <p className="text-sm text-red-500 mt-1">{errors.brand.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Unit <span className="text-red-500">*</span>
-          </label>
-          <Select
-            onValueChange={(value) => setValue("unit", value as any)}
-            value={watch("unit")}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select unit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pcs">Pieces (pcs)</SelectItem>
-              <SelectItem value="kg">Kilogram (kg)</SelectItem>
-              <SelectItem value="g">Gram (g)</SelectItem>
-              <SelectItem value="box">Box</SelectItem>
-              <SelectItem value="pallet">Pallet</SelectItem>
-              <SelectItem value="liter">Liter</SelectItem>
-              <SelectItem value="meter">Meter</SelectItem>
-              <SelectItem value="carton">Carton</SelectItem>
-              <SelectItem value="bag">Bag</SelectItem>
-              <SelectItem value="bucket">Bucket</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.unit && (
-            <p className="text-sm text-red-500 mt-1">{errors.unit.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Warehouse <span className="text-red-500">*</span>
-          </label>
-          <Select
-            onValueChange={(value) => setValue("warehouse", Number(value))}
-            {...register("warehouse")}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select warehouse" />
-            </SelectTrigger>
-            <SelectContent>
-              {warehouses
-                .filter((w) => w.status === "active")
-                .map((warehouse) => (
-                  <SelectItem key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name} - {warehouse.location}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          {errors.warehouse && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.warehouse.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Initial Quantity <span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="number"
-            step="1"
-            min="0"
-            placeholder="0"
-            {...register("quantity", { valueAsNumber: true })}
-          />
-          {errors.quantity && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.quantity.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Cost Price <span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            {...register("costPrice", { valueAsNumber: true })}
-          />
-          {errors.costPrice && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.costPrice.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Selling Price <span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            {...register("sellingPrice", { valueAsNumber: true })}
-          />
-          {errors.sellingPrice && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.sellingPrice.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Reorder Level <span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="number"
-            step="1"
-            min="0"
-            placeholder="0"
-            {...register("reorderLevel", { valueAsNumber: true })}
-          />
-          {errors.reorderLevel && (
-            <p className="text-sm text-red-500 mt-1">
-              {errors.reorderLevel.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">
-            Status <span className="text-red-500">*</span>
-          </label>
-          <Select
-            onValueChange={(value) => setValue("status", value as any)}
-            value={watch("status")}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="discontinued">Discontinued</SelectItem>
-              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.status && (
-            <p className="text-sm text-red-500 mt-1">{errors.status.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-sm font-medium mb-2 block">Barcode</label>
-          <Input placeholder="Optional barcode" {...register("barcode")} />
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={submitting}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Creating..." : "Create Item"}
-        </Button>
-      </div>
-
-      {/* Create Category Dialog */}
-      <Dialog
-        open={showCreateCategoryDialog}
-        onOpenChange={setShowCreateCategoryDialog}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Category</DialogTitle>
-            <DialogDescription>
-              Create a new category that can be used when creating items.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Category Name <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="e.g., Raw Materials"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !creatingCategory) {
-                    e.preventDefault();
-                    handleCreateCategory();
-                  }
-                }}
-                autoFocus
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowCreateCategoryDialog(false);
-                  setNewCategoryName("");
-                }}
-                disabled={creatingCategory}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={handleCreateCategory}
-                disabled={creatingCategory || !newCategoryName.trim()}
-              >
-                {creatingCategory ? "Creating..." : "Create Category"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </form>
-  );
-}
+import CreateItemForm from "./item-form";
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
 
 const ManageStocks = () => {
   const navigate = useNavigate();
-  const [stockData, setStockData] = useState<
-    (Stock & { item: Item; warehouse: Warehouse })[]
-  >([]);
-  const [items, setItems] = useState<Item[]>([]);
+  const [stockData, setStockData] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -665,9 +73,11 @@ const ManageStocks = () => {
     },
   });
 
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ItemResponseDTO | null>(
+    null,
+  );
   const [itemSearchQuery, setItemSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Item[]>([]);
+  const [searchResults, setSearchResults] = useState<ItemResponseDTO[]>([]);
   const [showCreateItemDialog, setShowCreateItemDialog] = useState(false);
   const selectedWarehouseId = watch("warehouseId");
 
@@ -688,11 +98,13 @@ const ManageStocks = () => {
     },
   });
 
-  const [varianceItem, setVarianceItem] = useState<Item | null>(null);
-  const [varianceItemSearchQuery, setVarianceItemSearchQuery] = useState("");
-  const [varianceSearchResults, setVarianceSearchResults] = useState<Item[]>(
-    [],
+  const [varianceItem, setVarianceItem] = useState<ItemResponseDTO | null>(
+    null,
   );
+  const [varianceItemSearchQuery, setVarianceItemSearchQuery] = useState("");
+  const [varianceSearchResults, setVarianceSearchResults] = useState<
+    ItemResponseDTO[]
+  >([]);
   const varianceWarehouseId = watchVariance("warehouseId");
   const adjustmentQuantity = watchVariance("adjustmentQuantity");
   const [isAdjustingByQuantity, setIsAdjustingByQuantity] = useState(true); // true = adjust by quantity, false = set new quantity
@@ -704,9 +116,9 @@ const ManageStocks = () => {
       String(stock.warehouse_id) === selectedWarehouse;
     const matchesSearch =
       searchQuery === "" ||
-      stock.item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      stock.item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      stock.item.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
+      stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stock.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stock.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesWarehouse && matchesSearch;
   });
 
@@ -715,54 +127,24 @@ const ManageStocks = () => {
   // Load stock data from API
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       try {
         setLoading(true);
         setLoadError(null);
 
-        // Fetch all data in parallel
-        const [stockList, itemsList, warehousesList] = await Promise.all([
-          listStock(),
-          listItems(),
+        const [itemsList, warehousesList] = await Promise.all([
+          listItems(), // now returns ItemResponseDTO[]
           listWarehouses(),
-          listCategories(),
         ]);
 
         if (!cancelled) {
-          setItems(itemsList);
+          setStockData(itemsList);
           setWarehouses(warehousesList);
-
-          console.log(stockList);
-
-          // Enrich stock with item and warehouse details
-          const enrichedStock = stockList
-            .map((stock) => {
-              const item = itemsList.find((i) => i.id === stock.itemId);
-              const warehouse = warehousesList.find(
-                (w) => w.id === String(stock.warehouse_id),
-              );
-
-              // if (!item || !warehouse) return null;
-
-              return {
-                ...stock,
-                item: item || null,
-                warehouse: warehouse || null,
-              };
-            })
-            .filter(
-              (s): s is Stock & { item: Item; warehouse: Warehouse } =>
-                s !== null,
-            );
-
-          setStockData(enrichedStock);
         }
       } catch (error: any) {
         if (!cancelled) {
-          console.error("Failed to load stock data:", error);
           setLoadError(error?.message || "Failed to load inventory data");
-          // Fallback to mock data if API fails
-          setStockData(getStockWithDetails());
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -778,7 +160,7 @@ const ManageStocks = () => {
   useEffect(() => {
     if (itemSearchQuery.length > 0) {
       const lowerQuery = itemSearchQuery.toLowerCase();
-      const results = items.filter(
+      const results = stockData.filter(
         (item) =>
           item.name.toLowerCase().includes(lowerQuery) ||
           item.sku.toLowerCase().includes(lowerQuery) ||
@@ -788,13 +170,13 @@ const ManageStocks = () => {
     } else {
       setSearchResults([]);
     }
-  }, [itemSearchQuery, items]);
+  }, [itemSearchQuery, stockData]);
 
   // Search items for variance (using API items)
   useEffect(() => {
     if (varianceItemSearchQuery.length > 0) {
       const lowerQuery = varianceItemSearchQuery.toLowerCase();
-      const results = items.filter(
+      const results = stockData.filter(
         (item) =>
           item.name.toLowerCase().includes(lowerQuery) ||
           item.sku.toLowerCase().includes(lowerQuery) ||
@@ -804,26 +186,18 @@ const ManageStocks = () => {
     } else {
       setVarianceSearchResults([]);
     }
-  }, [varianceItemSearchQuery, items]);
+  }, [varianceItemSearchQuery, stockData]);
 
-  // Get current stock quantity for selected item and warehouse
-  const getCurrentStock = (itemId: string, warehouseId: string): number => {
-    const stock = stockData.find(
-      (s) => s.itemId === itemId && String(s.warehouse_id) === warehouseId,
-    );
-    return stock?.quantity || 0;
-  };
-
-  const handleItemSelect = (item: Item) => {
+  const handleItemSelect = (item: ItemResponseDTO) => {
     setSelectedItem(item);
-    setValue("itemId", item.id);
+    setValue("itemId", item.id.toString());
     setItemSearchQuery(item.name);
     setSearchResults([]);
   };
 
-  const handleVarianceItemSelect = (item: Item) => {
+  const handleVarianceItemSelect = (item: ItemResponseDTO) => {
     setVarianceItem(item);
-    setVarianceValue("itemId", item.id);
+    setVarianceValue("itemId", item.id.toString());
     setVarianceItemSearchQuery(item.name);
     setVarianceSearchResults([]);
   };
@@ -835,7 +209,7 @@ const ManageStocks = () => {
     // Update stock (mock update)
     const existingStockIndex = stockData.findIndex(
       (s) =>
-        s.itemId === data.itemId &&
+        s.id.toString() === data.itemId &&
         s.warehouse_id?.toString() === data.warehouseId,
     );
 
@@ -846,31 +220,19 @@ const ManageStocks = () => {
         ...updatedStock[existingStockIndex],
         quantity:
           updatedStock[existingStockIndex].quantity + data.quantityReceived,
-        availableQuantity:
-          updatedStock[existingStockIndex].availableQuantity +
-          data.quantityReceived,
-        lastUpdated: new Date().toISOString(),
-        batchNo: data.batchNo || updatedStock[existingStockIndex].batchNo,
-        dateReceived: data.receivedDate,
+        available:
+          updatedStock[existingStockIndex].available + data.quantityReceived,
+        updatedAt: new Date().toISOString(),
+        // dateReceived: data.receivedDate,
       };
       setStockData(updatedStock);
     } else {
       // Create new stock entry
-      const item = items.find((i) => i.id === data.itemId);
+      const item = stockData.find((i) => i.id.toString() === data.itemId);
       const warehouse = warehouses.find((w) => w.id === data.warehouseId);
       if (item && warehouse) {
-        const newStock: Stock & { item: Item; warehouse: typeof warehouse } = {
-          id: `stock-${Date.now()}`,
-          itemId: data.itemId,
-          quantity: data.quantityReceived,
-          availableQuantity: data.quantityReceived,
-          reservedQuantity: 0,
-          batchNo: data.batchNo,
-          serialNo: data.serialNo,
-          dateReceived: data.receivedDate,
-          lastUpdated: new Date().toISOString(),
-          item,
-          warehouse,
+        const newStock: ItemResponseDTO = {
+          ...item,
         };
         setStockData([...stockData, newStock]);
       }
@@ -889,7 +251,7 @@ const ManageStocks = () => {
     // Find existing stock
     const existingStockIndex = stockData.findIndex(
       (s) =>
-        s.itemId === data.itemId &&
+        s.id.toString() === data.itemId &&
         s.warehouse_id?.toString() === data.warehouseId,
     );
 
@@ -918,10 +280,9 @@ const ManageStocks = () => {
       updatedStock[existingStockIndex] = {
         ...updatedStock[existingStockIndex],
         quantity: newQuantity,
-        availableQuantity:
-          newQuantity -
-          (updatedStock[existingStockIndex].reservedQuantity || 0),
-        lastUpdated: new Date().toISOString(),
+        available:
+          newQuantity - (updatedStock[existingStockIndex].reserved || 0),
+        updatedAt: new Date().toISOString(),
       };
       setStockData(updatedStock);
     } else {
@@ -953,11 +314,13 @@ const ManageStocks = () => {
 
   // Calculate stats
   const totalItems = stockData.length;
+
   const lowStockItems = stockData.filter(
-    (s) => s.quantity <= (s.item?.reorderLevel || 0),
+    (item) => item.available <= item.reorderLevel,
   ).length;
+
   const totalValue = stockData.reduce(
-    (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
+    (sum, item) => sum + item.available * item.costPrice,
     0,
   );
 
@@ -1224,10 +587,7 @@ const ManageStocks = () => {
                           <Input
                             value={
                               selectedWarehouseId && selectedItem
-                                ? `${getCurrentStock(
-                                    selectedItem.id,
-                                    selectedWarehouseId,
-                                  )} ${selectedItem.unit}`
+                                ? `${selectedItem.available} ${selectedItem.unitMeasure}`
                                 : "-"
                             }
                             disabled
@@ -1333,7 +693,7 @@ const ManageStocks = () => {
                           )}
                           {selectedItem && (
                             <p className="text-sm text-gray-600 mt-2">
-                              Unit: {selectedItem.unit}
+                              Unit: {selectedItem.unitMeasure}
                             </p>
                           )}
                         </div>
@@ -1414,7 +774,6 @@ const ManageStocks = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <CreateItemForm
-                    warehouses={warehouses}
                     onSuccess={(newItem) => {
                       // Item is already saved to API via createItem()
                       // Select the newly created item
@@ -1595,12 +954,9 @@ const ManageStocks = () => {
                         </label>
                         <Input
                           value={
-                            getCurrentStock(
-                              varianceItem.id,
-                              varianceWarehouseId,
-                            ).toLocaleString() +
+                            varianceItem.available +
                             " " +
-                            varianceItem.unit
+                            varianceItem.unitMeasure
                           }
                           disabled
                           className="bg-gray-50"
@@ -1657,11 +1013,9 @@ const ManageStocks = () => {
                             adjustmentQuantity !== undefined && (
                               <p className="text-sm text-blue-600 mt-2">
                                 New Quantity:{" "}
-                                {getCurrentStock(
-                                  varianceItem.id,
-                                  varianceWarehouseId,
-                                ) + (adjustmentQuantity || 0)}{" "}
-                                {varianceItem.unit}
+                                {varianceItem.available +
+                                  (adjustmentQuantity || 0)}{" "}
+                                {varianceItem.unitMeasure}
                               </p>
                             )}
                         </div>

@@ -87,66 +87,86 @@ export function ChartOfAccountDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 py-4">
-          <Input
-            placeholder="Account Code"
-            value={form.accountCode}
-            onChange={(e) => update("accountCode", e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Account Code</label>
+            <Input
+              value={form.accountCode}
+              onChange={(e) => update("accountCode", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="Account Name"
-            value={form.accountName}
-            onChange={(e) => update("accountName", e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Account Name</label>
+            <Input
+              value={form.accountName}
+              onChange={(e) => update("accountName", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="Description"
-            value={form.description ?? ""}
-            onChange={(e) => update("description", e.target.value)}
-          />
+          <div className="flex flex-col gap-1 col-span-2">
+            <label className="text-sm font-medium">Description</label>
+            <Input
+              value={form.description ?? ""}
+              onChange={(e) => update("description", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="Type (asset/liability/etc)"
-            value={form.type}
-            onChange={(e) => update("type", e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Type</label>
+            <Input
+              value={form.type}
+              onChange={(e) => update("type", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="Parent ID"
-            value={form.parentId ?? ""}
-            onChange={(e) => update("parentId", Number(e.target.value))}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Parent ID</label>
+            <Input
+              value={form.parentId ?? ""}
+              onChange={(e) => update("parentId", Number(e.target.value))}
+            />
+          </div>
 
-          <Input
-            placeholder="Currency"
-            value={form.currency ?? ""}
-            onChange={(e) => update("currency", e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Currency</label>
+            <Input
+              value={form.currency ?? ""}
+              onChange={(e) => update("currency", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="Status (active/inactive)"
-            value={form.status}
-            onChange={(e) => update("status", e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Status</label>
+            <Input
+              value={form.status}
+              onChange={(e) => update("status", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="GL Class Type Key"
-            value={form.glAccountClassTypeKey ?? ""}
-            onChange={(e) => update("glAccountClassTypeKey", e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">GL Class Type Key</label>
+            <Input
+              value={form.glAccountClassTypeKey ?? ""}
+              onChange={(e) => update("glAccountClassTypeKey", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="GL Account Type"
-            value={form.glAccountType ?? ""}
-            onChange={(e) => update("glAccountType", e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">GL Account Type</label>
+            <Input
+              value={form.glAccountType ?? ""}
+              onChange={(e) => update("glAccountType", e.target.value)}
+            />
+          </div>
 
-          <Input
-            placeholder="Opening Balance"
-            type="number"
-            value={form.openingBalance ?? ""}
-            onChange={(e) => update("openingBalance", Number(e.target.value))}
-          />
+          <div className="flex flex-col gap-1 col-span-2">
+            <label className="text-sm font-medium">Opening Balance</label>
+            <Input
+              type="number"
+              value={form.openingBalance ?? ""}
+              onChange={(e) => update("openingBalance", Number(e.target.value))}
+            />
+          </div>
         </div>
 
         <Button className="w-full mt-2" onClick={handleSave}>

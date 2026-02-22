@@ -124,8 +124,9 @@ export function JournalDialog({
           <Label>Date</Label>
           <Input
             type="date"
-            value={form.entryDate}
+            value={form.entryDate || new Date().toISOString().split("T")[0]}
             onChange={(e) => update("entryDate", e.target.value)}
+            disabled
           />
         </div>
 
@@ -134,8 +135,9 @@ export function JournalDialog({
             <Label>Period</Label>
             <Input
               type="text"
-              value={form.periodId}
+              value={new Date().getFullYear()}
               onChange={(e) => update("periodId", e.target.value)}
+              disabled
             />
           </div>
 

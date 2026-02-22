@@ -17,7 +17,7 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import type { JournalLineDTO } from "@/types/journal";
 import SelectAccount from "@/components/select-account";
-import SelectDepartment from "@/components/select-department";
+// import SelectDepartment from "@/components/select-department";
 
 interface Props {
   open: boolean;
@@ -111,13 +111,13 @@ export function JournalLineDialog({
       if (isEdit) {
         await apiClient.put(
           `/finance/journal-entries/${journalId}/lines/${line!.id}`,
-          payload
+          payload,
         );
         toast.success("Journal line updated");
       } else {
         await apiClient.post(
           `/finance/journal-entries/${journalId}/lines`,
-          payload
+          payload,
         );
         toast.success("Journal line added");
       }
@@ -175,15 +175,19 @@ export function JournalLineDialog({
 
           {/* Debit */}
           <div>
-            <Label>Debit Amount</Label>
+            <Label>Amount</Label>
             <Input
               type="number"
               value={form.debitAmount}
-              onChange={(e) => update("debitAmount", e.target.value)}
+              onChange={(e) => {
+                // TODO: change backend and combine both
+                update("debitAmount", e.target.value);
+                update("creditAmount", e.target.value);
+              }}
             />
           </div>
 
-          {/* Credit */}
+          {/* Credit
           <div>
             <Label>Credit Amount</Label>
             <Input
@@ -191,15 +195,15 @@ export function JournalLineDialog({
               value={form.creditAmount}
               onChange={(e) => update("creditAmount", e.target.value)}
             />
-          </div>
+          </div> */}
 
           {/* Department */}
-          <div>
+          {/* <div>
             <SelectDepartment
               value={form.departmentId}
               onChange={(v) => update("departmentId", v)}
             />
-          </div>
+          </div> */}
 
           {/* Project */}
           <div>
@@ -211,23 +215,23 @@ export function JournalLineDialog({
           </div>
 
           {/* Currency */}
-          <div>
+          {/* <div>
             <Label>Currency Code</Label>
             <Input
               value={form.currencyCode}
               onChange={(e) => update("currencyCode", e.target.value)}
             />
-          </div>
+          </div> */}
 
           {/* Exchange Rate */}
-          <div>
+          {/* <div>
             <Label>Exchange Rate</Label>
             <Input
               type="number"
               value={form.exchangeRate}
               onChange={(e) => update("exchangeRate", e.target.value)}
             />
-          </div>
+          </div> */}
 
           {/* Description */}
           <div className="col-span-2">

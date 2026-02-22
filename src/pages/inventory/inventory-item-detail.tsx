@@ -1,15 +1,19 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
+import { getItemById } from "@/service/inventoryService";
 import {
-  listStock,
-  listItems,
-  listWarehouses,
-} from "@/service/inventoryService";
-import type { Stock, Item, Warehouse } from "@/types/inventory";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import CreateItemForm from "./item-form";
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
 
 const LabelRow = ({
   label,
@@ -52,11 +56,10 @@ const Section = ({
 const InventoryItemDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [stock, setStock] = useState<
-    (Stock & { item: Item; warehouse: Warehouse }) | null
-  >(null);
+  const [item, setItem] = useState<ItemResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEditItemDialog, setShowEditItemDialog] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,36 +69,12 @@ const InventoryItemDetail = () => {
         setLoading(true);
         setError(null);
 
-        const [stockList, itemsList, warehousesList] = await Promise.all([
-          listStock(),
-          listItems(),
-          listWarehouses(),
-        ]);
+        if (!id) return;
+
+        const data = await getItemById(id);
 
         if (!cancelled) {
-          const enrichedStock = stockList
-            .map((s) => {
-              const item = itemsList.find((i) => i.id === s.itemId);
-              const warehouse = warehousesList.find(
-                (w) => w.id === s.warehouse_id?.toString(),
-              );
-
-              if (!item || !warehouse) return null;
-
-              return { ...s, item, warehouse };
-            })
-            .filter(
-              (s): s is Stock & { item: Item; warehouse: Warehouse } =>
-                s !== null,
-            );
-
-          const foundStock = enrichedStock.find((s) => s.id === id);
-
-          if (foundStock) {
-            setStock(foundStock);
-          } else {
-            setError("Stock record not found");
-          }
+          setItem(data);
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -119,7 +98,7 @@ const InventoryItemDetail = () => {
     );
   }
 
-  if (error || !stock) {
+  if (error) {
     return (
       <div className="p-8 min-h-screen bg-gray-50">
         <p className="text-center text-gray-500">{error || "Item not found"}</p>
@@ -127,9 +106,9 @@ const InventoryItemDetail = () => {
     );
   }
 
-  const { item, warehouse } = stock;
+  if (!item) return null;
 
-  const isLowStock = stock.quantity <= (item.reorderLevel || 0);
+  const isLowStock = item.available <= item.reorderLevel;
 
   const statusColors = {
     active: "bg-green-100 text-green-800",
@@ -188,6 +167,17 @@ const InventoryItemDetail = () => {
         >
           {item.status.replace("_", " ").toUpperCase()}
         </Badge>
+
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          onClick={() => setShowEditItemDialog(true)}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="h-4 w-4" />
+          Add New Item
+        </Button>
       </div>
 
       <div className="flex items-start justify-between gap-5">
@@ -196,16 +186,16 @@ const InventoryItemDetail = () => {
           <LabelRow label="Brand" value={item.brand} />
           <LabelRow label="Category" value={item.category} />
         </Section>
-
         {/* Warehouse */}
         <Section title="Warehouse Details">
-          <LabelRow label="Location" value={warehouse.location} />
-          <LabelRow label="Serial No." value={stock.serialNo || "-"} />
+          <LabelRow label="Location" value={item.warehouse_location} />
+          <LabelRow label="Warehouse" value={item.warehouse_name} />
+          {/* <LabelRow label="Serial No." value={stock.serialNo || "-"} /> */}
           <LabelRow
-            label="Date Received"
+            label="Available since"
             value={
-              stock.dateReceived
-                ? format(new Date(stock.dateReceived), "MMM dd, yyyy")
+              item.available
+                ? " " + format(new Date(item.createdAt), "MMM dd, yyyy")
                 : "-"
             }
           />
@@ -216,7 +206,7 @@ const InventoryItemDetail = () => {
         <Section title="Overview">
           <LabelRow
             label="Available Stock"
-            value={`${stock.availableQuantity.toLocaleString()} ${item.unit}`}
+            value={`${item.available.toLocaleString()} ${item.unitMeasure}`}
             highlight={isLowStock}
           />
 
@@ -230,22 +220,22 @@ const InventoryItemDetail = () => {
           <LabelRow
             label="Reserved"
             value={
-              stock.reservedQuantity
-                ? `${stock.reservedQuantity.toLocaleString()} ${item.unit}`
+              item.reserved
+                ? `${item.reserved.toLocaleString()} ${item.unitMeasure}`
                 : "-"
             }
           />
 
           <LabelRow
             label="Reorder Level"
-            value={`${item.reorderLevel.toLocaleString()} ${item.unit}`}
+            value={`${item.reorderLevel?.toLocaleString()} ${item.unitMeasure}`}
           />
 
           <LabelRow
             label="Maximum"
             value={
               item.maximum
-                ? `${item.maximum.toLocaleString()} ${item.unit}`
+                ? `${item.maximum?.toLocaleString()} ${item.unitMeasure}`
                 : "-"
             }
           />
@@ -257,24 +247,50 @@ const InventoryItemDetail = () => {
         </Section>
 
         {/* Additional Info */}
-        <Section title="Additional Information">
-          <LabelRow label="Item Type" value={item.itemType || "-"} />
-          <LabelRow label="Subcategory" value={item.subcategory || "-"} />
-          <LabelRow label="Unit of Measure" value={item.unit} />
-          <LabelRow
-            label="Last Updated"
-            value={format(new Date(stock.lastUpdated), "MMM dd, yyyy")}
-          />
-          <LabelRow label="Updated By" value={stock.updatedBy || "-"} />
-        </Section>
+        <LabelRow label="Item Type" value={item.type || "-"} />
+        <LabelRow label="Subcategory" value={item.subCategory || "-"} />
+        <LabelRow label="Unit of Measure" value={item.unitMeasure} />
+        <LabelRow
+          label="Last Updated"
+          value={
+            item.updatedAt
+              ? format(new Date(item.updatedAt), "MMM dd, yyyy")
+              : "-"
+          }
+        />
       </div>
 
       {/* Description */}
       <Section title="Description">
         <p className="text-sm text-gray-700 leading-relaxed">
-          {item.description || "No description available."}
+          {item?.description || "No description available."}
         </p>
       </Section>
+
+      <Dialog open={showEditItemDialog} onOpenChange={setShowEditItemDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Item</DialogTitle>
+            <DialogDescription>
+              Add a new inventory item with all required details.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateItemForm
+            editMode
+            initialData={item}
+            onSuccess={(newItem: ItemResponseDTO) => {
+              // Item is already saved to API via createItem()
+              // Select the newly created item
+              // handleItemSelect(newItem);
+              setItem(newItem);
+              setShowEditItemDialog(false);
+              // Clear search query
+              // setItemSearchQuery("");
+            }}
+            onCancel={() => setShowEditItemDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

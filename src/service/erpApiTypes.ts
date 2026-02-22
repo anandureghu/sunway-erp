@@ -97,31 +97,43 @@ export type WarehouseUpdateDTO = {
 };
 
 export type ItemResponseDTO = {
-  id: Id;
-  sku?: string;
-  name?: string;
-  type?: string; // Item type
-  category?: string;
-  subCategory?: string;
-  brand?: string;
-  quantity?: number;
-  available?: number;
-  reserved?: number;
-  costPrice?: number;
-  sellingPrice?: number;
-  unitMeasure?: string; // Unit of measure
-  reorderLevel?: number;
-  minimum?: number;
-  maximum?: number;
-  barcode?: string;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  id: number;
 
-  warehouse_id?: number;
-  warehouse_name?: number;
-  warehouse_location?: number;
-  imageUrl?: string;
+  sku: string;
+  name: string;
+  type: string;
+
+  category: string;
+  subCategory: string | null;
+
+  brand: string | null;
+
+  quantity: number;
+  available: number;
+  reserved: number;
+
+  costPrice: number;
+  sellingPrice: number;
+
+  unitMeasure: string;
+
+  reorderLevel: number;
+  minimum?: number | null;
+  maximum?: number | null;
+
+  barcode: string | null;
+
+  status: "active" | "discontinued" | "out_of_stock";
+
+  createdAt: string;
+  updatedAt: string | null;
+
+  warehouse_id: number;
+  warehouse_name: string;
+  warehouse_location: string;
+
+  imageUrl: string | null;
+  description: string | null;
 };
 
 export type ItemCreateDTO = {
@@ -161,6 +173,7 @@ export type ItemUpdateDTO = {
   status?: string;
   imageUrl?: string;
   description?: string;
+  warehouse?: number;
 };
 
 // --- Sales flow ---

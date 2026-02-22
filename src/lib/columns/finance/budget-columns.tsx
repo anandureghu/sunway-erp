@@ -1,13 +1,16 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { BudgetResponseDTO } from "@/types/budget";
 import { Button } from "@/components/ui/button";
+import type { Company } from "@/types/company";
 
 export const BUDGET_COLUMNS = ({
   onEdit,
   onPost,
+  company,
 }: {
   onEdit: (row: BudgetResponseDTO) => void;
   onPost: (row: BudgetResponseDTO) => void;
+  company: Company;
 }): ColumnDef<BudgetResponseDTO>[] => [
   {
     header: "Name",
@@ -20,15 +23,19 @@ export const BUDGET_COLUMNS = ({
   {
     header: "Amount",
     accessorKey: "amount",
+    cell: ({ row }) => {
+      const amount = row.getValue("amount");
+      return `${company.currency?.currencySymbol} ${amount}`;
+    },
   },
-  {
-    header: "Start Date",
-    accessorKey: "startDate",
-  },
-  {
-    header: "End Date",
-    accessorKey: "endDate",
-  },
+  // {
+  //   header: "Start Date",
+  //   accessorKey: "startDate",
+  // },
+  // {
+  //   header: "End Date",
+  //   accessorKey: "endDate",
+  // },
   {
     header: "Status",
     accessorKey: "status",

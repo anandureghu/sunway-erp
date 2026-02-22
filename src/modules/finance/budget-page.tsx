@@ -14,9 +14,11 @@ import { useNavigate } from "react-router-dom";
 import type { BudgetResponseDTO } from "@/types/budget";
 import { BUDGET_COLUMNS } from "@/lib/columns/finance/budget-columns";
 import { BudgetDialog } from "./budget-dialog";
+import { useAuth } from "@/context/AuthContext";
 
 export default function BudgetPage({ companyId }: { companyId: number }) {
   const navigate = useNavigate();
+  const { company } = useAuth();
   const [list, setList] = useState<BudgetResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BudgetResponseDTO | null>(null);
@@ -55,6 +57,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
         toast.error("Failed to activate budget");
       }
     },
+    company: company!,
   });
 
   if (loading) return <div className="p-6 text-center">Loading...</div>;
@@ -100,7 +103,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
           if (mode === "add") setList((prev) => [...prev, updated]);
           else
             setList((prev) =>
-              prev.map((x) => (x.id === updated.id ? updated : x))
+              prev.map((x) => (x.id === updated.id ? updated : x)),
             );
         }}
       />

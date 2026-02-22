@@ -1,6 +1,7 @@
 // src/store/index.ts
 import { configureStore } from "@reduxjs/toolkit";
 import uiReducer from "./uiSlice";
+import userReducer from "./userSlice";
 import {
   useDispatch,
   useSelector,
@@ -10,6 +11,7 @@ import {
 export const store = configureStore({
   reducer: {
     ui: uiReducer,
+    user: userReducer,
     // add other reducers here in future
   },
 });
