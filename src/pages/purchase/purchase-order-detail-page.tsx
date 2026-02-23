@@ -108,9 +108,7 @@ export default function PurchaseOrderDetailPage() {
           </div>
         </div>
         <Badge
-          className={
-            statusColors[order.status] || "bg-gray-100 text-gray-800"
-          }
+          className={statusColors[order.status] || "bg-gray-100 text-gray-800"}
         >
           {order.status
             .replace("_", " ")
@@ -256,11 +254,11 @@ export default function PurchaseOrderDetailPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {item.item?.name || `Item ${item.itemId}`}
+                      {item.item?.itemId || `Item ${item.itemId}`}
                     </p>
-                    {item.item?.sku && (
+                    {item.item?.itemId && (
                       <p className="text-xs text-muted-foreground">
-                        SKU: {item.item.sku}
+                        SKU: {item.item.itemId}
                       </p>
                     )}
                   </div>
@@ -322,4 +320,3 @@ export default function PurchaseOrderDetailPage() {
     </div>
   );
 }
-

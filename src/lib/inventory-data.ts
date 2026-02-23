@@ -1,5 +1,6 @@
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import type { PurchaseRequisitionItemDTO } from "@/service/purchaseFlowService";
 import type {
-  Item,
   Warehouse,
   Stock,
   InventoryMovement,
@@ -65,127 +66,195 @@ export const warehouses: Warehouse[] = [
   },
 ];
 
-// Sample Items
-export const items: Item[] = [
+export const purchaseRequisitionItems: PurchaseRequisitionItemDTO[] = [
   {
-    id: "item-1",
+    itemId: 1, // Cement Bag (50kg)
+    requestedQty: 120,
+    remarks: "Required for foundation work - Phase 1",
+  },
+  {
+    itemId: 2, // Steel Rod (12mm)
+    requestedQty: 2500,
+    remarks: "Structural reinforcement requirement",
+  },
+  {
+    itemId: 3, // Red Bricks
+    requestedQty: 8000,
+    remarks: "Wall construction - Block A",
+  },
+  {
+    itemId: 4, // Paint (Premium White)
+    requestedQty: 75,
+    remarks: "Interior finishing - Site Office",
+  },
+  {
+    itemId: 5, // PVC Pipes (4 inch)
+    requestedQty: 600,
+    remarks: "Plumbing layout installation",
+  },
+  {
+    itemId: 6, // Electrical Wire (2.5mm)
+    requestedQty: 1500,
+    remarks: "Electrical wiring - Ground floor",
+  },
+];
+// Sample Items
+export const items: ItemResponseDTO[] = [
+  {
+    id: 1,
     sku: "SKU-001",
     name: "Cement Bag (50kg)",
     description: "Portland cement, 50kg bag",
-    itemType: "Raw Material",
     category: "Raw Materials",
-    subcategory: "Construction Materials",
     brand: "UltraTech",
-    unit: "bag",
     costPrice: 350,
     sellingPrice: 420,
     reorderLevel: 100,
     maximum: 2000,
-    reorderQuantity: 500,
     status: "active",
     barcode: "1234567890123",
     createdAt: "2025-01-01",
     updatedAt: "2025-01-15",
+    warehouse_id: 1,
+    warehouse_name: "Main Warehouse",
+    warehouse_location: "Chennai, Tamil Nadu",
+    imageUrl: null,
+    quantity: 500,
+    reserved: 50,
+    available: 450,
+    subCategory: "Construction Materials",
+    type: "Raw Material",
+    unitMeasure: "bag",
   },
   {
-    id: "item-2",
+    id: 2,
     sku: "SKU-002",
     name: "Steel Rod (12mm)",
     description: "TMT steel rod, 12mm diameter",
-    itemType: "Raw Material",
     category: "Raw Materials",
-    subcategory: "Construction Materials",
     brand: "JSW Steel",
-    unit: "kg",
     costPrice: 65,
     sellingPrice: 78,
     reorderLevel: 2000,
     maximum: 10000,
-    reorderQuantity: 5000,
     status: "active",
     barcode: "1234567890124",
     createdAt: "2025-01-01",
     updatedAt: "2025-01-15",
+    warehouse_id: 1,
+    warehouse_name: "Main Warehouse",
+    warehouse_location: "Chennai, Tamil Nadu",
+    imageUrl: null,
+    quantity: 500,
+    reserved: 50,
+    available: 450,
+    subCategory: "Construction Materials",
+    type: "Raw Material",
+    unitMeasure: "bag",
   },
   {
-    id: "item-3",
+    id: 3,
     sku: "SKU-003",
     name: "Red Bricks",
     description: "Standard red clay bricks",
-    itemType: "Raw Material",
     category: "Raw Materials",
-    subcategory: "Construction Materials",
     brand: "Local",
-    unit: "pcs",
     costPrice: 8,
     sellingPrice: 12,
     reorderLevel: 5000,
     maximum: 50000,
-    reorderQuantity: 20000,
     status: "active",
     barcode: "1234567890125",
     createdAt: "2025-01-01",
     updatedAt: "2025-01-15",
+    warehouse_id: 1,
+    warehouse_name: "Main Warehouse",
+    warehouse_location: "Chennai, Tamil Nadu",
+    imageUrl: null,
+    quantity: 500,
+    reserved: 50,
+    available: 450,
+    subCategory: "Construction Materials",
+    type: "Raw Material",
+    unitMeasure: "bag",
   },
   {
-    id: "item-4",
+    id: 4,
     sku: "SKU-004",
     name: "Paint (Premium White)",
     description: "Premium white paint, 20L bucket",
-    itemType: "Finished Good",
     category: "Finished Goods",
-    subcategory: "Paints",
     brand: "Asian Paints",
-    unit: "bucket",
     costPrice: 1800,
     sellingPrice: 2400,
     reorderLevel: 50,
     maximum: 500,
-    reorderQuantity: 200,
     status: "active",
     barcode: "1234567890126",
     createdAt: "2025-01-01",
     updatedAt: "2025-01-15",
+    warehouse_id: 1,
+    warehouse_name: "Main Warehouse",
+    warehouse_location: "Chennai, Tamil Nadu",
+    imageUrl: null,
+    quantity: 500,
+    reserved: 50,
+    available: 450,
+    subCategory: "Construction Materials",
+    type: "Raw Material",
+    unitMeasure: "bag",
   },
   {
-    id: "item-5",
+    id: 5,
     sku: "SKU-005",
     name: "PVC Pipes (4 inch)",
     description: "PVC water pipes, 4 inch diameter",
-    itemType: "Raw Material",
     category: "Raw Materials",
-    subcategory: "Plumbing",
     brand: "Finolex",
-    unit: "meter",
     costPrice: 150,
     sellingPrice: 195,
     reorderLevel: 500,
     maximum: 5000,
-    reorderQuantity: 1000,
     status: "active",
     barcode: "1234567890127",
     createdAt: "2025-01-01",
     updatedAt: "2025-01-15",
+    warehouse_id: 1,
+    warehouse_name: "Main Warehouse",
+    warehouse_location: "Chennai, Tamil Nadu",
+    imageUrl: null,
+    quantity: 500,
+    reserved: 50,
+    available: 450,
+    subCategory: "Construction Materials",
+    type: "Raw Material",
+    unitMeasure: "bag",
   },
   {
-    id: "item-6",
+    id: 6,
     sku: "SKU-006",
     name: "Electrical Wire (2.5mm)",
     description: "Copper electrical wire, 2.5mm",
-    itemType: "Raw Material",
     category: "Raw Materials",
-    subcategory: "Electrical",
     brand: "Havells",
-    unit: "meter",
     costPrice: 45,
     sellingPrice: 60,
     reorderLevel: 1000,
     maximum: 10000,
-    reorderQuantity: 2500,
     status: "active",
     barcode: "1234567890128",
     createdAt: "2025-01-01",
     updatedAt: "2025-01-15",
+    warehouse_id: 1,
+    warehouse_name: "Main Warehouse",
+    warehouse_location: "Chennai, Tamil Nadu",
+    imageUrl: null,
+    quantity: 500,
+    reserved: 50,
+    available: 450,
+    subCategory: "Construction Materials",
+    type: "Raw Material",
+    unitMeasure: "bag",
   },
 ];
 
@@ -326,13 +395,13 @@ export const inventoryMovements: InventoryMovement[] = [
 
 // Helper function to get stock with item and warehouse details
 export function getStockWithDetails(): (Stock & {
-  item: Item;
+  item: ItemResponseDTO;
   warehouse: Warehouse;
 })[] {
   return stock.map((s) => {
-    const item = items.find((i) => i.id === s.itemId);
+    const item = items.find((i) => i.id.toString() === s.itemId);
     const warehouse = warehouses.find(
-      (w) => w.id === s.warehouse_id?.toString()
+      (w) => w.id === s.warehouse_id?.toString(),
     );
     return {
       ...s,
@@ -343,19 +412,18 @@ export function getStockWithDetails(): (Stock & {
 }
 
 // Helper function to search items by SKU, barcode, or name
-export function searchItems(query: string): Item[] {
+export function searchItems(query: string): ItemResponseDTO[] {
   const lowerQuery = query.toLowerCase();
   return items.filter(
     (item) =>
       item.sku.toLowerCase().includes(lowerQuery) ||
       item.name.toLowerCase().includes(lowerQuery) ||
-      item.barcode?.toLowerCase().includes(lowerQuery) ||
-      item.rfidTag?.toLowerCase().includes(lowerQuery)
+      item.barcode?.toLowerCase().includes(lowerQuery),
   );
 }
 
 // Helper function to add a new item
-export function addItem(item: Item): Item {
+export function addItem(item: ItemResponseDTO): ItemResponseDTO {
   items.push(item);
   return item;
 }

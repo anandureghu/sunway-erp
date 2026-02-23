@@ -6,7 +6,6 @@ import type {
   PicklistItem,
   Dispatch,
 } from "@/types/sales";
-import type { Item } from "@/types/inventory";
 import type {
   Id,
   SalesOrderCreateDTO,
@@ -15,6 +14,7 @@ import type {
   PicklistResponseDTO,
   ShipmentCreateDTO,
   ShipmentResponseDTO,
+  ItemResponseDTO,
 } from "@/service/erpApiTypes";
 
 function normalizeStatus(status?: string) {
@@ -25,7 +25,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
   const items: SalesOrderItem[] = (dto.items || []).map((li, idx) => ({
     id: `soi-${dto.id}-${idx}`,
     orderId: String(dto.id),
-    itemId: String(li.itemId || ""),
+    itemId: li.itemId || 0,
     itemName: li.itemName,
     warehouseId: li.warehouseId,
     warehouseName: li.warehouseName,
@@ -67,7 +67,7 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     id: `pli-${dto.id}-${idx}`,
     picklistId: String(dto.id),
     orderItemId: "",
-    itemId: String(li.itemId || ""),
+    itemId: li.itemId || 0,
     quantity: Number(li.quantity || 0),
     warehouse: dto.warehouse,
     warehouseId: dto.warehouseId,
@@ -101,12 +101,12 @@ function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
     s === "delivered"
       ? "delivered"
       : s === "in_transit"
-      ? "in_transit"
-      : s === "dispatched"
-      ? "dispatched"
-      : s === "cancelled"
-      ? "cancelled"
-      : "created"; // Default to "created"
+        ? "in_transit"
+        : s === "dispatched"
+          ? "dispatched"
+          : s === "cancelled"
+            ? "cancelled"
+            : "created"; // Default to "created"
 
   return {
     id: String(dto.id),
@@ -138,32 +138,32 @@ export async function listSalesOrders(): Promise<SalesOrder[]> {
 export async function createSalesOrder(payload: SalesOrderCreateDTO) {
   const res = await apiClient.post<SalesOrderResponseDTO>(
     "/sales/orders",
-    payload
+    payload,
   );
   return toSalesOrder(res.data);
 }
 
 export async function confirmSalesOrder(id: Id | string) {
   const res = await apiClient.post<SalesOrderResponseDTO>(
-    `/sales/orders/${id}/confirm`
+    `/sales/orders/${id}/confirm`,
   );
   return toSalesOrder(res.data);
 }
 
 export async function cancelSalesOrder(id: Id | string) {
   const res = await apiClient.post<SalesOrderResponseDTO>(
-    `/sales/orders/${id}/cancel`
+    `/sales/orders/${id}/cancel`,
   );
   return toSalesOrder(res.data);
 }
 
 export async function updateSalesOrder(
   id: Id | string,
-  payload: SalesOrderUpdateDTO
+  payload: SalesOrderUpdateDTO,
 ) {
   const res = await apiClient.put<SalesOrderResponseDTO>(
     `/sales/orders/${id}`,
-    payload
+    payload,
   );
   return toSalesOrder(res.data);
 }
@@ -171,34 +171,34 @@ export async function updateSalesOrder(
 // --- Picklists ---
 export async function listPicklists(): Promise<Picklist[]> {
   const res = await apiClient.get<PicklistResponseDTO[]>(
-    "/warehouse/picklists"
+    "/warehouse/picklists",
   );
   return (res.data || []).map(toPicklist);
 }
 
 export async function generatePicklistFromSalesOrder(
   salesOrderId: Id | string,
-  options?: { warehouseId?: Id | string }
+  options?: { warehouseId?: Id | string },
 ) {
   const res = await apiClient.post<PicklistResponseDTO>(
     `/warehouse/picklists/from-sales-order/${salesOrderId}`,
     options?.warehouseId
       ? { warehouseId: Number(options.warehouseId) }
-      : undefined
+      : undefined,
   );
   return toPicklist(res.data);
 }
 
 export async function markPicklistPicked(id: Id | string) {
   const res = await apiClient.post<PicklistResponseDTO>(
-    `/warehouse/picklists/${id}/picked`
+    `/warehouse/picklists/${id}/picked`,
   );
   return toPicklist(res.data);
 }
 
 export async function cancelPicklist(id: Id | string) {
   const res = await apiClient.post<PicklistResponseDTO>(
-    `/warehouse/picklists/${id}/cancel`
+    `/warehouse/picklists/${id}/cancel`,
   );
   return toPicklist(res.data);
 }
@@ -206,46 +206,46 @@ export async function cancelPicklist(id: Id | string) {
 // --- Shipments (mapped to UI Dispatch type) ---
 export async function listShipmentsAsDispatches(): Promise<Dispatch[]> {
   const res = await apiClient.get<ShipmentResponseDTO[]>(
-    "/warehouse/shipments"
+    "/warehouse/shipments",
   );
   return (res.data || []).map(toShipmentAsDispatch);
 }
 
 export async function createShipmentFromPicklist(
   picklistId: Id | string,
-  payload: ShipmentCreateDTO
+  payload: ShipmentCreateDTO,
 ) {
   const res = await apiClient.post<ShipmentResponseDTO>(
     `/warehouse/shipments/from-picklist/${picklistId}`,
-    payload
+    payload,
   );
   return toShipmentAsDispatch(res.data);
 }
 
 export async function dispatchShipment(id: Id | string) {
   const res = await apiClient.post<ShipmentResponseDTO>(
-    `/warehouse/shipments/${id}/dispatch`
+    `/warehouse/shipments/${id}/dispatch`,
   );
   return toShipmentAsDispatch(res.data);
 }
 
 export async function markShipmentInTransit(id: Id | string) {
   const res = await apiClient.post<ShipmentResponseDTO>(
-    `/warehouse/shipments/${id}/in-transit`
+    `/warehouse/shipments/${id}/in-transit`,
   );
   return toShipmentAsDispatch(res.data);
 }
 
 export async function markShipmentDelivered(id: Id | string) {
   const res = await apiClient.post<ShipmentResponseDTO>(
-    `/warehouse/shipments/${id}/delivered`
+    `/warehouse/shipments/${id}/delivered`,
   );
   return toShipmentAsDispatch(res.data);
 }
 
 export async function cancelShipment(id: Id | string) {
   const res = await apiClient.post<ShipmentResponseDTO>(
-    `/warehouse/shipments/${id}/cancel`
+    `/warehouse/shipments/${id}/cancel`,
   );
   return toShipmentAsDispatch(res.data);
 }
@@ -255,7 +255,7 @@ export function attachOrderAndItems(
   orders: SalesOrder[],
   picklists: Picklist[],
   dispatches: Dispatch[],
-  items: Item[]
+  items: ItemResponseDTO[],
 ) {
   const orderById = new Map(orders.map((o) => [o.id, o]));
   const itemById = new Map(items.map((i) => [i.id, i]));
@@ -275,7 +275,7 @@ export function attachOrderAndItems(
       order,
       items: p.items.map((pli) => ({
         ...pli,
-        item: itemById.get(pli.itemId),
+        item: itemById.get(Number(pli.itemId)),
       })),
     };
   });

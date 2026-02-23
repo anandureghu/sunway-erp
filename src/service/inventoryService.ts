@@ -1,17 +1,15 @@
 import { apiClient } from "@/service/apiClient";
-import type { Item, ItemCategory, Warehouse, Stock } from "@/types/inventory";
+import type { ItemCategory, Warehouse, Stock } from "@/types/inventory";
 import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
   CategoryUpdateDTO,
   ItemResponseDTO,
-  ItemUpdateDTO,
   WarehouseCreateDTO,
   WarehouseResponseDTO,
   WarehouseUpdateDTO,
   Id,
 } from "@/service/erpApiTypes";
-import type { ItemFormData } from "@/schema/inventory";
 
 function normalizeStatus(status?: string) {
   return (status || "").toLowerCase();
@@ -53,38 +51,6 @@ function toCategory(dto: CategoryResponseDTO): ItemCategory {
     subCategories: dto.subCategories
       ? dto.subCategories.map(toCategory)
       : undefined,
-  };
-}
-
-function toItem(dto: ItemResponseDTO): Item {
-  // Our UI `Item` model is richer than the backend response.
-  // We map what we have and fill the rest with safe defaults.
-  return {
-    id: String(dto.id),
-    sku: dto.sku || "",
-    name: dto.name || "",
-    description: undefined,
-    itemType: dto.type || undefined,
-    category: dto.category || "",
-    subcategory: dto.subCategory || undefined,
-    brand: dto.brand || undefined,
-    unit: dto.unitMeasure || "pcs",
-    costPrice: Number(dto.costPrice || 0),
-    sellingPrice: Number(dto.sellingPrice || 0),
-    reorderLevel: Number(dto.reorderLevel || dto.minimum || 0),
-    maximum: dto.maximum ? Number(dto.maximum) : undefined,
-    reorderQuantity: undefined,
-    status:
-      normalizeStatus(dto.status) === "discontinued"
-        ? "discontinued"
-        : normalizeStatus(dto.status) === "out_of_stock"
-          ? "out_of_stock"
-          : "active",
-    barcode: dto.barcode || undefined,
-    rfidTag: undefined,
-    createdAt: dto.createdAt || "",
-    updatedAt: dto.updatedAt || "",
-    imageUrl: dto.imageUrl || "",
   };
 }
 

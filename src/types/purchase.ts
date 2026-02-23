@@ -1,4 +1,9 @@
-import type { Item, Warehouse } from "./inventory";
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import type { Warehouse } from "./inventory";
+import type {
+  PurchaseOrderItemDTO,
+  PurchaseRequisitionItemDTO,
+} from "@/service/purchaseFlowService";
 
 // Supplier Types
 export type Supplier = {
@@ -38,8 +43,8 @@ export type PurchaseRequisitionStatus =
 export type PurchaseRequisitionItem = {
   id: string;
   requisitionId: string;
-  itemId: string;
-  item?: Item;
+  itemId: number;
+  item?: PurchaseRequisitionItemDTO;
   quantity: number;
   unitPrice?: number;
   estimatedTotal?: number;
@@ -79,8 +84,8 @@ export type PurchaseOrderStatus =
 export type PurchaseOrderItem = {
   id: string;
   orderId: string;
-  itemId: string;
-  item?: Item;
+  itemId: number;
+  item?: PurchaseOrderItemDTO;
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -137,8 +142,8 @@ export type GoodsReceiptItem = {
   receiptId: string;
   orderItemId: string;
   orderItem?: PurchaseOrderItem;
-  itemId: string;
-  item?: Item;
+  itemId: number;
+  item?: ItemResponseDTO;
   orderedQuantity: number;
   receivedQuantity: number;
   acceptedQuantity: number;
@@ -183,8 +188,8 @@ export type PurchaseInvoiceItem = {
   id: string;
   invoiceId: string;
   orderItemId: string;
-  itemId: string;
-  item?: Item;
+  itemId: number;
+  item?: ItemResponseDTO;
   quantity: number;
   unitPrice: number;
   discount: number;

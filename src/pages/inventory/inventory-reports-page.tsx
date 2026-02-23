@@ -74,7 +74,7 @@ export default function InventoryReportsPage() {
   const filteredStock = useMemo(() => {
     if (selectedWarehouse === "all") return stockData;
     return stockData.filter(
-      (s) => s.warehouse_id?.toString() === selectedWarehouse
+      (s) => s.warehouse_id?.toString() === selectedWarehouse,
     );
   }, [stockData, selectedWarehouse]);
 
@@ -83,17 +83,17 @@ export default function InventoryReportsPage() {
     // Total valuation
     const totalValue = filteredStock.reduce(
       (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
-      0
+      0,
     );
 
     // Valuation by warehouse
     const valuationByWarehouse = warehouses.map((wh) => {
       const stockInWarehouse = filteredStock.filter(
-        (s) => s.warehouse_id?.toString() === wh.id
+        (s) => s.warehouse_id?.toString() === wh.id,
       );
       const value = stockInWarehouse.reduce(
         (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
-        0
+        0,
       );
       const quantity = stockInWarehouse.reduce((sum, s) => sum + s.quantity, 0);
       return { warehouse: wh.name, value, quantity };
@@ -102,11 +102,11 @@ export default function InventoryReportsPage() {
     // Valuation by category
     const valuationByCategory = itemCategories.map((cat) => {
       const stockInCategory = filteredStock.filter(
-        (s) => s.item?.category === cat.name
+        (s) => s.item?.category === cat.name,
       );
       const value = stockInCategory.reduce(
         (sum, s) => sum + s.quantity * (s.item?.costPrice || 0),
-        0
+        0,
       );
       return { category: cat.name, value };
     });
@@ -268,13 +268,13 @@ export default function InventoryReportsPage() {
     }>;
 
     const expiredItems = expiryAnalysis.filter(
-      (item) => item.status === "expired"
+      (item) => item.status === "expired",
     );
     const expiringSoon = expiryAnalysis.filter(
-      (item) => item.status === "expiring_soon"
+      (item) => item.status === "expiring_soon",
     );
     const warningItems = expiryAnalysis.filter(
-      (item) => item.status === "warning"
+      (item) => item.status === "warning",
     );
 
     return {
@@ -291,10 +291,10 @@ export default function InventoryReportsPage() {
   const kpis = useMemo(() => {
     const totalItems = filteredStock.length;
     const lowStockItems = filteredStock.filter(
-      (s) => s.item && s.quantity <= (s.item.reorderLevel || 0)
+      (s) => s.item && s.quantity <= (s.item.reorderLevel || 0),
     ).length;
     const outOfStockItems = filteredStock.filter(
-      (s) => s.quantity === 0
+      (s) => s.quantity === 0,
     ).length;
     const totalValue = stockValuation.totalValue;
     const totalQuantity = filteredStock.reduce((sum, s) => sum + s.quantity, 0);
@@ -906,7 +906,7 @@ export default function InventoryReportsPage() {
                       <p className="text-sm text-green-700">
                         {
                           ageingAndExpiry.expiryAnalysis.filter(
-                            (item) => item.status === "safe"
+                            (item) => item.status === "safe",
                           ).length
                         }{" "}
                         items
@@ -979,15 +979,15 @@ export default function InventoryReportsPage() {
                                 item.status === "expired"
                                   ? "bg-red-100 text-red-800"
                                   : item.status === "expiring_soon"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : "bg-yellow-100 text-yellow-800"
+                                    ? "bg-orange-100 text-orange-800"
+                                    : "bg-yellow-100 text-yellow-800"
                               }
                             >
                               {item.status === "expired"
                                 ? "Expired"
                                 : item.status === "expiring_soon"
-                                ? "Expiring Soon"
-                                : "Warning"}
+                                  ? "Expiring Soon"
+                                  : "Warning"}
                             </Badge>
                           </td>
                         </tr>

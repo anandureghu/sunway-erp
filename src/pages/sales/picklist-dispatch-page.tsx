@@ -73,9 +73,8 @@ export default function PicklistDispatchPage() {
         orders,
         pls,
         shps,
-        items
+        items,
       );
-      console.log(orders);
       setSalesOrders(orders);
       setPicklists(picklistsEnriched);
       setDispatches(dispatchesEnriched);
@@ -168,13 +167,13 @@ export default function PicklistDispatchPage() {
       createPicklistColumns(
         handleMarkPicklistPicked,
         handleCancelPicklist,
-        handleCreateDispatchFromPicklist
+        handleCreateDispatchFromPicklist,
       ),
     [
       handleMarkPicklistPicked,
       handleCancelPicklist,
       handleCreateDispatchFromPicklist,
-    ]
+    ],
   );
 
   const dispatchColumns = useMemo(
@@ -183,14 +182,14 @@ export default function PicklistDispatchPage() {
         handleDispatchShipment,
         handleMarkShipmentInTransit,
         handleMarkShipmentDelivered,
-        handleCancelShipment
+        handleCancelShipment,
       ),
     [
       handleDispatchShipment,
       handleMarkShipmentInTransit,
       handleMarkShipmentDelivered,
       handleCancelShipment,
-    ]
+    ],
   );
 
   if (showCreatePicklist) {
@@ -409,7 +408,7 @@ function CreatePicklistForm({
       // Get warehouseId from order items
       // Try to find warehouse from items - take first non-empty warehouseId
       const itemWithWarehouse = selectedOrder.items.find(
-        (item) => item.warehouseId
+        (item) => item.warehouseId,
       );
       if (itemWithWarehouse?.warehouseId) {
         setValue("warehouseId", itemWithWarehouse.warehouseId);
@@ -444,7 +443,7 @@ function CreatePicklistForm({
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to generate picklist. Please try again."
+          "Failed to generate picklist. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -742,7 +741,7 @@ function CreateDispatchForm({
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to create shipment. Please try again."
+          "Failed to create shipment. Please try again.",
       );
     } finally {
       setSubmitting(false);

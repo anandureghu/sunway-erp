@@ -41,7 +41,7 @@ export default function PurchaseRequisitionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(
-    location.pathname.includes("/new")
+    location.pathname.includes("/new"),
   );
   const [requisitions, setRequisitions] = useState<PurchaseRequisition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +96,7 @@ export default function PurchaseRequisitionsPage() {
       const requisition = row.original;
       navigate(`/inventory/purchase/requisitions/${requisition.id}`);
     },
-    [navigate]
+    [navigate],
   );
 
   const handleApprove = useCallback(async (id: string) => {
@@ -112,7 +112,7 @@ export default function PurchaseRequisitionsPage() {
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to approve requisition"
+          "Failed to approve requisition",
       );
     }
   }, []);
@@ -128,7 +128,7 @@ export default function PurchaseRequisitionsPage() {
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to submit requisition"
+          "Failed to submit requisition",
       );
     }
   }, []);
@@ -137,7 +137,7 @@ export default function PurchaseRequisitionsPage() {
     async (id: string) => {
       if (
         !confirm(
-          "Are you sure you want to convert this requisition to a purchase order?"
+          "Are you sure you want to convert this requisition to a purchase order?",
         )
       )
         return;
@@ -151,7 +151,7 @@ export default function PurchaseRequisitionsPage() {
               label: "View PO",
               onClick: () => navigate("/inventory/purchase/orders"),
             },
-          }
+          },
         );
         const requisitionsData = await listPurchaseRequisitions();
         setRequisitions(requisitionsData);
@@ -178,12 +178,12 @@ export default function PurchaseRequisitionsPage() {
                 label: "Go to POs",
                 onClick: () => navigate("/inventory/purchase/orders"),
               },
-            }
+            },
           );
         }
       }
     },
-    [navigate]
+    [navigate],
   );
 
   const columns: ColumnDef<PurchaseRequisition>[] = useMemo(
@@ -299,7 +299,7 @@ export default function PurchaseRequisitionsPage() {
         },
       },
     ],
-    [handleApprove, handleSubmit, handleConvertToPO]
+    [handleApprove, handleSubmit, handleConvertToPO],
   );
 
   if (showCreateForm) {
@@ -404,7 +404,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
       } catch (e: any) {
         if (!cancelled) {
           setLoadError(
-            e?.response?.data?.message || e?.message || "Failed to load items"
+            e?.response?.data?.message || e?.message || "Failed to load items",
           );
         }
       } finally {
@@ -429,7 +429,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
         requiredDate: z.string().optional(),
         notes: z.string().optional(),
         items: z.array(z.any()).optional(),
-      })
+      }),
     ),
     defaultValues: {
       requestedDate: format(new Date(), "yyyy-MM-dd"),
@@ -471,7 +471,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
   const calculateTotal = () => {
     return requisitionItems.reduce(
       (sum, item) => sum + (item.estimatedTotal || 0),
-      0
+      0,
     );
   };
 
@@ -497,7 +497,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
     createPurchaseRequisition(payload)
       .then((created) => {
         toast.success(
-          `Purchase requisition ${created.requisitionNo} created successfully!`
+          `Purchase requisition ${created.requisitionNo} created successfully!`,
         );
         // Navigate and trigger refresh by changing pathname
         navigate("/inventory/purchase/requisitions", { replace: true });
@@ -507,7 +507,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
         toast.error(
           error?.response?.data?.message ||
             error?.message ||
-            "Failed to create purchase requisition. Please try again."
+            "Failed to create purchase requisition. Please try again.",
         );
       })
       .finally(() => setSubmitLoading(false));
@@ -550,7 +550,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
               toast.error(
                 `Please fix ${errorCount} form error${
                   errorCount > 1 ? "s" : ""
-                } before submitting.`
+                } before submitting.`,
               );
             })(e);
           }}
@@ -689,10 +689,8 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
                       <tbody>
                         {requisitionItems.map((item) => (
                           <tr key={item.id} className="border-t">
-                            <td className="p-2">{item.item?.name}</td>
-                            <td className="p-2">
-                              {item.quantity} {item.item?.unit}
-                            </td>
+                            <td className="p-2">{item.item?.itemId}</td>
+                            <td className="p-2">{item.quantity}</td>
                             <td className="p-2">
                               ₹{item.unitPrice?.toLocaleString() || 0}
                             </td>

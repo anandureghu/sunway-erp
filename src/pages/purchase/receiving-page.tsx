@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { GOODS_RECEIPT_COLUMNS } from "@/lib/columns/purchase-columns";
 import { Plus, Search, ArrowLeft, ClipboardCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { listPurchaseOrders, getGoodsReceiptsByPurchaseOrder } from "@/service/purchaseFlowService";
+import {
+  listPurchaseOrders,
+  getGoodsReceiptsByPurchaseOrder,
+} from "@/service/purchaseFlowService";
 import type { GoodsReceipt, PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
 import type { Row } from "@tanstack/react-table";
@@ -27,7 +30,7 @@ export default function ReceivingPage() {
       const receipt = row.original;
       navigate(`/inventory/purchase/receiving/${receipt.id}`);
     },
-    [navigate]
+    [navigate],
   );
 
   // Load orders and receipts
@@ -39,31 +42,34 @@ export default function ReceivingPage() {
         setLoadError(null);
         const ordersData = await listPurchaseOrders();
         if (cancelled) return;
-        
+
         setOrders(ordersData);
-        
+
         // Fetch receipts for all orders
         const allReceipts: GoodsReceipt[] = [];
         for (const order of ordersData) {
           try {
-            const orderReceipts = await getGoodsReceiptsByPurchaseOrder(order.id);
+            const orderReceipts = await getGoodsReceiptsByPurchaseOrder(
+              order.id,
+            );
             allReceipts.push(...orderReceipts);
           } catch (e) {
             // Some orders may not have receipts yet, that's okay
             console.warn(`No receipts for order ${order.id}:`, e);
           }
         }
-        
+
         if (!cancelled) {
           setReceipts(allReceipts);
         }
       } catch (e: any) {
         if (!cancelled) {
           console.error("Error loading purchase orders:", e);
-          const errorMessage = e?.response?.data?.message || 
-                               e?.response?.data?.error || 
-                               e?.message || 
-                               "Failed to load purchase orders. Please check if the API endpoint is configured correctly.";
+          const errorMessage =
+            e?.response?.data?.message ||
+            e?.response?.data?.error ||
+            e?.message ||
+            "Failed to load purchase orders. Please check if the API endpoint is configured correctly.";
           setLoadError(errorMessage);
           toast.error(errorMessage);
         }
@@ -89,28 +95,27 @@ export default function ReceivingPage() {
 
   // Get orders ready for receiving (ordered or partially received) with search filter
   const ordersReadyForReceiving = useMemo(() => {
-    let filtered = orders.filter(
-      (order) => {
-        const status = order.status?.toLowerCase();
-        return (
-          status === "ordered" || 
-          status === "partially_received" || 
-          status === "approved" ||
-          status === "confirmed"
-        );
-      }
-    );
-    
+    let filtered = orders.filter((order) => {
+      const status = order.status?.toLowerCase();
+      return (
+        status === "ordered" ||
+        status === "partially_received" ||
+        status === "approved" ||
+        status === "confirmed"
+      );
+    });
+
     // Apply search filter if provided
     if (orderSearchQuery.trim()) {
       const query = orderSearchQuery.toLowerCase();
-      filtered = filtered.filter((order) =>
-        order.orderNo.toLowerCase().includes(query) ||
-        order.supplier?.name?.toLowerCase().includes(query) ||
-        order.supplier?.code?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (order) =>
+          order.orderNo.toLowerCase().includes(query) ||
+          order.supplier?.name?.toLowerCase().includes(query) ||
+          order.supplier?.code?.toLowerCase().includes(query),
       );
     }
-    
+
     return filtered;
   }, [orders, orderSearchQuery]);
 
@@ -170,14 +175,16 @@ export default function ReceivingPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-4 text-center text-muted-foreground">Loading orders...</div>
+            <div className="py-4 text-center text-muted-foreground">
+              Loading orders...
+            </div>
           ) : loadError ? (
             <div className="py-4 text-center text-red-600">
               <p className="font-medium">Error loading purchase orders</p>
               <p className="text-sm mt-1">{loadError}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="mt-2"
                 onClick={() => window.location.reload()}
               >
@@ -186,7 +193,7 @@ export default function ReceivingPage() {
             </div>
           ) : ordersReadyForReceiving.length === 0 ? (
             <div className="py-4 text-center text-muted-foreground">
-              {orderSearchQuery.trim() 
+              {orderSearchQuery.trim()
                 ? `No purchase orders found matching "${orderSearchQuery}"`
                 : "No purchase orders ready for receiving"}
             </div>
@@ -200,7 +207,8 @@ export default function ReceivingPage() {
                   <div>
                     <p className="font-medium">{order.orderNo}</p>
                     <p className="text-sm text-muted-foreground">
-                      {order.supplier?.name || "Unknown Supplier"} • Expected: {order.expectedDate || "N/A"}
+                      {order.supplier?.name || "Unknown Supplier"} • Expected:{" "}
+                      {order.expectedDate || "N/A"}
                     </p>
                   </div>
                   <Button
@@ -237,12 +245,14 @@ export default function ReceivingPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-10 text-center text-muted-foreground">Loading...</div>
+            <div className="py-10 text-center text-muted-foreground">
+              Loading...
+            </div>
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : filteredReceipts.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">
-              {searchQuery.trim() 
+              {searchQuery.trim()
                 ? `No receipts found matching "${searchQuery}"`
                 : "No goods receipts found"}
             </div>
@@ -259,23 +269,27 @@ export default function ReceivingPage() {
   );
 }
 
-function CreateReceiptForm({ 
-  onCancel, 
-  orderId, 
-  onSuccess 
-}: { 
-  onCancel: () => void; 
+function CreateReceiptForm({
+  onCancel,
+  orderId,
+  onSuccess,
+}: {
+  onCancel: () => void;
   orderId: string;
   onSuccess: () => void;
 }) {
-  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
-  const [receiptItems, setReceiptItems] = useState<Array<{
-    itemId: number;
-    receivedQty: number;
-    acceptedQty: number;
-    rejectedQty: number;
-    remarks?: string;
-  }>>([]);
+  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(
+    null,
+  );
+  const [receiptItems, setReceiptItems] = useState<
+    Array<{
+      itemId: number;
+      receivedQty: number;
+      acceptedQty: number;
+      rejectedQty: number;
+      remarks?: string;
+    }>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
 
@@ -285,17 +299,19 @@ function CreateReceiptForm({
         const ordersData = await listPurchaseOrders();
         setOrders(ordersData);
         if (orderId) {
-          const order = ordersData.find(o => o.id === orderId);
+          const order = ordersData.find((o) => o.id === orderId);
           if (order) {
             setSelectedOrder(order);
             // Initialize receipt items from order items
-            setReceiptItems(order.items.map(item => ({
-              itemId: Number(item.itemId),
-              receivedQty: item.quantity,
-              acceptedQty: item.quantity,
-              rejectedQty: 0,
-              remarks: "",
-            })));
+            setReceiptItems(
+              order.items.map((item) => ({
+                itemId: Number(item.itemId),
+                receivedQty: item.quantity,
+                acceptedQty: item.quantity,
+                rejectedQty: 0,
+                remarks: "",
+              })),
+            );
           }
         }
       } catch (e: any) {
@@ -317,7 +333,8 @@ function CreateReceiptForm({
 
     setLoading(true);
     try {
-      const { createGoodsReceipt } = await import("@/service/purchaseFlowService");
+      const { createGoodsReceipt } =
+        await import("@/service/purchaseFlowService");
       await createGoodsReceipt({
         purchaseOrderId: Number(selectedOrder.id),
         items: receiptItems,
@@ -326,7 +343,11 @@ function CreateReceiptForm({
       onSuccess();
     } catch (error: any) {
       console.error("Error creating goods receipt:", error);
-      toast.error(error?.response?.data?.message || error?.message || "Failed to create goods receipt");
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to create goods receipt",
+      );
     } finally {
       setLoading(false);
     }
@@ -371,16 +392,18 @@ function CreateReceiptForm({
             <select
               value={selectedOrder?.id || ""}
               onChange={(e) => {
-                const order = orders.find(o => o.id === e.target.value);
+                const order = orders.find((o) => o.id === e.target.value);
                 setSelectedOrder(order || null);
                 if (order) {
-                  setReceiptItems(order.items.map(item => ({
-                    itemId: Number(item.itemId),
-                    receivedQty: item.quantity,
-                    acceptedQty: item.quantity,
-                    rejectedQty: 0,
-                    remarks: "",
-                  })));
+                  setReceiptItems(
+                    order.items.map((item) => ({
+                      itemId: Number(item.itemId),
+                      receivedQty: item.quantity,
+                      acceptedQty: item.quantity,
+                      rejectedQty: 0,
+                      remarks: "",
+                    })),
+                  );
                 }
               }}
               className="w-full p-2 border rounded"
@@ -388,16 +411,21 @@ function CreateReceiptForm({
             >
               <option value="">Select Purchase Order</option>
               {orders
-                .filter(o => {
+                .filter((o) => {
                   const status = o.status?.toLowerCase();
-                  return status === "ordered" || 
-                         status === "approved" || 
-                         status === "partially_received" ||
-                         status === "confirmed";
+                  return (
+                    status === "ordered" ||
+                    status === "approved" ||
+                    status === "partially_received" ||
+                    status === "confirmed"
+                  );
                 })
-                .map(order => (
+                .map((order) => (
                   <option key={order.id} value={order.id}>
-                    {order.orderNo} - {(order.supplier as any)?.vendorName || (order.supplier as any)?.name || "N/A"}
+                    {order.orderNo} -{" "}
+                    {(order.supplier as any)?.vendorName ||
+                      (order.supplier as any)?.name ||
+                      "N/A"}
                   </option>
                 ))}
             </select>
@@ -424,17 +452,27 @@ function CreateReceiptForm({
                   </thead>
                   <tbody>
                     {receiptItems.map((item, idx) => {
-                      const orderItem = selectedOrder.items.find(oi => Number(oi.itemId) === item.itemId);
+                      const orderItem = selectedOrder.items.find(
+                        (oi) => Number(oi.itemId) === item.itemId,
+                      );
                       return (
                         <tr key={idx} className="border-t">
-                          <td className="p-2">{orderItem?.item?.name || `Item ${item.itemId}`}</td>
+                          <td className="p-2">
+                            {orderItem?.item?.itemId || `Item ${item.itemId}`}
+                          </td>
                           <td className="p-2">{orderItem?.quantity || 0}</td>
                           <td className="p-2">
                             <Input
                               type="number"
                               min="0"
                               value={item.receivedQty}
-                              onChange={(e) => updateItem(idx, "receivedQty", Number(e.target.value))}
+                              onChange={(e) =>
+                                updateItem(
+                                  idx,
+                                  "receivedQty",
+                                  Number(e.target.value),
+                                )
+                              }
                               className="w-20"
                             />
                           </td>
@@ -443,7 +481,13 @@ function CreateReceiptForm({
                               type="number"
                               min="0"
                               value={item.acceptedQty}
-                              onChange={(e) => updateItem(idx, "acceptedQty", Number(e.target.value))}
+                              onChange={(e) =>
+                                updateItem(
+                                  idx,
+                                  "acceptedQty",
+                                  Number(e.target.value),
+                                )
+                              }
                               className="w-20"
                             />
                           </td>
@@ -452,7 +496,13 @@ function CreateReceiptForm({
                               type="number"
                               min="0"
                               value={item.rejectedQty}
-                              onChange={(e) => updateItem(idx, "rejectedQty", Number(e.target.value))}
+                              onChange={(e) =>
+                                updateItem(
+                                  idx,
+                                  "rejectedQty",
+                                  Number(e.target.value),
+                                )
+                              }
                               className="w-20"
                             />
                           </td>
@@ -460,7 +510,9 @@ function CreateReceiptForm({
                             <Input
                               type="text"
                               value={item.remarks || ""}
-                              onChange={(e) => updateItem(idx, "remarks", e.target.value)}
+                              onChange={(e) =>
+                                updateItem(idx, "remarks", e.target.value)
+                              }
                               placeholder="Remarks"
                               className="w-40"
                             />
@@ -479,7 +531,10 @@ function CreateReceiptForm({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!selectedOrder || receiptItems.length === 0 || loading}>
+          <Button
+            type="submit"
+            disabled={!selectedOrder || receiptItems.length === 0 || loading}
+          >
             {loading ? "Creating..." : "Create Receipt"}
           </Button>
         </div>

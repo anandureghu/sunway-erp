@@ -39,8 +39,8 @@ import {
 } from "@/service/salesFlowService";
 import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
 import { toast } from "sonner";
-import type { Item } from "@/types/inventory";
 import { Separator } from "@/components/ui/separator";
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
 
 export default function SalesOrdersPage() {
   const location = useLocation();
@@ -618,7 +618,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   const [itemDiscount, setItemDiscount] = useState<number>(0);
   const [itemWarehouse, setItemWarehouse] = useState<string>("");
   const [customers, setCustomers] = useState<any[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -665,14 +665,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         ]);
         if (cancelled) return;
         setCustomers(c);
-        console.log("Customers loaded:", c.length);
-        console.log(
-          "Active customers:",
-          c.filter((cust) => cust.status === "active").length,
-        );
-        if (c.length > 0) {
-          console.log("First customer:", c[0]);
-        }
         setItems(it);
         console.log("Items loaded:", it.length);
         console.log(
@@ -719,7 +711,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       id: `temp-${Date.now()}`,
       orderId: "",
       itemId: item.id,
-      item,
       itemName: item.name,
       quantity: itemQuantity,
       unitPrice,
@@ -727,6 +718,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       tax,
       total,
       warehouseId: Number(itemWarehouse),
+      item,
     };
 
     setOrderItems([...orderItems, newItem]);
@@ -1186,7 +1178,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                           <tr key={item.id} className="border-t">
                             <td className="p-2">{item.item?.name}</td>
                             <td className="p-2">
-                              {item.quantity} {item.item?.unit}
+                              {item.quantity} {item.item?.unitMeasure}
                             </td>
                             <td className="p-2">
                               ₹{item.unitPrice.toLocaleString()}

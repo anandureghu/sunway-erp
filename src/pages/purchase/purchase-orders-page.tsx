@@ -12,7 +12,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, ArrowLeft, User, Package, X, Save, Check } from "lucide-react";
+import {
+  Plus,
+  Search,
+  ArrowLeft,
+  User,
+  Package,
+  X,
+  Save,
+  Check,
+} from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import {
@@ -45,11 +54,11 @@ export default function PurchaseOrdersPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
-    (location.state as { searchQuery?: string })?.searchQuery || ""
+    (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(
-    location.pathname.includes("/new")
+    location.pathname.includes("/new"),
   );
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [, setVendors] = useState<Vendor[]>([]);
@@ -84,7 +93,7 @@ export default function PurchaseOrdersPage() {
           // Enrich orders with vendor data (convert Vendor to Supplier format)
           const enrichedOrders = ordersData.map((order) => {
             const vendor = vendorsData.find(
-              (v) => String(v.id) === order.supplierId
+              (v) => String(v.id) === order.supplierId,
             );
             return {
               ...order,
@@ -166,7 +175,7 @@ export default function PurchaseOrdersPage() {
       ]);
       const enrichedOrders = ordersData.map((order) => {
         const vendor = vendorsData.find(
-          (v) => String(v.id) === order.supplierId
+          (v) => String(v.id) === order.supplierId,
         );
         return {
           ...order,
@@ -209,14 +218,14 @@ export default function PurchaseOrdersPage() {
       // Check if order can be cancelled according to spec
       if (order.status !== "draft" && order.status !== "pending") {
         toast.error(
-          `Cannot cancel order with status "${order.status}". Only draft or pending orders can be cancelled.`
+          `Cannot cancel order with status "${order.status}". Only draft or pending orders can be cancelled.`,
         );
         return;
       }
 
       if (
         !confirm(
-          `Are you sure you want to cancel order ${order.orderNo}? This action cannot be undone.`
+          `Are you sure you want to cancel order ${order.orderNo}? This action cannot be undone.`,
         )
       )
         return;
@@ -231,7 +240,7 @@ export default function PurchaseOrdersPage() {
         ]);
         const enrichedOrders = ordersData.map((order) => {
           const vendor = vendorsData.find(
-            (v) => String(v.id) === order.supplierId
+            (v) => String(v.id) === order.supplierId,
           );
           return {
             ...order,
@@ -262,7 +271,7 @@ export default function PurchaseOrdersPage() {
         toast.error(errorMessage);
       }
     },
-    [orders]
+    [orders],
   );
 
   const [selectedOrderForDetails, setSelectedOrderForDetails] =
@@ -277,7 +286,7 @@ export default function PurchaseOrdersPage() {
         setShowOrderDetailsDialog(true);
       }
     },
-    [orders]
+    [orders],
   );
 
   const handleEdit = useCallback(() => {
@@ -290,7 +299,7 @@ export default function PurchaseOrdersPage() {
       const order = row.original;
       navigate(`/inventory/purchase/orders/${order.id}`);
     },
-    [navigate]
+    [navigate],
   );
 
   const columns = useMemo(
@@ -299,9 +308,9 @@ export default function PurchaseOrdersPage() {
         handleConfirmOrder,
         handleCancelOrder,
         handleViewDetails,
-        handleEdit
+        handleEdit,
       ),
-    [handleConfirmOrder, handleCancelOrder, handleViewDetails, handleEdit]
+    [handleConfirmOrder, handleCancelOrder, handleViewDetails, handleEdit],
   );
 
   if (showCreateForm) {
@@ -445,10 +454,10 @@ export default function PurchaseOrdersPage() {
                           selectedOrderForDetails.status === "approved"
                             ? "bg-blue-100 text-blue-800"
                             : selectedOrderForDetails.status === "draft"
-                            ? "bg-gray-100 text-gray-800"
-                            : selectedOrderForDetails.status === "cancelled"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-gray-100 text-gray-800"
+                              ? "bg-gray-100 text-gray-800"
+                              : selectedOrderForDetails.status === "cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-gray-100 text-gray-800"
                         }
                       >
                         {selectedOrderForDetails.status
@@ -465,7 +474,7 @@ export default function PurchaseOrdersPage() {
                         {selectedOrderForDetails.orderDate
                           ? format(
                               new Date(selectedOrderForDetails.orderDate),
-                              "MMM dd, yyyy"
+                              "MMM dd, yyyy",
                             )
                           : "N/A"}
                       </p>
@@ -478,7 +487,7 @@ export default function PurchaseOrdersPage() {
                         <p className="font-medium">
                           {format(
                             new Date(selectedOrderForDetails.expectedDate),
-                            "MMM dd, yyyy"
+                            "MMM dd, yyyy",
                           )}
                         </p>
                       </div>
@@ -554,11 +563,11 @@ export default function PurchaseOrdersPage() {
                         >
                           <div>
                             <p className="font-medium">
-                              {item.item?.name || `Item ${item.itemId}`}
+                              {item.item?.itemId || `Item ${item.itemId}`}
                             </p>
-                            {item.item?.sku && (
+                            {item.item?.itemId && (
                               <p className="text-xs text-muted-foreground">
-                                SKU: {item.item.sku}
+                                SKU: {item.item.itemId}
                               </p>
                             )}
                           </div>
@@ -650,7 +659,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
         shippingAddress: z.string().optional(),
         notes: z.string().optional(),
         items: z.array(z.any()).optional(),
-      })
+      }),
     ),
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
@@ -681,7 +690,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
           setLoadError(
             e?.response?.data?.message ||
               e?.message ||
-              "Failed to load vendors/items/warehouses"
+              "Failed to load vendors/items/warehouses",
           );
         }
       } finally {
@@ -734,13 +743,13 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
   const calculateTotals = () => {
     const subtotal = orderItems.reduce(
       (sum, item) => sum + item.total - item.tax,
-      0
+      0,
     );
     const tax = orderItems.reduce((sum, item) => sum + item.tax, 0);
     const discount = orderItems.reduce(
       (sum, item) =>
         sum + (item.unitPrice * item.quantity * item.discount) / 100,
-      0
+      0,
     );
     const total = subtotal + tax;
 
@@ -931,12 +940,12 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
 
     console.log(
       "Sending purchase order payload:",
-      JSON.stringify(validatedPayload, null, 2)
+      JSON.stringify(validatedPayload, null, 2),
     );
     console.log(
       "Payload supplierId type:",
       typeof validatedPayload.supplierId,
-      validatedPayload.supplierId
+      validatedPayload.supplierId,
     );
     console.log("Payload items count:", validatedPayload.items.length);
     console.log(
@@ -954,13 +963,13 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
               lineTotal: typeof validatedPayload.items[0].lineTotal,
             },
           }
-        : "no items"
+        : "no items",
     );
 
     createPurchaseOrder(validatedPayload)
       .then((created) => {
         toast.success(
-          `Purchase order ${created.orderNo} created successfully!`
+          `Purchase order ${created.orderNo} created successfully!`,
         );
         // Navigate and trigger refresh by changing pathname
         navigate("/inventory/purchase/orders", { replace: true });
@@ -971,7 +980,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
         console.error("Error response status:", error?.response?.status);
         console.error(
           "Payload that was sent:",
-          JSON.stringify(payload, null, 2)
+          JSON.stringify(payload, null, 2),
         );
 
         // Extract detailed error message
@@ -994,7 +1003,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
               `Payload sent: ${JSON.stringify(
                 validatedPayload.items[0] || {},
                 null,
-                2
+                2,
               )}\n\n` +
               `See BACKEND_FIX_GUIDE.md for detailed instructions.`;
           } else if (errorData.message) {
@@ -1023,7 +1032,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
 
   const totals = calculateTotals();
   const selectedSupplier = vendors.find(
-    (v) => String(v.id) === selectedSupplierId
+    (v) => String(v.id) === selectedSupplierId,
   );
 
   return (
@@ -1036,7 +1045,10 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
         ) : loadError ? (
           <div className="py-10 text-center">
             <div className="text-red-600 mb-3">{loadError}</div>
-            <Button variant="outline" onClick={() => setReloadSeq((n) => n + 1)}>
+            <Button
+              variant="outline"
+              onClick={() => setReloadSeq((n) => n + 1)}
+            >
               Retry
             </Button>
           </div>
@@ -1048,10 +1060,11 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                 Create New Purchase Order
               </h1>
               <p className="text-blue-100">
-                Fill in supplier details and add items to generate your purchase order
+                Fill in supplier details and add items to generate your purchase
+                order
               </p>
             </div>
-            
+
             <CardContent className="p-8">
               <form
                 id="purchase-order-form"
@@ -1063,7 +1076,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                     toast.error(
                       `Please fix ${errorCount} form error${
                         errorCount > 1 ? "s" : ""
-                      } before submitting.`
+                      } before submitting.`,
                     );
                   })(e);
                 }}
@@ -1075,94 +1088,100 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                     <div className="p-2 bg-orange-500 rounded-lg">
                       <User className="w-5 h-5 text-white" />
                     </div>
-                    <CardTitle className="text-xl text-gray-900">Supplier Information</CardTitle>
+                    <CardTitle className="text-xl text-gray-900">
+                      Supplier Information
+                    </CardTitle>
                   </div>
                   {/* Orange/Yellow divider line */}
                   <div className="h-1 bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 rounded"></div>
-                  
+
                   <div className="grid grid-cols-3 gap-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="supplierId">
-                    Supplier <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={selectedSupplierId || ""}
-                    onValueChange={(value) => setValue("supplierId", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendors.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground">
-                          No vendors available
-                        </div>
-                      ) : vendors.filter((v) => v.active !== false).length ===
-                        0 ? (
-                        <>
-                          <div className="p-2 text-sm text-muted-foreground">
-                            No active vendors ({vendors.length} total)
-                          </div>
-                          {vendors.map((vendor) => (
-                            <SelectItem
-                              key={vendor.id}
-                              value={String(vendor.id)}
-                            >
-                              {vendor.vendorName} -{" "}
-                              {vendor.active ? "Active" : "Inactive"}
-                            </SelectItem>
-                          ))}
-                        </>
-                      ) : (
-                        vendors
-                          .filter((v) => v.active !== false)
-                          .map((vendor) => (
-                            <SelectItem
-                              key={vendor.id}
-                              value={String(vendor.id)}
-                            >
-                              {vendor.vendorName}
-                            </SelectItem>
-                          ))
+                    <div className="space-y-2">
+                      <Label htmlFor="supplierId">
+                        Supplier <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={selectedSupplierId || ""}
+                        onValueChange={(value) => setValue("supplierId", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a supplier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vendors.length === 0 ? (
+                            <div className="p-2 text-sm text-muted-foreground">
+                              No vendors available
+                            </div>
+                          ) : vendors.filter((v) => v.active !== false)
+                              .length === 0 ? (
+                            <>
+                              <div className="p-2 text-sm text-muted-foreground">
+                                No active vendors ({vendors.length} total)
+                              </div>
+                              {vendors.map((vendor) => (
+                                <SelectItem
+                                  key={vendor.id}
+                                  value={String(vendor.id)}
+                                >
+                                  {vendor.vendorName} -{" "}
+                                  {vendor.active ? "Active" : "Inactive"}
+                                </SelectItem>
+                              ))}
+                            </>
+                          ) : (
+                            vendors
+                              .filter((v) => v.active !== false)
+                              .map((vendor) => (
+                                <SelectItem
+                                  key={vendor.id}
+                                  value={String(vendor.id)}
+                                >
+                                  {vendor.vendorName}
+                                </SelectItem>
+                              ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {errors.supplierId && (
+                        <p className="text-sm text-red-500">
+                          {errors.supplierId.message}
+                        </p>
                       )}
-                    </SelectContent>
-                  </Select>
-                  {errors.supplierId && (
-                    <p className="text-sm text-red-500">
-                      {errors.supplierId.message}
-                    </p>
-                  )}
-                </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="orderDate">
-                    Order Date <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="orderDate"
-                    type="date"
-                    {...register("orderDate")}
-                  />
-                  {errors.orderDate && (
-                    <p className="text-sm text-red-500">
-                      {errors.orderDate.message}
-                    </p>
-                  )}
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="orderDate">
+                        Order Date <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="orderDate"
+                        type="date"
+                        {...register("orderDate")}
+                      />
+                      {errors.orderDate && (
+                        <p className="text-sm text-red-500">
+                          {errors.orderDate.message}
+                        </p>
+                      )}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="expectedDate">Expected Delivery Date</Label>
-                  <Input
-                    id="expectedDate"
-                    type="date"
-                    {...register("expectedDate")}
-                  />
-                </div>
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="expectedDate">
+                        Expected Delivery Date
+                      </Label>
+                      <Input
+                        id="expectedDate"
+                        type="date"
+                        {...register("expectedDate")}
+                      />
+                    </div>
+                  </div>
 
                   {selectedSupplier && (
                     <div className="p-4 bg-gray-50 rounded-lg col-span-3">
-                      <p className="font-medium">{selectedSupplier.vendorName}</p>
+                      <p className="font-medium">
+                        {selectedSupplier.vendorName}
+                      </p>
                       {selectedSupplier.street && (
                         <p className="text-sm text-muted-foreground">
                           {selectedSupplier.street}, {selectedSupplier.city},{" "}
@@ -1183,7 +1202,9 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                     <div className="p-2 bg-orange-500 rounded-lg">
                       <Package className="w-5 h-5 text-white" />
                     </div>
-                    <CardTitle className="text-xl text-gray-900">Add Items to Order</CardTitle>
+                    <CardTitle className="text-xl text-gray-900">
+                      Add Items to Order
+                    </CardTitle>
                   </div>
                   {/* Orange/Yellow divider line */}
                   <div className="h-1 bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 rounded"></div>
@@ -1192,83 +1213,85 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                   <Card className="border shadow-sm mt-4">
                     <CardContent className="p-6 space-y-4">
                       <div className="grid grid-cols-5 gap-4">
-                <div className="space-y-2">
-                  <Label>Item</Label>
-                  <Select value={selectedItem} onValueChange={setSelectedItem}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an item" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items
-                        .filter((i) => i.status === "active")
-                        .map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                        <div className="space-y-2">
+                          <Label>Item</Label>
+                          <Select
+                            value={selectedItem}
+                            onValueChange={setSelectedItem}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an item" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {items
+                                .filter((i) => i.status === "active")
+                                .map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                <div className="space-y-2">
-                  <Label>Quantity</Label>
-                  <Input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={itemQuantity}
-                    onChange={(e) =>
-                      setItemQuantity(parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </div>
+                        <div className="space-y-2">
+                          <Label>Quantity</Label>
+                          <Input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={itemQuantity}
+                            onChange={(e) =>
+                              setItemQuantity(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </div>
 
-                <div className="space-y-2">
-                  <Label>Unit Price</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={itemUnitPrice}
-                    onChange={(e) =>
-                      setItemUnitPrice(parseFloat(e.target.value) || 0)
-                    }
-                    placeholder="0.00"
-                  />
-                </div>
+                        <div className="space-y-2">
+                          <Label>Unit Price</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={itemUnitPrice}
+                            onChange={(e) =>
+                              setItemUnitPrice(parseFloat(e.target.value) || 0)
+                            }
+                            placeholder="0.00"
+                          />
+                        </div>
 
-                <div className="space-y-2">
-                  <Label>Discount (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={itemDiscount}
-                    onChange={(e) =>
-                      setItemDiscount(parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </div>
+                        <div className="space-y-2">
+                          <Label>Discount (%)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={itemDiscount}
+                            onChange={(e) =>
+                              setItemDiscount(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </div>
 
-                <div className="space-y-2">
-                  <Label>Warehouse</Label>
-                  <Select
-                    value={itemWarehouse}
-                    onValueChange={setItemWarehouse}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Main Warehouse" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map((wh) => (
-                        <SelectItem key={wh.id} value={wh.id}>
-                          {wh.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
+                        <div className="space-y-2">
+                          <Label>Warehouse</Label>
+                          <Select
+                            value={itemWarehouse}
+                            onValueChange={setItemWarehouse}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Main Warehouse" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {warehouses.map((wh) => (
+                                <SelectItem key={wh.id} value={wh.id}>
+                                  {wh.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div className="pt-2 flex justify-start">
                         <Button
@@ -1305,27 +1328,46 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                           <table className="w-full">
                             <thead className="bg-gray-50">
                               <tr>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Item</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Quantity</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Unit Price</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Discount</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Tax</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Total</th>
-                                <th className="p-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">
+                                  Item
+                                </th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">
+                                  Quantity
+                                </th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">
+                                  Unit Price
+                                </th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">
+                                  Discount
+                                </th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">
+                                  Tax
+                                </th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">
+                                  Total
+                                </th>
+                                <th className="p-3 text-left text-sm font-semibold text-gray-700">
+                                  Actions
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
                               {orderItems.map((item) => (
-                                <tr key={item.id} className="border-t hover:bg-gray-50">
-                                  <td className="p-3">{item.item?.name}</td>
+                                <tr
+                                  key={item.id}
+                                  className="border-t hover:bg-gray-50"
+                                >
+                                  <td className="p-3">{item.item?.itemId}</td>
                                   <td className="p-3">
-                                    {item.quantity} {item.item?.unit}
+                                    {item.quantity} {item.item?.quantity}
                                   </td>
                                   <td className="p-3">
                                     ${item.unitPrice.toFixed(2)}
                                   </td>
                                   <td className="p-3">{item.discount}%</td>
-                                  <td className="p-3">${item.tax.toFixed(2)}</td>
+                                  <td className="p-3">
+                                    ${item.tax.toFixed(2)}
+                                  </td>
                                   <td className="p-3 font-medium">
                                     ${item.total.toFixed(2)}
                                   </td>
@@ -1351,7 +1393,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                 </div>
               </form>
             </CardContent>
-            
+
             {/* Full width Total Order Amount Footer */}
             <div className="bg-blue-900 text-white px-8 py-4 w-full">
               <div className="flex items-center justify-between">
@@ -1361,7 +1403,7 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                 </span>
               </div>
             </div>
-            
+
             {/* Action Buttons - outside CardContent */}
             <div className="px-8 py-4 border-t">
               <div className="flex items-center justify-between">
@@ -1391,7 +1433,9 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
                     type="submit"
                     form="purchase-order-form"
                     disabled={
-                      orderItems.length === 0 || !selectedSupplierId || submitLoading
+                      orderItems.length === 0 ||
+                      !selectedSupplierId ||
+                      submitLoading
                     }
                     className="bg-orange-500 hover:bg-orange-600 text-white"
                   >

@@ -13,7 +13,7 @@ export default function PurchaseRequisitionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [requisition, setRequisition] = useState<PurchaseRequisition | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,9 +116,8 @@ export default function PurchaseRequisitionDetailPage() {
             statusColors[requisition.status] || "bg-gray-100 text-gray-800"
           }
         >
-          {requisition.status
-            .charAt(0)
-            .toUpperCase() + requisition.status.slice(1)}
+          {requisition.status.charAt(0).toUpperCase() +
+            requisition.status.slice(1)}
         </Badge>
       </div>
 
@@ -143,9 +142,8 @@ export default function PurchaseRequisitionDetailPage() {
                   "bg-gray-100 text-gray-800"
                 }
               >
-                {requisition.status
-                  .charAt(0)
-                  .toUpperCase() + requisition.status.slice(1)}
+                {requisition.status.charAt(0).toUpperCase() +
+                  requisition.status.slice(1)}
               </Badge>
             </div>
             <div>
@@ -230,12 +228,10 @@ export default function PurchaseRequisitionDetailPage() {
                   className="grid grid-cols-4 gap-4 text-sm border-b pb-2"
                 >
                   <div>
-                    <p className="font-medium">
-                      {item.item?.name || `Item ${item.itemId}`}
-                    </p>
-                    {item.item?.sku && (
+                    <p className="font-medium">{`Item ${item.itemId}`}</p>
+                    {item.item?.itemId && (
                       <p className="text-xs text-muted-foreground">
-                        SKU: {item.item.sku}
+                        SKU: {item.item.itemId}
                       </p>
                     )}
                     {item.notes && (
@@ -283,4 +279,3 @@ export default function PurchaseRequisitionDetailPage() {
     </div>
   );
 }
-

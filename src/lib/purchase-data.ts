@@ -9,7 +9,7 @@ import type {
   PurchaseInvoice,
   PurchaseInvoiceItem,
 } from "@/types/purchase";
-import { items, warehouses } from "./inventory-data";
+import { items, purchaseRequisitionItems, warehouses } from "./inventory-data";
 
 // Mock Suppliers (mutable for demo purposes)
 export const suppliers: Supplier[] = [
@@ -90,7 +90,7 @@ const requisitionItems1: PurchaseRequisitionItem[] = [
     id: "pri-1",
     requisitionId: "pr-1",
     itemId: items[0].id,
-    item: items[0],
+    item: purchaseRequisitionItems[0],
     quantity: 200,
     unitPrice: 1200,
     estimatedTotal: 240000,
@@ -99,7 +99,7 @@ const requisitionItems1: PurchaseRequisitionItem[] = [
     id: "pri-2",
     requisitionId: "pr-1",
     itemId: items[1].id,
-    item: items[1],
+    item: purchaseRequisitionItems[1],
     quantity: 100,
     unitPrice: 890,
     estimatedTotal: 89000,
@@ -140,7 +140,7 @@ export const purchaseRequisitions: PurchaseRequisition[] = [
         id: "pri-3",
         requisitionId: "pr-2",
         itemId: items[2].id,
-        item: items[2],
+        item: purchaseRequisitionItems[2],
         quantity: 150,
         estimatedTotal: 67500,
       },
@@ -384,7 +384,7 @@ export const addSupplier = (supplier: Supplier) => {
 };
 
 export const getPurchaseRequisitionById = (
-  id: string
+  id: string,
 ): PurchaseRequisition | undefined => {
   return purchaseRequisitions.find((pr) => pr.id === id);
 };
@@ -396,7 +396,7 @@ export const addPurchaseRequisition = (requisition: PurchaseRequisition) => {
 
 export const updatePurchaseRequisition = (
   id: string,
-  updates: Partial<PurchaseRequisition>
+  updates: Partial<PurchaseRequisition>,
 ) => {
   const index = purchaseRequisitions.findIndex((pr) => pr.id === id);
   if (index >= 0) {
@@ -419,7 +419,7 @@ export const addGoodsReceipt = (receipt: GoodsReceipt) => {
 };
 
 export const getPurchaseInvoiceById = (
-  id: string
+  id: string,
 ): PurchaseInvoice | undefined => {
   return purchaseInvoices.find((inv) => inv.id === id);
 };
