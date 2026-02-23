@@ -86,8 +86,8 @@ export type Stock = {
   item?: Item;
   warehouse?: Warehouse;
   warehouse_id?: number;
-  warehouse_name?: number;
-  warehouse_location?: number;
+  warehouse_name?: string;
+  warehouse_location?: string;
   imageUrl?: string;
 };
 

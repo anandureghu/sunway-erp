@@ -11,13 +11,16 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import type { ChartOfAccounts } from "@/types/coa";
+import type { Company } from "@/types/company";
 
 export const CHART_OF_ACCOUNTS_COLUMNS = ({
   onEdit,
   onDelete,
+  company,
 }: {
   onEdit: (account: ChartOfAccounts) => void;
   onDelete: (account: ChartOfAccounts) => void;
+  company: Company;
 }): ColumnDef<ChartOfAccounts>[] => [
   { accessorKey: "id", header: "ID" },
 
@@ -32,7 +35,6 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
   },
 
   { accessorKey: "parentId", header: "Parent ID" },
-  { accessorKey: "currency", header: "Currency" },
 
   {
     accessorKey: "status",
@@ -58,11 +60,15 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
     header: "Balance",
     cell: ({ row }) => {
       const b = row.getValue("balance");
-      return <span>₹ {Number(b).toLocaleString()}</span>;
+      return (
+        <span>
+          {company.currency?.currencySymbol} {Number(b).toLocaleString()}
+        </span>
+      );
     },
   },
 
-  { accessorKey: "companyId", header: "Company ID" },
+  // { accessorKey: "companyId", header: "Company ID" },
 
   {
     id: "actions",

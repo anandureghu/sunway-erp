@@ -21,8 +21,9 @@ import type {
 
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import SelectDepartment from "@/components/select-department";
+// import SelectDepartment from "@/components/select-department";
 
+// TODO: change backend
 export function BudgetDialog({
   open,
   onOpenChange,
@@ -69,7 +70,7 @@ export function BudgetDialog({
     try {
       const payload = {
         budgetName: form.budgetName,
-        budgetYear: Number(form.budgetYear),
+        budgetYear: Number(form.budgetYear) || new Date().getFullYear(),
         startDate: form.startDate || null,
         endDate: form.endDate || null,
       };
@@ -112,35 +113,36 @@ export function BudgetDialog({
               <Label>Budget Year</Label>
               <Input
                 type="number"
-                value={form.budgetYear}
+                value={form.budgetYear || new Date().getFullYear()}
                 onChange={(e) => update("budgetYear", e.target.value)}
+                disabled
               />
             </div>
 
             {/* Start Date */}
-            <div>
+            {/* <div>
               <Label>Start Date</Label>
               <Input
                 type="date"
                 value={form.startDate}
                 onChange={(e) => update("startDate", e.target.value)}
               />
-            </div>
+            </div> */}
 
             {/* End Date */}
-            <div>
+            {/* <div>
               <Label>End Date</Label>
               <Input
                 type="date"
                 value={form.endDate}
                 onChange={(e) => update("endDate", e.target.value)}
               />
-            </div>
+            </div> */}
 
-            <SelectDepartment
+            {/* <SelectDepartment
               value={form.departmentId?.toString()}
               onChange={(v) => update("departmentId", v)}
-            />
+            /> */}
 
             <div>
               <Label>Project ID</Label>

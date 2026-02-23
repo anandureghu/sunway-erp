@@ -11,9 +11,11 @@ import { JOURNAL_LINE_COLUMNS } from "@/lib/columns/finance/journal-line-columns
 import type { Row } from "@tanstack/react-table";
 import { JournalLineDialog } from "./journal-line-dialog";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function JournalDetailPage() {
   const { id } = useParams();
+  const { company } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<JournalEntryResponseDTO | null>(null);
   const [openLineDialog, setOpenLineDialog] = useState(false);
@@ -46,34 +48,33 @@ export default function JournalDetailPage() {
         <Button variant="link" className="p-0" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2" />
         </Button>
-        <h1 className="text-xl font-semibold">
-          Journal #{data.journalEntryNumber}
-        </h1>
+        <h1 className="text-xl font-normal">go back</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between">
-            <div>
-              <p>Total Credit: {data.totalCredit}</p>
-              <p>Total Debit: {data.totalDebit}</p>
-              <p>Status: {data.status}</p>
-              <p>Entry Date: {data.entryDate}</p>
-              <p>Source: {data.source}</p>
-              <p>Period: {data.periodId}</p>
-              {data.status == "REVERSED" && data.reversedAt && (
-                <p>Reversed Date: {data.reversedAt}</p>
-              )}
-              {data.status == "POSTED" ||
-                (data.status == "REVERSED" && data.postedAt && (
-                  <p>Posted Date: {data.postedAt}</p>
-                ))}
+          <div className="flex justify-between items-start">
+            {/* LEFT SIDE */}
+            <div className="space-y-4 w-full ">
+              {/* Journal Title + Description */}
+              <div>
+                <h2 className="text-2xl font-semibold">
+                  Journal #{data.journalEntryNumber}
+                </h2>
+                {data.description && (
+                  <p className="text-muted-foreground mt-1">
+                    {data.description}
+                  </p>
+                )}
+              </div>
 
-              <p>Description: {data.description}</p>
+              {/* Summary Cards */}
             </div>
 
-            <div className="flex gap-3">
+            {/* RIGHT SIDE ACTIONS */}
+            <div className="flex gap-3 ml-6">
               <Button onClick={fetchOne}>Refresh</Button>
+
               <Button
                 onClick={() =>
                   apiClient
@@ -83,6 +84,7 @@ export default function JournalDetailPage() {
               >
                 Post
               </Button>
+
               <Button
                 variant="destructive"
                 onClick={() =>
@@ -98,6 +100,32 @@ export default function JournalDetailPage() {
               >
                 Reverse
               </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4 mt-4">
+            {/* Amount */}
+            <div className="rounded-lg border p-4 bg-blue-50 text-blue-600 flex-1">
+              <p className="text-sm text-muted-foreground">Amount</p>
+              <p className="text-xl font-semibold">₹{data.totalDebit}</p>
+            </div>
+
+            {/* Status */}
+            <div className="rounded-lg border p-4 bg-gray-100 text-purple-600 flex-1">
+              <p className="text-sm text-muted-foreground">Status</p>
+              <p className="text-xl font-semibold">{data.status}</p>
+            </div>
+
+            {/* Created Date */}
+            <div className="rounded-lg border p-4 bg-green-50 text-green-600 flex-1">
+              <p className="text-sm text-muted-foreground">Created Date</p>
+              <p className="text-xl font-semibold">{data.entryDate}</p>
+            </div>
+
+            {/* Period */}
+            <div className="rounded-lg border p-4 bg-yellow-50 text-yellow-600 flex-1">
+              <p className="text-sm text-muted-foreground">Period</p>
+              <p className="text-xl font-semibold">{data.periodId}</p>
             </div>
           </div>
         </CardHeader>
@@ -118,7 +146,7 @@ export default function JournalDetailPage() {
 
           <DataTable
             data={data.lines}
-            columns={JOURNAL_LINE_COLUMNS}
+            columns={JOURNAL_LINE_COLUMNS({ company: company! })}
             onRowClick={handleRowClick}
           />
         </CardContent>

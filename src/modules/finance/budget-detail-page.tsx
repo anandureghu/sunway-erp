@@ -15,9 +15,11 @@ import { getBudgetLineColumns } from "@/lib/columns/finance/budget-line-columns"
 import type { BudgetResponseDTO, BudgetLineDTO } from "@/types/budget";
 import { BudgetLineDialog } from "./budget-line-dialog";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function BudgetDetailPage() {
   const { id } = useParams();
+  const { company } = useAuth();
   const navigate = useNavigate();
 
   const [data, setData] = useState<BudgetResponseDTO | null>(null);
@@ -67,6 +69,7 @@ export default function BudgetDetailPage() {
       setLineDialogOpen(true);
     },
     onDelete: deleteLine,
+    company: company!,
   });
 
   if (loading) return <div className="p-6">Loading...</div>;
@@ -82,28 +85,67 @@ export default function BudgetDetailPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <h1 className="text-2xl font-semibold">
+        {/* <h1 className="text-2xl font-semibold">
           Budget: {data.budgetName} ({data.budgetYear})
-        </h1>
+        </h1> */}
       </div>
 
       <Card>
-        <CardHeader className="flex justify-between">
-          <div>
-            <p>Amount: {data.amount}</p>
-            <p>Status: {data.status}</p>
-            <p>Start: {data.startDate}</p>
-            <p>End: {data.endDate}</p>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            {/* LEFT SIDE */}
+            <div className="space-y-4 w-full">
+              {/* Budget Title */}
+              <div>
+                <h2 className="text-2xl font-semibold">
+                  Budget: {data.budgetName}
+                </h2>
+                <p className="text-muted-foreground">Year {data.budgetYear}</p>
+              </div>
+            </div>
+
+            {/* RIGHT SIDE BUTTON */}
+            <div className="ml-6">
+              <Button
+                onClick={() => {
+                  setEditingLine(null);
+                  setLineDialogOpen(true);
+                }}
+              >
+                Add Budget Distribution
+              </Button>
+            </div>
           </div>
 
-          <Button
-            onClick={() => {
-              setEditingLine(null);
-              setLineDialogOpen(true);
-            }}
-          >
-            Add Budget Distribution
-          </Button>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            {/* Amount */}
+            <div className="rounded-lg border p-4 bg-blue-50 text-blue-600">
+              <p className="text-sm text-muted-foreground">Amount</p>
+              <p className="text-xl font-semibold">
+                {company?.currency?.currencySymbol}
+                {data.amount}
+              </p>
+            </div>
+
+            {/* Status */}
+            <div
+              className={`rounded-lg border p-4 ${
+                data.status === "IMPLEMENTED"
+                  ? "bg-green-50 text-green-600"
+                  : "bg-gray-100 text-purple-600"
+              }`}
+            >
+              <p className="text-sm text-muted-foreground">Status</p>
+              <p className="text-xl font-semibold">{data.status}</p>
+            </div>
+
+            {/* Budget Year */}
+            <div className="rounded-lg border p-4 bg-yellow-50 text-yellow-600">
+              <p className="text-sm text-muted-foreground">Budget Year</p>
+              <p className="text-xl font-semibold">{data.budgetYear}</p>
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>

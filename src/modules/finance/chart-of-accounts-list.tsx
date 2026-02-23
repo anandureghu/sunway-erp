@@ -12,11 +12,14 @@ import type { ChartOfAccounts } from "@/types/coa";
 import { CHART_OF_ACCOUNTS_COLUMNS } from "@/lib/columns/finance/chart-of-accounts-columns";
 import { ChartOfAccountDialog } from "./coa-dialog";
 import { fetchCOAAccounts } from "@/service/coaService";
+import type { Company } from "@/types/company";
 
 export default function ChartOfAccountsPage({
   companyId,
+  company,
 }: {
   companyId: string;
+  company: Company;
 }) {
   const [accounts, setAccounts] = useState<ChartOfAccounts[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,13 +38,13 @@ export default function ChartOfAccountsPage({
 
   const handleDialogSuccess = (
     updated: ChartOfAccounts,
-    mode: "add" | "edit"
+    mode: "add" | "edit",
   ) => {
     if (mode === "add") {
       setAccounts((prev) => [...prev, updated]);
     } else {
       setAccounts((prev) =>
-        prev.map((acc) => (acc.id === updated.id ? updated : acc))
+        prev.map((acc) => (acc.id === updated.id ? updated : acc)),
       );
     }
     setSelected(null);
@@ -67,6 +70,7 @@ export default function ChartOfAccountsPage({
   const columns = CHART_OF_ACCOUNTS_COLUMNS({
     onEdit: handleEdit,
     onDelete: handleDelete,
+    company: company,
   });
 
   if (loading)
