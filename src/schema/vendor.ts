@@ -31,6 +31,7 @@ export const VENDOR_SCHEMA = z.object({
     })
     .optional(),
   is1099Vendor: z.boolean().optional(),
+  remarks: z.string().optional(),
 });
 
 export type VendorFormData = z.infer<typeof VENDOR_SCHEMA>;

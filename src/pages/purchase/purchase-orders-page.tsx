@@ -49,6 +49,7 @@ import type { Vendor } from "@/types/vendor";
 import { createPurchaseOrderColumns } from "@/lib/columns/purchase-columns";
 import { toast } from "sonner";
 import type { Row } from "@tanstack/react-table";
+import SelectVendor from "@/components/select-vendor";
 
 export default function PurchaseOrdersPage() {
   const location = useLocation();
@@ -93,7 +94,7 @@ export default function PurchaseOrdersPage() {
           // Enrich orders with vendor data (convert Vendor to Supplier format)
           const enrichedOrders = ordersData.map((order) => {
             const vendor = vendorsData.find(
-              (v) => String(v.id) === order.supplierId,
+              (v: any) => String(v.id) === order.supplierId,
             );
             return {
               ...order,
@@ -175,7 +176,7 @@ export default function PurchaseOrdersPage() {
       ]);
       const enrichedOrders = ordersData.map((order) => {
         const vendor = vendorsData.find(
-          (v) => String(v.id) === order.supplierId,
+          (v: any) => String(v.id) === order.supplierId,
         );
         return {
           ...order,
@@ -240,7 +241,7 @@ export default function PurchaseOrdersPage() {
         ]);
         const enrichedOrders = ordersData.map((order) => {
           const vendor = vendorsData.find(
-            (v) => String(v.id) === order.supplierId,
+            (v: any) => String(v.id) === order.supplierId,
           );
           return {
             ...order,
@@ -1097,51 +1098,10 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
 
                   <div className="grid grid-cols-3 gap-4 pt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="supplierId">
-                        Supplier <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        value={selectedSupplierId || ""}
-                        onValueChange={(value) => setValue("supplierId", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a supplier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {vendors.length === 0 ? (
-                            <div className="p-2 text-sm text-muted-foreground">
-                              No vendors available
-                            </div>
-                          ) : vendors.filter((v) => v.active !== false)
-                              .length === 0 ? (
-                            <>
-                              <div className="p-2 text-sm text-muted-foreground">
-                                No active vendors ({vendors.length} total)
-                              </div>
-                              {vendors.map((vendor) => (
-                                <SelectItem
-                                  key={vendor.id}
-                                  value={String(vendor.id)}
-                                >
-                                  {vendor.vendorName} -{" "}
-                                  {vendor.active ? "Active" : "Inactive"}
-                                </SelectItem>
-                              ))}
-                            </>
-                          ) : (
-                            vendors
-                              .filter((v) => v.active !== false)
-                              .map((vendor) => (
-                                <SelectItem
-                                  key={vendor.id}
-                                  value={String(vendor.id)}
-                                >
-                                  {vendor.vendorName}
-                                </SelectItem>
-                              ))
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <SelectVendor
+                        value={selectedSupplierId}
+                        onChange={(value) => setValue("supplierId", value)}
+                      />
                       {errors.supplierId && (
                         <p className="text-sm text-red-500">
                           {errors.supplierId.message}

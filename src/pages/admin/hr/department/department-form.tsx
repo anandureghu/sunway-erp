@@ -26,6 +26,8 @@ import {
   type DepartmentFormData,
   DEPARTMENT_SCHEMA,
 } from "@/schema/department";
+import SelectUser from "@/components/select-user";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DepartmentFormProps {
   onSubmit: (data: DepartmentFormData) => Promise<void> | void;
@@ -95,30 +97,15 @@ export const DepartmentForm = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="managerId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Manager ID (Optional)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="12"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value === ""
-                          ? undefined
-                          : Number(e.target.value)
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div>
+            {/* <Label>Manager</Label> */}
+            <SelectUser
+              value={form.getValues("managerId")?.toString()}
+              onChange={(val) => form.setValue("managerId", Number(val))}
+              label="Manger"
+              placeholder="Select Manager"
+            />
+          </div>
 
           <FormField
             control={form.control}
@@ -148,6 +135,23 @@ export const DepartmentForm = ({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Explain briefly about the department..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Saving..." : "Save Department"}

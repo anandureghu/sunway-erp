@@ -18,8 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/context/AuthContext";
 
-export default function VendorsPage() {
+export default function VendorsPage({
+  financeSettings,
+}: {
+  financeSettings?: boolean;
+}) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Vendor | null>(null);
@@ -31,25 +36,18 @@ export default function VendorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { pathname } = useLocation();
+  const { user } = useAuth();
+
+  console.log("first");
 
   const fetchVendors = async () => {
     try {
       const res = await apiClient.get("/vendors");
-      const mappedVendors = res.data.map((vendor: any) => {
+      const mappedVendors = res.data.content.map((vendor: Vendor) => {
         // Debug: Log first vendor to see what fields are available
 
         const mapped = {
           ...vendor,
-          // Map createdAt from various possible field names
-          // createdAt:
-          //   vendor.createdAt ||
-          //   vendor.created_at ||
-          //   vendor.dateCreated ||
-          //   vendor.date_created ||
-          //   vendor.createdDate ||
-          //   vendor.created_date,
-          // Map is1099Vendor from various possible field names
-          is1099Vendor: vendor["1099Vendor"],
         };
         return mapped;
       });
@@ -109,6 +107,8 @@ export default function VendorsPage() {
     onEdit: handleEdit,
     onDelete: handleDelete,
     onView: handleRowClick,
+    financeSettings: financeSettings,
+    role: user?.role,
   });
 
   // Calculate statistics
@@ -183,15 +183,17 @@ export default function VendorsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Suppliers</h1>
-        <Button
-          onClick={() => {
-            setSelected(null);
-            setOpen(true);
-          }}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          + New Supplier
-        </Button>
+        {!financeSettings && (
+          <Button
+            onClick={() => {
+              setSelected(null);
+              setOpen(true);
+            }}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            + New Supplier
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}

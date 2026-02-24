@@ -5,16 +5,6 @@ import axios from "axios";
 const baseURL = import.meta.env.VITE_APP_BASE_URL
   ? import.meta.env.VITE_APP_BASE_URL || "https://api.picominds.com/api"
   : "/api";
-// const baseURL = import.meta.env.PROD
-//   ? (import.meta.env.VITE_APP_BASE_URL || "https://api.picominds.com/api")
-//   : "/api";
-
-// Debug: Log the base URL (remove in production)
-console.log("API Base URL:", baseURL);
-console.log(
-  "Environment:",
-  import.meta.env.PROD ? "PRODUCTION" : "DEVELOPMENT"
-);
 
 const apiClient = axios.create({
   baseURL,
@@ -38,6 +28,8 @@ apiClient.interceptors.response.use(
       console.error("Network Error - Backend might be down or unreachable");
       console.error("Attempted URL:", error.config?.url);
       console.error("Base URL:", baseURL);
+    } else if (error.response?.status === 401) {
+      window.location.href = "/login";
     } else if (error.response) {
       // Helpful debugging for 401/403/500 without needing to dig into Network tab.
       console.error("API Error:", {
@@ -48,7 +40,7 @@ apiClient.interceptors.response.use(
       });
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export { apiClient };

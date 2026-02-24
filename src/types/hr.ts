@@ -30,16 +30,20 @@ export interface Employee {
   imageUrl?: string;
 }
 
-export type Role =
-  | "ADMIN"
-  | "HR"
-  | "USER"
-  | "SUPER_ADMIN"
-  | "FINANCE_MANAGER"
-  | "ACCOUNTANT"
-  | "AP_AR_CLERK"
-  | "CONTROLLER"
-  | "AUDITOR_EXTERNAL";
+export const ROLES = [
+  { key: "ADMIN", label: "Admin" },
+  { key: "HR", label: "Human Resources" },
+  { key: "USER", label: "User" },
+  { key: "SUPER_ADMIN", label: "Super Admin" },
+  { key: "FINANCE_MANAGER", label: "Finance Manager" },
+  { key: "ACCOUNTANT", label: "Accountant" },
+  { key: "CASHIER", label: "Cashier" },
+  { key: "AP_AR_CLERK", label: "AP/AR Clerk" },
+  { key: "CONTROLLER", label: "Controller" },
+  { key: "AUDITOR_EXTERNAL", label: "External Auditor" },
+] as const;
+
+export type Role = (typeof ROLES)[number]["key"];
 
 export interface CurrentJob {
   jobCode: string;

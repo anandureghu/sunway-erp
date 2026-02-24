@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/form";
 import type { Department } from "@/types/department";
 import { createEmployeeSchema } from "@/schema/employee";
-import type { Employee, Role } from "@/types/hr";
+import { ROLES, type Employee, type Role } from "@/types/hr";
 
 type EmployeeDialogProps = {
   open: boolean;
@@ -106,7 +106,7 @@ export function EmployeeDialog({
     if (firstName && lastName) {
       form.setValue(
         "username",
-        `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
+        `${firstName.toLowerCase()}.${lastName.toLowerCase()}`,
       );
     }
   }, [form.watch("firstName"), form.watch("lastName")]);
@@ -357,21 +357,23 @@ export function EmployeeDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>User Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={mode === "create"}
+                    defaultValue="ADMIN"
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="USER">User</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="HR">HR</SelectItem>
-                      <SelectItem value="FINANCE_MANAGER">Finance Manager</SelectItem>
-                      <SelectItem value="ACCOUNTANT">Accountant</SelectItem>
-                      <SelectItem value="AP_AR_CLERK">AP/AR Clerk</SelectItem>
-                      <SelectItem value="CONTROLLER">Controller</SelectItem>
-                      <SelectItem value="AUDITOR_EXTERNAL">Auditor (External)</SelectItem>
+                      {ROLES.map((r) => (
+                        <SelectItem key={r.key} value={r.key}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -385,8 +387,8 @@ export function EmployeeDialog({
                   ? "Creating..."
                   : "Updating..."
                 : mode === "create"
-                ? "Create Admin"
-                : "Update Admin"}
+                  ? "Create Admin"
+                  : "Update Admin"}
             </Button>
           </form>
         </Form>

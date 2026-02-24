@@ -18,12 +18,14 @@ interface CompanyFormProps {
   onSubmit: (data: CompanyFormData) => Promise<void> | void;
   loading?: boolean;
   defaultValues?: Partial<CompanyFormData> | null;
+  isEditMode?: boolean;
 }
 
 export const CompanyForm = ({
   onSubmit,
   loading,
   defaultValues,
+  isEditMode = false,
 }: CompanyFormProps) => {
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(COMPANY_SCHEMA),
@@ -31,11 +33,14 @@ export const CompanyForm = ({
       companyName: "",
       noOfEmployees: 0,
       crNo: 0,
+      companyCode: "",
       computerCard: "",
       street: "",
       city: "",
       state: "",
       country: "India",
+      taxRate: 0,
+      isTaxActive: false,
       phoneNo: "",
       currencyId: 0,
       ...defaultValues, // merge defaults safely
@@ -74,7 +79,7 @@ export const CompanyForm = ({
             name="crNo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company No.</FormLabel>
+                <FormLabel>Company CR No.</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -91,6 +96,31 @@ export const CompanyForm = ({
               </FormItem>
             )}
           />
+
+          {isEditMode && (
+            <FormField
+              control={form.control}
+              name="companyCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Code</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="string"
+                      placeholder="100"
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? e.target.value : undefined,
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -205,6 +235,54 @@ export const CompanyForm = ({
             onChange={(v) => form.setValue("currencyId", Number(v))}
           />
         </div>
+
+        {isEditMode && (
+          <div className="space-y-2 border p-4 rounded-md">
+            <p className="font-medium text-sm">Tax Rate</p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="taxRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="15"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : undefined,
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* HR */}
+              <FormField
+                control={form.control}
+                name="isTaxActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                    <FormLabel className="m-0">Active</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2 border p-4 rounded-md">
           <p className="font-medium text-sm">Subscribed Modules</p>

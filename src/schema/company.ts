@@ -5,6 +5,12 @@ export const COMPANY_SCHEMA = z.object({
     .string()
     .min(2, { message: "Company name must be at least 2 characters long" }),
 
+  companyCode: z
+    .string()
+    .length(3, { message: "Company code must be exactly 3 characters" })
+    .or(z.literal(""))
+    .optional(),
+
   crNo: z
     .number()
     .min(1, { message: "Company number must be a positive number" })
@@ -25,6 +31,12 @@ export const COMPANY_SCHEMA = z.object({
   hrEnabled: z.boolean().optional(),
   financeEnabled: z.boolean().optional(),
   inventoryEnabled: z.boolean().optional(),
+  isTaxActive: z.boolean().optional(),
+  taxRate: z
+    .number()
+    .max(100, "Tax rate should not be more than 100")
+    .min(0, "Tax rate should not be less than 0")
+    .optional(),
 
   currencyId: z.number().optional(),
 });

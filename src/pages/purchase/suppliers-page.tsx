@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getVendorColumns } from "@/lib/columns/vendor-listing-admin";
@@ -19,23 +19,23 @@ export default function SuppliersPage() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const navigate = useNavigate();
+
   const fetchVendors = async () => {
     try {
       setLoading(true);
       const res = await apiClient.get("/vendors");
       const mappedVendors = res.data.map((vendor: any) => ({
         ...vendor,
-        createdAt: vendor.createdAt || 
-                  vendor.created_at || 
-                  vendor.dateCreated || 
-                  vendor.date_created ||
-                  vendor.createdDate ||
-                  vendor.created_date,
-        is1099Vendor: vendor.is1099Vendor !== undefined ? vendor.is1099Vendor :
-                     vendor.is_1099_vendor !== undefined ? vendor.is_1099_vendor :
-                     vendor.is1099 !== undefined ? vendor.is1099 :
-                     vendor.is_1099 !== undefined ? vendor.is_1099 :
-                     false,
+        createdAt:
+          vendor.createdAt ||
+          vendor.created_at ||
+          vendor.dateCreated ||
+          vendor.date_created ||
+          vendor.createdDate ||
+          vendor.created_date,
+
+        is1099Vendor: vendor["1099Vendor"],
       }));
       setVendors(mappedVendors);
     } catch (error) {
@@ -56,7 +56,11 @@ export default function SuppliersPage() {
   };
 
   const handleDelete = async (vendor: Vendor) => {
-    if (!confirm(`Are you sure you want to delete supplier "${vendor.vendorName}"?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete supplier "${vendor.vendorName}"?`,
+      )
+    ) {
       return;
     }
     try {
@@ -70,10 +74,10 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleRowClick = (_row: Row<Vendor>) => {
+  const handleRowClick = (row: Row<Vendor>) => {
     // Optional: navigate to vendor detail page
-    // const vendor = row.original;
-    // navigate(`/inventory/purchase/suppliers/${vendor.id}`);
+    const vendor = row.original;
+    navigate(`/inventory/purchase/suppliers/${vendor.id}`);
   };
 
   const handleDialogSuccess = (updated: Vendor, mode: "add" | "edit") => {
@@ -81,7 +85,7 @@ export default function SuppliersPage() {
       fetchVendors(); // Refresh the list to get all data from backend
     } else {
       setVendors((prev) =>
-        prev.map((v) => (v.id === updated.id ? updated : v))
+        prev.map((v) => (v.id === updated.id ? updated : v)),
       );
       fetchVendors(); // Also refresh to get any server-computed fields
     }

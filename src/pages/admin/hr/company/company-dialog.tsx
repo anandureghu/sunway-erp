@@ -39,14 +39,14 @@ export const CompanyDialog = ({
       toast.success(
         isEditMode
           ? "Company updated successfully"
-          : "Company added successfully"
+          : "Company added successfully",
       );
       onSuccess(res.data, isEditMode ? "edit" : "add");
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting company:", error);
       toast.error(
-        `Failed to ${isEditMode ? "update" : "add"} company. Please try again.`
+        `Failed to ${isEditMode ? "update" : "add"} company. Please try again.`,
       );
     } finally {
       setSubmitting(false);
@@ -55,7 +55,7 @@ export const CompanyDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl overflow-scroll">
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? "Edit Company" : "Add Company"}
@@ -71,6 +71,7 @@ export const CompanyDialog = ({
           onSubmit={handleSubmit}
           loading={submitting}
           defaultValues={company}
+          isEditMode={isEditMode}
         />
       </DialogContent>
     </Dialog>

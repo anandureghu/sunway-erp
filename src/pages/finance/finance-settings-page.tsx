@@ -3,6 +3,7 @@ import { AppTab } from "@/components/app-tab";
 // import CustomersPage from "../admin/customers/customers-page";
 import ChartOfAccountsPage from "@/modules/finance/chart-of-accounts-list";
 import { useAuth } from "@/context/AuthContext";
+import VendorsPage from "../admin/vendors/vendors-page";
 
 const FinanceSettingsPage = () => {
   const { user, company } = useAuth();
@@ -23,11 +24,11 @@ const FinanceSettingsPage = () => {
     //   label: "Customers",
     //   element: () => <CustomersPage />,
     // },
-    // {
-    //   value: "vendors",
-    //   label: "Suppliers",
-    //   element: () => <VendorsPage />,
-    // },
+    {
+      value: "vendors",
+      label: "Suppliers",
+      element: () => <VendorsPage financeSettings />,
+    },
   ];
   return (
     <div className="p-5">

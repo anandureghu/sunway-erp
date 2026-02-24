@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface VendorFormProps {
   onSubmit: (data: VendorFormData) => Promise<void> | void;
@@ -210,7 +211,7 @@ export const VendorForm = ({
                     {...field}
                     onChange={(e) =>
                       field.onChange(
-                        e.target.value ? Number(e.target.value) : 0
+                        e.target.value ? Number(e.target.value) : 0,
                       )
                     }
                   />
@@ -312,6 +313,23 @@ export const VendorForm = ({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="remarks"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Remarks</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Additional remarks or notes about the supplier"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Saving..." : "Save Supplier"}
