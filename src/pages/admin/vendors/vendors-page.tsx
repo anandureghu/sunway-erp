@@ -38,8 +38,6 @@ export default function VendorsPage({
   const { pathname } = useLocation();
   const { user } = useAuth();
 
-  console.log("first");
-
   const fetchVendors = async () => {
     try {
       const res = await apiClient.get("/vendors");

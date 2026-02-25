@@ -22,7 +22,7 @@ export function getBudgetLineColumns({
       header: "Amount",
       accessorKey: "amount",
       cell: ({ row }) =>
-        `${company.currency?.currencySymbol} ${row.getValue("amount")}`,
+        `${company.currency?.currencyCode} ${row.getValue("amount")}`,
     },
     { header: "Notes", accessorKey: "notes" },
     {

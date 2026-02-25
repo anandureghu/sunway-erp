@@ -96,8 +96,6 @@ export function JournalLineDialog({
         description: form.description,
       };
 
-      console.log(payload);
-
       // if (payload.debitAmount > 0 && payload.creditAmount > 0) {
       //   toast.error("A line cannot have both debit and credit.");
       //   return;

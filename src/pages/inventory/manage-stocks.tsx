@@ -122,8 +122,6 @@ const ManageStocks = () => {
     return matchesWarehouse && matchesSearch;
   });
 
-  console.log(filteredStock);
-
   // Load stock data from API
   useEffect(() => {
     let cancelled = false;
@@ -204,8 +202,6 @@ const ManageStocks = () => {
 
   const onReceiveItem = (data: ReceiveItemFormData) => {
     // In a real app, this would make an API call
-    console.log("Receiving item:", data);
-
     // Update stock (mock update)
     const existingStockIndex = stockData.findIndex(
       (s) =>
@@ -246,8 +242,6 @@ const ManageStocks = () => {
 
   // Variance adjustment handlers
   const onAdjustStock = (data: StockAdjustmentFormData) => {
-    console.log("Adjusting stock:", data);
-
     // Find existing stock
     const existingStockIndex = stockData.findIndex(
       (s) =>

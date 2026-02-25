@@ -113,7 +113,8 @@ export default function EmployeesPage() {
         desig.includes(query) ||
         stat.includes(query);
 
-      const matchesStatus = !statusFilter || normalize(employee.status) === desired;
+      const matchesStatus =
+        !statusFilter || normalize(employee.status) === desired;
 
       return matchesSearch && matchesStatus;
     });
@@ -150,7 +151,11 @@ export default function EmployeesPage() {
         dateOfBirth: newEmployee.dateOfBirth ?? undefined,
         joinDate: newEmployee.joinDate ?? undefined,
         phoneNo: newEmployee.phoneNo ?? undefined,
-        departmentId: newEmployee.departmentId !== undefined && newEmployee.departmentId !== "" ? Number(newEmployee.departmentId) : undefined,
+        departmentId:
+          newEmployee.departmentId !== undefined &&
+          newEmployee.departmentId !== ""
+            ? Number(newEmployee.departmentId)
+            : undefined,
         role: newEmployee.role ?? "USER",
       };
 
@@ -161,11 +166,19 @@ export default function EmployeesPage() {
         try {
           if (created?.id) {
             // prefer common keys if present
-            const street = newEmployee.street ?? newEmployee.line1 ?? newEmployee.addressLine1 ?? newEmployee.line_1;
+            const street =
+              newEmployee.street ??
+              newEmployee.line1 ??
+              newEmployee.addressLine1 ??
+              newEmployee.line_1;
             const city = newEmployee.city ?? undefined;
             const state = newEmployee.state ?? undefined;
             const country = newEmployee.country ?? undefined;
-            const postalCode = newEmployee.zipCode ?? newEmployee.postalCode ?? newEmployee.postal_code ?? undefined;
+            const postalCode =
+              newEmployee.zipCode ??
+              newEmployee.postalCode ??
+              newEmployee.postal_code ??
+              undefined;
 
             if (street || city || state || country || postalCode) {
               const payloadAddr = {
@@ -187,7 +200,7 @@ export default function EmployeesPage() {
         // Show success toast with username/email from server response (do not show password)
         const { username, email } = created as any;
         toast.success(
-          `Employee created successfully.\nUsername: ${username || "-"}\nEmail: ${email || "-"}`
+          `Employee created successfully.\nUsername: ${username || "-"}\nEmail: ${email || "-"}`,
         );
 
         // refresh from server to reflect DB state (in case server enriches/normalizes payload)
@@ -195,8 +208,14 @@ export default function EmployeesPage() {
         setEmployees(list);
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Failed to create employee";
-      console.error("EmployeesPage.handleAddEmployee -> error:", err?.response?.data ?? err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to create employee";
+      console.error(
+        "EmployeesPage.handleAddEmployee -> error:",
+        err?.response?.data ?? err,
+      );
       toast.error(String(msg));
     }
   };
@@ -207,12 +226,17 @@ export default function EmployeesPage() {
     (async () => {
       try {
         const list = await hrService.listEmployees();
-        console.log("EmployeesPage -> loaded employees", Array.isArray(list) ? list.length : typeof list, list?.slice?.(0,3));
         if (mounted) setEmployees(list);
       } catch (err: any) {
-        console.error("EmployeesPage -> failed to load employees:", err?.response?.data ?? err);
+        console.error(
+          "EmployeesPage -> failed to load employees:",
+          err?.response?.data ?? err,
+        );
         setEmployees([]);
-        const msg = err?.response?.data?.message || err?.message || "Failed to load employees";
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load employees";
         toast.error(String(msg));
       }
     })();
@@ -224,17 +248,17 @@ export default function EmployeesPage() {
 
   // Refresh employees list when an employee is updated elsewhere (profile page)
   useEffect(() => {
-    const handler = async (e: Event) => {
+    const handler = async () => {
       try {
         const list = await hrService.listEmployees();
         setEmployees(list);
-        console.log("EmployeesPage -> refreshed after employee:updated", (e as CustomEvent).detail);
       } catch (err) {
         console.error("EmployeesPage -> refresh after update failed:", err);
       }
     };
     window.addEventListener("employee:updated", handler as EventListener);
-    return () => window.removeEventListener("employee:updated", handler as EventListener);
+    return () =>
+      window.removeEventListener("employee:updated", handler as EventListener);
   }, []);
 
   return (

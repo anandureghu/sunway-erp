@@ -12,7 +12,6 @@ const Navbar = () => {
   const { logout, user } = useAuth();
   const dispatch = useAppDispatch();
   const adminView = useAppSelector((s) => s.ui.adminView);
-  console.log(user);
   return (
     <div className="w-full bg-primary text-white border-b-1 border-b-foreground/10 border-l-1 border-l-blue-500/0 h-[70px] flex items-center justify-end px-4 fixed top-0 z-10 max-w-[calc(100vw-16rem)] pr-10">
       {user?.role === "SUPER_ADMIN" ? (

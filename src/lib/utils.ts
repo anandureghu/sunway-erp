@@ -1,4 +1,5 @@
 // src/lib/utils.ts
+import type { Role } from "@/types/hr";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -16,7 +17,10 @@ export function formatDate(date: string) {
   return new Date(date).toLocaleDateString();
 }
 
-export function formatMoney(amount: string | number, currencySymbol: string = "$") {
+export function formatMoney(
+  amount: string | number,
+  currencySymbol: string = "$",
+) {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   return `${currencySymbol}${num.toLocaleString("en-US")}`;
 }
@@ -27,5 +31,13 @@ export const getParentPath = (pathname: string) =>
   pathname.includes("finance")
     ? "finance"
     : pathname.includes("inventory")
-    ? "inventory"
-    : "admin";
+      ? "inventory"
+      : "admin";
+
+export const hasAnyRole = (
+  userRole: Role | undefined,
+  allowedRoles: Role[],
+): boolean => {
+  if (!userRole) return false;
+  return allowedRoles.includes(userRole);
+};

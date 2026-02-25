@@ -666,14 +666,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         if (cancelled) return;
         setCustomers(c);
         setItems(it);
-        console.log("Items loaded:", it.length);
-        console.log(
-          "Active items:",
-          it.filter((item) => item.status === "active").length,
-        );
-        if (it.length > 0) {
-          console.log("First item:", it[0]);
-        }
+
         setWarehouses(wh);
       } catch (e: any) {
         if (!cancelled) {
@@ -749,8 +742,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   };
 
   const onSubmit = (data: any) => {
-    console.log("Form submitted with data:", data);
-
     // Validate that items are added
     if (orderItems.length === 0) {
       toast.error("Please add at least one item to the order.");
@@ -773,8 +764,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       warehouseId: item.warehouseId,
     }));
 
-    console.log("Items data:", itemsData);
-
     // Validate the complete form data
     const completeData = {
       ...data,
@@ -789,7 +778,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       return;
     }
 
-    console.log("Validation passed, creating order via API...");
     setSubmitLoading(true);
 
     const payload = {
@@ -850,7 +838,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            console.log("Form submit event triggered");
             handleSubmit(onSubmit, (errors) => {
               console.error("Form validation errors:", errors);
               const errorCount = Object.keys(errors).length;
@@ -926,7 +913,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   <Select
                     value={selectedCustomerId || ""}
                     onValueChange={(value) => {
-                      console.log("Customer selected:", value);
                       setValue("customerId", value, { shouldValidate: true });
                     }}
                   >
@@ -1035,7 +1021,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   <Select
                     value={selectedItem || ""}
                     onValueChange={(value) => {
-                      console.log("Item selected:", value);
                       setSelectedItem(value);
                     }}
                   >
@@ -1272,11 +1257,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
             <Button
               type="submit"
               disabled={orderItems.length === 0 || !selectedCustomerId}
-              onClick={() => {
-                console.log("Submit button clicked");
-                console.log("Order items:", orderItems);
-                console.log("Selected customer:", selectedCustomerId);
-              }}
             >
               {submitLoading ? "Creating..." : "Create Sales Order"}
             </Button>

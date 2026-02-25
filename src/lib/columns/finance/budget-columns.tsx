@@ -25,7 +25,7 @@ export const BUDGET_COLUMNS = ({
     accessorKey: "amount",
     cell: ({ row }) => {
       const amount = row.getValue("amount");
-      return `${company.currency?.currencySymbol} ${amount}`;
+      return `${company.currency?.currencyCode} ${amount}`;
     },
   },
   // {

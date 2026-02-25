@@ -12,22 +12,18 @@ import type { ChartOfAccounts } from "@/types/coa";
 import { CHART_OF_ACCOUNTS_COLUMNS } from "@/lib/columns/finance/chart-of-accounts-columns";
 import { ChartOfAccountDialog } from "./coa-dialog";
 import { fetchCOAAccounts } from "@/service/coaService";
-import type { Company } from "@/types/company";
+import { useAuth } from "@/context/AuthContext";
 
-export default function ChartOfAccountsPage({
-  companyId,
-  company,
-}: {
-  companyId: string;
-  company: Company;
-}) {
+export default function ChartOfAccountsPage() {
   const [accounts, setAccounts] = useState<ChartOfAccounts[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ChartOfAccounts | null>(null);
   const [open, setOpen] = useState(false);
 
+  const { user, company } = useAuth();
+
   useEffect(() => {
-    fetchCOAAccounts(companyId)
+    fetchCOAAccounts(user!.companyId!)
       .then((data) => {
         if (data) setAccounts(data);
       })
@@ -70,7 +66,7 @@ export default function ChartOfAccountsPage({
   const columns = CHART_OF_ACCOUNTS_COLUMNS({
     onEdit: handleEdit,
     onDelete: handleDelete,
-    company: company,
+    company: company!,
   });
 
   if (loading)
@@ -82,7 +78,7 @@ export default function ChartOfAccountsPage({
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Chart of Accounts</h1>
+      <h1 className="text-2xl font-semibold">Chart Of Accounts</h1>
 
       <Card>
         <CardHeader>
@@ -113,7 +109,7 @@ export default function ChartOfAccountsPage({
         onOpenChange={setOpen}
         account={selected}
         onSuccess={handleDialogSuccess}
-        companyId={Number(companyId)}
+        companyId={Number(company!.id!)}
       />
     </div>
   );

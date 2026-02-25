@@ -431,7 +431,6 @@ function CreatePicklistForm({
     if (submitting) return;
     try {
       setSubmitting(true);
-      console.log("Creating picklist:", data);
       await generatePicklistFromSalesOrder(selectedOrderId, {
         warehouseId: data.warehouseId || undefined,
       });
@@ -642,7 +641,6 @@ function CreatePicklistForm({
                         </thead>
                         <tbody>
                           {selectedOrder.items.map((item) => {
-                            console.log(item);
                             return (
                               <tr
                                 key={item.id}
@@ -722,7 +720,6 @@ function CreateDispatchForm({
     if (submitting) return;
     try {
       setSubmitting(true);
-      console.log("Creating dispatch:", data);
       await createShipmentFromPicklist(selectedPicklistId, {
         carrierName: data.notes || data.driverName || "",
         trackingNumber: data.trackingNumber || "",

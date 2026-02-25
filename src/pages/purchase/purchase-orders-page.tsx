@@ -758,8 +758,6 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
   };
 
   const onSubmit = (data: any) => {
-    console.log("Form submitted with data:", data);
-
     // Validate that items are added
     if (orderItems.length === 0) {
       toast.error("Please add at least one item to the order.");
@@ -812,9 +810,6 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
       setSubmitLoading(false);
       return;
     }
-
-    console.log("Items data:", itemsData);
-    console.log("Items data JSON:", JSON.stringify(itemsData, null, 2));
 
     setSubmitLoading(true);
 
@@ -938,34 +933,6 @@ function CreatePurchaseOrderForm({ onCancel }: { onCancel: () => void }) {
         return;
       }
     }
-
-    console.log(
-      "Sending purchase order payload:",
-      JSON.stringify(validatedPayload, null, 2),
-    );
-    console.log(
-      "Payload supplierId type:",
-      typeof validatedPayload.supplierId,
-      validatedPayload.supplierId,
-    );
-    console.log("Payload items count:", validatedPayload.items.length);
-    console.log(
-      "First item structure:",
-      validatedPayload.items[0]
-        ? {
-            itemId: validatedPayload.items[0].itemId,
-            quantity: validatedPayload.items[0].quantity,
-            unitCost: validatedPayload.items[0].unitCost,
-            lineTotal: validatedPayload.items[0].lineTotal,
-            types: {
-              itemId: typeof validatedPayload.items[0].itemId,
-              quantity: typeof validatedPayload.items[0].quantity,
-              unitCost: typeof validatedPayload.items[0].unitCost,
-              lineTotal: typeof validatedPayload.items[0].lineTotal,
-            },
-          }
-        : "no items",
-    );
 
     createPurchaseOrder(validatedPayload)
       .then((created) => {

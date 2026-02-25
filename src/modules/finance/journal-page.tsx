@@ -14,15 +14,22 @@ import type { JournalEntryResponseDTO } from "@/types/journal";
 import { JournalDialog } from "./journal-dialog";
 import type { Row } from "@tanstack/react-table";
 import { useNavigate } from "react-router-dom";
-
+import { useAuth } from "@/context/AuthContext";
+import {
+  TooltipTrigger,
+  TooltipContent,
+  Tooltip,
+} from "@/components/ui/tooltip";
 export default function JournalPage({ companyId }: { companyId: number }) {
   const navigate = useNavigate();
   const [list, setList] = useState<JournalEntryResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<JournalEntryResponseDTO | null>(
-    null
+    null,
   );
   const [open, setOpen] = useState(false);
+
+  const { accountPeriodOpen } = useAuth();
 
   const fetchAll = async () => {
     apiClient
@@ -44,6 +51,7 @@ export default function JournalPage({ companyId }: { companyId: number }) {
   }, []);
 
   const columns = JOURNAL_COLUMNS({
+    accountOpen: accountPeriodOpen,
     onEdit: (row) => {
       setSelected(row);
       setOpen(true);
@@ -51,7 +59,7 @@ export default function JournalPage({ companyId }: { companyId: number }) {
     onPost: async (row) => {
       try {
         const res = await apiClient.post(
-          `/finance/journal-entries/${row.id}/post`
+          `/finance/journal-entries/${row.id}/post`,
         );
         toast.success("Journal posted");
         setList((prev) => prev.map((x) => (x.id === row.id ? res.data : x)));
@@ -66,6 +74,11 @@ export default function JournalPage({ companyId }: { companyId: number }) {
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Manual Journals</h1>
+      {!accountPeriodOpen && (
+        <p className="text-red-400 text-sm">
+          account period is closed, you cannot add or modify in this time!
+        </p>
+      )}
 
       <Card>
         <CardHeader>
@@ -75,14 +88,32 @@ export default function JournalPage({ companyId }: { companyId: number }) {
               <Input placeholder="Search..." className="pl-10" />
             </div>
 
-            <Button
-              onClick={() => {
-                setSelected(null);
-                setOpen(true);
-              }}
-            >
-              Add Journal
-            </Button>
+            {!accountPeriodOpen ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-block">
+                    <Button disabled className="pointer-events-none">
+                      Add Journal
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    Cannot add or modify journal while accounting period is
+                    closed
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button
+                onClick={() => {
+                  setSelected(null);
+                  setOpen(true);
+                }}
+              >
+                Add Journal
+              </Button>
+            )}
           </div>
         </CardHeader>
 
@@ -104,7 +135,7 @@ export default function JournalPage({ companyId }: { companyId: number }) {
           if (mode === "add") setList((prev) => [...prev, updated]);
           else
             setList((prev) =>
-              prev.map((x) => (x.id === updated.id ? updated : x))
+              prev.map((x) => (x.id === updated.id ? updated : x)),
             );
         }}
       />

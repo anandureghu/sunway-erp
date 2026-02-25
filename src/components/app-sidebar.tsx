@@ -27,7 +27,6 @@ import {
   DollarSign,
   ChevronDown,
   Settings,
-  // Database,
   LayoutDashboard,
   UserRound,
   BriefcaseBusiness,
@@ -35,6 +34,8 @@ import {
   Shield,
   CalendarDays,
   Star,
+  Split,
+  Banknote,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 // import { useEmployeeSelection } from "@/context/employee-selection";
@@ -108,6 +109,12 @@ export function AppSidebar() {
       items: [
         { title: "Company", url: "/admin/company", icon: LayoutDashboard },
         { title: "Department", url: "/admin/department", icon: FileText },
+        { title: "Division", url: "/admin/division", icon: Split },
+        {
+          title: "Accounting Period",
+          url: "/admin/accounting-period",
+          icon: Banknote,
+        },
         { title: "Leaves", url: "/admin/leaves", icon: CalendarDays },
       ],
     },

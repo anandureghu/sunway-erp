@@ -252,7 +252,6 @@ export async function listStock(): Promise<Stock[]> {
         // });
       });
 
-      console.log(stock);
       return stock;
     }
     throw error;

@@ -27,6 +27,8 @@ type AuthContextType = {
   logout: () => void;
   isAuthenticated: boolean;
   company: Company | null;
+  accountPeriodOpen: boolean;
+  fetchAccountPeriodStatus: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,6 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [user, setUser] = useState<Employee | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+  const [accountPeriodOpen, setAccountPeriodOpen] = useState<boolean>(false);
   const [accessToken, setAccessToken] = useState<string | null>(
     localStorage.getItem("accessToken"),
   );
@@ -51,6 +54,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error("fetchCompany:", err);
       toast.error("Failed to load company");
+    }
+  };
+
+  const fetchAccountPeriodStatus = async () => {
+    try {
+      const res = await apiClient.get(`/accounting-periods/open-status`);
+      setAccountPeriodOpen(res.data);
+    } catch (err) {
+      console.error("account period status:", err);
     }
   };
 
@@ -75,6 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .get("/users/" + decoded.userId)
         .then((response) => {
           setUser(response.data);
+          fetchAccountPeriodStatus();
           if (response.data.companyId) {
             fetchCompany(response.data.companyId);
           }
@@ -201,6 +214,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         logout,
         company,
         isAuthenticated: !!accessToken,
+        accountPeriodOpen,
+        fetchAccountPeriodStatus,
       }}
     >
       {children}

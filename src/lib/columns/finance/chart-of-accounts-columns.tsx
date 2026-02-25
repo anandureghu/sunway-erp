@@ -62,7 +62,7 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
       const b = row.getValue("balance");
       return (
         <span>
-          {company.currency?.currencySymbol} {Number(b).toLocaleString()}
+          {company.currency?.currencyCode} {Number(b).toLocaleString()}
         </span>
       );
     },

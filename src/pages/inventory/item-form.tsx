@@ -472,7 +472,6 @@ function CreateItemForm({
           <SelectWarehouse
             value={getValues("warehouse")?.toString() || undefined}
             onChange={(value) => {
-              console.log(value);
               setValue("warehouse", Number(value));
             }}
           />

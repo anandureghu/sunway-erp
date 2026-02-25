@@ -475,9 +475,7 @@ function CreateRequisitionForm({ onCancel }: { onCancel: () => void }) {
     );
   };
 
-  const onSubmit = (data: any) => {
-    console.log("Form submitted with data:", data);
-
+  const onSubmit = () => {
     // Validate that items are added
     if (requisitionItems.length === 0) {
       toast.error("Please add at least one item to the requisition.");

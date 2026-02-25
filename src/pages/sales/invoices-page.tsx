@@ -239,7 +239,6 @@ function CreateInvoiceForm({
       toast.error("Failed to create invoice", {
         description: e?.response?.data?.message || "",
       });
-      console.log(e);
     }
   };
 

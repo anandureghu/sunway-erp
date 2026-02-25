@@ -3,7 +3,6 @@ import type { Vendor } from "@/types/vendor";
 
 export async function listVendors() {
   const res = await apiClient.get("/vendors");
-  console.log(res.data);
   return res.data.content;
 }
 

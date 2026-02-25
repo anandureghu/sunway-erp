@@ -1,4 +1,4 @@
-// src/pages/admin/departments/DepartmentForm.tsx
+// src/pages/admin/departments/DivisionForm.tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -12,35 +12,34 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
 import { useEffect } from "react";
-import {
-  type DepartmentFormData,
-  DEPARTMENT_SCHEMA,
-} from "@/schema/department";
 import SelectUser from "@/components/select-user";
 import { Textarea } from "@/components/ui/textarea";
+import { DIVISION_SCHEMA, type DivisionFormData } from "@/schema/division";
+import SelectDepartment from "@/components/select-department";
 import { useAuth } from "@/context/AuthContext";
 
-interface DepartmentFormProps {
-  onSubmit: (data: DepartmentFormData) => Promise<void> | void;
+interface DivisionFormProps {
+  onSubmit: (data: DivisionFormData) => Promise<void> | void;
   loading?: boolean;
-  defaultValues?: Partial<DepartmentFormData> | null;
+  defaultValues?: Partial<DivisionFormData> | null;
 }
 
-export const DepartmentForm = ({
+export const DivisionForm = ({
   onSubmit,
   loading,
   defaultValues,
-}: DepartmentFormProps) => {
+}: DivisionFormProps) => {
   const { user } = useAuth();
-  const form = useForm<DepartmentFormData>({
-    resolver: zodResolver(DEPARTMENT_SCHEMA),
+
+  const form = useForm<DivisionFormData>({
+    resolver: zodResolver(DIVISION_SCHEMA),
     defaultValues: {
-      departmentCode: "",
-      departmentName: "",
+      code: "",
+      name: "",
       managerId: undefined,
       companyId: Number(user?.companyId),
+      departmentId: undefined,
       ...defaultValues,
     },
   });
@@ -59,12 +58,12 @@ export const DepartmentForm = ({
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="departmentCode"
+            name="code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Department Code</FormLabel>
+                <FormLabel>Division Code</FormLabel>
                 <FormControl>
-                  <Input placeholder="FIN001" {...field} />
+                  <Input placeholder="100" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -73,12 +72,12 @@ export const DepartmentForm = ({
 
           <FormField
             control={form.control}
-            name="departmentName"
+            name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Department Name</FormLabel>
+                <FormLabel>Division Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Finance Department" {...field} />
+                  <Input placeholder="Finance Division" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -94,6 +93,14 @@ export const DepartmentForm = ({
               placeholder="Select Manager"
             />
           </div>
+
+          <div>
+            {/* <Label>Manager</Label> */}
+            <SelectDepartment
+              value={form.getValues("departmentId")?.toString() || undefined}
+              onChange={(val) => form.setValue("departmentId", Number(val))}
+            />
+          </div>
         </div>
 
         <FormField
@@ -104,7 +111,7 @@ export const DepartmentForm = ({
               <FormLabel>Description</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Explain briefly about the department..."
+                  placeholder="Explain briefly about the division..."
                   {...field}
                 />
               </FormControl>
@@ -114,7 +121,7 @@ export const DepartmentForm = ({
         />
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Saving..." : "Save Department"}
+          {loading ? "Saving..." : "Save Division"}
         </Button>
       </form>
     </Form>
