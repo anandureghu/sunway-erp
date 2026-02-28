@@ -29,7 +29,7 @@ export default function JournalPage({ companyId }: { companyId: number }) {
   );
   const [open, setOpen] = useState(false);
 
-  const { accountPeriodOpen } = useAuth();
+  const { accountPeriodOpen, company } = useAuth();
 
   const fetchAll = async () => {
     apiClient
@@ -52,6 +52,7 @@ export default function JournalPage({ companyId }: { companyId: number }) {
 
   const columns = JOURNAL_COLUMNS({
     accountOpen: accountPeriodOpen,
+    currency: company!.currency!.currencyCode,
     onEdit: (row) => {
       setSelected(row);
       setOpen(true);

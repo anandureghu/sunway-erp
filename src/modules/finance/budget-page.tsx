@@ -15,10 +15,11 @@ import type { BudgetResponseDTO } from "@/types/budget";
 import { BUDGET_COLUMNS } from "@/lib/columns/finance/budget-columns";
 import { BudgetDialog } from "./budget-dialog";
 import { useAuth } from "@/context/AuthContext";
+import { hasAnyRole } from "@/lib/utils";
 
 export default function BudgetPage({ companyId }: { companyId: number }) {
   const navigate = useNavigate();
-  const { company } = useAuth();
+  const { user, company } = useAuth();
   const [list, setList] = useState<BudgetResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BudgetResponseDTO | null>(null);
@@ -58,6 +59,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
       }
     },
     company: company!,
+    role: user!.role!,
   });
 
   if (loading) return <div className="p-6 text-center">Loading...</div>;
@@ -74,14 +76,16 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
               <Input placeholder="Search..." className="pl-10" />
             </div>
 
-            <Button
-              onClick={() => {
-                setSelected(null);
-                setOpen(true);
-              }}
-            >
-              Add Budget
-            </Button>
+            {hasAnyRole(user?.role, ["FINANCE_MANAGER", "SUPER_ADMIN"]) && (
+              <Button
+                onClick={() => {
+                  setSelected(null);
+                  setOpen(true);
+                }}
+              >
+                Add Budget
+              </Button>
+            )}
           </div>
         </CardHeader>
 

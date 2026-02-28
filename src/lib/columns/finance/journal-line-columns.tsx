@@ -20,7 +20,7 @@ export const JOURNAL_LINE_COLUMNS = ({
     accessorKey: "debitAmount",
     header: "Amount",
     cell: ({ row }) =>
-      `${company.currency?.currencyCode} ${row.original.debitAmount?.toFixed(2)}`,
+      `${company.currency?.currencyCode || ""} ${row.original.debitAmount?.toFixed(2)}`,
   },
   // {
   //   accessorKey: "creditAmount",

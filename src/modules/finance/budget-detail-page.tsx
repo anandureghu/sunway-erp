@@ -19,7 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function BudgetDetailPage() {
   const { id } = useParams();
-  const { company } = useAuth();
+  const { user, company } = useAuth();
   const navigate = useNavigate();
 
   const [data, setData] = useState<BudgetResponseDTO | null>(null);
@@ -70,6 +70,7 @@ export default function BudgetDetailPage() {
     },
     onDelete: deleteLine,
     company: company!,
+    role: user?.role,
   });
 
   if (loading) return <div className="p-6">Loading...</div>;
@@ -100,7 +101,9 @@ export default function BudgetDetailPage() {
                 <h2 className="text-2xl font-semibold">
                   Budget: {data.budgetName}
                 </h2>
-                <p className="text-muted-foreground">Year {data.budgetYear}</p>
+                <p className="text-muted-foreground">
+                  Fiscal Year {data.fiscalYear}
+                </p>
               </div>
             </div>
 
@@ -123,8 +126,7 @@ export default function BudgetDetailPage() {
             <div className="rounded-lg border p-4 bg-blue-50 text-blue-600">
               <p className="text-sm text-muted-foreground">Amount</p>
               <p className="text-xl font-semibold">
-                {company?.currency?.currencyCode}
-                {data.amount}
+                {company?.currency?.currencyCode || " "} {data.amount}
               </p>
             </div>
 
@@ -142,8 +144,8 @@ export default function BudgetDetailPage() {
 
             {/* Budget Year */}
             <div className="rounded-lg border p-4 bg-yellow-50 text-yellow-600">
-              <p className="text-sm text-muted-foreground">Budget Year</p>
-              <p className="text-xl font-semibold">{data.budgetYear}</p>
+              <p className="text-sm text-muted-foreground">Fiscal Year</p>
+              <p className="text-xl font-semibold">{data.fiscalYear}</p>
             </div>
           </div>
         </CardHeader>

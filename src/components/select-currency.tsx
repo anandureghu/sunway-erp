@@ -13,9 +13,11 @@ import type { Currency } from "@/types/currency";
 const SelectCurrency = ({
   onChange,
   value,
+  disabled = false,
 }: {
   value: string | undefined;
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) => {
   const [currency, setCurrency] = useState([]);
 
@@ -28,7 +30,7 @@ const SelectCurrency = ({
   return (
     <>
       <Label>Currency</Label>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger>
           <SelectValue placeholder="Select Currency" />
         </SelectTrigger>

@@ -5,12 +5,19 @@ export interface ChartOfAccounts {
   accountName: string;
   description?: string | null;
 
-  type: AccountType;
+  departmentId?: string;
+  departmentCode?: string;
+  departmentName?: string;
 
-  parent?: ChartOfAccounts | null;
-  parentId?: number | null;
+  projectId?: string;
+  projectCode?: string;
+  projectName?: string;
 
-  currency?: string | null;
+  parentId?: string;
+  parentCode?: string;
+  parentName?: string;
+
+  type: CoaType;
 
   status: AccountStatus;
 
@@ -33,7 +40,7 @@ export interface ChartOfAccountResponseDTO {
   accountName: string;
   description?: string | null;
 
-  type: AccountType;
+  type: CoaType;
 
   parentId?: number | null;
 
@@ -47,6 +54,20 @@ export interface ChartOfAccountResponseDTO {
   companyId: number;
 }
 
+export const COA = [
+  { key: "ASSET", label: "Asset" },
+  { key: "LIABILITY", label: "Liability" },
+  { key: "EQUITY", label: "Equity" },
+  { key: "REVENUE", label: "Revenue" },
+  { key: "EXPENSE", label: "Expense" },
+  { key: "INCOME", label: "Income" },
+  { key: "CASH", label: "Cash" },
+  { key: "TAX", label: "Tax" },
+  { key: "COST", label: "Cost" },
+] as const;
+
+export type CoaType = (typeof COA)[number]["key"];
+
 export interface CreateAccountDTO {
   companyId: number; // required
 
@@ -54,7 +75,7 @@ export interface CreateAccountDTO {
   accountName: string;
   description?: string | null;
 
-  type: AccountType;
+  type: CoaType;
   parentId?: number | null;
 
   currency?: string | null;
@@ -65,15 +86,6 @@ export interface CreateAccountDTO {
 
   openingBalance?: number | string; // BigDecimal
 }
-
-export const ACCOUNT_TYPES = [
-  "asset",
-  "liability",
-  "income",
-  "expense",
-  "equity",
-] as const;
-export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 export const STATUS_TYPES = ["active", "inactive"] as const;
 export type AccountStatus = (typeof STATUS_TYPES)[number];

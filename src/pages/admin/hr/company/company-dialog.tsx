@@ -55,7 +55,7 @@ export const CompanyDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-scroll">
+      <DialogContent className="max-w-3xl overflow-auto max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? "Edit Company" : "Add Company"}

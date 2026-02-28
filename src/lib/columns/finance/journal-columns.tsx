@@ -11,10 +11,12 @@ export const JOURNAL_COLUMNS = ({
   onEdit,
   onPost,
   accountOpen,
+  currency,
 }: {
   onEdit: (row: JournalEntryResponseDTO) => void;
   onPost: (row: JournalEntryResponseDTO) => void;
   accountOpen?: boolean;
+  currency: string;
 }): ColumnDef<JournalEntryResponseDTO>[] => [
   {
     accessorKey: "journalEntryNumber",
@@ -31,10 +33,18 @@ export const JOURNAL_COLUMNS = ({
   {
     accessorKey: "totalDebit",
     header: "Total Debit",
+    cell: ({ row }) => {
+      const je = row.original;
+      return `${currency} ${je.totalDebit}`;
+    },
   },
   {
     accessorKey: "totalCredit",
     header: "Total Credit",
+    cell: ({ row }) => {
+      const je = row.original;
+      return `${currency} ${je.totalCredit}`;
+    },
   },
   {
     accessorKey: "status",

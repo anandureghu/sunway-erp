@@ -15,6 +15,7 @@ export interface Company {
   financeEnabled: boolean;
   inventoryEnabled: boolean;
   currency?: Currency;
+  companyCode: string;
 }
 
 export type IModules = "hr" | "finance" | "inventory";

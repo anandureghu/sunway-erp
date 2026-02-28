@@ -1,11 +1,9 @@
 import { toast } from "sonner";
 import { apiClient } from "./apiClient";
 
-export const fetchCOAAccounts = async (companyId: string) => {
+export const fetchCOAAccounts = async () => {
   try {
-    const res = await apiClient.get(
-      `/finance/chart-of-accounts/company/${companyId}`
-    );
+    const res = await apiClient.get(`/finance/chart-of-accounts`);
     return res.data;
   } catch (error) {
     console.error("Error loading accounts:", error);

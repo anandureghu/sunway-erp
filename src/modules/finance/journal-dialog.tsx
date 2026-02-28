@@ -20,6 +20,7 @@ import {
   type JournalEntryUpdateDTO,
 } from "@/types/journal";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/context/AuthContext";
 // import {
 //   Select,
 //   SelectContent,
@@ -40,12 +41,14 @@ export function JournalDialog({
   companyId: number;
   onSuccess: (updated: JournalEntryResponseDTO, mode: "add" | "edit") => void;
 }) {
+  const { openPeriod } = useAuth();
+
   const [form, setForm] = useState<
     JournalEntryCreateDTO | JournalEntryUpdateDTO
   >({
     description: "",
-    entryDate: "",
-    periodId: new Date().getFullYear(),
+    entryDate: new Date().toISOString().split("T")[0],
+    periodId: openPeriod?.id || 0,
     source: "MANUAL",
     lines: [],
     status: "DRAFT",
@@ -64,8 +67,8 @@ export function JournalDialog({
     if (data) {
       setForm({
         description: data.description ?? "",
-        entryDate: data.entryDate,
-        periodId: new Date().getFullYear(),
+        entryDate: data.entryDate || new Date().toISOString().split("T")[0],
+        periodId: openPeriod!.id,
         source: data.source || "MANUAL",
         status: data.status || JOURNAL_STATUS.DRAFT,
         lines: data.lines.map((l) => ({
@@ -135,8 +138,8 @@ export function JournalDialog({
             <Label>Period</Label>
             <Input
               type="text"
-              value={new Date().getFullYear()}
-              onChange={(e) => update("periodId", e.target.value)}
+              value={openPeriod?.periodName}
+              onChange={() => update("periodId", openPeriod?.id)}
               disabled
             />
           </div>

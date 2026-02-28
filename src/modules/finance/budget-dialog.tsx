@@ -6,22 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-
 import { useEffect, useState } from "react";
-
-import type {
-  BudgetCreateDTO,
-  BudgetUpdateDTO,
-  BudgetResponseDTO,
-} from "@/types/budget";
-
+import type { BudgetCreateDTO, BudgetResponseDTO } from "@/types/budget";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-// import SelectDepartment from "@/components/select-department";
 
 // TODO: change backend
 export function BudgetDialog({
@@ -38,30 +29,33 @@ export function BudgetDialog({
 }) {
   const isEdit = !!data;
 
-  const [form, setForm] = useState<BudgetCreateDTO | BudgetUpdateDTO>({
+  const [form, setForm] = useState<BudgetCreateDTO>({
     budgetName: "",
-    budgetYear: 0,
+    fiscalYear: "",
     startDate: "",
     endDate: "",
+    amount: 0,
   });
 
-  const update = (key: string, value: any) =>
+  const update = (key: string, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
 
   useEffect(() => {
     if (data) {
       setForm({
         budgetName: data.budgetName,
-        budgetYear: data.budgetYear,
+        fiscalYear: data.fiscalYear,
         startDate: data.startDate ?? "",
         endDate: data.endDate ?? "",
+        amount: data.amount ?? 0,
       });
     } else {
       setForm({
         budgetName: "",
-        budgetYear: 0,
+        fiscalYear: "",
         startDate: "",
         endDate: "",
+        amount: 0,
       });
     }
   }, [data, open]);
@@ -70,9 +64,10 @@ export function BudgetDialog({
     try {
       const payload = {
         budgetName: form.budgetName,
-        budgetYear: Number(form.budgetYear) || new Date().getFullYear(),
+        fiscalYear: form.fiscalYear,
         startDate: form.startDate || null,
         endDate: form.endDate || null,
+        amount: form.amount || 0,
       };
 
       const res = data
@@ -82,8 +77,10 @@ export function BudgetDialog({
       toast.success("Budget created");
       onOpenChange(false);
       onSuccess(res.data, data ? "edit" : "add");
-    } catch (err) {
-      toast.error("Failed to save budget");
+    } catch (err: any) {
+      toast.error("Failed to save budget", {
+        description: err.response.data.message,
+      });
       console.error(err);
     }
   };
@@ -110,45 +107,40 @@ export function BudgetDialog({
 
             {/* Budget Year */}
             <div>
-              <Label>Budget Year</Label>
+              <Label>Fiscal Year</Label>
+              <Input
+                value={form.fiscalYear || undefined}
+                onChange={(e) => update("fiscalYear", e.target.value)}
+              />
+            </div>
+
+            {/* Amount */}
+            <div>
+              <Label>Amount</Label>
               <Input
                 type="number"
-                value={form.budgetYear || new Date().getFullYear()}
-                onChange={(e) => update("budgetYear", e.target.value)}
-                disabled
+                value={form.amount || 0}
+                onChange={(e) => update("amount", e.target.value)}
               />
             </div>
 
             {/* Start Date */}
-            {/* <div>
+            <div>
               <Label>Start Date</Label>
               <Input
                 type="date"
                 value={form.startDate}
                 onChange={(e) => update("startDate", e.target.value)}
               />
-            </div> */}
+            </div>
 
             {/* End Date */}
-            {/* <div>
+            <div>
               <Label>End Date</Label>
               <Input
                 type="date"
                 value={form.endDate}
                 onChange={(e) => update("endDate", e.target.value)}
-              />
-            </div> */}
-
-            {/* <SelectDepartment
-              value={form.departmentId?.toString()}
-              onChange={(v) => update("departmentId", v)}
-            /> */}
-
-            <div>
-              <Label>Project ID</Label>
-              <Input
-                value={form.projectId}
-                onChange={(e) => update("projectId", e.target.value)}
               />
             </div>
 

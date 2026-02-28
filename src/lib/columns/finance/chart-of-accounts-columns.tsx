@@ -10,8 +10,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import type { ChartOfAccounts } from "@/types/coa";
+
 import type { Company } from "@/types/company";
+import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
+import Info from "@/components/info";
 
 export const CHART_OF_ACCOUNTS_COLUMNS = ({
   onEdit,
@@ -24,57 +26,64 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
 }): ColumnDef<ChartOfAccounts>[] => [
   { accessorKey: "id", header: "ID" },
 
-  { accessorKey: "accountCode", header: "Account Code" },
-  { accessorKey: "accountName", header: "Account Name" },
-  { accessorKey: "description", header: "Description" },
+  { accessorKey: "accountNo", header: "Account No" },
+  {
+    accessorKey: "accountName",
+    header: "Account Name",
+    cell: ({ row }) => {
+      const coa = row.original;
+      return <Info title={coa.accountName} subtitle={coa.accountCode} />;
+    },
+  },
 
   {
     accessorKey: "type",
     header: "Type",
-    cell: ({ row }) => <Badge variant="outline">{row.getValue("type")}</Badge>,
-  },
-
-  { accessorKey: "parentId", header: "Parent ID" },
-
-  {
-    accessorKey: "status",
-    header: "Status",
     cell: ({ row }) => (
-      <Badge
-        className={
-          row.getValue("status") === "active"
-            ? "bg-green-100 text-green-700"
-            : "bg-gray-100 text-gray-700"
-        }
-      >
-        {row.getValue("status")}
-      </Badge>
+      <Badge variant="outline">{row.getValue<string>("type")}</Badge>
     ),
   },
 
-  { accessorKey: "glAccountClassTypeKey", header: "GL Class Key" },
-  { accessorKey: "glAccountType", header: "GL Account Type" },
+  {
+    accessorKey: "parentName",
+    header: "Parent Account",
+    cell: ({ row }) => row.getValue("parentName") ?? "-",
+  },
+
+  {
+    accessorKey: "departmentName",
+    header: "Department",
+    cell: ({ row }) => row.getValue("departmentName") ?? "-",
+  },
+
+  { accessorKey: "projectCode", header: "Project Code" },
 
   {
     accessorKey: "balance",
     header: "Balance",
     cell: ({ row }) => {
-      const b = row.getValue("balance");
+      const balance = row.getValue<string | number>("balance") ?? "0";
+      const numeric =
+        typeof balance === "string" ? parseFloat(balance) : balance;
+
       return (
-        <span>
-          {company.currency?.currencyCode} {Number(b).toLocaleString()}
+        <span className="font-medium">
+          {company.currency?.currencyCode || ""}{" "}
+          {numeric.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </span>
       );
     },
   },
-
-  // { accessorKey: "companyId", header: "Company ID" },
 
   {
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
       const account = row.original;
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

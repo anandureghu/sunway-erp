@@ -233,6 +233,7 @@ export const CompanyForm = ({
                 : undefined
             }
             onChange={(v) => form.setValue("currencyId", Number(v))}
+            disabled={!!defaultValues?.currencyId}
           />
         </div>
 

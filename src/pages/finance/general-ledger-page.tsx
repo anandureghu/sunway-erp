@@ -4,8 +4,8 @@ import BudgetPage from "@/modules/finance/budget-page";
 import JournalPage from "@/modules/finance/journal-page";
 import TransactionPage from "@/modules/finance/transaction-page";
 import CreditNotePage from "./credit-note-page";
-import ChartOfAccountsPage from "@/modules/finance/chart-of-accounts-list";
 import { hasAnyRole } from "@/lib/utils";
+import ChartOfAccountsListPage from "@/modules/finance/chart-of-accounts/coa-list-page";
 
 const GeneralLedgerPage = () => {
   const { user } = useAuth();
@@ -13,7 +13,7 @@ const GeneralLedgerPage = () => {
     {
       value: "coa",
       label: "Chart Of Accounts",
-      element: () => <ChartOfAccountsPage />,
+      element: () => <ChartOfAccountsListPage />,
     },
     ...(hasAnyRole(user?.role, ["ACCOUNTANT", "SUPER_ADMIN", "ADMIN"])
       ? [

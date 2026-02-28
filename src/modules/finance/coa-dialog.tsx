@@ -11,7 +11,15 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import type { ChartOfAccounts, CreateAccountDTO } from "@/types/coa";
+import { COA, type ChartOfAccounts, type CreateAccountDTO } from "@/types/coa";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import SelectAccount from "@/components/select-account";
 
 interface Props {
   open: boolean;
@@ -33,7 +41,7 @@ export function ChartOfAccountDialog({
     accountCode: "",
     accountName: "",
     description: "",
-    type: "asset",
+    type: "ASSET",
     parentId: null,
     currency: "INR",
     status: "active",
@@ -51,8 +59,7 @@ export function ChartOfAccountDialog({
         accountName: account.accountName,
         description: account.description ?? "",
         type: account.type,
-        parentId: account.parentId ?? null,
-        currency: account.currency ?? "",
+        parentId: Number(account.parentId),
         status: account.status,
         glAccountClassTypeKey: account.glAccountClassTypeKey ?? "",
         glAccountType: account.glAccountType ?? "",
@@ -113,17 +120,30 @@ export function ChartOfAccountDialog({
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium">Type</label>
-            <Input
+
+            <Select
+              onValueChange={(val) => update("type", val)}
               value={form.type}
-              onChange={(e) => update("type", e.target.value)}
-            />
+              defaultValue="ADMIN"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select COA Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {COA.map((r) => (
+                  <SelectItem key={r.key} value={r.key}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Parent ID</label>
-            <Input
-              value={form.parentId ?? ""}
-              onChange={(e) => update("parentId", Number(e.target.value))}
+            <SelectAccount
+              value={form.parentId?.toString() || undefined}
+              onChange={(v) => update("parentId", v)}
+              label="Parent Account"
             />
           </div>
 
