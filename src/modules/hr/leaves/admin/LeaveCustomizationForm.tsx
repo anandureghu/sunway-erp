@@ -332,21 +332,6 @@ export default function LeaveCustomizationForm() {
       .reduce((sum, p) => sum + p.daysAllowed, 0);
   };
 
-  const getRoleDisplayName = (role: Role) => {
-    const names: Record<Role, string> = {
-      ADMIN: "Admin",
-      SUPER_ADMIN: "Super Admin",
-      USER: "User",
-      FINANCE_MANAGER: "Finance Manager",
-      ACCOUNTANT: "Accountant",
-      AP_AR_CLERK: "AP/AR Clerk",
-      CONTROLLER: "Controller",
-      AUDITOR_EXTERNAL: "External Auditor",
-      HR: "",
-    };
-    return names[role];
-  };
-
   const applicableLeaveTypes = getApplicableLeaveTypes(selectedGender);
 
   return (
@@ -539,7 +524,7 @@ export default function LeaveCustomizationForm() {
                       : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
                   }`}
                 >
-                  {getRoleDisplayName(role.key)}
+                  {role.label}
                 </button>
               ))}
             </div>
@@ -557,9 +542,7 @@ export default function LeaveCustomizationForm() {
                       <Users className="h-5 w-5 text-slate-600" />
                       <div>
                         <h3 className="font-bold text-slate-900">
-                          {getRoleDisplayName(
-                            typeof role === "string" ? role : role.key,
-                          )}
+                          {typeof role === "string" ? role : role.label}
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">
                           {typeof role === "string" ? role : role.key}

@@ -1,24 +1,24 @@
 export interface BudgetLineDTO {
   id?: number;
   accountId: number;
-  accountName: string;
-  accountCode: string;
-  departmentId: number | null;
-  departmentName: string;
-  departmentCode: string;
-  projectId: string | null;
+  accountName?: string;
+  accountCode?: string;
+  departmentId?: number | null;
+  departmentName?: string;
+  departmentCode?: string;
+  projectId?: string | null;
   amount: number;
-  notes: string;
+  notes?: string;
   startDate: string | null;
   endDate: string | null;
-  status: string;
+  status?: string;
 
-  createdByUserId: number;
-  createdByUserName: string;
-  updatedByUserId: number;
-  updatedByUserName: string;
-  approvedByUserId: number;
-  approvedByUserName: string;
+  createdByUserId?: number;
+  createdByUserName?: string;
+  updatedByUserId?: number;
+  updatedByUserName?: string;
+  approvedByUserId?: number;
+  approvedByUserName?: string;
 }
 
 export interface BudgetResponseDTO {

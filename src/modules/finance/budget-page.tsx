@@ -59,7 +59,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
       }
     },
     company: company!,
-    role: user!.role!,
+    role: user?.role,
   });
 
   if (loading) return <div className="p-6 text-center">Loading...</div>;

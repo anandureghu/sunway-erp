@@ -40,7 +40,6 @@ export function BudgetLineDialog({
     departmentId: "",
     projectId: "",
     amount: "",
-    currencyCode: "USD",
     notes: "",
     startDate: "",
     endDate: "",
@@ -56,7 +55,6 @@ export function BudgetLineDialog({
         departmentId: "",
         projectId: "",
         amount: "",
-        currencyCode: "USD",
         notes: "",
         startDate: "",
         endDate: "",
@@ -67,7 +65,6 @@ export function BudgetLineDialog({
         departmentId: line.departmentId?.toString() || "",
         projectId: line.projectId?.toString() || "",
         amount: line.amount.toString(),
-        currencyCode: line.currencyCode ?? "USD",
         notes: line.notes ?? "",
         startDate: line.startDate ?? "",
         endDate: line.endDate ?? "",
@@ -77,13 +74,11 @@ export function BudgetLineDialog({
 
   const save = async () => {
     try {
-      const newLine: BudgetLineDTO & { tempId?: string } = {
-        tempId: line?.tempId ?? Math.random().toString(36),
+      const newLine: BudgetLineDTO = {
         accountId: Number(form.accountId),
         departmentId: form.departmentId ? Number(form.departmentId) : null,
         projectId: form.projectId ? form.projectId : null,
         amount: Number(form.amount),
-        currencyCode: form.currencyCode,
         notes: form.notes,
         startDate: form.startDate || null,
         endDate: form.endDate || null,
