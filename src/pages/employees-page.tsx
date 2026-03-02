@@ -5,6 +5,7 @@ import { DataTable } from "@/ui/data-table";
 import { EMPLOYEE_COLUMNS } from "@/modules/hr/columns/employees-columns";
 import { hrService } from "@/service/hr.service";
 import { addressService } from "@/service/addressService";
+import { currentJobService } from "@/service/currentJobService";
 import type { Employee } from "@/types/hr";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,11 @@ export default function EmployeesPage() {
         prefix: newEmployee.prefix ?? undefined,
         maritalStatus: newEmployee.maritalStatus ?? undefined,
         dateOfBirth: newEmployee.dateOfBirth ?? undefined,
+        birthplace: newEmployee.birthplace ?? undefined,
+        hometown: newEmployee.hometown ?? undefined,
+        nationality: newEmployee.nationality ?? undefined,
+        religion: newEmployee.religion ?? undefined,
+        identification: newEmployee.identification ?? newEmployee.nationalId ?? undefined,
         joinDate: newEmployee.joinDate ?? undefined,
         phoneNo: newEmployee.phoneNo ?? undefined,
         departmentId: newEmployee.departmentId !== undefined && newEmployee.departmentId !== "" ? Number(newEmployee.departmentId) : undefined,
@@ -201,14 +207,44 @@ export default function EmployeesPage() {
     }
   };
 
-  // load employees
+  // load employees with department from current job
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const list = await hrService.listEmployees();
         console.log("EmployeesPage -> loaded employees", Array.isArray(list) ? list.length : typeof list, list?.slice?.(0,3));
-        if (mounted) setEmployees(list);
+        
+        // Fetch current job data for each employee to get department
+        if (mounted && list.length > 0) {
+          const employeesWithDepartment = await Promise.all(
+            list.map(async (emp) => {
+              try {
+                // Only fetch if employee has an ID
+                if (emp.id) {
+                  const currentJob = await currentJobService.get(Number(emp.id));
+                  if (currentJob) {
+                    const deptName =
+                      // prefer flat prop if present
+                      (currentJob as any).departmentName ||
+                      // or nested department object
+                      (currentJob as any).department?.name ||
+                      (currentJob as any).department?.departmentName ||
+                      "";
+                    if (deptName) return { ...emp, department: deptName };
+                  }
+                }
+              } catch (err) {
+                // Silently handle - employee might not have current job
+                console.debug("No current job for employee:", emp.id);
+              }
+              return emp;
+            })
+          );
+          setEmployees(employeesWithDepartment);
+        } else if (mounted) {
+          setEmployees(list);
+        }
       } catch (err: any) {
         console.error("EmployeesPage -> failed to load employees:", err?.response?.data ?? err);
         setEmployees([]);
@@ -227,7 +263,33 @@ export default function EmployeesPage() {
     const handler = async (e: Event) => {
       try {
         const list = await hrService.listEmployees();
-        setEmployees(list);
+        
+        // Fetch current job data for each employee to get department
+        if (list.length > 0) {
+          const employeesWithDepartment = await Promise.all(
+            list.map(async (emp) => {
+              try {
+                if (emp.id) {
+                  const currentJob = await currentJobService.get(Number(emp.id));
+                  if (currentJob) {
+                    const deptName =
+                      (currentJob as any).departmentName ||
+                      (currentJob as any).department?.name ||
+                      (currentJob as any).department?.departmentName ||
+                      "";
+                    if (deptName) return { ...emp, department: deptName };
+                  }
+                }
+              } catch (err) {
+                console.debug("No current job for employee:", emp.id);
+              }
+              return emp;
+            })
+          );
+          setEmployees(employeesWithDepartment);
+        } else {
+          setEmployees(list);
+        }
         console.log("EmployeesPage -> refreshed after employee:updated", (e as CustomEvent).detail);
       } catch (err) {
         console.error("EmployeesPage -> refresh after update failed:", err);

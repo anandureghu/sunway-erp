@@ -20,18 +20,55 @@ const COUNTRIES = [
   "United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
 ];
 
+// Popular countries that should appear first when searching
+const POPULAR_COUNTRIES = [
+  "United States",
+  "United Kingdom",
+  "India",
+  "Canada",
+  "Australia",
+  "Germany",
+  "France",
+  "Japan",
+  "China",
+  "Singapore",
+  "Malaysia",
+  "United Arab Emirates",
+  "Saudi Arabia",
+  "Netherlands",
+  "Italy",
+  "Spain",
+  "Brazil",
+  "Russia",
+  "South Korea",
+  "Mexico"
+];
+
 export default function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const q = String(req.query.q || '').trim().toLowerCase();
-    if (!q) {
-      // return top countries if no query provided
-      return res.status(200).json(COUNTRIES.slice(0, 50));
-    }
-
-    const filtered = COUNTRIES.filter(c => c.toLowerCase().includes(q)).slice(0, 50);
-
+    
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
+    
+    if (!q) {
+      // Return popular countries first, then others
+      const popular = POPULAR_COUNTRIES.slice(0, 10);
+      const others = COUNTRIES.filter(c => !POPULAR_COUNTRIES.includes(c)).slice(0, 40);
+      return res.status(200).json([...popular, ...others]);
+    }
+
+    // Filter countries that match the query
+    const matchingPopular = POPULAR_COUNTRIES.filter(c => 
+      c.toLowerCase().includes(q)
+    );
+    const matchingOthers = COUNTRIES.filter(c => 
+      !POPULAR_COUNTRIES.includes(c) && c.toLowerCase().includes(q)
+    );
+
+    // Combine: popular matches first, then other matches
+    const filtered = [...matchingPopular, ...matchingOthers].slice(0, 50);
+
     return res.status(200).json(filtered);
   } catch (err) {
     console.error('api/countries error', err);

@@ -56,6 +56,24 @@ export interface CurrentJob {
   workCountry: string;
 }
 
+export type ContractType = "PERMANENT" | "TEMPORARY" | "INTERN" | "CONSULTANT";
+export type ContractStatus = "ACTIVE" | "EXPIRED" | "TERMINATED" | "DRAFT";
+
+export interface EmployeeContract {
+  id?: number;
+  contractType: ContractType;
+  contractStartDate: string; // yyyy-mm-dd
+  contractEndDate: string; // yyyy-mm-dd
+  contractPeriodMonths: number;
+  noticePeriodDays: number;
+  contractStatus: ContractStatus;
+  salary: string;
+  departmentId?: number;
+  jobCodeId?: number;
+  termsAndConditions?: string;
+  attachmentUrl?: string;
+}
+
 export type LeaveStatus = "Pending" | "Approved" | "Rejected";
 export type LeaveType =
   | "Annual Leave"
@@ -140,6 +158,13 @@ export interface Dependent {
   nationality?: string;
   maritalStatus?: MaritalStatus;
   relationship?: "Spouse" | "Son" | "Daughter" | "Father" | "Mother" | "Other";
+  phoneNo?: string;
+  address?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 export interface Appraisal {

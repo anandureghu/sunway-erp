@@ -19,7 +19,7 @@ export default function CountryAutocomplete({
   onChange,
   placeholder = "Type country...",
   minChars = 2,
-  apiUrl = "/api/countries",
+  apiUrl,
   disabled = false,
 }: Props) {
   /** What user is typing */
@@ -36,20 +36,22 @@ export default function CountryAutocomplete({
 
   /** Active index for keyboard navigation */
   const activeIdx = useRef(-1);
-  useEffect(() => {
-
-    controlledUpdate.current = true;
-    setQuery(value || "");
-    setOpen(false);
-    setSuggestions([]);
-    activeIdx.current = -1;
-  }, [value]);
-
+  
+  /** Track if update is from controlled value change */
   const controlledUpdate = useRef(false);
+
+  useEffect(() => {
+    if (value !== query) {
+      controlledUpdate.current = true;
+      setQuery(value || "");
+      setOpen(false);
+      setSuggestions([]);
+      activeIdx.current = -1;
+    }
+  }, [value]);
 
   const fetchSuggestions = useCallback(
     debounce(async (q: string) => {
-      
       if (controlledUpdate.current) {
         controlledUpdate.current = false;
         return;
@@ -75,12 +77,10 @@ export default function CountryAutocomplete({
               : []
           );
         } else {
-          const response = await apiClient.get(
-            `https://restcountries.com/v3.1/name/${encodeURIComponent(
-              q
-            )}?fields=name`
+          const response = await fetch(
+            `https://restcountries.com/v3.1/name/${encodeURIComponent(q)}?fields=name`
           );
-          const data = response.data;
+          const data = await response.json();
 
           setSuggestions(
             Array.isArray(data)
@@ -115,6 +115,10 @@ export default function CountryAutocomplete({
     onChange(s); 
   }
 
+  /** Handle input change - only update query, don't call onChange */
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setQuery(e.target.value);
+  }
 
   /** Keyboard navigation */
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -142,16 +146,11 @@ export default function CountryAutocomplete({
     <div className="relative">
       <Input
         value={query}
-        onChange={(e) => {
-          const value = e.target.value;
-          setQuery(value);
-          onChange(value); 
-        }}
+        onChange={handleInputChange}
         onFocus={() => {
           if (suggestions.length > 0) setOpen(true);
         }}
         onBlur={() => {
-          
           setTimeout(() => setOpen(false), 150);
         }}
         onKeyDown={onKeyDown}
@@ -160,7 +159,7 @@ export default function CountryAutocomplete({
       />
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-40 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-sm">
+        <ul className="absolute z-40 mt-1 max-h-80 w-full overflow-auto rounded-md border bg-white shadow-sm">
           {suggestions.map((s, i) => (
             <li
               key={`${s}-${i}`}

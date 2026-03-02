@@ -63,7 +63,14 @@ export function AddEmployeeModal({
     prefix: "",
     maritalStatus: "",
     dateOfBirth: "",
-    phoneNo: "",
+    
+
+    // additional profile fields
+    birthplace: "",
+    hometown: "",
+    nationality: "",
+    religion: "",
+    identification: "",
 
     role: "USER",
   });
@@ -76,20 +83,24 @@ export function AddEmployeeModal({
   };
 
   const handleSubmit = () => {
-    if (!form.firstName || !form.lastName || !form.phoneNo) {
-      toast.error("First name, Last name and Phone are required");
+    if (!form.firstName || !form.lastName) {
+      toast.error("First name and Last name are required");
       return;
     }
 
     const payload = {
       firstName: form.firstName,
       lastName: form.lastName,
-
-      phoneNo: form.phoneNo || undefined,
+      // phone is optional and intentionally omitted from the add form
       gender: form.gender || undefined,
       prefix: form.prefix || undefined,
       maritalStatus: form.maritalStatus || undefined,
       dateOfBirth: form.dateOfBirth || undefined,
+      birthplace: form.birthplace || undefined,
+      hometown: form.hometown || undefined,
+      nationality: form.nationality || undefined,
+      religion: form.religion || undefined,
+      identification: form.identification || undefined,
 
       role: form.role || "USER",
     };
@@ -126,10 +137,7 @@ export function AddEmployeeModal({
                 <input name="lastName" placeholder="Last Name" value={form.lastName} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Phone</label>
-                <input name="phoneNo" placeholder="Phone number" value={form.phoneNo} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+              
 
               
 
@@ -154,6 +162,31 @@ export function AddEmployeeModal({
               <div>
                 <label className="text-sm font-medium">Date of Birth</label>
                 <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Birthplace</label>
+                <input name="birthplace" placeholder="Birthplace" value={form.birthplace} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Hometown</label>
+                <input name="hometown" placeholder="Hometown" value={form.hometown} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Nationality</label>
+                <input name="nationality" placeholder="Nationality" value={form.nationality} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Religion</label>
+                <input name="religion" placeholder="Religion" value={form.religion} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Identification</label>
+                <input name="identification" placeholder="ID number / identification" value={form.identification} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
               </div>
 
               

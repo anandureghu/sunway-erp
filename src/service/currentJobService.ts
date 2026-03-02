@@ -19,6 +19,17 @@ export interface CurrentJobPayload {
   workCountry?: string;
 }
 
+export interface CurrentJobApiPayload {
+  jobCodeId?: number;
+  departmentId?: number;
+  workLocation?: string;
+  workCity?: string;
+  workCountry?: string;
+  startDate?: string;
+  effectiveFrom?: string;
+  expectedEndDate?: string | undefined;
+}
+
 export interface CurrentJobResponse extends CurrentJobPayload {
   id: number;
   employeeId: number;
@@ -33,12 +44,12 @@ async function get(employeeId: number) {
   return res.data ?? null;
 }
 
-async function create(employeeId: number, payload: CurrentJobPayload) {
+async function create(employeeId: number, payload: CurrentJobApiPayload) {
   const res = await apiClient.post<CurrentJobResponse>(`/employees/${employeeId}/current-job`, payload);
   return res.data;
 }
 
-async function update(employeeId: number, payload: CurrentJobPayload) {
+async function update(employeeId: number, payload: CurrentJobApiPayload) {
   const res = await apiClient.put<CurrentJobResponse>(`/employees/${employeeId}/current-job`, payload);
   return res.data;
 }

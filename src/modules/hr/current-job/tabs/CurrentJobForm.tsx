@@ -1,13 +1,24 @@
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";  
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState, useRef } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
 import { useParams } from "react-router-dom";
-import { currentJobService } from "@/service/currentJobService";
+import { currentJobService, type CurrentJobApiPayload } from "@/service/currentJobService";
+import { hrService } from "@/service/hr.service";
+import { fetchDepartments } from "@/service/departmentService";
 import { toast } from "sonner";
 import type { CurrentJob } from "@/types/hr";
+import type { Department } from "@/types/department";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import { Briefcase, Building2, Calendar, Award, MapPin, TrendingUp } from "lucide-react";
+import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 
 /* ================= INITIAL DATA ================= */
 
@@ -34,9 +45,23 @@ interface ValidationErrors {
 
 export default function CurrentJobForm() {
   const { id } = useParams<{ id: string }>();
-  const employeeId = id ? Number(id) : undefined;
+  
+  // Better validation for employeeId - ensure it's a valid number
+  const employeeId = (() => {
+    if (!id || id.trim() === "") return undefined;
+    const parsed = Number(id);
+    if (isNaN(parsed) || parsed <= 0) {
+      console.error("Invalid employee ID:", id);
+      return undefined;
+    }
+    return parsed;
+  })();
 
   const [exists, setExists] = useState(false);
+  const [jobCodes, setJobCodes] = useState<JobCode[]>([]);
+  const [loadingJobCodes, setLoadingJobCodes] = useState(true);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
   const savingRef = useRef(false);
 
   const {
@@ -52,37 +77,112 @@ export default function CurrentJobForm() {
       if (savingRef.current) return;
       savingRef.current = true;
 
+      // Debug log to check employeeId
+      console.log("Saving current job - Employee ID:", employeeId, "Type:", typeof employeeId);
+
       const errors = validateForm(data);
       if (Object.keys(errors).length > 0) {
         savingRef.current = false;
         throw new Error("Please fix validation errors");
       }
 
-      if (!employeeId) {
+      // Create a local variable with proper type for TypeScript
+      const validEmployeeId: number = employeeId as number;
+      if (!validEmployeeId || !Number.isFinite(validEmployeeId)) {
         savingRef.current = false;
-        throw new Error("No employee selected");
+        console.error("Invalid employee ID for save:", employeeId);
+        throw new Error(" Invalid employee ID. Please refresh the page and try again.");
       }
+
+      // Find selected job code object
+      const selectedJob = jobCodes.find(j => j.code === data.jobCode);
+
+      // Find selected department object
+      const selectedDept = departments.find(d => d.departmentCode === data.departmentCode);
+
+      if (!selectedJob) {
+        savingRef.current = false;
+        throw new Error(" Invalid job code selected");
+      }
+
+      if (!selectedDept) {
+        savingRef.current = false;
+        throw new Error(" Invalid department selected");
+      }
+
+      const payload: CurrentJobApiPayload = {
+        jobCodeId: selectedJob.id,
+        departmentId: selectedDept.id,
+        workLocation: data.workLocation,
+        workCity: data.workCity,
+        workCountry: data.workCountry,
+        startDate: data.startDate,
+        effectiveFrom: data.effectiveFrom,
+        expectedEndDate: data.expectedEndDate || undefined
+      };
+
+      console.log("Sending payload:", payload);
 
       try {
         if (exists) {
-          await currentJobService.update(employeeId, data);
+          await currentJobService.update(validEmployeeId, payload);
         } else {
-          await currentJobService.create(employeeId, data);
+          await currentJobService.create(validEmployeeId, payload);
         }
 
-        setExists(true);
-        toast.success("Current job saved");
+        // Sync join date and department to employee profile
+        try {
+          if (selectedDept || data.startDate) {
+            const employeeUpdateData: {
+              joinDate?: string;
+              departmentId?: number;
+            } = {};
 
-        const fresh = await currentJobService.get(employeeId);
+            if (data.startDate) {
+              employeeUpdateData.joinDate = data.startDate;
+            }
+
+            if (selectedDept) {
+              employeeUpdateData.departmentId = selectedDept.id;
+            }
+
+            if (Object.keys(employeeUpdateData).length > 0) {
+              await hrService.updateEmployee(validEmployeeId, employeeUpdateData);
+              toast.success("Employee profile updated with join date and department");
+
+              // Dispatch event to update employee overview in employees-page (listen on window)
+              window.dispatchEvent(new CustomEvent("employee:updated"));
+            }
+          }
+        } catch (updateErr: any) {
+          console.error("Error updating employee profile:", updateErr);
+          // Don't throw here - the current job was saved successfully
+          toast.warning("Current job saved but failed to update employee profile");
+        }
+
+        const fresh = await currentJobService.get(validEmployeeId);
         if (fresh) {
-          Object.keys(INITIAL_DATA).forEach((key) => {
-            updateField(key as keyof CurrentJob)(
-              (fresh as any)[key] ?? ""
-            );
-          });
+          const resData = fresh as any;
+          // 🔥 Properly map nested API response to flat form fields (same as initial load)
+          updateField("jobCode")(resData.job?.code ?? "");
+          updateField("jobTitle")(resData.job?.title ?? "");
+          updateField("jobLevel")(resData.job?.level ?? "");
+          updateField("grade")(resData.job?.grade ?? "");
+          
+          updateField("departmentCode")(resData.department?.code ?? "");
+          updateField("departmentName")(resData.department?.name ?? "");
+          
+          updateField("startDate")(fresh.startDate ?? "");
+          updateField("effectiveFrom")(fresh.effectiveFrom ?? "");
+          updateField("expectedEndDate")(fresh.expectedEndDate ?? "");
+          
+          updateField("workLocation")(fresh.workLocation ?? "");
+          updateField("workCity")(fresh.workCity ?? "");
+          updateField("workCountry")(fresh.workCountry ?? "");
         }
 
-        document.dispatchEvent(new CustomEvent("current-job:saved"));
+        // Notify listeners that current job was saved
+        window.dispatchEvent(new CustomEvent("current-job:saved"));
       } catch (err: any) {
         toast.error(currentJobService.extractErrorMessage(err));
         savingRef.current = false;
@@ -93,7 +193,60 @@ export default function CurrentJobForm() {
     },
   });
 
-  /* ================= LOAD ================= */
+  /* ================= LOAD JOB CODES ================= */
+
+  useEffect(() => {
+    let mounted = true;
+    
+    const fetchJobCodes = async () => {
+      try {
+        console.log("Fetching job codes...");
+        // Use getAll to fetch all job codes (both active and inactive)
+        // This ensures users can select from all available job codes
+        const codes = await jobCodeService.getAll();
+        console.log("Job codes fetched:", codes);
+        if (mounted) {
+          setJobCodes(codes || []);
+        }
+      } catch (error: any) {
+        console.error("Error loading job codes:", error);
+        // Show error toast for debugging
+        if (mounted) {
+          toast.error(error?.response?.data?.message || "Failed to load job codes. Please check your permissions or try again.");
+        }
+      } finally {
+        if (mounted) {
+          setLoadingJobCodes(false);
+        }
+      }
+    };
+    
+    fetchJobCodes();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* ================= LOAD DEPARTMENTS ================= */
+
+  useEffect(() => {
+    const fetchDepartmentsData = async () => {
+      try {
+        const depts = await fetchDepartments();
+        if (depts) {
+          setDepartments(depts);
+        }
+      } catch (error) {
+        console.error("Error loading departments:", error);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+    fetchDepartmentsData();
+  }, []);
+
+  /* ================= LOAD CURRENT JOB ================= */
 
   useEffect(() => {
     if (!employeeId) return;
@@ -105,11 +258,27 @@ export default function CurrentJobForm() {
         if (!mounted || !res) return;
 
         setExists(true);
-        Object.keys(INITIAL_DATA).forEach((key) => {
-          updateField(key as keyof CurrentJob)((res as any)[key] ?? "");
-        });
-      } catch {
-        /* silent */
+
+        // 🔥 Correct mapping from nested API response
+        const resData = res as any;
+        updateField("jobCode")(resData.job?.code ?? "");
+        updateField("jobTitle")(resData.job?.title ?? "");
+        updateField("jobLevel")(resData.job?.level ?? "");
+        updateField("grade")(resData.job?.grade ?? "");
+
+        updateField("departmentCode")(resData.department?.code ?? "");
+        updateField("departmentName")(resData.department?.name ?? "");
+
+        updateField("startDate")(res.startDate ?? "");
+        updateField("effectiveFrom")(res.effectiveFrom ?? "");
+        updateField("expectedEndDate")(res.expectedEndDate ?? "");
+
+        updateField("workLocation")(res.workLocation ?? "");
+        updateField("workCity")(res.workCity ?? "");
+        updateField("workCountry")(res.workCountry ?? "");
+
+      } catch (err) {
+        console.error("Error loading current job:", err);
       }
     })();
 
@@ -151,6 +320,32 @@ export default function CurrentJobForm() {
   };
 
   const errors = validateForm(formData);
+
+  /* ================= HANDLERS ================= */
+
+  const handleJobCodeChange = (value: string) => {
+    updateField("jobCode")(value);
+    // Auto-populate jobTitle and jobLevel from selected job code
+    if (value) {
+      const selectedJob = jobCodes.find(j => j.code === value);
+      if (selectedJob) {
+        updateField("jobTitle")(selectedJob.title);
+        updateField("jobLevel")(selectedJob.level);
+        updateField("grade")(selectedJob.grade);
+      }
+    }
+  };
+
+  const handleDepartmentChange = (value: string) => {
+    updateField("departmentCode")(value);
+    // Auto-populate departmentName from selected department
+    if (value) {
+      const selectedDept = departments.find(d => d.departmentCode === value);
+      if (selectedDept) {
+        updateField("departmentName")(selectedDept.departmentName);
+      }
+    }
+  };
 
   /* ================= RENDER ================= */
 
@@ -247,15 +442,48 @@ export default function CurrentJobForm() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Field label="Job Code" required error={errors.jobCode}>
                 <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.jobCode}
-                    onChange={(e) => updateField("jobCode")(e.target.value)}
-                    required
-                    placeholder="e.g., JOB-001"
-                  />
-                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                  {loadingJobCodes ? (
+                    <Input
+                      className="h-10 pl-10 border-slate-300 bg-slate-50"
+                      disabled
+                      placeholder="Loading..."
+                    />
+                  ) : jobCodes.length > 0 ? (
+                    <>
+                      <div className="relative">
+                        <Select value={formData.jobCode} onValueChange={handleJobCodeChange}>
+                          <SelectTrigger className="h-10 pl-10" disabled={!editing}>
+                            <SelectValue placeholder="Select Job Code" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {jobCodes.map((jc) => (
+                              <SelectItem key={jc.id} value={jc.code}>
+                                {jc.code} - {jc.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <Input
+                          className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
+                          disabled={!editing}
+                          value={formData.jobCode}
+                          onChange={(e) => updateField("jobCode")(e.target.value)}
+                          placeholder="Enter Job Code (e.g., JD001)"
+                        />
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
+                      <p className="text-xs text-amber-600 mt-1">
+                        No job codes available. Please enter manually or contact admin to set up job codes.
+                      </p>
+                    </>
+                  )}
                 </div>
               </Field>
 
@@ -300,15 +528,32 @@ export default function CurrentJobForm() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Field label="Department Code" required error={errors.departmentCode}>
                 <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.departmentCode}
-                    onChange={(e) => updateField("departmentCode")(e.target.value)}
-                    required
-                    placeholder="e.g., DEPT-IT"
-                  />
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                  {loadingDepartments ? (
+                    <Input
+                      className="h-10 pl-10 border-slate-300 bg-slate-50"
+                      disabled
+                      placeholder="Loading..."
+                    />
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <Select value={formData.departmentCode} onValueChange={handleDepartmentChange}>
+                          <SelectTrigger className="h-10 pl-10" disabled={!editing}>
+                            <SelectValue placeholder="Select Department" />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {departments.map((dept) => (
+                              <SelectItem key={dept.id} value={dept.departmentCode}>
+                                {dept.departmentCode} - {dept.departmentName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      </div>
+                    </>
+                  )}
                 </div>
               </Field>
 

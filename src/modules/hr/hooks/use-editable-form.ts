@@ -17,7 +17,6 @@ export function useEditableForm<T>({
 
   useEffect(() => {
     initialDataRef.current = initialData;
-    setFormData(initialData);
   }, [initialData]);
 
   const handleEdit = useCallback(() => {
@@ -61,10 +60,19 @@ export function useEditableForm<T>({
     []
   );
 
+  // Bulk update multiple fields at once - useful when loading data from API
+  const setFields = useCallback((fields: Partial<T>) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...fields,
+    }));
+  }, []);
+
   return {
     editing,
     formData,
     updateField,
+    setFields,
     handleEdit,
     handleSave,
     handleCancel,

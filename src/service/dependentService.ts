@@ -10,6 +10,13 @@ export interface DependentPayload {
   nationalId?: string;
   maritalStatus?: string;
   relationship?: string;
+  phoneNo?: string;
+  address?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 async function getAll(employeeId: number) {

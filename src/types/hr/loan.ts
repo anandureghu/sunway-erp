@@ -7,6 +7,7 @@ export interface Loan {
   balance: number;
   status: "ACTIVE" | "CLOSED";
   startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
 }
 
 export interface LoanPayload {
@@ -15,6 +16,7 @@ export interface LoanPayload {
   loanAmount: number;
   loanPeriod: number;
   startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
   notes?: string;
 }
 

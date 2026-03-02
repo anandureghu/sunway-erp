@@ -5,6 +5,7 @@ export interface Department {
   departmentCode: string;
   departmentName: string;
   managerId?: number | null;
-  company: Company;
+  companyId?: number;
+  company?: Company;
   createdAt: string;
 }

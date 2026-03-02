@@ -10,6 +10,7 @@ import { leavePolicyService } from "@/service/leavePolicyService";
 const ROLES: Role[] = [
   "ADMIN",
   "SUPER_ADMIN",
+  "HR",
   "USER",
   "FINANCE_MANAGER",
   "ACCOUNTANT",
@@ -37,16 +38,13 @@ const LEAVE_TYPE_COLORS: Record<LeaveType, { bg: string; text: string; icon: str
 const ROLE_COLORS: Record<Role, { bg: string; text: string }> = {
   "ADMIN": { bg: "bg-purple-100 text-purple-700", text: "text-purple-700" },
   "SUPER_ADMIN": { bg: "bg-indigo-100 text-indigo-700", text: "text-indigo-700" },
+  "HR": { bg: "bg-pink-100 text-pink-700", text: "text-pink-700" },
   "USER": { bg: "bg-blue-100 text-blue-700", text: "text-blue-700" },
   "FINANCE_MANAGER": { bg: "bg-green-100 text-green-700", text: "text-green-700" },
   "ACCOUNTANT": { bg: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
   "AP_AR_CLERK": { bg: "bg-teal-100 text-teal-700", text: "text-teal-700" },
   "CONTROLLER": { bg: "bg-cyan-100 text-cyan-700", text: "text-cyan-700" },
   "AUDITOR_EXTERNAL": { bg: "bg-slate-100 text-slate-700", text: "text-slate-700" },
-  HR: {
-    bg: "",
-    text: ""
-  }
 };
 
 type Gender = "MALE" | "FEMALE" | "OTHER";
@@ -268,17 +266,17 @@ export default function LeaveCustomizationForm() {
       .reduce((sum, p) => sum + p.daysAllowed, 0);
   };
 
-  const getRoleDisplayName = (role: Role) => {
+const getRoleDisplayName = (role: Role) => {
     const names: Record<Role, string> = {
       "ADMIN": "Admin",
       "SUPER_ADMIN": "Super Admin",
+      "HR": "HR",
       "USER": "User",
       "FINANCE_MANAGER": "Finance Manager",
       "ACCOUNTANT": "Accountant",
       "AP_AR_CLERK": "AP/AR Clerk",
       "CONTROLLER": "Controller",
       "AUDITOR_EXTERNAL": "External Auditor",
-      HR: ""
     };
     return names[role];
   };

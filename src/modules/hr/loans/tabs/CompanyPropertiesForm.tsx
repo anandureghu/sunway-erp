@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea";  
 import { Plus, Trash2, Eye, Package, Calendar, FileText } from "lucide-react";
 import { FormRow, FormField } from "@/modules/hr/components/form-components";
 import { useParams } from "react-router-dom";
@@ -348,8 +348,8 @@ export default function CompanyPropertiesForm() {
                       <div className="relative">
                         <div className="pr-52">
                           <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-xl font-bold text-slate-800">
-                              {item.itemCode} — {item.itemName}
+                          <h3 className="text-xl font-bold text-slate-800">
+                              {item.itemName}
                             </h3>
                             {item.itemStatus && (
                               <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(item.itemStatus)}`}>
@@ -410,7 +410,7 @@ export default function CompanyPropertiesForm() {
                       <div className="space-y-6">
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-2xl font-bold text-slate-800">
-                            {item.itemCode} — {item.itemName}
+                            {item.itemName}
                           </h3>
                           {item.itemStatus && (
                             <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(item.itemStatus)}`}>
@@ -425,9 +425,9 @@ export default function CompanyPropertiesForm() {
                               <div className="p-2 bg-blue-100 rounded-lg">
                                 <Package className="h-5 w-5 text-blue-600" />
                               </div>
-                              <span className="text-sm font-medium text-blue-700">Item Code</span>
+                              <span className="text-sm font-medium text-blue-700">Item Name</span>
                             </div>
-                            <p className="text-2xl font-bold text-blue-800">{item.itemCode || "—"}</p>
+                            <p className="text-2xl font-bold text-blue-800">{item.itemName || "—"}</p>
                           </div>
                           <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-200">
                             <div className="flex items-center gap-3 mb-2">

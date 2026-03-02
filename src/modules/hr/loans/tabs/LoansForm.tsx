@@ -23,6 +23,7 @@ type LoansModel = {
   loanType: string;
   loanPeriod: string;
   startDate: string;
+  endDate: string;
   monthlyDeductions: string;
   loanStatus: string;
   balance: string;
@@ -37,7 +38,8 @@ function validateLoan(loan: LoansModel): boolean {
   const periodNum = Number(loan.loanPeriod);
   const periodOk = loan.loanPeriod.trim() !== "" && Number.isInteger(periodNum) && periodNum > 0;
   const dateOk = loan.startDate.trim() !== "";
-  return amountOk && typeOk && periodOk && dateOk;
+  const endDateOk = loan.endDate.trim() !== "";
+  return amountOk && typeOk && periodOk && dateOk && endDateOk;
 }
 
 const INITIAL_LOAN: LoansModel = {
@@ -48,6 +50,7 @@ const INITIAL_LOAN: LoansModel = {
   loanType: "",
   loanPeriod: "",
   startDate: "",
+  endDate: "",
   monthlyDeductions: "",
   loanStatus: "",
   balance: "",
@@ -82,7 +85,7 @@ export default function LoansForm(): ReactElement {
     setEditingId(newLoan.id);
   }, [grossSalary]);
 
-  const mapApiToForm = (api: any): LoansModel => ({
+const mapApiToForm = (api: any): LoansModel => ({
     id: String(api.id),
     loanCode: api.loanCode ?? "",
     loanAmount: api.loanAmount != null ? String(api.loanAmount) : "",
@@ -90,6 +93,7 @@ export default function LoansForm(): ReactElement {
     loanType: api.loanType ?? "",
     loanPeriod: api.loanPeriod != null ? String(api.loanPeriod) : "",
     startDate: api.startDate ?? "",
+    endDate: api.endDate ?? "",
     monthlyDeductions: api.monthlyDeduction != null ? String(api.monthlyDeduction) : "",
     loanStatus: api.status ?? "",
     balance: api.balance != null ? String(api.balance) : "",
@@ -98,11 +102,12 @@ export default function LoansForm(): ReactElement {
     netPay: api.netPay != null ? String(api.netPay) : "0",
   });
 
-  const mapFormToPayload = (f: LoansModel): LoanPayload => ({
+const mapFormToPayload = (f: LoansModel): LoanPayload => ({
     loanType: f.loanType as any,
     loanAmount: Number(f.loanAmount || 0),
     loanPeriod: Number(f.loanPeriod || 0),
     startDate: f.startDate || "",
+    endDate: f.endDate || "",
     notes: f.notes || undefined,
   });
 
@@ -185,11 +190,25 @@ export default function LoansForm(): ReactElement {
   }, []);
 
   const handleSave = useCallback((loan: LoansModel) => {
-    const monthly = Number(loan.monthlyDeductions || 0);
+    // Calculate monthly deduction from loan amount and loan period
+    const loanAmount = Number(loan.loanAmount || 0);
+    const loanPeriod = Number(loan.loanPeriod || 0);
+    
+    // Calculate monthly deduction: loanAmount / loanPeriod (in months)
+    // If loanPeriod is 0, avoid division by zero
+    const monthly = loanPeriod > 0 ? loanAmount / loanPeriod : 0;
+    
     const gross = grossSalary || Number(loan.grossPay || 0);
     const deduction = monthly;
     const net = gross - deduction;
-    const updated = { ...loan, grossPay: String(gross), deductionAmount: String(deduction), netPay: String(net) } as LoansModel;
+    
+    const updated = { 
+      ...loan, 
+      monthlyDeductions: String(monthly),
+      grossPay: String(gross), 
+      deductionAmount: String(deduction), 
+      netPay: String(net) 
+    } as LoansModel;
     setLoans(current => current.map(l => l.id === loan.id ? updated : l));
   }, [grossSalary]);
 
@@ -368,6 +387,15 @@ export default function LoansForm(): ReactElement {
                           disabled={false}
                           value={loan.startDate}
                           onChange={(v) => handleSave({ ...loan, startDate: v })}
+                          required
+                        />
+
+                        <Field
+                          label="End Date"
+                          type="date"
+                          disabled={false}
+                          value={loan.endDate}
+                          onChange={(v) => handleSave({ ...loan, endDate: v })}
                           required
                         />
 
@@ -572,9 +600,10 @@ export default function LoansForm(): ReactElement {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                           <InfoCard icon={DollarSign} label="Loan Amount" value={formatMoney(loan.loanAmount, currencySymbol)} color="blue" />
                           <InfoCard icon={Calendar} label="Start Date" value={loan.startDate ? new Date(loan.startDate).toLocaleDateString() : "—"} color="emerald" />
+                          <InfoCard icon={Calendar} label="End Date" value={loan.endDate ? new Date(loan.endDate).toLocaleDateString() : "—"} color="amber" />
                           <InfoCard icon={TrendingUp} label="Monthly Deduction" value={formatMoney(loan.monthlyDeductions, currencySymbol)} color="violet" />
                         </div>
 
@@ -683,6 +712,7 @@ function InfoCard({ icon: Icon, label, value, color }: { icon: any; label: strin
     blue: 'from-blue-500 to-indigo-600',
     emerald: 'from-emerald-500 to-teal-600',
     violet: 'from-violet-500 to-purple-600',
+    amber: 'from-amber-500 to-orange-600',
   };
   const gradient = colorClasses[color] ?? colorClasses.blue;
   return (

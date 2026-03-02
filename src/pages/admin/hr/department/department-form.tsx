@@ -26,6 +26,7 @@ import {
   type DepartmentFormData,
   DEPARTMENT_SCHEMA,
 } from "@/schema/department";
+import type { Department } from "@/types/department";
 
 interface DepartmentFormProps {
   onSubmit: (data: DepartmentFormData) => Promise<void> | void;
@@ -52,11 +53,24 @@ export const DepartmentForm = ({
   });
 
   useEffect(() => {
-    apiClient.get("/companies").then((res) => setCompanies(res.data));
+    apiClient.get("/companies").then((res) => {
+      // Handle both { data: [...] } and [...] response formats
+      const companiesData = res.data?.data || res.data;
+      setCompanies(Array.isArray(companiesData) ? companiesData : []);
+    });
   }, []);
 
   useEffect(() => {
-    if (defaultValues) form.reset(defaultValues);
+    if (defaultValues) {
+      // Extract companyId from nested company object if it exists
+      // Cast to Department type to access company property
+      const dept = defaultValues as Partial<Department>;
+      const formData = {
+        ...defaultValues,
+        companyId: defaultValues.companyId || dept.company?.id || 0,
+      };
+      form.reset(formData);
+    }
   }, [defaultValues, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -74,7 +88,12 @@ export const DepartmentForm = ({
               <FormItem>
                 <FormLabel>Department Code</FormLabel>
                 <FormControl>
-                  <Input placeholder="FIN001" {...field} />
+                  <Input 
+                    placeholder="FIN001" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                    value={field.value || ""}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

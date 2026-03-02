@@ -1,5 +1,6 @@
 import type { Employee } from "@/types/hr";
 import { apiClient } from "./apiClient";
+import { jobCodeService, type JobCode } from "./jobCodeService";
 
 /* =====================================================
    LIST EMPLOYEES (current company)
@@ -43,6 +44,13 @@ export interface CreateEmployeePayload {
   dateOfBirth?: string;
   joinDate?: string;
 
+  // personal information
+  birthplace?: string;
+  hometown?: string;
+  nationality?: string;
+  religion?: string;
+  identification?: string;
+
   departmentId?: number;
   role?: string;
 }
@@ -68,6 +76,13 @@ export interface UpdateEmployeePayload {
 
   dateOfBirth?: string;
   joinDate?: string;
+
+  // personal information
+  birthplace?: string;
+  hometown?: string;
+  nationality?: string;
+  religion?: string;
+  identification?: string;
 
   phoneNo?: string;
   altPhone?: string;
@@ -115,6 +130,13 @@ async function uploadImage(employeeId: number, file: File): Promise<string> {
 }
 
 /* =====================================================
+   GET ACTIVE JOB CODES
+===================================================== */
+async function getActiveJobCodes(): Promise<JobCode[]> {
+  return jobCodeService.getActive();
+}
+
+/* =====================================================
    EXPORT SERVICE
 ===================================================== */
 export const hrService = {
@@ -125,6 +147,7 @@ export const hrService = {
   updateEmployee,
   deleteEmployee,
   uploadImage,
+  getActiveJobCodes,
 };
 
 export default hrService;

@@ -24,6 +24,7 @@ import {
   Home,
   Users,
   FileText,
+  FileSpreadsheet,
   DollarSign,
   ChevronDown,
   Settings,
@@ -45,56 +46,114 @@ import type { SidebarItem } from "@/types/company";
 import { useAuth } from "@/context/AuthContext";
 import { getSidebarItems } from "@/service/companyService";
 
+// ✅ Step 2 - Add canAccess Helper
+// FIXED: Allow access when permissions are loading (null) and grant full access to SUPER_ADMIN
+// FIXED: Made case-insensitive for module and action lookups
+const canAccess = (
+  permissions: Record<string, Record<string, boolean>> | null,
+  module: string,
+  action: string,
+  userRole?: string,
+  loading?: boolean
+): boolean => {
+  // ✅ Don't show anything while permissions are being fetched
+  if (loading) return false;
+
+  // ADMIN/SUPER_ADMIN bypass
+  if (userRole === "SUPER_ADMIN" || userRole === "ADMIN") return true;
+
+  // No permissions loaded = no access
+  if (!permissions) return false;
+
+  // Normalize module and action to lowercase for case-insensitive lookup
+  const normalizedModule = module.toLowerCase();
+  const normalizedAction = action.toLowerCase();
+
+  // Try direct lookup first (case-sensitive)
+  if (permissions[module]?.[action] === true) return true;
+
+  // Try case-insensitive lookup
+  for (const [permModule, perms] of Object.entries(permissions)) {
+    if (permModule.toLowerCase() === normalizedModule) {
+      for (const [permAction, value] of Object.entries(perms)) {
+        if (permAction.toLowerCase() === normalizedAction && value === true) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+};
+
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
   const { selected } = useEmployeeSelection();
-  const { user } = useAuth();
+  const { user, permissions, permissionsLoading } = useAuth();
 
   const adminView = useAppSelector((s) => s.ui.adminView);
 
   const empBase = selected ? `/hr/employees/${selected.id}` : null;
 
-  // Sub-modules that live under Employee Overview
+  // Don't return null - the sidebar should render even while permissions/company data is loading
+  // We'll show the dashboard link at minimum and conditionally show other items based on permissions
+
   const employeeSubModules = [
     {
       title: "Profile",
+      module: "employee_profile",
+      action: "view_own",
       icon: UserRound,
       to: empBase ? `${empBase}/profile` : "#",
     },
     {
       title: "Current Job",
+      module: "current_job",
+      action: "view_own",
       icon: BriefcaseBusiness,
       to: empBase ? `${empBase}/current-job` : "#",
     },
     {
       title: "Salary",
+      module: "salary",
+      action: "view_own",
       icon: DollarSign,
       to: empBase ? `${empBase}/salary` : "#",
     },
     {
       title: "Leaves",
+      module: "leaves",
+      action: "view_own",
       icon: CalendarDays,
       to: empBase ? `${empBase}/leaves` : "#",
     },
     {
       title: "Loans",
+      module: "loans",
+      action: "view_own",
       icon: CreditCard,
       to: empBase ? `${empBase}/loans` : "#",
     },
     {
       title: "Dependents",
+      module: "dependents",
+      action: "view_own",
       icon: Users,
       to: empBase ? `${empBase}/dependents` : "#",
     },
     {
       title: "Appraisal",
+      module: "appraisal",
+      action: "view_own",
       icon: Star,
       to: empBase ? `${empBase}/appraisal` : "#",
     },
     {
       title: "Immigration",
+      module: "immigration",
+      action: "view_own",
       icon: Shield,
       to: empBase ? `${empBase}/immigration` : "#",
     },
@@ -109,7 +168,6 @@ export function AppSidebar() {
       items: [
         { title: "Company", url: "/admin/company", icon: LayoutDashboard },
         { title: "Department", url: "/admin/department", icon: FileText },
-        { title: "Leaves", url: "/admin/leaves", icon: CalendarDays },
         { title: "Customers", url: "/admin/customers", icon: Users },
         { title: "Vendors", url: "/admin/vendors", icon: Building2 },
       ],
@@ -122,11 +180,35 @@ export function AppSidebar() {
   }, [adminView]);
 
   const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
+  
+  // Default sidebar items to show when company data is unavailable
+  const defaultSidebarItems: SidebarItem[] = [
+    {
+      title: "HR and Payroll",
+      icon: Users,
+      color: "text-yellow-500",
+      image: "/assets/images/hr.svg",
+      url: "/hr/dashboard",
+      items: [
+        { title: "HR Analytics", url: "/hr/dashboard", icon: Users },
+        { title: "Employee Overview", url: "/hr/employees", icon: Users },
+        { title: "HR Reports", url: "/hr/reports", icon: FileSpreadsheet },
+        { title: "HR Settings", url: "/hr/settings", icon: Settings },
+      ],
+    },
+  ];
+
   useEffect(() => {
     if (user?.companyId) {
       getSidebarItems(user.companyId).then((items) => {
         setSidebarItems(items);
+      }).catch(() => {
+        // Use default items if API fails
+        setSidebarItems(defaultSidebarItems);
       });
+    } else {
+      // Use default items when companyId is not available
+      setSidebarItems(defaultSidebarItems);
     }
   }, [user]);
 
@@ -191,7 +273,26 @@ export function AppSidebar() {
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {/* render each item; when "Employee Overview", also render nested sub-mods */}
-                      {section.items.map((item) => (
+                      {section.items
+                        .filter((item) => {
+                          // ✅ Step 5 - Protect Top-Level Sections
+                          // Allow access for HR Analytics and Employee Overview (no module check needed)
+                          if (item.url === "/hr/dashboard" || item.url === "/hr/employees") return true;
+                          // For other items, check if user has view_own permission for the module
+                          // Using a complete mapping with correct casing
+                          const moduleMap: Record<string, string> = {
+                            "/hr/dashboard": "hr_dashboard",
+                            "/hr/employees": "employee_profile",
+                            "/hr/reports": "hr_reports",
+                            "/hr/settings": "hr_settings",
+                          };
+                          const module = moduleMap[item.url];
+                          if (module) {
+                            return canAccess(permissions, module, "view_own", user?.role, permissionsLoading);
+                          }
+                          return true;
+                        })
+                        .map((item) => (
                         <SidebarMenuSub key={item.title}>
                           <SidebarMenuItem>
                             <SidebarMenuButton asChild>
@@ -211,7 +312,10 @@ export function AppSidebar() {
                             {/* If this is Employee Overview, show nested sub-modules */}
                             {item.url === "/hr/employees" && selected && (
                               <div className="mt-1 space-y-1">
-                                {employeeSubModules.map((sm) => {
+                                {/* ✅ Step 4 - Filter When Rendering */}
+                                {employeeSubModules
+                                  .filter((sm) => canAccess(permissions, sm.module, sm.action, user?.role, permissionsLoading))
+                                  .map((sm) => {
                                   const disabled = !sm.to;
                                   const active = sm.to && path === sm.to;
 

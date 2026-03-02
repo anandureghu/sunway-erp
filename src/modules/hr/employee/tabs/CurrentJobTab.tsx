@@ -1,28 +1,79 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useOutletContext } from "react-router-dom";
+import { currentJobService } from "@/service/currentJobService";
+import { toast } from "sonner";
 
 const EMPTY_FORM = {
   jobCode: "",
   jobTitle: "",
   jobLevel: "",
   departmentCode: "",
-  departmentNumber: "",
+  departmentName: "",
   grade: "",
   startDate: "",
   expectedEndDate: "",
   effectiveFrom: "",
+  workLocation: "",
+  workCity: "",
+  workCountry: "",
 };
 
+interface ProfileCtx {
+  editing: boolean;
+  setEditing?: (v: boolean) => void;
+}
+
 export default function CurrentJobTab() {
-  const [editing, setEditing] = useState(false);
+  const { id } = useParams<{ id: string }>();
+  const { editing, setEditing } = useOutletContext<ProfileCtx>();
   const [form, setForm] = useState(EMPTY_FORM);
+  const [loading, setLoading] = useState(true);
+
+  // Load current job data when id is available
+  useEffect(() => {
+    if (!id) return; // Guard - don't call until employeeId is available
+
+    const employeeId = Number(id);
+
+    currentJobService.get(employeeId)
+      .then((job) => {
+        if (job) {
+          // Cast to any to access nested API response structure
+          const jobData = job as any;
+          setForm({
+            jobCode: jobData.job?.code ?? "",
+            jobTitle: jobData.job?.title ?? "",
+            jobLevel: jobData.job?.level ?? "",
+            departmentCode: jobData.department?.code ?? "",
+            departmentName: jobData.department?.name ?? "",
+            grade: jobData.job?.grade ?? "",
+            startDate: jobData.startDate ?? "",
+            expectedEndDate: jobData.expectedEndDate ?? "",
+            effectiveFrom: jobData.effectiveFrom ?? "",
+            workLocation: jobData.workLocation ?? "",
+            workCity: jobData.workCity ?? "",
+            workCountry: jobData.workCountry ?? "",
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load current job:", err);
+        toast.error("Failed to load current job info");
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const onChange =
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((s) => ({ ...s, [k]: e.target.value }));
+
+  if (loading) {
+    return <div className="text-sm text-gray-500 p-4">Loading current job...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -48,7 +99,7 @@ export default function CurrentJobTab() {
         </Field>
 
         <Field label="Department Name">
-          <Input value={form.departmentNumber} onChange={onChange("departmentNumber")} disabled={!editing} />
+          <Input value={form.departmentName} onChange={onChange("departmentName")} disabled={!editing} />
         </Field>
 
         <Field label="Grade">
@@ -73,13 +124,13 @@ export default function CurrentJobTab() {
 
       <div className="flex gap-2">
         {!editing ? (
-          <Button onClick={() => setEditing(true)}>Edit / Update</Button>
+          <Button onClick={() => setEditing?.(true)}>Edit / Update</Button>
         ) : (
           <>
-            <Button variant="secondary" onClick={() => setEditing(false)}>
+            <Button variant="secondary" onClick={() => setEditing?.(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setEditing(false)}>Save</Button>
+            <Button onClick={() => setEditing?.(false)}>Save</Button>
           </>
         )}
       </div>
@@ -104,4 +155,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-

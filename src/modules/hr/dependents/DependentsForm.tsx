@@ -14,6 +14,7 @@ interface ValidationErrors {
   [key: string]: string | undefined;
 }
 
+// Default initial state for a new dependent
 const INITIAL_DEPENDENT: Dependent = {
   id: "",
   firstName: "",
@@ -24,8 +25,55 @@ const INITIAL_DEPENDENT: Dependent = {
   nationalId: "",
   nationality: "",
   maritalStatus: undefined,
-  relationship: undefined
+  relationship: undefined,
+  phoneNo: "",
+  address: "",
+  address2: "",
+  city: "",
+  state: "",
+  postalCode: "",
+  country: ""
 };
+
+// Function to create initial dependent from provided data (for demo/testing)
+export function createInitialDependentFromData(data: {
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationalId?: string;
+  nationality?: string;
+  maritalStatus?: string;
+  relationship?: string;
+  phoneNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+}): Dependent {
+  return {
+    id: "",
+    firstName: data.firstName || "",
+    middleName: data.middleName || "",
+    lastName: data.lastName || "",
+    dob: data.dateOfBirth || "",
+    gender: (data.gender as Gender) || undefined,
+    nationalId: data.nationalId || "",
+    nationality: data.nationality || "",
+    maritalStatus: (data.maritalStatus as MaritalStatus) || undefined,
+    relationship: (data.relationship as Dependent["relationship"]) || undefined,
+    phoneNo: data.phoneNumber || "",
+    address: data.addressLine1 || "",
+    address2: data.addressLine2 || "",
+    city: data.city || "",
+    state: data.state || "",
+    postalCode: data.postalCode || "",
+    country: data.country || ""
+  };
+}
 
 const GENDERS = ["Male", "Female", "Other"] as const;
 const MARITALS = ["Single", "Married", "Divorced", "Widowed"] as const;
@@ -84,6 +132,13 @@ export function DependentsForm() {
           nationality: d.nationality ?? "",
           maritalStatus: d.maritalStatus as MaritalStatus | undefined,
           relationship: d.relationship as any,
+          phoneNo: d.phoneNo ?? "",
+          address: d.address ?? "",
+          address2: d.address2 ?? "",
+          city: d.city ?? "",
+          state: d.state ?? "",
+          postalCode: d.postalCode ?? "",
+          country: d.country ?? "",
         }))
       );
     } catch (err: any) {
@@ -127,6 +182,13 @@ export function DependentsForm() {
           nationalId: dependent.nationalId || undefined,
           maritalStatus: dependent.maritalStatus || undefined,
           relationship: dependent.relationship,
+          phoneNo: dependent.phoneNo || undefined,
+          address: dependent.address || undefined,
+          address2: dependent.address2 || undefined,
+          city: dependent.city || undefined,
+          state: dependent.state || undefined,
+          postalCode: dependent.postalCode || undefined,
+          country: dependent.country || undefined,
         } as any;
 
         if (dependent.id) {
@@ -361,7 +423,7 @@ export function DependentsForm() {
                       </FormRow>
                     </div>
 
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100">
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100 mb-6">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4">Identification</h3>
                       
                       <FormRow columns={2}>
@@ -406,6 +468,105 @@ export function DependentsForm() {
                               </option>
                             ))}
                           </select>
+                        </div>
+                      </FormRow>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4">Contact Information</h3>
+                      
+                      <FormRow columns={1}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Phone Number <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            value={dependent.phoneNo}
+                            onChange={e => updateDependent(dependent.id, { phoneNo: e.target.value })}
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter phone number"
+                            required
+                          />
+                        </div>
+                      </FormRow>
+
+                      <FormRow columns={1}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Address Line 1 <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            value={dependent.address}
+                            onChange={e => updateDependent(dependent.id, { address: e.target.value })}
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter address line 1"
+                            required
+                          />
+                        </div>
+                      </FormRow>
+
+                      <FormRow columns={1}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">Address Line 2</Label>
+                          <Input
+                            value={dependent.address2}
+                            onChange={e => updateDependent(dependent.id, { address2: e.target.value })}
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter address line 2 (optional)"
+                          />
+                        </div>
+                      </FormRow>
+
+                      <FormRow columns={2}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            City <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            value={dependent.city}
+                            onChange={e => updateDependent(dependent.id, { city: e.target.value })}
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter city"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">State/Province</Label>
+                          <Input
+                            value={dependent.state}
+                            onChange={e => updateDependent(dependent.id, { state: e.target.value })}
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter state/province"
+                          />
+                        </div>
+                      </FormRow>
+
+                      <FormRow columns={2}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Postal Code <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            value={dependent.postalCode}
+                            onChange={e => updateDependent(dependent.id, { postalCode: e.target.value })}
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter postal code"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Country <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            value={dependent.country}
+                            onChange={e => updateDependent(dependent.id, { country: e.target.value })}
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter country"
+                            required
+                          />
                         </div>
                       </FormRow>
                     </div>

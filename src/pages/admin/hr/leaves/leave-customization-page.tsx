@@ -1,11 +1,43 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, Settings, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LeaveCustomizationPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Check if user has ADMIN role - only ADMIN can access this page
+  if (user?.role !== "ADMIN") {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/hr/settings")}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to HR Settings
+          </Button>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Lock className="h-12 w-12 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground text-center">
+              You do not have permission to access Leave Customization.
+              <br />
+              This feature is only available for ADMIN role.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -14,11 +46,11 @@ export default function LeaveCustomizationPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/hr/settings")}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          Back to HR Settings
         </Button>
         <div className="flex items-center gap-3">
           <Settings className="h-6 w-6 text-blue-600" />
