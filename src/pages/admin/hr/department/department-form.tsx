@@ -12,21 +12,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { useEffect, useState } from "react";
-import { apiClient } from "@/service/apiClient";
-import type { Company } from "@/types/company";
+
+import { useEffect } from "react";
 import {
   type DepartmentFormData,
   DEPARTMENT_SCHEMA,
 } from "@/schema/department";
 import type { Department } from "@/types/department";
+import SelectUser from "@/components/select-user";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/context/AuthContext";
 
 interface DepartmentFormProps {
   onSubmit: (data: DepartmentFormData) => Promise<void> | void;
@@ -39,15 +34,14 @@ export const DepartmentForm = ({
   loading,
   defaultValues,
 }: DepartmentFormProps) => {
-  const [companies, setCompanies] = useState<Company[]>([]);
-
+  const { user } = useAuth();
   const form = useForm<DepartmentFormData>({
     resolver: zodResolver(DEPARTMENT_SCHEMA),
     defaultValues: {
       departmentCode: "",
       departmentName: "",
       managerId: undefined,
-      companyId: 0,
+      companyId: Number(user?.companyId),
       ...defaultValues,
     },
   });
@@ -71,6 +65,7 @@ export const DepartmentForm = ({
       };
       form.reset(formData);
     }
+    if (defaultValues) form.reset(defaultValues);
   }, [defaultValues, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -114,59 +109,33 @@ export const DepartmentForm = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="managerId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Manager ID (Optional)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="12"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value === ""
-                          ? undefined
-                          : Number(e.target.value)
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="companyId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company</FormLabel>
-                <Select
-                  value={field.value?.toString()}
-                  onValueChange={(v) => field.onChange(Number(v))}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select company" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>
-                        {c.companyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div>
+            {/* <Label>Manager</Label> */}
+            <SelectUser
+              value={form.getValues("managerId")?.toString()}
+              onChange={(val) => form.setValue("managerId", Number(val))}
+              label="Manger"
+              placeholder="Select Manager"
+            />
+          </div>
         </div>
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Explain briefly about the department..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Saving..." : "Save Department"}

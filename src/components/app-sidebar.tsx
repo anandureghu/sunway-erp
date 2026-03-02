@@ -28,7 +28,6 @@ import {
   DollarSign,
   ChevronDown,
   Settings,
-  // Database,
   LayoutDashboard,
   UserRound,
   BriefcaseBusiness,
@@ -36,7 +35,8 @@ import {
   Shield,
   CalendarDays,
   Star,
-  Building2,
+  Split,
+  Banknote,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 // import { useEmployeeSelection } from "@/context/employee-selection";
@@ -162,7 +162,7 @@ export function AppSidebar() {
   // Admin-only sections
   const adminSections = [
     {
-      title: "HR",
+      title: "Admin Settings",
       icon: LayoutDashboard,
       color: "text-sky-600",
       items: [
@@ -170,6 +170,13 @@ export function AppSidebar() {
         { title: "Department", url: "/admin/department", icon: FileText },
         { title: "Customers", url: "/admin/customers", icon: Users },
         { title: "Vendors", url: "/admin/vendors", icon: Building2 },
+        { title: "Division", url: "/admin/division", icon: Split },
+        {
+          title: "Accounting Period",
+          url: "/admin/accounting-period",
+          icon: Banknote,
+        },
+        { title: "Leaves", url: "/admin/leaves", icon: CalendarDays },
       ],
     },
   ];
@@ -242,7 +249,7 @@ export function AppSidebar() {
                 to="/"
                 className={cn(
                   "flex gap-2 items-center",
-                  path === "/" && "bg-primary text-secondary"
+                  path === "/" && "bg-primary text-secondary",
                 )}
               >
                 <Home className="w-5 h-5" />
@@ -301,7 +308,7 @@ export function AppSidebar() {
                                 className={cn(
                                   "flex gap-2 items-center",
                                   path.startsWith(item.url) &&
-                                    "bg-primary text-secondary"
+                                    "bg-primary text-secondary",
                                 )}
                               >
                                 <item.icon className="w-4 h-4" />
@@ -324,7 +331,7 @@ export function AppSidebar() {
                                       {disabled ? (
                                         <div
                                           className={cn(
-                                            "ml-6 flex gap-2 items-center rounded-md cursor-not-allowed opacity-50"
+                                            "ml-6 flex gap-2 items-center rounded-md cursor-not-allowed opacity-50",
                                           )}
                                           aria-disabled
                                           title="Select an employee from the list first"
@@ -339,7 +346,7 @@ export function AppSidebar() {
                                             "ml-6 flex gap-2 items-center rounded-md",
                                             active
                                               ? "bg-primary text-secondary"
-                                              : "hover:bg-muted"
+                                              : "hover:bg-muted",
                                           )}
                                         >
                                           <sm.icon className="w-4 h-4" />
@@ -389,7 +396,7 @@ export function AppSidebar() {
                                 className={cn(
                                   "flex gap-2 items-center",
                                   path.startsWith(item.url) &&
-                                    "bg-primary text-secondary"
+                                    "bg-primary text-secondary",
                                 )}
                               >
                                 <item.icon className="w-4 h-4" />
@@ -412,7 +419,10 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link to={`/settings/${user?.companyId}`} className="flex gap-2 items-center">
+              <Link
+                to={`/settings/${user?.companyId}`}
+                className="flex gap-2 items-center"
+              >
                 <Settings className="w-5 h-5" />
                 <span>Settings</span>
               </Link>

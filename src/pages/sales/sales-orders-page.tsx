@@ -39,8 +39,8 @@ import {
 } from "@/service/salesFlowService";
 import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
 import { toast } from "sonner";
-import type { Item } from "@/types/inventory";
 import { Separator } from "@/components/ui/separator";
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
 
 export default function SalesOrdersPage() {
   const location = useLocation();
@@ -618,7 +618,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   const [itemDiscount, setItemDiscount] = useState<number>(0);
   const [itemWarehouse, setItemWarehouse] = useState<string>("");
   const [customers, setCustomers] = useState<any[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -665,23 +665,8 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         ]);
         if (cancelled) return;
         setCustomers(c);
-        console.log("Customers loaded:", c.length);
-        console.log(
-          "Active customers:",
-          c.filter((cust) => cust.status === "active").length,
-        );
-        if (c.length > 0) {
-          console.log("First customer:", c[0]);
-        }
         setItems(it);
-        console.log("Items loaded:", it.length);
-        console.log(
-          "Active items:",
-          it.filter((item) => item.status === "active").length,
-        );
-        if (it.length > 0) {
-          console.log("First item:", it[0]);
-        }
+
         setWarehouses(wh);
       } catch (e: any) {
         if (!cancelled) {
@@ -719,7 +704,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       id: `temp-${Date.now()}`,
       orderId: "",
       itemId: item.id,
-      item,
       itemName: item.name,
       quantity: itemQuantity,
       unitPrice,
@@ -727,6 +711,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       tax,
       total,
       warehouseId: Number(itemWarehouse),
+      item,
     };
 
     setOrderItems([...orderItems, newItem]);
@@ -757,8 +742,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
   };
 
   const onSubmit = (data: any) => {
-    console.log("Form submitted with data:", data);
-
     // Validate that items are added
     if (orderItems.length === 0) {
       toast.error("Please add at least one item to the order.");
@@ -781,8 +764,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       warehouseId: item.warehouseId,
     }));
 
-    console.log("Items data:", itemsData);
-
     // Validate the complete form data
     const completeData = {
       ...data,
@@ -797,7 +778,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
       return;
     }
 
-    console.log("Validation passed, creating order via API...");
     setSubmitLoading(true);
 
     const payload = {
@@ -858,7 +838,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            console.log("Form submit event triggered");
             handleSubmit(onSubmit, (errors) => {
               console.error("Form validation errors:", errors);
               const errorCount = Object.keys(errors).length;
@@ -934,7 +913,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   <Select
                     value={selectedCustomerId || ""}
                     onValueChange={(value) => {
-                      console.log("Customer selected:", value);
                       setValue("customerId", value, { shouldValidate: true });
                     }}
                   >
@@ -1043,7 +1021,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                   <Select
                     value={selectedItem || ""}
                     onValueChange={(value) => {
-                      console.log("Item selected:", value);
                       setSelectedItem(value);
                     }}
                   >
@@ -1186,7 +1163,7 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
                           <tr key={item.id} className="border-t">
                             <td className="p-2">{item.item?.name}</td>
                             <td className="p-2">
-                              {item.quantity} {item.item?.unit}
+                              {item.quantity} {item.item?.unitMeasure}
                             </td>
                             <td className="p-2">
                               ₹{item.unitPrice.toLocaleString()}
@@ -1280,11 +1257,6 @@ function CreateSalesOrderForm({ onCancel }: { onCancel: () => void }) {
             <Button
               type="submit"
               disabled={orderItems.length === 0 || !selectedCustomerId}
-              onClick={() => {
-                console.log("Submit button clicked");
-                console.log("Order items:", orderItems);
-                console.log("Selected customer:", selectedCustomerId);
-              }}
             >
               {submitLoading ? "Creating..." : "Create Sales Order"}
             </Button>

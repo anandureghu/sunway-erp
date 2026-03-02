@@ -25,8 +25,6 @@ const SelectWarehouse = ({
     });
   }, []);
 
-  console.log({ value });
-
   return (
     <>
       <Label>Warehouse</Label>

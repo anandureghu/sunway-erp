@@ -29,7 +29,6 @@ export const VendorDialog = ({
   const isEditMode = !!vendor;
 
   const handleSubmit = async (data: VendorFormData) => {
-    console.log(data);
     try {
       setSubmitting(true);
       const payload = {

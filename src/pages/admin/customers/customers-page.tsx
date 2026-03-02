@@ -49,10 +49,7 @@ export default function CustomersPage() {
             customer.date_created,
         };
         // Debug: Log first customer to see what fields are available
-        if (res.data.indexOf(customer) === 0) {
-          console.log("Sample customer data:", customer);
-          console.log("Mapped createdAt:", mapped.createdAt);
-        }
+
         return mapped;
       });
       setCustomers(mappedCustomers);

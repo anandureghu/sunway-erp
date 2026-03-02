@@ -1,15 +1,14 @@
 import { Button } from "@/components/ui/button";
 import type { Department } from "@/types/department";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 interface DepartmentColumnsProps {
-  onEdit: (dept: Department) => void;
+  onEdit?: (dept: Department) => void;
   onDelete: (dept: Department) => void;
 }
 
 export const getDepartmentColumns = ({
-  onEdit,
   onDelete,
 }: DepartmentColumnsProps): ColumnDef<Department>[] => [
   {
@@ -23,21 +22,15 @@ export const getDepartmentColumns = ({
   {
     accessorKey: "managerId",
     header: "Manager ID",
-    cell: ({ getValue }) => getValue() ?? "-",
+    cell: ({ row }) => {
+      const dep = row.original;
+      return `${dep.managerFirstName} ${dep.managerLastName}`;
+    },
   },
   {
     id: "companyName",
     header: "Company",
-    cell: ({ row }) => row.original.company?.companyName ?? "-",
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Created At",
-    cell: ({ getValue }) =>
-      new Date(getValue() as string).toLocaleString("en-IN", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }),
+    cell: ({ row }) => row.original?.companyName ?? "-",
   },
   {
     id: "actions",
@@ -46,7 +39,7 @@ export const getDepartmentColumns = ({
       const dept = row.original;
       return (
         <div className="flex gap-2">
-          <Button
+          {/* <Button
             variant="ghost"
             size="icon"
             onClick={(e) => {
@@ -55,7 +48,7 @@ export const getDepartmentColumns = ({
             }}
           >
             <Pencil className="h-4 w-4 text-blue-600" />
-          </Button>
+          </Button> */}
           <Button
             variant="ghost"
             size="icon"

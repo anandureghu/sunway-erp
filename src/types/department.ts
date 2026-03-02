@@ -1,5 +1,3 @@
-import type { Company } from "./company";
-
 export interface Department {
   id: number;
   departmentCode: string;
@@ -7,5 +5,10 @@ export interface Department {
   managerId?: number | null;
   companyId?: number;
   company?: Company;
+  managerFirstName?: string;
+  managerLastName?: string;
+  companyCode: string;
+  companyId: number;
+  companyName: string;
   createdAt: string;
 }

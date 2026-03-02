@@ -7,16 +7,17 @@ import { payrollService } from "@/service/payrollService";
 import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import type { Company } from "@/types/company";
 
 type SalaryCtx = { editing: boolean };
 
 type PayrollRow = {
-  payDate: string;        // yyyy-mm-dd   
+  payDate: string; // yyyy-mm-dd
   payrollCode: string;
-  payPeriodStart: string;    // yyyy-mm-dd (populated from salary)
-  payPeriodEnd: string;      // yyyy-mm-dd (populated from salary)
-  grossPay: string;          // calculated from Total Compensation (basicSalary + totalAllowance)
-  payDay: string;            // only editable field
+  payPeriodStart: string; // yyyy-mm-dd (populated from salary)
+  payPeriodEnd: string; // yyyy-mm-dd (populated from salary)
+  grossPay: string; // calculated from Total Compensation (basicSalary + totalAllowance)
+  payDay: string; // only editable field
   netPayable: string;
   bankName?: string;
   bankAccount?: string;
@@ -26,14 +27,17 @@ type PayrollRowExtended = PayrollRow & {
   loanDeduction?: string | number;
 };
 
-
 export default function PayrollTab() {
   const { editing } = useOutletContext<SalaryCtx>();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
   const { user } = useAuth();
 
-  const [payroll, setPayroll] = useState({ payPeriodStart: "", payPeriodEnd: "", payDate: "" });
+  const [payroll, setPayroll] = useState({
+    payPeriodStart: "",
+    payPeriodEnd: "",
+    payDate: "",
+  });
   const [history, setHistory] = useState<PayrollRow[]>([]);
   const [currencySymbol, setCurrencySymbol] = useState("$");
 
@@ -44,7 +48,9 @@ export default function PayrollTab() {
       setHistory(res.data || []);
     } catch (err: any) {
       console.error("Failed to load payroll history", err);
-      toast.error(err?.response?.data?.message || "Failed to load payroll history");
+      toast.error(
+        err?.response?.data?.message || "Failed to load payroll history",
+      );
     }
   }, [employeeId]);
 
@@ -55,9 +61,9 @@ export default function PayrollTab() {
   useEffect(() => {
     if (user?.companyId) {
       fetchCompany(user.companyId.toString())
-        .then((company) => {
-          if (company?.currency?.currencySymbol) {
-            setCurrencySymbol(company.currency.currencySymbol);
+        .then((company: Company) => {
+          if (company?.currency?.currencyCode) {
+            setCurrencySymbol(company.currency.currencyCode);
           }
         })
         .catch((err) => {
@@ -66,7 +72,8 @@ export default function PayrollTab() {
     }
   }, [user?.companyId]);
 
-  const patch = (k: keyof typeof payroll, v: string) => setPayroll((p) => ({ ...p, [k]: v }));
+  const patch = (k: keyof typeof payroll, v: string) =>
+    setPayroll((p) => ({ ...p, [k]: v }));
 
   const handleGeneratePayroll = async () => {
     if (!employeeId) return;
@@ -80,7 +87,6 @@ export default function PayrollTab() {
 
       toast.success("Payroll generated successfully");
 
-      
       await loadPayrollHistory();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to generate payroll");
@@ -88,20 +94,32 @@ export default function PayrollTab() {
   };
 
   return (
-  <div className="space-y-3">
-     <div className="text-lg font-semibold">Payroll </div>
+    <div className="space-y-3">
+      <div className="text-lg font-semibold">Payroll </div>
       <div className="grid grid-cols-3 gap-4 items-end">
         <div>
           <label className="text-sm font-medium">Pay Period Start</label>
-          <Input type="date" value={payroll.payPeriodStart} onChange={(e) => patch("payPeriodStart", e.target.value)} />
+          <Input
+            type="date"
+            value={payroll.payPeriodStart}
+            onChange={(e) => patch("payPeriodStart", e.target.value)}
+          />
         </div>
         <div>
           <label className="text-sm font-medium">Pay Period End</label>
-          <Input type="date" value={payroll.payPeriodEnd} onChange={(e) => patch("payPeriodEnd", e.target.value)} />
+          <Input
+            type="date"
+            value={payroll.payPeriodEnd}
+            onChange={(e) => patch("payPeriodEnd", e.target.value)}
+          />
         </div>
         <div>
           <label className="text-sm font-medium">Pay Date</label>
-          <Input type="date" value={payroll.payDate} onChange={(e) => patch("payDate", e.target.value)} />
+          <Input
+            type="date"
+            value={payroll.payDate}
+            onChange={(e) => patch("payDate", e.target.value)}
+          />
         </div>
       </div>
 
@@ -128,7 +146,14 @@ export default function PayrollTab() {
             </thead>
             <tbody>
               {history.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No payroll history</td></tr>
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="p-4 text-center text-muted-foreground"
+                  >
+                    No payroll history
+                  </td>
+                </tr>
               )}
               {history.map((r) => {
                 const row = r as PayrollRowExtended;
@@ -137,10 +162,20 @@ export default function PayrollTab() {
                     <td className="px-3 py-2">{row.payrollCode}</td>
                     <td className="px-3 py-2">{row.payPeriodStart}</td>
                     <td className="px-3 py-2">{row.payPeriodEnd}</td>
-                    <td className="px-3 py-2">{formatMoney(row.grossPay, currencySymbol)}</td>
-                    <td className="px-3 py-2 text-red-600">-{formatMoney(String(row.totalDeductions ?? 0), currencySymbol)}</td>
+                    <td className="px-3 py-2">
+                      {formatMoney(row.grossPay, currencySymbol)}
+                    </td>
+                    <td className="px-3 py-2 text-red-600">
+                      -
+                      {formatMoney(
+                        String(row.totalDeductions ?? 0),
+                        currencySymbol,
+                      )}
+                    </td>
                     <td className="px-3 py-2">{row.payDate}</td>
-                    <td className="px-3 py-2 font-bold text-green-700">{formatMoney(row.netPayable, currencySymbol)}</td>
+                    <td className="px-3 py-2 font-bold text-green-700">
+                      {formatMoney(row.netPayable, currencySymbol)}
+                    </td>
                   </tr>
                 );
               })}
@@ -150,7 +185,10 @@ export default function PayrollTab() {
         {history.map((r) => {
           const row = r as PayrollRowExtended;
           return (
-            <div key={row.payrollCode} className="text-xs text-muted-foreground mt-2">
+            <div
+              key={row.payrollCode}
+              className="text-xs text-muted-foreground mt-2"
+            >
               Loan: {formatMoney(String(row.loanDeduction ?? 0))}
             </div>
           );
@@ -159,6 +197,3 @@ export default function PayrollTab() {
     </div>
   );
 }
-
-
-

@@ -106,6 +106,8 @@ import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
 import HRSettingsPage from "./pages/hr/settings-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
+import DivisionListPage from "./pages/admin/hr/division/division-list-page";
+import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
 
 export default function App() {
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -146,12 +148,14 @@ export default function App() {
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
         </Route>
 
-        <Route path="settings/:id" element={<SettingsPage/>}/>
+        <Route path="settings/:id" element={<SettingsPage />} />
 
         {/* Admin */}
         <Route path="admin">
           <Route path="company" element={<CompanyPage />} />
           <Route path="department" element={<DepartmentListPage />} />
+          <Route path="division" element={<DivisionListPage />} />
+          <Route path="accounting-period" element={<AccountingPeriodPage />} />
           <Route path="leaves" element={<LeaveCustomizationPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:id" element={<CustomerDetailPage />} />

@@ -24,12 +24,12 @@ export default function EmployeeProfilePage() {
       } catch (err: any) {
         console.error(
           "EmployeeProfilePage -> failed to load employee:",
-          err?.response?.data ?? err
+          err?.response?.data ?? err,
         );
         toast.error(
           err?.response?.data?.message ||
             err?.message ||
-            "Failed to load employee"
+            "Failed to load employee",
         );
         if (mounted) setEmp(null);
       }
@@ -146,7 +146,7 @@ export default function EmployeeProfilePage() {
       if (key === "departmentId") {
         setForm((s) => ({ ...s, departmentId: raw === "" ? undefined : raw }));
       } else {
-        setForm((s) => ({ ...s, [key]: raw } as any));
+        setForm((s) => ({ ...s, [key]: raw }) as any);
       }
     };
 
@@ -165,7 +165,6 @@ export default function EmployeeProfilePage() {
         dateOfBirth: form.dateOfBirth || null,
         joinDate: form.joinDate || null,
       };
-      console.log("PUT payload →", payload);
       const idNum = emp?.id ? Number(emp.id) : undefined;
       if (!idNum) {
         toast.error("Invalid employee id");
@@ -174,7 +173,6 @@ export default function EmployeeProfilePage() {
 
       toast.info("Saving employee...");
       const updated = await hrService.updateEmployee(idNum, payload as any);
-      console.log("Updated from API →", updated);
 
       try {
         const fresh = await hrService.getEmployee(idNum);
@@ -206,7 +204,7 @@ export default function EmployeeProfilePage() {
       } catch (e) {
         console.warn(
           "Failed to refetch employee after update, falling back to API response",
-          e
+          e,
         );
         setEmp(updated as Employee);
       }
@@ -214,7 +212,7 @@ export default function EmployeeProfilePage() {
       toast.success("Employee updated");
       try {
         window.dispatchEvent(
-          new CustomEvent("employee:updated", { detail: updated })
+          new CustomEvent("employee:updated", { detail: updated }),
         );
       } catch (e) {
         console.warn("Could not dispatch employee:updated event", e);
@@ -222,12 +220,12 @@ export default function EmployeeProfilePage() {
     } catch (err: any) {
       console.error(
         "EmployeeProfilePage -> update failed:",
-        err?.response?.data ?? err
+        err?.response?.data ?? err,
       );
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to update employee"
+          "Failed to update employee",
       );
 
       alert("Failed to update employee");
@@ -310,7 +308,9 @@ export default function EmployeeProfilePage() {
               <User className="h-5 w-5 text-blue-600" />
               Personal Information
             </h2>
-            <p className="text-sm text-slate-500 mt-1">Basic employee details and contact information</p>
+            <p className="text-sm text-slate-500 mt-1">
+              Basic employee details and contact information
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
