@@ -13,17 +13,21 @@ import { Label } from "./ui/label";
 const SelectDepartment = ({
   onChange,
   value,
+  companyId,
 }: {
   value: string | undefined;
   onChange: (v: string, dept?: Department | null) => void;
+  companyId: number;
 }) => {
   const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
-    fetchDepartments().then((data) => {
-      if (data) setDepartments(data);
-    });
-  }, []);
+    if (companyId) {
+      fetchDepartments(companyId).then((data) => {
+        if (data) setDepartments(data);
+      });
+    }
+  }, [companyId]);
 
   const handleChange = (val: string) => {
     const selectedDept = departments.find((d) => String(d.id) === val) || null;

@@ -61,6 +61,7 @@ import EmployeeShell from "./modules/hr/employee/EmployeeShell";
 /* Current Job (tabbed) */
 import CurrentJobShell from "./modules/hr/employee/CurrentJobShell";
 import CurrentJobForm from "./modules/hr/current-job/tabs/CurrentJobForm";
+import EmployeeContractForm from "./modules/hr/current-job/tabs/EmployeeContractForm";
 import PreviousExperiencesForm from "./modules/hr/current-job/tabs/PreviousExperiencesForm";
 import EducationQualificationsForm from "./modules/hr/current-job/tabs/EducationQualificationsForm";
 
@@ -103,6 +104,7 @@ import SalesOrdersDetailPage from "./pages/sales/sales-orders-detail-page";
 import PicklistDetailPage from "./pages/sales/picklist-detail-page";
 import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
+import HRSettingsPage from "./pages/hr/settings-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
 import DivisionListPage from "./pages/admin/hr/division/division-list-page";
 import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
@@ -225,6 +227,10 @@ export default function App() {
           {/* employees list */}
           <Route path="employees" element={<EmployeesPage />} />
 
+          {/* HR Settings */}
+          <Route path="settings" element={<HRSettingsPage />} />
+          <Route path="settings/leave-customization" element={<LeaveCustomizationPage />} />
+
           {/* employee detail shell + nested tabs */}
           <Route path="employees/:id" element={<EmployeeShell />}>
             <Route index element={<Navigate to="profile" replace />} />
@@ -238,6 +244,10 @@ export default function App() {
             {/* Current Job */}
             <Route path="current-job" element={<CurrentJobShell />}>
               <Route index element={<CurrentJobForm />} />
+              <Route
+                path="contract"
+                element={<EmployeeContractForm />}
+              />
               <Route
                 path="previous-experiences"
                 element={<PreviousExperiencesForm />}

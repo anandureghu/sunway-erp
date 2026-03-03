@@ -61,28 +61,16 @@ const LEAVE_TYPE_COLORS: Record<
 const ROLE_COLORS: Record<Role, { bg: string; text: string }> = {
   ADMIN: { bg: "bg-purple-100 text-purple-700", text: "text-purple-700" },
   SUPER_ADMIN: { bg: "bg-indigo-100 text-indigo-700", text: "text-indigo-700" },
+  HR: { bg: "bg-pink-100 text-pink-700", text: "text-pink-700" },
   USER: { bg: "bg-blue-100 text-blue-700", text: "text-blue-700" },
-  FINANCE_MANAGER: {
-    bg: "bg-green-100 text-green-700",
-    text: "text-green-700",
-  },
-  ACCOUNTANT: {
-    bg: "bg-emerald-100 text-emerald-700",
-    text: "text-emerald-700",
-  },
-  CASHIER: {
-    bg: "bg-emerald-100 text-emerald-700",
-    text: "text-emerald-700",
-  },
+  FINANCE_MANAGER: { bg: "bg-green-100 text-green-700", text: "text-green-700" },
+  ACCOUNTANT: { bg: "bg-emerald-100 text-emerald-700", text: "text-emerald-700" },
+  CASHIER: { bg: "bg-amber-100 text-amber-700", text: "text-amber-700" },
   AP_AR_CLERK: { bg: "bg-teal-100 text-teal-700", text: "text-teal-700" },
   CONTROLLER: { bg: "bg-cyan-100 text-cyan-700", text: "text-cyan-700" },
   AUDITOR_EXTERNAL: {
     bg: "bg-slate-100 text-slate-700",
     text: "text-slate-700",
-  },
-  HR: {
-    bg: "",
-    text: "",
   },
 };
 
@@ -197,7 +185,7 @@ export default function LeaveCustomizationForm() {
         ROLES.forEach((role) => {
           ALL_LEAVE_TYPES.forEach((leaveType) => {
             const existing = saved.find(
-              (p: any) => p.role === role && p.leaveType === leaveType,
+              (p: any) => p.role === role.key && p.leaveType === leaveType,
             );
 
             fullMatrix.push({
@@ -565,8 +553,9 @@ export default function LeaveCustomizationForm() {
                   {/* Leave Types Grid */}
                   <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     {applicableLeaveTypes.map((leaveType) => {
+                      const roleKey = typeof role === "string" ? role : role.key;
                       const policy = policies.find(
-                        (p) => p.role === role && p.leaveType === leaveType,
+                        (p) => p.role === roleKey && p.leaveType === leaveType,
                       );
                       const colors = LEAVE_TYPE_COLORS[leaveType];
                       const isRestricted =

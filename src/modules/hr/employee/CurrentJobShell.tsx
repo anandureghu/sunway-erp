@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useParams, useSearchParams } from "react-router-dom";
-import { BriefcaseBusiness, GraduationCap, Hourglass } from "lucide-react";
+import { BriefcaseBusiness, GraduationCap, Hourglass, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
@@ -47,6 +47,9 @@ export default function CurrentJobShell() {
           <TabLink to="" end icon={<BriefcaseBusiness className="w-4 h-4" />}>
             Current Job
           </TabLink>
+          <TabLink to="contract" icon={<FileText className="w-4 h-4" />}>
+            Employee Contract
+          </TabLink>
           <TabLink to="previous-experiences" icon={<Hourglass className="w-4 h-4" />}>
             Previous Experiences
           </TabLink>
@@ -59,14 +62,17 @@ export default function CurrentJobShell() {
           editing={editing}
           onEdit={() => {
             try { document.dispatchEvent(new CustomEvent("current-job:start-edit")); } catch { /* ignore */ }
+            try { document.dispatchEvent(new CustomEvent("contract:start-edit")); } catch { /* ignore */ }
             setEditing(true);
           }}
           onCancel={() => {
             try { document.dispatchEvent(new CustomEvent("current-job:cancel")); } catch { /* ignore */ }
+            try { document.dispatchEvent(new CustomEvent("contract:cancel")); } catch { /* ignore */ }
             setEditing(false);
           }}
           onSave={() => {
             try { document.dispatchEvent(new CustomEvent("current-job:save")); } catch { /* ignore */ }
+            try { document.dispatchEvent(new CustomEvent("contract:save")); } catch { /* ignore */ }
             setEditing(false);
           }}
         />

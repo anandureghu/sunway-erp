@@ -96,9 +96,10 @@ export const DivisionForm = ({
 
           <div>
             {/* <Label>Manager</Label> */}
-            <SelectDepartment
+<SelectDepartment
               value={form.getValues("departmentId")?.toString() || undefined}
               onChange={(val) => form.setValue("departmentId", Number(val))}
+              companyId={Number(user?.companyId) || 0}
             />
           </div>
         </div>

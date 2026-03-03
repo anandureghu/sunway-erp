@@ -7,6 +7,7 @@ import { useAppDispatch } from "@/store/store";
 import { setAdminView } from "@/store/uiSlice";
 import type { Company } from "@/types/company";
 import { toast } from "sonner";
+import permissionService from "@/service/permissionService";
 import type { AccountingPeriod } from "@/types/accounting-period";
 import type { AxiosResponse } from "axios";
 
@@ -29,6 +30,8 @@ type AuthContextType = {
   logout: () => void;
   isAuthenticated: boolean;
   company: Company | null;
+  permissions: Record<string, Record<string, boolean>> | null;
+  permissionsLoading: boolean;
   accountPeriodOpen: boolean;
   fetchAccountPeriodStatus: () => void;
   openPeriod?: AccountingPeriod | null;
@@ -50,6 +53,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [refreshToken, setRefreshToken] = useState<string | null>(
     localStorage.getItem("refreshToken"),
   );
+  const [permissions, setPermissions] = useState<Record<string, Record<string, boolean>> | null>(null);
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
+
+  // Fetch permissions based on user role
+  const fetchPermissions = async (role: string) => {
+    try {
+      setPermissionsLoading(true);
+
+      // ADMIN/SUPER_ADMIN skip DB fetch — canAccess returns true for null
+      if (role === "ADMIN" || role === "SUPER_ADMIN") {
+        setPermissions(null);
+        return;
+      }
+
+      // Use /my-permissions — no HR_SETTINGS permission required
+      const perms = await permissionService.getMyPermissions();
+      const caps = permissionService.toFrontendCaps(perms);
+      setPermissions(caps);
+    } catch (err) {
+      console.error("Failed to fetch permissions:", err);
+      setPermissions({});  // empty object, not null - so canAccess returns false
+    } finally {
+      setPermissionsLoading(false);
+    }
+  };
 
   const fetchCompany = async (id: string) => {
     try {
@@ -90,11 +118,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       role,
     });
 
+    // Fetch permissions based on user role
+    fetchPermissions(role);
+
     // Only fetch /users/{id} if token actually contains a userId.
     if (decoded.userId != null) {
       apiClient
         .get("/users/" + decoded.userId)
         .then((response) => {
+          setUser({
+            ...response.data,
+            role, // 🔥 preserve role from JWT
+          });
           setUser(response.data);
           fetchAccountPeriodStatus();
           if (response.data.companyId) {
@@ -202,6 +237,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = () => {
     dispatch(setAdminView(false));
     setUser(null);
+    setPermissions(null);
     setAccessToken(null);
     setRefreshToken(null);
     localStorage.removeItem("accessToken");
@@ -223,6 +259,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         logout,
         company,
         isAuthenticated: !!accessToken,
+        permissions,
+        permissionsLoading,
         accountPeriodOpen,
         fetchAccountPeriodStatus,
         openPeriod,

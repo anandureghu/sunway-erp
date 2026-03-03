@@ -194,8 +194,9 @@ export const ChartOfAccountsForm = ({
               onChange={(val, dept) => {
                 form.setValue("departmentId", Number(val));
                 console.log(dept);
-                setDepartment(dept);
+                setDepartment(dept || null);
               }}
+              companyId={company?.id || 0}
             />
 
             <SelectAccount

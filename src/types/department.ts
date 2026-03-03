@@ -1,3 +1,5 @@
+import type { Company } from "@/types/company";
+
 export interface Department {
   id: number;
   departmentCode: string;
@@ -8,5 +10,6 @@ export interface Department {
   companyCode: string;
   companyId: number;
   companyName: string;
+  company?: Company;
   createdAt: string;
 }

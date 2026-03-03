@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ROLES } from "@/types/hr";
 
 export type SelectedEmployee = {
   id: string;
@@ -78,6 +77,13 @@ export function AddEmployeeModal({
     dateOfBirth: "",
     phoneNo: "",
 
+    // additional profile fields
+    birthplace: "",
+    hometown: "",
+    nationality: "",
+    religion: "",
+    identification: "",
+
     role: "USER",
   });
 
@@ -89,20 +95,24 @@ export function AddEmployeeModal({
   };
 
   const handleSubmit = () => {
-    if (!form.firstName || !form.lastName || !form.phoneNo) {
-      toast.error("First name, Last name and Phone are required");
+    if (!form.firstName || !form.lastName) {
+      toast.error("First name and Last name are required");
       return;
     }
 
     const payload = {
       firstName: form.firstName,
       lastName: form.lastName,
-
       phoneNo: form.phoneNo || undefined,
       gender: form.gender || undefined,
       prefix: form.prefix || undefined,
       maritalStatus: form.maritalStatus || undefined,
       dateOfBirth: form.dateOfBirth || undefined,
+      birthplace: form.birthplace || undefined,
+      hometown: form.hometown || undefined,
+      nationality: form.nationality || undefined,
+      religion: form.religion || undefined,
+      identification: form.identification || undefined,
 
       role: form.role || "USER",
     };
@@ -158,6 +168,7 @@ export function AddEmployeeModal({
               />
             </div>
 
+              
             <div>
               <label className="text-sm font-medium">Phone</label>
               <input
@@ -208,21 +219,57 @@ export function AddEmployeeModal({
               />
             </div>
 
-            <div>
-              <label className="text-sm font-medium">Role</label>
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              >
-                {ROLES.map((r) => (
-                  <option key={r.key} value={r.key}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="text-sm font-medium">Marital Status</label>
+                <select name="maritalStatus" value={form.maritalStatus} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2">
+                  <option value="">Select</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Date of Birth</label>
+                <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Birthplace</label>
+                <input name="birthplace" placeholder="Birthplace" value={form.birthplace} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Hometown</label>
+                <input name="hometown" placeholder="Hometown" value={form.hometown} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Nationality</label>
+                <input name="nationality" placeholder="Nationality" value={form.nationality} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Religion</label>
+                <input name="religion" placeholder="Religion" value={form.religion} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Identification</label>
+                <input name="identification" placeholder="ID number / identification" value={form.identification} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
+              </div>
+
+              
+              <div>
+                <label className="text-sm font-medium">Role</label>
+                <select name="role" value={form.role} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2">
+                  <option value="USER">User</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="FINANCE_MANAGER">Finance Manager</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="AP_AR_CLERK">AP/AR Clerk</option>
+                  <option value="CONTROLLER">Controller</option>
+                  <option value="AUDITOR_EXTERNAL">Auditor (External)</option>
+                </select>
+              </div>
           </div>
 
           <div className="flex items-center justify-end">

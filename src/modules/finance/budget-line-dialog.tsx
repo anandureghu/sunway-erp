@@ -17,6 +17,7 @@ import SelectAccount from "@/components/select-account";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import SelectDepartment from "@/components/select-department";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   open: boolean;
@@ -34,6 +35,7 @@ export function BudgetLineDialog({
   onSuccess,
 }: Props) {
   const isEdit = !!line;
+  const { company } = useAuth();
 
   const [form, setForm] = useState({
     accountId: "",
@@ -132,9 +134,10 @@ export function BudgetLineDialog({
             />
           </div>
 
-          <SelectDepartment
+<SelectDepartment
             value={form.departmentId?.toString()}
             onChange={(v) => update("departmentId", v)}
+            companyId={company?.id || 0}
           />
 
           <div>

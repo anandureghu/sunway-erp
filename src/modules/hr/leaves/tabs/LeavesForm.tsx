@@ -14,6 +14,15 @@ type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 type LeaveStatus = "Pending" | "Approved" | "Rejected";
 type LeaveType = string;
 
+// Default leave types as fallback when API fails
+const DEFAULT_LEAVE_TYPES: LeaveType[] = [
+  "Annual Leave",
+  "Sick Leave",
+  "Emergency Leave",
+  "Unpaid Leave",
+  "Maternity Leave",
+];
+
 const STATUS: LeaveStatus[] = ["Pending", "Approved", "Rejected"];
 
 type LeaveRecord = {
@@ -52,24 +61,65 @@ export default function LeavesForm(): ReactElement {
   });
   const [saved, setSaved] = useState<LeaveRecord | null>(null);
   const [preview, setPreview] = useState<LeavePreview | null>(null);
-  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [availableTypes, setAvailableTypes] = useState<string[]>(DEFAULT_LEAVE_TYPES);
+
+  // Helper function to extract leave types from response
+  const extractLeaveTypes = (response: any): string[] => {
+    // Handle different response formats
+    const data = response?.data;
+    
+    // Case 1: Direct array response - res.data = ["Annual Leave", ...]
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    // Case 2: Nested response - res.data = { data: ["Annual Leave", ...], ... }
+    if (data?.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    
+    // Case 3: Other nested formats - res.data = { leaveTypes: [...], ... }
+    if (data?.leaveTypes && Array.isArray(data.leaveTypes)) {
+      return data.leaveTypes;
+    }
+    
+    // Return empty array if format not recognized
+    console.warn("Unexpected leave types response format:", response);
+    return [];
+  };
 
   useEffect(() => {
     if (!employeeId) return;
 
     leaveService.fetchAvailableLeaveTypes(employeeId)
       .then(res => {
-        setAvailableTypes(res.data);
+        // Try to extract leave types from various response formats
+        let types = extractLeaveTypes(res);
+        
+        // If API returns empty or invalid data, use fallback
+        if (types.length === 0) {
+          console.warn("API returned empty leave types, using default values");
+          types = DEFAULT_LEAVE_TYPES;
+        }
+        
+        setAvailableTypes(types);
 
-        if (res.data.length > 0) {
+        if (types.length > 0) {
           setDraft(d => ({
             ...d,
-            leaveType: res.data[0]
+            leaveType: types[0]
           }));
         }
       })
-      .catch(() => {
-        toast.error("Failed to load leave types");
+      .catch((err) => {
+        console.error("Failed to load leave types:", err);
+        // Fallback to default leave types on error
+        setAvailableTypes(DEFAULT_LEAVE_TYPES);
+        setDraft(d => ({
+          ...d,
+          leaveType: DEFAULT_LEAVE_TYPES[0]
+        }));
+        toast.error("Failed to load leave types. Using default values.");
       });
 
   }, [employeeId]);

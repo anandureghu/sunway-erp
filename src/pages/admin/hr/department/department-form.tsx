@@ -13,41 +13,77 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   type DepartmentFormData,
   DEPARTMENT_SCHEMA,
 } from "@/schema/department";
-import SelectUser from "@/components/select-user";
+import type { Department } from "@/types/department";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
+import { apiClient } from "@/service/apiClient";
+import type { Company } from "@/types/company";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DepartmentFormProps {
   onSubmit: (data: DepartmentFormData) => Promise<void> | void;
   loading?: boolean;
   defaultValues?: Partial<DepartmentFormData> | null;
+  companyId: number;
 }
 
 export const DepartmentForm = ({
   onSubmit,
   loading,
   defaultValues,
+  companyId,
 }: DepartmentFormProps) => {
+  const [companies, setCompanies] = useState<Company[]>([]);
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
   const form = useForm<DepartmentFormData>({
     resolver: zodResolver(DEPARTMENT_SCHEMA),
     defaultValues: {
       departmentCode: "",
       departmentName: "",
       managerId: undefined,
-      companyId: Number(user?.companyId),
+      companyId: companyId || Number(user?.companyId),
       ...defaultValues,
     },
   });
 
+  // Fetch companies only for SUPER_ADMIN
   useEffect(() => {
-    if (defaultValues) form.reset(defaultValues);
-  }, [defaultValues, form]);
+    if (isSuperAdmin) {
+      apiClient.get("/companies").then((res) => {
+        const companiesData = res.data?.data || res.data;
+        setCompanies(Array.isArray(companiesData) ? companiesData : []);
+      });
+    }
+  }, [isSuperAdmin]);
+
+  // Set companyId from props
+  useEffect(() => {
+    form.setValue("companyId", companyId);
+  }, [companyId, form]);
+
+  useEffect(() => {
+    if (defaultValues) {
+      const dept = defaultValues as Partial<Department>;
+      const formData = {
+        ...defaultValues,
+        companyId: defaultValues.companyId || dept.company?.id || companyId,
+      };
+      form.reset(formData);
+    }
+  }, [defaultValues, form, companyId]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values);
@@ -64,7 +100,12 @@ export const DepartmentForm = ({
               <FormItem>
                 <FormLabel>Department Code</FormLabel>
                 <FormControl>
-                  <Input placeholder="FIN001" {...field} />
+                  <Input 
+                    placeholder="FIN001" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                    value={field.value || ""}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -85,15 +126,60 @@ export const DepartmentForm = ({
             )}
           />
 
-          <div>
-            {/* <Label>Manager</Label> */}
-            <SelectUser
-              value={form.getValues("managerId")?.toString()}
-              onChange={(val) => form.setValue("managerId", Number(val))}
-              label="Manger"
-              placeholder="Select Manager"
+          <FormField
+            control={form.control}
+            name="managerId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Manager ID (Optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="12"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === ""
+                          ? undefined
+                          : Number(e.target.value)
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {isSuperAdmin && (
+            <FormField
+              control={form.control}
+              name="companyId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company</FormLabel>
+                  <Select
+                    value={field.value?.toString()}
+                    onValueChange={(v) => field.onChange(Number(v))}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select company" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {companies.map((c) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {c.companyName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
+          )}
         </div>
 
         <FormField

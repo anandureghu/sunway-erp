@@ -9,6 +9,7 @@ import { Plus, Trash2, Eye } from "lucide-react";
 import { generateId } from "@/lib/utils";
 import { addressService } from "@/service/addressService";
 import { contactService } from "@/service/contactService";
+import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 
@@ -52,7 +53,8 @@ function isAddressValid(address: Address) {
   return (
     Boolean(address.line1?.trim()) &&
     Boolean(address.city?.trim()) &&
-    Boolean(address.country?.trim())
+    Boolean(address.country?.trim()) &&
+    Boolean(address.zipcode?.trim())
   );
 }
 
@@ -95,31 +97,43 @@ export default function ContactInfoForm() {
     };
   }, [employeeId]);
 
+  // Fetch employee data to get email and phoneNo as fallback
   useEffect(() => {
     let mounted = true;
     if (!employeeId) return;
-    contactService
-      .getContactInfo(employeeId)
-      .then((res) => {
+    
+    // First fetch the employee data to get email and phoneNo as fallback
+    hrService
+      .getEmployee(employeeId)
+      .then((empData) => {
         if (!mounted) return;
-        const data = res.data || {};
-        setDraft((d) => ({
-          ...d,
-          email: data.email || "",
-          phone: data.phone || "",
-          altPhone: data.altPhone || "",
-          notes: data.notes || "",
-        }));
-        setSaved((s) => ({
-          ...s,
-          email: data.email || "",
-          phone: data.phone || "",
-          altPhone: data.altPhone || "",
-          notes: data.notes || "",
-        }));
+        const employeeEmail = empData.email || "";
+        const employeePhone = empData.phoneNo || "";
+        
+        // Then fetch contact info (which may be empty for new employees)
+        return contactService.getContactInfo(employeeId).then((res) => {
+          if (!mounted) return;
+          const data = res.data || {};
+          
+          // Use contact info if available, otherwise fall back to employee data
+          setDraft((d) => ({
+            ...d,
+            email: data.email || employeeEmail,
+            phone: data.phone || employeePhone,
+            altPhone: data.altPhone || "",
+            notes: data.notes || "",
+          }));
+          setSaved((s) => ({
+            ...s,
+            email: data.email || employeeEmail,
+            phone: data.phone || employeePhone,
+            altPhone: data.altPhone || "",
+            notes: data.notes || "",
+          }));
+        });
       })
       .catch(() => {
-        /* silent */
+        /* silent - if employee fetch fails, contact info will be empty */
       });
     return () => {
       mounted = false;
@@ -316,7 +330,7 @@ export default function ContactInfoForm() {
         </FormRow>
       </FormSection>
 
-      <div>
+      <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-slate-800">Addresses</h3>
         </div>
@@ -384,7 +398,7 @@ export default function ContactInfoForm() {
                           placeholder="State/Province"
                         />
                       </FormField>
-                      <FormField label="Postal Code">
+                      <FormField label="Postal Code" required>
                         <Input
                           disabled={!editing}
                           value={address.zipcode}
@@ -395,6 +409,8 @@ export default function ContactInfoForm() {
                             })
                           }
                           placeholder="Postal code"
+                          aria-required="true"
+                          required
                         />
                       </FormField>
                       <FormField label="Country" required>

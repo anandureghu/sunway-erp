@@ -71,7 +71,6 @@ export function EmployeeDialog({
       employeeNo: "",
       firstName: "",
       lastName: "",
-      phoneNo: "",
       email: "",
       username: "",
       password: "",
@@ -87,7 +86,6 @@ export function EmployeeDialog({
         employeeNo: employee.employeeNo ? String(employee.employeeNo) : "",
         firstName: employee.firstName,
         lastName: employee.lastName,
-        phoneNo: employee.phoneNo || "",
         email: employee.email,
         username: employee.username,
         password: "", // keep empty, not required
@@ -128,7 +126,6 @@ export function EmployeeDialog({
     employeeNo?: string | number | null;
     firstName: string;
     lastName: string;
-    phoneNo?: string | null;
     email: string;
     username: string;
     password?: string | null;
@@ -142,7 +139,6 @@ export function EmployeeDialog({
       employeeNo: values.employeeNo ? values.employeeNo : null,
       firstName: values.firstName,
       lastName: values.lastName,
-      phoneNo: values.phoneNo,
       email: values.email,
       username: values.username,
       password: values.password || null, // if empty, backend should ignore
@@ -252,21 +248,7 @@ export function EmployeeDialog({
                     <Input placeholder="Doe" {...field} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phoneNo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="9876543210" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            </FormItem>
               )}
             />
 

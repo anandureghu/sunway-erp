@@ -379,6 +379,7 @@ export default function PassportForm(): ReactElement {
                         patch("issueCountry", v);
                         if (!draft.nationality) patch("nationality", v);
                       }}
+                      placeholder="Select country..."
                     />
                     <p className="text-xs text-slate-500 mt-1.5">Country that issued this passport</p>
                   </FormField>
@@ -388,6 +389,7 @@ export default function PassportForm(): ReactElement {
                       disabled={!editing}
                       value={draft.nationality}
                       onChange={(v) => patch("nationality", v)}
+                      placeholder="Select country..."
                     />
                     <p className="text-xs text-slate-500 mt-1.5">Citizenship status</p>
                   </FormField>
