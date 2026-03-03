@@ -165,19 +165,19 @@ export default function EmployeeContractForm() {
         throw new Error("Invalid employee ID");
       }
 
-      const allowances = data.salaryRows
+      const allowances: AllowancePayload[] = data.salaryRows
         .filter((r) =>
-          r.allowanceTypeId?.trim() &&
-          r.amount?.trim() &&
-          r.effectiveDate?.trim()
+          r.allowanceTypeId &&
+          r.amount &&
+          r.effectiveDate &&
+          Number(r.amount) > 0
         )
         .map((r) => ({
-          allowanceType: r.allowanceTypeId,
-          amount: parseFloat(r.amount),
+          allowanceTypeId: Number(r.allowanceTypeId),  // ✅ CORRECT
+          amount: Number(r.amount),
           effectiveDate: r.effectiveDate,
           note: r.note || undefined,
-        }))
-        .filter((a) => !isNaN(a.amount) && a.amount > 0);
+        }));
 
       if (allowances.length === 0) {
         savingRef.current = false;
