@@ -107,7 +107,9 @@ export default function JournalDetailPage() {
             {/* Amount */}
             <div className="rounded-lg border p-4 bg-blue-50 text-blue-600 flex-1">
               <p className="text-sm text-muted-foreground">Amount</p>
-              <p className="text-xl font-semibold">₹{data.totalDebit}</p>
+              <p className="text-xl font-semibold">
+                {company?.currency?.currencyCode} {data.totalDebit}
+              </p>
             </div>
 
             {/* Status */}

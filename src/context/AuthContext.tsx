@@ -8,6 +8,8 @@ import { setAdminView } from "@/store/uiSlice";
 import type { Company } from "@/types/company";
 import { toast } from "sonner";
 import permissionService from "@/service/permissionService";
+import type { AccountingPeriod } from "@/types/accounting-period";
+import type { AxiosResponse } from "axios";
 
 // JWT shape differs between environments/backends.
 // Keep this type permissive and guard at runtime.
@@ -30,6 +32,9 @@ type AuthContextType = {
   company: Company | null;
   permissions: Record<string, Record<string, boolean>> | null;
   permissionsLoading: boolean;
+  accountPeriodOpen: boolean;
+  fetchAccountPeriodStatus: () => void;
+  openPeriod?: AccountingPeriod | null;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -40,6 +45,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [user, setUser] = useState<Employee | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+  const [accountPeriodOpen, setAccountPeriodOpen] = useState<boolean>(false);
+  const [openPeriod, setOpenPeriod] = useState<AccountingPeriod | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(
     localStorage.getItem("accessToken"),
   );
@@ -82,6 +89,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const fetchAccountPeriodStatus = async () => {
+    try {
+      apiClient
+        .get(`/accounting-periods/open-status`)
+        .then(({ data }: AxiosResponse<AccountingPeriod>) => {
+          console.log({ data });
+          setAccountPeriodOpen(data != null);
+          setOpenPeriod(data);
+        });
+    } catch (err) {
+      console.error("account period status:", err);
+    }
+  };
+
   const applyUserFromToken = (token: string) => {
     const decoded: DecodedToken = jwtDecode(token);
     const role =
@@ -109,6 +130,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             ...response.data,
             role, // 🔥 preserve role from JWT
           });
+          setUser(response.data);
+          fetchAccountPeriodStatus();
           if (response.data.companyId) {
             fetchCompany(response.data.companyId);
           }
@@ -238,6 +261,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated: !!accessToken,
         permissions,
         permissionsLoading,
+        accountPeriodOpen,
+        fetchAccountPeriodStatus,
+        openPeriod,
       }}
     >
       {children}

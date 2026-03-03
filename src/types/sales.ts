@@ -1,3 +1,4 @@
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import type { Item, Warehouse } from "./inventory";
 import type { PurchaseOrder } from "./purchase";
 
@@ -34,9 +35,9 @@ export type SalesOrderStatus =
 export type SalesOrderItem = {
   id: string;
   orderId: string;
-  itemId: string;
+  itemId: number;
   itemName?: string;
-  item?: Item;
+  item?: ItemResponseDTO;
   quantity: number;
   unitPrice: number;
   discount: number;
@@ -85,8 +86,8 @@ export type PicklistItem = {
   id: string;
   picklistId: string;
   orderItemId: string;
-  itemId: string;
-  item?: Item;
+  itemId: number;
+  item?: ItemResponseDTO;
   quantity: number;
   pickedQuantity?: number;
   location?: string;

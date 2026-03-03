@@ -17,5 +17,6 @@ export interface Vendor {
   is1099Vendor?: boolean;
   createdAt?: string | null;
   createdBy?: string;
+  approved: boolean;
+  rejected: boolean;
 }
-

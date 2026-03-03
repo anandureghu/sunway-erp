@@ -8,7 +8,6 @@ import {
   SelectValue,
 } from "./ui/select";
 import { fetchCOAAccounts } from "@/service/coaService";
-import { useAuth } from "@/context/AuthContext";
 import { Label } from "./ui/label";
 
 const SelectAccount = ({
@@ -24,16 +23,13 @@ const SelectAccount = ({
   label?: string;
   placeholder?: string;
 }) => {
-  const { user } = useAuth();
   const [accounts, setAccounts] = useState([]);
 
   useEffect(() => {
-    if (user?.companyId) {
-      fetchCOAAccounts(user?.companyId.toString()).then((data) => {
-        if (data) setAccounts(data);
-      });
-    }
-  }, [user]);
+    fetchCOAAccounts().then((data) => {
+      if (data) setAccounts(data);
+    });
+  }, []);
 
   return (
     <>

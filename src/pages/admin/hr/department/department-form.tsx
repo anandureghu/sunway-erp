@@ -12,22 +12,24 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+
 import { useEffect, useState } from "react";
-import { apiClient } from "@/service/apiClient";
-import type { Company } from "@/types/company";
 import {
   type DepartmentFormData,
   DEPARTMENT_SCHEMA,
 } from "@/schema/department";
 import type { Department } from "@/types/department";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
+import { apiClient } from "@/service/apiClient";
+import type { Company } from "@/types/company";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DepartmentFormProps {
   onSubmit: (data: DepartmentFormData) => Promise<void> | void;
@@ -52,7 +54,7 @@ export const DepartmentForm = ({
       departmentCode: "",
       departmentName: "",
       managerId: undefined,
-      companyId: companyId,
+      companyId: companyId || Number(user?.companyId),
       ...defaultValues,
     },
   });
@@ -179,6 +181,23 @@ export const DepartmentForm = ({
             />
           )}
         </div>
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Explain briefly about the department..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Saving..." : "Save Department"}

@@ -183,7 +183,6 @@ const CategoriesMaster = () => {
           parentId: data.parentId ? Number(data.parentId) : undefined,
         };
 
-        console.log("Creating category with payload:", payload);
         await createCategory(payload);
         toast.success(
           data.parentId
@@ -318,8 +317,6 @@ const CategoriesMaster = () => {
     }
   }, [totalPages, currentPage]);
 
-  console.log(categories);
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -417,7 +414,6 @@ const CategoriesMaster = () => {
                 )}
                 data={paginatedCategories}
                 getSubRows={(row) => {
-                  console.log(row);
                   return row.subCategories;
                 }}
               />

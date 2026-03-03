@@ -46,8 +46,6 @@ export default defineConfig(({ mode }) => {
               // Forward Authorization header if present
               const token = req.headers.authorization;
               if (token) proxyReq.setHeader("Authorization", token);
-
-              console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyReq.path}`);
             });
           },
         },

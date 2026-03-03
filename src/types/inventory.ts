@@ -1,5 +1,7 @@
 // Inventory Types
 
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
+
 export type ItemStatus = "active" | "discontinued" | "out_of_stock";
 export type MovementType =
   | "inbound"
@@ -83,7 +85,7 @@ export type Stock = {
   lastUpdated: string;
   updatedBy?: string; // Updated by
   // Computed fields from joins
-  item?: Item;
+  item?: ItemResponseDTO;
   warehouse?: Warehouse;
   warehouse_id?: number;
   warehouse_name?: string;

@@ -2,15 +2,25 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormRow, } from "@/modules/hr/components/form-components";
+import { FormRow } from "@/modules/hr/components/form-components";
 import { SelectField } from "@/modules/hr/components/select-field";
 import { isValidAmount, isValidDate } from "@/modules/hr/utils/validation";
 import { formatMoney } from "@/lib/utils";
 import { salaryService } from "@/service/salaryService";
 import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
-import { DollarSign, TrendingUp, Calendar, CheckCircle, Plane, Home, Car, Sparkles } from "lucide-react";
+import {
+  DollarSign,
+  TrendingUp,
+  Calendar,
+  CheckCircle,
+  Plane,
+  Home,
+  Car,
+  Sparkles,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import type { Company } from "@/types/company";
 
 interface SalaryCtx {
   editing: boolean;
@@ -28,7 +38,7 @@ const BENEFIT_OPTIONS = [
 
 const COMPENSATION_STATUS_OPTIONS = [
   { value: "Active", label: "Active" },
-  { value: "Inactive", label: "Inactive" }
+  { value: "Inactive", label: "Inactive" },
 ];
 
 type SalaryFormState = {
@@ -75,9 +85,12 @@ interface ValidationErrors {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'Active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'Inactive': return 'bg-gray-50 text-gray-700 border-gray-200';
-    default: return 'bg-blue-50 text-blue-700 border-blue-200';
+    case "Active":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    case "Inactive":
+      return "bg-gray-50 text-gray-700 border-gray-200";
+    default:
+      return "bg-blue-50 text-blue-700 border-blue-200";
   }
 };
 
@@ -91,39 +104,52 @@ export default function SalaryForm() {
   const [exists, setExists] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
 
-  const validateForm = useCallback((data: SalaryFormState): ValidationErrors => {
-    const errors: ValidationErrors = {};
+  const validateForm = useCallback(
+    (data: SalaryFormState): ValidationErrors => {
+      const errors: ValidationErrors = {};
 
-    if (!isValidAmount(String(data.basicSalary))) {
-      errors.basicSalary = "Valid basic salary amount is required";
-    }
+      if (!isValidAmount(String(data.basicSalary))) {
+        errors.basicSalary = "Valid basic salary amount is required";
+      }
 
-    if (data.transportationType === "ALLOWANCE" && !isValidAmount(String(data.transportationAllowance))) {
-      errors.transportationAllowance = "Valid transportation allowance amount is required";
-    }
+      if (
+        data.transportationType === "ALLOWANCE" &&
+        !isValidAmount(String(data.transportationAllowance))
+      ) {
+        errors.transportationAllowance =
+          "Valid transportation allowance amount is required";
+      }
 
-    if (data.travelType === "ALLOWANCE" && !isValidAmount(String(data.travelAllowance))) {
-      errors.travelAllowance = "Valid travel allowance amount is required";
-    }
+      if (
+        data.travelType === "ALLOWANCE" &&
+        !isValidAmount(String(data.travelAllowance))
+      ) {
+        errors.travelAllowance = "Valid travel allowance amount is required";
+      }
 
-    if (data.housingType === "ALLOWANCE" && !isValidAmount(String(data.housingAllowance))) {
-      errors.housingAllowance = "Valid housing allowance amount is required";
-    }
+      if (
+        data.housingType === "ALLOWANCE" &&
+        !isValidAmount(String(data.housingAllowance))
+      ) {
+        errors.housingAllowance = "Valid housing allowance amount is required";
+      }
 
-    if (!isValidAmount(String(data.otherAllowance))) {
-      errors.otherAllowance = "Valid other allowance amount is required";
-    }
+      if (!isValidAmount(String(data.otherAllowance))) {
+        errors.otherAllowance = "Valid other allowance amount is required";
+      }
 
-    if (!isValidDate(data.effectiveFrom)) {
-      errors.effectiveFrom = "Valid effective from date is required";
-    }
+      if (!isValidDate(data.effectiveFrom)) {
+        errors.effectiveFrom = "Valid effective from date is required";
+      }
 
-    if (data.effectiveTo && !isValidDate(data.effectiveTo)) {
-      errors.effectiveTo = "Invalid effective to date";
-    }
+      if (data.effectiveTo && !isValidDate(data.effectiveTo)) {
+        errors.effectiveTo = "Invalid effective to date";
+      }
 
-    return errors;
-  }, []);
+      return errors;
+    },
+    [],
+  );
 
   const handleSaveSalary = useCallback(async () => {
     if (!employeeId) return;
@@ -186,7 +212,10 @@ export default function SalaryForm() {
 
     return () => {
       document.removeEventListener("salary:start-edit", handleStartEdit);
-      document.removeEventListener("salary:save", handleSaveSalary as EventListener);
+      document.removeEventListener(
+        "salary:save",
+        handleSaveSalary as EventListener,
+      );
       document.removeEventListener("salary:cancel", handleCancel);
     };
   }, [formData, saveEdit, cancelEdit, employeeId, exists]);
@@ -200,37 +229,49 @@ export default function SalaryForm() {
         if (!mounted) return;
         if (res.data) {
           const api = res.data;
-          setFormData((prev) => ({
-            ...prev,
-            basicSalary: Number(api.basicSalary ?? 0),
+          setFormData(
+            (prev) =>
+              ({
+                ...prev,
+                basicSalary: Number(api.basicSalary ?? 0),
 
-            transportationType:
-              (api.transportationType as BenefitType) ||
-              (Number(api.transportationAllowance ?? 0) > 0 ? "ALLOWANCE" : "COMPANY_PROVIDED"),
-            transportationAllowance: Number(api.transportationAllowance ?? 0),
+                transportationType:
+                  (api.transportationType as BenefitType) ||
+                  (Number(api.transportationAllowance ?? 0) > 0
+                    ? "ALLOWANCE"
+                    : "COMPANY_PROVIDED"),
+                transportationAllowance: Number(
+                  api.transportationAllowance ?? 0,
+                ),
 
-            travelType:
-              (api.travelType as BenefitType) ||
-              (Number(api.travelAllowance ?? 0) > 0 ? "ALLOWANCE" : "COMPANY_PROVIDED"),
-            travelAllowance: Number(api.travelAllowance ?? 0),
+                travelType:
+                  (api.travelType as BenefitType) ||
+                  (Number(api.travelAllowance ?? 0) > 0
+                    ? "ALLOWANCE"
+                    : "COMPANY_PROVIDED"),
+                travelAllowance: Number(api.travelAllowance ?? 0),
 
-            housingType:
-              (api.housingType as BenefitType) ||
-              (Number(api.housingAllowance ?? 0) > 0 ? "ALLOWANCE" : "COMPANY_PROVIDED"),
-            housingAllowance: Number(api.housingAllowance ?? 0),
+                housingType:
+                  (api.housingType as BenefitType) ||
+                  (Number(api.housingAllowance ?? 0) > 0
+                    ? "ALLOWANCE"
+                    : "COMPANY_PROVIDED"),
+                housingAllowance: Number(api.housingAllowance ?? 0),
 
-            otherAllowance: Number(api.otherAllowance ?? 0),
+                otherAllowance: Number(api.otherAllowance ?? 0),
 
-            compensationStatus: api.status ?? api.compensationStatus ?? "Active",
-            effectiveFrom: api.effectiveFrom ?? "",
-            effectiveTo: api.effectiveTo ?? "",
+                compensationStatus:
+                  api.status ?? api.compensationStatus ?? "Active",
+                effectiveFrom: api.effectiveFrom ?? "",
+                effectiveTo: api.effectiveTo ?? "",
 
-            payPeriodStart: "",
-            payPeriodEnd: "",
-            numberOfDaysWorked: "",
-            payPerDay: "",
-            overtime: "",
-          } as SalaryFormState));
+                payPeriodStart: "",
+                payPeriodEnd: "",
+                numberOfDaysWorked: "",
+                payPerDay: "",
+                overtime: "",
+              }) as SalaryFormState,
+          );
           setExists(true);
         }
       })
@@ -246,9 +287,9 @@ export default function SalaryForm() {
   useEffect(() => {
     if (user?.companyId) {
       fetchCompany(user.companyId.toString())
-        .then((company) => {
-          if (company?.currency?.currencySymbol) {
-            setCurrencySymbol(company.currency.currencySymbol);
+        .then((company: Company) => {
+          if (company?.currency?.currencyCode) {
+            setCurrencySymbol(company.currency.currencyCode);
           }
         })
         .catch((err) => {
@@ -258,34 +299,59 @@ export default function SalaryForm() {
   }, [user?.companyId]);
 
   const updateField = (field: keyof SalaryFormState) => (value: string) => {
-    if (field === 'basicSalary' || field === 'transportationAllowance' || field === 'travelAllowance' || field === 'otherAllowance' || field === 'housingAllowance') {
-      const num = Number(value.replace(/[^0-9.]/g, '')) || 0;
-      setFormData(prev => ({ ...prev, [field]: num } as SalaryFormState));
+    if (
+      field === "basicSalary" ||
+      field === "transportationAllowance" ||
+      field === "travelAllowance" ||
+      field === "otherAllowance" ||
+      field === "housingAllowance"
+    ) {
+      const num = Number(value.replace(/[^0-9.]/g, "")) || 0;
+      setFormData((prev) => ({ ...prev, [field]: num }) as SalaryFormState);
       return;
     }
-    if (field === 'transportationType' || field === 'travelType' || field === 'housingType') {
+    if (
+      field === "transportationType" ||
+      field === "travelType" ||
+      field === "housingType"
+    ) {
       const val = value as BenefitType;
       const reset =
-        field === 'housingType' && val !== 'ALLOWANCE'
+        field === "housingType" && val !== "ALLOWANCE"
           ? { housingAllowance: 0 }
-          : field === 'transportationType' && val !== 'ALLOWANCE'
-          ? { transportationAllowance: 0 }
-          : field === 'travelType' && val !== 'ALLOWANCE'
-          ? { travelAllowance: 0 }
-          : {};
-      setFormData(prev => ({ ...prev, [field]: val, ...reset } as SalaryFormState));
+          : field === "transportationType" && val !== "ALLOWANCE"
+            ? { transportationAllowance: 0 }
+            : field === "travelType" && val !== "ALLOWANCE"
+              ? { travelAllowance: 0 }
+              : {};
+      setFormData(
+        (prev) => ({ ...prev, [field]: val, ...reset }) as SalaryFormState,
+      );
       return;
     }
-    setFormData(prev => ({ ...prev, [field]: value } as SalaryFormState));
+    setFormData((prev) => ({ ...prev, [field]: value }) as SalaryFormState);
   };
 
   const totalAllowance = useMemo(() => {
-    const ta = formData.transportationType === 'ALLOWANCE' ? (formData.transportationAllowance || 0) : 0;
-    const tr = formData.travelType === 'ALLOWANCE' ? (formData.travelAllowance || 0) : 0;
+    const ta =
+      formData.transportationType === "ALLOWANCE"
+        ? formData.transportationAllowance || 0
+        : 0;
+    const tr =
+      formData.travelType === "ALLOWANCE" ? formData.travelAllowance || 0 : 0;
     const oa = formData.otherAllowance || 0;
-    const ha = formData.housingType === 'ALLOWANCE' ? (formData.housingAllowance || 0) : 0;
+    const ha =
+      formData.housingType === "ALLOWANCE" ? formData.housingAllowance || 0 : 0;
     return (ta + tr + oa + ha).toString();
-  }, [formData.transportationAllowance, formData.travelAllowance, formData.otherAllowance, formData.housingType, formData.housingAllowance, formData.transportationType, formData.travelType]);
+  }, [
+    formData.transportationAllowance,
+    formData.travelAllowance,
+    formData.otherAllowance,
+    formData.housingType,
+    formData.housingAllowance,
+    formData.transportationType,
+    formData.travelType,
+  ]);
 
   const grossPay = useMemo(() => {
     const basic = formData.basicSalary || 0;
@@ -303,11 +369,17 @@ export default function SalaryForm() {
           <div className="relative">
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-bold text-slate-800 mb-2 tracking-tight">Salary Information</h1>
-                <p className="text-slate-600 text-base">Manage employee compensation details and benefits</p>
+                <h1 className="text-3xl font-bold text-slate-800 mb-2 tracking-tight">
+                  Salary Information
+                </h1>
+                <p className="text-slate-600 text-base">
+                  Manage employee compensation details and benefits
+                </p>
               </div>
               {formData.compensationStatus && (
-                <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getStatusColor(formData.compensationStatus)}`}>
+                <span
+                  className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getStatusColor(formData.compensationStatus)}`}
+                >
                   {formData.compensationStatus}
                 </span>
               )}
@@ -324,13 +396,22 @@ export default function SalaryForm() {
               <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
                 <TrendingUp className="h-5 w-5" />
               </div>
-              <span className="text-sm font-semibold opacity-95">Total Compensation Package</span>
+              <span className="text-sm font-semibold opacity-95">
+                Total Compensation Package
+              </span>
             </div>
-            <p className="text-4xl font-bold mb-2">{formatMoney(grossPay, currencySymbol)}</p>
+            <p className="text-4xl font-bold mb-2">
+              {formatMoney(grossPay, currencySymbol)}
+            </p>
             <div className="flex items-center gap-4 text-sm opacity-90">
-              <span>Basic: {formatMoney(String(formData.basicSalary), currencySymbol)}</span>
+              <span>
+                Basic:{" "}
+                {formatMoney(String(formData.basicSalary), currencySymbol)}
+              </span>
               <span>•</span>
-              <span>Allowances: {formatMoney(totalAllowance, currencySymbol)}</span>
+              <span>
+                Allowances: {formatMoney(totalAllowance, currencySymbol)}
+              </span>
             </div>
           </div>
         </div>
@@ -341,7 +422,9 @@ export default function SalaryForm() {
             <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
               <DollarSign className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800">Compensation Components</h2>
+            <h2 className="text-2xl font-bold text-slate-800">
+              Compensation Components
+            </h2>
           </div>
 
           {/* Basic Salary */}
@@ -353,11 +436,13 @@ export default function SalaryForm() {
                   Basic Salary <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-600 font-semibold text-lg">{currencySymbol}</span>
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-600 font-semibold text-lg">
+                    {currencySymbol}
+                  </span>
                   <Input
                     type="number"
-                    value={formData.basicSalary || ''}
-                    onChange={e => updateField('basicSalary')(e.target.value)}
+                    value={formData.basicSalary || ""}
+                    onChange={(e) => updateField("basicSalary")(e.target.value)}
                     placeholder="0.00"
                     disabled={!editing}
                     className="rounded-xl border-slate-300 text-xl font-bold pl-10 h-14 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -367,7 +452,8 @@ export default function SalaryForm() {
                 </div>
                 {validateForm(formData).basicSalary && (
                   <p className="text-xs text-red-500 flex items-center gap-1">
-                    <span className="font-medium">⚠</span> {validateForm(formData).basicSalary}
+                    <span className="font-medium">⚠</span>{" "}
+                    {validateForm(formData).basicSalary}
                   </p>
                 )}
               </div>
@@ -382,30 +468,44 @@ export default function SalaryForm() {
                   <Car className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-blue-900">Transportation</h4>
-                  <p className="text-xs text-blue-700">Vehicle and commute benefits</p>
+                  <h4 className="text-base font-bold text-blue-900">
+                    Transportation
+                  </h4>
+                  <p className="text-xs text-blue-700">
+                    Vehicle and commute benefits
+                  </p>
                 </div>
               </div>
               <FormRow columns={2}>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Benefit Type <span className="text-red-500">*</span></Label>
+                  <Label className="text-sm font-medium text-slate-700">
+                    Benefit Type <span className="text-red-500">*</span>
+                  </Label>
                   <SelectField
                     options={BENEFIT_OPTIONS}
                     value={formData.transportationType}
-                    onChange={e => updateField('transportationType')(e.target.value)}
+                    onChange={(e) =>
+                      updateField("transportationType")(e.target.value)
+                    }
                     disabled={!editing}
                   />
                 </div>
 
-                {formData.transportationType === 'ALLOWANCE' && (
+                {formData.transportationType === "ALLOWANCE" && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                    <Label className="text-sm font-medium text-slate-700">
+                      Allowance Amount <span className="text-red-500">*</span>
+                    </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
+                        {currencySymbol}
+                      </span>
                       <Input
                         type="number"
-                        value={formData.transportationAllowance || ''}
-                        onChange={e => updateField('transportationAllowance')(e.target.value)}
+                        value={formData.transportationAllowance || ""}
+                        onChange={(e) =>
+                          updateField("transportationAllowance")(e.target.value)
+                        }
                         placeholder="0.00"
                         disabled={!editing}
                         className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-blue-400"
@@ -414,7 +514,9 @@ export default function SalaryForm() {
                       />
                     </div>
                     {validateForm(formData).transportationAllowance && (
-                      <p className="text-xs text-red-500">{validateForm(formData).transportationAllowance}</p>
+                      <p className="text-xs text-red-500">
+                        {validateForm(formData).transportationAllowance}
+                      </p>
                     )}
                   </div>
                 )}
@@ -428,30 +530,42 @@ export default function SalaryForm() {
                   <Plane className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-violet-900">Travel</h4>
-                  <p className="text-xs text-violet-700">Business travel and trip benefits</p>
+                  <h4 className="text-base font-bold text-violet-900">
+                    Travel
+                  </h4>
+                  <p className="text-xs text-violet-700">
+                    Business travel and trip benefits
+                  </p>
                 </div>
               </div>
               <FormRow columns={2}>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Benefit Type <span className="text-red-500">*</span></Label>
+                  <Label className="text-sm font-medium text-slate-700">
+                    Benefit Type <span className="text-red-500">*</span>
+                  </Label>
                   <SelectField
                     options={BENEFIT_OPTIONS}
                     value={formData.travelType}
-                    onChange={e => updateField('travelType')(e.target.value)}
+                    onChange={(e) => updateField("travelType")(e.target.value)}
                     disabled={!editing}
                   />
                 </div>
 
-                {formData.travelType === 'ALLOWANCE' && (
+                {formData.travelType === "ALLOWANCE" && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                    <Label className="text-sm font-medium text-slate-700">
+                      Allowance Amount <span className="text-red-500">*</span>
+                    </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
+                        {currencySymbol}
+                      </span>
                       <Input
                         type="number"
-                        value={formData.travelAllowance || ''}
-                        onChange={e => updateField('travelAllowance')(e.target.value)}
+                        value={formData.travelAllowance || ""}
+                        onChange={(e) =>
+                          updateField("travelAllowance")(e.target.value)
+                        }
                         placeholder="0.00"
                         disabled={!editing}
                         className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-violet-400"
@@ -460,7 +574,9 @@ export default function SalaryForm() {
                       />
                     </div>
                     {validateForm(formData).travelAllowance && (
-                      <p className="text-xs text-red-500">{validateForm(formData).travelAllowance}</p>
+                      <p className="text-xs text-red-500">
+                        {validateForm(formData).travelAllowance}
+                      </p>
                     )}
                   </div>
                 )}
@@ -474,30 +590,42 @@ export default function SalaryForm() {
                   <Home className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-amber-900">Housing</h4>
-                  <p className="text-xs text-amber-700">Accommodation and residence benefits</p>
+                  <h4 className="text-base font-bold text-amber-900">
+                    Housing
+                  </h4>
+                  <p className="text-xs text-amber-700">
+                    Accommodation and residence benefits
+                  </p>
                 </div>
               </div>
               <FormRow columns={2}>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Benefit Type <span className="text-red-500">*</span></Label>
+                  <Label className="text-sm font-medium text-slate-700">
+                    Benefit Type <span className="text-red-500">*</span>
+                  </Label>
                   <SelectField
                     options={BENEFIT_OPTIONS}
                     value={formData.housingType}
-                    onChange={e => updateField('housingType')(e.target.value)}
+                    onChange={(e) => updateField("housingType")(e.target.value)}
                     disabled={!editing}
                   />
                 </div>
 
-                {formData.housingType === 'ALLOWANCE' && (
+                {formData.housingType === "ALLOWANCE" && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                    <Label className="text-sm font-medium text-slate-700">
+                      Allowance Amount <span className="text-red-500">*</span>
+                    </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
+                        {currencySymbol}
+                      </span>
                       <Input
                         type="number"
-                        value={formData.housingAllowance || ''}
-                        onChange={e => updateField('housingAllowance')(e.target.value)}
+                        value={formData.housingAllowance || ""}
+                        onChange={(e) =>
+                          updateField("housingAllowance")(e.target.value)
+                        }
                         placeholder="0.00"
                         disabled={!editing}
                         className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-amber-400"
@@ -506,7 +634,9 @@ export default function SalaryForm() {
                       />
                     </div>
                     {validateForm(formData).housingAllowance && (
-                      <p className="text-xs text-red-500">{validateForm(formData).housingAllowance}</p>
+                      <p className="text-xs text-red-500">
+                        {validateForm(formData).housingAllowance}
+                      </p>
                     )}
                   </div>
                 )}
@@ -520,19 +650,29 @@ export default function SalaryForm() {
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-slate-900">Other Allowance</h4>
-                  <p className="text-xs text-slate-700">Additional compensation and perks</p>
+                  <h4 className="text-base font-bold text-slate-900">
+                    Other Allowance
+                  </h4>
+                  <p className="text-xs text-slate-700">
+                    Additional compensation and perks
+                  </p>
                 </div>
               </div>
               <FormRow columns={1}>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Allowance Amount <span className="text-red-500">*</span></Label>
+                  <Label className="text-sm font-medium text-slate-700">
+                    Allowance Amount <span className="text-red-500">*</span>
+                  </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">{currencySymbol}</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
+                      {currencySymbol}
+                    </span>
                     <Input
                       type="number"
-                      value={formData.otherAllowance || ''}
-                      onChange={e => updateField('otherAllowance')(e.target.value)}
+                      value={formData.otherAllowance || ""}
+                      onChange={(e) =>
+                        updateField("otherAllowance")(e.target.value)
+                      }
                       placeholder="0.00"
                       disabled={!editing}
                       className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-slate-400"
@@ -541,7 +681,9 @@ export default function SalaryForm() {
                     />
                   </div>
                   {validateForm(formData).otherAllowance && (
-                    <p className="text-xs text-red-500">{validateForm(formData).otherAllowance}</p>
+                    <p className="text-xs text-red-500">
+                      {validateForm(formData).otherAllowance}
+                    </p>
                   )}
                 </div>
               </FormRow>
@@ -555,16 +697,22 @@ export default function SalaryForm() {
             <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
               <CheckCircle className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800">Compensation Status & Dates</h2>
+            <h2 className="text-2xl font-bold text-slate-800">
+              Compensation Status & Dates
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">Status <span className="text-red-500">*</span></Label>
+              <Label className="text-sm font-semibold text-slate-700">
+                Status <span className="text-red-500">*</span>
+              </Label>
               <SelectField
                 options={COMPENSATION_STATUS_OPTIONS}
                 value={formData.compensationStatus}
-                onChange={e => updateField('compensationStatus')(e.target.value)}
+                onChange={(e) =>
+                  updateField("compensationStatus")(e.target.value)
+                }
                 disabled={!editing}
               />
             </div>
@@ -577,12 +725,14 @@ export default function SalaryForm() {
               <Input
                 type="date"
                 value={formData.effectiveFrom}
-                onChange={e => updateField('effectiveFrom')(e.target.value)}
+                onChange={(e) => updateField("effectiveFrom")(e.target.value)}
                 disabled={!editing}
                 className="rounded-xl border-slate-300 h-11 shadow-sm focus:ring-2 focus:ring-emerald-400"
               />
               {validateForm(formData).effectiveFrom && (
-                <p className="text-xs text-red-500">{validateForm(formData).effectiveFrom}</p>
+                <p className="text-xs text-red-500">
+                  {validateForm(formData).effectiveFrom}
+                </p>
               )}
             </div>
 
@@ -594,12 +744,14 @@ export default function SalaryForm() {
               <Input
                 type="date"
                 value={formData.effectiveTo}
-                onChange={e => updateField('effectiveTo')(e.target.value)}
+                onChange={(e) => updateField("effectiveTo")(e.target.value)}
                 disabled={!editing}
                 className="rounded-xl border-slate-300 h-11 shadow-sm focus:ring-2 focus:ring-slate-400"
               />
               {validateForm(formData).effectiveTo && (
-                <p className="text-xs text-red-500">{validateForm(formData).effectiveTo}</p>
+                <p className="text-xs text-red-500">
+                  {validateForm(formData).effectiveTo}
+                </p>
               )}
             </div>
           </div>
