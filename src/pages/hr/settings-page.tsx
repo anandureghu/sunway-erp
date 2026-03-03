@@ -26,10 +26,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
-import { apiClient } from "@/service/apiClient";
 import { DepartmentDialog } from "@/pages/admin/hr/department/department-dialog";
 import type { Department } from "@/types/department";
 import { jobCodeService } from "@/service/jobCodeService";
+import { fetchDepartments, deleteDepartment } from "@/service/departmentService";
 import { hrService } from "@/service/hr.service";
 import { permissionService } from "@/service/permissionService";
 import type { Employee } from "@/types/hr";
@@ -393,59 +393,30 @@ function JobCodesTab({ jobs, setJobs }: {
 // ─── Departments Tab ──────────────────────────────────────────────────────────
 function DepartmentsTab() {
   const [depts, setDepts] = useState<Department[]>([]);
-  const [companies, setCompanies] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [q, setQ] = useState("");
   const { user } = useAuth();
   
-  // Determine if user is SUPER_ADMIN
-  const isSuperAdmin = user?.role === "SUPER_ADMIN";
   // Get companyId from user - handle both string and number formats
   const companyId = user?.companyId ? Number(user.companyId) : null;
 
   useEffect(() => {
-    fetchDepartments();
-    fetchCompanies();
-  }, [companyId, isSuperAdmin]);
-
-  const fetchCompanies = async () => {
-    try {
-      const res = await apiClient.get("/companies");
-      const companiesData = res.data?.data || res.data;
-      if (Array.isArray(companiesData)) {
-        // Create a map of companyId -> companyName
-        const companyMap: Record<number, string> = {};
-        companiesData.forEach((c: any) => {
-          companyMap[c.id] = c.companyName;
-        });
-        setCompanies(companyMap);
-      }
-    } catch (error) {
-      console.error("Error loading companies:", error);
+    if (companyId) {
+      fetchDepartmentsData();
     }
-  };
+  }, [companyId]);
 
-  const fetchDepartments = async () => {
+  const fetchDepartmentsData = async () => {
+    if (!companyId) return;
+    
     try {
       setLoading(true);
-      
-      // Log for debugging
-      console.log("Fetching departments for:", { isSuperAdmin, companyId, userCompanyId: user?.companyId });
-      
-      let url = "/departments";
-      
-      // If not SUPER_ADMIN and has companyId, filter by company
-      if (!isSuperAdmin && companyId) {
-        url = `/departments?companyId=${companyId}`;
+      const data = await fetchDepartments(companyId);
+      if (data) {
+        setDepts(Array.isArray(data) ? data : []);
       }
-      
-      const res = await apiClient.get(url);
-      
-      // Handle different response structures
-      const data = res.data?.data || res.data;
-      setDepts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading departments:", error);
       toast.error("Failed to load departments");
@@ -478,8 +449,12 @@ function DepartmentsTab() {
   };
 
   const handleDelete = async (dept: Department) => {
+    if (!companyId) {
+      toast.error("Company not selected");
+      return;
+    }
     try {
-      await apiClient.delete(`/departments/${dept.id}`);
+      await deleteDepartment(companyId, dept.id);
       toast.success(`Deleted ${dept.departmentName}`);
       setDepts((prev) => prev.filter((d) => d.id !== dept.id));
     } catch {
@@ -492,6 +467,17 @@ function DepartmentsTab() {
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
         <span className="ml-3 text-slate-500">Loading departments...</span>
+      </div>
+    );
+  }
+
+  // Show message if no company selected
+  if (!companyId) {
+    return (
+      <div className="p-6">
+        <p className="text-center text-muted-foreground">
+          Loading company information...
+        </p>
       </div>
     );
   }
@@ -531,7 +517,6 @@ function DepartmentsTab() {
             <TableRow>
               <TableHead className="font-semibold text-slate-600">Department Code</TableHead>
               <TableHead className="font-semibold text-slate-600">Department Name</TableHead>
-              <TableHead className="font-semibold text-slate-600">Company</TableHead>
               <TableHead className="font-semibold text-slate-600">Manager ID</TableHead>
               <TableHead className="font-semibold text-slate-600">Status</TableHead>
               <TableHead className="font-semibold text-slate-600 text-right">Actions</TableHead>
@@ -546,11 +531,6 @@ function DepartmentsTab() {
                   </code>
                 </TableCell>
                 <TableCell className="font-medium text-slate-900">{d.departmentName}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200">
-                    {d.company?.companyName || companies[d.companyId as number] || "—"}
-                  </Badge>
-                </TableCell>
                 <TableCell>
                   <span className="text-slate-600">{d.managerId || "—"}</span>
                 </TableCell>
@@ -574,7 +554,7 @@ function DepartmentsTab() {
             ))}
             {!filtered.length && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={5} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Building2 className="h-12 w-12 text-slate-300" />
                     <p className="text-slate-500 font-medium">No departments found</p>
@@ -587,12 +567,13 @@ function DepartmentsTab() {
         </Table>
       </div>
 
-      {/* Department Dialog */}
+      {/* Department Dialog - pass companyId */}
       <DepartmentDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         department={selectedDept}
         onSuccess={handleSuccess}
+        companyId={companyId}
       />
     </div>
   );

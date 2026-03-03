@@ -134,12 +134,12 @@ const ManageStocks = () => {
         setLoadError(null);
 
         const [itemsList, warehousesList] = await Promise.all([
-          listItems(), // now returns ItemResponseDTO[]
+          listItems(),
           listWarehouses(),
         ]);
 
         if (!cancelled) {
-          setStockData(itemsList);
+          setStockData(itemsList as unknown as ItemResponseDTO[]);
           setWarehouses(warehousesList);
         }
       } catch (error: any) {

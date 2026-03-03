@@ -361,26 +361,29 @@ export default function EmployeeContractForm() {
       <div className="max-w-7xl mx-auto space-y-5">
         
         {/* Header Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full opacity-20 blur-3xl -mr-20 -mt-20"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-blue-100 to-indigo-100 rounded-full opacity-20 blur-2xl -ml-16 -mb-16"></div>
-          <div className="relative">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-800 mb-2 tracking-tight">Employee Contract</h1>
-               <p className="text-sm text-slate-500 mt-1">Manage employment contract details and terms</p>
-              </div>
-              <div className="flex gap-2">
-                {formData.status && (
-                  <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getStatusColor(formData.status)}`}>
-                    {formData.status}
-                  </span>
-                )}
-                {formData.contractType && (
-                  <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getContractTypeColor(formData.contractType)}`}>
-                    {formData.contractType}
-                  </span>
-                )}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-start gap-4">
+            <div className="bg-violet-100 p-3 rounded-xl">
+              <FileText className="h-6 w-6 text-violet-600" />
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-800">Employee Contract</h2>
+                  <p className="text-sm text-slate-500 mt-1">Manage employment contract details and terms</p>
+                </div>
+                <div className="flex gap-2">
+                  {formData.status && (
+                    <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getStatusColor(formData.status)}`}>
+                      {formData.status}
+                    </span>
+                  )}
+                  {formData.contractType && (
+                    <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getContractTypeColor(formData.contractType)}`}>
+                      {formData.contractType}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

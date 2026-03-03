@@ -8,16 +8,17 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
-import { apiClient } from "@/service/apiClient";
 import type { DepartmentFormData } from "@/schema/department";
 import type { Department } from "@/types/department";
 import { DepartmentForm } from "./department-form";
+import { createDepartment, updateDepartment } from "@/service/departmentService";
 
 interface DepartmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   department?: Department | null;
   onSuccess: (dept: Department, mode: "add" | "edit") => void;
+  companyId: number;
 }
 
 export const DepartmentDialog = ({
@@ -25,6 +26,7 @@ export const DepartmentDialog = ({
   onOpenChange,
   department,
   onSuccess,
+  companyId,
 }: DepartmentDialogProps) => {
   const [loading, setLoading] = useState(false);
   const isEdit = !!department;
@@ -32,15 +34,18 @@ export const DepartmentDialog = ({
   const handleSubmit = async (data: DepartmentFormData) => {
     try {
       setLoading(true);
-      const res = isEdit
-        ? await apiClient.put(`/departments/${department!.id}`, data)
-        : await apiClient.post("/departments", data);
+      let res;
+      if (isEdit) {
+        res = await updateDepartment(companyId, department!.id, data);
+      } else {
+        res = await createDepartment(companyId, data);
+      }
       toast.success(
         isEdit
           ? "Department updated successfully"
           : "Department added successfully"
       );
-      onSuccess(res.data, isEdit ? "edit" : "add");
+      onSuccess(res, isEdit ? "edit" : "add");
       onOpenChange(false);
     } catch (error) {
       toast.error("Failed to save department");
@@ -68,6 +73,7 @@ export const DepartmentDialog = ({
           onSubmit={handleSubmit}
           loading={loading}
           defaultValues={department as DepartmentFormData | null}
+          companyId={companyId}
         />
       </DialogContent>
     </Dialog>

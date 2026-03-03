@@ -723,6 +723,19 @@ export function DependentsForm() {
                           </div>
                         )}
 
+                        {(dependent.phoneNo || dependent.address || dependent.city || dependent.state || dependent.postalCode || dependent.country) && (
+                          <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 border border-cyan-100">
+                            <h4 className="text-lg font-semibold text-slate-800 mb-4">Contact Information</h4>
+                            {dependent.phoneNo && <DetailItem label="Phone Number" value={dependent.phoneNo} />}
+                            {dependent.address && <DetailItem label="Address Line 1" value={dependent.address} />}
+                            {dependent.address2 && <DetailItem label="Address Line 2" value={dependent.address2} />}
+                            {dependent.city && <DetailItem label="City" value={dependent.city} />}
+                            {dependent.state && <DetailItem label="State/Province" value={dependent.state} />}
+                            {dependent.postalCode && <DetailItem label="Postal Code" value={dependent.postalCode} />}
+                            {dependent.country && <DetailItem label="Country" value={dependent.country} />}
+                          </div>
+                        )}
+
                         {dependent.dob && calculateAge(dependent.dob) !== null && (
                           <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
                             <h4 className="text-lg font-semibold text-slate-800 mb-2">Age Information</h4>

@@ -19,6 +19,7 @@ import type { Department } from "@/types/department";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import { Briefcase, Building2, Calendar, Award, MapPin, TrendingUp } from "lucide-react";
 import { jobCodeService, type JobCode } from "@/service/jobCodeService";
+import { useAuth } from "@/context/AuthContext";
 
 /* ================= INITIAL DATA ================= */
 
@@ -63,6 +64,10 @@ export default function CurrentJobForm() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
   const savingRef = useRef(false);
+  
+  // Get companyId from AuthContext
+  const { company } = useAuth();
+  const companyId = company?.id ? Number(company.id) : null;
 
   const {
     editing,
@@ -231,9 +236,11 @@ export default function CurrentJobForm() {
   /* ================= LOAD DEPARTMENTS ================= */
 
   useEffect(() => {
+    if (!companyId) return;
+    
     const fetchDepartmentsData = async () => {
       try {
-        const depts = await fetchDepartments();
+        const depts = await fetchDepartments(companyId);
         if (depts) {
           setDepartments(depts);
         }
@@ -244,7 +251,7 @@ export default function CurrentJobForm() {
       }
     };
     fetchDepartmentsData();
-  }, []);
+  }, [company, companyId]);
 
   /* ================= LOAD CURRENT JOB ================= */
 

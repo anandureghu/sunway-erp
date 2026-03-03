@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { getDepartmentColumns } from "@/lib/columns/department-listing-admin";
-import { apiClient } from "@/service/apiClient";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,17 +9,61 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import type { Department } from "@/types/department";
 import { DepartmentDialog } from "./department-dialog";
+import { useAuth } from "@/context/AuthContext";
+import { fetchDepartments, deleteDepartment as deleteDept } from "@/service/departmentService";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import type { Company } from "@/types/company";
+import { getAllCompanies } from "@/service/companyService";
 
 export default function DepartmentListPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Department | null>(null);
   const [open, setOpen] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
 
-  const fetchDepartments = async () => {
+  const { user, company } = useAuth();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
+  // Fetch companies for SUPER_ADMIN
+  useEffect(() => {
+    if (isSuperAdmin) {
+      getAllCompanies().then((data) => {
+        if (data && data.length > 0) {
+          setCompanies(data);
+          // Set default company if none selected
+          if (selectedCompanyId === null) {
+            setSelectedCompanyId(data[0].id);
+          }
+        }
+      });
+    }
+  }, [isSuperAdmin]);
+
+  // Set initial company for non-SUPER_ADMIN users from AuthContext
+  useEffect(() => {
+    if (!isSuperAdmin && company) {
+      setSelectedCompanyId(Number(company.id));
+    }
+  }, [isSuperAdmin, company]);
+
+  const fetchDepartmentsData = async () => {
+    // Don't fetch if companyId is not available
+    if (selectedCompanyId === null || selectedCompanyId === undefined) {
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const res = await apiClient.get("/departments");
-      setDepartments(res.data);
+      const data = await fetchDepartments(selectedCompanyId);
+      if (data) setDepartments(data);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load departments");
@@ -30,8 +73,8 @@ export default function DepartmentListPage() {
   };
 
   useEffect(() => {
-    fetchDepartments();
-  }, []);
+    fetchDepartmentsData();
+  }, [selectedCompanyId]);
 
   const handleSuccess = (updated: Department, mode: "add" | "edit") => {
     if (mode === "add") {
@@ -49,8 +92,13 @@ export default function DepartmentListPage() {
   };
 
   const handleDelete = async (dept: Department) => {
+    if (selectedCompanyId === null || selectedCompanyId === undefined) {
+      toast.error("Company not selected");
+      return;
+    }
+    
     try {
-      await apiClient.delete(`/departments/${dept.id}`);
+      await deleteDept(selectedCompanyId, dept.id);
       toast.success(`Deleted ${dept.departmentName}`);
       setDepartments((prev) => prev.filter((d) => d.id !== dept.id));
     } catch {
@@ -66,6 +114,17 @@ export default function DepartmentListPage() {
   if (loading)
     return <p className="text-center text-muted-foreground p-10">Loading...</p>;
 
+  // Show message if no company selected
+  if (!isSuperAdmin && !company) {
+    return (
+      <div className="p-6">
+        <p className="text-center text-muted-foreground">
+          Loading company information...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -75,9 +134,28 @@ export default function DepartmentListPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input placeholder="Search department..." className="pl-10" />
+            <div className="flex items-center gap-3 flex-1">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input placeholder="Search department..." className="pl-10" />
+              </div>
+              {isSuperAdmin && (
+                <Select
+                  value={selectedCompanyId?.toString() || ""}
+                  onValueChange={(v) => setSelectedCompanyId(Number(v))}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select Company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.companyName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <Button
               onClick={() => {
@@ -96,12 +174,15 @@ export default function DepartmentListPage() {
         </CardContent>
       </Card>
 
-      <DepartmentDialog
-        open={open}
-        onOpenChange={setOpen}
-        department={selected}
-        onSuccess={handleSuccess}
-      />
+      {selectedCompanyId !== null && selectedCompanyId !== undefined && (
+        <DepartmentDialog
+          open={open}
+          onOpenChange={setOpen}
+          department={selected}
+          onSuccess={handleSuccess}
+          companyId={selectedCompanyId}
+        />
+      )}
     </div>
   );
 }

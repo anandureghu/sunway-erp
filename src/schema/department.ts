@@ -7,7 +7,7 @@ export const DEPARTMENT_SCHEMA = z.object({
     .max(10, "Too long"),
   departmentName: z.string().min(2, "Department name is required"),
   managerId: z.number().optional(),
-  companyId: z.number({ message: "Company is required" }),
+  companyId: z.number().optional(),
 });
 
 export type DepartmentFormData = z.infer<typeof DEPARTMENT_SCHEMA>;

@@ -5,13 +5,11 @@ import type {
   CategoryResponseDTO,
   CategoryUpdateDTO,
   ItemResponseDTO,
-  ItemUpdateDTO,
   WarehouseCreateDTO,
   WarehouseResponseDTO,
   WarehouseUpdateDTO,
   Id,
 } from "@/service/erpApiTypes";
-import type { ItemFormData } from "@/schema/inventory";
 
 function normalizeStatus(status?: string) {
   return (status || "").toLowerCase();
@@ -165,9 +163,9 @@ export async function deleteWarehouse(id: Id | string) {
 }
 
 // ---- Items ----
-export async function listItems(): Promise<ItemResponseDTO[]> {
+export async function listItems(): Promise<Item[]> {
   const res = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
-  return res.data || [];
+  return (res.data || []).map(toItem);
 }
 
 export const getItemById = async (id: string) => {

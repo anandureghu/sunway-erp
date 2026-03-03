@@ -27,19 +27,24 @@ import {
   DEPARTMENT_SCHEMA,
 } from "@/schema/department";
 import type { Department } from "@/types/department";
+import { useAuth } from "@/context/AuthContext";
 
 interface DepartmentFormProps {
   onSubmit: (data: DepartmentFormData) => Promise<void> | void;
   loading?: boolean;
   defaultValues?: Partial<DepartmentFormData> | null;
+  companyId: number;
 }
 
 export const DepartmentForm = ({
   onSubmit,
   loading,
   defaultValues,
+  companyId,
 }: DepartmentFormProps) => {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const form = useForm<DepartmentFormData>({
     resolver: zodResolver(DEPARTMENT_SCHEMA),
@@ -47,31 +52,36 @@ export const DepartmentForm = ({
       departmentCode: "",
       departmentName: "",
       managerId: undefined,
-      companyId: 0,
+      companyId: companyId,
       ...defaultValues,
     },
   });
 
+  // Fetch companies only for SUPER_ADMIN
   useEffect(() => {
-    apiClient.get("/companies").then((res) => {
-      // Handle both { data: [...] } and [...] response formats
-      const companiesData = res.data?.data || res.data;
-      setCompanies(Array.isArray(companiesData) ? companiesData : []);
-    });
-  }, []);
+    if (isSuperAdmin) {
+      apiClient.get("/companies").then((res) => {
+        const companiesData = res.data?.data || res.data;
+        setCompanies(Array.isArray(companiesData) ? companiesData : []);
+      });
+    }
+  }, [isSuperAdmin]);
+
+  // Set companyId from props
+  useEffect(() => {
+    form.setValue("companyId", companyId);
+  }, [companyId, form]);
 
   useEffect(() => {
     if (defaultValues) {
-      // Extract companyId from nested company object if it exists
-      // Cast to Department type to access company property
       const dept = defaultValues as Partial<Department>;
       const formData = {
         ...defaultValues,
-        companyId: defaultValues.companyId || dept.company?.id || 0,
+        companyId: defaultValues.companyId || dept.company?.id || companyId,
       };
       form.reset(formData);
     }
-  }, [defaultValues, form]);
+  }, [defaultValues, form, companyId]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values);
@@ -139,33 +149,35 @@ export const DepartmentForm = ({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="companyId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company</FormLabel>
-                <Select
-                  value={field.value?.toString()}
-                  onValueChange={(v) => field.onChange(Number(v))}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select company" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>
-                        {c.companyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {isSuperAdmin && (
+            <FormField
+              control={form.control}
+              name="companyId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company</FormLabel>
+                  <Select
+                    value={field.value?.toString()}
+                    onValueChange={(v) => field.onChange(Number(v))}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select company" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {companies.map((c) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {c.companyName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>
