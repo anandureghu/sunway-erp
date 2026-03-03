@@ -1,11 +1,12 @@
 import { AppTab } from "@/components/app-tab";
 import { useAuth } from "@/context/AuthContext";
 import BudgetPage from "@/modules/finance/budget-page";
-import JournalPage from "@/modules/finance/journal-page";
 import TransactionPage from "@/modules/finance/transaction-page";
 import CreditNotePage from "./credit-note-page";
 import { hasAnyRole } from "@/lib/utils";
 import ChartOfAccountsListPage from "@/modules/finance/chart-of-accounts/coa-list-page";
+import JournalEntryListPage from "@/modules/finance/journal-entry/je-list-page";
+import ReconciliationListPage from "@/modules/finance/reconcilation/recon-list-page";
 
 const GeneralLedgerPage = () => {
   const { user } = useAuth();
@@ -20,9 +21,7 @@ const GeneralLedgerPage = () => {
           {
             value: "manual-journals",
             label: "Manual Journals",
-            element: ({ companyId }: { companyId: number }) => (
-              <JournalPage companyId={companyId} />
-            ),
+            element: () => <JournalEntryListPage />,
           },
           {
             value: "transactions",
@@ -30,6 +29,11 @@ const GeneralLedgerPage = () => {
             element: ({ companyId }: { companyId: number }) => (
               <TransactionPage companyId={companyId} />
             ),
+          },
+          {
+            value: "reconciliations",
+            label: "Reconcile",
+            element: () => <ReconciliationListPage />,
           },
         ]
       : []),
