@@ -79,8 +79,6 @@ export const ChartOfAccountsForm = ({
     await onSubmit(values);
   });
 
-  console.log(form.watch("parentId"));
-
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -193,7 +191,6 @@ export const ChartOfAccountsForm = ({
               value={form.watch("departmentId")?.toString()}
               onChange={(val, dept) => {
                 form.setValue("departmentId", Number(val));
-                console.log(dept);
                 setDepartment(dept || null);
               }}
               companyId={company?.id || 0}
@@ -202,7 +199,6 @@ export const ChartOfAccountsForm = ({
             <SelectAccount
               value={form.watch("parentId")?.toString()}
               onChange={(val) => {
-                console.log(val);
                 form.setValue("parentId", Number(val));
               }}
               label="Parent Account"

@@ -13,7 +13,6 @@ import {
 
 import type { Company } from "@/types/company";
 import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
-import Info from "@/components/info";
 
 export const CHART_OF_ACCOUNTS_COLUMNS = ({
   onEdit,
@@ -28,14 +27,13 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
 
   { accessorKey: "accountNo", header: "Account No" },
   {
+    accessorKey: "accountCode",
+    header: "Account Code",
+  },
+  {
     accessorKey: "accountName",
     header: "Account Name",
-    cell: ({ row }) => {
-      const coa = row.original;
-      return <Info title={coa.accountName} subtitle={coa.accountCode} />;
-    },
   },
-
   {
     accessorKey: "type",
     header: "Type",

@@ -53,7 +53,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [refreshToken, setRefreshToken] = useState<string | null>(
     localStorage.getItem("refreshToken"),
   );
-  const [permissions, setPermissions] = useState<Record<string, Record<string, boolean>> | null>(null);
+  const [permissions, setPermissions] = useState<Record<
+    string,
+    Record<string, boolean>
+  > | null>(null);
   const [permissionsLoading, setPermissionsLoading] = useState(true);
 
   // Fetch permissions based on user role
@@ -73,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setPermissions(caps);
     } catch (err) {
       console.error("Failed to fetch permissions:", err);
-      setPermissions({});  // empty object, not null - so canAccess returns false
+      setPermissions({}); // empty object, not null - so canAccess returns false
     } finally {
       setPermissionsLoading(false);
     }
@@ -94,7 +97,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       apiClient
         .get(`/accounting-periods/open-status`)
         .then(({ data }: AxiosResponse<AccountingPeriod>) => {
-          console.log({ data });
           setAccountPeriodOpen(data != null);
           setOpenPeriod(data);
         });

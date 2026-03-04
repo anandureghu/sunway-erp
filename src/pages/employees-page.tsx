@@ -154,7 +154,8 @@ export default function EmployeesPage() {
         hometown: newEmployee.hometown ?? undefined,
         nationality: newEmployee.nationality ?? undefined,
         religion: newEmployee.religion ?? undefined,
-        identification: newEmployee.identification ?? newEmployee.nationalId ?? undefined,
+        identification:
+          newEmployee.identification ?? newEmployee.nationalId ?? undefined,
         joinDate: newEmployee.joinDate ?? undefined,
         phoneNo: newEmployee.phoneNo ?? undefined,
         departmentId:
@@ -232,8 +233,7 @@ export default function EmployeesPage() {
     (async () => {
       try {
         const list = await hrService.listEmployees();
-        console.log("EmployeesPage -> loaded employees", Array.isArray(list) ? list.length : typeof list, list?.slice?.(0,3));
-        
+
         // Fetch current job data for each employee to get department
         if (mounted && list.length > 0) {
           const employeesWithDepartment = await Promise.all(
@@ -241,7 +241,9 @@ export default function EmployeesPage() {
               try {
                 // Only fetch if employee has an ID
                 if (emp.id) {
-                  const currentJob = await currentJobService.get(Number(emp.id));
+                  const currentJob = await currentJobService.get(
+                    Number(emp.id),
+                  );
                   if (currentJob) {
                     const deptName =
                       // prefer flat prop if present
@@ -253,12 +255,12 @@ export default function EmployeesPage() {
                     if (deptName) return { ...emp, department: deptName };
                   }
                 }
-              } catch (err) {
+              } catch {
                 // Silently handle - employee might not have current job
                 console.debug("No current job for employee:", emp.id);
               }
               return emp;
-            })
+            }),
           );
           setEmployees(employeesWithDepartment);
         } else if (mounted) {
@@ -285,17 +287,19 @@ export default function EmployeesPage() {
 
   // Refresh employees list when an employee is updated elsewhere (profile page)
   useEffect(() => {
-    const handler = async (e: Event) => {
+    const handler = async () => {
       try {
         const list = await hrService.listEmployees();
-        
+
         // Fetch current job data for each employee to get department
         if (list.length > 0) {
           const employeesWithDepartment = await Promise.all(
             list.map(async (emp) => {
               try {
                 if (emp.id) {
-                  const currentJob = await currentJobService.get(Number(emp.id));
+                  const currentJob = await currentJobService.get(
+                    Number(emp.id),
+                  );
                   if (currentJob) {
                     const deptName =
                       (currentJob as any).departmentName ||
@@ -305,17 +309,16 @@ export default function EmployeesPage() {
                     if (deptName) return { ...emp, department: deptName };
                   }
                 }
-              } catch (err) {
+              } catch {
                 console.debug("No current job for employee:", emp.id);
               }
               return emp;
-            })
+            }),
           );
           setEmployees(employeesWithDepartment);
         } else {
           setEmployees(list);
         }
-        console.log("EmployeesPage -> refreshed after employee:updated", (e as CustomEvent).detail);
       } catch (err) {
         console.error("EmployeesPage -> refresh after update failed:", err);
       }
