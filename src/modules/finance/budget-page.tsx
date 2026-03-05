@@ -37,7 +37,8 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
 
   const handleRowClick = (row: Row<BudgetResponseDTO>) => {
     const budget = row.original;
-    navigate(`/finance/budgets/${budget.id}`);
+    if (budget.status === "APPROVED") navigate(`/finance/budgets/${budget.id}`);
+    else toast.warning("Budget is not approved");
   };
 
   useEffect(() => {
@@ -49,13 +50,30 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
       setSelected(row);
       setOpen(true);
     },
-    onPost: async (row) => {
+    onApprove: async (row) => {
       try {
         const res = await apiClient.post(`/finance/budgets/${row.id}/activate`);
         toast.success("Budget activated successfully");
         setList((prev) => prev.map((x) => (x.id === row.id ? res.data : x)));
       } catch {
         toast.error("Failed to activate budget");
+      }
+    },
+    onReject: async (row) => {
+      try {
+        await apiClient.post(`/finance/budgets/${row.id}/close`);
+        toast.success("Budget plan rejected successfully");
+      } catch {
+        toast.error("Failed to reject budget");
+      }
+    },
+    onHold: async (row) => {
+      try {
+        const res = await apiClient.post(`/finance/budgets/${row.id}/hold`);
+        toast.success("Budget marked as hold");
+        setList((prev) => prev.map((x) => (x.id === row.id ? res.data : x)));
+      } catch {
+        toast.error("Failed to mark budget hold");
       }
     },
     company: company!,
@@ -105,10 +123,10 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
         data={selected}
         onSuccess={(updated, mode) => {
           if (mode === "add") setList((prev) => [...prev, updated]);
-          else
-            setList((prev) =>
-              prev.map((x) => (x.id === updated.id ? updated : x)),
-            );
+          // else
+          //   setList((prev) =>
+          //     prev.map((x) => (x.id === updated.id ? updated : x)),
+          //   );
         }}
       />
     </div>

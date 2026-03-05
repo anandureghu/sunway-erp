@@ -91,7 +91,7 @@ export function BudgetDialog({
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
-              {isEdit ? "Edit Budget" : "Create Budget"}
+              {isEdit ? "Revise Budget" : "Create Budget"}
             </DialogTitle>
           </DialogHeader>
 
@@ -102,6 +102,7 @@ export function BudgetDialog({
               <Input
                 value={form.budgetName}
                 onChange={(e) => update("budgetName", e.target.value)}
+                disabled={isEdit}
               />
             </div>
 
@@ -111,6 +112,7 @@ export function BudgetDialog({
               <Input
                 value={form.fiscalYear || undefined}
                 onChange={(e) => update("fiscalYear", e.target.value)}
+                disabled={isEdit}
               />
             </div>
 
@@ -131,6 +133,7 @@ export function BudgetDialog({
                 type="date"
                 value={form.startDate}
                 onChange={(e) => update("startDate", e.target.value)}
+                disabled={isEdit}
               />
             </div>
 
@@ -141,11 +144,12 @@ export function BudgetDialog({
                 type="date"
                 value={form.endDate}
                 onChange={(e) => update("endDate", e.target.value)}
+                disabled={isEdit}
               />
             </div>
 
             <Button className="w-full mt-6" onClick={saveBudget}>
-              {isEdit ? "Update Budget" : "Create Budget"}
+              {isEdit ? "Revise Budget" : "Create Budget"}
             </Button>
           </div>
         </DialogContent>

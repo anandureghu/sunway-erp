@@ -16,12 +16,14 @@ const SelectAccount = ({
   value,
   label,
   placeholder,
+  disabled = false,
 }: {
   useId?: boolean;
   value: string | undefined;
   onChange: (v: string) => void;
   label?: string;
   placeholder?: string;
+  disabled?: boolean;
 }) => {
   const [accounts, setAccounts] = useState([]);
 
@@ -34,7 +36,7 @@ const SelectAccount = ({
   return (
     <>
       <Label>{label || "Account"}</Label>
-      <Select value={value || ""} onValueChange={onChange}>
+      <Select value={value || ""} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger>
           <SelectValue placeholder={placeholder || "Select Account"} />
         </SelectTrigger>

@@ -59,11 +59,11 @@ export const COA = [
   { key: "LIABILITY", label: "Liability" },
   { key: "EQUITY", label: "Equity" },
   { key: "REVENUE", label: "Revenue" },
-  { key: "EXPENSE", label: "Expense" },
-  { key: "INCOME", label: "Income" },
-  { key: "CASH", label: "Cash" },
-  { key: "TAX", label: "Tax" },
   { key: "COST", label: "Cost" },
+  { key: "EXPENSE", label: "Expense" },
+  { key: "TAX", label: "Tax" },
+  { key: "CASH", label: "Cash" },
+  { key: "INCOME", label: "Income" },
 ] as const;
 
 export type CoaType = (typeof COA)[number]["key"];

@@ -28,9 +28,11 @@ apiClient.interceptors.response.use(
       console.error("Network Error - Backend might be down or unreachable");
       console.error("Attempted URL:", error.config?.url);
       console.error("Base URL:", baseURL);
-    } else if (error.response?.status === 401) {
-      window.location.href = "/login";
-    } else if (error.response) {
+    }
+    // else if (error.response?.status === 401) {
+    //   window.location.href = "/auth/login";
+    // }
+    else if (error.response) {
       // Helpful debugging for 401/403/500 without needing to dig into Network tab.
       console.error("API Error:", {
         method: error.config?.method,

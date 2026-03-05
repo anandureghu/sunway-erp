@@ -14,10 +14,12 @@ const SelectDepartment = ({
   onChange,
   value,
   companyId,
+  disabled = false,
 }: {
   value: string | undefined;
   onChange: (v: string, dept?: Department | null) => void;
   companyId: number;
+  disabled?: boolean;
 }) => {
   const [departments, setDepartments] = useState<Department[]>([]);
 
@@ -39,7 +41,7 @@ const SelectDepartment = ({
     <>
       <Label>Department</Label>
 
-      <Select value={value} onValueChange={handleChange}>
+      <Select value={value} onValueChange={handleChange} disabled={disabled}>
         <SelectTrigger>
           <SelectValue placeholder="Select Department" />
         </SelectTrigger>
