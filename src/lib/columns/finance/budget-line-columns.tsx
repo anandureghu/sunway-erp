@@ -4,15 +4,26 @@ import { Button } from "@/components/ui/button";
 import type { Company } from "@/types/company";
 import type { Role } from "@/types/hr";
 import { hasAnyRole } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export function getBudgetLineColumns({
   onEdit,
   onDelete,
   company,
   role,
+  onStatusChange,
 }: {
   onEdit: (line: BudgetLineDTO) => void;
   onDelete: (line: BudgetLineDTO) => void;
+  onStatusChange: (id: number, status: string) => void;
   company: Company;
   role?: Role;
 }): ColumnDef<BudgetLineDTO>[] {
@@ -40,26 +51,71 @@ export function getBudgetLineColumns({
     ...(hasAnyRole(role, ["FINANCE_MANAGER", "SUPER_ADMIN"])
       ? [
           {
+            id: "actions",
             header: "Actions",
-            cell: ({ row }: { row: Row<BudgetLineDTO> }) => (
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => onEdit(row.original)}
-                >
-                  Edit
-                </Button>
+            cell: ({ row }: { row: Row<BudgetLineDTO> }) => {
+              const entry = row.original;
 
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => onDelete(row.original)}
-                >
-                  Delete
-                </Button>
-              </div>
-            ),
+              console.log(entry.status);
+
+              return (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <Separator />
+
+                      {entry.status !== "APPROVED" && (
+                        <DropdownMenuItem onClick={() => onEdit(entry)}>
+                          Edit
+                        </DropdownMenuItem>
+                      )}
+
+                      {(entry.status === "IMPLEMENTED" ||
+                        entry.status === "HOLD") && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              onStatusChange(entry.id!, "APPROVED")
+                            }
+                          >
+                            Approve
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() =>
+                              onStatusChange(entry.id!, "REJECTED")
+                            }
+                          >
+                            Reject
+                          </DropdownMenuItem>
+
+                          {entry.status !== "HOLD" && (
+                            <DropdownMenuItem
+                              onClick={() => onStatusChange(entry.id!, "HOLD")}
+                            >
+                              Hold
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
+
+                      {entry.status !== "APPROVED" && (
+                        <DropdownMenuItem onClick={() => onDelete(entry)}>
+                          Delete
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              );
+            },
           },
         ]
       : []),

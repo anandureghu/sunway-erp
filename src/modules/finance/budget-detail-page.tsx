@@ -60,6 +60,18 @@ export default function BudgetDetailPage() {
     }
   };
 
+  const onStatusChange = async (lineId: number, status: string) => {
+    try {
+      await apiClient.patch(
+        `/finance/budgets/${id}/lines/${lineId}?status=${status}`,
+      );
+      toast.success(`Line updated to ${status}`);
+      fetchOne();
+    } catch {
+      toast.error("Failed to update line status");
+    }
+  };
+
   // ---------------------------
   // Table columns
   // ---------------------------
@@ -68,6 +80,7 @@ export default function BudgetDetailPage() {
       setEditingLine(line);
       setLineDialogOpen(true);
     },
+    onStatusChange,
     onDelete: deleteLine,
     company: company!,
     role: user?.role,

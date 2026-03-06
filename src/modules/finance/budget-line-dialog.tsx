@@ -18,6 +18,7 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import SelectDepartment from "@/components/select-department";
 import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -134,18 +135,36 @@ export function BudgetLineDialog({
             />
           </div>
 
-<SelectDepartment
-            value={form.departmentId?.toString()}
-            onChange={(v) => update("departmentId", v)}
-            companyId={company?.id || 0}
-          />
+          <div
+            className={cn(
+              !form.departmentId &&
+                !form.projectId &&
+                "p-5 border border-dashed border-black/20 rounded-xl",
+            )}
+          >
+            {!form.projectId && (
+              <SelectDepartment
+                value={form.departmentId?.toString()}
+                onChange={(v) => update("departmentId", v)}
+                companyId={company?.id || 0}
+              />
+            )}
 
-          <div>
-            <Label>Project ID</Label>
-            <Input
-              value={form.projectId}
-              onChange={(e) => update("projectId", e.target.value)}
-            />
+            {!form.departmentId && !form.projectId && (
+              <div className="text-center text-black/40 font-semibold mt-3">
+                OR
+              </div>
+            )}
+
+            {!form.departmentId && (
+              <div>
+                <Label>Project ID</Label>
+                <Input
+                  value={form.projectId}
+                  onChange={(e) => update("projectId", e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Start Date */}

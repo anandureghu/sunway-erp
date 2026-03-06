@@ -76,9 +76,11 @@ export const BUDGET_COLUMNS = ({
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <Separator />
 
-              <DropdownMenuItem onClick={() => onEdit(entry)}>
-                Edit
-              </DropdownMenuItem>
+              {(entry.status === "APPROVED" || entry.status === "HOLD") && (
+                <DropdownMenuItem onClick={() => onEdit(entry)}>
+                  Revise
+                </DropdownMenuItem>
+              )}
 
               {(entry.status === "IMPLEMENTED" || entry.status === "HOLD") && (
                 <>
