@@ -3,31 +3,7 @@ import { Briefcase, Package } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
-import { Button } from "@/components/ui/button";
-
-/** Small “Edit/Update ↔ Save/Cancel” control kept consistent with your other screens */
-export function EditUpdateBar(props: {
-  editing: boolean;
-  onEdit: () => void;
-  onCancel: () => void;
-  onSave: () => void;
-}) {
-  const { editing, onEdit, onCancel, onSave } = props;
-  return !editing ? (
-    <Button
-      variant="outline"
-      className="rounded-full shadow-sm bg-white"
-      onClick={onEdit}
-    >
-      <span className="mr-2">✏️</span> Edit/Update
-    </Button>
-  ) : (
-    <div className="flex gap-2">
-      <Button variant="outline" onClick={onCancel}>Cancel</Button>
-      <Button onClick={onSave} className="bg-orange-500 text-white">Save</Button>
-    </div>
-  );
-}
+import EditUpdateButton from "@/components/EditUpdateButton";
 
 export default function LoansShell() {
   const { id } = useParams<{ id: string }>();
@@ -37,9 +13,7 @@ export default function LoansShell() {
   useEffect(() => {
     let mounted = true;
     if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [id]);
 
   const [editing, setEditing] = useState(false);
@@ -58,20 +32,16 @@ export default function LoansShell() {
         </div>
       </div>
 
-      {/* Tabs + Edit/Update bar UNDER the header (same row) */}
+      {/* Tabs + Edit/Update bar */}
       <div className="border-b bg-white">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex gap-2">
-            <Tab to="" icon={<Briefcase className="h-4 w-4" />} label="Loans" />
-            <Tab
-              to="company-properties"
-              icon={<Package className="h-4 w-4" />}
-              label="Company Properties"
-            />
+            <Tab to=""                   icon={<Briefcase className="h-4 w-4" />} label="Loans"               />
+            <Tab to="company-properties" icon={<Package   className="h-4 w-4" />} label="Company Properties"  />
           </div>
 
-          {/* the button sits to the right, under the blue strip */}
-          <EditUpdateBar
+          <EditUpdateButton
+            module="LOANS"
             editing={editing}
             onEdit={() => setEditing(true)}
             onCancel={() => setEditing(false)}
@@ -86,7 +56,7 @@ export default function LoansShell() {
         </div>
       </div>
 
-      {/* Active tab content; provide edit state to children via context-like props */}
+      {/* Active tab content */}
       <div className="p-4">
         <Outlet context={{ editing, setEditing, registerSave }} />
       </div>

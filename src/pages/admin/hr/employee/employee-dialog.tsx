@@ -32,7 +32,10 @@ import {
 } from "@/components/ui/form";
 import type { Department } from "@/types/department";
 import { createEmployeeSchema } from "@/schema/employee";
-import { ROLES, type Employee, type Role } from "@/types/hr";
+import { type Employee, type Role } from "@/types/hr";
+import { useAuth } from "@/context/AuthContext";
+import roleService from "@/service/roleService";
+import type { RoleOption } from "@/types/role";
 
 type EmployeeDialogProps = {
   open: boolean;
@@ -61,9 +64,29 @@ export function EmployeeDialog({
   presetRole = "ADMIN",
   onSuccess,
 }: EmployeeDialogProps) {
+  const { company } = useAuth();
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
+  const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
+
+  // Fetch roles from API when component mounts or company changes
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        if (company?.id) {
+          const roles = await roleService.getRoles(company.id);
+          const options = roles
+            .filter((r) => r.active !== false)
+            .map((r) => ({ label: r.name, value: r.name }));
+          setRoleOptions(options);
+        }
+      } catch (error) {
+        console.error("Failed to fetch roles:", error);
+      }
+    };
+    fetchRoles();
+  }, [company?.id]);
 
   const form = useForm({
     resolver: zodResolver(createEmployeeSchema),
@@ -351,11 +374,22 @@ export function EmployeeDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {ROLES.map((r) => (
-                        <SelectItem key={r.key} value={r.key}>
-                          {r.label}
-                        </SelectItem>
-                      ))}
+                      {roleOptions.length > 0 ? (
+                        roleOptions.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        // Fallback options when no roles are loaded
+                        <>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="HR">HR</SelectItem>
+                          <SelectItem value="USER">User</SelectItem>
+                          <SelectItem value="FINANCE_MANAGER">Finance Manager</SelectItem>
+                          <SelectItem value="ACCOUNTANT">Accountant</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

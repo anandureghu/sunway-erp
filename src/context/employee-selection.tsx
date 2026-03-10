@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -6,6 +6,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/context/AuthContext";
+import roleService from "@/service/roleService";
+import type { RoleOption } from "@/types/role";
 
 export type SelectedEmployee = {
   id: string;
@@ -84,8 +87,35 @@ export function AddEmployeeModal({
     religion: "",
     identification: "",
 
-    role: "USER",
+    role: "",
   });
+
+  const { company } = useAuth();
+  const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
+
+  // Fetch roles from the API when component mounts or company changes
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        if (company?.id) {
+          const roles = await roleService.getRoles(company.id);
+          const options = roles
+            .filter((r) => r.active !== false)
+            .map((r) => ({ label: r.name, value: r.name }));
+          setRoleOptions(options);
+          
+          // Set default role if available
+          if (options.length > 0 && !form.role) {
+            setForm((prev) => ({ ...prev, role: options[0].value }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch roles:", error);
+      }
+    };
+
+    fetchRoles();
+  }, [company?.id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -114,7 +144,8 @@ export function AddEmployeeModal({
       religion: form.religion || undefined,
       identification: form.identification || undefined,
 
-      role: form.role || "USER",
+      // Use companyRole (human-readable) for display
+      companyRole: form.role || "Employee",
     };
     onAdd(payload);
     onClose();
@@ -208,6 +239,7 @@ export function AddEmployeeModal({
                 <option value="Married">Married</option>
               </select>
             </div>
+
             <div>
               <label className="text-sm font-medium">Date of Birth</label>
               <input
@@ -218,19 +250,6 @@ export function AddEmployeeModal({
                 className="mt-1 block w-full rounded-md border px-3 py-2"
               />
             </div>
-
-              <div>
-                <label className="text-sm font-medium">Marital Status</label>
-                <select name="maritalStatus" value={form.maritalStatus} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2">
-                  <option value="">Select</option>
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Date of Birth</label>
-                <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
 
               <div>
                 <label className="text-sm font-medium">Birthplace</label>
@@ -261,13 +280,24 @@ export function AddEmployeeModal({
               <div>
                 <label className="text-sm font-medium">Role</label>
                 <select name="role" value={form.role} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2">
-                  <option value="USER">User</option>
-                  <option value="ADMIN">Admin</option>
-                  <option value="FINANCE_MANAGER">Finance Manager</option>
-                  <option value="ACCOUNTANT">Accountant</option>
-                  <option value="AP_AR_CLERK">AP/AR Clerk</option>
-                  <option value="CONTROLLER">Controller</option>
-                  <option value="AUDITOR_EXTERNAL">Auditor (External)</option>
+                  {roleOptions.length > 0 ? (
+                    roleOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))
+                  ) : (
+                    // Fallback options when no roles are loaded
+                    <>
+                      <option value="USER">User</option>
+                      <option value="ADMIN">Admin</option>
+                      <option value="FINANCE_MANAGER">Finance Manager</option>
+                      <option value="ACCOUNTANT">Accountant</option>
+                      <option value="AP_AR_CLERK">AP/AR Clerk</option>
+                      <option value="CONTROLLER">Controller</option>
+                      <option value="AUDITOR_EXTERNAL">Auditor (External)</option>
+                    </>
+                  )}
                 </select>
               </div>
           </div>

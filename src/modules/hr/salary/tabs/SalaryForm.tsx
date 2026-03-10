@@ -436,19 +436,19 @@ export default function SalaryForm() {
                   Basic Salary <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-600 font-semibold text-lg">
-                    {currencySymbol}
-                  </span>
                   <Input
                     type="number"
                     value={formData.basicSalary || ""}
                     onChange={(e) => updateField("basicSalary")(e.target.value)}
                     placeholder="0.00"
                     disabled={!editing}
-                    className="rounded-xl border-slate-300 text-xl font-bold pl-10 h-14 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="rounded-xl border-slate-300 text-xl font-bold pr-14 h-14 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     min="0"
                     step="0.01"
                   />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-semibold text-lg">
+                    {currencySymbol}
+                  </span>
                 </div>
                 {validateForm(formData).basicSalary && (
                   <p className="text-xs text-red-500 flex items-center gap-1">
@@ -497,9 +497,6 @@ export default function SalaryForm() {
                       Allowance Amount <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
-                        {currencySymbol}
-                      </span>
                       <Input
                         type="number"
                         value={formData.transportationAllowance || ""}
@@ -508,10 +505,13 @@ export default function SalaryForm() {
                         }
                         placeholder="0.00"
                         disabled={!editing}
-                        className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-blue-400"
+                        className="rounded-xl border-slate-300 pr-12 h-11 shadow-sm focus:ring-2 focus:ring-blue-400"
                         min="0"
                         step="0.01"
                       />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 font-medium">
+                        {currencySymbol}
+                      </span>
                     </div>
                     {validateForm(formData).transportationAllowance && (
                       <p className="text-xs text-red-500">
@@ -557,9 +557,6 @@ export default function SalaryForm() {
                       Allowance Amount <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
-                        {currencySymbol}
-                      </span>
                       <Input
                         type="number"
                         value={formData.travelAllowance || ""}
@@ -568,10 +565,13 @@ export default function SalaryForm() {
                         }
                         placeholder="0.00"
                         disabled={!editing}
-                        className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-violet-400"
+                        className="rounded-xl border-slate-300 pr-16 h-11 shadow-sm focus:ring-2 focus:ring-violet-400"
                         min="0"
                         step="0.01"
                       />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-medium">
+                        {currencySymbol}
+                      </span>
                     </div>
                     {validateForm(formData).travelAllowance && (
                       <p className="text-xs text-red-500">
@@ -617,9 +617,6 @@ export default function SalaryForm() {
                       Allowance Amount <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
-                        {currencySymbol}
-                      </span>
                       <Input
                         type="number"
                         value={formData.housingAllowance || ""}
@@ -628,10 +625,13 @@ export default function SalaryForm() {
                         }
                         placeholder="0.00"
                         disabled={!editing}
-                        className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-amber-400"
+                        className="rounded-xl border-slate-300 pr-16 h-11 shadow-sm focus:ring-2 focus:ring-amber-400"
                         min="0"
                         step="0.01"
                       />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-medium">
+                        {currencySymbol}
+                      </span>
                     </div>
                     {validateForm(formData).housingAllowance && (
                       <p className="text-xs text-red-500">
@@ -664,9 +664,6 @@ export default function SalaryForm() {
                     Allowance Amount <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-600 font-medium">
-                      {currencySymbol}
-                    </span>
                     <Input
                       type="number"
                       value={formData.otherAllowance || ""}
@@ -675,10 +672,13 @@ export default function SalaryForm() {
                       }
                       placeholder="0.00"
                       disabled={!editing}
-                      className="rounded-xl border-slate-300 pl-9 h-11 shadow-sm focus:ring-2 focus:ring-slate-400"
+                      className="rounded-xl border-slate-300 pr-16 h-11 shadow-sm focus:ring-2 focus:ring-slate-400"
                       min="0"
                       step="0.01"
                     />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-medium">
+                      {currencySymbol}
+                    </span>
                   </div>
                   {validateForm(formData).otherAllowance && (
                     <p className="text-xs text-red-500">

@@ -44,6 +44,7 @@ export default function DependentsShell() {
       {/* Action row BELOW header (same pill button you use elsewhere) */}
       <div className="px-4 pt-3 flex justify-end">
         <EditUpdateButton
+          module="DEPENDENTS"
           editing={editing}
           onEdit={() => setEditing(true)}
           onCancel={() => setEditing(false)}

@@ -1,4 +1,3 @@
-// src/pages/admin/departments/DepartmentForm.tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -30,6 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fetchManagers } from "@/service/employeeService";
+
+interface ManagerOption {
+  id: number;
+  employeeNo: string;
+  firstName: string;
+  lastName: string;
+  jobTitle?: string;
+}
 
 interface DepartmentFormProps {
   onSubmit: (data: DepartmentFormData) => Promise<void> | void;
@@ -44,9 +52,13 @@ export const DepartmentForm = ({
   defaultValues,
   companyId,
 }: DepartmentFormProps) => {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [, setCompanies] = useState<Company[]>([]);
+  const [managers, setManagers] = useState<ManagerOption[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
+  const isCompanyIdValid = companyId && companyId > 0;
 
   const form = useForm<DepartmentFormData>({
     resolver: zodResolver(DEPARTMENT_SCHEMA),
@@ -54,12 +66,22 @@ export const DepartmentForm = ({
       departmentCode: "",
       departmentName: "",
       managerId: undefined,
-      companyId: companyId || Number(user?.companyId),
+      companyId: isCompanyIdValid ? companyId : Number(user?.companyId),
       ...defaultValues,
     },
   });
 
-  // Fetch companies only for SUPER_ADMIN
+  if (!isCompanyIdValid) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-red-500">Please select a company first.</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Company information is required to create a department.
+        </p>
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (isSuperAdmin) {
       apiClient.get("/companies").then((res) => {
@@ -69,7 +91,52 @@ export const DepartmentForm = ({
     }
   }, [isSuperAdmin]);
 
-  // Set companyId from props
+  useEffect(() => {
+    const loadManagers = async () => {
+      if (!companyId || companyId <= 0) {
+        setManagers([]);
+        return;
+      }
+      
+      setLoadingManagers(true);
+      try {
+        const res = await apiClient.get(`/employees/company/${companyId}`);
+        const employees = res.data;
+        
+        if (employees && Array.isArray(employees)) {
+          const managerOptions = employees
+            .filter((emp: any) => emp.companyRole === "Manager")
+            .map((emp: any) => ({
+              id: emp.id,
+              employeeNo: emp.employeeNo || '',
+              firstName: emp.firstName || '',
+              lastName: emp.lastName || '',
+              jobTitle: emp.jobTitle || emp.companyRole || 'Manager'
+            }));
+          setManagers(managerOptions);
+        } else {
+          setManagers([]);
+        }
+      } catch (error) {
+        console.error("Error loading managers/employees:", error);
+        try {
+          const managersData = await fetchManagers(companyId);
+          if (managersData && Array.isArray(managersData)) {
+            setManagers(managersData);
+          } else {
+            setManagers([]);
+          }
+        } catch {
+          setManagers([]);
+        }
+      } finally {
+        setLoadingManagers(false);
+      }
+    };
+
+    loadManagers();
+  }, [companyId]);
+
   useEffect(() => {
     form.setValue("companyId", companyId);
   }, [companyId, form]);
@@ -131,55 +198,47 @@ export const DepartmentForm = ({
             name="managerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Manager ID (Optional)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="12"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value === ""
-                          ? undefined
-                          : Number(e.target.value)
-                      )
-                    }
-                  />
-                </FormControl>
+                <FormLabel>Manager (Optional)</FormLabel>
+                <Select
+                  value={field.value ? field.value.toString() : "none"}
+                  onValueChange={(v) =>
+                    field.onChange(v === "none" ? undefined : Number(v))
+                  }
+                  disabled={loadingManagers}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          loadingManagers ? "Loading managers..." : "Select Manager"
+                        }
+                      />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">-- No Manager --</SelectItem>
+
+                    {managers.map((manager) => (
+                      <SelectItem
+                        key={manager.id}
+                        value={manager.id.toString()}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {manager.firstName} {manager.lastName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {manager.jobTitle || "Manager"} - ID: {manager.employeeNo}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
-
-          {isSuperAdmin && (
-            <FormField
-              control={form.control}
-              name="companyId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company</FormLabel>
-                  <Select
-                    value={field.value?.toString()}
-                    onValueChange={(v) => field.onChange(Number(v))}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select company" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {companies.map((c) => (
-                        <SelectItem key={c.id} value={c.id.toString()}>
-                          {c.companyName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
         </div>
 
         <FormField

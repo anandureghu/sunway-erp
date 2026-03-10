@@ -57,11 +57,18 @@ export default function EmployeeProfilePage() {
     altPhone: string;
     email: string;
 
+    // personal information
+    birthplace: string;
+    hometown: string;
+    nationality: string;
+    religion: string;
+    identification: string;
+
     departmentId?: string;
     notes: string;
   };
 
-  const [form, setForm] = useState<FormState>(() => ({
+  const getInitialFormState = (): FormState => ({
     employeeNo: "",
     firstName: "",
     lastName: "",
@@ -78,12 +85,20 @@ export default function EmployeeProfilePage() {
     altPhone: "",
     email: "",
 
+    // personal information
+    birthplace: "",
+    hometown: "",
+    nationality: "",
+    religion: "",
+    identification: "",
+
     departmentId: undefined,
     notes: "",
-  }));
+  });
 
-  // (cleanPayload removed; we now send a minimal explicit payload)
+  const [form, setForm] = useState<FormState>(getInitialFormState);
 
+  // Load employee data
   useEffect(() => {
     if (!emp) return;
 
@@ -92,23 +107,31 @@ export default function EmployeeProfilePage() {
       firstName: emp.firstName ?? "",
       lastName: emp.lastName ?? "",
 
-      gender: (emp as any).gender ?? "",
-      prefix: (emp as any).prefix ?? "",
+      gender: emp.gender ?? "",
+      prefix: emp.prefix ?? "",
       status: emp.status ?? "Active",
-      maritalStatus: (emp as any).maritalStatus ?? "",
+      maritalStatus: emp.maritalStatus ?? "",
 
       dateOfBirth: emp.dateOfBirth ?? "",
       joinDate: emp.joinDate ?? "",
 
       phoneNo: emp.phoneNo ?? "",
-      altPhone: (emp as any).altPhone ?? "",
+      altPhone: emp.altPhone ?? "",
       email: emp.email ?? "",
 
+      // personal information
+      birthplace: emp.birthplace ?? "",
+      hometown: emp.hometown ?? "",
+      nationality: emp.nationality ?? "",
+      religion: emp.religion ?? "",
+      identification: emp.identification ?? "",
+
       departmentId: emp.departmentId ?? undefined,
-      notes: (emp as any).notes ?? "",
+      notes: emp.notes ?? "",
     });
   }, [emp]);
 
+  // Load contact info
   useEffect(() => {
     const employeeId = id ? Number(id) : undefined;
     if (!employeeId) return;
@@ -164,6 +187,13 @@ export default function EmployeeProfilePage() {
 
         dateOfBirth: form.dateOfBirth || null,
         joinDate: form.joinDate || null,
+
+        // personal information
+        birthplace: form.birthplace || null,
+        hometown: form.hometown || null,
+        nationality: form.nationality || null,
+        religion: form.religion || null,
+        identification: form.identification || null,
       };
       const idNum = emp?.id ? Number(emp.id) : undefined;
       if (!idNum) {
@@ -183,20 +213,27 @@ export default function EmployeeProfilePage() {
             firstName: fresh.firstName ?? "",
             lastName: fresh.lastName ?? "",
 
-            gender: (fresh as any).gender ?? "",
-            prefix: (fresh as any).prefix ?? "",
+            gender: fresh.gender ?? "",
+            prefix: fresh.prefix ?? "",
             status: fresh.status ?? "Active",
-            maritalStatus: (fresh as any).maritalStatus ?? "",
+            maritalStatus: fresh.maritalStatus ?? "",
 
             dateOfBirth: fresh.dateOfBirth ?? "",
             joinDate: fresh.joinDate ?? "",
 
             phoneNo: fresh.phoneNo ?? "",
-            altPhone: (fresh as any).altPhone ?? "",
+            altPhone: fresh.altPhone ?? "",
             email: fresh.email ?? "",
 
+            // personal information
+            birthplace: fresh.birthplace ?? "",
+            hometown: fresh.hometown ?? "",
+            nationality: fresh.nationality ?? "",
+            religion: fresh.religion ?? "",
+            identification: fresh.identification ?? "",
+
             departmentId: fresh.departmentId ?? undefined,
-            notes: (fresh as any).notes ?? "",
+            notes: fresh.notes ?? "",
           });
         } else {
           setEmp(updated as Employee);
@@ -234,6 +271,37 @@ export default function EmployeeProfilePage() {
     }
   };
 
+  const handleCancel = () => {
+    setForm({
+      employeeNo: emp.employeeNo ?? "",
+      firstName: emp.firstName ?? "",
+      lastName: emp.lastName ?? "",
+
+      gender: emp.gender ?? "",
+      prefix: emp.prefix ?? "",
+      status: emp.status ?? "Active",
+      maritalStatus: emp.maritalStatus ?? "",
+
+      dateOfBirth: emp.dateOfBirth ?? "",
+      joinDate: emp.joinDate ?? "",
+
+      phoneNo: emp.phoneNo ?? "",
+      altPhone: emp.altPhone ?? "",
+      email: emp.email ?? "",
+
+      // personal information
+      birthplace: emp.birthplace ?? "",
+      hometown: emp.hometown ?? "",
+      nationality: emp.nationality ?? "",
+      religion: emp.religion ?? "",
+      identification: emp.identification ?? "",
+
+      departmentId: emp.departmentId ?? undefined,
+      notes: emp.notes ?? "",
+    });
+    setEditing(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border">
@@ -256,29 +324,7 @@ export default function EmployeeProfilePage() {
               <>
                 <button
                   type="button"
-                  onClick={() => {
-                    setForm({
-                      employeeNo: emp.employeeNo ?? "",
-                      firstName: emp.firstName ?? "",
-                      lastName: emp.lastName ?? "",
-
-                      gender: (emp as any).gender ?? "",
-                      prefix: (emp as any).prefix ?? "",
-                      status: emp.status ?? "Active",
-                      maritalStatus: (emp as any).maritalStatus ?? "",
-
-                      dateOfBirth: emp.dateOfBirth ?? "",
-                      joinDate: emp.joinDate ?? "",
-
-                      phoneNo: emp.phoneNo ?? "",
-                      altPhone: (emp as any).altPhone ?? "",
-                      email: emp.email ?? "",
-
-                      departmentId: emp.departmentId ?? undefined,
-                      notes: (emp as any).notes ?? "",
-                    });
-                    setEditing(false);
-                  }}
+                  onClick={handleCancel}
                   className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90"
                 >
                   Cancel
@@ -313,7 +359,7 @@ export default function EmployeeProfilePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Field label="Employee No">
               <input
                 className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
@@ -413,6 +459,56 @@ export default function EmployeeProfilePage() {
               />
             </Field>
 
+            <Field label="Birthplace">
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.birthplace}
+                onChange={onChange("birthplace")}
+                disabled={!editing}
+                placeholder="Enter birthplace"
+              />
+            </Field>
+
+            <Field label="Hometown">
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.hometown}
+                onChange={onChange("hometown")}
+                disabled={!editing}
+                placeholder="Enter hometown"
+              />
+            </Field>
+
+            <Field label="Nationality">
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.nationality}
+                onChange={onChange("nationality")}
+                disabled={!editing}
+                placeholder="Enter nationality"
+              />
+            </Field>
+
+            <Field label="Religion">
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.religion}
+                onChange={onChange("religion")}
+                disabled={!editing}
+                placeholder="Enter religion"
+              />
+            </Field>
+
+            <Field label="Identification">
+              <input
+                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                value={form.identification}
+                onChange={onChange("identification")}
+                disabled={!editing}
+                placeholder="Enter ID number"
+              />
+            </Field>
+
             <Field label="Department ID">
               <input
                 className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
@@ -422,7 +518,7 @@ export default function EmployeeProfilePage() {
               />
             </Field>
 
-            <Field label="Notes">
+            <Field label="Notes" className="lg:col-span-2">
               <input
                 className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
                 value={form.notes as string}
@@ -431,11 +527,6 @@ export default function EmployeeProfilePage() {
               />
             </Field>
           </div>
-
-          {/* TODO: Addresses section */}
-          {/* <div className="col-span-1 md:col-span-2">
-            {id && !isNaN(Number(id)) && <AddressList employeeId={Number(id)} />}
-          </div> */}
 
           <div className="col-span-1 md:col-span-2 mt-6">
             {id && !isNaN(Number(id)) && <DependentsForm />}
@@ -459,13 +550,15 @@ export default function EmployeeProfilePage() {
 function Field({
   label,
   children,
+  className,
 }: {
   label: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="grid grid-cols-[140px_1fr] items-center gap-3">
-      <div className="text-sm text-gray-700">{label}:</div>
+    <div className={`grid grid-cols-[140px_1fr] items-center gap-3 ${className || ""}`}>
+      <span className="text-sm font-medium text-slate-700">{label}</span>
       {children}
     </div>
   );

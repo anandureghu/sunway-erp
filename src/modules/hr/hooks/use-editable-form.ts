@@ -3,37 +3,39 @@ import { useState, useCallback, useEffect, useRef, type ChangeEvent } from "reac
 interface UseEditableFormProps<T> {
   initialData: T;
   onSave?: (data: T) => Promise<void> | void;
+  externalEditing?: boolean; // ← pass this from parent layout to control editing externally
 }
 
 export function useEditableForm<T>({
   initialData,
   onSave,
+  externalEditing,
 }: UseEditableFormProps<T>) {
 
-  const [editing, setEditing] = useState(false);
+  const [internalEditing, setInternalEditing] = useState(false);
   const [formData, setFormData] = useState<T>(initialData);
-
   const initialDataRef = useRef(initialData);
 
   useEffect(() => {
     initialDataRef.current = initialData;
   }, [initialData]);
 
+  // If externalEditing is provided, use it — otherwise use internal state
+  const editing = externalEditing !== undefined ? externalEditing : internalEditing;
+
   const handleEdit = useCallback(() => {
-    setEditing(true);
+    setInternalEditing(true);
   }, []);
 
   const handleCancel = useCallback(() => {
     setFormData(initialDataRef.current);
-    setEditing(false);
+    setInternalEditing(false);
   }, []);
 
   const handleSave = useCallback(async () => {
     try {
-      if (onSave) {
-        await onSave(formData);
-      }
-      setEditing(false);
+      if (onSave) await onSave(formData);
+      setInternalEditing(false);
     } catch (error) {
       console.error("Error saving form:", error);
       throw error;
@@ -52,20 +54,13 @@ export function useEditableForm<T>({
             ? (maybeEvent.target.value as unknown as T[keyof T])
             : (value as T[keyof T]);
 
-        setFormData((prev) => ({
-          ...prev,
-          [field]: newValue as any,
-        }));
+        setFormData((prev) => ({ ...prev, [field]: newValue as any }));
       },
     []
   );
 
-  // Bulk update multiple fields at once - useful when loading data from API
   const setFields = useCallback((fields: Partial<T>) => {
-    setFormData((prev) => ({
-      ...prev,
-      ...fields,
-    }));
+    setFormData((prev) => ({ ...prev, ...fields }));
   }, []);
 
   return {

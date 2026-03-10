@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { Lock, ArrowLeft, Plus, Trash2, Edit, Search, Settings, Briefcase, Building2, KeyRound, Calendar, CheckCircle2, XCircle, Users, Loader2 } from "lucide-react";
+import { Lock, ArrowLeft, Plus, Trash2, Edit, Search, Settings, Briefcase, Building2, KeyRound, Calendar, CheckCircle2, XCircle, Users, Loader2, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +32,9 @@ import { jobCodeService } from "@/service/jobCodeService";
 import { fetchDepartments, deleteDepartment } from "@/service/departmentService";
 import { hrService } from "@/service/hr.service";
 import { permissionService } from "@/service/permissionService";
+import { roleService } from "@/service/roleService";
 import type { Employee } from "@/types/hr";
-import { RoleName } from "@/types/role";
+import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Role {
@@ -41,6 +42,7 @@ interface Role {
   name: string;
   custom: boolean;
   description?: string;
+  active?: boolean;
 }
 
 interface JobCode {
@@ -55,7 +57,7 @@ interface JobCode {
 interface Permission {
   id: number;
   role: string;
-  staffId: string;
+  staffId?: number;
   staffName: string;
   email: string;
   phone: string;
@@ -63,19 +65,13 @@ interface Permission {
   active: boolean;
 }
 
-
 // ─── Constants ────────────────────────────────────────────────────────────────
-// Default roles using RoleName enum values
-const DEFAULT_ROLES: Role[] = [
-  { id: 1, name: RoleName.USER,               custom: false },
-  { id: 2, name: RoleName.ADMIN,              custom: false },
-  { id: 3, name: RoleName.HR,                 custom: false },
-  { id: 4, name: RoleName.SUPER_ADMIN,        custom: false },
-  { id: 5, name: RoleName.FINANCE_MANAGER,    custom: false },
-  { id: 6, name: RoleName.ACCOUNTANT,         custom: false },
-  { id: 7, name: RoleName.AP_AR_CLERK,        custom: false },
-  { id: 8, name: RoleName.CONTROLLER,         custom: false },
-  { id: 9, name: RoleName.AUDITOR_EXTERNAL,   custom: false },
+// Default roles fallback - only used if API fails
+const FALLBACK_ROLES: Role[] = [
+  { id: 1, name: "USER", custom: false },
+  { id: 2, name: "ADMIN", custom: false },
+  { id: 3, name: "HR", custom: false },
+  { id: 4, name: "SUPER_ADMIN", custom: false },
 ];
 
 const HR_MODULES = [
@@ -584,26 +580,50 @@ function PermissionsTab({ roles, setRoles }: {
   roles: Role[];
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
 }) {
+  const { user } = useAuth();
+  
+  // Get companyId from user - handle both string and number formats
+  const companyId = user?.companyId ? Number(user.companyId) : null;
+
   // Ensure roles are loaded when this tab mounts or when empty
   useEffect(() => {
     const ensureRoles = async () => {
       if (roles && roles.length > 0) return;
       try {
-        const res = await permissionService.getRoles();
-        setRoles(res.filter((r: any) => r.id !== undefined).map((r: any) => ({ id: r.id!, name: r.name, custom: !!r.custom, description: r.description })));
+        // Try to fetch from roleService first (Settings page roles) - pass companyId to get company-specific roles
+        const res = companyId ? await roleService.getRoles(companyId) : await roleService.getRoles();
+        if (res && res.length > 0) {
+          setRoles(res.filter((r: any) => r.id !== undefined).map((r: any) => ({ 
+            id: r.id!, 
+            name: r.name, 
+            custom: !!r.custom, 
+            description: r.description,
+            active: r.active 
+          })));
+        } else {
+          // Fallback to permissionService if no roles from roleService
+          const permRes = await permissionService.getRoles();
+          setRoles(permRes.filter((r: any) => r.id !== undefined).map((r: any) => ({ 
+            id: r.id!, 
+            name: r.name, 
+            custom: !!r.custom, 
+            description: r.description,
+            active: r.active 
+          })));
+        }
       } catch (err) {
         console.error("Failed to load roles in PermissionsTab:", err);
-        setRoles(DEFAULT_ROLES);
+        setRoles(FALLBACK_ROLES);
       }
     };
     ensureRoles();
-  }, []);
+  }, [companyId]);
   const [perms,        setPerms]        = useState<Permission[]>([]);
   const [, setPermsLoading] = useState(true);
   const [employees,    setEmployees]    = useState<Employee[]>([]);
   const [view,         setView]         = useState<"permissions" | "roles">("permissions");
   const [modal,        setModal]        = useState<"perm" | "role" | null>(null);
-  const [permForm,     setPermForm]     = useState<Partial<Permission> & { caps: Record<string, Record<string, boolean>> }>({ role: "", staffId: "", caps: emptyCaps(), active: true });
+  const [permForm,     setPermForm]     = useState<Partial<Permission> & { caps: Record<string, Record<string, boolean>> }>({ role: "", staffId: undefined, caps: emptyCaps(), active: true });
   const [roleForm,     setRoleForm]     = useState<Partial<Role>>({ name: "", description: "" });
   const [del,          setDel]          = useState<Permission | null>(null);
   const [delRole,      setDelRole]      = useState<Role | null>(null);
@@ -627,32 +647,63 @@ function PermissionsTab({ roles, setRoles }: {
     setPermsLoading(true);
 
     try {
-      const results = await Promise.all(
-        roles.map(async (role) => {
-          try {
-            const rolePerms = await permissionService.getByRole(role.name);
+      const results: Permission[] = [];
 
-            if (!rolePerms || rolePerms.length === 0) return null;
+      for (const role of roles) {
 
-            return {
-              id: role.id,
-              role: role.name,
-              staffId: "",
-              staffName: "",
-              email: "",
-              phone: "",
-              caps: permissionService.toFrontendCaps(rolePerms),
-              active: true,
-            };
-          } catch {
-            return null;
-          }
-        })
-      );
+        // Fetch role-wide permissions (without employeeId)
+        const rolePerms = await permissionService.getByRole(role.name);
 
-      setPerms(results.filter(Boolean) as Permission[]);
-    } catch (error) {
-      console.error("Error loading permission rules:", error);
+        if (!rolePerms || rolePerms.length === 0) continue;
+
+        // Filter out employee-specific permissions - only keep true role-wide permissions
+        // Role-wide permissions should NOT have an employee object
+        const roleWidePerms = rolePerms.filter(p => !p.employee);
+
+        if (roleWidePerms.length > 0) {
+          results.push({
+            id: role.id,
+            role: role.name,
+            staffId: undefined,
+            staffName: "",
+            email: "",
+            phone: "",
+            caps: permissionService.toFrontendCaps(roleWidePerms),
+            active: true
+          });
+        }
+
+        // Fetch employee-specific permissions for each employee
+        for (const emp of employees) {
+          if (!emp.id) continue;
+          
+          const empPerms = await permissionService.getByRole(role.name, Number(emp.id));
+
+          if (!empPerms || empPerms.length === 0) continue;
+
+          // detect if permission belongs to employee
+          // Backend returns full employee object in the permission response
+          const isEmployeeOverride = empPerms.some(p => p.employee || p.user || p.employeeId);
+
+          if (!isEmployeeOverride) continue;
+
+          results.push({
+            id: role.id * 1000 + Number(emp.id),
+            role: role.name,
+            staffId: Number(emp.id),
+            staffName: `${emp.firstName} ${emp.lastName}`,
+            email: emp.email || "",
+            phone: (emp as any).phoneNo || "",
+            caps: permissionService.toFrontendCaps(empPerms),
+            active: true
+          });
+        }
+      }
+
+      setPerms(results);
+
+    } catch (err) {
+      console.error("Error loading permissions:", err);
     } finally {
       setPermsLoading(false);
     }
@@ -664,12 +715,12 @@ function PermissionsTab({ roles, setRoles }: {
   }, []);
 
   // Load existing permission rules from backend when PermissionsTab mounts
-  // Also refetch when roles are loaded (when roles length changes from 0 to >0)
+  // Also refetch when roles or employees are loaded
   useEffect(() => {
-    if (roles.length > 0) {
+    if (roles.length > 0 && employees.length > 0) {
       fetchPerms();
     }
-  }, [roles.length]);
+  }, [roles.length, employees.length]);
 
   const displayed = useMemo(() => {
     let list = perms;
@@ -692,45 +743,61 @@ function PermissionsTab({ roles, setRoles }: {
   const capCount = (rec: Permission) =>
     Object.values(rec.caps ?? {}).reduce((acc, m) => acc + Object.values(m).filter(Boolean).length, 0);
 
-  const openAddPerm  = () => { setPermForm({ id: undefined, role: "", staffId: "", caps: emptyCaps(), active: true }); setModal("perm"); };
+  const openAddPerm  = () => { setPermForm({ id: undefined, role: "", staffId: undefined, caps: emptyCaps(), active: true }); setModal("perm"); };
   const openEditPerm = (rec: Permission) => { setPermForm({ ...rec, caps: JSON.parse(JSON.stringify(rec.caps)) }); setModal("perm"); };
   const applyPreset  = (role: string) => {
     if (ROLE_PRESETS[role]) setPermForm(v => ({ ...v, caps: JSON.parse(JSON.stringify(ROLE_PRESETS[role])) }));
   };
   const savePerm = async () => {
-    if (!permForm.role) return;
-    const emp = employees.find(e => String(e.id) === String(permForm.staffId));
-    const rec: Permission = {
-      ...permForm, id: permForm.id ?? Date.now(), role: permForm.role!,
-      staffId: permForm.staffId ?? "", staffName: emp ? `${emp.firstName} ${emp.lastName}`.trim() : "",
-      email: emp?.email ?? "", phone: emp?.phoneNo ?? "", active: permForm.active ?? true,
-    };
 
-    try {
-      // If this is a role-wide permission (no staff override), persist via NEW backend API
-      // Using /api/role-permissions/{role} endpoint with role name
-      // Convert caps to backend ModulePermission[] payload
-      const backendPayload = permissionService.toBackendPermissions(rec.caps as any);
-      // Use role-name based endpoint for role permissions (backend RolePermissionController)
-      const roleObj = roles.find(r => r.name === rec.role);
-      if (roleObj) {
-        await permissionService.assignRolePermissions(roleObj.name, backendPayload as any);
-        toast.success("Permissions saved");
-      } else {
-        toast.error("Role not found on server");
-      }
+  if (!permForm.role) {
+    toast.error("Role is required");
+    return;
+  }
 
-      // Refetch permissions from backend to ensure UI is in sync
-      await fetchPerms();
-      setModal(null);
-    } catch (error) {
-      console.error("Error saving permissions:", error);
-      toast.error("Failed to save permissions");
+  try {
+
+    // convert caps → backend format
+    const permissions = permissionService.toBackendPermissions(
+      permForm.caps as any
+    );
+
+    // detect employee override
+    let employeeId: number | undefined = undefined;
+
+    if (permForm.staffId && permForm.staffId > 0) {
+      employeeId = Number(permForm.staffId);
     }
+    console.log("Saving permission:", {
+      role: permForm.role,
+      employeeId
+    });
+
+    // call backend
+    await permissionService.assignPermissions(
+      permForm.role,
+      permissions as any,
+      employeeId
+    );
+
+    toast.success(
+      employeeId
+        ? "Individual permission saved"
+        : "Role permission saved"
+    );
+
+    // reload permissions
+    await fetchPerms();
+
+    setModal(null);
+
+  } catch (err) {
+    console.error("Permission save failed:", err);
+    toast.error("Failed to save permission");
+  }
   };
   const toggleActive = (id: number) => setPerms(prev => prev.map(x => x.id === id ? { ...x, active: !x.active } : x));
 
-  const openAddRole  = ()        => { setRoleForm({ name: "", description: "", id: undefined }); setModal("role"); };
   const openEditRole = (r: Role) => { setRoleForm({ ...r }); setModal("role"); };
   
   // Handle delete - removes all permissions for a role by calling backend
@@ -783,17 +850,13 @@ function PermissionsTab({ roles, setRoles }: {
             {view === "permissions" ? <Settings className="h-4 w-4 mr-2" /> : <ArrowLeft className="h-4 w-4 mr-2" />}
             {view === "permissions" ? "Manage Roles" : "Back to Permissions"}
           </Button>
-          {view === "permissions" ? (
+          {view === "permissions" && (
             <Button onClick={openAddPerm} className="bg-gradient-to-r from-indigo-600 to-blue-600">
               <Plus className="h-4 w-4 mr-2" />
               Add Permission
             </Button>
-          ) : (
-            <Button onClick={openAddRole} className="bg-gradient-to-r from-indigo-600 to-blue-600">
-              <Plus className="h-4 w-4 mr-2" />
-              New Role
-            </Button>
           )}
+          {/* New Role button hidden - roles are managed in Settings page */}
         </div>
       </div>
 
@@ -1073,7 +1136,7 @@ function PermissionsTab({ roles, setRoles }: {
                   <label className="text-sm font-medium text-slate-700">Role *</label>
                   <select
                     value={permForm.role ?? ""}
-                    onChange={e => { setPermForm(v => ({ ...v, role: e.target.value })); applyPreset(e.target.value); }}
+                    onChange={e => { setPermForm(v => ({ ...v, role: e.target.value, staffId: undefined })); applyPreset(e.target.value); }}
                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">None selected</option>
@@ -1085,8 +1148,14 @@ function PermissionsTab({ roles, setRoles }: {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Staff Name</label>
                   <select
-                    value={permForm.staffId ?? ""}
-                    onChange={e => setPermForm(v => ({ ...v, staffId: e.target.value }))}
+                    value={permForm.staffId || ""}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      setPermForm(v => ({
+                        ...v,
+                        staffId: id > 0 ? id : undefined
+                      }));
+                    }}
                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">None selected (role-wide)</option>
@@ -1263,6 +1332,7 @@ const TABS = [
   { id: "jobs",   label: "Job Codes",    icon: Briefcase },
   { id: "depts",  label: "Departments",  icon: Building2 },
   { id: "perms",  label: "Permissions",  icon: KeyRound },
+  { id: "appraisal", label: "Appraisal",  icon: Star },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -1278,16 +1348,36 @@ export default function HRSettingsPage() {
     loadRoles();
   }, []);
 
+  // Get companyId from user - handle both string and number formats
+  const companyId = user?.companyId ? Number(user.companyId) : null;
+
   const loadRoles = async () => {
     try {
-      const res = await permissionService.getRoles();
-      // map backend Role shape to local Role interface if necessary
-      // Filter out roles with undefined id to avoid runtime errors
-      setRoles(res.filter(r => r.id !== undefined).map(r => ({ id: r.id!, name: r.name, custom: !!r.custom, description: r.description })));
+      // Try to fetch from roleService first (Settings page roles) - pass companyId to get company-specific roles
+      const res = companyId ? await roleService.getRoles(companyId) : await roleService.getRoles();
+      if (res && res.length > 0) {
+        setRoles(res.filter(r => r.id !== undefined).map(r => ({ 
+          id: r.id!, 
+          name: r.name, 
+          custom: !!r.custom, 
+          description: r.description,
+          active: r.active 
+        })));
+      } else {
+        // Fallback to permissionService if no roles from roleService
+        const permRes = await permissionService.getRoles();
+        setRoles(permRes.filter(r => r.id !== undefined).map(r => ({ 
+          id: r.id!, 
+          name: r.name, 
+          custom: !!r.custom, 
+          description: r.description,
+          active: r.active 
+        })));
+      }
     } catch (error) {
       console.error("Error loading roles:", error);
       // fallback to defaults
-      setRoles(DEFAULT_ROLES);
+      setRoles(FALLBACK_ROLES);
     }
   };
 
@@ -1361,6 +1451,7 @@ export default function HRSettingsPage() {
         {tab === "jobs"   && <JobCodesTab jobs={jobs} setJobs={setJobs} />}
         {tab === "depts"  && <DepartmentsTab />}
         {tab === "perms"  && <PermissionsTab roles={roles} setRoles={setRoles} />}
+        {tab === "appraisal" && <AppraisalTab />}
       </div>
     </div>
   );

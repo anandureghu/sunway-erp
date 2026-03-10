@@ -17,9 +17,7 @@ export default function LeavesShell() {
   useEffect(() => {
     let mounted = true;
     if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [id]);
 
   const editing = sp.get("edit") === "1";
@@ -47,7 +45,7 @@ export default function LeavesShell() {
         </div>
       </div>
 
-      {/* Tabs + Action row (tabs left, edit controls right) */}
+      {/* Tabs + Action row */}
       <div className="px-4 pt-3 flex justify-between items-center border-b bg-white" role="navigation" aria-label="Leaves sections">
         <div className="flex gap-2">
           <Tab to="." icon={<CalendarDays className="h-4 w-4" />}>
@@ -57,7 +55,9 @@ export default function LeavesShell() {
             Employee Leave History
           </Tab>
         </div>
+
         <EditUpdateButton
+          module="LEAVES"
           editing={editing}
           onEdit={() => setEditing(true)}
           onCancel={() => {
@@ -78,15 +78,7 @@ export default function LeavesShell() {
   );
 }
 
-function Tab({
-  to,
-  icon,
-  children,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function Tab({ to, icon, children }: { to: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <NavLink
       end
@@ -96,7 +88,7 @@ function Tab({
           "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
           isActive
             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
-            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm",
         ].join(" ")
       }
     >

@@ -15,13 +15,10 @@ export default function CurrentJobShell() {
   useEffect(() => {
     let mounted = true;
     if (id) hrService.getEmployee(id).then((e) => mounted && setEmp(e ?? null));
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [id]);
 
   const [sp, setSp] = useSearchParams();
-
   const editing = sp.get("edit") === "1";
 
   const setEditing = (val: boolean) => {
@@ -41,38 +38,31 @@ export default function CurrentJobShell() {
         </div>
       </div>
 
-      {/* Action row BELOW header + Tabs */}
+      {/* Tabs + Edit button */}
       <div className="px-4 pt-3 flex justify-between items-center border-b bg-white">
         <div className="flex gap-2">
-          <TabLink to="" end icon={<BriefcaseBusiness className="w-4 h-4" />}>
-            Current Job
-          </TabLink>
-          <TabLink to="contract" icon={<FileText className="w-4 h-4" />}>
-            Employee Contract
-          </TabLink>
-          <TabLink to="previous-experiences" icon={<Hourglass className="w-4 h-4" />}>
-            Previous Experiences
-          </TabLink>
-          <TabLink to="education" icon={<GraduationCap className="w-4 h-4" />}>
-            Education and Qualifications
-          </TabLink>
+          <TabLink to="" end icon={<BriefcaseBusiness className="w-4 h-4" />}>Current Job</TabLink>
+          <TabLink to="contract"              icon={<FileText       className="w-4 h-4" />}>Employee Contract</TabLink>
+          <TabLink to="previous-experiences"  icon={<Hourglass      className="w-4 h-4" />}>Previous Experiences</TabLink>
+          <TabLink to="education"             icon={<GraduationCap  className="w-4 h-4" />}>Education and Qualifications</TabLink>
         </div>
 
         <EditUpdateButton
+          module="CURRENT_JOB"
           editing={editing}
           onEdit={() => {
-            try { document.dispatchEvent(new CustomEvent("current-job:start-edit")); } catch { /* ignore */ }
-            try { document.dispatchEvent(new CustomEvent("contract:start-edit")); } catch { /* ignore */ }
+            try { document.dispatchEvent(new CustomEvent("current-job:start-edit")); } catch {}
+            try { document.dispatchEvent(new CustomEvent("contract:start-edit")); } catch {}
             setEditing(true);
           }}
           onCancel={() => {
-            try { document.dispatchEvent(new CustomEvent("current-job:cancel")); } catch { /* ignore */ }
-            try { document.dispatchEvent(new CustomEvent("contract:cancel")); } catch { /* ignore */ }
+            try { document.dispatchEvent(new CustomEvent("current-job:cancel")); } catch {}
+            try { document.dispatchEvent(new CustomEvent("contract:cancel")); } catch {}
             setEditing(false);
           }}
           onSave={() => {
-            try { document.dispatchEvent(new CustomEvent("current-job:save")); } catch { /* ignore */ }
-            try { document.dispatchEvent(new CustomEvent("contract:save")); } catch { /* ignore */ }
+            try { document.dispatchEvent(new CustomEvent("current-job:save")); } catch {}
+            try { document.dispatchEvent(new CustomEvent("contract:save")); } catch {}
             setEditing(false);
           }}
         />
@@ -85,17 +75,7 @@ export default function CurrentJobShell() {
   );
 }
 
-function TabLink({
-  to,
-  end,
-  icon,
-  children,
-}: {
-  to: string;
-  end?: boolean;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function TabLink({ to, end, icon, children }: { to: string; end?: boolean; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <NavLink
       to={to}
@@ -105,7 +85,7 @@ function TabLink({
           "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
           isActive
             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
-            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm",
         ].join(" ")
       }
     >

@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -30,6 +31,7 @@ import {
 } from "lucide-react";
 import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 import { useAuth } from "@/context/AuthContext";
+import type { CurrentJobCtx } from "../CurrentJobLayout";
 
 /* ================= INITIAL DATA ================= */
 
@@ -79,6 +81,9 @@ export default function CurrentJobForm() {
   const { company } = useAuth();
   const companyId = company?.id ? Number(company.id) : null;
 
+  // Get editing state from layout via Outlet context
+  const { editing: externalEditing } = useOutletContext<CurrentJobCtx>();
+
   const {
     editing,
     formData,
@@ -88,6 +93,7 @@ export default function CurrentJobForm() {
     handleCancel,
   } = useEditableForm<CurrentJob>({
     initialData: INITIAL_DATA,
+    externalEditing,
     onSave: async (data) => {
       if (savingRef.current) return;
       savingRef.current = true;
