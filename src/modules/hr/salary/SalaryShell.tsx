@@ -24,9 +24,7 @@ export default function SalaryShell() {
         if (mounted) setEmp(e ?? null);
       });
     }
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [id]);
 
   const [editing, setEditing] = useState(false);
@@ -56,15 +54,22 @@ export default function SalaryShell() {
         </div>
       </div>
 
-      {/* Tabs + Action row (tabs left, edit controls right) */}
+      {/* Tabs + Action row */}
       <div className="px-4 pt-3 flex justify-between items-center border-b bg-white">
         <div className="flex gap-2">
-          <Tab to="" icon={<BadgeIndianRupee className="h-4 w-4" />} label="Salary" />
-          <Tab to="bank" icon={<Landmark className="h-4 w-4" />} label="Bank" />
-          <Tab to="payroll" icon={<Banknote className="h-4 w-4" />} label="Payroll" />
+          <Tab to=""       icon={<BadgeIndianRupee className="h-4 w-4" />} label="Salary"  />
+          <Tab to="bank"   icon={<Landmark className="h-4 w-4" />}         label="Bank"    />
+          <Tab to="payroll" icon={<Banknote className="h-4 w-4" />}        label="Payroll" />
         </div>
 
-        <EditUpdateButton editing={editing} onEdit={startEdit} onCancel={cancel} onSave={save} />
+        {/* ✅ module="SALARY" — button disables if user has no editPermission for SALARY */}
+        <EditUpdateButton
+          module="SALARY"
+          editing={editing}
+          onEdit={startEdit}
+          onCancel={cancel}
+          onSave={save}
+        />
       </div>
 
       {/* Active tab content */}
@@ -73,22 +78,14 @@ export default function SalaryShell() {
           editing,
           startEdit,
           cancelEdit: cancel,
-          saveEdit: save
+          saveEdit: save,
         } satisfies SalaryCtx} />
       </div>
     </div>
   );
 }
 
-function Tab({
-  to,
-  icon,
-  label,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
+function Tab({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
     <NavLink
       end
@@ -98,7 +95,7 @@ function Tab({
           "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",
           isActive
             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105"
-            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm hover:transform hover:scale-102",
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-sm",
         ].join(" ")
       }
     >

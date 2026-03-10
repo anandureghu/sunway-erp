@@ -1,4 +1,3 @@
-// src/pages/admin/departments/DepartmentListPage.tsx
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { getDepartmentColumns } from "@/lib/columns/department-listing-admin";
@@ -32,13 +31,11 @@ export default function DepartmentListPage() {
   const { user, company } = useAuth();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
-  // Fetch companies for SUPER_ADMIN
   useEffect(() => {
     if (isSuperAdmin) {
       getAllCompanies().then((data) => {
         if (data && data.length > 0) {
           setCompanies(data);
-          // Set default company if none selected
           if (selectedCompanyId === null) {
             setSelectedCompanyId(data[0].id);
           }
@@ -47,7 +44,6 @@ export default function DepartmentListPage() {
     }
   }, [isSuperAdmin]);
 
-  // Set initial company for non-SUPER_ADMIN users from AuthContext
   useEffect(() => {
     if (!isSuperAdmin && company) {
       setSelectedCompanyId(Number(company.id));
@@ -55,7 +51,6 @@ export default function DepartmentListPage() {
   }, [isSuperAdmin, company]);
 
   const fetchDepartmentsData = async () => {
-    // Don't fetch if companyId is not available
     if (selectedCompanyId === null || selectedCompanyId === undefined) {
       setLoading(false);
       return;
@@ -114,7 +109,6 @@ export default function DepartmentListPage() {
   if (loading)
     return <p className="text-center text-muted-foreground p-10">Loading...</p>;
 
-  // Show message if no company selected
   if (!isSuperAdmin && !company) {
     return (
       <div className="p-6">
@@ -174,13 +168,21 @@ export default function DepartmentListPage() {
         </CardContent>
       </Card>
 
-      {selectedCompanyId !== null && selectedCompanyId !== undefined && (
+      {selectedCompanyId !== null && selectedCompanyId !== undefined ? (
         <DepartmentDialog
           open={open}
           onOpenChange={setOpen}
           department={selected}
           onSuccess={handleSuccess}
           companyId={selectedCompanyId}
+        />
+      ) : (
+        <DepartmentDialog
+          open={open}
+          onOpenChange={setOpen}
+          department={selected}
+          onSuccess={handleSuccess}
+          companyId={0}
         />
       )}
     </div>

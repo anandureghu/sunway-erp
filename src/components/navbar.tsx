@@ -7,6 +7,7 @@ import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { toggleAdminView } from "@/store/uiSlice";
 import { useAppDispatch, useAppSelector } from "@/store/store";
+import { displayRole } from "@/types/role";
 
 const Navbar = () => {
   const { logout, user } = useAuth();
@@ -37,7 +38,7 @@ const Navbar = () => {
           </h1>
           <p className="text-sm">
             {/* optionally user email or role */}
-            {user?.role ?? ""}
+            {displayRole((user as any)?.companyRole, user?.role)}
           </p>
         </div>
 

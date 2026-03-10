@@ -22,7 +22,7 @@ export function formatMoney(
   currencySymbol: string = "$",
 ) {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return `${currencySymbol}${num.toLocaleString("en-US")}`;
+  return `${num.toLocaleString("en-US")} ${currencySymbol}`;
 }
 
 export const toISO = (date: string) => new Date(date).toISOString();

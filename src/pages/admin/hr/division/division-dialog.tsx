@@ -1,4 +1,3 @@
-// src/pages/admin/departments/DepartmentDialog.tsx
 import {
   Dialog,
   DialogContent,

@@ -20,10 +20,12 @@ async function deleteRole(roleId: number): Promise<void> {
   await apiClient.delete(`/roles/${roleId}`);
 }
 
-async function getByRole(roleName: string): Promise<ModulePermission[]> {
-  const res = await apiClient.get<ModulePermission[]>(
-    `/role-permissions/${roleName.toUpperCase()}`
-  );
+async function getByRole(roleName: string, employeeId?: number): Promise<ModulePermission[]> {
+  const url = employeeId
+    ? `/role-permissions/${roleName.toUpperCase()}?employeeId=${employeeId}`
+    : `/role-permissions/${roleName.toUpperCase()}`;
+  
+  const res = await apiClient.get<ModulePermission[]>(url);
   return res.data;
 }
 
@@ -51,33 +53,23 @@ function toBackendDTOs(permissions: ModulePermission[]): object[] {
 
 async function assignPermissions(
   roleName: string,
-  permissions: ModulePermission[]
+  permissions: ModulePermission[],
+  employeeId?: number
 ): Promise<void> {
-  const payload = toBackendDTOs(permissions); // ✅ nested format
-  await apiClient.post(
-    `/role-permissions/${roleName.toUpperCase()}`,
-    payload
-  );
+  const payload = toBackendDTOs(permissions);
+
+  const url = employeeId
+    ? `/role-permissions/${roleName.toUpperCase()}?employeeId=${employeeId}`
+    : `/role-permissions/${roleName.toUpperCase()}`;
+
+  await apiClient.post(url, payload);
 }
 
-async function assignRolePermissions(
-  roleName: string,
-  permissions: ModulePermission[]
-): Promise<void> {
-  const payload = toBackendDTOs(permissions); // ✅ nested format
-  await apiClient.post(
-    `/role-permissions/${roleName.toUpperCase()}`,
-    payload
-  );
-}
 
 async function removeAll(roleName: string): Promise<void> {
   await apiClient.delete(`/role-permissions/${roleName.toUpperCase()}`);
 }
 
-async function removeRolePermissions(roleName: string): Promise<void> {
-  await apiClient.delete(`/role-permissions/${roleName.toUpperCase()}`);
-}
 
 // ✅ Maps backend flat response → frontend caps lookup object
 function toFrontendCaps(
@@ -131,9 +123,7 @@ export const permissionService = {
   getByRole,
   getMyPermissions,
   assignPermissions,
-  assignRolePermissions,
   removeAll,
-  removeRolePermissions,
   toFrontendCaps,
   toBackendPermissions,
   toBackendDTOs,      

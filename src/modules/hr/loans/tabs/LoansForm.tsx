@@ -414,9 +414,6 @@ export default function LoansForm(): ReactElement {
                           Loan Amount <span className="text-red-500">*</span>
                         </Label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 font-medium">
-                            $
-                          </span>
                           <Input
                             type="number"
                             value={loan.loanAmount || ""}
@@ -425,10 +422,13 @@ export default function LoansForm(): ReactElement {
                             }
                             placeholder="Enter loan amount"
                             disabled={false}
-                            className="rounded-lg border-slate-300 pl-8"
+                            className="rounded-lg border-slate-300 pr-16"
                             min="0"
                             step="0.01"
                           />
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">
+                            {currencySymbol}
+                          </span>
                         </div>
                       </div>
 

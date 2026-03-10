@@ -4,17 +4,15 @@ import { Button } from "@/components/ui/button";
 
 type Props = {
   value: AppModel;
+  module: string;
   onChange: (patch: Partial<AppModel>) => void;
   onSave: () => void;
   onCancel: () => void;
 };
 
-export default function AppraisalEditor({
-  value,
-  onChange,
-  onSave,
-  onCancel,
-}: Props) {
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
+
+export default function AppraisalEditor({ value, onChange, onSave, onCancel }: Props) {
   const [form, setForm] = useState<AppModel>({ ...value });
 
   useEffect(() => {
@@ -23,297 +21,268 @@ export default function AppraisalEditor({
 
   const updateLocal = (k: keyof AppModel, v: any) => {
     if (k === "id" || k === "_localId") return;
-
     setForm((prev) => {
       const next = { ...prev, [k]: v };
-
-      // Calculate overall performance if rating changed
-      if (k.startsWith('rating')) {
-        const ratings = [1, 2, 3, 4, 5].map(n => {
-          const ratingKey = `rating${n}` as keyof AppModel;
-          const rating = next[ratingKey];
-          return rating ? Number(rating) : 0;
-        }).filter(r => r > 0);
-
-        if (ratings.length > 0) {
-          const average = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
-          next.overallPerformance = Math.round(average * 100) / 100; // round to 2 decimals
-        } else {
-          next.overallPerformance = undefined;
-        }
-      }
-
-      onChange({ ...next }); // push full updated state
+      onChange({ ...next });
       return next;
     });
   };
-  const handleSave = () => {
-    // push full latest state to parent FIRST
-    onChange({ ...form });
 
-    // allow parent state to update before save
-    setTimeout(() => {
-      onSave();
-    }, 0);
+  const updateGoal = (goalId: number, field: string, val: any) => {
+    setForm((prev) => {
+      const updatedGoals = (prev.goals || []).map((g) =>
+        g.goalId === goalId ? { ...g, [field]: val } : g
+      );
+      const next = { ...prev, goals: updatedGoals };
+      onChange({ ...next });
+      return next;
+    });
   };
 
+  const handleSave = () => {
+    onChange({ ...form });
+    setTimeout(() => onSave(), 0);
+  };
+
+  const status    = form.status;
+  const isDraft   = status === "DRAFT";
+  const isSelf    = status === "SELF_SUBMITTED";
+  const hasGoals  = form.goals && form.goals.length > 0;
+
+  // Label for the save button based on status
+  const saveLabel =
+    isDraft  ? "Submit Self-Assessment" :
+    isSelf   ? "Submit Manager Review"  :
+    status === "MANAGER_REVIEWED" ? "Lock Appraisal" : "Save";
+
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-      <div className="flex gap-3 mb-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Month <span className="text-orange-500">*</span>
-          </label>
-          <select
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={form.month || ""}
-            onChange={(e) => updateLocal("month", e.target.value)}
-          >
-            <option value="">Select Month</option>
-            <option value="january">January</option>
-            <option value="february">February</option>
-            <option value="march">March</option>
-            <option value="april">April</option>
-            <option value="may">May</option>
-            <option value="june">June</option>
-            <option value="july">July</option>
-            <option value="august">August</option>
-            <option value="september">September</option>
-            <option value="october">October</option>
-            <option value="november">November</option>
-            <option value="december">December</option>
-          </select>
-        </div>
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 space-y-6">
 
-        <div className="w-32">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Year <span className="text-orange-500">*</span>
-          </label>
-          <input
-            type="number"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={String(form.year || new Date().getFullYear())}
-            onChange={(e) =>
-              updateLocal("year", Number(e.target.value) || "")
-            }
-          />
+      {/* Status Banner */}
+      {status && (
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold w-fit ${
+          isDraft  ? "bg-slate-100 text-slate-600" :
+          isSelf   ? "bg-blue-50 text-blue-700"   :
+          status === "MANAGER_REVIEWED" ? "bg-amber-50 text-amber-700" :
+          "bg-green-50 text-green-700"
+        }`}>
+          <span className="w-2 h-2 rounded-full bg-current inline-block" />
+          {status.replace("_", " ")}
         </div>
-      </div>
+      )}
 
-      {/* JOB CODE */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-slate-700 mb-1">Job Code</label>
+      {/* Year (read-only if already saved) */}
+      <div className="w-40">
+        <label className="block text-sm font-semibold text-slate-700 mb-1">Year</label>
         <input
-          type="text"
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          value={form.jobCode || ""}
-          onChange={(e) => updateLocal("jobCode", e.target.value)}
-          placeholder="Enter job code"
+          type="number"
+          readOnly={!!form.id}
+          className={`w-full px-3 py-2 border border-slate-300 rounded-lg ${
+            form.id ? "bg-slate-50 cursor-not-allowed" : "focus:ring-2 focus:ring-indigo-500"
+          }`}
+          value={String(form.year || new Date().getFullYear())}
+          onChange={(e) => updateLocal("year", Number(e.target.value) || "")}
         />
       </div>
 
-      {/* KPI GRID */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-        {/* KPI 1 */}
-        <div className="border border-slate-200 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">KPI 1</label>
-          <input
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.kpi1 || ""}
-            onChange={(e) => updateLocal("kpi1", e.target.value)}
-            placeholder="e.g., Sales Target Achievement"
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Review 1</label>
-          <textarea
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.review1 || ""}
-            onChange={(e) => updateLocal("review1", e.target.value)}
-            rows={4}
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Ratings</label>
-          <select
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={form.rating1 || ""}
-            onChange={(e) => updateLocal("rating1", e.target.value)}
-          >
-            <option value="">Select Rating</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
+      {/* ── Dynamic KPIs ── */}
+      {hasGoals ? (
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            🎯 Key Performance Indicators
+            <span className="text-xs font-normal text-slate-400 normal-case">
+              ({form.goals!.length} KPIs · {
+                isDraft ? "Fill in your self-ratings" :
+                isSelf  ? "Fill in manager ratings"   :
+                "Review complete"
+              })
+            </span>
+          </h3>
 
-        {/* KPI 2 */}
-        <div className="border border-slate-200 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">KPI 2</label>
-          <input
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.kpi2 || ""}
-            onChange={(e) => updateLocal("kpi2", e.target.value)}
-            placeholder="e.g., Customer Satisfaction"
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Review 2</label>
-          <textarea
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.review2 || ""}
-            onChange={(e) => updateLocal("review2", e.target.value)}
-            rows={4}
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Ratings</label>
-          <select
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={form.rating2 || ""}
-            onChange={(e) => updateLocal("rating2", e.target.value)}
-          >
-            <option value="">Select Rating</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
+          {form.goals!.map((goal, idx) => (
+            <div key={goal.goalId}
+              className="border border-slate-200 rounded-xl p-5 bg-slate-50 space-y-4">
 
-        {/* KPI 3 */}
-        <div className="border border-slate-200 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">KPI 3</label>
-          <input
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.kpi3 || ""}
-            onChange={(e) => updateLocal("kpi3", e.target.value)}
-            placeholder="e.g., Project Delivery"
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Review 3</label>
-          <textarea
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.review3 || ""}
-            onChange={(e) => updateLocal("review3", e.target.value)}
-            rows={4}
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Ratings</label>
-          <select
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={form.rating3 || ""}
-            onChange={(e) => updateLocal("rating3", e.target.value)}
-          >
-            <option value="">Select Rating</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
+              {/* KPI Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{goal.kpi}</p>
+                    {goal.description && (
+                      <p className="text-xs text-slate-500 mt-0.5">{goal.description}</p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100 flex-shrink-0">
+                  Weight: {goal.weight}%
+                </span>
+              </div>
 
-        {/* KPI 4 */}
-        <div className="border border-slate-200 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">KPI 4</label>
-          <input
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.kpi4 || ""}
-            onChange={(e) => updateLocal("kpi4", e.target.value)}
-            placeholder="e.g., Team Collaboration"
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Review 4</label>
-          <textarea
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.review4 || ""}
-            onChange={(e) => updateLocal("review4", e.target.value)}
-            rows={4}
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Ratings</label>
-          <select
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={form.rating4 || ""}
-            onChange={(e) => updateLocal("rating4", e.target.value)}
-          >
-            <option value="">Select Rating</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* KPI 5 */}
-        <div className="border border-slate-200 rounded-lg p-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">KPI 5</label>
-          <input
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.kpi5 || ""}
-            onChange={(e) => updateLocal("kpi5", e.target.value)}
-            placeholder="e.g., Professional Development"
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Review 5</label>
-          <textarea
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
-            value={form.review5 || ""}
-            onChange={(e) => updateLocal("review5", e.target.value)}
-            rows={4}
-          />
-          <label className="block text-sm font-medium text-slate-700 mb-2">Ratings</label>
-          <select
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={form.rating5 || ""}
-            onChange={(e) => updateLocal("rating5", e.target.value)}
-          >
-            <option value="">Select Rating</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
+                {/* Self Rating — editable in DRAFT, read-only after */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
+                    Self Rating {isDraft && <span className="text-red-400">*</span>}
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {RATING_OPTIONS.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        disabled={!isDraft}
+                        onClick={() => isDraft && updateGoal(goal.goalId, "selfRating", r)}
+                        className={`w-9 h-9 rounded-lg text-sm font-bold transition-all border ${
+                          goal.selfRating === r
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : isDraft
+                              ? "bg-white text-slate-600 border-slate-300 hover:border-indigo-400"
+                              : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                    {isDraft && goal.selfRating && (
+                      <button
+                        type="button"
+                        onClick={() => updateGoal(goal.goalId, "selfRating", undefined)}
+                        className="w-9 h-9 rounded-lg text-xs text-slate-400 border border-slate-200 hover:bg-red-50 hover:text-red-500"
+                      >✕</button>
+                    )}
+                  </div>
+                </div>
 
-        {/* OVERALL PERFORMANCE */}
-        <div className="border border-slate-200 rounded-lg p-4 col-span-full">
-          <label className="block text-sm font-medium text-slate-700 mb-2">Overall Performance</label>
-          <input
-            type="number"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50"
-            value={form.overallPerformance || ""}
-            readOnly
-            placeholder="Calculated average rating"
-          />
-        </div>
+                {/* Manager Rating — editable only in SELF_SUBMITTED */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-2">
+                    Manager Rating {isSelf && <span className="text-red-400">*</span>}
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {RATING_OPTIONS.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        disabled={!isSelf}
+                        onClick={() => isSelf && updateGoal(goal.goalId, "managerRating", r)}
+                        className={`w-9 h-9 rounded-lg text-sm font-bold transition-all border ${
+                          goal.managerRating === r
+                            ? "bg-orange-500 text-white border-orange-500"
+                            : isSelf
+                              ? "bg-white text-slate-600 border-slate-300 hover:border-orange-400"
+                              : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                    {isSelf && goal.managerRating && (
+                      <button
+                        type="button"
+                        onClick={() => updateGoal(goal.goalId, "managerRating", undefined)}
+                        className="w-9 h-9 rounded-lg text-xs text-slate-400 border border-slate-200 hover:bg-red-50 hover:text-red-500"
+                      >✕</button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-        {/* COMMENTS */}
-        <div className="border border-slate-200 rounded-lg p-4 col-span-full">
-          <label className="block text-sm font-medium text-slate-700 mb-2">Employee Comments</label>
+              {/* Comments */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
+                    Self Comment
+                  </label>
+                  <textarea
+                    disabled={!isDraft}
+                    className={`w-full px-3 py-2 text-sm border border-slate-300 rounded-lg resize-none ${
+                      isDraft ? "focus:ring-2 focus:ring-indigo-500" : "bg-slate-50 cursor-not-allowed"
+                    }`}
+                    rows={2}
+                    value={goal.selfComment || ""}
+                    onChange={(e) => isDraft && updateGoal(goal.goalId, "selfComment", e.target.value)}
+                    placeholder={isDraft ? "Your assessment notes..." : "—"}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
+                    Manager Comment
+                  </label>
+                  <textarea
+                    disabled={!isSelf}
+                    className={`w-full px-3 py-2 text-sm border border-slate-300 rounded-lg resize-none ${
+                      isSelf ? "focus:ring-2 focus:ring-indigo-500" : "bg-slate-50 cursor-not-allowed"
+                    }`}
+                    rows={2}
+                    value={goal.managerComment || ""}
+                    onChange={(e) => isSelf && updateGoal(goal.goalId, "managerComment", e.target.value)}
+                    placeholder={isSelf ? "Manager feedback..." : "—"}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl">
+          <div className="text-3xl mb-3">🎯</div>
+          <p className="text-slate-600 font-medium">No KPIs loaded</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Make sure an ACTIVE appraisal config exists in HR Settings
+            and this employee's role is configured.
+          </p>
+        </div>
+      )}
+
+      {/* Overall Comments */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
+            Employee Comments
+          </label>
           <textarea
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4"
+            disabled={!isDraft}
+            className={`w-full px-3 py-2 border border-slate-300 rounded-lg ${
+              isDraft ? "focus:ring-2 focus:ring-indigo-500" : "bg-slate-50 cursor-not-allowed"
+            }`}
+            rows={3}
             value={form.employeeComments || ""}
-            onChange={(e) =>
-              updateLocal("employeeComments", e.target.value)
-            }
-            rows={4}
+            onChange={(e) => updateLocal("employeeComments", e.target.value)}
+            placeholder={isDraft ? "Overall self-assessment comments..." : "—"}
           />
-
-          <label className="block text-sm font-medium text-slate-700 mb-2">Manager Comments</label>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1">
+            Manager Comments
+          </label>
           <textarea
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={!isSelf}
+            className={`w-full px-3 py-2 border border-slate-300 rounded-lg ${
+              isSelf ? "focus:ring-2 focus:ring-indigo-500" : "bg-slate-50 cursor-not-allowed"
+            }`}
+            rows={3}
             value={form.managerComments || ""}
-            onChange={(e) =>
-              updateLocal("managerComments", e.target.value)
-            }
-            rows={4}
+            onChange={(e) => updateLocal("managerComments", e.target.value)}
+            placeholder={isSelf ? "Overall manager feedback..." : "—"}
           />
         </div>
       </div>
 
-      {/* ACTIONS */}
-      <div className="flex gap-3 justify-end mt-6">
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button onClick={handleSave}>
-          Save
+      {/* Actions */}
+      <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button
+          onClick={handleSave}
+          disabled={status === "LOCKED"}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+        >
+          {saveLabel}
         </Button>
       </div>
     </div>
   );
 }
+

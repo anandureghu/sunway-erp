@@ -18,6 +18,13 @@ type EmpProfile = {
   gender: "Male" | "Female" | "Other" | "";
   maritalStatus?: "Single" | "Married" | "Divorced" | "Widowed" | "";
   status?: string;
+  
+  // personal information
+  birthplace?: string;
+  hometown?: string;
+  nationality?: string;
+  religion?: string;
+  identification?: string;
 };
 
 const NEW_EMP: EmpProfile = {
@@ -30,6 +37,13 @@ const NEW_EMP: EmpProfile = {
   gender: "",
   maritalStatus: "",
   status: "Active",
+  
+  // personal information
+  birthplace: "",
+  hometown: "",
+  nationality: "",
+  religion: "",
+  identification: "",
 };
 
 export default function EmployeeProfileForm() {
@@ -105,6 +119,13 @@ export default function EmployeeProfileForm() {
         dateOfBirth: updated.dateOfBirth || null,
         joinDate: updated.joinDate || null,
         imageUrl: updated.photoUrl || null,
+
+        // personal information
+        birthplace: updated.birthplace || null,
+        hometown: updated.hometown || null,
+        nationality: updated.nationality || null,
+        religion: updated.religion || null,
+        identification: updated.identification || null,
       };
 
       if (statusVal != null) payload.status = statusVal;
@@ -408,6 +429,56 @@ export default function EmployeeProfileForm() {
                 <option value="On Leave">On Leave</option>
                 <option value="Inactive">Inactive</option>
               </select>
+            </FormField>
+
+            <FormField label="Birthplace">
+              <Input
+                disabled={!editing}
+                value={draft.birthplace ?? ""}
+                onChange={(e) => set("birthplace", e.target.value)}
+                placeholder="Enter birthplace"
+                className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              />
+            </FormField>
+
+            <FormField label="Hometown">
+              <Input
+                disabled={!editing}
+                value={draft.hometown ?? ""}
+                onChange={(e) => set("hometown", e.target.value)}
+                placeholder="Enter hometown"
+                className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              />
+            </FormField>
+
+            <FormField label="Nationality">
+              <Input
+                disabled={!editing}
+                value={draft.nationality ?? ""}
+                onChange={(e) => set("nationality", e.target.value)}
+                placeholder="Enter nationality"
+                className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              />
+            </FormField>
+
+            <FormField label="Religion">
+              <Input
+                disabled={!editing}
+                value={draft.religion ?? ""}
+                onChange={(e) => set("religion", e.target.value)}
+                placeholder="Enter religion"
+                className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              />
+            </FormField>
+
+            <FormField label="Identification">
+              <Input
+                disabled={!editing}
+                value={draft.identification ?? ""}
+                onChange={(e) => set("identification", e.target.value)}
+                placeholder="Enter ID number"
+                className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
+              />
             </FormField>
           </FormRow>
         </div>

@@ -1,114 +1,87 @@
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Eye, FileText, Calendar, TrendingUp, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Eye, FileText, TrendingUp, MessageSquare, Calendar, Unlock } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { appraisalService } from "@/service/appraisalService";
 import { hrService } from "@/service/hr.service";
-import { currentJobService } from "@/service/currentJobService";
 import { toast } from "sonner";
 import AppraisalEditor from "./AppraisalEditor";
+import { appraisalConfigService } from "@/service/appraisalConfigService";
+import { displayRole } from "@/types/role";
 
 export type AppModel = {
   id?: number | string;
   _localId?: string;
-
-  month: string;
   year: number | string;
-
-  jobCode?: string;
+  month?: string;
+  status?: string;
+  goals?: {
+    goalId: number;
+    kpi: string;
+    description: string;
+    weight: number;
+    selfRating?: number;
+    managerRating?: number;
+    selfComment?: string;
+    managerComment?: string;
+  }[];
   employeeComments?: string;
   managerComments?: string;
-
-  kpi1?: string; review1?: string; rating1?: string;
-  kpi2?: string; review2?: string; rating2?: string;
-  kpi3?: string; review3?: string; rating3?: string;
-  kpi4?: string; review4?: string; rating4?: string;
-  kpi5?: string; review5?: string; rating5?: string;
-
-  overallPerformance?: number;
+  overallScore?: number | null;
 };
 
-const EMPTY: AppModel = {
-  month: "",
-  year: new Date().getFullYear(),
-
-  kpi1: "", review1: "",
-  kpi2: "", review2: "",
-  kpi3: "", review3: "",
-  kpi4: "", review4: "",
-  kpi5: "", review5: "",
-
-  employeeComments: "",
-  managerComments: "",
-};
-
-function toPayload(it: AppModel) {
-  return {
-    month: String(it.month).toLowerCase(),
-    year: Number(it.year),
-
-    jobCode: it.jobCode || undefined,
-    employeeComments: it.employeeComments || undefined,
-    managerComments: it.managerComments || undefined,
-
-    kpi1: it.kpi1 || undefined,
-    review1: it.review1 || undefined,
-    rating1: it.rating1 ? Number(it.rating1) : undefined,
-    kpi2: it.kpi2 || undefined,
-    review2: it.review2 || undefined,
-    rating2: it.rating2 ? Number(it.rating2) : undefined,
-    kpi3: it.kpi3 || undefined,
-    review3: it.review3 || undefined,
-    rating3: it.rating3 ? Number(it.rating3) : undefined,
-    kpi4: it.kpi4 || undefined,
-    review4: it.review4 || undefined,
-    rating4: it.rating4 ? Number(it.rating4) : undefined,
-    kpi5: it.kpi5 || undefined,
-    review5: it.review5 || undefined,
-    rating5: it.rating5 ? Number(it.rating5) : undefined,
-
-    overallPerformance: it.overallPerformance || undefined,
-  };
-}
+const MONTHS = [
+  "JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE",
+  "JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"
+];
 
 export default function AppraisalsForm() {
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
-  const [items, setItems] = useState<AppModel[]>([]);
+  const [items, setItems]       = useState<AppModel[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
-  const [employee, setEmployee] = useState<{ firstName?: string; middleName?: string; lastName?: string } | null>(null);
-  const [currentJobCode, setCurrentJobCode] = useState<string>("");
-  const ignoreNextSaveRef = useRef(false);
+  const [employee, setEmployee]   = useState<{
+    firstName?: string; middleName?: string; lastName?: string; role?: string; companyRole?: string;
+  } | null>(null);
+  const [appraisalYear, setAppraisalYear] = useState<number>(new Date().getFullYear());
+
+  // Month picker modal state
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedMonth, setSelectedMonth]     = useState<string>("");
+  const [adding, setAdding]                   = useState(false);
+
+  useEffect(() => {
+    appraisalConfigService.getActive()
+      .then(cfg => { if (cfg) setAppraisalYear(cfg.year); })
+      .catch(() => {});
+  }, []);
 
   const reload = useCallback(async (): Promise<void> => {
     if (!empId) return;
     try {
-      const data = await appraisalService.list(empId);
-      setItems(
-        (data || []).map((d: any) => ({
-          id: d.id,
-          month: d.month ?? "",
-          year: d.year ?? "",
-          jobCode: readDtoField(d, "jobCode") || readDtoField(d, "job_code"),
-          employeeComments: readDtoField(d, "employeeComments"),
-          managerComments: readDtoField(d, "managerComments"),
-          kpi1: readDtoField(d, "kpi", 1),
-          review1: readDtoField(d, "review", 1),
-          kpi2: readDtoField(d, "kpi", 2),
-          review2: readDtoField(d, "review", 2),
-          kpi3: readDtoField(d, "kpi", 3),
-          review3: readDtoField(d, "review", 3),
-          kpi4: readDtoField(d, "kpi", 4),
-          review4: readDtoField(d, "review", 4),
-          kpi5: readDtoField(d, "kpi", 5),
-          review5: readDtoField(d, "review", 5),
-        }))
-      );
-
-    } catch (error) {
-      console.error("Failed to load appraisals:", error);
+      const data = await appraisalService.listByEmployee(empId, 0, 100);
+      setItems((data.content || []).map((d) => ({
+        id: d.id,
+        year: d.year ?? "",
+        month: d.month ?? "",
+        status: d.status ?? "",
+        goals: (d.goals || []).map(g => ({
+          goalId: g.goalId,
+          kpi: g.kpi,
+          description: g.description,
+          weight: g.weight,
+          selfRating: g.selfRating ?? undefined,
+          managerRating: g.managerRating ?? undefined,
+          selfComment: g.selfComment ?? undefined,
+          managerComment: g.managerComment ?? undefined,
+        })),
+        employeeComments: d.employeeComments ?? "",
+        managerComments: d.managerComments ?? "",
+        overallScore: d.overallScore ?? null,
+      })));
+    } catch {
       toast.error("Failed to load appraisals");
     }
   }, [empId]);
@@ -121,134 +94,200 @@ export default function AppraisalsForm() {
     (async () => {
       try {
         const e = await hrService.getEmployee(empId);
-        if (mounted) setEmployee({ firstName: e.firstName, middleName: (e as any).middleName, lastName: e.lastName });
-      } catch (err) {
-        // ignore
-      }
+        if (mounted) setEmployee({
+          firstName: e.firstName,
+          middleName: (e as any).middleName,
+          lastName: e.lastName,
+          role: (e as any).role || (e as any).jobTitle || "",
+          companyRole: (e as any).companyRole || "",
+        });
+      } catch { /* ignore */ }
     })();
     return () => { mounted = false; };
   }, [empId]);
 
-  useEffect(() => {
-    if (!empId) return;
-    let mounted = true;
-    (async () => {
-      try {
-        const job = await currentJobService.get(empId);
-        if (mounted) setCurrentJobCode(job?.jobCode || "");
-      } catch (err) {
-        // ignore
-      }
-    })();
-    return () => { mounted = false; };
-  }, [empId]);
+  // Step 1: open month picker
+  const handleAddClick = () => {
+    setSelectedMonth("");
+    setShowMonthPicker(true);
+  };
 
-  const handleAdd = () => {
-    const newItem: AppModel = { ...EMPTY, _localId: String(Date.now()), jobCode: currentJobCode || undefined };
-    setItems((c) => [...c, newItem]);
-    setEditingId(String(newItem._localId));
+  // Step 2: confirm month and call backend
+  const handleConfirmAdd = async () => {
+    if (!empId || !selectedMonth) {
+      toast.error("Please select a month");
+      return;
+    }
+    setAdding(true);
+    try {
+      await appraisalService.create(empId, appraisalYear, selectedMonth);
+      toast.success(`Appraisal created for ${selectedMonth} ${appraisalYear}`);
+      setShowMonthPicker(false);
+      await reload();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to create appraisal");
+    } finally {
+      setAdding(false);
+    }
   };
 
   const updateItem = (idKey: string | number | undefined, patch: Partial<AppModel>) => {
     setItems((cur) =>
       cur.map((it) =>
-        String(it._localId ?? it.id) === String(idKey)
-          ? { ...it, ...patch }
-          : it
+        String(it._localId ?? it.id) === String(idKey) ? { ...it, ...patch } : it
       )
     );
   };
 
   const handleSave = useCallback(async (it: AppModel) => {
-    if (!empId) return;
-
-    if (!it.month || !it.year) {
-      toast.error("Month and year required");
-      return;
-    }
+    if (!empId || !it.id) return;
+    const appraisalId = Number(it.id);
+    const status = it.status;
 
     try {
-      if (it.id && Number(it.id)) {
-        await appraisalService.updateById(empId, Number(it.id), toPayload(it));
-        toast.success("Appraisal updated");
+      if (status === "DRAFT") {
+        await appraisalService.submitSelfAssessment(empId, appraisalId, {
+          goals: it.goals?.map(g => ({
+            goalId: g.goalId,
+            selfRating: g.selfRating,
+            selfComment: g.selfComment,
+          })) || [],
+          employeeComments: it.employeeComments,
+        });
+        toast.success("Self-assessment submitted ✓");
+      } else if (status === "SELF_SUBMITTED") {
+        await appraisalService.submitManagerReview(empId, appraisalId, {
+          goals: it.goals?.map(g => ({
+            goalId: g.goalId,
+            managerRating: g.managerRating,
+            managerComment: g.managerComment,
+          })) || [],
+          managerComments: it.managerComments,
+        });
+        toast.success("Manager review submitted ✓");
+      } else if (status === "MANAGER_REVIEWED") {
+        await appraisalService.lock(empId, appraisalId);
+        toast.success("Appraisal locked ✓");
       } else {
-        await appraisalService.create(empId, toPayload(it));
-        toast.success("Appraisal created");
+        toast.error(`Cannot edit appraisal with status: ${status}`);
+        return;
       }
-
       await reload();
       setEditingId(null);
     } catch (err: any) {
-      console.error("Save failed:", err);
       toast.error(err?.response?.data?.message || "Failed to save appraisal");
     }
   }, [empId, reload]);
 
   const handleDelete = async (appId?: number | string) => {
-    if (!empId) return;
-    if (!confirm("Delete appraisal?")) return;
-
+    if (!empId || !confirm("Delete appraisal?")) return;
     try {
       if (appId && Number(appId)) {
         await appraisalService.removeById(empId, Number(appId));
       }
-      setItems((cur) =>
-        cur.filter((it) => String(it._localId ?? it.id) !== String(appId))
-      );
+      setItems((cur) => cur.filter((it) => String(it._localId ?? it.id) !== String(appId)));
       toast.success("Appraisal deleted");
-    } catch {
-      toast.error("Failed to delete appraisal");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to delete");
     }
   };
 
-  const handleCancel = () => {
-    ignoreNextSaveRef.current = true;
-    setItems((cur) =>
-      cur.filter((it) => {
-        if (String(it._localId ?? it.id) !== String(editingId)) return true;
-        if (it._localId && !it.id) {
-          const isEmpty =
-            !it.month &&
-            !it.jobCode &&
-            !it.employeeComments &&
-            !it.managerComments &&
-            !it.kpi1 &&
-            !it.review1 &&
-            !it.kpi2 &&
-            !it.review2 &&
-            !it.kpi3 &&
-            !it.review3 &&
-            !it.kpi4 &&
-            !it.review4 &&
-            !it.kpi5 &&
-            !it.review5;
-          return !isEmpty;
-        }
-        return true;
-      })
-    );
-    setEditingId(null);
+  const handleForceDelete = async (appId?: number | string) => {
+    if (!empId || !confirm("Force delete this LOCKED appraisal? This cannot be undone.")) return;
+    try {
+      if (appId && Number(appId)) await appraisalService.forceDelete(empId, Number(appId));
+      setItems((cur) => cur.filter((it) => String(it._localId ?? it.id) !== String(appId)));
+      toast.success("Appraisal force deleted");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to force delete");
+    }
   };
 
-  useEffect(() => {
-    const onSaveEvent = () => {
-      if (ignoreNextSaveRef.current) {
-        ignoreNextSaveRef.current = false;
-        return;
-      }
-      if (!editingId) return;
-      const it = items.find(
-        (x) => String(x._localId ?? x.id) === String(editingId)
-      );
-      if (it) void handleSave(it);
-    };
+  const handleUnlock = async (appId?: number | string) => {
+    if (!empId || !confirm("Unlock this appraisal? It will return to MANAGER_REVIEWED.")) return;
+    try {
+      if (appId && Number(appId)) await appraisalService.unlock(empId, Number(appId));
+      toast.success("Appraisal unlocked ✓");
+      await reload();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to unlock");
+    }
+  };
 
-    document.addEventListener("appraisal:save", onSaveEvent);
-    return () => document.removeEventListener("appraisal:save", onSaveEvent);
-  }, [editingId, items, handleSave]);
+  const getStatusBadge = (status?: string) => {
+    switch (status) {
+      case "DRAFT":            return "bg-slate-100 text-slate-600";
+      case "SELF_SUBMITTED":   return "bg-blue-100 text-blue-700";
+      case "MANAGER_REVIEWED": return "bg-amber-100 text-amber-700";
+      case "LOCKED":           return "bg-green-100 text-green-700";
+      default:                 return "bg-slate-100 text-slate-500";
+    }
+  };
+
+  const getActionLabel = (status?: string) => {
+    switch (status) {
+      case "DRAFT":            return "Self-Submit";
+      case "SELF_SUBMITTED":   return "Manager Review";
+      case "MANAGER_REVIEWED": return "Lock";
+      default:                 return null;
+    }
+  };
+
+  // Months already used this year
+  const usedMonths = items
+    .filter(it => String(it.year) === String(appraisalYear))
+    .map(it => it.month)
+    .filter(Boolean);
 
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+
+      {/* Month Picker Modal */}
+      {showMonthPicker && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-[360px]">
+            <h3 className="text-lg font-bold text-slate-800 mb-1">Select Month</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Creating appraisal for <span className="font-semibold text-indigo-600">{appraisalYear}</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2 mb-6">
+              {MONTHS.map((m) => {
+                const used = usedMonths.includes(m);
+                return (
+                  <button
+                    key={m}
+                    disabled={used}
+                    onClick={() => setSelectedMonth(m)}
+                    className={`py-2 px-1 rounded-lg text-xs font-semibold transition-all border ${
+                      used
+                        ? "bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed line-through"
+                        : selectedMonth === m
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-slate-700 border-slate-200 hover:border-indigo-400"
+                    }`}
+                  >
+                    {m.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowMonthPicker(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmAdd}
+                disabled={!selectedMonth || adding}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                {adding ? "Creating..." : "Create Appraisal"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
         <div className="flex justify-between items-center">
           <div>
@@ -256,304 +295,214 @@ export default function AppraisalsForm() {
               <FileText className="h-5 w-5 text-blue-600" />
               Employee Performance Review
             </h2>
-            <p className="text-sm text-slate-500 mt-1">Comprehensive performance evaluation</p>
+            <p className="text-sm text-slate-500 mt-1">Monthly performance evaluations · {appraisalYear}</p>
             {employee && (
-              <p className="text-sm text-slate-600 mt-1">{`${employee.firstName || ""} ${employee.middleName || ""} ${employee.lastName || ""}`.trim()}</p>
+              <p className="text-sm text-slate-600 mt-1">
+                {`${employee.firstName || ""} ${employee.middleName || ""} ${employee.lastName || ""}`.trim()}
+                {employee.role && <span className="text-slate-400"> · {displayRole(employee.companyRole, employee.role)}</span>}
+              </p>
             )}
           </div>
-          <Button
-            onClick={handleAdd}
-            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
-          >
-            <Plus className="h-5 w-5" />
-            Add Appraisal
+          <Button onClick={handleAddClick}
+            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl">
+            <Plus className="h-5 w-5" /> Add Appraisal
           </Button>
         </div>
       </div>
 
-      {/* Performance Review Details Section */}
+      {/* List */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-blue-600" />
-          Performance Review Details
+          <FileText className="h-4 w-4 text-blue-600" /> Performance Reviews
         </h3>
 
-        {/* Performance Reviews Grid */}
-        <div className="grid gap-6">
-
+        <div className="grid gap-4">
           {items.map((it) => {
             const key = String(it._localId ?? it.id);
             const editing = editingId === key;
             const viewing = viewingId === key;
+            const actionLabel = getActionLabel(it.status);
+            const isLocked = it.status === "LOCKED";
 
             return (
-              <div key={key} className="border border-slate-200 rounded-lg p-6 mb-6">
+              <div key={key} className="border border-slate-200 rounded-xl p-5">
+                {editing ? (
+                  <AppraisalEditor
+                    module="APPRAISAL"
+                    value={it as any}
+                    onChange={(patch) => updateItem(it._localId ?? it.id, patch as any)}
+                    onSave={() => void handleSave(it)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : !viewing ? (
+                  /* ── Card ── */
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h3 className="text-lg font-bold text-slate-800">
+                          {it.month
+                            ? `${it.month.charAt(0) + it.month.slice(1).toLowerCase()} ${it.year}`
+                            : String(it.year)}
+                        </h3>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusBadge(it.status)}`}>
+                          {it.status || "—"}
+                        </span>
+                      </div>
+                      <div className="flex gap-3 flex-wrap mt-2">
+                        {it.goals && it.goals.length > 0 && (
+                          <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded-full border border-amber-100">
+                            {it.goals.length} KPIs
+                          </span>
+                        )}
+                        {it.overallScore != null && (
+                          <span className="text-xs text-indigo-700 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">
+                            Score: {it.overallScore.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* EDIT MODE */}
-                  {editing ? (
-                    <AppraisalEditor
-                      value={it}
-                      onChange={(patch) => updateItem(it._localId ?? it.id, patch)}
-                      onSave={() => void handleSave(it)}
-                      onCancel={handleCancel}
-                    />
-                  ) : (
-                    <>
-                      {!viewing ? (
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-xl font-bold text-slate-800">
-                                {it.month || "—"} / {it.year || "—"}
-                              </h3>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                                <p className="text-xs text-slate-600 mb-1">Job Code</p>
-                                <p className="text-sm font-semibold text-blue-700">{it.jobCode || "No code"}</p>
-                              </div>
-                              {it.employeeComments && (
-                                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
-                                  <p className="text-xs text-slate-600 mb-1">Employee Comments</p>
-                                  <p className="text-sm font-semibold text-emerald-700">✓ Present</p>
-                                </div>
-                              )}
-                              {it.managerComments && (
-                                <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-3 rounded-lg border border-violet-100">
-                                  <p className="text-xs text-slate-600 mb-1">Manager Comments</p>
-                                  <p className="text-sm font-semibold text-violet-700">✓ Present</p>
-                                </div>
-                              )}
-                              {(() => {
-                                const read = (base: string, n?: number) => {
-                                  const keys = n != null
-                                    ? [`${base}${n}`, `${base}_${n}`, `${base}${n}`.toLowerCase()]
-                                    : [base, base.toLowerCase(), base.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`)];
-                                  for (const k of keys) {
-                                    // @ts-ignore
-                                    const v = it[k];
-                                    if (v !== undefined && v !== null) return String(v);
-                                  }
-                                  return "";
-                                };
-
-                                const kpiCount = [1, 2, 3, 4, 5].filter(n => {
-                                  const k = read("kpi", n);
-                                  return k.trim() !== "";
-                                }).length;
-                                return kpiCount > 0 ? (
-                                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-100">
-                                    <p className="text-xs text-slate-600 mb-1">KPIs Defined</p>
-                                    <p className="text-sm font-semibold text-amber-700">{kpiCount} of 5</p>
-                                  </div>
-                                ) : null;
-                              })()}
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setViewingId(key)}
-                              className="rounded-lg"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditingId(key)}
-                              className="rounded-lg"
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(it._localId ?? it.id)}
-                              className="text-red-600 rounded-lg flex-1"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-2xl font-bold text-slate-800">
-                              {employee ? `${employee.firstName || ""} ${employee.middleName || ""} ${employee.lastName || ""}`.trim() : "Employee"}
-                            </h3>
-                            <p className="text-sm text-slate-600">{it.month || "—"} {it.year || "—"} Performance Review</p>
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="ghost" onClick={() => setViewingId(null)}>Close</Button>
-                              <Button size="sm" onClick={() => { setViewingId(null); setEditingId(key); }} className="bg-gradient-to-r from-amber-500 to-orange-400 text-white">Edit</Button>
-                            </div>
-                          </div>
-
-                          {/* Basic Information */}
-                          <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                              <FileText className="h-5 w-5 text-blue-600" />
-                              Basic Information
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <DetailItem label="Month" value={it.month || "—"} />
-                              <DetailItem label="Year" value={String(it.year) || "—"} />
-                              <DetailItem label="Job Code" value={it.jobCode || "—"} />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <InfoCard icon={Calendar} label="Period" value={`${it.month || "—"} ${it.year || "—"}`} color="blue" />
-                            <InfoCard icon={FileText} label="Job Code" value={it.jobCode || "—"} color="emerald" />
-                            <InfoCard icon={TrendingUp} label="KPIs Defined" value={`${[1, 2, 3, 4, 5].filter(n => {
-                              const kpiValue = it[`kpi${n}` as keyof AppModel];
-                              return kpiValue && String(kpiValue).trim() !== "";
-                            }).length} of 5`} color="violet" />
-                          </div>
-
-                          {/* KPI Performance Section */}
-                          {(() => {
-                            const read = (base: string, n?: number) => {
-                              const keys = n != null
-                                ? [`${base}${n}`, `${base}_${n}`, `${base}${n}`.toLowerCase()]
-                                : [base, base.toLowerCase(), base.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`)];
-                              for (const k of keys) {
-                                // @ts-ignore
-                                const v = it[k];
-                                if (v !== undefined && v !== null) return String(v);
-                              }
-                              return "";
-                            };
-
-                            const kpis = [1, 2, 3, 4, 5].filter(n => {
-                              const kpiValue = read("kpi", n);
-                              const reviewValue = read("review", n);
-                              return (kpiValue && kpiValue.trim() !== "") || (reviewValue && reviewValue.trim() !== "");
-                            });
-                            return kpis.length > 0 ? (
-                              <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
-                                <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                                  Key Performance Indicators
-                                </h4>
-                                <div className="space-y-4">
-                                  {kpis.map((n) => {
-                                    const kpiVal = read("kpi", n);
-                                    const revVal = read("review", n);
-                                    return (
-                                      <div key={n} className="bg-white rounded-lg p-4 border border-slate-200">
-                                        <div className="flex items-start gap-4">
-                                          <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-                                            {n}
-                                          </div>
-                                          <div className="flex-1 space-y-2">
-                                            {kpiVal && (
-                                              <div>
-                                                <p className="text-xs font-semibold text-slate-600 uppercase mb-1">KPI</p>
-                                                <p className="text-sm text-slate-800">{kpiVal}</p>
-                                              </div>
-                                            )}
-                                            {revVal && (
-                                              <div>
-                                                <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Review</p>
-                                                <p className="text-sm text-slate-800">{revVal}</p>
-                                              </div>
-                                            )}
-                                            {(() => {
-                                              const ratingVal = read("rating", n);
-                                              return ratingVal ? (
-                                                <div>
-                                                  <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Rating</p>
-                                                  <p className="text-sm text-slate-800">{ratingVal}</p>
-                                                </div>
-                                              ) : null;
-                                            })()}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ) : null;
-                          })()}
-
-                          {/* Comments Section */}
-                          {(() => {
-                            const readField = (k: string) => {
-                              const candidates = [
-                                k,
-                                k.toLowerCase(),
-                                k.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`),
-                              ];
-                              for (const c of candidates) {
-                                // @ts-ignore
-                                const v = it[c];
-                                if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
-                              }
-                              return "";
-                            };
-
-                            const empComm = readField("employeeComments");
-                            const mgrComm = readField("managerComments");
-                            return (empComm || mgrComm) ? (
-                               <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
-                                 <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                   <MessageSquare className="h-5 w-5 text-blue-600" />
-                                   Comments & Feedback
-                                 </h4>
-                                 <div className="space-y-4">
-                                  {empComm && (
-                                    <div>
-                                      <h5 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                        <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                                        Employee Comments
-                                      </h5>
-                                      <div className="bg-white rounded-lg p-4 border border-slate-200">
-                                        <p className="text-slate-700 whitespace-pre-wrap">{empComm}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {mgrComm && (
-                                    <div>
-                                      <h5 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                        Manager Comments
-                                      </h5>
-                                      <div className="bg-white rounded-lg p-4 border border-slate-200">
-                                        <p className="text-slate-700 whitespace-pre-wrap">{mgrComm}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                 </div>
-                               </div>
-                             ) : null;
-                           })()}
-                        </div>
+                    <div className="flex gap-2 ml-4 flex-wrap justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setViewingId(key)}>
+                        <Eye className="h-4 w-4 mr-1" /> View
+                      </Button>
+                      {actionLabel && (
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(key)}>
+                          {actionLabel}
+                        </Button>
                       )}
-                    </>
-                  )}
+                      {isLocked && (
+                        <Button size="sm" variant="ghost"
+                          onClick={() => handleUnlock(it._localId ?? it.id)}
+                          className="text-amber-600 hover:bg-amber-50">
+                          <Unlock className="h-4 w-4 mr-1" /> Unlock
+                        </Button>
+                      )}
+                      {!isLocked && (
+                        <Button variant="ghost" size="sm"
+                          onClick={() => handleDelete(it._localId ?? it.id)}
+                          className="text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {isLocked && (
+                        <Button variant="ghost" size="sm"
+                          onClick={() => handleForceDelete(it._localId ?? it.id)}
+                          className="text-red-600 hover:bg-red-50" title="Force delete">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Detail View ── */
+                  <div className="space-y-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold text-slate-800">
+                          {employee ? `${employee.firstName || ""} ${employee.lastName || ""}`.trim() : "Employee"}
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-1">
+                          {it.month
+                            ? `${it.month.charAt(0) + it.month.slice(1).toLowerCase()} ${it.year}`
+                            : String(it.year)} Performance Review
+                        </p>
+                      </div>
+                      <div className="flex gap-2 items-center flex-wrap justify-end">
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${getStatusBadge(it.status)}`}>
+                          {it.status}
+                        </span>
+                        <Button size="sm" variant="ghost" onClick={() => setViewingId(null)}>Close</Button>
+                        {actionLabel && (
+                          <Button size="sm"
+                            onClick={() => { setViewingId(null); setEditingId(key); }}
+                            className="bg-amber-500 text-white">
+                            {actionLabel}
+                          </Button>
+                        )}
+                        {isLocked && (
+                          <Button size="sm" variant="ghost"
+                            onClick={() => handleUnlock(it._localId ?? it.id)}
+                            className="text-amber-600 border border-amber-300">
+                            <Unlock className="h-4 w-4 mr-1" /> Unlock
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <InfoCard icon={Calendar} label="Period"
+                        value={it.month
+                          ? `${it.month.charAt(0) + it.month.slice(1).toLowerCase()} ${it.year}`
+                          : String(it.year)}
+                        color="blue" />
+                      <InfoCard icon={TrendingUp} label="KPIs"
+                        value={String(it.goals?.length || 0)} color="emerald" />
+                      {it.overallScore != null && (
+                        <InfoCard icon={TrendingUp} label="Overall Score"
+                          value={it.overallScore.toFixed(2)} color="violet" />
+                      )}
+                    </div>
+
+                    {it.goals && it.goals.length > 0 && (
+                      <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                        <h4 className="text-base font-semibold text-slate-800 mb-4">Key Performance Indicators</h4>
+                        <div className="space-y-3">
+                          {it.goals.map((goal, index) => (
+                            <div key={goal.goalId || index}
+                              className="bg-white rounded-lg p-4 border border-slate-200 grid grid-cols-[32px_1fr_auto] gap-3 items-start">
+                              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                                {index + 1}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{goal.kpi}</p>
+                                {goal.description && <p className="text-xs text-slate-500">{goal.description}</p>}
+                                <div className="flex gap-3 mt-2 flex-wrap">
+                                  {goal.selfRating    != null && <span className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded">Self: {goal.selfRating}</span>}
+                                  {goal.managerRating != null && <span className="text-xs text-orange-700 bg-orange-50 px-2 py-0.5 rounded">Manager: {goal.managerRating}</span>}
+                                  {goal.selfComment   && <span className="text-xs text-slate-500 italic">"{goal.selfComment}"</span>}
+                                </div>
+                              </div>
+                              <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">{goal.weight}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(it.employeeComments || it.managerComments) && (
+                      <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                        <h4 className="text-base font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5 text-blue-600" /> Comments
+                        </h4>
+                        {it.employeeComments && (
+                          <div className="mb-3">
+                            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Employee</p>
+                            <p className="text-sm text-slate-700 bg-white p-3 rounded-lg border">{it.employeeComments}</p>
+                          </div>
+                        )}
+                        {it.managerComments && (
+                          <div>
+                            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Manager</p>
+                            <p className="text-sm text-slate-700 bg-white p-3 rounded-lg border">{it.managerComments}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
         {items.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center mt-6">
-            <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
-              <FileText className="h-12 w-12 text-blue-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">No appraisals added yet</h3>
-            <p className="text-slate-600 mb-6">Click "Add Appraisal" to create your first employee appraisal</p>
-            <Button
-              onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Appraisal
+          <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-xl mt-4">
+            <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">No appraisals yet</h3>
+            <p className="text-slate-500 mb-6 text-sm">Click "Add Appraisal" to create a monthly appraisal</p>
+            <Button onClick={handleAddClick} className="bg-blue-600 text-white rounded-xl px-6">
+              <Plus className="h-5 w-5 mr-2" /> Add Appraisal
             </Button>
           </div>
         )}
@@ -562,104 +511,25 @@ export default function AppraisalsForm() {
   );
 }
 
-function DetailItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number | null | undefined;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-        {label}
-      </p>
-      <p className="text-sm text-slate-800">{value ?? "—"}</p>
-    </div>
-  );
-}
-
-function InfoCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-}: {
-  icon: any;
-  label: string;
-  value: string | number | null | undefined;
+function InfoCard({ icon: Icon, label, value, color }: {
+  icon: any; label: string; value: string | number | null | undefined;
   color: "blue" | "emerald" | "violet";
 }) {
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case "blue":
-        return {
-          container: "bg-gradient-to-br from-slate-50 to-blue-50 border-blue-100",
-          icon: "bg-gradient-to-br from-blue-500 to-blue-600",
-        };
-      case "emerald":
-        return {
-          container: "bg-gradient-to-br from-slate-50 to-emerald-50 border-emerald-100",
-          icon: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-        };
-      case "violet":
-        return {
-          container: "bg-gradient-to-br from-slate-50 to-violet-50 border-violet-100",
-          icon: "bg-gradient-to-br from-violet-500 to-violet-600",
-        };
-      default:
-        return {
-          container: "bg-gradient-to-br from-slate-50 to-blue-50 border-blue-100",
-          icon: "bg-gradient-to-br from-blue-500 to-blue-600",
-        };
-    }
-  };
-
-  const classes = getColorClasses(color);
-
+  const colors = {
+    blue:    { container: "bg-blue-50 border-blue-100",       icon: "bg-blue-500" },
+    emerald: { container: "bg-emerald-50 border-emerald-100", icon: "bg-emerald-500" },
+    violet:  { container: "bg-violet-50 border-violet-100",   icon: "bg-violet-500" },
+  }[color];
   return (
-    <div
-      className={`p-4 rounded-xl border flex items-center gap-4 ${classes.container}`}
-    >
-      <div className={`p-3 rounded-full ${classes.icon}`}>
-        <Icon className="h-6 w-6 text-white" />
+    <div className={`p-4 rounded-xl border flex items-center gap-4 ${colors.container}`}>
+      <div className={`p-3 rounded-full ${colors.icon}`}>
+        <Icon className="h-5 w-5 text-white" />
       </div>
-      <div className="flex-1">
-        <p className="text-xs font-semibold text-slate-600 uppercase">{label}</p>
+      <div>
+        <p className="text-xs font-semibold text-slate-500 uppercase">{label}</p>
         <p className="text-lg font-bold text-slate-800">{value ?? "—"}</p>
       </div>
     </div>
   );
 }
 
-function readDtoField(dto: any, base: string, n?: number) {
-  if (!dto) return "";
-
-  const pad = (num: number) => String(num).padStart(2, "0");
-  const candidates: string[] = [];
-  if (n != null) {
-    candidates.push(`${base}${n}`, `${base}_${n}`, `${base}${pad(n)}`, `${base}_${pad(n)}`, `${base}${n}`.toLowerCase());
-  } else {
-    candidates.push(base, base.toLowerCase(), base.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`));
-  }
-
-  // try direct candidates first
-  for (const k of candidates) {
-    if (k in dto) {
-      const v = dto[k];
-      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
-    }
-  }
-
-  // as a final fallback, match by normalized key (remove non-alphanum and compare lowercase)
-  const target = (n != null ? `${base}${n}` : base).replace(/[^a-z0-9]/gi, "").toLowerCase();
-  for (const key of Object.keys(dto)) {
-    const norm = key.replace(/[^a-z0-9]/gi, "").toLowerCase();
-    if (norm === target) {
-      const v = dto[key];
-      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
-    }
-  }
-
-  return "";
-}

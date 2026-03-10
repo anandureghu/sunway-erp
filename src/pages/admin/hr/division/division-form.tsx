@@ -1,4 +1,3 @@
-// src/pages/admin/departments/DivisionForm.tsx
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -85,18 +84,16 @@ export const DivisionForm = ({
           />
 
           <div>
-            {/* <Label>Manager</Label> */}
             <SelectUser
               value={form.getValues("managerId")?.toString()}
               onChange={(val) => form.setValue("managerId", Number(val))}
-              label="Manger"
+              label="Manager"
               placeholder="Select Manager"
             />
           </div>
 
           <div>
-            {/* <Label>Manager</Label> */}
-<SelectDepartment
+            <SelectDepartment
               value={form.getValues("departmentId")?.toString() || undefined}
               onChange={(val) => form.setValue("departmentId", Number(val))}
               companyId={Number(user?.companyId) || 0}

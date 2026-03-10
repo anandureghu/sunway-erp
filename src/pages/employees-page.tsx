@@ -163,7 +163,9 @@ export default function EmployeesPage() {
           newEmployee.departmentId !== ""
             ? Number(newEmployee.departmentId)
             : undefined,
-        role: newEmployee.role ?? "USER",
+        // Use companyRole for display (human-readable) - backend will handle both fields
+        companyRole: newEmployee.companyRole ?? newEmployee.role ?? "Employee",
+        role: newEmployee.role ?? "USER",  // Keep security role for permissions
       };
 
       const created = await hrService.createEmployee(payload);

@@ -11,8 +11,9 @@ export default function AppraisalForm() {
       if (appraisal?.id) {
         await appraisalService.updateById(employeeId, appraisal.id, payload);
       } else {
-        const saved = await appraisalService.create(employeeId, payload);
-        setAppraisal(saved);
+        // Use createLegacy for creating with full payload
+        const saved = await appraisalService.createLegacy(employeeId, payload);
+        setAppraisal({ id: saved.id });
       }
 
       toast.success("Appraisal saved successfully");

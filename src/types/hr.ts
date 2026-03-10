@@ -17,6 +17,17 @@ export interface Employee {
   nationalId?: string;
   maritalStatus?: MaritalStatus;
 
+  // personal information fields
+  birthplace?: string;
+  hometown?: string;
+  religion?: string;
+  identification?: string;
+
+  // additional profile fields
+  prefix?: string;
+  altPhone?: string;
+  notes?: string;
+
   phoneNo?: string;
   companyId?: string;
   user?: string;
@@ -25,11 +36,16 @@ export interface Employee {
   departmentId?: string;
   email?: string;
   username?: string;
-  role?: Role;
+  role?: Role;  // Security role (for permissions) - e.g., "ADMIN", "HR", "USER"
+  companyRole?: string;  // Company role (for display) - e.g., "HR Manager", "Finance Lead"
   companyName?: string;
   imageUrl?: string;
 }
 
+// Role type - will be dynamically fetched from API
+export type Role = string;
+
+// Default roles for backward compatibility (will be replaced by API fetched roles)
 export const ROLES = [
   { key: "ADMIN", label: "Admin" },
   { key: "HR", label: "Human Resources" },
@@ -42,8 +58,6 @@ export const ROLES = [
   { key: "CONTROLLER", label: "Controller" },
   { key: "AUDITOR_EXTERNAL", label: "External Auditor" },
 ] as const;
-
-export type Role = (typeof ROLES)[number]["key"];
 
 export interface CurrentJob {
   jobCode: string;
@@ -171,7 +185,9 @@ export interface Dependent {
   country?: string;
 }
 
-export interface Appraisal {
+// Legacy Appraisal interface - kept for backward compatibility
+// Use the new Appraisal interface below for performance goals
+export interface LegacyAppraisal {
   jobCode: string;
   employeeComments: string;
   managerComments: string;
@@ -215,3 +231,159 @@ export interface EmployeeResponse {
   forcePasswordReset?: boolean;
   imageUrl?: string;
 }
+
+/* =======================
+   PERFORMANCE GOALS TYPES
+======================= */
+
+// Rating scale for performance
+export interface RatingScale {
+  score: number;
+  label: string;
+  color: string;
+  bg: string;
+  description: string;
+}
+
+export const PERFORMANCE_RATINGS: RatingScale[] = [
+  { score: 5, label: "Exceptional", color: "#059669", bg: "#d1fae5", description: "Consistently exceeds all expectations with outstanding results." },
+  { score: 4, label: "Exceeds Expectations", color: "#0284c7", bg: "#e0f2fe", description: "Regularly surpasses goals and competency requirements." },
+  { score: 3, label: "Meets Expectations", color: "#7c3aed", bg: "#ede9fe", description: "Fully meets all goals and competency standards." },
+  { score: 2, label: "Needs Improvement", color: "#d97706", bg: "#fef3c7", description: "Partially meets goals. Development actions required." },
+  { score: 1, label: "Unsatisfactory", color: "#dc2626", bg: "#fee2e2", description: "Fails to meet minimum requirements. PIP triggered." },
+];
+
+// Performance Goal - defined by HR for each role
+export interface PerformanceGoal {
+  id?: number;
+  role: string;           // Job role (e.g., "Software Engineer", "Product Manager")
+  kpi: string;            // KPI name
+  description: string;    // Success criteria
+  weight: number;         // Weight percentage (should sum to 100)
+  targetDate?: string;    // Optional target date (yyyy-mm-dd)
+  active: boolean;         // Whether goal is active
+  companyId?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Appraisal phases
+export interface AppraisalPhase {
+  id: string;
+  label: string;
+  timeline: string;
+  icon: string;
+  status: "completed" | "active" | "upcoming";
+}
+
+export const APPRAISAL_PHASES: AppraisalPhase[] = [
+  { id: "goal-setting", label: "Goal Setting", timeline: "Jan 1 – Jan 31", icon: "🎯", status: "completed" },
+  { id: "mid-year", label: "Mid-Year Review", timeline: "Jun 1 – Jun 30", icon: "📊", status: "completed" },
+  { id: "self-assessment", label: "Self-Assessment", timeline: "Nov 1 – Nov 15", icon: "📝", status: "active" },
+  { id: "manager-review", label: "Manager Review", timeline: "Nov 15 – Dec 5", icon: "👤", status: "upcoming" },
+  { id: "review-meeting", label: "Review Meeting", timeline: "Dec 15 – Dec 31", icon: "🤝", status: "upcoming" },
+];
+
+// Employee Goal - assigned to an employee for an appraisal cycle
+export interface EmployeeGoal {
+  id?: number;
+  appraisalId?: number;
+  goalId: number;
+  kpi: string;
+  description: string;
+  weight: number;
+  targetDate?: string;
+  selfRating?: number | null;
+  managerRating?: number | null;
+  selfComment?: string;
+  managerComment?: string;
+}
+
+// Appraisal record for an employee
+export type AppraisalStatus = "draft" | "DRAFT" | "self-assessment" | "SELF_SUBMITTED" | "manager-review" | "MANAGER_REVIEWED" | "completed" | "LOCKED";
+
+export interface Appraisal {
+  id?: number;
+  employeeId: number;
+  year: number;
+  status: AppraisalStatus;
+  overallScore?: number | null;
+  overallSelfRating?: number | null;
+  overallManagerRating?: number | null;
+  selfComment?: string;
+  managerComment?: string;
+  employeeComments?: string;
+  managerComments?: string;
+  employeeAcknowledge?: "agree" | "disagree" | null;
+  employeeRebuttal?: string;
+  signedDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  goals?: EmployeeGoal[];
+}
+
+// Role to Goals mapping for quick lookup
+export interface RoleGoals {
+  role: string;
+  goals: PerformanceGoal[];
+}
+
+// Default goals by role (for initial setup)
+export const DEFAULT_GOALS_BY_ROLE: Record<string, string[]> = {
+  "Software Engineer": [
+    "Code Quality & Reviews",
+    "System Architecture",
+    "Bug Resolution Rate",
+    "CI/CD Pipeline",
+    "Documentation"
+  ],
+  "Product Manager": [
+    "Product Roadmap Delivery",
+    "Stakeholder Management",
+    "OKR Achievement",
+    "User Research",
+    "Sprint Velocity"
+  ],
+  "UX Designer": [
+    "Design System Adherence",
+    "User Testing Coverage",
+    "Prototype Delivery",
+    "Accessibility Compliance",
+    "Cross-team Collaboration"
+  ],
+  "Data Analyst": [
+    "Reporting Accuracy",
+    "Dashboard Adoption",
+    "Data Pipeline Health",
+    "Insight Generation",
+    "Stakeholder Presentations"
+  ],
+  "DevOps Engineer": [
+    "System Uptime SLA",
+    "Deployment Frequency",
+    "MTTR Reduction",
+    "Security Compliance",
+    "Infrastructure Cost Optimization"
+  ],
+  "HR Manager": [
+    "Talent Acquisition",
+    "Employee Engagement",
+    "Training & Development",
+    "Performance Management",
+    "HR Compliance"
+  ],
+  "Finance Analyst": [
+    "Financial Reporting",
+    "Budget Management",
+    "Forecasting Accuracy",
+    "Process Optimization",
+    "Audit Compliance"
+  ],
+  "Marketing Manager": [
+    "Campaign Performance",
+    "Lead Generation",
+    "Brand Awareness",
+    "Content Strategy",
+    "Digital Marketing ROI"
+  ]
+};
