@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import type { Reconciliation } from "@/types/finance/reconcilation";
-import Info from "@/components/info";
 
 export const RECONCILIATION_COLUMNS = ({
   onEdit,
@@ -23,14 +22,13 @@ export const RECONCILIATION_COLUMNS = ({
   onConfirm: (rec: Reconciliation) => void;
 }): ColumnDef<Reconciliation>[] => [
   {
-    accessorKey: "accountName",
-    header: "Account",
-    cell: ({ row }) => {
-      const rec = row.original;
-      return <Info title={rec.accountName} subtitle={rec.accountCode} />;
-    },
+    accessorKey: "accountCode",
+    header: "Account Code",
   },
-
+  {
+    accessorKey: "accountName",
+    header: "Account Name",
+  },
   {
     accessorKey: "amount",
     header: "Amount",
@@ -48,6 +46,14 @@ export const RECONCILIATION_COLUMNS = ({
     accessorKey: "resource",
     header: "Resource",
   },
+  {
+    accessorKey: "createdAt",
+    header: "Created At",
+    cell: ({ row }) => {
+      return new Date(row?.original?.createdAt).toDateString();
+    },
+  },
+  { accessorKey: "createdByName", header: "Created By" },
   {
     accessorKey: "status",
     header: "Status",

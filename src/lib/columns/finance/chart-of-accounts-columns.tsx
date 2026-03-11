@@ -75,7 +75,14 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
       );
     },
   },
-
+  {
+    accessorKey: "createdAt",
+    header: "Created At",
+    cell: ({ row }) => {
+      return new Date(row?.original?.createdAt).toDateString();
+    },
+  },
+  { accessorKey: "createdByName", header: "Created By" },
   {
     id: "actions",
     header: "Actions",

@@ -43,25 +43,37 @@ export const BUDGET_COLUMNS = ({
       return `${company.currency?.currencyCode || ""} ${amount}`;
     },
   },
-  // {
-  //   header: "Start Date",
-  //   accessorKey: "startDate",
-  // },
-  // {
-  //   header: "End Date",
-  //   accessorKey: "endDate",
-  // },
+  {
+    header: "Start Date",
+    accessorKey: "startDate",
+    cell: ({ row }) => {
+      return new Date(row?.original?.startDate).toDateString();
+    },
+  },
+  {
+    header: "End Date",
+    accessorKey: "endDate",
+    cell: ({ row }) => {
+      return new Date(row?.original?.endDate).toDateString();
+    },
+  },
   {
     header: "Status",
     accessorKey: "status",
   },
   {
+    accessorKey: "createdAt",
+    header: "Created At",
+    cell: ({ row }) => {
+      return new Date(row?.original?.createdAt).toDateString();
+    },
+  },
+  // { accessorKey: "createdByName", header: "Created By" },
+  {
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
       const entry = row.original;
-
-      console.log(entry.status);
 
       return (
         <div onClick={(e) => e.stopPropagation()}>

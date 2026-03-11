@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import type { JournalEntry } from "@/types/finance/journal-entry";
-import Info from "@/components/info";
 
 export const JOURNAL_ENTRY_COLUMNS = ({
   onEdit,
@@ -29,28 +28,21 @@ export const JOURNAL_ENTRY_COLUMNS = ({
 }): ColumnDef<JournalEntry>[] => [
   { accessorKey: "jeNumber", header: "JE No" },
   {
-    accessorKey: "debitAccountName",
-    header: "Debit",
-    cell: ({ row }) => {
-      const je = row.original;
-      return (
-        <Info title={je.debitAccountName} subtitle={je.debitAccountCode} />
-      );
-    },
+    accessorKey: "debitAccountCode",
+    header: "Debit Account Code",
   },
-
+  {
+    accessorKey: "debitAccountName",
+    header: "Debit Account Name",
+  },
+  {
+    accessorKey: "creditAccountCode",
+    header: "Credit Account Code",
+  },
   {
     accessorKey: "creditAccountName",
-    header: "Credit",
-    cell: ({ row }) => {
-      const je = row.original;
-      return (
-        <Info
-          title={je.creditAccountName ?? "-"}
-          subtitle={je.creditAccountCode ?? "-"}
-        />
-      );
-    },
+
+    header: "Credit Account Name",
   },
 
   {
@@ -81,6 +73,15 @@ export const JOURNAL_ENTRY_COLUMNS = ({
       return <Badge className={color}>{status}</Badge>;
     },
   },
+
+  {
+    accessorKey: "createdAt",
+    header: "Created At",
+    cell: ({ row }) => {
+      return new Date(row?.original?.createdAt).toDateString();
+    },
+  },
+  { accessorKey: "createdByName", header: "Created By" },
 
   {
     id: "actions",
