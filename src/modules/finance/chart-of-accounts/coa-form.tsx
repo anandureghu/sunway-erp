@@ -77,10 +77,19 @@ export const ChartOfAccountsForm = ({
   }, [defaultValues, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
-    await onSubmit(values);
+    console.log("values");
+    try {
+      await onSubmit(values);
+    } catch (error) {
+      console.log(error);
+    }
   });
 
-  const deptCode = department?.departmentCode || projectCode || "000";
+  const isBudgetAccountSelected = form.watch("type") === "BUDGET";
+
+  const deptCode = isBudgetAccountSelected
+    ? "BUD1"
+    : department?.departmentCode || projectCode || "000";
 
   const computedCode = `${company?.companyCode || "000"}.${
     deptCode
@@ -94,10 +103,20 @@ export const ChartOfAccountsForm = ({
   useEffect(() => {
     const idx = COA.findIndex((coa) => coa.key === form.watch("type"));
     form.setValue("accountNo", String((idx + 1) * 100000));
+
+    if (form.watch("type") === "BUDGET") {
+      form.setValue("accountNo", `BUD${new Date().getFullYear()}`);
+    }
   }, [form.watch("type")]);
+
+  console.log(form.formState.errors);
 
   return (
     <Form {...form}>
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-xl drop-shadow-2xl">
+        <h1 className="text-white/70">Account Code</h1>
+        <h2 className="text-4xl font-bold">{computedCode}</h2>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Account Name */}
         <FormField
@@ -145,47 +164,49 @@ export const ChartOfAccountsForm = ({
           )}
         />
 
-        <div
-          className={cn(
-            !form.watch("departmentId") &&
-              !form.watch("projectCode") &&
-              "p-5 border border-dashed border-black/20 rounded-xl",
-          )}
-        >
-          {!form.watch("projectCode") && (
-            <SelectDepartment
-              value={form.watch("departmentId")?.toString()}
-              onChange={(val, dept) => {
-                form.setValue("departmentId", Number(val));
-                setDepartment(dept || null);
-              }}
-              companyId={company?.id || 0}
-              disabled={isEditMode}
-            />
-          )}
+        {!isBudgetAccountSelected && (
+          <div
+            className={cn(
+              !form.watch("departmentId") &&
+                !form.watch("projectCode") &&
+                "p-5 border border-dashed border-black/20 rounded-xl",
+            )}
+          >
+            {!form.watch("projectCode") && (
+              <SelectDepartment
+                value={form.watch("departmentId")?.toString()}
+                onChange={(val, dept) => {
+                  form.setValue("departmentId", Number(val));
+                  setDepartment(dept || null);
+                }}
+                companyId={company?.id || 0}
+                disabled={isEditMode}
+              />
+            )}
 
-          {!form.watch("departmentId") && !form.watch("projectCode") && (
-            <div className="text-center text-black/40 font-semibold mt-3">
-              OR
-            </div>
-          )}
+            {!form.watch("departmentId") && !form.watch("projectCode") && (
+              <div className="text-center text-black/40 font-semibold mt-3">
+                OR
+              </div>
+            )}
 
-          {!form.watch("departmentId") && (
-            <FormField
-              control={form.control}
-              name="projectCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Project Code</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="2000" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-        </div>
+            {!form.watch("departmentId") && (
+              <FormField
+                control={form.control}
+                name="projectCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="2000" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+        )}
 
         <FormField
           control={form.control}
@@ -225,28 +246,6 @@ export const ChartOfAccountsForm = ({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="openingBalance"
-          disabled={isEditMode}
-          render={() => (
-            <FormItem>
-              <FormLabel>Opening Balance</FormLabel>
-              <FormControl>
-                <Input
-                  // type="number"
-                  // step="0.01"
-                  {...form.register("openingBalance", {
-                    setValueAs: (v) => (v === "" ? undefined : v),
-                  })}
-                  placeholder="0.00"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         {/* Description */}
         <FormField
           control={form.control}
@@ -261,11 +260,6 @@ export const ChartOfAccountsForm = ({
             </FormItem>
           )}
         />
-
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-xl drop-shadow-2xl">
-          <h1 className="text-white/70">Account Code</h1>
-          <h2 className="text-4xl font-bold">{computedCode}</h2>
-        </div>
 
         {/* Only edit these during CREATE */}
 

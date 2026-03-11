@@ -64,6 +64,7 @@ export const COA = [
   { key: "TAX", label: "Tax" },
   { key: "CASH", label: "Cash" },
   { key: "INCOME", label: "Income" },
+  { key: "BUDGET", label: "Budget Account" },
 ] as const;
 
 export type CoaType = (typeof COA)[number]["key"];
@@ -83,8 +84,6 @@ export interface CreateAccountDTO {
 
   glAccountClassTypeKey?: string | null;
   glAccountType?: string | null;
-
-  openingBalance?: number | string; // BigDecimal
 }
 
 export const STATUS_TYPES = ["active", "inactive"] as const;
