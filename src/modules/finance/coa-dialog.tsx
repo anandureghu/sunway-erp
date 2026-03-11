@@ -47,7 +47,6 @@ export function ChartOfAccountDialog({
     status: "active",
     glAccountClassTypeKey: "",
     glAccountType: "",
-    openingBalance: 0,
   });
 
   /** load form when editing */
@@ -63,7 +62,6 @@ export function ChartOfAccountDialog({
         status: account.status,
         glAccountClassTypeKey: account.glAccountClassTypeKey ?? "",
         glAccountType: account.glAccountType ?? "",
-        openingBalance: Number(account.balance),
       });
     }
   }, [account, companyId]);
@@ -176,15 +174,6 @@ export function ChartOfAccountDialog({
             <Input
               value={form.glAccountType ?? ""}
               onChange={(e) => update("glAccountType", e.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1 col-span-2">
-            <label className="text-sm font-medium">Opening Balance</label>
-            <Input
-              type="number"
-              value={form.openingBalance ?? ""}
-              onChange={(e) => update("openingBalance", Number(e.target.value))}
             />
           </div>
         </div>
