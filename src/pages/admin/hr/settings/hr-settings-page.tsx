@@ -1,32 +1,70 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Settings, CalendarDays, Building2, Shield, Loader2, Edit2, Trash2, ChevronRight } from "lucide-react";
+import {
+  ArrowLeft,
+  Settings,
+  CalendarDays,
+  Building2,
+  Shield,
+  Loader2,
+  Edit2,
+  Trash2,
+  ChevronRight,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { roleService } from "@/service/roleService";
-import { leavePolicyService, type LeaveTypeResponse } from "@/service/leavePolicyService";
-import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment } from "@/service/departmentService";
+import {
+  leavePolicyService,
+  type LeaveTypeResponse,
+} from "@/service/leavePolicyService";
+import {
+  fetchDepartments,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+} from "@/service/departmentService";
 import { useAuth } from "@/context/AuthContext";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function Badge({ active }: { active: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-      active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
-    }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-green-600" : "bg-slate-400"}`} />
+    <span
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+        active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
+      }`}
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${active ? "bg-green-600" : "bg-slate-400"}`}
+      />
       {active ? "Active" : "Inactive"}
     </span>
   );
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="fixed inset-0 bg-slate-900/45 z-50 flex items-center justify-center backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="fixed inset-0 bg-slate-900/45 z-50 flex items-center justify-center backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
           <span className="font-bold text-slate-800">{title}</span>
-          <button onClick={onClose} className="bg-none border-none cursor-pointer text-2xl text-slate-400 leading-none hover:text-slate-600">×</button>
+          <button
+            onClick={onClose}
+            className="bg-none border-none cursor-pointer text-2xl text-slate-400 leading-none hover:text-slate-600"
+          >
+            ×
+          </button>
         </div>
         <div className="p-6">{children}</div>
       </div>
@@ -34,10 +72,20 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
+function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+}) {
   return (
     <div className="mb-4">
-      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">{label}</label>
+      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
       {children}
       {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
     </div>
@@ -54,34 +102,69 @@ const inputStyle = {
   outline: "none",
   boxSizing: "border-box" as const,
   transition: "border-color .15s",
-  background: "#fafafa"
+  background: "#fafafa",
 };
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
-    <button onClick={() => onChange(!checked)} className={`w-10 h-6 rounded-full border-none cursor-pointer relative transition-colors ${checked ? "bg-blue-500" : "bg-slate-200"}`}>
-      <span className={`absolute top-0.5 ${checked ? "left-5" : "left-0.5"} w-4.5 h-4.5 rounded-full bg-white transition-all shadow-sm`} />
+    <button
+      onClick={() => onChange(!checked)}
+      className={`w-10 h-6 rounded-full border-none cursor-pointer relative transition-colors ${checked ? "bg-blue-500" : "bg-slate-200"}`}
+    >
+      <span
+        className={`absolute top-0.5 ${checked ? "left-5" : "left-0.5"} w-4.5 h-4.5 rounded-full bg-white transition-all shadow-sm`}
+      />
     </button>
   );
 }
 
-function PrimaryBtn({ children, onClick, danger, disabled }: { children: React.ReactNode; onClick?: () => void; danger?: boolean; disabled?: boolean }) {
+function PrimaryBtn({
+  children,
+  onClick,
+  danger,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
   return (
-    <button onClick={onClick} disabled={disabled} className={`px-4 py-2 rounded-lg border-none cursor-pointer text-white font-semibold text-sm transition-opacity hover:opacity-85 ${danger ? "bg-red-500" : "bg-blue-500"} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-4 py-2 rounded-lg border-none cursor-pointer text-white font-semibold text-sm transition-opacity hover:opacity-85 ${danger ? "bg-red-500" : "bg-blue-500"} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+    >
       {children}
     </button>
   );
 }
 
-function GhostBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+function GhostBtn({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
   return (
-    <button onClick={onClick} className="px-4 py-2 rounded-lg border border-slate-200 cursor-pointer bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50">
+    <button
+      onClick={onClick}
+      className="px-4 py-2 rounded-lg border border-slate-200 cursor-pointer bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50"
+    >
       {children}
     </button>
   );
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface LeaveType extends LeaveTypeResponse {}
 interface DeptType {
   id?: number;
@@ -120,13 +203,20 @@ function LeavesTab() {
     fetchLeaveTypes();
   }, [company?.id]);
 
-  const openAdd = () => { 
-    setForm({ code:"", name:"", days:1, paid:true, carryOver:false, maxCarry:0 }); 
-    setModal("add"); 
+  const openAdd = () => {
+    setForm({
+      code: "",
+      name: "",
+      days: 1,
+      paid: true,
+      carryOver: false,
+      maxCarry: 0,
+    });
+    setModal("add");
   };
-  const openEdit = (item: LeaveType) => { 
-    setForm({...item}); 
-    setModal({ edit: item }); 
+  const openEdit = (item: LeaveType) => {
+    setForm({ ...item });
+    setModal({ edit: item });
   };
 
   const save = async () => {
@@ -137,8 +227,12 @@ function LeavesTab() {
       if (modal === "add") {
         await leavePolicyService.createLeaveType(company.id, formData);
         toast.success("Leave type created successfully!");
-      } else if (modal && 'edit' in modal && formData.id) {
-        await leavePolicyService.updateLeaveType(company.id, formData.id, formData);
+      } else if (modal && "edit" in modal && formData.id) {
+        await leavePolicyService.updateLeaveType(
+          company.id,
+          formData.id,
+          formData,
+        );
         toast.success("Leave type updated successfully!");
       }
       setModal(null);
@@ -178,7 +272,9 @@ function LeavesTab() {
       <div className="flex justify-between items-center mb-5">
         <div>
           <h2 className="text-lg font-bold text-slate-800 m-0">Leave Types</h2>
-          <p className="text-sm text-slate-500 m-0 mt-1">Configure leave entitlements for employees</p>
+          <p className="text-sm text-slate-500 m-0 mt-1">
+            Configure leave entitlements for employees
+          </p>
         </div>
         <PrimaryBtn onClick={openAdd}>+ Add Leave Type</PrimaryBtn>
       </div>
@@ -187,80 +283,184 @@ function LeavesTab() {
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-slate-50">
-              {["Code","Leave Type","Days/Year","Paid","Carry Over","Max Carry","Actions"].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">{h}</th>
+              {[
+                "Code",
+                "Leave Type",
+                "Days/Year",
+                "Paid",
+                "Carry Over",
+                "Max Carry",
+                "Actions",
+              ].map((h) => (
+                <th
+                  key={h}
+                  className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200"
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {leaves.map((l, i) => (
-              <tr key={l.id} className={i < leaves.length-1 ? "border-b border-slate-100" : ""}>
-                <td className="px-4 py-3.5"><span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-xs font-bold text-blue-500">{l.code}</span></td>
-                <td className="px-4 py-3.5 font-medium text-slate-800 text-sm">{l.name}</td>
-                <td className="px-4 py-3.5 text-sm text-slate-600">{l.days} days</td>
-                <td className="px-4 py-3.5"><Badge active={l.paid} /></td>
-                <td className="px-4 py-3.5"><Badge active={l.carryOver} /></td>
-                <td className="px-4 py-3.5 text-sm text-slate-600">{l.carryOver ? `${l.maxCarry} days` : "—"}</td>
+              <tr
+                key={l.id}
+                className={
+                  i < leaves.length - 1 ? "border-b border-slate-100" : ""
+                }
+              >
+                <td className="px-4 py-3.5">
+                  <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-xs font-bold text-blue-500">
+                    {l.code}
+                  </span>
+                </td>
+                <td className="px-4 py-3.5 font-medium text-slate-800 text-sm">
+                  {l.name}
+                </td>
+                <td className="px-4 py-3.5 text-sm text-slate-600">
+                  {l.days} days
+                </td>
+                <td className="px-4 py-3.5">
+                  <Badge active={l.paid} />
+                </td>
+                <td className="px-4 py-3.5">
+                  <Badge active={l.carryOver} />
+                </td>
+                <td className="px-4 py-3.5 text-sm text-slate-600">
+                  {l.carryOver ? `${l.maxCarry} days` : "—"}
+                </td>
                 <td className="px-4 py-3.5">
                   <div className="flex gap-2">
-                    <button onClick={() => openEdit(l)} className="px-3 py-1.5 border border-slate-200 rounded-md bg-white cursor-pointer text-xs font-semibold text-slate-600 hover:bg-slate-50">Edit</button>
-                    <button onClick={() => setDel(l)} className="px-3 py-1.5 border border-red-200 rounded-md bg-white cursor-pointer text-xs font-semibold text-red-500 hover:bg-red-50">Delete</button>
+                    <button
+                      onClick={() => openEdit(l)}
+                      className="px-3 py-1.5 border border-slate-200 rounded-md bg-white cursor-pointer text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => setDel(l)}
+                      className="px-3 py-1.5 border border-red-200 rounded-md bg-white cursor-pointer text-xs font-semibold text-red-500 hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
             {leaves.length === 0 && (
-              <tr><td colSpan={7} className="px-10 py-10 text-center text-slate-400 text-sm">No leave types found. Add your first leave type.</td></tr>
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-10 py-10 text-center text-slate-400 text-sm"
+                >
+                  No leave types found. Add your first leave type.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
       {(modal === "add" || modal?.edit) && (
-        <Modal title={modal === "add" ? "Add Leave Type" : "Edit Leave Type"} onClose={() => setModal(null)}>
+        <Modal
+          title={modal === "add" ? "Add Leave Type" : "Edit Leave Type"}
+          onClose={() => setModal(null)}
+        >
           <div className="grid grid-cols-2 gap-4">
             <Field label="Leave Code">
-              <input style={inputStyle} value={form.code} onChange={e => setForm(p=>({...p, code:e.target.value.toUpperCase()}))} placeholder="AL" maxLength={6} />
+              <input
+                style={inputStyle}
+                value={form.code}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))
+                }
+                placeholder="AL"
+                maxLength={6}
+              />
             </Field>
             <Field label="Days per Year">
-              <input type="number" style={inputStyle} value={form.days} min={1} onChange={e => setForm(p=>({...p, days: Number(e.target.value)}))} />
+              <input
+                type="number"
+                style={inputStyle}
+                value={form.days}
+                min={1}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, days: Number(e.target.value) }))
+                }
+              />
             </Field>
           </div>
           <Field label="Leave Type Name">
-            <input style={inputStyle} value={form.name} onChange={e => setForm(p=>({...p, name:e.target.value}))} placeholder="Annual Leave" />
+            <input
+              style={inputStyle}
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Annual Leave"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Paid Leave">
               <div className="flex items-center gap-2.5 pt-1">
-                <Toggle checked={!!form.paid} onChange={v => setForm(p=>({...p, paid:v}))} />
-                <span className="text-sm text-slate-600">{form.paid ? "Yes" : "No"}</span>
+                <Toggle
+                  checked={!!form.paid}
+                  onChange={(v) => setForm((p) => ({ ...p, paid: v }))}
+                />
+                <span className="text-sm text-slate-600">
+                  {form.paid ? "Yes" : "No"}
+                </span>
               </div>
             </Field>
             <Field label="Allow Carry Over">
               <div className="flex items-center gap-2.5 pt-1">
-                <Toggle checked={!!form.carryOver} onChange={v => setForm(p=>({...p, carryOver:v, maxCarry: v ? p.maxCarry : 0}))} />
-                <span className="text-sm text-slate-600">{form.carryOver ? "Yes" : "No"}</span>
+                <Toggle
+                  checked={!!form.carryOver}
+                  onChange={(v) =>
+                    setForm((p) => ({
+                      ...p,
+                      carryOver: v,
+                      maxCarry: v ? p.maxCarry : 0,
+                    }))
+                  }
+                />
+                <span className="text-sm text-slate-600">
+                  {form.carryOver ? "Yes" : "No"}
+                </span>
               </div>
             </Field>
           </div>
           {form.carryOver && (
             <Field label="Max Carry Over Days">
-              <input type="number" style={inputStyle} value={form.maxCarry} min={0} onChange={e => setForm(p=>({...p, maxCarry: Number(e.target.value)}))} />
+              <input
+                type="number"
+                style={inputStyle}
+                value={form.maxCarry}
+                min={0}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, maxCarry: Number(e.target.value) }))
+                }
+              />
             </Field>
           )}
           <div className="flex gap-2.5 justify-end mt-2">
             <GhostBtn onClick={() => setModal(null)}>Cancel</GhostBtn>
-            <PrimaryBtn onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</PrimaryBtn>
+            <PrimaryBtn onClick={save} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </PrimaryBtn>
           </div>
         </Modal>
       )}
 
       {del && (
         <Modal title="Delete Leave Type" onClose={() => setDel(null)}>
-          <p className="text-slate-600 mb-5">Are you sure you want to delete <strong>{del.name}</strong>? This cannot be undone.</p>
+          <p className="text-slate-600 mb-5">
+            Are you sure you want to delete <strong>{del.name}</strong>? This
+            cannot be undone.
+          </p>
           <div className="flex gap-2.5 justify-end">
             <GhostBtn onClick={() => setDel(null)}>Cancel</GhostBtn>
-            <PrimaryBtn danger onClick={handleDelete}>Delete</PrimaryBtn>
+            <PrimaryBtn danger onClick={handleDelete}>
+              Delete
+            </PrimaryBtn>
           </div>
         </Modal>
       )}
@@ -287,7 +487,7 @@ function RolesTab() {
   const [form, setForm] = useState<Role>({
     name: "",
     description: "",
-    active: true
+    active: true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -322,7 +522,7 @@ function RolesTab() {
     setForm({
       name: role.name,
       description: role.description || "",
-      active: role.active ?? true
+      active: role.active ?? true,
     });
     setModal({ edit: role });
   };
@@ -343,17 +543,17 @@ function RolesTab() {
         name: form.name,
         description: form.description,
         active: form.active,
-        companyId: company.id
+        companyId: company.id,
       };
 
       if (modal === "add") {
         await roleService.createRole(payload);
         toast.success("Role created successfully!");
-      } else if (modal && 'edit' in modal) {
+      } else if (modal && "edit" in modal) {
         await roleService.updateRole({ id: modal.edit.id!, ...payload });
         toast.success("Role updated successfully!");
       }
-      
+
       setModal(null);
       fetchRoles();
     } catch (err: unknown) {
@@ -367,7 +567,7 @@ function RolesTab() {
 
   const handleDelete = async () => {
     if (!deleteRole?.id) return;
-    
+
     try {
       await roleService.deleteRole(deleteRole.id);
       toast.success("Role deleted successfully!");
@@ -381,7 +581,9 @@ function RolesTab() {
   };
 
   const handleCustomizeLeave = (role: Role) => {
-    navigate(`/hr/settings/leave-customization?role=${encodeURIComponent(role.name)}`);
+    navigate(
+      `/hr/settings/leave-customization?role=${encodeURIComponent(role.name)}`,
+    );
   };
 
   if (loading) {
@@ -397,14 +599,15 @@ function RolesTab() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 m-0">Company Roles</h2>
+          <h2 className="text-lg font-bold text-slate-800 m-0">
+            Company Roles
+          </h2>
           <p className="text-sm text-slate-500 m-0 mt-1">
-            {roles.length} role{roles.length !== 1 ? 's' : ''} configured. Create roles to manage permissions and leave balances.
+            {roles.length} role{roles.length !== 1 ? "s" : ""} configured.
+            Create roles to manage permissions and leave balances.
           </p>
         </div>
-        <PrimaryBtn onClick={openAdd}>
-          + Create Role
-        </PrimaryBtn>
+        <PrimaryBtn onClick={openAdd}>+ Create Role</PrimaryBtn>
       </div>
 
       {roles.length === 0 ? (
@@ -412,17 +615,19 @@ function RolesTab() {
           <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-slate-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-700 mb-2">No roles created yet</h3>
-          <p className="text-sm text-slate-500 mb-4">Create your first role to get started</p>
-          <PrimaryBtn onClick={openAdd}>
-            + Create First Role
-          </PrimaryBtn>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            No roles created yet
+          </h3>
+          <p className="text-sm text-slate-500 mb-4">
+            Create your first role to get started
+          </p>
+          <PrimaryBtn onClick={openAdd}>+ Create First Role</PrimaryBtn>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {roles.map(role => (
-            <div 
-              key={role.id} 
+          {roles.map((role) => (
+            <div
+              key={role.id}
               className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-200 transition-all duration-200 group"
             >
               <div className="flex items-start justify-between mb-4">
@@ -431,28 +636,32 @@ function RolesTab() {
                     <Shield className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-800 text-lg">{role.name}</h3>
-                    <p className="text-sm text-slate-500">{role.description || "No description"}</p>
+                    <h3 className="font-bold text-slate-800 text-lg">
+                      {role.name}
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      {role.description || "No description"}
+                    </p>
                   </div>
                 </div>
                 <Badge active={role.active ?? true} />
               </div>
-              
+
               <div className="flex items-center justify-end pt-4 border-t border-slate-100 gap-2">
-                <button 
+                <button
                   onClick={() => handleCustomizeLeave(role)}
                   className="flex-1 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-600 text-sm font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1"
                 >
                   Customize Leave
                   <ChevronRight className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => openEdit(role)}
                   className="px-3 py-2 rounded-lg bg-blue-50 text-blue-600 text-sm font-semibold hover:bg-blue-100 transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => setDeleteRole(role)}
                   className="px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-colors"
                 >
@@ -465,16 +674,21 @@ function RolesTab() {
       )}
 
       {(modal === "add" || modal?.edit) && (
-        <Modal title={modal === "add" ? "Create New Role" : "Edit Role"} onClose={() => setModal(null)}>
+        <Modal
+          title={modal === "add" ? "Create New Role" : "Edit Role"}
+          onClose={() => setModal(null)}
+        >
           <div className="space-y-5">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
                 Role Name *
               </label>
-              <input 
-                style={inputStyle} 
-                value={form.name} 
-                onChange={e => setForm(p => ({...p, name: e.target.value}))} 
+              <input
+                style={inputStyle}
+                value={form.name}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, name: e.target.value }))
+                }
                 placeholder="e.g., HR Manager, Finance Team Lead"
               />
             </div>
@@ -482,10 +696,12 @@ function RolesTab() {
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
                 Description
               </label>
-              <textarea 
-                style={{...inputStyle, minHeight: "80px", resize: "vertical"}} 
-                value={form.description} 
-                onChange={e => setForm(p => ({...p, description: e.target.value}))} 
+              <textarea
+                style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }}
+                value={form.description}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, description: e.target.value }))
+                }
                 placeholder="Brief description of this role"
               />
             </div>
@@ -494,7 +710,10 @@ function RolesTab() {
                 Status
               </label>
               <div className="flex items-center gap-3">
-                <Toggle checked={form.active ?? true} onChange={v => setForm(p => ({...p, active: v}))} />
+                <Toggle
+                  checked={form.active ?? true}
+                  onChange={(v) => setForm((p) => ({ ...p, active: v }))}
+                />
                 <span className="text-sm text-slate-600 font-medium">
                   {form.active ? "Active" : "Inactive"}
                 </span>
@@ -503,7 +722,11 @@ function RolesTab() {
             <div className="flex gap-3 justify-end pt-2">
               <GhostBtn onClick={() => setModal(null)}>Cancel</GhostBtn>
               <PrimaryBtn onClick={saveRole} disabled={saving}>
-                {saving ? "Saving..." : (modal === "add" ? "Create Role" : "Save Changes")}
+                {saving
+                  ? "Saving..."
+                  : modal === "add"
+                    ? "Create Role"
+                    : "Save Changes"}
               </PrimaryBtn>
             </div>
           </div>
@@ -516,13 +739,18 @@ function RolesTab() {
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-8 h-8 text-red-500" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">Delete "{deleteRole.name}"?</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">
+              Delete "{deleteRole.name}"?
+            </h3>
             <p className="text-sm text-slate-500 mb-6">
-              This will permanently remove this role. Employees with this role will need to be reassigned.
+              This will permanently remove this role. Employees with this role
+              will need to be reassigned.
             </p>
             <div className="flex gap-3 justify-center">
               <GhostBtn onClick={() => setDeleteRole(null)}>Cancel</GhostBtn>
-              <PrimaryBtn danger onClick={handleDelete}>Delete Role</PrimaryBtn>
+              <PrimaryBtn danger onClick={handleDelete}>
+                Delete Role
+              </PrimaryBtn>
             </div>
           </div>
         </Modal>
@@ -559,8 +787,14 @@ function DepartmentsTab() {
     fetchDepartmentsData();
   }, [company?.id]);
 
-  const openAdd = () => { setForm({ code:"", name:"", head:"", costCenter:"", active:true }); setModal("add"); };
-  const openEdit = (item: DeptType) => { setForm({...item}); setModal({ edit: item }); };
+  const openAdd = () => {
+    setForm({ code: "", name: "", head: "", costCenter: "", active: true });
+    setModal("add");
+  };
+  const openEdit = (item: DeptType) => {
+    setForm({ ...item });
+    setModal({ edit: item });
+  };
 
   const save = async () => {
     if (!form.code || !form.name || !company?.id) return;
@@ -570,7 +804,7 @@ function DepartmentsTab() {
       if (modal === "add") {
         await createDepartment(company.id, formData);
         toast.success("Department created successfully!");
-      } else if (modal && 'edit' in modal && formData.id) {
+      } else if (modal && "edit" in modal && formData.id) {
         await updateDepartment(company.id, formData.id, formData);
         toast.success("Department updated successfully!");
       }
@@ -606,26 +840,37 @@ function DepartmentsTab() {
     );
   }
 
-  const active = depts.filter(d => d.active).length;
+  const active = depts.filter((d) => d.active).length;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-5">
         <div>
-          <h2 className="text-lg font-bold text-slate-800 m-0">Department Codes</h2>
-          <p className="text-sm text-slate-500 m-0 mt-1">{active} active of {depts.length} departments</p>
+          <h2 className="text-lg font-bold text-slate-800 m-0">
+            Department Codes
+          </h2>
+          <p className="text-sm text-slate-500 m-0 mt-1">
+            {active} active of {depts.length} departments
+          </p>
         </div>
         <PrimaryBtn onClick={openAdd}>+ Add Department</PrimaryBtn>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {depts.map(d => (
-          <div key={d.id} className={`bg-white rounded-xl border-2 border-slate-200 p-5 relative ${d.active ? "" : "opacity-60"}`}>
+        {depts.map((d) => (
+          <div
+            key={d.id}
+            className={`bg-white rounded-xl border-2 border-slate-200 p-5 relative ${d.active ? "" : "opacity-60"}`}
+          >
             <div className="flex justify-between items-start mb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-extrabold text-sm font-mono">{d.code?.slice(0,3)}</div>
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-extrabold text-sm font-mono">
+                  {d.code?.slice(0, 3)}
+                </div>
                 <div>
-                  <div className="font-bold text-slate-800 text-sm">{d.name}</div>
+                  <div className="font-bold text-slate-800 text-sm">
+                    {d.name}
+                  </div>
                   <div className="text-xs text-slate-500 mt-0.5">{d.code}</div>
                 </div>
               </div>
@@ -633,60 +878,120 @@ function DepartmentsTab() {
             </div>
             <div className="grid grid-cols-2 gap-2 mb-3.5">
               <div className="bg-slate-50 rounded-lg px-3 py-2">
-                <div className="text-xs font-bold text-slate-400 uppercase">Head</div>
-                <div className="text-sm font-semibold text-slate-700 mt-0.5">{d.head || "—"}</div>
+                <div className="text-xs font-bold text-slate-400 uppercase">
+                  Head
+                </div>
+                <div className="text-sm font-semibold text-slate-700 mt-0.5">
+                  {d.head || "—"}
+                </div>
               </div>
               <div className="bg-slate-50 rounded-lg px-3 py-2">
-                <div className="text-xs font-bold text-slate-400 uppercase">Cost Center</div>
-                <div className="text-sm font-semibold text-slate-700 mt-0.5 font-mono">{d.costCenter || "—"}</div>
+                <div className="text-xs font-bold text-slate-400 uppercase">
+                  Cost Center
+                </div>
+                <div className="text-sm font-semibold text-slate-700 mt-0.5 font-mono">
+                  {d.costCenter || "—"}
+                </div>
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => openEdit(d)} className="flex-1 px-3 py-2 border border-slate-200 rounded-lg bg-white cursor-pointer text-sm font-semibold text-slate-600 hover:bg-slate-50">Edit</button>
-              <button onClick={() => setDel(d)} className="flex-1 px-3 py-2 border border-red-200 rounded-lg bg-white cursor-pointer text-sm font-semibold text-red-500 hover:bg-red-50">Delete</button>
+              <button
+                onClick={() => openEdit(d)}
+                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg bg-white cursor-pointer text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => setDel(d)}
+                className="flex-1 px-3 py-2 border border-red-200 rounded-lg bg-white cursor-pointer text-sm font-semibold text-red-500 hover:bg-red-50"
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
         {depts.length === 0 && (
-          <div className="col-span-full text-center py-10 text-slate-400">No departments found. Add your first department.</div>
+          <div className="col-span-full text-center py-10 text-slate-400">
+            No departments found. Add your first department.
+          </div>
         )}
       </div>
 
       {(modal === "add" || modal?.edit) && (
-        <Modal title={modal === "add" ? "Add Department" : "Edit Department"} onClose={() => setModal(null)}>
+        <Modal
+          title={modal === "add" ? "Add Department" : "Edit Department"}
+          onClose={() => setModal(null)}
+        >
           <div className="grid grid-cols-2 gap-4">
             <Field label="Department Code">
-              <input style={inputStyle} value={form.code} onChange={e => setForm(p=>({...p, code:e.target.value.toUpperCase()}))} placeholder="IT" maxLength={8} />
+              <input
+                style={inputStyle}
+                value={form.code}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))
+                }
+                placeholder="IT"
+                maxLength={8}
+              />
             </Field>
             <Field label="Cost Center">
-              <input style={inputStyle} value={form.costCenter} onChange={e => setForm(p=>({...p, costCenter:e.target.value}))} placeholder="CC-001" />
+              <input
+                style={inputStyle}
+                value={form.costCenter}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, costCenter: e.target.value }))
+                }
+                placeholder="CC-001"
+              />
             </Field>
           </div>
           <Field label="Department Name">
-            <input style={inputStyle} value={form.name} onChange={e => setForm(p=>({...p, name:e.target.value}))} placeholder="Information Technology" />
+            <input
+              style={inputStyle}
+              value={form.name}
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Information Technology"
+            />
           </Field>
           <Field label="Department Head">
-            <input style={inputStyle} value={form.head} onChange={e => setForm(p=>({...p, head:e.target.value}))} placeholder="Full name" />
+            <input
+              style={inputStyle}
+              value={form.head}
+              onChange={(e) => setForm((p) => ({ ...p, head: e.target.value }))}
+              placeholder="Full name"
+            />
           </Field>
           <Field label="Status">
             <div className="flex items-center gap-2.5 pt-1">
-              <Toggle checked={form.active ?? true} onChange={v => setForm(p=>({...p, active:v}))} />
-              <span className="text-sm text-slate-600">{form.active ? "Active" : "Inactive"}</span>
+              <Toggle
+                checked={form.active ?? true}
+                onChange={(v) => setForm((p) => ({ ...p, active: v }))}
+              />
+              <span className="text-sm text-slate-600">
+                {form.active ? "Active" : "Inactive"}
+              </span>
             </div>
           </Field>
           <div className="flex gap-2.5 justify-end mt-2">
             <GhostBtn onClick={() => setModal(null)}>Cancel</GhostBtn>
-            <PrimaryBtn onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</PrimaryBtn>
+            <PrimaryBtn onClick={save} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </PrimaryBtn>
           </div>
         </Modal>
       )}
 
       {del && (
         <Modal title="Delete Department" onClose={() => setDel(null)}>
-          <p className="text-slate-600 mb-5">Delete <strong>{del.name}</strong>? All associated job codes must be reassigned first.</p>
+          <p className="text-slate-600 mb-5">
+            Delete <strong>{del.name}</strong>? All associated job codes must be
+            reassigned first.
+          </p>
           <div className="flex gap-2.5 justify-end">
             <GhostBtn onClick={() => setDel(null)}>Cancel</GhostBtn>
-            <PrimaryBtn danger onClick={handleDelete}>Delete</PrimaryBtn>
+            <PrimaryBtn danger onClick={handleDelete}>
+              Delete
+            </PrimaryBtn>
           </div>
         </Modal>
       )}
@@ -696,9 +1001,9 @@ function DepartmentsTab() {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 const TABS = [
-  { id:"leaves", label:"Leave Types", icon: CalendarDays },
-  { id:"roles",  label:"Roles",        icon: Shield },
-  { id:"depts",  label:"Departments",  icon: Building2 },
+  { id: "leaves", label: "Leave Types", icon: CalendarDays },
+  { id: "roles", label: "Roles", icon: Shield },
+  { id: "depts", label: "Departments", icon: Building2 },
 ];
 
 export default function HRSettingsPage() {
@@ -710,7 +1015,12 @@ export default function HRSettingsPage() {
       <div className="bg-white border-b border-slate-200 px-8">
         <div className="max-w-5xl mx-auto">
           <div className="py-5 flex items-center gap-3 mb-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2"
+            >
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
             <div className="flex items-center gap-3">
@@ -718,14 +1028,22 @@ export default function HRSettingsPage() {
                 <Settings className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-extrabold text-slate-800 m-0">HR Settings</h1>
-                <p className="text-xs text-slate-500 m-0">Manage leave types, roles, and departments</p>
+                <h1 className="text-xl font-extrabold text-slate-800 m-0">
+                  HR Settings
+                </h1>
+                <p className="text-xs text-slate-500 m-0">
+                  Manage leave types, roles, and departments
+                </p>
               </div>
             </div>
           </div>
           <div className="flex gap-0">
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)} className={`px-5 py-2.5 border-none bg-none cursor-pointer text-sm font-semibold flex items-center gap-1.5 transition-colors ${tab === t.id ? "text-blue-500 border-b-2 border-blue-500" : "text-slate-500 hover:text-slate-700"}`}>
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`px-5 py-2.5 border-none bg-none cursor-pointer text-sm font-semibold flex items-center gap-1.5 transition-colors ${tab === t.id ? "text-blue-500 border-b-2 border-blue-500" : "text-slate-500 hover:text-slate-700"}`}
+              >
                 <t.icon className="w-4 h-4" /> {t.label}
               </button>
             ))}
@@ -734,10 +1052,9 @@ export default function HRSettingsPage() {
       </div>
       <div className="max-w-5xl mx-auto px-8 py-7">
         {tab === "leaves" && <LeavesTab />}
-        {tab === "roles"  && <RolesTab />}
-        {tab === "depts"  && <DepartmentsTab />}
+        {tab === "roles" && <RolesTab />}
+        {tab === "depts" && <DepartmentsTab />}
       </div>
     </div>
   );
 }
-
