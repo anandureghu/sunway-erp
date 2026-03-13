@@ -123,3 +123,9 @@
     font-family: "Inter", "Poppins", "Roboto", sans-serif;
   }
 }
+
+@layer utilities {
+  .bg-primary-gradient {
+    @apply bg-gradient-to-br from-blue-500 to-indigo-600;
+  }
+}

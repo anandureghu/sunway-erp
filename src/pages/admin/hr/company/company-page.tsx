@@ -40,7 +40,7 @@ export default function CompanyListPage() {
       setCompanies((prev) => [...prev, updated]);
     } else {
       setCompanies((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c))
+        prev.map((c) => (c.id === updated.id ? updated : c)),
       );
     }
     setSelected(null);

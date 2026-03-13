@@ -9,11 +9,12 @@ import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { CompanyDialog } from "../admin/hr/company/company-dialog";
 import { EmployeeDialog } from "../admin/hr/employee/employee-dialog";
 import type { Employee } from "@/types/hr";
-import { CompanyBankAccounts } from "../admin/hr/company/company-bank-accounts";
+import { useAppSelector } from "@/store/store";
 
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { globalSettingsView } = useAppSelector((state) => state.ui);
 
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,13 +117,15 @@ export default function CompanyDetailPage() {
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <div className="flex gap-3 items-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/admin/company")}
-            className="flex gap-1"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Button>
+          {!globalSettingsView && (
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/admin/company")}
+              className="flex gap-1"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          )}
           <h1 className="text-2xl font-semibold">{company.companyName}</h1>
         </div>
 
@@ -131,9 +134,11 @@ export default function CompanyDetailPage() {
             <Edit className="h-4 w-4 mr-1" /> Edit
           </Button>
 
-          <Button variant="destructive" onClick={handleDelete}>
-            <Trash className="h-4 w-4 mr-1" /> Delete
-          </Button>
+          {!globalSettingsView && (
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash className="h-4 w-4 mr-1" /> Delete
+            </Button>
+          )}
         </div>
       </div>
 
@@ -290,8 +295,6 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
       </div>
-
-      <CompanyBankAccounts companyId={company.id} />
 
       {/* Edit Dialog */}
       <CompanyDialog
