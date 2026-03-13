@@ -87,6 +87,11 @@ export function AddEmployeeModal({
     religion: "",
     identification: "",
 
+    email: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
+
     role: "",
   });
 
@@ -103,7 +108,7 @@ export function AddEmployeeModal({
             .filter((r) => r.active !== false)
             .map((r) => ({ label: r.name, value: r.name }));
           setRoleOptions(options);
-          
+
           // Set default role if available
           if (options.length > 0 && !form.role) {
             setForm((prev) => ({ ...prev, role: options[0].value }));
@@ -125,8 +130,28 @@ export function AddEmployeeModal({
   };
 
   const handleSubmit = () => {
-    if (!form.firstName || !form.lastName) {
+    if (!form.firstName.trim() || !form.lastName.trim()) {
       toast.error("First name and Last name are required");
+      return;
+    }
+
+    if (!form.username.trim()) {
+      toast.error("Username is required");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+
+    if (!form.password.trim()) {
+      toast.error("Password is required");
+      return;
+    }
+
+    if (form.password.trim() !== form.confirmPassword.trim()) {
+      toast.error("Passowrd doesn't match");
       return;
     }
 
@@ -143,6 +168,9 @@ export function AddEmployeeModal({
       nationality: form.nationality || undefined,
       religion: form.religion || undefined,
       identification: form.identification || undefined,
+      username: form.username,
+      password: form.password,
+      email: form.email,
 
       // Use companyRole (human-readable) for display
       companyRole: form.role || "Employee",
@@ -153,7 +181,7 @@ export function AddEmployeeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Employee</DialogTitle>
           <p className="text-sm text-gray-600">
@@ -199,7 +227,51 @@ export function AddEmployeeModal({
               />
             </div>
 
-              
+            <div>
+              <label className="text-sm font-medium">Username</label>
+              <input
+                name="username"
+                placeholder="Username"
+                value={form.username}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Password</label>
+              <input
+                name="password"
+                placeholder="Password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Confirm Password</label>
+              <input
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <input
+                name="email"
+                placeholder="example@gmail.com"
+                value={form.email}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
+
             <div>
               <label className="text-sm font-medium">Phone</label>
               <input
@@ -251,55 +323,89 @@ export function AddEmployeeModal({
               />
             </div>
 
-              <div>
-                <label className="text-sm font-medium">Birthplace</label>
-                <input name="birthplace" placeholder="Birthplace" value={form.birthplace} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Birthplace</label>
+              <input
+                name="birthplace"
+                placeholder="Birthplace"
+                value={form.birthplace}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
 
-              <div>
-                <label className="text-sm font-medium">Hometown</label>
-                <input name="hometown" placeholder="Hometown" value={form.hometown} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Hometown</label>
+              <input
+                name="hometown"
+                placeholder="Hometown"
+                value={form.hometown}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
 
-              <div>
-                <label className="text-sm font-medium">Nationality</label>
-                <input name="nationality" placeholder="Nationality" value={form.nationality} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Nationality</label>
+              <input
+                name="nationality"
+                placeholder="Nationality"
+                value={form.nationality}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
 
-              <div>
-                <label className="text-sm font-medium">Religion</label>
-                <input name="religion" placeholder="Religion" value={form.religion} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Religion</label>
+              <input
+                name="religion"
+                placeholder="Religion"
+                value={form.religion}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
 
-              <div>
-                <label className="text-sm font-medium">Identification</label>
-                <input name="identification" placeholder="ID number / identification" value={form.identification} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2" />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Identification</label>
+              <input
+                name="identification"
+                placeholder="ID number / identification"
+                value={form.identification}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              />
+            </div>
 
-              
-              <div>
-                <label className="text-sm font-medium">Role</label>
-                <select name="role" value={form.role} onChange={handleChange} className="mt-1 block w-full rounded-md border px-3 py-2">
-                  {roleOptions.length > 0 ? (
-                    roleOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))
-                  ) : (
-                    // Fallback options when no roles are loaded
-                    <>
-                      <option value="USER">User</option>
-                      <option value="ADMIN">Admin</option>
-                      <option value="FINANCE_MANAGER">Finance Manager</option>
-                      <option value="ACCOUNTANT">Accountant</option>
-                      <option value="AP_AR_CLERK">AP/AR Clerk</option>
-                      <option value="CONTROLLER">Controller</option>
-                      <option value="AUDITOR_EXTERNAL">Auditor (External)</option>
-                    </>
-                  )}
-                </select>
-              </div>
+            <div>
+              <label className="text-sm font-medium">Role</label>
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border px-3 py-2"
+              >
+                {roleOptions.length > 0 ? (
+                  roleOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))
+                ) : (
+                  // Fallback options when no roles are loaded
+                  <>
+                    <option value="USER">User</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="FINANCE_MANAGER">Finance Manager</option>
+                    <option value="ACCOUNTANT">Accountant</option>
+                    <option value="AP_AR_CLERK">AP/AR Clerk</option>
+                    <option value="CONTROLLER">Controller</option>
+                    <option value="AUDITOR_EXTERNAL">Auditor (External)</option>
+                  </>
+                )}
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center justify-end">
