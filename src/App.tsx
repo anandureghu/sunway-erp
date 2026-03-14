@@ -25,7 +25,7 @@ import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
 import ReceivingPage from "./pages/purchase/receiving-page";
 import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
 import { PrivateRoute } from "./components/protected-route";
-import { useAppSelector } from "./store/store";
+import { useAppDispatch, useAppSelector } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
 import Payroll from "./pages/finance/payroll";
 import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
@@ -108,9 +108,18 @@ import HRSettingsPage from "./pages/hr/settings-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
 import DivisionListPage from "./pages/admin/hr/division/division-list-page";
 import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
+import { useEffect } from "react";
+import { setAdminView, setGlobalSettingsView } from "@/store/uiSlice";
+import SettingsRolesPage from "@/pages/settings/settings-role-page";
+import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
 
 export default function App() {
-  const adminView = useAppSelector((s) => s.ui.adminView);
+  const dispatch = useAppDispatch();
+  const { adminView } = useAppSelector((s) => s.ui);
+  useEffect(() => {
+    dispatch(setAdminView(false));
+    dispatch(setGlobalSettingsView(false));
+  }, []);
   return (
     <Routes>
       {/* App frame */}
@@ -149,10 +158,12 @@ export default function App() {
         </Route>
 
         <Route path="settings/:id" element={<SettingsPage />} />
+        <Route path="settings/roles/:id" element={<SettingsRolesPage />} />
 
         {/* Admin */}
         <Route path="admin">
           <Route path="company" element={<CompanyPage />} />
+          <Route path="bank-accounts" element={<CompanyBankAccounts />} />
           <Route path="department" element={<DepartmentListPage />} />
           <Route path="division" element={<DivisionListPage />} />
           <Route path="accounting-period" element={<AccountingPeriodPage />} />
@@ -229,7 +240,10 @@ export default function App() {
 
           {/* HR Settings */}
           <Route path="settings" element={<HRSettingsPage />} />
-          <Route path="settings/leave-customization" element={<LeaveCustomizationPage />} />
+          <Route
+            path="settings/leave-customization"
+            element={<LeaveCustomizationPage />}
+          />
 
           {/* employee detail shell + nested tabs */}
           <Route path="employees/:id" element={<EmployeeShell />}>
@@ -244,10 +258,7 @@ export default function App() {
             {/* Current Job */}
             <Route path="current-job" element={<CurrentJobShell />}>
               <Route index element={<CurrentJobForm />} />
-              <Route
-                path="contract"
-                element={<EmployeeContractForm />}
-              />
+              <Route path="contract" element={<EmployeeContractForm />} />
               <Route
                 path="previous-experiences"
                 element={<PreviousExperiencesForm />}
