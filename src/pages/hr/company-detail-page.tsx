@@ -235,6 +235,7 @@ export default function CompanyDetailPage() {
 
       {/* Admin Card / Create Admin */}
       <div>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Company Admin</CardTitle>
@@ -287,14 +288,13 @@ export default function CompanyDetailPage() {
 
                 <div className="flex gap-2">
                   <Button onClick={handleCreateAdmin}>Create Admin</Button>
-                  {/* If you want an automatic creation (POST) you could add a different button that calls the POST /api/employees with role ADMIN.
-                      For safety UX we prefer navigating to the create form so the user can enter details. */}
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
 
       {/* Edit Dialog */}
       <CompanyDialog

@@ -33,9 +33,17 @@ import {
 import type { Department } from "@/types/department";
 import { createEmployeeSchema } from "@/schema/employee";
 import { type Employee, type Role } from "@/types/hr";
-import { useAuth } from "@/context/AuthContext";
-import roleService from "@/service/roleService";
-import type { RoleOption } from "@/types/role";
+
+// ✅ Fixed: hardcoded Spring Security roles only — never mix with companyRole
+const SECURITY_ROLES = [
+  { label: "Admin",            value: "ADMIN"           },
+  { label: "HR",               value: "HR"              },
+  { label: "User",             value: "USER"            },
+  { label: "Finance Manager",  value: "FINANCE_MANAGER" },
+  { label: "Accountant",       value: "ACCOUNTANT"      },
+  { label: "Cashier",          value: "CASHIER"         },
+  { label: "Super Admin",      value: "SUPER_ADMIN"     },
+];
 
 type EmployeeDialogProps = {
   open: boolean;
@@ -64,29 +72,9 @@ export function EmployeeDialog({
   presetRole = "ADMIN",
   onSuccess,
 }: EmployeeDialogProps) {
-  const { company } = useAuth();
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
-  const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
-
-  // Fetch roles from API when component mounts or company changes
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        if (company?.id) {
-          const roles = await roleService.getRoles(company.id);
-          const options = roles
-            .filter((r) => r.active !== false)
-            .map((r) => ({ label: r.name, value: r.name }));
-          setRoleOptions(options);
-        }
-      } catch (error) {
-        console.error("Failed to fetch roles:", error);
-      }
-    };
-    fetchRoles();
-  }, [company?.id]);
 
   const form = useForm({
     resolver: zodResolver(createEmployeeSchema),
@@ -115,6 +103,7 @@ export function EmployeeDialog({
         departmentId: employee.departmentId
           ? String(employee.departmentId)
           : "",
+        role: (employee.role as string) ?? presetRole,
       });
     }
   }, [open, employee, mode]);
@@ -173,10 +162,10 @@ export function EmployeeDialog({
     try {
       if (mode === "create") {
         await apiClient.post("/employees", payload);
-        toast.success("Admin created successfully");
+        toast.success("Employee created successfully");
       } else {
         await apiClient.put(`/employees/${employeeId}`, payload);
-        toast.success("Admin updated successfully");
+        toast.success("Employee updated successfully");
       }
 
       onSuccess();
@@ -219,7 +208,7 @@ export function EmployeeDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "Create Company Admin" : "Edit Company Admin"}
+            {mode === "create" ? "Create Employee" : "Edit Employee"}
           </DialogTitle>
         </DialogHeader>
 
@@ -356,40 +345,23 @@ export function EmployeeDialog({
               )}
             />
 
+            {/* ✅ Spring Security roles only — hardcoded, never from roleService */}
             <FormField
               control={form.control}
               name="role"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>User Role</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={mode === "create"}
-                    defaultValue="ADMIN"
-                  >
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue="ADMIN">
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {roleOptions.length > 0 ? (
-                        roleOptions.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>
-                            {r.label}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        // Fallback options when no roles are loaded
-                        <>
-                          <SelectItem value="ADMIN">Admin</SelectItem>
-                          <SelectItem value="HR">HR</SelectItem>
-                          <SelectItem value="USER">User</SelectItem>
-                          <SelectItem value="FINANCE_MANAGER">Finance Manager</SelectItem>
-                          <SelectItem value="ACCOUNTANT">Accountant</SelectItem>
-                        </>
-                      )}
+                      {SECURITY_ROLES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -403,8 +375,8 @@ export function EmployeeDialog({
                   ? "Creating..."
                   : "Updating..."
                 : mode === "create"
-                  ? "Create Admin"
-                  : "Update Admin"}
+                  ? "Create Employee"
+                  : "Update Employee"}
             </Button>
           </form>
         </Form>

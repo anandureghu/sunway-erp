@@ -91,6 +91,7 @@ export interface UpdateEmployeePayload {
   departmentId?: number;
   notes?: string;
   imageUrl?: string;
+  role?: string;
 }
 
 async function updateEmployee(
