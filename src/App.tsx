@@ -110,8 +110,10 @@ import DivisionListPage from "./pages/admin/hr/division/division-list-page";
 import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
 import { useEffect } from "react";
 import { setAdminView, setGlobalSettingsView } from "@/store/uiSlice";
+import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
+
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -135,6 +137,8 @@ export default function App() {
           index
           element={adminView ? <DashboardPage /> : <DashboardPage />}
         />
+        <Route path="profile" element={<UserProfilePage />} />
+
 
         {/* Finance */}
         <Route path="finance">

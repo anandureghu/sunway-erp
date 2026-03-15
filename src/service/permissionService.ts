@@ -21,25 +21,22 @@ async function deleteRole(roleId: number): Promise<void> {
 }
 
 async function getByRole(roleName: string, employeeId?: number): Promise<ModulePermission[]> {
+  // ✅ No .toUpperCase() — preserve exact companyRole name e.g. "User", "HR Manager"
   const url = employeeId
-    ? `/role-permissions/${roleName.toUpperCase()}?employeeId=${employeeId}`
-    : `/role-permissions/${roleName.toUpperCase()}`;
-  
+    ? `/role-permissions/${encodeURIComponent(roleName)}?employeeId=${employeeId}`
+    : `/role-permissions/${encodeURIComponent(roleName)}`;
   const res = await apiClient.get<ModulePermission[]>(url);
   return res.data;
 }
 
 async function getMyPermissions(): Promise<ModulePermission[]> {
-  const res = await apiClient.get<ModulePermission[]>(
-    "/role-permissions/my-permissions"
-  );
+  const res = await apiClient.get<ModulePermission[]>("/role-permissions/my-permissions");
   return res.data;
 }
 
-// ✅ Transforms flat ModulePermission[] → nested DTO format backend expects
 function toBackendDTOs(permissions: ModulePermission[]): object[] {
   return permissions.map((perm) => ({
-    module: perm.module.toUpperCase(),
+    module: perm.module.toUpperCase(), // module names are still uppercase enums
     permission: {
       viewOwn:          perm.viewOwn,
       viewAll:          perm.viewAll,
@@ -57,36 +54,22 @@ async function assignPermissions(
   employeeId?: number
 ): Promise<void> {
   const payload = toBackendDTOs(permissions);
-
+  // ✅ No .toUpperCase() — preserve exact companyRole name e.g. "User", "HR Manager"
   const url = employeeId
-    ? `/role-permissions/${roleName.toUpperCase()}?employeeId=${employeeId}`
-    : `/role-permissions/${roleName.toUpperCase()}`;
-
+    ? `/role-permissions/${encodeURIComponent(roleName)}?employeeId=${employeeId}`
+    : `/role-permissions/${encodeURIComponent(roleName)}`;
   await apiClient.post(url, payload);
 }
 
-
 async function removeAll(roleName: string): Promise<void> {
-  await apiClient.delete(`/role-permissions/${roleName.toUpperCase()}`);
+  // ✅ No .toUpperCase()
+  await apiClient.delete(`/role-permissions/${encodeURIComponent(roleName)}`);
 }
 
-
-// ✅ Maps backend flat response → frontend caps lookup object
-function toFrontendCaps(
-  permissions: ModulePermission[]
-): Record<string, Record<string, boolean>> {
+function toFrontendCaps(permissions: ModulePermission[]): Record<string, Record<string, boolean>> {
   const caps: Record<string, Record<string, boolean>> = {};
-
   for (const perm of permissions) {
-    // Normalize module id to a consistent frontend key:
-    // - make lowercase
-    // - replace non-alphanumeric characters with underscore
-    // This covers BACKEND values like "CURRENT_JOB", "CURRENT-JOB" or "current-job"
-    const moduleId = perm.module
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_|_$/g, "");
-
+    const moduleId = perm.module.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     caps[moduleId] = {
       view_own: perm.viewOwn,
       view_all: perm.viewAll,
@@ -96,14 +79,10 @@ function toFrontendCaps(
       approve:  perm.approve,
     };
   }
-
   return caps;
 }
 
-// Maps frontend caps → flat ModulePermission[] (for internal use)
-function toBackendPermissions(
-  caps: Record<string, Record<string, boolean>>
-): ModulePermission[] {
+function toBackendPermissions(caps: Record<string, Record<string, boolean>>): ModulePermission[] {
   return Object.entries(caps).map(([module, perms]) => ({
     module:           module.toUpperCase(),
     viewOwn:          perms.view_own  || false,
@@ -116,17 +95,9 @@ function toBackendPermissions(
 }
 
 export const permissionService = {
-  getRoles,
-  createRole,
-  updateRole,
-  deleteRole,
-  getByRole,
-  getMyPermissions,
-  assignPermissions,
-  removeAll,
-  toFrontendCaps,
-  toBackendPermissions,
-  toBackendDTOs,      
+  getRoles, createRole, updateRole, deleteRole,
+  getByRole, getMyPermissions, assignPermissions, removeAll,
+  toFrontendCaps, toBackendPermissions, toBackendDTOs,
 };
 
 export default permissionService;

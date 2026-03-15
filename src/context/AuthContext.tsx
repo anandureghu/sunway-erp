@@ -125,19 +125,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Only fetch /users/{id} if token actually contains a userId.
     if (decoded.userId != null) {
-      apiClient
-        .get("/users/" + decoded.userId)
-        .then((response) => {
-          setUser({
-            ...response.data,
-            role, // 🔥 preserve role from JWT
-          });
-          setUser(response.data);
-          fetchAccountPeriodStatus();
-          if (response.data.companyId) {
-            fetchCompany(response.data.companyId);
-          }
-        })
+        apiClient
+          .get("/users/" + decoded.userId)
+          .then((response) => {
+            setUser({
+              ...response.data,              // spread all fields from /users/{id}
+              id: String(decoded.userId),    // ✅ keep id from JWT as string
+              role,                          // ✅ keep role from JWT
+            });
+            fetchAccountPeriodStatus();
+            if (response.data.companyId) {
+              fetchCompany(response.data.companyId);
+            }
+          })
         .catch((e) => {
           // Don't hard-logout on profile fetch failure; token may still be valid.
           console.warn(

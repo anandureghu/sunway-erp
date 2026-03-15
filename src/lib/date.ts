@@ -30,3 +30,16 @@ export function toIsoDate(input?: string): string | undefined {
   }
   return undefined;
 }
+
+export function addMonths(dateStr: string, months: number): string {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (!year || !month || !day) return dateStr;
+  
+  const newDate = new Date(year, month - 1 + months, day);
+  const newYear = newDate.getFullYear();
+  const newMonth = newDate.getMonth() + 1;
+  const newDay = newDate.getDate();
+  
+  return `${newYear}-${newMonth.toString().padStart(2, '0')}-${newDay.toString().padStart(2, '0')}`;
+}

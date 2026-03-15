@@ -575,12 +575,8 @@ function CycleSetupPanel({ config, setConfig }: { config: CycleConfig; setConfig
 }
 
 // ── Panel 2: Goals & KPIs ──────────────────────────────────────────────────
-const ALL_POSSIBLE_ROLES = [
-  "SUPER_ADMIN","USER","ADMIN","HR","FINANCE_MANAGER","ACCOUNTANT","AP_AR_CLERK","CONTROLLER","AUDITOR_EXTERNAL",
-  "Software Engineer","Product Manager","UX Designer","Data Analyst","DevOps Engineer","HR Manager","Finance Analyst","Sales Executive",
-];
-
 function GoalsPanel({
+
   goalsByRole, setGoalsByRole, roles, selectedRole, setSelectedRole,
   maxGoals, minGoals, onAddRole, onRemoveRole, availableRoles = [],
 }: {
@@ -632,9 +628,10 @@ function GoalsPanel({
     }));
   }
 
-  // Combine company roles from API with fallback roles
-  const allRoles = [...availableRoles, ...ALL_POSSIBLE_ROLES];
-  const roleOptions = Array.from(new Set(allRoles)).filter(r => !roles.includes(r));
+  const roleOptions = availableRoles.filter(r => !roles.includes(r));
+
+
+
 
   return (
     <div className="flex gap-6">

@@ -1,4 +1,3 @@
-// Singleton cache — lives for the entire browser session, survives component remounts
 import { apiClient } from "./apiClient";
 
 let cache: any[] | null = null;
@@ -17,7 +16,7 @@ export async function getMyPermissions(): Promise<any[]> {
     })
     .catch(() => {
       promise = null;
-      cache = []; // cache empty on error — prevents infinite retries
+      cache = [];
       return [];
     });
 
@@ -30,9 +29,27 @@ export function clearPermissionCache() {
 }
 
 export function canEditModule(permissions: any[], module: string): boolean {
-  if (permissions.length === 0) return true; // no rules = open access
+  // Empty = admin bypass (backend returned nothing because ADMIN/SUPER_ADMIN skips rules)
+  if (permissions.length === 0) return true;
+
   const p = permissions.find((x) => x.module === module);
-  if (!p) return true; // module not in permissions = not restricted
+
+  // Module not found in permissions list = not restricted
+  if (!p) return true;
+
   return p.editPermission === true;
 }
 
+export function canViewModule(permissions: any[], module: string): boolean {
+  if (permissions.length === 0) return true;
+  const p = permissions.find((x) => x.module === module);
+  if (!p) return true;
+  return p.viewOwn === true || p.viewAll === true;
+}
+
+export function canCreateInModule(permissions: any[], module: string): boolean {
+  if (permissions.length === 0) return true;
+  const p = permissions.find((x) => x.module === module);
+  if (!p) return true;
+  return p.createPermission === true;
+}

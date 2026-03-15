@@ -1,4 +1,12 @@
 import { Input } from "@/components/ui/input";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
+import { useParams } from "react-router-dom";
+import { contractService, type ContractApiPayload, type AllowancePayload } from "@/service/contractService";
+import { toast } from "sonner";
+import type { ContractType, ContractStatus } from "@/types/hr";
+import { FormField } from "@/modules/hr/components/form-components";
+import { Plus, Trash2, FileText, Calendar, DollarSign, PenTool, Upload, Clock, User, Hash } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -6,20 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
-import { useParams } from "react-router-dom";
-import { contractService, type ContractApiPayload, type AllowancePayload, type AllowanceType } from "@/service/contractService";
-import { toast } from "sonner";
-import type { ContractType, ContractStatus } from "@/types/hr";
-import { FormField } from "@/modules/hr/components/form-components";
-import { Plus, Trash2, FileText, Calendar, DollarSign, PenTool, Upload, Clock, User, Hash } from "lucide-react";
 
 /* ================= TYPES ================= */
 
 interface SalaryAllowanceRow {
   id: string;
-  allowanceTypeId: string;
+  customName: string;   // ✅ only text input — no allowanceTypeId
   amount: string;
   effectiveDate: string;
   note: string;
@@ -48,10 +48,9 @@ interface ValidationErrors {
 
 /* ================= HELPERS ================= */
 
-
 const createEmptyRow = (): SalaryAllowanceRow => ({
   id: crypto.randomUUID(),
-  allowanceTypeId: "",
+  customName: "",       // ✅ only field needed
   amount: "",
   effectiveDate: "",
   note: "",
@@ -96,38 +95,11 @@ export default function EmployeeContractForm() {
 
   const [exists, setExists] = useState(false);
   const [contractId, setContractId] = useState<number | null>(null);
-  const [allowanceTypes, setAllowanceTypes] = useState<AllowanceType[]>([]);
-  const [loadingAllowanceTypes, setLoadingAllowanceTypes] = useState(true);
-  const [allowanceTypesReady, setAllowanceTypesReady] = useState(false);
   const loadingContractRef = useRef(false);
-  const allowanceTypesRef = useRef<AllowanceType[]>([]);
   const savingRef = useRef(false);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const contractLoadedRef = useRef(false);
 
-  /* ================= LOAD ALLOWANCE TYPES ================= */
-
-  useEffect(() => {
-    const fetchAllowanceTypes = async () => {
-      try {
-        const types = await contractService.getAllowanceTypes();
-        const typesArray = types || [];
-        setAllowanceTypes(typesArray);
-        allowanceTypesRef.current = typesArray;
-      } catch (error) {
-        console.error("Error loading allowance types:", error);
-        setAllowanceTypes([]);
-        allowanceTypesRef.current = [];
-      } finally {
-        setLoadingAllowanceTypes(false);
-        setAllowanceTypesReady(true);
-      }
-    };
-
-  fetchAllowanceTypes();
-  }, []);
-
-  // Memoized initial form data to prevent shared state across component instances
   const initialFormData = useMemo(() => ({
     contractCode: "",
     staffName: "",
@@ -165,15 +137,12 @@ export default function EmployeeContractForm() {
         throw new Error("Invalid employee ID");
       }
 
+      // ✅ filter by customName + amount only
       const allowances: AllowancePayload[] = data.salaryRows
-        .filter((r) =>
-          r.allowanceTypeId &&
-          r.amount &&
-          r.effectiveDate &&
-          Number(r.amount) > 0
-        )
+        .filter((r) => r.customName.trim() && r.amount && Number(r.amount) > 0)
         .map((r) => ({
-          allowanceTypeId: Number(r.allowanceTypeId),  // ✅ CORRECT
+          allowanceTypeId: undefined,       // ✅ always null — no type selection
+          customName: r.customName.trim(),  // ✅ always from text input
           amount: Number(r.amount),
           effectiveDate: r.effectiveDate,
           note: r.note || undefined,
@@ -181,7 +150,7 @@ export default function EmployeeContractForm() {
 
       if (allowances.length === 0) {
         savingRef.current = false;
-        toast.error("Please add at least one valid allowance");
+        toast.error("Please add at least one allowance with a name and amount");
         return;
       }
 
@@ -208,9 +177,7 @@ export default function EmployeeContractForm() {
           }
         }
 
-        // 🚀 ALWAYS reload using employeeId
         await loadContract(validEmployeeId);
-
         toast.success("Contract saved successfully");
       } catch (err: any) {
         toast.error(contractService.extractErrorMessage(err));
@@ -225,10 +192,9 @@ export default function EmployeeContractForm() {
   /* ================= LOAD CONTRACT ================= */
 
   const loadContract = async (empId: number) => {
-    // Prevent multiple concurrent loads - use ref for synchronous check
     if (loadingContractRef.current) return;
     loadingContractRef.current = true;
-    
+
     try {
       const fresh = await contractService.get(empId);
       if (!fresh) {
@@ -239,32 +205,14 @@ export default function EmployeeContractForm() {
       setExists(true);
       setContractId(fresh.id);
 
-      // Read from ref to get the latest allowanceTypes (avoids stale closure)
-      const currentAllowanceTypes = allowanceTypesRef.current;
-
-      // Map allowances properly - try to match with allowance types first by ID, then by name
-      const mappedSalaryRows = fresh.allowances?.map((a: AllowancePayload) => {
-        // First try to find by ID if available
-        let matchedTypeId = a.allowanceTypeId ? String(a.allowanceTypeId) : "";
-        
-        // If no ID match, try to find by name in allowanceTypes (from ref)
-        if (!matchedTypeId && a.allowanceType && currentAllowanceTypes.length > 0) {
-          const typeByName = currentAllowanceTypes.find(
-            (t) => t.name.toLowerCase() === String(a.allowanceType).toLowerCase()
-          );
-          if (typeByName) {
-            matchedTypeId = String(typeByName.id);
-          }
-        }
-        
-        return {
-          id: crypto.randomUUID(),
-          allowanceTypeId: matchedTypeId || String(a.allowanceTypeId ?? a.allowanceType ?? ""),
-          amount: String(a.amount ?? ""),
-          effectiveDate: a.effectiveDate ?? "",
-          note: a.note ?? ""
-        };
-      }) ?? [createEmptyRow()];
+      // ✅ map allowances using customName only
+      const mappedSalaryRows = fresh.allowances?.map((a: AllowancePayload) => ({
+        id: crypto.randomUUID(),
+        customName: a.customName ?? String(a.allowanceType ?? ""),
+        amount: String(a.amount ?? ""),
+        effectiveDate: a.effectiveDate ?? "",
+        note: a.note ?? "",
+      })) ?? [createEmptyRow()];
 
       setFields({
         contractCode: fresh.contractCode ?? "",
@@ -280,10 +228,9 @@ export default function EmployeeContractForm() {
         signedBy: fresh.signedBy ?? "",
         termsAndConditions: fresh.termsAndConditions ?? "",
         attachmentUrl: fresh.attachmentUrl ?? "",
-        salaryRows: mappedSalaryRows
+        salaryRows: mappedSalaryRows,
       });
-      
-      // Mark contract as loaded
+
       contractLoadedRef.current = true;
     } catch (error) {
       console.error("Error loading contract:", error);
@@ -294,12 +241,8 @@ export default function EmployeeContractForm() {
 
   useEffect(() => {
     if (!employeeId) return;
-
-    // Only load contract after allowance types are ready (fixes race condition)
-    if (allowanceTypesReady) {
-      loadContract(employeeId);
-    }
-  }, [employeeId, allowanceTypesReady]);
+    loadContract(employeeId);   // ✅ no more allowanceTypesReady dependency
+  }, [employeeId]);
 
   /* ================= EVENT BRIDGE ================= */
 
@@ -352,14 +295,14 @@ export default function EmployeeContractForm() {
     return sum + amount;
   }, 0);
 
-  const validRows = formData.salaryRows.filter(r => r.allowanceTypeId || r.amount);
+  const validRows = formData.salaryRows.filter(r => r.customName || r.amount);
 
   /* ================= RENDER ================= */
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto space-y-5">
-        
+
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-start gap-4">
@@ -602,40 +545,18 @@ export default function EmployeeContractForm() {
                   {formData.salaryRows.map((row, idx) => (
                     <tr key={row.id} className={`border-t border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-blue-50/50 transition-colors`}>
                       <td className="px-4 py-3 text-center text-slate-500 border-r border-slate-200 font-medium">{idx + 1}</td>
+
+                      {/* ✅ pure text input — no dropdown at all */}
                       <td className="px-2 py-2 border-r border-slate-200">
-                        {loadingAllowanceTypes ? (
-                          <Input 
-                            className="h-10 border-0 shadow-none bg-transparent rounded-lg" 
-                            disabled 
-                            placeholder="Loading..." 
-                          />
-                        ) : allowanceTypes.length > 0 ? (
-                          <Select
-                            value={row.allowanceTypeId}
-                            onValueChange={(v) => updateRow(row.id, "allowanceTypeId", v)}
-                            disabled={!editing}
-                          >
-                            <SelectTrigger className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg">
-                              <SelectValue placeholder="Select allowance" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allowanceTypes.map((type) => (
-                                <SelectItem key={type.id} value={String(type.id)}>
-                                  {type.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input 
-                            className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg" 
-                            disabled={!editing} 
-                            value={row.allowanceTypeId} 
-                            onChange={(e) => updateRow(row.id, "allowanceTypeId", e.target.value)} 
-                            placeholder={editing ? "Enter allowance type..." : ""} 
-                          />
-                        )}
+                        <Input
+                          className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg text-sm"
+                          disabled={!editing}
+                          value={row.customName}
+                          onChange={(e) => updateRow(row.id, "customName", e.target.value)}
+                          placeholder={editing ? "e.g. Housing, Transport..." : "—"}
+                        />
                       </td>
+
                       <td className="px-2 py-2 border-r border-slate-200">
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
@@ -653,28 +574,28 @@ export default function EmployeeContractForm() {
                         </div>
                       </td>
                       <td className="px-2 py-2 border-r border-slate-200">
-                        <Input 
-                          type="date" 
-                          className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg" 
-                          disabled={!editing} 
-                          value={row.effectiveDate} 
-                          onChange={(e) => updateRow(row.id, "effectiveDate", e.target.value)} 
+                        <Input
+                          type="date"
+                          className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
+                          disabled={!editing}
+                          value={row.effectiveDate}
+                          onChange={(e) => updateRow(row.id, "effectiveDate", e.target.value)}
                         />
                       </td>
                       <td className="px-2 py-2 border-r border-slate-200">
-                        <Input 
-                          className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg" 
-                          disabled={!editing} 
-                          value={row.note} 
-                          onChange={(e) => updateRow(row.id, "note", e.target.value)} 
-                          placeholder={editing ? "Add note..." : ""} 
+                        <Input
+                          className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
+                          disabled={!editing}
+                          value={row.note}
+                          onChange={(e) => updateRow(row.id, "note", e.target.value)}
+                          placeholder={editing ? "Add note..." : ""}
                         />
                       </td>
                       {editing && (
                         <td className="px-2 py-2 text-center">
-                          <button 
-                            type="button" 
-                            onClick={() => removeRow(row.id)} 
+                          <button
+                            type="button"
+                            onClick={() => removeRow(row.id)}
                             className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-lg"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -687,9 +608,9 @@ export default function EmployeeContractForm() {
               </table>
               {editing && (
                 <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50">
-                  <button 
-                    type="button" 
-                    onClick={addRow} 
+                  <button
+                    type="button"
+                    onClick={addRow}
                     className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors px-3 py-2 hover:bg-indigo-50 rounded-lg"
                   >
                     <Plus className="h-4 w-4" />
@@ -713,12 +634,12 @@ export default function EmployeeContractForm() {
               <FormField label="Signature Date">
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input 
-                    type="date" 
-                    className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700" 
-                    disabled={!editing} 
-                    value={formData.signatureDate} 
-                    onChange={(e) => updateField("signatureDate")(e.target.value)} 
+                  <Input
+                    type="date"
+                    className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                    disabled={!editing}
+                    value={formData.signatureDate}
+                    onChange={(e) => updateField("signatureDate")(e.target.value)}
                   />
                 </div>
               </FormField>
@@ -726,12 +647,12 @@ export default function EmployeeContractForm() {
               <FormField label="Signed By">
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input 
-                    className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700" 
-                    disabled={!editing} 
+                  <Input
+                    className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                    disabled={!editing}
                     placeholder="Enter signatory name"
-                    value={formData.signedBy} 
-                    onChange={(e) => updateField("signedBy")(e.target.value)} 
+                    value={formData.signedBy}
+                    onChange={(e) => updateField("signedBy")(e.target.value)}
                   />
                 </div>
               </FormField>
@@ -768,18 +689,18 @@ export default function EmployeeContractForm() {
                       )}
                     </div>
                     {editing && (
-                      <label className={`cursor-pointer px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm hover:shadow-md ${!editing ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <label className="cursor-pointer px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm hover:shadow-md">
                         Browse Files
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          disabled={!editing} 
+                        <input
+                          type="file"
+                          className="hidden"
+                          disabled={!editing}
                           accept=".pdf,.doc,.docx"
-                          onChange={(e) => { 
-                            const file = e.target.files?.[0] ?? null; 
-                            setAttachmentFile(file); 
-                            if (file) updateField("attachmentUrl")(file.name); 
-                          }} 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] ?? null;
+                            setAttachmentFile(file);
+                            if (file) updateField("attachmentUrl")(file.name);
+                          }}
                         />
                       </label>
                     )}

@@ -1,17 +1,26 @@
 // src/components/Navbar.tsx
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { toggleAdminView } from "@/store/uiSlice";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { displayRole } from "@/types/role";
+import { useNavigate } from "react-router-dom";
+
 
 const Navbar = () => {
   const { logout, user } = useAuth();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const adminView = useAppSelector((s) => s.ui.adminView);
   return (
     <div className="w-full bg-primary text-white border-b-1 border-b-foreground/10 border-l-1 border-l-blue-500/0 h-[70px] flex items-center justify-end px-4 fixed top-0 z-10 max-w-[calc(100vw-16rem)] pr-10">
@@ -30,33 +39,51 @@ const Navbar = () => {
           <h2 className="font-semibold">{user?.companyName}</h2>
         </div>
       )}
-      <div className="flex items-center gap-3">
-        <div className="text-end">
-          <h1 className="m-0 p-0">
-            Hi,{" "}
-            <span className="font-semibold">{user?.username ?? "User"}</span>
-          </h1>
-          <p className="text-sm">
-            {/* optionally user email or role */}
-            {displayRole((user as any)?.companyRole, user?.role)}
-          </p>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 p-2 -m-2 rounded-lg">
+              <div className="text-end">
+                <h1 className="m-0 p-0">
+                  Hi,{" "}
+                  <span className="font-semibold">{user?.username ?? "User"}</span>
+                </h1>
+                <p className="text-sm">
+                  {displayRole((user as any)?.companyRole, user?.role)}
+                </p>
+              </div>
 
-        <Avatar>
-          <AvatarImage
-            src="https://github.com/shadcn.png"
-            width={60}
-            height={60}
-          />
-          <AvatarFallback>JD</AvatarFallback>
-        </Avatar>
+              <Avatar>
+                <AvatarImage
+                  src="https://github.com/shadcn.png"
+                  width={60}
+                  height={60}
+                />
+                <AvatarFallback>JD</AvatarFallback>
+              </Avatar>
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  {user?.username}
+                </p>
+                <p className="text-xs leading-none text-slate-400">
+                  {user?.email || 'no-email@example.com'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/profile')}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout} className="focus:bg-destructive focus:text-destructive-foreground">
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        <Separator orientation="vertical" className="h-full w-1" />
-
-        <Button variant="ghost" onClick={logout}>
-          Logout
-        </Button>
-      </div>
     </div>
   );
 };

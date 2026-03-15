@@ -6,13 +6,45 @@ import { toast } from "sonner";
 import { DependentsForm } from "@/modules/hr/dependents/DependentsForm";
 import { User } from "lucide-react";
 import type { Employee, EmployeeStatus } from "../types/hr";
+import { useAuth } from "@/context/AuthContext";
+import roleService from "@/service/roleService";
+import type { RoleOption } from "@/types/role";
 
 export default function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
 
   const [emp, setEmp] = useState<Employee | null>(null);
   const [editing, setEditing] = useState(false);
+  const [, setRoleOptions] = useState<RoleOption[]>([]);
+
+  // Check if current user is admin
+  const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
+
+  // Default roles as fallback
+
+  // Fetch roles from API
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        // Get company ID from the employee or current user
+        const companyId = emp?.companyId || currentUser?.companyId;
+        if (companyId) {
+          const roles = await roleService.getRoles(Number(companyId));
+          if (roles && roles.length > 0) {
+            const options = roles
+              .filter((r) => r.active !== false)
+              .map((r) => ({ label: r.name, value: r.name }));
+            setRoleOptions(options);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch roles:", error);
+      }
+    };
+    fetchRoles();
+  }, [emp?.companyId, currentUser?.companyId]);
 
   useEffect(() => {
     let mounted = true;
@@ -66,6 +98,7 @@ export default function EmployeeProfilePage() {
 
     departmentId?: string;
     notes: string;
+    role: string;
   };
 
   const getInitialFormState = (): FormState => ({
@@ -94,6 +127,7 @@ export default function EmployeeProfilePage() {
 
     departmentId: undefined,
     notes: "",
+    role: "",
   });
 
   const [form, setForm] = useState<FormState>(getInitialFormState);
@@ -128,6 +162,7 @@ export default function EmployeeProfilePage() {
 
       departmentId: emp.departmentId ?? undefined,
       notes: emp.notes ?? "",
+      role: emp.role ?? "",
     });
   }, [emp]);
 
@@ -175,7 +210,8 @@ export default function EmployeeProfilePage() {
 
   const onSave = async () => {
     try {
-      const payload = {
+      // Only admin can update the role field
+      const payload: any = {
         employeeNo: form.employeeNo,
         firstName: form.firstName,
         lastName: form.lastName,
@@ -195,6 +231,11 @@ export default function EmployeeProfilePage() {
         religion: form.religion || null,
         identification: form.identification || null,
       };
+
+      // Only include role in payload if current user is admin
+      if (isAdmin && form.role) {
+        payload.role = form.role;
+      }
       const idNum = emp?.id ? Number(emp.id) : undefined;
       if (!idNum) {
         toast.error("Invalid employee id");
@@ -234,6 +275,7 @@ export default function EmployeeProfilePage() {
 
             departmentId: fresh.departmentId ?? undefined,
             notes: fresh.notes ?? "",
+            role: fresh.role ?? "",
           });
         } else {
           setEmp(updated as Employee);
@@ -298,6 +340,7 @@ export default function EmployeeProfilePage() {
 
       departmentId: emp.departmentId ?? undefined,
       notes: emp.notes ?? "",
+      role: emp.role ?? "",
     });
     setEditing(false);
   };
@@ -516,6 +559,32 @@ export default function EmployeeProfilePage() {
                 onChange={onChange("departmentId")}
                 disabled={!editing}
               />
+            </Field>
+
+            <Field label="Role">
+              {isAdmin ? (
+                <select
+                  className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                  value={form.role || ""}
+                  onChange={onChange("role")}
+                  disabled={!editing}
+                >
+                  <option value="">Select Role</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="HR">HR</option>
+                  <option value="USER">User</option>
+                  <option value="FINANCE_MANAGER">Finance Manager</option>
+                  <option value="ACCOUNTANT">Accountant</option>
+                  <option value="CASHIER">Cashier</option>
+                  <option value="SUPER_ADMIN">Super Admin</option>
+                </select>
+              ) : (
+                <input
+                  className="h-9 w-full rounded-md border px-3 text-sm bg-gray-50"
+                  value={form.role || "N/A"}
+                  disabled
+                />
+              )}
             </Field>
 
             <Field label="Notes" className="lg:col-span-2">
