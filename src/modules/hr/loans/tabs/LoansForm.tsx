@@ -15,6 +15,7 @@ import {
 import { useState, useCallback, useEffect } from "react";
 import { salaryService } from "@/service/salaryService";
 import { formatMoney, generateId } from "@/lib/utils";
+import { addMonths } from "@/lib/date";
 import { useParams } from "react-router-dom";
 import { loanService } from "@/service/loanService";
 import { SelectField } from "@/modules/hr/components/select-field";
@@ -57,7 +58,7 @@ function validateLoan(loan: LoansModel): boolean {
   return amountOk && typeOk && periodOk && dateOk && endDateOk;
 }
 
-const INITIAL_LOAN: LoansModel = {
+  const INITIAL_LOAN: LoansModel = {
   id: "",
   loanCode: "",
   loanAmount: "",
@@ -67,7 +68,7 @@ const INITIAL_LOAN: LoansModel = {
   startDate: "",
   endDate: "",
   monthlyDeductions: "",
-  loanStatus: "",
+  loanStatus: "ACTIVE",
   balance: "",
   grossPay: "0",
   deductionAmount: "0",
@@ -222,21 +223,28 @@ export default function LoansForm(): ReactElement {
     setEditingId(loan.id);
   }, []);
 
-  const handleSave = useCallback((loan: LoansModel) => {
+  const handleSave = useCallback((loan: LoansModel, changedField?: string) => {
     const loanAmount = Number(loan.loanAmount || 0);
     const loanPeriod = Number(loan.loanPeriod || 0);
     const monthly = loanPeriod > 0 ? loanAmount / loanPeriod : 0;
     const gross = grossSalary || Number(loan.grossPay || 0);
     const deduction = monthly;
     const net = gross - deduction;
-    
-    const updated = { 
+
+    let updated = { 
       ...loan, 
       monthlyDeductions: String(monthly),
       grossPay: String(gross), 
       deductionAmount: String(deduction), 
       netPay: String(net) 
     } as LoansModel;
+
+    // Auto-calculate endDate only when loanPeriod or startDate changes
+    if ((changedField === 'loanPeriod' || changedField === 'startDate') && loan.startDate && loanPeriod > 0) {
+      const autoEndDate = addMonths(loan.startDate, loanPeriod);
+      updated = { ...updated, endDate: autoEndDate };
+    }
+
     setLoans(current => current.map(l => l.id === loan.id ? updated : l));
   }, [grossSalary]);
 
@@ -368,8 +376,8 @@ export default function LoansForm(): ReactElement {
                           <FileText className="h-5 w-5" />
                         </div>
                         <span className="text-sm font-medium opacity-90">
-                          Balance
-                        </span>
+                          Current Balance
+                        </span> 
                       </div>
                       <p className="text-2xl font-bold">
                         {formatMoney(loan.balance, currencySymbol) ||
@@ -456,9 +464,9 @@ export default function LoansForm(): ReactElement {
                         type="date"
                         disabled={false}
                         value={loan.startDate}
-                        onChange={(v) => handleSave({ ...loan, startDate: v })}
+                        onChange={(v) => handleSave({ ...loan, startDate: v }, 'startDate')}
                         required
-                      />
+                      /> 
 
                       <div>
                         <Label className="text-sm font-medium text-slate-700">
@@ -478,8 +486,8 @@ export default function LoansForm(): ReactElement {
                                   onChange={(e) => {
                                     const y = Math.max(0, Number(e.target.value) || 0);
                                     const newTotal = y * 12 + months;
-                                    handleSave({ ...loan, loanPeriod: String(newTotal) });
-                                  }}
+                                    handleSave({ ...loan, loanPeriod: String(newTotal) }, 'loanPeriod');
+                                  }} 
                                   aria-label="years"
                                   className="w-24 rounded-lg border-slate-300"
                                 />
@@ -494,8 +502,8 @@ export default function LoansForm(): ReactElement {
                                     if (m < 0) m = 0;
                                     if (m > 11) m = 11;
                                     const newTotal = years * 12 + m;
-                                    handleSave({ ...loan, loanPeriod: String(newTotal) });
-                                  }}
+                                    handleSave({ ...loan, loanPeriod: String(newTotal) }, 'loanPeriod');
+                                  }} 
                                   aria-label="months"
                                   className="w-24 rounded-lg border-slate-300"
                                 />
@@ -519,7 +527,7 @@ export default function LoansForm(): ReactElement {
                         type="date"
                         disabled={false}
                         value={loan.endDate}
-                        onChange={(v) => handleSave({ ...loan, endDate: v })}
+                        onChange={(v) => handleSave({ ...loan, endDate: v }, 'endDate')} 
                         required
                       />
                     </div>
@@ -615,7 +623,7 @@ export default function LoansForm(): ReactElement {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <DetailItem label="Loan Type" value={loan.loanType || "—"} />
                             <DetailItem label="Loan Period" value={loan.loanPeriod ? `${loan.loanPeriod} months` : "—"} />
-                            <DetailItem label="Balance" value={formatMoney(loan.balance, currencySymbol)} />
+                            <DetailItem label="Current Balance" value={formatMoney(loan.balance, currencySymbol)} />
                           </div>
                         </div>
                       </div>
@@ -658,7 +666,7 @@ export default function LoansForm(): ReactElement {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <DetailItem label="Loan Type" value={loan.loanType || "—"} />
                           <DetailItem label="Loan Period" value={loan.loanPeriod ? `${loan.loanPeriod} months` : "—"} />
-                          <DetailItem label="Balance" value={formatMoney(loan.balance, currencySymbol)} />
+                          <DetailItem label="Current Balance" value={formatMoney(loan.balance, currencySymbol)} /> 
                         </div>
                       </div>
 

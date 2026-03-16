@@ -8,6 +8,7 @@ import type { EmployeeContract, ContractType, ContractStatus } from "@/types/hr"
 export interface AllowancePayload {
   allowanceType?: string;
   allowanceTypeId?: number;
+  customName?: string;
   amount: number;
   effectiveDate: string;
   note?: string;

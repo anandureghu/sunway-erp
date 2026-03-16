@@ -387,3 +387,49 @@ export const DEFAULT_GOALS_BY_ROLE: Record<string, string[]> = {
     "Digital Marketing ROI"
   ]
 };
+
+// ─── PAYSIP TYPES ──────────────────────────────────────────────
+
+export interface Currency {
+  currencyCode: string;
+}
+
+export interface EarningItem {
+  label: string;
+  amount: number;
+}
+
+export interface DeductionItem {
+  label: string;
+  amount: number;
+}
+
+export interface BankDetails {
+  bankName: string;
+  bankBranch: string;
+  accountNo: string;
+}
+
+export interface PayslipData {
+  employee: Employee & {
+    currency: Currency;
+    dateOfJoining: string;
+    employeeCode: string;
+    payGrade?: string;
+    totalDays?: number;
+    workingDays?: number;
+    leaveTaken?: number;
+  };
+  payroll: {
+    grossPay: number;
+    totalDeductions: number;
+    netPayable: number;
+    payrollCode: string;
+    payPeriodStart: string;
+    payDate: string;
+  };
+  bankDetails: BankDetails;
+  earnings: EarningItem[];
+  deductions: DeductionItem[];
+}
+
