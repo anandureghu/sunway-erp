@@ -176,6 +176,29 @@ export type ItemUpdateDTO = {
   warehouse?: number;
 };
 
+/** POST /inventory/items/{id}/stock/receive */
+export type ItemStockReceivePayload = {
+  quantityReceived: number;
+  receivedDate?: string;
+  batchNo?: string;
+  serialNo?: string;
+  referenceNo?: string;
+  warehouseId?: number;
+  costPrice?: number;
+  unitPrice?: number;
+};
+
+/** POST /inventory/items/{id}/stock/adjust */
+export type ItemStockAdjustPayload = {
+  adjustmentQuantity?: number;
+  newQuantity?: number;
+  reason: string;
+  adjustmentType: string;
+  adjustmentDate: string;
+  notes?: string;
+  warehouseId?: number;
+};
+
 // --- Sales flow ---
 export type SalesOrderItemDTO = {
   itemId?: Id;

@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SidebarItem } from "@/types/company";
 import type { ModulePermission } from "@/types/role";
 import { useAuth } from "@/context/AuthContext";
@@ -105,10 +105,16 @@ export function AppSidebar() {
     },
   ];
 
+  /** Only navigate when admin mode actually toggles — not on mount (avoids redirecting deep links / refresh to `/`). */
+  const prevAdminView = useRef<boolean | undefined>(undefined);
   useEffect(() => {
-    if (adminView) navigate("/admin/company");
-    else navigate("/");
-  }, [adminView]);
+    if (adminView) {
+      navigate("/admin/company");
+    } else if (prevAdminView.current === true) {
+      navigate("/");
+    }
+    prevAdminView.current = adminView;
+  }, [adminView, navigate]);
 
   useEffect(() => {
     if (!user?.companyId) return;

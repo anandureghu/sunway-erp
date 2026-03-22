@@ -119,26 +119,48 @@ export const STOCK_TRANSFER_SCHEMA = z.object({
   notes: z.string().optional(),
 });
 
-// Stock Adjustment Schema
-export const STOCK_ADJUSTMENT_SCHEMA = z.object({
-  itemId: z.string().min(1, "Item is required"),
-  warehouseId: z.string().min(1, "Warehouse is required"),
-  adjustmentQuantity: z.number().refine((val) => val !== 0, {
-    message: "Adjustment quantity cannot be zero",
-  }),
-  newQuantity: z.number().min(0).optional(), // Optional: can adjust by quantity or set new quantity
-  reason: z.string().min(1, "Reason is required"),
-  adjustmentType: z.enum([
-    "damaged",
-    "expired",
-    "wastage",
-    "found",
-    "theft",
-    "other",
-  ]),
-  adjustmentDate: z.string().min(1, "Adjustment date is required"),
-  notes: z.string().optional(),
-});
+// Stock Adjustment Schema (delta vs set-new-quantity modes)
+export const STOCK_ADJUSTMENT_SCHEMA = z
+  .object({
+    itemId: z.string().min(1, "Item is required"),
+    warehouseId: z.string().min(1, "Warehouse is required"),
+    adjustmentMode: z.enum(["delta", "set"]),
+    adjustmentQuantity: z.number().optional(),
+    newQuantity: z.number().min(0).optional(),
+    reason: z.string().min(1, "Reason is required"),
+    adjustmentType: z.enum([
+      "damaged",
+      "expired",
+      "wastage",
+      "found",
+      "theft",
+      "other",
+    ]),
+    adjustmentDate: z.string().min(1, "Adjustment date is required"),
+    notes: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.adjustmentMode === "delta") {
+      if (
+        data.adjustmentQuantity === undefined ||
+        data.adjustmentQuantity === 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Adjustment quantity cannot be zero",
+          path: ["adjustmentQuantity"],
+        });
+      }
+    } else {
+      if (data.newQuantity === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "New quantity is required",
+          path: ["newQuantity"],
+        });
+      }
+    }
+  });
 
 // Category Schema
 export const CATEGORY_SCHEMA = z.object({

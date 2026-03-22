@@ -5,6 +5,8 @@ import type {
   CategoryResponseDTO,
   CategoryUpdateDTO,
   ItemResponseDTO,
+  ItemStockAdjustPayload,
+  ItemStockReceivePayload,
   WarehouseCreateDTO,
   WarehouseResponseDTO,
   WarehouseUpdateDTO,
@@ -162,6 +164,62 @@ export async function updateItem(id: Id | string, payload: FormData) {
   const res = await apiClient.put<ItemResponseDTO>(
     `/inventory/items/${id}`,
     payload,
+  );
+  return res.data;
+}
+
+/** Replace product image only (multipart). */
+export async function updateItemImage(
+  id: Id | string,
+  image: File,
+): Promise<ItemResponseDTO> {
+  const formData = new FormData();
+  formData.append("image", image);
+  const res = await apiClient.post<ItemResponseDTO>(
+    `/inventory/items/${id}/image`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return res.data;
+}
+
+export async function receiveItemStock(
+  id: Id | string,
+  payload: ItemStockReceivePayload,
+): Promise<ItemResponseDTO> {
+  const body: ItemStockReceivePayload = {
+    ...payload,
+    quantityReceived: Math.round(Number(payload.quantityReceived)),
+  };
+  const res = await apiClient.post<ItemResponseDTO>(
+    `/inventory/items/${id}/stock/receive`,
+    body,
+  );
+  return res.data;
+}
+
+export async function adjustItemStock(
+  id: Id | string,
+  payload: ItemStockAdjustPayload,
+): Promise<ItemResponseDTO> {
+  const body: ItemStockAdjustPayload = {
+    ...payload,
+    adjustmentQuantity:
+      payload.adjustmentQuantity !== undefined
+        ? Math.round(Number(payload.adjustmentQuantity))
+        : undefined,
+    newQuantity:
+      payload.newQuantity !== undefined
+        ? Math.round(Number(payload.newQuantity))
+        : undefined,
+  };
+  const res = await apiClient.post<ItemResponseDTO>(
+    `/inventory/items/${id}/stock/adjust`,
+    body,
   );
   return res.data;
 }
