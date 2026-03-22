@@ -334,7 +334,7 @@ export default function EmployeesPage() {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-10">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Employee Overview</h2>
       </div>

@@ -11,6 +11,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
+  SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import {
@@ -31,7 +33,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { SidebarItem } from "@/types/company";
 import type { ModulePermission } from "@/types/role";
 import { useAuth } from "@/context/AuthContext";
@@ -42,8 +44,23 @@ import {
 } from "@/service/companyService";
 import { toggleGlobalSettingsView } from "@/store/uiSlice";
 
-// Roles that bypass all permission checks
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
+
+const navLinkClass = (active: boolean) =>
+  cn(
+    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+    active
+      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+      : "text-sidebar-foreground/90 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  );
+
+const subNavLinkClass = (active: boolean) =>
+  cn(
+    "ml-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+    active
+      ? "bg-primary/15 font-medium text-primary"
+      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+  );
 
 export function AppSidebar() {
   const location = useLocation();
@@ -54,6 +71,17 @@ export function AppSidebar() {
   const { user } = useAuth();
 
   const { adminView, globalSettingsView } = useAppSelector((s) => s.ui);
+
+  const { setOpen, isMobile } = useSidebar();
+
+  const handlePointerLeaveSidebar = (e: MouseEvent<HTMLDivElement>) => {
+    if (isMobile) return;
+    const related = e.relatedTarget as Node | null;
+    if (related && e.currentTarget.contains(related)) return;
+    const strip = document.querySelector('[data-sidebar="edge-strip"]');
+    if (related && strip?.contains(related)) return;
+    setOpen(false);
+  };
 
   const empBase = selected ? `/hr/employees/${selected.id}` : null;
 
@@ -66,7 +94,7 @@ export function AppSidebar() {
     {
       title: "Admin Settings",
       icon: LayoutDashboard,
-      color: "text-sky-600",
+      color: "text-sky-600 dark:text-sky-400",
       items: [
         { title: "Company", url: "/admin/company", icon: LayoutDashboard },
       ],
@@ -77,7 +105,7 @@ export function AppSidebar() {
     {
       title: "All",
       icon: LayoutDashboard,
-      color: "text-sky-600",
+      color: "text-sky-600 dark:text-sky-400",
       items: [
         {
           title: "Company",
@@ -105,7 +133,6 @@ export function AppSidebar() {
     },
   ];
 
-  /** Only navigate when admin mode actually toggles — not on mount (avoids redirecting deep links / refresh to `/`). */
   const prevAdminView = useRef<boolean | undefined>(undefined);
   useEffect(() => {
     if (adminView) {
@@ -120,9 +147,8 @@ export function AppSidebar() {
     if (!user?.companyId) return;
 
     if (isAdmin) {
-      // Admin bypass — no permission filtering needed
       getSidebarItems(user.companyId).then(setSidebarItems);
-      setPermissions([]); // empty = canView returns true for all
+      setPermissions([]);
     } else {
       Promise.all([getSidebarItems(user.companyId), fetchMyPermissions()]).then(
         ([items, perms]) => {
@@ -133,45 +159,40 @@ export function AppSidebar() {
     }
   }, [user, isAdmin]);
 
-  // empty permissions array = admin bypass = show all sub-modules
   const employeeSubModules = getVisibleEmployeeSubModules(
     isAdmin ? [] : permissions,
     empBase,
   );
 
   return (
-    <Sidebar className="relative border-none">
-      <SidebarHeader className="bg-white text-black border-b">
-        <div className="flex items-center gap-3 px-3">
-          <img
-            src="/assets/logo-dark.svg"
-            alt="sunway"
-            width={38}
-            className="my-2"
-          />
-          <div className="flex flex-col items-start">
-            <h1 className="font-display font-bold text-xl text-blue-950">
+    <Sidebar className="border-r border-sidebar-border/80 bg-gradient-to-b from-sidebar via-sidebar to-sidebar/95">
+      <div
+        className="relative flex h-full min-h-0 w-full flex-col"
+        onMouseLeave={handlePointerLeaveSidebar}
+      >
+      <SidebarHeader className="border-b border-sidebar-border/60 bg-sidebar/50 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-sm font-bold text-primary">
+            S
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-display text-lg font-bold tracking-tight text-sidebar-foreground">
               Sunway
             </h1>
-            <p className="text-sm text-purple-800">ERP Platform</p>
+            <p className="truncate text-xs font-medium text-muted-foreground">
+              Enterprise suite
+            </p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-4 bg-background pt-3">
-        {/* Dashboard */}
+      <SidebarContent className="gap-1 px-2 py-4 group-data-[collapsible=icon]:px-1">
         {!adminView && !globalSettingsView && (
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link
-                  to="/"
-                  className={cn(
-                    "flex gap-2 items-center",
-                    path === "/" && "bg-primary-gradient text-secondary",
-                  )}
-                >
-                  <Home className="w-5 h-5" />
+              <SidebarMenuButton asChild className="h-auto p-0">
+                <Link to="/" className={navLinkClass(path === "/")}>
+                  <Home className="h-4 w-4 shrink-0 opacity-90" />
                   <span>Dashboard</span>
                 </Link>
               </SidebarMenuButton>
@@ -182,163 +203,121 @@ export function AppSidebar() {
         {globalSettingsView && (
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="py-5">
-                <div className="text-2xl font-bold">
-                  <span className="bg-primary-gradient min-w-10 min-h-10 flex items-center justify-center rounded-xl">
-                    <Settings className="w-5 h-5 text-white" />{" "}
+              <SidebarMenuButton asChild className="h-auto p-0">
+                <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                    <Settings className="h-5 w-5" />
                   </span>
-                  Global Settings
+                  <span className="font-semibold text-sidebar-foreground">
+                    Global Settings
+                  </span>
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         )}
 
-        {/* Normal sections */}
-        {(adminView
-          ? adminSections
-          : globalSettingsView
-            ? globalSettings
-            : sidebarItems
-        ).map((section) => (
-          <Collapsible
-            key={section.title}
-            defaultOpen
-            className="group/collapsible"
-          >
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2">
-                  <section.icon className={cn("w-5 h-5", section.color)} />
-                  <span>{section.title}</span>
-                  <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {section.items.map((item) => (
-                      <SidebarMenuSub key={item.title}>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <Link
-                              to={item.url}
-                              className={cn(
-                                "flex gap-2 items-center",
-                                path.startsWith(item.url) &&
-                                  "bg-primary-gradient text-secondary hover:text-white/70",
-                              )}
-                            >
-                              <item.icon className="w-4 h-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
+        {(adminView ? adminSections : globalSettingsView ? globalSettings : sidebarItems).map(
+          (section) => (
+            <Collapsible
+              key={section.title}
+              defaultOpen
+              className="group/collapsible"
+            >
+              <SidebarGroup className="py-1">
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground">
+                    <section.icon className={cn("h-4 w-4", section.color)} />
+                    <span className="flex-1 truncate">{section.title}</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-0.5">
+                      {section.items.map((item) => (
+                        <SidebarMenuSub key={item.title} className="border-none">
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild className="h-auto p-0">
+                              <Link
+                                to={item.url}
+                                className={navLinkClass(path.startsWith(item.url))}
+                              >
+                                <item.icon className="h-4 w-4 shrink-0 opacity-90" />
+                                <span className="truncate">{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
 
-                          {/* Employee sub-modules — permission filtered */}
-                          {item.url === "/hr/employees" && selected && (
-                            <div className="mt-1 space-y-1">
-                              {employeeSubModules.map((sm) => {
-                                const disabled = !sm.to || sm.to === "#";
-                                const active = sm.to && path === sm.to;
-                                return (
-                                  <SidebarMenuButton asChild key={sm.title}>
-                                    {disabled ? (
-                                      <div
-                                        className="ml-6 flex gap-2 items-center rounded-md cursor-not-allowed opacity-50"
-                                        aria-disabled
-                                        title="Select an employee first"
-                                      >
-                                        <sm.icon className="w-4 h-4" />
-                                        <span>{sm.title}</span>
-                                      </div>
-                                    ) : (
-                                      <Link
-                                        to={sm.to}
-                                        className={cn(
-                                          "ml-6 flex gap-2 items-center rounded-md",
-                                          active
-                                            ? "bg-primary-gradient text-secondary hover:text-white/70"
-                                            : "hover:bg-white/70",
-                                        )}
-                                      >
-                                        <sm.icon className="w-4 h-4" />
-                                        <span>{sm.title}</span>
-                                      </Link>
-                                    )}
-                                  </SidebarMenuButton>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </SidebarMenuItem>
-                      </SidebarMenuSub>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        ))}
-
-        {/* Admin view */}
-        {/* {adminView && adminSections.map((section) => (
-          <Collapsible key={section.title} defaultOpen className="group/collapsible mt-2">
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center gap-2">
-                  <section.icon className={cn("w-5 h-5", section.color)} />
-                  <span>{section.title}</span>
-                  <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {section.items.map((item) => (
-                      <SidebarMenuSub key={item.title}>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild>
-                            <Link
-                              to={item.url}
-                              className={cn("flex gap-2 items-center", path.startsWith(item.url) && "bg-primary text-secondary")}
-                            >
-                              <item.icon className="w-4 h-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </SidebarMenuSub>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        ))} */}
+                            {item.url === "/hr/employees" && selected && (
+                              <div className="mt-1 space-y-0.5 border-l border-sidebar-border/60 pl-1">
+                                {employeeSubModules.map((sm) => {
+                                  const disabled = !sm.to || sm.to === "#";
+                                  const active = !!(sm.to && path === sm.to);
+                                  return (
+                                    <SidebarMenuButton
+                                      asChild
+                                      key={sm.title}
+                                      className="h-auto p-0"
+                                    >
+                                      {disabled ? (
+                                        <div
+                                          className="ml-3 flex cursor-not-allowed items-center gap-2 rounded-lg px-2 py-1.5 text-sm opacity-50"
+                                          aria-disabled
+                                          title="Select an employee first"
+                                        >
+                                          <sm.icon className="h-3.5 w-3.5" />
+                                          <span>{sm.title}</span>
+                                        </div>
+                                      ) : (
+                                        <Link
+                                          to={sm.to!}
+                                          className={subNavLinkClass(active)}
+                                        >
+                                          <sm.icon className="h-3.5 w-3.5 shrink-0" />
+                                          <span className="truncate">{sm.title}</span>
+                                        </Link>
+                                      )}
+                                    </SidebarMenuButton>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </SidebarMenuItem>
+                        </SidebarMenuSub>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          ),
+        )}
       </SidebarContent>
 
-      <SidebarFooter className="bg-background border-t p-3">
+      <SidebarFooter className="border-t border-sidebar-border/60 bg-sidebar/80 p-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild className="h-auto p-0">
               <Link
                 to={globalSettingsView ? "/" : `/settings/${user?.companyId}`}
-                className="flex gap-2 items-center"
-                onClick={() => {
-                  dispatch(toggleGlobalSettingsView());
-                }}
+                onClick={() => dispatch(toggleGlobalSettingsView())}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-xl border border-sidebar-border/80 bg-background/50 px-3 py-2.5 text-sm font-medium text-sidebar-foreground shadow-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                )}
               >
                 {globalSettingsView ? (
-                  <ArrowLeft />
+                  <ArrowLeft className="h-4 w-4 shrink-0" />
                 ) : (
-                  <Settings className="w-5 h-5" />
+                  <Settings className="h-4 w-4 shrink-0" />
                 )}
-                <span>{globalSettingsView ? "go back" : "Settings"}</span>
+                <span>{globalSettingsView ? "Back to app" : "Settings"}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
+      </div>
     </Sidebar>
   );
 }

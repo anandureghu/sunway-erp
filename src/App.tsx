@@ -114,7 +114,6 @@ import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
 
-
 export default function App() {
   const dispatch = useAppDispatch();
   const { adminView } = useAppSelector((s) => s.ui);
@@ -138,7 +137,6 @@ export default function App() {
           element={adminView ? <DashboardPage /> : <DashboardPage />}
         />
         <Route path="profile" element={<UserProfilePage />} />
-
 
         {/* Finance */}
         <Route path="finance">
@@ -183,7 +181,7 @@ export default function App() {
           <Route path="settings" element={<InventorySettingsPage />} />
           <Route path="stocks" element={<ManageStocks />} />
           <Route path="stocks/:id" element={<InventoryItemDetail />} />
-          <Route path="warehouses/:id" element={<WarehouseDetail />} />v
+          <Route path="warehouses/:id" element={<WarehouseDetail />} />
           <Route path="reports" element={<InventoryReportsPage />} />
           <Route path="sales" element={<SalesLandingPage />} />
           <Route path="sales/orders" element={<SalesOrdersPage />} />
@@ -326,15 +324,7 @@ export default function App() {
         //
       </Route>
 
-      <Route
-        path="/dashboard"
-        element={
-          <PrivateRoute>
-            <AppLayout />
-            <DashboardPage />
-          </PrivateRoute>
-        }
-      />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
