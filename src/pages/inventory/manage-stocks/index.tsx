@@ -1,6 +1,19 @@
-import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import {
+  ArrowRightLeft,
+  LayoutGrid,
+  Package,
+  PackagePlus,
+  Sparkles,
+} from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReceiveItemTab } from "./components/receive-item-tab";
@@ -27,75 +40,140 @@ export default function ManageStocks() {
   } = useManageStocks();
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Manage Inventory</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            Track and control your inventory
-          </p>
-        </div>
+    <div className="min-h-full bg-gradient-to-b from-slate-50/90 via-background to-background dark:from-muted/15">
+      <div className="mx-auto max-w-[1400px] space-y-8 px-4 py-6 sm:px-6 lg:py-8">
+        {/* Page hero */}
+        <header className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 px-6 py-8 shadow-sm sm:px-8 sm:py-10">
+          <div
+            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Inventory control center
+              </div>
+              <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                Stock & movements
+              </h1>
+              <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+                Browse on-hand inventory, receive incoming goods, and post
+                variances—your operations dashboard for everything in the
+                warehouse.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              <Package className="h-5 w-5 text-primary" />
+              <span>
+                <span className="font-semibold text-foreground">
+                  {stats.totalItems}
+                </span>{" "}
+                lines tracked
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <StockStatsCards
+          totalItems={stats.totalItems}
+          lowStockItems={stats.lowStockItems}
+          totalValue={stats.totalValue}
+          warehouseCount={stats.warehouseCount}
+        />
+
+        <Card className="overflow-hidden border-border/80 shadow-md">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-5 sm:px-6">
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-lg font-semibold sm:text-xl">
+                Workspace
+              </CardTitle>
+              <CardDescription>
+                Choose a mode below. Data refreshes when you switch tabs.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => {
+                setActiveTab(value);
+                void refetch();
+              }}
+              className="w-full gap-0"
+            >
+              <div className="border-b border-border/60 bg-muted/20 px-3 pt-4 sm:px-5">
+                <TabsList
+                  className={cn(
+                    "grid h-auto w-full grid-cols-1 gap-2 rounded-xl border border-border/50 bg-background/80 p-1.5 shadow-inner",
+                    "sm:grid-cols-3",
+                  )}
+                >
+                  <TabsTrigger
+                    value="stock"
+                    className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    <LayoutGrid className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Stock catalog</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="receive"
+                    className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    <PackagePlus className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Receive goods</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="variances"
+                    className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    <ArrowRightLeft className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Variances</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="px-4 pb-6 pt-2 sm:px-6 sm:pb-8">
+                <TabsContent value="stock" className="mt-0 outline-none">
+                  <StockListTab
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={setSearchQuery}
+                    selectedWarehouse={selectedWarehouse}
+                    onSelectedWarehouseChange={setSelectedWarehouse}
+                    warehouses={warehouses}
+                    loading={loading}
+                    loadError={loadError}
+                    filteredStock={filteredStock}
+                    onRowNavigate={(row) =>
+                      navigate(`/inventory/stocks/${row.id}`)
+                    }
+                  />
+                </TabsContent>
+
+                <TabsContent value="receive" className="mt-0 outline-none">
+                  <ReceiveItemTab
+                    items={items}
+                    warehouses={warehouses}
+                    onStockUpdated={refetch}
+                  />
+                </TabsContent>
+
+                <TabsContent value="variances" className="mt-0 outline-none">
+                  <VarianceTab
+                    items={items}
+                    warehouses={warehouses}
+                    onStockUpdated={refetch}
+                  />
+                </TabsContent>
+              </div>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
-
-      <StockStatsCards
-        totalItems={stats.totalItems}
-        lowStockItems={stats.lowStockItems}
-        totalValue={stats.totalValue}
-        warehouseCount={stats.warehouseCount}
-      />
-
-      <Card>
-        <CardContent>
-          <Tabs
-            value={activeTab}
-            onValueChange={(value) => {
-              setActiveTab(value);
-              void refetch();
-            }}
-            className="w-full"
-          >
-            <TabsList className="w-full">
-              <StyledTabsTrigger value="stock">
-                Inventory Items (Stock)
-              </StyledTabsTrigger>
-              <StyledTabsTrigger value="receive">
-                Receive Item
-              </StyledTabsTrigger>
-              <StyledTabsTrigger value="variances">Variances</StyledTabsTrigger>
-            </TabsList>
-
-            <TabsContent value="stock">
-              <StockListTab
-                searchQuery={searchQuery}
-                onSearchQueryChange={setSearchQuery}
-                selectedWarehouse={selectedWarehouse}
-                onSelectedWarehouseChange={setSelectedWarehouse}
-                warehouses={warehouses}
-                loading={loading}
-                loadError={loadError}
-                filteredStock={filteredStock}
-                onRowNavigate={(row) => navigate(`/inventory/stocks/${row.id}`)}
-              />
-            </TabsContent>
-
-            <TabsContent value="receive">
-              <ReceiveItemTab
-                items={items}
-                warehouses={warehouses}
-                onStockUpdated={refetch}
-              />
-            </TabsContent>
-
-            <TabsContent value="variances">
-              <VarianceTab
-                items={items}
-                warehouses={warehouses}
-                onStockUpdated={refetch}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
     </div>
   );
 }
