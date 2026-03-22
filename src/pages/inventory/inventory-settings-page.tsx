@@ -31,12 +31,10 @@ const InventorySettingsPage = () => {
     <div className="p-5">
       <AppTab
         title="Invetory Settings"
+        variant="warning"
+        subtitle="Manage your inventory settings and suppliers"
         tabs={tabsList}
         defaultValue="categories"
-        // props={{
-        //   invoices,
-        //   companyId: user?.companyId ? Number(user.companyId) : 0,
-        // }}
       />
     </div>
   );
