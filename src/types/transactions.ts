@@ -2,37 +2,49 @@ export interface TransactionResponseDTO {
   id: number;
   transactionCode: string | null;
   transactionType: string | null;
-  fiscalType: string | null;
 
   transactionDate: string;
-  postedDate: string | null;
-  posted: boolean;
 
   amount: number | string;
 
-  debitAccount: string | null;
-  creditAccount: string | null;
+  debitAccountId?: number | null;
+  debitAccountName?: string | null;
+  creditAccountId?: number | null;
+  creditAccountName?: string | null;
 
-  companyId: number;
-  companyName: string | null;
+  companyId?: number;
+  companyName?: string | null;
 
-  itemCode: string | null;
-  invoiceId: string | null;
-  paymentId: string | null;
+  invoiceId?: string | null;
+  paymentId?: string | null;
 
-  transactionDescription: string | null;
+  transactionDescription?: string | null;
+
+  relatedId?: number | null;
+  relatedSubId?: number | null;
+
+  /** UNKNOWN until user sets a concrete value (one-time). */
+  source?: string | null;
+  sourceLocked?: boolean;
 }
 
 export interface CreateTransactionDTO {
   companyId: number;
   transactionType: string;
-  // fiscalType: string;
   transactionDate: string;
   amount: number | string;
-  debitAccount: number;
-  creditAccount: number;
-  // itemCode?: string | null;
+  /** Omit or 0 for single-sided debit-only / credit-only. */
+  debitAccount?: number;
+  creditAccount?: number;
   invoiceId?: string | null;
   paymentId?: string | null;
+  transactionDescription?: string | null;
+  source?: string | null;
+}
+
+export interface UpdateTransactionDTO {
+  transactionType?: string;
+  transactionDate?: string;
+  amount?: number | string;
   transactionDescription?: string | null;
 }

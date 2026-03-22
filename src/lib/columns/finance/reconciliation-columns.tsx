@@ -1,8 +1,9 @@
 // src/lib/columns/finance/reconciliation-columns.ts
 
 import { type ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/lib/status-badge";
+import { SignedColoredAmount } from "@/components/accounting-amount";
 import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,11 +33,9 @@ export const RECONCILIATION_COLUMNS = ({
   {
     accessorKey: "amount",
     header: "Amount",
-    cell: ({ row }) =>
-      Number(row.getValue("amount")).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
+    cell: ({ row }) => (
+      <SignedColoredAmount amount={Number(row.getValue("amount"))} />
+    ),
   },
   {
     accessorKey: "reason",
@@ -57,15 +56,9 @@ export const RECONCILIATION_COLUMNS = ({
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue<string>("status");
-      const color =
-        status === "CONFIRMED"
-          ? "bg-green-100 text-green-700"
-          : "bg-yellow-100 text-yellow-700";
-
-      return <Badge className={color}>{status}</Badge>;
-    },
+    cell: ({ row }) => (
+      <StatusBadge status={String(row.getValue("status") ?? "")} />
+    ),
   },
 
   {

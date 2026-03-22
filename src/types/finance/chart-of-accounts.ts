@@ -30,4 +30,8 @@ export interface ChartOfAccounts {
   departmentCode: string | null;
 
   projectCode: string | null;
+
+  /** When true, opening balance was set at creation or via GL Account Balances (one-time). */
+  initialBalanceSet?: boolean;
+  active?: boolean;
 }

@@ -6,6 +6,8 @@ import {
 } from "@/components/ui/tooltip";
 import type { JournalEntryResponseDTO } from "@/types/journal";
 import type { ColumnDef } from "@tanstack/react-table";
+import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
+import { StatusBadge } from "@/lib/status-badge";
 
 export const JOURNAL_COLUMNS = ({
   onEdit,
@@ -35,7 +37,7 @@ export const JOURNAL_COLUMNS = ({
     header: "Total Debit",
     cell: ({ row }) => {
       const je = row.original;
-      return `${currency} ${je.totalDebit}`;
+      return <DebitAmount amount={je.totalDebit} currencyCode={currency} />;
     },
   },
   {
@@ -43,12 +45,15 @@ export const JOURNAL_COLUMNS = ({
     header: "Total Credit",
     cell: ({ row }) => {
       const je = row.original;
-      return `${currency} ${je.totalCredit}`;
+      return <CreditAmount amount={je.totalCredit} currencyCode={currency} />;
     },
   },
   {
     accessorKey: "status",
     header: "Status",
+    cell: ({ row }) => (
+      <StatusBadge status={String(row.getValue("status") ?? "")} />
+    ),
   },
   {
     accessorKey: "source",

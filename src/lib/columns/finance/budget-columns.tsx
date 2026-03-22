@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { StatusBadge } from "@/lib/status-badge";
+import { CreditAmount } from "@/components/accounting-amount";
 
 export const BUDGET_COLUMNS = ({
   onEdit,
@@ -40,7 +42,10 @@ export const BUDGET_COLUMNS = ({
     accessorKey: "amount",
     cell: ({ row }) => {
       const amount = row.getValue("amount");
-      return `${company.currency?.currencyCode || ""} ${amount}`;
+      const code = company.currency?.currencyCode || "";
+      return (
+        <CreditAmount amount={Number(amount)} currencyCode={code || undefined} />
+      );
     },
   },
   {
@@ -60,6 +65,9 @@ export const BUDGET_COLUMNS = ({
   {
     header: "Status",
     accessorKey: "status",
+    cell: ({ row }) => (
+      <StatusBadge status={String(row.getValue("status") ?? "")} />
+    ),
   },
   {
     accessorKey: "createdAt",

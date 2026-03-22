@@ -1,7 +1,8 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { CreditNote } from "@/types/credit-note";
+import { StatusBadge } from "@/lib/status-badge";
+import { CreditAmount } from "@/components/accounting-amount";
 
 export const CREDIT_NOTE_COLUMNS: ColumnDef<CreditNote>[] = [
   {
@@ -21,18 +22,7 @@ export const CREDIT_NOTE_COLUMNS: ColumnDef<CreditNote>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.original.status;
-
-      const color =
-        status === "APPLIED"
-          ? "bg-green-100 text-green-700"
-          : status === "PARTIALLY_APPLIED"
-            ? "bg-yellow-100 text-yellow-700"
-            : "bg-gray-100 text-gray-700";
-
-      return <Badge className={color}>{status}</Badge>;
-    },
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {
     accessorKey: "project",
@@ -46,11 +36,15 @@ export const CREDIT_NOTE_COLUMNS: ColumnDef<CreditNote>[] = [
   {
     accessorKey: "amount",
     header: "Amount",
-    cell: ({ row }) => `₹ ${row.original.amount.toLocaleString()}`,
+    cell: ({ row }) => (
+      <CreditAmount amount={row.original.amount} currencyCode="₹" />
+    ),
   },
   {
     accessorKey: "remainingAmount",
     header: "Remaining Amount",
-    cell: ({ row }) => `₹ ${row.original.remainingAmount.toLocaleString()}`,
+    cell: ({ row }) => (
+      <CreditAmount amount={row.original.remainingAmount} currencyCode="₹" />
+    ),
   },
 ];

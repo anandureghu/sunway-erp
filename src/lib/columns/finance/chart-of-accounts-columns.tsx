@@ -13,6 +13,7 @@ import {
 
 import type { Company } from "@/types/company";
 import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
+import { SignedColoredAmount } from "@/components/accounting-amount";
 
 export const CHART_OF_ACCOUNTS_COLUMNS = ({
   onEdit,
@@ -64,14 +65,12 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
       const numeric =
         typeof balance === "string" ? parseFloat(balance) : balance;
 
+      const code = company.currency?.currencyCode || "";
       return (
-        <span className="font-medium">
-          {company.currency?.currencyCode || ""}{" "}
-          {numeric.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
+        <SignedColoredAmount
+          amount={numeric}
+          currencyCode={code || undefined}
+        />
       );
     },
   },

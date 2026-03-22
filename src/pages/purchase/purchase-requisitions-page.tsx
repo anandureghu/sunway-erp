@@ -4,7 +4,7 @@ import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/lib/status-badge";
 import { Plus, Search, ArrowLeft, CheckCircle } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
@@ -232,19 +232,11 @@ export default function PurchaseRequisitionsPage() {
         header: "Status",
         cell: ({ row }) => {
           const status = row.getValue("status") as string;
-          const statusColors: Record<string, string> = {
-            draft: "bg-gray-100 text-gray-800",
-            pending: "bg-yellow-100 text-yellow-800",
-            approved: "bg-green-100 text-green-800",
-            rejected: "bg-red-100 text-red-800",
-            cancelled: "bg-gray-100 text-gray-800",
-          };
           return (
-            <Badge
-              className={statusColors[status] || "bg-gray-100 text-gray-800"}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
+            <StatusBadge
+              status={status}
+              label={status.charAt(0).toUpperCase() + status.slice(1)}
+            />
           );
         },
       },

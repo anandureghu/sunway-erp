@@ -12,8 +12,9 @@ import {
 import type { Invoice } from "@/types/sales";
 import { type ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { StatusBadge } from "@/lib/status-badge";
+import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
 
 export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
   {
@@ -51,20 +52,9 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      const statusColors: Record<string, string> = {
-        Paid: "bg-green-100 text-green-800",
-        Unpaid: "bg-red-100 text-red-800",
-        "Partially Paid": "bg-yellow-100 text-yellow-800",
-        Overdue: "bg-orange-100 text-orange-800",
-      };
-      return (
-        <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
-          {status}
-        </Badge>
-      );
-    },
+    cell: ({ row }) => (
+      <StatusBadge status={String(row.getValue("status") ?? "")} />
+    ),
   },
   {
     accessorKey: "total",
@@ -75,7 +65,14 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
         type === "SALES"
           ? row.original.salesOrder?.totalAmount
           : row.original.purchaseOrder?.total;
-      return <span className="font-semibold">₹ {total?.toLocaleString()}</span>;
+      if (total == null) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+      return type === "SALES" ? (
+        <CreditAmount amount={total} currencyCode="₹" />
+      ) : (
+        <DebitAmount amount={total} currencyCode="₹" />
+      );
     },
   },
   {

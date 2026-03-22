@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { ColumnDef } from "@tanstack/react-table";
+import { StatusBadge } from "@/lib/status-badge";
 import type { AccountingPeriod } from "@/types/accounting-period";
 
 interface AccountingPeriodColumnsProps {
@@ -32,14 +32,11 @@ export const getAccountingPeriodColumns = ({
     header: "Status",
     cell: ({ row }) => {
       const status = row.original.status;
-
       return (
-        <Badge
-          variant={status === "OPEN" ? "default" : "destructive"}
-          className="capitalize"
-        >
-          {status.toLowerCase()}
-        </Badge>
+        <StatusBadge
+          status={status}
+          label={status.charAt(0) + status.slice(1).toLowerCase()}
+        />
       );
     },
   },

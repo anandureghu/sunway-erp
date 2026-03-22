@@ -121,12 +121,8 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
         open={open}
         onOpenChange={setOpen}
         data={selected}
-        onSuccess={(updated, mode) => {
-          if (mode === "add") setList((prev) => [...prev, updated]);
-          // else
-          //   setList((prev) =>
-          //     prev.map((x) => (x.id === updated.id ? updated : x)),
-          //   );
+        onSuccess={() => {
+          fetchAll();
         }}
       />
     </div>

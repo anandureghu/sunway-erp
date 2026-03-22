@@ -1,8 +1,9 @@
 // src/lib/columns/finance/journal-entry-columns.ts
 
 import { type ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/lib/status-badge";
+import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
 import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
@@ -46,32 +47,28 @@ export const JOURNAL_ENTRY_COLUMNS = ({
   },
 
   {
-    accessorKey: "amount",
-    header: "Amount",
-    cell: ({ row }) =>
-      Number(row.getValue("amount")).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
+    id: "debitAmount",
+    header: "Debit",
+    cell: ({ row }) => {
+      const je = row.original;
+      return <DebitAmount amount={je.amount} />;
+    },
+  },
+  {
+    id: "creditAmount",
+    header: "Credit",
+    cell: ({ row }) => {
+      const je = row.original;
+      return <CreditAmount amount={je.amount} />;
+    },
   },
 
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue<string>("status");
-
-      const color =
-        status === "APPROVED"
-          ? "bg-green-100 text-green-700"
-          : status === "REJECTED"
-            ? "bg-red-100 text-red-700"
-            : status === "ON_HOLD"
-              ? "bg-yellow-100 text-yellow-700"
-              : "bg-gray-100 text-gray-700";
-
-      return <Badge className={color}>{status}</Badge>;
-    },
+    cell: ({ row }) => (
+      <StatusBadge status={String(row.getValue("status") ?? "")} />
+    ),
   },
 
   {

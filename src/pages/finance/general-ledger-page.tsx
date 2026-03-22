@@ -5,6 +5,7 @@ import TransactionPage from "@/modules/finance/transaction-page";
 import CreditNotePage from "./credit-note-page";
 import { hasAnyRole } from "@/lib/utils";
 import ChartOfAccountsListPage from "@/modules/finance/chart-of-accounts/coa-list-page";
+import GlAccountBalancesPage from "@/modules/finance/gl-account-balances-page";
 import JournalEntryListPage from "@/modules/finance/journal-entry/je-list-page";
 import ReconciliationListPage from "@/modules/finance/reconcilation/recon-list-page";
 
@@ -15,6 +16,11 @@ const GeneralLedgerPage = () => {
       value: "coa",
       label: "Chart Of Accounts",
       element: () => <ChartOfAccountsListPage />,
+    },
+    {
+      value: "gl-balances",
+      label: "GL Account Balances",
+      element: () => <GlAccountBalancesPage />,
     },
     ...(hasAnyRole(user?.role, ["ACCOUNTANT", "SUPER_ADMIN", "ADMIN"])
       ? [

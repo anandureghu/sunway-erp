@@ -1,6 +1,10 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import type { GLAccountBalance } from "@/types/gl";
-import { Badge } from "@/components/ui/badge";
+import {
+  CreditAmount,
+  DebitAmount,
+  SignedColoredAmount,
+} from "@/components/accounting-amount";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import {
@@ -28,7 +32,7 @@ export const GL_BALANCE_COLUMNS = ({
     accessorKey: "totalAssets",
     header: "Assets",
     cell: ({ row }) => (
-      <>₹ {Number(row.getValue("totalAssets")).toLocaleString()}</>
+      <DebitAmount amount={Number(row.getValue("totalAssets"))} currencyCode="₹" />
     ),
   },
 
@@ -36,7 +40,10 @@ export const GL_BALANCE_COLUMNS = ({
     accessorKey: "totalLiabilities",
     header: "Liabilities",
     cell: ({ row }) => (
-      <>₹ {Number(row.getValue("totalLiabilities")).toLocaleString()}</>
+      <CreditAmount
+        amount={Number(row.getValue("totalLiabilities"))}
+        currencyCode="₹"
+      />
     ),
   },
 
@@ -44,7 +51,10 @@ export const GL_BALANCE_COLUMNS = ({
     accessorKey: "totalRevenue",
     header: "Revenue",
     cell: ({ row }) => (
-      <>₹ {Number(row.getValue("totalRevenue")).toLocaleString()}</>
+      <CreditAmount
+        amount={Number(row.getValue("totalRevenue"))}
+        currencyCode="₹"
+      />
     ),
   },
 
@@ -52,7 +62,10 @@ export const GL_BALANCE_COLUMNS = ({
     accessorKey: "totalExpenses",
     header: "Expenses",
     cell: ({ row }) => (
-      <>₹ {Number(row.getValue("totalExpenses")).toLocaleString()}</>
+      <DebitAmount
+        amount={Number(row.getValue("totalExpenses"))}
+        currencyCode="₹"
+      />
     ),
   },
 
@@ -60,15 +73,10 @@ export const GL_BALANCE_COLUMNS = ({
     accessorKey: "balance",
     header: "Balance",
     cell: ({ row }) => (
-      <Badge
-        className={
-          Number(row.getValue("balance")) >= 0
-            ? "bg-green-100 text-green-700"
-            : "bg-red-100 text-red-700"
-        }
-      >
-        ₹ {Number(row.getValue("balance")).toLocaleString()}
-      </Badge>
+      <SignedColoredAmount
+        amount={Number(row.getValue("balance"))}
+        currencyCode="₹"
+      />
     ),
   },
 

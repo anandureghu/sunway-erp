@@ -16,6 +16,8 @@ import type { BudgetResponseDTO, BudgetLineDTO } from "@/types/budget";
 import { BudgetLineDialog } from "./budget-line-dialog";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { StatusBadge } from "@/lib/status-badge";
+import { CreditAmount } from "@/components/accounting-amount";
 
 export default function BudgetDetailPage() {
   const { id } = useParams();
@@ -136,23 +138,22 @@ export default function BudgetDetailPage() {
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-4">
             {/* Amount */}
-            <div className="rounded-lg border p-4 bg-blue-50 text-blue-600">
+            <div className="rounded-lg border p-4 bg-blue-50/80 dark:bg-blue-950/30">
               <p className="text-sm text-muted-foreground">Amount</p>
-              <p className="text-xl font-semibold">
-                {company?.currency?.currencyCode || " "} {data.amount}
+              <p className="text-xl font-semibold tabular-nums">
+                <CreditAmount
+                  amount={Number(data.amount)}
+                  currencyCode={company?.currency?.currencyCode || undefined}
+                />
               </p>
             </div>
 
             {/* Status */}
-            <div
-              className={`rounded-lg border p-4 ${
-                data.status === "IMPLEMENTED"
-                  ? "bg-green-50 text-green-600"
-                  : "bg-gray-100 text-purple-600"
-              }`}
-            >
+            <div className="rounded-lg border p-4 bg-muted/40">
               <p className="text-sm text-muted-foreground">Status</p>
-              <p className="text-xl font-semibold">{data.status}</p>
+              <div className="pt-1">
+                <StatusBadge status={data.status} />
+              </div>
             </div>
 
             {/* Budget Year */}

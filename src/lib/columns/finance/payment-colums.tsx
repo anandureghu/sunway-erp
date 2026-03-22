@@ -1,6 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import type { PaymentResponseDTO } from "@/types/payment";
 import { Badge } from "@/components/ui/badge";
+import { DebitAmount } from "@/components/accounting-amount";
 // import { Button } from "@/components/ui/button";
 // import { MoreHorizontal } from "lucide-react";
 // import {
@@ -29,7 +30,7 @@ export const PAYMENT_COLUMNS = () //   {
     header: "Amount (₹)",
     cell: ({ row }) => {
       const amt = Number(row.getValue("amount"));
-      return <>₹ {amt.toLocaleString()}</>;
+      return <DebitAmount amount={amt} currencyCode="₹" />;
     },
   },
 

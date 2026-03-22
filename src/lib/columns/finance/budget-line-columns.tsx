@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { StatusBadge } from "@/lib/status-badge";
+import { CreditAmount } from "@/components/accounting-amount";
 
 export function getBudgetLineColumns({
   onEdit,
@@ -36,16 +38,28 @@ export function getBudgetLineColumns({
     {
       header: "Amount",
       accessorKey: "amount",
-      cell: ({ row }) =>
-        `${company.currency?.currencyCode || ""} ${row.getValue("amount")}`,
+      cell: ({ row }) => {
+        const code = company.currency?.currencyCode || "";
+        return (
+          <CreditAmount
+            amount={Number(row.getValue("amount"))}
+            currencyCode={code || undefined}
+          />
+        );
+      },
     },
     { header: "Notes", accessorKey: "notes" },
     {
       header: "Status",
       accessorKey: "status",
       cell: ({ row }) => {
-        const status = row.original.status;
-        return <div>{status === "IMPLEMENTED" ? "Draft" : status}</div>;
+        const status = row.original.status ?? "";
+        return (
+          <StatusBadge
+            status={status}
+            label={status === "IMPLEMENTED" ? "Draft" : undefined}
+          />
+        );
       },
     },
     ...(hasAnyRole(role, ["FINANCE_MANAGER", "SUPER_ADMIN"])
@@ -55,8 +69,6 @@ export function getBudgetLineColumns({
             header: "Actions",
             cell: ({ row }: { row: Row<BudgetLineDTO> }) => {
               const entry = row.original;
-
-              console.log(entry.status);
 
               return (
                 <div onClick={(e) => e.stopPropagation()}>
