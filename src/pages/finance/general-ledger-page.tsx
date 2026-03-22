@@ -61,6 +61,7 @@ const GeneralLedgerPage = () => {
     user?.companyId && (
       <AppTab
         title="General Ledger"
+        subtitle="Manage your general ledger and transactions"
         tabs={tabsList}
         defaultValue={tabsList[0].value}
         props={{ companyId: Number(user?.companyId) }}

@@ -53,6 +53,8 @@ const AccountsReceivablePage = () => {
   return (
     <AppTab
       title="Accounts Receivable"
+      subtitle="Manage your accounts receivable and customer payments"
+      variant="success"
       tabs={tabsList}
       defaultValue="invoices"
       props={{

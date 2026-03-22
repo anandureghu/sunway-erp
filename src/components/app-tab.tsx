@@ -18,6 +18,8 @@ interface AppTabProps<
   defaultValue?: string;
   props?: TProps;
   className?: string;
+  subtitle?: string;
+  variant?: "primary" | "success" | "warning" | "danger";
 }
 
 /**
@@ -34,10 +36,23 @@ export const AppTab = <TProps extends Record<string, unknown>>({
   defaultValue,
   props,
   className = "",
+  subtitle,
+  variant = "primary",
 }: AppTabProps<TProps>) => {
   return (
     <div className={`p-6 ${className}`}>
-      {title && <h1 className="text-2xl font-semibold mb-4">{title}</h1>}
+      {title && (
+        <div
+          className={`mb-4 text-white rounded-lg p-6 px-10 ${variant === "primary" ? "bg-primary-gradient" : variant === "success" ? "bg-success-gradient" : variant === "warning" ? "bg-warning-gradient" : "bg-danger-gradient"}`}
+        >
+          <h1 className="text-4xl font-display font-light ">{title}</h1>
+          {subtitle && (
+            <h2 className="text-sm text-white/70 font-light mt-1">
+              {subtitle}
+            </h2>
+          )}
+        </div>
+      )}
 
       <Card>
         <CardContent>

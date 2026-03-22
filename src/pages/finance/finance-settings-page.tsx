@@ -14,6 +14,8 @@ const FinanceSettingsPage = () => {
     <div className="p-5">
       <AppTab
         title="Finance Settings"
+        variant="warning"
+        subtitle="Manage your finance settings and suppliers"
         tabs={tabsList}
         defaultValue={tabsList[0].value}
       />

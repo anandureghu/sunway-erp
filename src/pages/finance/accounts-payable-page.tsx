@@ -46,6 +46,8 @@ const AccountsPayablePage = () => {
   return (
     <AppTab
       title="Accounts Payable"
+      subtitle="Manage your accounts payable and vendor payments"
+      variant="danger"
       tabs={tabsList}
       defaultValue="invoices"
       props={{

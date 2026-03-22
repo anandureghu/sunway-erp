@@ -135,19 +135,19 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="relative border-none">
-      <SidebarHeader className="bg-primary text-white border-b">
+      <SidebarHeader className="bg-white text-black border-b">
         <div className="flex items-center gap-3 px-3">
           <img
-            src="/assets/logo.svg"
+            src="/assets/logo-dark.svg"
             alt="sunway"
             width={38}
             className="my-2"
           />
           <div className="flex flex-col items-start">
-            <h1 className="font-display font-bold text-xl text-white">
+            <h1 className="font-display font-bold text-xl text-blue-950">
               Sunway
             </h1>
-            <p className="text-sm text-white/60">ERP Platform</p>
+            <p className="text-sm text-purple-800">ERP Platform</p>
           </div>
         </div>
       </SidebarHeader>
@@ -162,7 +162,7 @@ export function AppSidebar() {
                   to="/"
                   className={cn(
                     "flex gap-2 items-center",
-                    path === "/" && "bg-primary text-secondary",
+                    path === "/" && "bg-primary-gradient text-secondary",
                   )}
                 >
                   <Home className="w-5 h-5" />
@@ -220,7 +220,7 @@ export function AppSidebar() {
                               className={cn(
                                 "flex gap-2 items-center",
                                 path.startsWith(item.url) &&
-                                  "bg-primary text-secondary",
+                                  "bg-primary-gradient text-secondary hover:text-white/70",
                               )}
                             >
                               <item.icon className="w-4 h-4" />
@@ -251,8 +251,8 @@ export function AppSidebar() {
                                         className={cn(
                                           "ml-6 flex gap-2 items-center rounded-md",
                                           active
-                                            ? "bg-primary text-secondary"
-                                            : "hover:bg-muted",
+                                            ? "bg-primary-gradient text-secondary hover:text-white/70"
+                                            : "hover:bg-white/70",
                                         )}
                                       >
                                         <sm.icon className="w-4 h-4" />
