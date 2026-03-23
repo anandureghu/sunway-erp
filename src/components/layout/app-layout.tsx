@@ -5,19 +5,27 @@ import { EmployeeSelectionProvider } from "@/context/employee-selection"; // use
 import Navbar from "../navbar";
 import { SidebarEdgeHoverOpen } from "@/components/sidebar-edge-hover-open";
 
+const LayoutBody = () => {
+  return (
+    <>
+      <AppSidebar />
+      <SidebarEdgeHoverOpen />
+      <main className="ml-auto flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-auto bg-muted/30 transition-[max-width] duration-200 ease-linear md:peer-data-[state=expanded]:max-w-[calc(100vw-var(--sidebar-width))] md:peer-data-[state=collapsed]:max-w-full">
+        <Navbar />
+        <div className="flex-1">
+          <Outlet />
+        </div>
+      </main>
+    </>
+  );
+};
+
 const AppLayout = () => {
   return (
-    <div className="w-full">
+    <div className="flex min-h-svh w-full">
       <SidebarProvider>
         <EmployeeSelectionProvider>
-          <AppSidebar />
-          <SidebarEdgeHoverOpen />
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-muted/30">
-            <Navbar />
-            <div className="flex-1">
-              <Outlet />
-            </div>
-          </main>
+          <LayoutBody />
         </EmployeeSelectionProvider>
       </SidebarProvider>
     </div>

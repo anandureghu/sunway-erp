@@ -7,7 +7,9 @@ import { useSidebar } from "@/components/ui/sidebar";
  */
 export function SidebarEdgeHoverOpen() {
   const { open, setOpen, isMobile } = useSidebar();
-  if (isMobile || open) return null;
+  const isPinned =
+    typeof window !== "undefined" && localStorage.getItem("sidebarPinned") === "1";
+  if (isMobile || open || isPinned) return null;
   return (
     <div
       data-sidebar="edge-strip"

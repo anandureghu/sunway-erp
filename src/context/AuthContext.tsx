@@ -190,6 +190,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [accessToken]);
 
+  // Catch global unauthorized events fired by apiClient when refresh fails.
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      toast.error("Session expired. Please login again.");
+      dispatch(setAdminView(false));
+      setUser(null);
+      setPermissions(null);
+      setAccessToken(null);
+      setRefreshToken(null);
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      delete apiClient.defaults.headers.common["Authorization"];
+      navigate("/auth/login");
+    };
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [dispatch, navigate]);
+
   /** Login handler */
   const login = (accessToken: string, refreshToken: string) => {
     setAccessToken(accessToken);

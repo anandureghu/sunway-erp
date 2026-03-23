@@ -11,6 +11,19 @@ const apiClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+type RetryableRequest = {
+  _retry?: boolean;
+  headers?: Record<string, string>;
+};
+
+let isRefreshing = false;
+let refreshWaitQueue: Array<(token: string | null) => void> = [];
+
+const flushRefreshQueue = (token: string | null) => {
+  refreshWaitQueue.forEach((cb) => cb(token));
+  refreshWaitQueue = [];
+};
+
 // Add interceptor to include token
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
@@ -23,7 +36,74 @@ apiClient.interceptors.request.use((config) => {
 // Add response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config as RetryableRequest | undefined;
+    const status = error.response?.status as number | undefined;
+
+    // Try to recover once by refreshing access token.
+    if (
+      status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !String(error.config?.url || "").includes("/auth/refresh")
+    ) {
+      originalRequest._retry = true;
+
+      const currentRefreshToken = localStorage.getItem("refreshToken");
+      if (!currentRefreshToken) {
+        window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          refreshWaitQueue.push((token) => {
+            if (!token) {
+              reject(error);
+              return;
+            }
+            originalRequest.headers = {
+              ...(originalRequest.headers || {}),
+              Authorization: `Bearer ${token}`,
+            };
+            resolve(apiClient(originalRequest));
+          });
+        });
+      }
+
+      isRefreshing = true;
+      try {
+        const refreshResponse = await axios.post(`${baseURL}/auth/refresh`, {
+          refreshToken: currentRefreshToken,
+        });
+        const newAccessToken = refreshResponse.data?.accessToken as
+          | string
+          | undefined;
+
+        if (!newAccessToken) {
+          throw new Error("Missing new access token from refresh endpoint");
+        }
+
+        localStorage.setItem("accessToken", newAccessToken);
+        apiClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+
+        flushRefreshQueue(newAccessToken);
+        originalRequest.headers = {
+          ...(originalRequest.headers || {}),
+          Authorization: `Bearer ${newAccessToken}`,
+        };
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        flushRefreshQueue(null);
+        window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
       console.error("Network Error - Backend might be down or unreachable");
       console.error("Attempted URL:", error.config?.url);
