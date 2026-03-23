@@ -21,7 +21,13 @@ import {
 } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Search } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Warehouse as WarehouseIcon,
+  CircleCheckBig,
+  CircleSlash2,
+} from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -227,7 +233,7 @@ const WarehouseMaster = () => {
         <h1 className="text-2xl font-semibold">Warehouses</h1>
         <Button
           onClick={handleNewWarehouse}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
         >
           <Plus className="h-4 w-4 mr-2" /> New Warehouse
         </Button>
@@ -235,38 +241,47 @@ const WarehouseMaster = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
+        <Card className="shadow-sm border-muted/70">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
                   TOTAL WAREHOUSES
                 </p>
-                <h2 className="text-2xl font-bold">{stats.total}</h2>
+                <h2 className="text-3xl font-bold mt-2">{stats.total}</h2>
+              </div>
+              <div className="rounded-xl bg-indigo-100 p-2.5">
+                <WarehouseIcon className="h-5 w-5 text-indigo-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
+        <Card className="shadow-sm border-emerald-200 bg-emerald-50/70">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
                   ACTIVE
                 </p>
-                <h2 className="text-2xl font-bold">{stats.active}</h2>
+                <h2 className="text-3xl font-bold mt-2">{stats.active}</h2>
+              </div>
+              <div className="rounded-xl bg-emerald-100 p-2.5">
+                <CircleCheckBig className="h-5 w-5 text-emerald-600" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
+        <Card className="shadow-sm border-rose-200 bg-rose-50/70">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
                   INACTIVE
                 </p>
-                <h2 className="text-2xl font-bold">{stats.inactive}</h2>
+                <h2 className="text-3xl font-bold mt-2">{stats.inactive}</h2>
+              </div>
+              <div className="rounded-xl bg-rose-100 p-2.5">
+                <CircleSlash2 className="h-5 w-5 text-rose-600" />
               </div>
             </div>
           </CardContent>

@@ -15,13 +15,11 @@ import {
 } from "@/service/salesFlowService";
 import { listItems } from "@/service/inventoryService";
 import { cn } from "@/lib/utils";
-
-type TrackingEvent = {
-  event: string;
-  location: string;
-  dateTime?: string;
-  status: "completed" | "current" | "pending";
-};
+import {
+  getDestination,
+  getStatusDisplay,
+  getTrackingHistory,
+} from "./components/delivery-tracking-utils";
 
 export default function DeliveryTrackingPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,141 +72,6 @@ export default function DeliveryTrackingPage() {
       );
     });
   }, [dispatches, searchQuery]);
-
-  // Generate tracking history based on dispatch status
-  const getTrackingHistory = (dispatch: Dispatch): TrackingEvent[] => {
-    const events: TrackingEvent[] = [];
-    const orderDate = dispatch.order?.orderDate || dispatch.createdAt;
-    const createdAt = dispatch.createdAt
-      ? new Date(dispatch.createdAt)
-      : new Date();
-    const originCity = "Origin";
-    const originCountry = "";
-    const destination = getDestination(dispatch);
-
-    // Order Confirmed
-    events.push({
-      event: "Order Confirmed",
-      location:
-        originCity && originCountry
-          ? `${originCity}, ${originCountry}`.trim()
-          : originCity || "Origin",
-      dateTime: orderDate
-        ? format(new Date(orderDate), "MMM dd, yyyy - h:mm a")
-        : undefined,
-      status: "completed",
-    });
-
-    // Picked Up
-    if (dispatch.status !== "created") {
-      const pickedDate = new Date(createdAt);
-      pickedDate.setHours(pickedDate.getHours() + 4);
-      events.push({
-        event: "Picked Up",
-        location: `${originCity} Distribution Center`,
-        dateTime: format(pickedDate, "MMM dd, yyyy - h:mm a"),
-        status: "completed",
-      });
-    }
-
-    // In Transit
-    if (dispatch.status === "in_transit" || dispatch.status === "delivered") {
-      const transitDate = new Date(createdAt);
-      transitDate.setDate(transitDate.getDate() + 2);
-      events.push({
-        event: "In Transit",
-        location: "Hub",
-        dateTime: format(transitDate, "MMM dd, yyyy - h:mm a"),
-        status: dispatch.status === "in_transit" ? "current" : "completed",
-      });
-    } else if (dispatch.status === "dispatched") {
-      events.push({
-        event: "In Transit",
-        location: "Hub",
-        status: "current",
-      });
-    }
-
-    // Out for Delivery
-    if (dispatch.status === "delivered") {
-      const outForDeliveryDate = new Date(createdAt);
-      outForDeliveryDate.setDate(outForDeliveryDate.getDate() + 3);
-      events.push({
-        event: "Out for Delivery",
-        location: destination,
-        dateTime: format(outForDeliveryDate, "MMM dd, yyyy - h:mm a"),
-        status: "completed",
-      });
-    } else {
-      events.push({
-        event: "Out for Delivery",
-        location: destination,
-        status: "pending",
-      });
-    }
-
-    // Delivered
-    if (dispatch.status === "delivered") {
-      events.push({
-        event: "Delivered",
-        location: destination,
-        dateTime: dispatch.actualDeliveryDate
-          ? format(
-              new Date(dispatch.actualDeliveryDate),
-              "MMM dd, yyyy - h:mm a",
-            )
-          : undefined,
-        status: "completed",
-      });
-    } else {
-      events.push({
-        event: "Delivered",
-        location: destination,
-        status: "pending",
-      });
-    }
-
-    return events;
-  };
-
-  // Extract destination from address
-  const getDestination = (dispatch: Dispatch): string => {
-    if (dispatch.deliveryAddress) {
-      const parts = dispatch.deliveryAddress.split(",").map((s) => s.trim());
-      if (parts.length >= 2) {
-        return `${parts[parts.length - 2]}, ${parts[parts.length - 1]}`;
-      }
-      return dispatch.deliveryAddress;
-    }
-    // if (dispatch.order?.customerId) {
-    //   const { city, country } = dispatch.order.customer;
-    //   if (city && country) return `${city}, ${country}`;
-    //   if (city) return city;
-    //   if (country) return country;
-    // }
-    return "Unknown";
-  };
-
-  // Get status display
-  const getStatusDisplay = (
-    status: string,
-  ): { label: string; color: string } => {
-    switch (status) {
-      case "delivered":
-        return { label: "DELIVERED", color: "bg-green-500 text-white" };
-      case "in_transit":
-        return { label: "IN TRANSIT", color: "bg-blue-500 text-white" };
-      case "dispatched":
-        return { label: "IN TRANSIT", color: "bg-blue-500 text-white" };
-      case "created":
-        return { label: "PENDING PICKUP", color: "bg-orange-500 text-white" };
-      default:
-        return {
-          label: status.toUpperCase().replace("_", " "),
-          color: "bg-gray-500 text-white",
-        };
-    }
-  };
 
   return (
     <div className="p-6">

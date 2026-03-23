@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag,
   ShoppingCart,
@@ -19,19 +20,27 @@ import {
   Search,
   Clock,
   DollarSign,
-  X,
+  ArrowRight,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { salesOrders, invoices, dispatches, customers } from "@/lib/sales-data";
+
+type ActionCard = {
+  title: string;
+  description: string;
+  to: string;
+  cta: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: string;
+};
 
 export default function SalesLandingPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Calculate KPIs
-  const totalSales = invoices.reduce((sum, inv) => sum + inv.amount!, 0);
+  const totalSales = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const pendingOrders = salesOrders.filter(
-    (o) => o.status === "draft" || o.status === "confirmed"
+    (o) => o.status === "draft" || o.status === "confirmed",
   ).length;
   const dispatchesToday = dispatches.filter((d) => {
     const today = new Date().toDateString();
@@ -39,382 +48,225 @@ export default function SalesLandingPage() {
     return dispatchDate === today;
   }).length;
   const unpaidInvoices = invoices.filter(
-    (inv) => inv.status === "Unpaid" || inv.status === "Overdue"
+    (inv) => inv.status === "Unpaid" || inv.status === "Overdue",
   ).length;
 
-  // Search functionality
+  const quickActions: ActionCard[] = [
+    {
+      title: "Manage Sales Orders",
+      description: "Review order pipeline, statuses, and next actions.",
+      to: "/inventory/sales/orders",
+      cta: "Open Orders",
+      icon: ShoppingCart,
+      tone: "text-blue-600 bg-blue-100",
+    },
+    {
+      title: "Create New Sales Order",
+      description: "Start a new order with customer, items, and pricing.",
+      to: "/inventory/sales/orders/new",
+      cta: "Create Order",
+      icon: ShoppingBag,
+      tone: "text-emerald-600 bg-emerald-100",
+    },
+    {
+      title: "Sales Invoices",
+      description: "Track invoices, payments, and outstanding balances.",
+      to: "/inventory/sales/invoices",
+      cta: "View Invoices",
+      icon: Receipt,
+      tone: "text-purple-600 bg-purple-100",
+    },
+    {
+      title: "Customer Management",
+      description: "Maintain customers, contacts, and account details.",
+      to: "/inventory/sales/customers",
+      cta: "Manage Customers",
+      icon: Users,
+      tone: "text-amber-600 bg-amber-100",
+    },
+    {
+      title: "Picklist & Dispatch",
+      description: "Move confirmed orders to fulfillment and shipment.",
+      to: "/inventory/sales/picklist",
+      cta: "Open Fulfillment",
+      icon: Package,
+      tone: "text-orange-600 bg-orange-100",
+    },
+    {
+      title: "Delivery Tracking",
+      description: "Monitor shipment movement and delivery milestones.",
+      to: "/inventory/sales/tracking",
+      cta: "Track Deliveries",
+      icon: Truck,
+      tone: "text-cyan-600 bg-cyan-100",
+    },
+  ];
+
   const handleSearch = (query: string) => {
     if (!query.trim()) return;
-
     const lowerQuery = query.toLowerCase();
-
-    // Search in sales orders
     const foundOrder = salesOrders.find(
       (o) =>
         o.orderNo.toLowerCase().includes(lowerQuery) ||
-        o.customerName.toLowerCase().includes(lowerQuery)
+        o.customerName.toLowerCase().includes(lowerQuery),
     );
-
-    // Search in customers
     const foundCustomer = customers.find(
       (c) =>
         c.name.toLowerCase().includes(lowerQuery) ||
         c.code.toLowerCase().includes(lowerQuery) ||
-        c.contactPerson?.toLowerCase().includes(lowerQuery)
+        c.contactPerson?.toLowerCase().includes(lowerQuery),
     );
 
-    // Navigate to the first match found, prioritizing orders
     if (foundOrder) {
       navigate("/inventory/sales/orders", { state: { searchQuery: query } });
-    } else if (foundCustomer) {
+      return;
+    }
+    if (foundCustomer) {
       navigate("/inventory/sales/customers", { state: { searchQuery: query } });
-    } else {
-      // Show search results in a modal or navigate to search results page
-      alert(
-        `No results found for "${query}". Try searching for order numbers, customer names, or invoice numbers.`
-      );
+      return;
     }
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSearch(searchQuery);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSearch(searchQuery);
-    }
+    alert(`No results found for "${query}".`);
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 min-w-0">
-      {/* Header Section */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 text-foreground break-words">
-          Sales
-        </h1>
-        <p className="text-base sm:text-lg text-muted-foreground break-words">
-          Manage sales orders, customers, and invoices
-        </p>
-      </div>
-
-      {/* Sales Summary / Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 items-stretch">
-        <Card className="hover:shadow-md transition-shadow min-w-0 overflow-hidden">
-          <CardContent className="p-3 sm:p-4 lg:p-6">
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
-                  Total Sales
-                </p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold mt-0.5 sm:mt-1 break-all">
-                  ₹{totalSales.toLocaleString()}
-                </p>
-              </div>
-              <div className="p-1.5 sm:p-2 lg:p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-600" />
-              </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      <Card className="border-0 shadow-md bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white">
+        <CardContent className="p-6 sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <Badge className="mb-3 bg-white/20 text-white hover:bg-white/20">
+                Inventory Sales Hub
+              </Badge>
+              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">
+                Modern Sales Operations
+              </h1>
+              <p className="mt-2 text-white/80 max-w-2xl">
+                Create orders, manage pipeline, and monitor fulfillment from one
+                workspace.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow min-w-0 overflow-hidden">
-          <CardContent className="p-3 sm:p-4 lg:p-6">
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
-                  Pending Orders
-                </p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold mt-0.5 sm:mt-1 break-all">
-                  {pendingOrders}
-                </p>
-              </div>
-              <div className="p-1.5 sm:p-2 lg:p-3 bg-yellow-100 rounded-lg flex-shrink-0">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-yellow-600" />
-              </div>
+            <div className="flex gap-3">
+              <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-white/90">
+                <Link to="/inventory/sales/orders/new">Create Order</Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary" className="bg-white/10 text-white border-white/20">
+                <Link to="/inventory/sales/orders">Manage Orders</Link>
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow min-w-0 overflow-hidden">
-          <CardContent className="p-3 sm:p-4 lg:p-6">
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
-                  Dispatches Today
-                </p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold mt-0.5 sm:mt-1 break-all">
-                  {dispatchesToday}
-                </p>
-              </div>
-              <div className="p-1.5 sm:p-2 lg:p-3 bg-green-100 rounded-lg flex-shrink-0">
-                <Truck className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow min-w-0 overflow-hidden">
-          <CardContent className="p-3 sm:p-4 lg:p-6">
-            <div className="flex items-center justify-between gap-2 min-w-0">
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
-                  Unpaid Invoices
-                </p>
-                <p className="text-lg sm:text-xl lg:text-2xl font-bold mt-0.5 sm:mt-1 break-all">
-                  {unpaidInvoices}
-                </p>
-              </div>
-              <div className="p-1.5 sm:p-2 lg:p-3 bg-orange-100 rounded-lg flex-shrink-0">
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Search */}
-      <Card className="bg-muted/50 min-w-0">
-        <CardContent className="p-3 sm:p-4">
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative min-w-0">
-              <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <Input
-                placeholder="Quick search: orders, customers, invoices..."
-                className="pl-8 sm:pl-10 pr-8 sm:pr-10 min-w-0"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground flex-shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </form>
-          {searchQuery && (
-            <div className="mt-2 text-xs sm:text-sm text-muted-foreground break-words">
-              Press Enter to search, or click on a category below
-            </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Sales Operations Section */}
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-foreground break-words">
-            Sales Operations
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 min-w-0 items-stretch">
-            {/* Manage Sales */}
-            <Card className="hover:shadow-lg transition-shadow border-2 hover:border-blue-300 min-w-0 flex flex-col h-full justify-between">
-              <CardHeader className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2 sm:p-2.5 lg:p-3 bg-blue-100 rounded-lg flex-shrink-0 self-start">
-                    <ShoppingCart className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <CardTitle className="text-base sm:text-base lg:text-lg break-words leading-tight font-semibold">
-                      Manage Sales Orders
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm break-words mt-1.5">
-                      View and manage sales orders
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pb-4 sm:pb-5 lg:pb-6 pt-0">
-                <Button
-                  asChild
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-sm lg:text-base"
-                >
-                  <Link
-                    to="/inventory/sales/orders"
-                    className="block text-center"
-                  >
-                    Manage Sales Orders
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <MetricCard
+          label="Gross Sales"
+          value={`₹${totalSales.toLocaleString()}`}
+          icon={DollarSign}
+          hint="Invoice total"
+        />
+        <MetricCard
+          label="Pending Orders"
+          value={String(pendingOrders)}
+          icon={Clock}
+          hint="Draft + confirmed"
+        />
+        <MetricCard
+          label="Dispatches Today"
+          value={String(dispatchesToday)}
+          icon={Truck}
+          hint="Created today"
+        />
+        <MetricCard
+          label="Unpaid Invoices"
+          value={String(unpaidInvoices)}
+          icon={FileText}
+          hint="Unpaid + overdue"
+        />
+      </div>
 
-            {/* Create New Sales */}
-            <Card className="hover:shadow-lg transition-shadow border-2 hover:border-green-300 min-w-0 flex flex-col h-full justify-between">
-              <CardHeader className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2 sm:p-2.5 lg:p-3 bg-green-100 rounded-lg flex-shrink-0 self-start">
-                    <ShoppingBag className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
-                  </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <CardTitle className="text-base sm:text-base lg:text-lg break-words leading-tight font-semibold">
-                      Create New Sales
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm break-words mt-1.5">
-                      Create a new sales order
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pb-4 sm:pb-5 lg:pb-6 pt-0">
-                <Button
-                  asChild
-                  className="w-full bg-green-600 hover:bg-green-700 text-sm sm:text-sm lg:text-base"
-                >
-                  <Link
-                    to="/inventory/sales/orders/new"
-                    className="block text-center"
-                  >
-                    Create New Sales Order
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Sales Invoices */}
-            <Card className="hover:shadow-lg transition-shadow border-2 hover:border-blue-300 min-w-0 flex flex-col h-full justify-between">
-              <CardHeader className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2 sm:p-2.5 lg:p-3 bg-blue-100 rounded-lg flex-shrink-0 self-start">
-                    <Receipt className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <CardTitle className="text-base sm:text-base lg:text-lg break-words leading-tight font-semibold">
-                      Sales Invoices
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm break-words mt-1.5">
-                      Manage invoices and payments
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pb-4 sm:pb-5 lg:pb-6 pt-0">
-                <Button
-                  asChild
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-sm lg:text-base"
-                >
-                  <Link
-                    to="/inventory/sales/invoices"
-                    className="block text-center"
-                  >
-                    View Invoices
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Quick Search</CardTitle>
+          <CardDescription>
+            Search by order number, customer name, or code.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search orders, customers, invoices..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch(searchQuery)}
+            />
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Customer & Dispatch Section */}
-        <div className="space-y-4 sm:space-y-6">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-foreground break-words">
-            Customer & Dispatch
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 min-w-0 items-stretch">
-            {/* Customers */}
-            <Card className="hover:shadow-lg transition-shadow border-2 hover:border-amber-300 min-w-0 flex flex-col h-full justify-between">
-              <CardHeader className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2 sm:p-2.5 lg:p-3 bg-amber-100 rounded-lg flex-shrink-0 self-start">
-                    <Users className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <CardTitle className="text-base sm:text-base lg:text-lg break-words leading-tight font-semibold">
-                      Customer Management
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm break-words mt-1.5">
-                      Manage customer information
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Card
+              key={action.title}
+              className="group hover:shadow-md transition-all border-muted/70"
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-base">{action.title}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {action.description}
                     </CardDescription>
+                  </div>
+                  <div className={`rounded-xl p-2 ${action.tone}`}>
+                    <Icon className="h-5 w-5" />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pb-4 sm:pb-5 lg:pb-6 pt-0">
-                <Button
-                  asChild
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-sm sm:text-sm lg:text-base"
-                >
-                  <Link
-                    to="/inventory/sales/customers"
-                    className="block text-center"
-                  >
-                    Manage Customers
+              <CardContent>
+                <Button asChild className="w-full">
+                  <Link to={action.to} className="flex items-center justify-center gap-2">
+                    {action.cta}
+                    <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Picklist & Dispatch */}
-            <Card className="hover:shadow-lg transition-shadow border-2 hover:border-amber-300 min-w-0 flex flex-col h-full justify-between">
-              <CardHeader className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2 sm:p-2.5 lg:p-3 bg-amber-100 rounded-lg flex-shrink-0 self-start">
-                    <Package className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <CardTitle className="text-base sm:text-base lg:text-lg break-words leading-tight font-semibold">
-                      Picklist & Dispatch
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm break-words mt-1.5">
-                      Generate picklists and plan dispatch
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pb-4 sm:pb-5 lg:pb-6 pt-0">
-                <Button
-                  asChild
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-sm sm:text-sm lg:text-base"
-                >
-                  <Link
-                    to="/inventory/sales/picklist"
-                    className="block text-center"
-                  >
-                    Picklist & Dispatch
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Delivery Tracking */}
-            <Card className="hover:shadow-lg transition-shadow border-2 hover:border-orange-300 min-w-0 flex flex-col h-full justify-between">
-              <CardHeader className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2 sm:p-2.5 lg:p-3 bg-orange-100 rounded-lg flex-shrink-0 self-start">
-                    <Truck className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
-                  </div>
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <CardTitle className="text-base sm:text-base lg:text-lg break-words leading-tight font-semibold">
-                      Delivery Tracking
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm break-words mt-1.5">
-                      Track shipments and deliveries
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pb-4 sm:pb-5 lg:pb-6 pt-0">
-                <Button
-                  asChild
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-sm sm:text-sm lg:text-base"
-                >
-                  <Link
-                    to="/inventory/sales/tracking"
-                    className="block text-center"
-                  >
-                    Track Deliveries
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <Card className="shadow-sm">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-2xl font-semibold mt-1">{value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{hint}</p>
+          </div>
+          <div className="rounded-xl bg-muted p-2.5">
+            <Icon className="h-5 w-5 text-foreground" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
