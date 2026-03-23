@@ -12,8 +12,10 @@ import { Search } from "lucide-react";
 import type { PaymentResponseDTO } from "@/types/payment";
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
 import { PaymentDialog } from "./payment-dialog";
+import { useNavigate } from "react-router-dom";
 
 export default function PaymentsPage({ companyId }: { companyId: number }) {
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<PaymentResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PaymentResponseDTO | null>(null);
@@ -64,7 +66,39 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
   //   }
   // };
 
-  const columns = PAYMENT_COLUMNS();
+  const handleConfirmPayment = async (payment: PaymentResponseDTO) => {
+    try {
+      const res = await apiClient.post<PaymentResponseDTO>(
+        `/finance/payments/${payment.id}/confirm`,
+      );
+      setPayments((prev) =>
+        prev.map((p) => (p.id === payment.id ? res.data : p)),
+      );
+      toast.success("Payment confirmed");
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || err?.message || "Failed to confirm payment",
+      );
+    }
+  };
+
+  const handleOpenInvoice = async (invoiceCode: string) => {
+    try {
+      const res = await apiClient.get(`/invoices/code/${invoiceCode}`);
+      const invoiceId = res.data?.id;
+      if (!invoiceId) throw new Error("Invoice not found");
+      navigate(`/sales/invoices/${invoiceId}`);
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || err?.message || "Unable to open invoice",
+      );
+    }
+  };
+
+  const columns = PAYMENT_COLUMNS({
+    onConfirm: handleConfirmPayment,
+    onOpenInvoice: handleOpenInvoice,
+  });
   //   {
   //   onEdit: handleEdit,
   //   onDelete: handleDelete,

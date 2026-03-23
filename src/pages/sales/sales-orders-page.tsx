@@ -29,6 +29,10 @@ export default function SalesOrdersPage() {
   const [selectedOrderForDetails, setSelectedOrderForDetails] =
     useState<SalesOrder | null>(null);
   const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
+  const [actionState, setActionState] = useState<{
+    id: string;
+    type: "confirm" | "cancel";
+  } | null>(null);
 
   useEffect(() => {
     setShowCreateForm(location.pathname.includes("/new"));
@@ -67,10 +71,23 @@ export default function SalesOrdersPage() {
 
   const handleConfirmOrder = useCallback(
     async (id: string) => {
+      setActionState({ id, type: "confirm" });
       try {
-        await confirmSalesOrder(id);
+        const updated = await confirmSalesOrder(id);
+        // Optimistic UI update so status changes immediately in table.
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.id === id
+              ? {
+                  ...order,
+                  status: updated.status,
+                  paymentStatus: updated.paymentStatus ?? "UNPAID",
+                }
+              : order,
+          ),
+        );
         toast.success("Order confirmed successfully");
-        await refreshOrders();
+        void refreshOrders();
       } catch (error: any) {
         toast.error(
           error?.response?.data?.message ||
@@ -78,6 +95,8 @@ export default function SalesOrdersPage() {
             error?.message ||
             "Failed to confirm order.",
         );
+      } finally {
+        setActionState(null);
       }
     },
     [refreshOrders],
@@ -96,16 +115,29 @@ export default function SalesOrdersPage() {
         return;
       }
 
+      setActionState({ id, type: "cancel" });
       try {
-        await cancelSalesOrder(id);
+        const updated = await cancelSalesOrder(id);
+        setOrders((prev) =>
+          prev.map((so) =>
+            so.id === id
+              ? {
+                  ...so,
+                  status: updated.status,
+                }
+              : so,
+          ),
+        );
         toast.success("Order cancelled successfully");
-        await refreshOrders();
+        void refreshOrders();
       } catch (error: any) {
         const backendMessage =
           error?.response?.data?.message ||
           error?.response?.data?.error ||
           error?.message;
         toast.error(backendMessage || "Failed to cancel order");
+      } finally {
+        setActionState(null);
       }
     },
     [orders, refreshOrders],
@@ -138,6 +170,8 @@ export default function SalesOrdersPage() {
         handleGeneratePicklist,
         handleViewDetails,
         handleEdit,
+        actionState?.id ?? null,
+        actionState?.type ?? null,
       ),
     [
       handleConfirmOrder,
@@ -145,6 +179,7 @@ export default function SalesOrdersPage() {
       handleGeneratePicklist,
       handleViewDetails,
       handleEdit,
+      actionState,
     ],
   );
 

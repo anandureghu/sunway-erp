@@ -19,6 +19,7 @@ import {
   Package,
   Truck,
   FileText,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -29,7 +30,9 @@ export function createSalesOrderColumns(
   onCancel?: (id: string) => void,
   onGeneratePicklist?: (id: string) => void,
   onViewDetails?: (id: string) => void,
-  onEdit?: (id: string) => void
+  onEdit?: (id: string) => void,
+  processingOrderId?: string | null,
+  processingAction?: "confirm" | "cancel" | null,
 ): ColumnDef<SalesOrder>[] {
   return [
     {
@@ -98,6 +101,10 @@ export function createSalesOrderColumns(
         const canConfirm = order.status === "draft";
         const canCancel =
           order.status === "draft" || order.status === "confirmed";
+        const canGeneratePicklist =
+          order.status === "confirmed" &&
+          (order.paymentStatus || "").toUpperCase() === "PAID";
+        const isRowProcessing = processingOrderId === order.id;
 
         return (
           <div onClick={(e) => e.stopPropagation()}>
@@ -123,12 +130,21 @@ export function createSalesOrderColumns(
                   </DropdownMenuItem>
                 )}
                 {canConfirm && onConfirm && (
-                  <DropdownMenuItem onClick={() => onConfirm(order.id)}>
-                    <Package className="mr-2 h-4 w-4" />
-                    Confirm Order
+                  <DropdownMenuItem
+                    disabled={isRowProcessing}
+                    onClick={() => onConfirm(order.id)}
+                  >
+                    {isRowProcessing && processingAction === "confirm" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Package className="mr-2 h-4 w-4" />
+                    )}
+                    {isRowProcessing && processingAction === "confirm"
+                      ? "Confirming..."
+                      : "Confirm Order"}
                   </DropdownMenuItem>
                 )}
-                {order.status === "confirmed" && onGeneratePicklist && (
+                {canGeneratePicklist && onGeneratePicklist && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -139,6 +155,12 @@ export function createSalesOrderColumns(
                     </DropdownMenuItem>
                   </>
                 )}
+                {order.status === "confirmed" &&
+                  !canGeneratePicklist && (
+                    <DropdownMenuItem disabled>
+                      Awaiting full payment
+                    </DropdownMenuItem>
+                  )}
                 <DropdownMenuItem>
                   <FileText className="mr-2 h-4 w-4" />
                   Create Invoice
@@ -147,11 +169,18 @@ export function createSalesOrderColumns(
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
+                      disabled={isRowProcessing}
                       className="text-red-600"
                       onClick={() => onCancel(order.id)}
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Cancel Order
+                      {isRowProcessing && processingAction === "cancel" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                      )}
+                      {isRowProcessing && processingAction === "cancel"
+                        ? "Cancelling..."
+                        : "Cancel Order"}
                     </DropdownMenuItem>
                   </>
                 )}

@@ -31,12 +31,19 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     warehouseName: li.warehouseName,
     quantity: Number(li.quantity || 0),
     unitPrice: Number(li.unitPrice || 0),
-    discount: 0,
-    tax: 0,
+    lineSubtotal: Number(li.lineSubtotal || 0),
+    discountPercent: Number(li.discountPercent || 0),
+    taxRate: Number(li.taxRate || 0),
+    taxAmount: Number(li.taxAmount || 0),
+    discount: Number(li.discountPercent || 0),
+    tax: Number(li.taxAmount || 0),
     total: Number(li.lineTotal || 0),
   }));
 
-  const total = Number(dto.totalAmount || 0);
+  const subtotal = Number(dto.subtotalAmount || 0);
+  const discount = Number(dto.discountAmount || 0);
+  const tax = Number(dto.taxAmount || 0);
+  const total = Number(dto.totalAmount || subtotal + tax);
 
   return {
     id: String(dto.id),
@@ -46,13 +53,24 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     customerEmail: dto.customerEmail || "",
     customerPhone: dto.customerPhone || "",
     orderDate: dto.orderDate || "",
+    invoiceDueDate: dto.invoiceDueDate || "",
     requiredDate: undefined,
     status: (normalizeStatus(dto.status) as any) || "draft",
+    paymentStatus: dto.paymentStatus || "UNPAID",
     items,
-    subtotal: total,
-    tax: 0,
-    discount: 0,
+    subtotal,
+    tax,
+    discount,
+    subtotalAmount: subtotal,
+    discountAmount: discount,
+    taxAmount: tax,
     total,
+    bankAccountId: dto.bankAccountId,
+    bankAccountName: dto.bankAccountName,
+    debitAccountId: dto.debitAccountId,
+    debitAccountName: dto.debitAccountName,
+    creditAccountId: dto.creditAccountId,
+    creditAccountName: dto.creditAccountName,
     shippingAddress: undefined,
     notes: undefined,
     salesPerson: undefined,

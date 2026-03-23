@@ -40,6 +40,10 @@ export type SalesOrderItem = {
   item?: ItemResponseDTO;
   quantity: number;
   unitPrice: number;
+  lineSubtotal?: number;
+  discountPercent?: number;
+  taxRate?: number;
+  taxAmount?: number;
   discount: number;
   tax: number;
   total: number;
@@ -57,12 +61,17 @@ export type SalesOrder = {
   customerEmail: string;
   customerPhone: string;
   orderDate: string;
+  invoiceDueDate?: string;
   requiredDate?: string;
   status: SalesOrderStatus;
+  paymentStatus?: string;
   items: SalesOrderItem[];
   subtotal: number;
   tax: number;
   discount: number;
+  subtotalAmount?: number;
+  discountAmount?: number;
+  taxAmount?: number;
   total: number;
   shippingAddress?: string;
   notes?: string;
@@ -71,6 +80,12 @@ export type SalesOrder = {
   createdAt: string;
   updatedAt: string;
   totalAmount?: number;
+  bankAccountId?: number;
+  bankAccountName?: string;
+  debitAccountId?: number;
+  debitAccountName?: string;
+  creditAccountId?: number;
+  creditAccountName?: string;
 };
 
 // Picklist Types
@@ -223,6 +238,9 @@ export type Invoice = {
   paidDate?: string;
 
   amount: number;
+  subtotalAmount?: number;
+  discountAmount?: number;
+  taxAmount?: number;
   openAmount: number;
   outstanding: number;
 
@@ -236,6 +254,11 @@ export type Invoice = {
   debitAccountId?: number;
   creditAccountName?: string;
   debitAccountName?: string;
+  bankAccountId?: number;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankBranchName?: string;
 
   pdfUrl?: string;
 

@@ -204,11 +204,17 @@ export type SalesOrderItemDTO = {
   itemId?: Id;
   quantity?: number; // int32
   unitPrice?: number; // double
+  discountPercent?: number;
+  taxRate?: number;
 };
 
 export type SalesOrderCreateDTO = {
   customerId?: Id;
   orderDate?: string; // date
+  invoiceDueDate?: string; // date
+  bankAccountId?: Id;
+  debitAccountId?: Id;
+  creditAccountId?: Id;
   items?: SalesOrderItemDTO[];
 };
 
@@ -222,6 +228,10 @@ export type SalesOrderItemResponseDTO = {
   itemName?: string;
   quantity?: number;
   unitPrice?: number;
+  lineSubtotal?: number;
+  discountPercent?: number;
+  taxRate?: number;
+  taxAmount?: number;
   lineTotal?: number;
   warehouseName?: string;
   warehouseId?: number;
@@ -235,8 +245,19 @@ export type SalesOrderResponseDTO = {
   customerEmail?: string;
   customerPhone?: string;
   orderDate?: string; // date
+  invoiceDueDate?: string; // date
   status?: string;
+  paymentStatus?: string;
+  subtotalAmount?: number;
+  discountAmount?: number;
+  taxAmount?: number;
   totalAmount?: number;
+  bankAccountId?: Id;
+  bankAccountName?: string;
+  debitAccountId?: Id;
+  debitAccountName?: string;
+  creditAccountId?: Id;
+  creditAccountName?: string;
   items?: SalesOrderItemResponseDTO[];
 };
 

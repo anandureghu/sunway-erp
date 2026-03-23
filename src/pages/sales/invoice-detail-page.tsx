@@ -83,8 +83,14 @@ export default function InvoiceDetailPage() {
   const isSales = invoice.type === "SALES";
   const order = isSales ? invoice.salesOrder : invoice.purchaseOrder;
   const items = order?.items ?? [];
+  const isReceipt = tab === "receipt";
+  const isPaid = (invoice.status || "").toUpperCase() === "PAID";
 
   const handleDownloadPdf = () => {
+    if (isReceipt && !isPaid) {
+      alert("Receipt can be downloaded only after payment is completed.");
+      return;
+    }
     apiClient
       .get<string>(`/invoices/${invoice.id}/pdf`)
       .then((res) => {
@@ -100,6 +106,24 @@ export default function InvoiceDetailPage() {
         console.error("Invoice PDF download failed", error);
         alert("Unable to download invoice PDF");
       });
+  };
+
+  const handleSendEmail = async () => {
+    try {
+      if (tab === "receipt") {
+        if (!isPaid) {
+          alert("Receipt can be sent only after payment is completed.");
+          return;
+        }
+        await apiClient.post(`/invoices/${invoice.id}/receipt-email`);
+      } else {
+        await apiClient.post(`/invoices/${invoice.id}/email`);
+      }
+      alert(`${tab === "receipt" ? "Receipt" : "Invoice"} email sent to customer`);
+    } catch (error) {
+      console.error("Email sending failed", error);
+      alert("Unable to send email");
+    }
   };
 
   /* =======================
@@ -145,14 +169,15 @@ export default function InvoiceDetailPage() {
           className="rounded-xl py-4 text-lg font-semibold border"
           style={{ borderColor: COLORS.gray200 }}
         >
-          📥 Download PDF
+          {isReceipt ? "🧾 Download Receipt" : "📥 Download Invoice"}
         </button>
 
         <button
+          onClick={handleSendEmail}
           className="rounded-xl py-4 text-lg font-semibold"
           style={{ background: COLORS.orange500, color: COLORS.white }}
         >
-          📧 Email
+          {isReceipt ? "📧 Email Receipt" : "📧 Email Invoice"}
         </button>
       </div>
 
@@ -181,7 +206,7 @@ export default function InvoiceDetailPage() {
             className="rounded-xl px-6 py-4 text-center"
             style={{ background: COLORS.orange500 }}
           >
-            <div className="text-xl font-bold">{tab.toUpperCase()}</div>
+            <div className="text-xl font-bold">{isReceipt ? "RECEIPT" : "INVOICE"}</div>
             <div className="text-sm">#{safe(invoice.invoiceId)}</div>
           </div>
         </div>
@@ -286,6 +311,18 @@ export default function InvoiceDetailPage() {
               style={{ background: COLORS.gray50 }}
             >
               <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>{money(invoice.subtotalAmount ?? invoice.amount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Discount</span>
+                <span>{money(invoice.discountAmount ?? 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Tax</span>
+                <span>{money(invoice.taxAmount ?? 0)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span>Amount</span>
                 <span>{money(invoice.amount)}</span>
               </div>
@@ -293,73 +330,107 @@ export default function InvoiceDetailPage() {
                 className="flex justify-between font-bold pt-3 mt-3"
                 style={{ borderTop: `1px solid ${COLORS.gray200}` }}
               >
-                <span>Outstanding</span>
-                <span>{money(invoice.outstanding)}</span>
+                <span>{isReceipt ? "Amount Paid" : "Outstanding"}</span>
+                <span>{isReceipt ? money(invoice.amount) : money(invoice.outstanding)}</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6">
-            <h3 className="mb-6 flex items-center gap-2 text-lg font-semibold text-gray-900">
-              💳 Payment Information
-            </h3>
+          {!isReceipt && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6">
+              <h3 className="mb-6 flex items-center gap-2 text-lg font-semibold text-gray-900">
+                💳 Payment Information
+              </h3>
 
-            <div className="grid grid-cols-2 gap-y-6 gap-x-10">
-              <div>
-                <p className="text-xs font-semibold tracking-widest text-gray-500">
-                  BANK NAME
-                </p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  Qatar National Bank (QNB)
-                </p>
-              </div>
+              <div className="grid grid-cols-2 gap-y-6 gap-x-10">
+                <div>
+                  <p className="text-xs font-semibold tracking-widest text-gray-500">
+                    BANK NAME
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {safe(invoice.bankAccountName)}
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-xs font-semibold tracking-widest text-gray-500">
-                  ACCOUNT NAME
-                </p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  MyWeb Systems QFZ LLC
-                </p>
-              </div>
+                <div>
+                  <p className="text-xs font-semibold tracking-widest text-gray-500">
+                    ACCOUNT NAME
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {safe(invoice.companyName)}
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-xs font-semibold tracking-widest text-gray-500">
-                  ACCOUNT NUMBER
-                </p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  QA12 QNBA 0000 0000 1234 5678 90
-                </p>
-              </div>
+                <div>
+                  <p className="text-xs font-semibold tracking-widest text-gray-500">
+                    ACCOUNT NUMBER
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {safe(invoice.bankAccountNumber)}
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-xs font-semibold tracking-widest text-gray-500">
-                  SWIFT CODE
-                </p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  QNBAQAQA
-                </p>
-              </div>
+                <div>
+                  <p className="text-xs font-semibold tracking-widest text-gray-500">
+                    SWIFT CODE
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {safe(invoice.bankIfscCode)}
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-xs font-semibold tracking-widest text-gray-500">
-                  BRANCH
-                </p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  West Bay Main Branch
-                </p>
-              </div>
+                <div>
+                  <p className="text-xs font-semibold tracking-widest text-gray-500">
+                    BRANCH
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {safe(invoice.bankBranchName)}
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-xs font-semibold tracking-widest text-gray-500">
-                  REFERENCE
-                </p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
-                  {invoice.invoiceId}
-                </p>
+                <div>
+                  <p className="text-xs font-semibold tracking-widest text-gray-500">
+                    REFERENCE
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {invoice.invoiceId}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {isReceipt && (
+            <div
+              className="rounded-2xl border p-6"
+              style={{
+                background: isPaid ? "rgb(220 252 231)" : "rgb(254 243 199)",
+                borderColor: isPaid ? "rgb(74 222 128)" : "rgb(252 211 77)",
+              }}
+            >
+              <h3 className="mb-4 text-lg font-semibold">
+                {isPaid ? "✓ Payment Received" : "Payment Pending"}
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Invoice</p>
+                  <p className="font-semibold">{safe(invoice.invoiceId)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Paid Date</p>
+                  <p className="font-semibold">{formatDate(invoice.paidDate)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Status</p>
+                  <p className="font-semibold">{safe(invoice.status)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Amount</p>
+                  <p className="font-semibold">{money(invoice.amount)}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* NOTES */}
           <div className="rounded-xl p-6" style={{ background: COLORS.gray50 }}>
@@ -369,16 +440,24 @@ export default function InvoiceDetailPage() {
             >
               Notes
             </p>
-            <p>
-              Thank you for choosing MyWeb Systems QFZ LLC for your digital
-              transformation needs. This invoice covers the complete website
-              redesign project as per our agreement dated December 15, 2024. All
-              services have been delivered as specified, and the website is now
-              live at your production domain. Please ensure payment is made by
-              the due date to maintain uninterrupted hosting services. For any
-              questions or clarifications regarding this invoice, please contact
-              our accounts department at accounts@myweb.qa or call +974 7103
-              2141.
+            <p className="leading-7">
+              <strong>{safe(invoice.companyName)}</strong>
+              {invoice.invoiceDate
+                ? ` issued this ${isReceipt ? "receipt" : "invoice"} on ${formatDate(invoice.invoiceDate)}.`
+                : ` issued this ${isReceipt ? "receipt" : "invoice"}.`}{" "}
+              {!isReceipt && (
+                <>
+                  Payment is due on <strong>{formatDate(invoice.dueDate)}</strong>. Please use the bank details
+                  shown above and include reference <strong>{safe(invoice.invoiceId)}</strong> while paying.
+                </>
+              )}{" "}
+              {isReceipt && (
+                <>
+                  Payment has been recorded{invoice.paidDate ? ` on ${formatDate(invoice.paidDate)}` : ""} for
+                  reference <strong>{safe(invoice.invoiceId)}</strong>.
+                </>
+              )}{" "}
+              For account queries, contact your billing support team.
             </p>
           </div>
 

@@ -5,7 +5,6 @@ import VendorsPage from "../admin/vendors/vendors-page";
 import CustomersPage from "../admin/customers/customers-page";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Boxes, Building2, PackageSearch, Users } from "lucide-react";
 
 const InventorySettingsPage = () => {
   const tabsList = [
@@ -28,33 +27,6 @@ const InventorySettingsPage = () => {
       value: "vendors",
       label: "Suppliers",
       element: () => <VendorsPage />,
-    },
-  ];
-
-  const settingHighlights = [
-    {
-      title: "Categories",
-      description: "Organize stock groups and item taxonomy",
-      icon: <PackageSearch className="h-5 w-5 text-indigo-600" />,
-      bgClass: "bg-indigo-100",
-    },
-    {
-      title: "Warehouses",
-      description: "Manage locations and storage setup",
-      icon: <Building2 className="h-5 w-5 text-emerald-600" />,
-      bgClass: "bg-emerald-100",
-    },
-    {
-      title: "Customers",
-      description: "Maintain customer master information",
-      icon: <Users className="h-5 w-5 text-amber-600" />,
-      bgClass: "bg-amber-100",
-    },
-    {
-      title: "Suppliers",
-      description: "Manage vendor and procurement contacts",
-      icon: <Boxes className="h-5 w-5 text-cyan-600" />,
-      bgClass: "bg-cyan-100",
     },
   ];
 
