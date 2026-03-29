@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/ui/data-table";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { EmployeeFilters } from "@/modules/hr/components/employee-filters";
 import { EmployeeStats } from "@/modules/hr/components/employee-stats";
 import { AddEmployeeModal } from "@/context/employee-selection";
+import { useAuth } from "@/context/AuthContext";
 
 interface EmployeeTableProps {
   data: Employee[];
@@ -84,6 +85,8 @@ export default function EmployeesPage() {
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const navigate = useNavigate();
   const { setSelected } = useEmployeeSelection();
+  const { permissions, permissionsLoading, user } = useAuth();
+  const [canViewEmployees, setCanViewEmployees] = useState(false);
 
   const filteredEmployees = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -117,7 +120,7 @@ export default function EmployeesPage() {
       const matchesStatus =
         !statusFilter || normalize(employee.status) === desired;
 
-      return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus;
     });
   }, [searchQuery, statusFilter, employees]);
 
@@ -157,7 +160,6 @@ export default function EmployeesPage() {
         identification:
           newEmployee.identification ?? newEmployee.nationalId ?? undefined,
         joinDate: newEmployee.joinDate ?? undefined,
-        phoneNo: newEmployee.phoneNo ?? undefined,
         departmentId:
           newEmployee.departmentId !== undefined &&
           newEmployee.departmentId !== ""
@@ -166,9 +168,7 @@ export default function EmployeesPage() {
         // Use companyRole for display (human-readable) - backend will handle both fields
         companyRole: newEmployee.companyRole ?? newEmployee.role ?? "Employee",
         role: newEmployee.role ?? "USER", // Keep security role for permissions
-        username: newEmployee.username,
-        email: newEmployee.email,
-        password: newEmployee.password,
+        // username/email/password removed from add employee flow
       };
 
       const created = await hrService.createEmployee(payload);
@@ -233,27 +233,64 @@ export default function EmployeesPage() {
   };
 
   // load employees with department from current job
+  // determine canViewEmployees once when permissions change
+  useEffect(() => {
+    // Admin bypass (permissions === null)
+    if (permissions === null) {
+      setCanViewEmployees(true);
+      return;
+    }
+
+    if (permissionsLoading) return;
+
+    // permissions is a map of module -> caps; empty map => deny
+    if (!permissions || Object.keys(permissions).length === 0) {
+      setCanViewEmployees(false);
+      return;
+    }
+
+    const hasPermission = (moduleId: string) => {
+      const perm = (permissions as any)?.[moduleId];
+      if (!perm) return false;
+      return !!(
+        (perm.viewAll as boolean) ||
+        (perm.viewOwn as boolean) ||
+        (perm.view_all as boolean) ||
+        (perm.view_own as boolean)
+      );
+    };
+
+    const has = hasPermission("EMPLOYEE_PROFILE") || hasPermission("CURRENT_JOB");
+    setCanViewEmployees(!!has);
+  }, [permissions, permissionsLoading]);
+
+  // Load employees when we know user can view them
   useEffect(() => {
     let mounted = true;
-    (async () => {
+
+    const load = async () => {
       try {
+        const isAdmin = (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+          (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
+
+        if (!isAdmin && !canViewEmployees) {
+          setEmployees([]);
+          return;
+        }
+
         const list = await hrService.listEmployees();
 
-        // Fetch current job data for each employee to get department
-        if (mounted && list.length > 0) {
+        if (!mounted) return;
+
+        if (list.length > 0) {
           const employeesWithDepartment = await Promise.all(
             list.map(async (emp) => {
               try {
-                // Only fetch if employee has an ID
                 if (emp.id) {
-                  const currentJob = await currentJobService.get(
-                    Number(emp.id),
-                  );
+                  const currentJob = await currentJobService.get(Number(emp.id));
                   if (currentJob) {
                     const deptName =
-                      // prefer flat prop if present
                       (currentJob as any).departmentName ||
-                      // or nested department object
                       (currentJob as any).department?.name ||
                       (currentJob as any).department?.departmentName ||
                       "";
@@ -261,34 +298,31 @@ export default function EmployeesPage() {
                   }
                 }
               } catch {
-                // Silently handle - employee might not have current job
                 console.debug("No current job for employee:", emp.id);
               }
               return emp;
             }),
           );
           setEmployees(employeesWithDepartment);
-        } else if (mounted) {
+        } else {
           setEmployees(list);
         }
       } catch (err: any) {
-        console.error(
-          "EmployeesPage -> failed to load employees:",
-          err?.response?.data ?? err,
-        );
+        console.error("EmployeesPage -> failed to load employees:", err?.response?.data ?? err);
         setEmployees([]);
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load employees";
+        const msg = err?.response?.data?.message || err?.message || "Failed to load employees";
         toast.error(String(msg));
       }
-    })();
+    };
+
+    load();
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [canViewEmployees, user]);
+
+  // permissionsLoading handled above; no local permissionsLoaded state
 
   // Refresh employees list when an employee is updated elsewhere (profile page)
   useEffect(() => {
@@ -354,7 +388,15 @@ export default function EmployeesPage() {
           <EmployeeSearchBar
             value={searchQuery}
             onChange={setSearchQuery}
-            showAdd={true}
+            showAdd={
+              // Only show add button when user can create employees
+              permissions === null || // admin
+              permissionsLoading ||
+              // allow if any relevant module has create permission
+              (["employee_profile", "current_job"].some(
+                (m) => (permissions as any)?.[m]?.create === true,
+              ))
+            }
             onAddClick={() => setShowAddEmployee(true)}
           />
 

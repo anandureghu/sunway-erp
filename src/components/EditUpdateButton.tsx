@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
-import { getMyPermissions, canEditModule } from "@/service/permissionCache";
+import { permissionService } from "@/service/permissionService";
+import type { ModulePermission } from "@/types/role";
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
@@ -16,15 +17,48 @@ type Props = {
 export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, module }: Props) {
   const { user } = useAuth();
   const isAdmin = ADMIN_ROLES.includes((user?.role ?? "").toUpperCase());
-  const [canEdit, setCanEdit] = useState(true); // default true — don't block UI while loading
+
+  // start locked until we know — prevents flicker
+  const [canEdit, setCanEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isAdmin) { setCanEdit(true); return; }
-    if (!user)   return;
+    let mounted = true;
 
-    getMyPermissions().then((perms) => {
-      setCanEdit(canEditModule(perms, module));
+    if (isAdmin) {
+      setCanEdit(true);
+      setLoading(false);
+      return;
+    }
+
+    if (!user) return;
+
+    permissionService.getMyPermissions().then((perms: ModulePermission[]) => {
+      // debug
+      console.debug("PERMISSIONS:", perms);
+      console.debug("MODULE:", module);
+
+      const normalizedModule = module?.toUpperCase().replace(/-/g, "_");
+
+      const perm = perms.find(
+        (p) => p.module?.toUpperCase() === normalizedModule,
+      );
+
+      if (!mounted) return;
+
+      // Support both backend DTO shape (editPermission) and frontend 'permission' object
+      const allowed = !!(
+        perm?.editPermission === true || perm?.permission?.edit === true
+      );
+
+      setCanEdit(allowed);
+      setLoading(false);
+    }).catch((e) => {
+      console.warn('Failed to load permissions for EditUpdateButton', e);
+      if (mounted) setLoading(false);
     });
+
+    return () => { mounted = false; };
   }, [isAdmin, module, user]);
 
   return (
@@ -32,7 +66,7 @@ export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, mo
       {!editing ? (
         <Button
           onClick={onEdit}
-          disabled={!canEdit}
+          disabled={loading || !canEdit}
           title={!canEdit ? "You don't have permission to edit" : undefined}
           className="rounded-xl bg-white text-black shadow-sm hover:bg-white/90 border px-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >

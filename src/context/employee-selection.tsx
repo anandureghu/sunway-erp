@@ -78,7 +78,7 @@ export function AddEmployeeModal({
     prefix: "",
     maritalStatus: "",
     dateOfBirth: "",
-    phoneNo: "",
+    // phone removed from add form
 
     // additional profile fields
     birthplace: "",
@@ -87,10 +87,7 @@ export function AddEmployeeModal({
     religion: "",
     identification: "",
 
-    email: "",
-    username: "",
-    password: "",
-    confirmPassword: "",
+    // username/password/email removed from add form
 
     role: "",
   });
@@ -134,31 +131,9 @@ export function AddEmployeeModal({
       toast.error("First name and Last name are required");
       return;
     }
-
-    if (!form.username.trim()) {
-      toast.error("Username is required");
-      return;
-    }
-
-    if (!form.email.trim()) {
-      toast.error("Email is required");
-      return;
-    }
-
-    if (!form.password.trim()) {
-      toast.error("Password is required");
-      return;
-    }
-
-    if (form.password.trim() !== form.confirmPassword.trim()) {
-      toast.error("Passowrd doesn't match");
-      return;
-    }
-
     const payload = {
       firstName: form.firstName,
       lastName: form.lastName,
-      phoneNo: form.phoneNo || undefined,
       gender: form.gender || undefined,
       prefix: form.prefix || undefined,
       maritalStatus: form.maritalStatus || undefined,
@@ -168,9 +143,8 @@ export function AddEmployeeModal({
       nationality: form.nationality || undefined,
       religion: form.religion || undefined,
       identification: form.identification || undefined,
-      username: form.username,
-      password: form.password,
-      email: form.email,
+      // username, password, email removed from add payload — backend will
+      // generate or admin will set them later if required
 
       // Use companyRole (human-readable) for display
       companyRole: form.role || "Employee",
@@ -227,61 +201,9 @@ export function AddEmployeeModal({
               />
             </div>
 
-            <div>
-              <label className="text-sm font-medium">Username</label>
-              <input
-                name="username"
-                placeholder="Username"
-                value={form.username}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
+            {/* Username / Password fields removed */}
 
-            <div>
-              <label className="text-sm font-medium">Password</label>
-              <input
-                name="password"
-                placeholder="Password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Confirm Password</label>
-              <input
-                name="confirmPassword"
-                placeholder="Confirm Password"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <input
-                name="email"
-                placeholder="example@gmail.com"
-                value={form.email}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Phone</label>
-              <input
-                name="phoneNo"
-                placeholder="Phone number"
-                value={form.phoneNo}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
+            {/* Email / Phone fields removed */}
 
             <div>
               <label className="text-sm font-medium">Gender</label>

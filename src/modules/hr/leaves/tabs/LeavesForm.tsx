@@ -62,71 +62,51 @@ export default function LeavesForm(): ReactElement {
   const [saved, setSaved] = useState<LeaveRecord | null>(null);
   const [preview, setPreview] = useState<LeavePreview | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(DEFAULT_LEAVE_TYPES);
+  const [loadingTypes, setLoadingTypes] = useState(true);
 
-  // Helper function to extract leave types from response
-  const extractLeaveTypes = (response: any): string[] => {
-    // Handle different response formats
-    const data = response?.data;
-    
-    // Case 1: Direct array response - res.data = ["Annual Leave", ...]
-    if (Array.isArray(data)) {
-      return data;
-    }
-    
-    // Case 2: Nested response - res.data = { data: ["Annual Leave", ...], ... }
-    if (data?.data && Array.isArray(data.data)) {
-      return data.data;
-    }
-    
-    // Case 3: Other nested formats - res.data = { leaveTypes: [...], ... }
-    if (data?.leaveTypes && Array.isArray(data.leaveTypes)) {
-      return data.leaveTypes;
-    }
-    
-    // Return empty array if format not recognized
-    console.warn("Unexpected leave types response format:", response);
-    return [];
-  };
-
+  // ============================================================
+  // ✅ FIX: Fetch available leave types with proper error handling
+  // ============================================================
   useEffect(() => {
-    if (!employeeId) return;
+    if (!employeeId) {
+      setLoadingTypes(false);
+      return;
+    }
 
-    leaveService.fetchAvailableLeaveTypes(employeeId)
-      .then(res => {
-        // Try to extract leave types from various response formats
-        let types = extractLeaveTypes(res);
-        
-        // If API returns empty or invalid data, use fallback
-        if (types.length === 0) {
-          console.warn("API returned empty leave types, using default values");
-          types = DEFAULT_LEAVE_TYPES;
-        }
+    setLoadingTypes(true);
+
+        leaveService.fetchAvailableLeaveTypes(employeeId)
+      .then(() => {
+        const types = DEFAULT_LEAVE_TYPES;
         
         setAvailableTypes(types);
 
+        // Auto-select first leave type if available
         if (types.length > 0) {
           setDraft(d => ({
             ...d,
             leaveType: types[0]
           }));
         }
+
+        console.log("Leave types loaded:", types);
       })
+
       .catch((err) => {
-        console.error("Failed to load leave types:", err);
-        // Fallback to default leave types on error
+        console.error("Unexpected error fetching leave types:", err);
         setAvailableTypes(DEFAULT_LEAVE_TYPES);
-        setDraft(d => ({
-          ...d,
-          leaveType: DEFAULT_LEAVE_TYPES[0]
-        }));
-        toast.error("Failed to load leave types. Using default values.");
+        toast.error("An unexpected error occurred while loading leave types");
+      })
+      .finally(() => {
+        setLoadingTypes(false);
       });
 
   }, [employeeId]);
 
+  // Update leave balance when preview changes
   useEffect(() => {
     if (!preview) return;
-    // Guard against undefined values from the API (snake_case/camelCase differences)
+    
     const avail = preview.availableBalance ?? (preview as any).available_balance ?? 0;
     const availStr = avail === null || avail === undefined ? "" : String(avail);
     setDraft((d) => (d.leaveBalance === availStr ? d : { ...d, leaveBalance: availStr }));
@@ -139,6 +119,7 @@ export default function LeavesForm(): ReactElement {
     }
   }, [preview]);
 
+  // Calculate total days based on start and end dates
   useEffect(() => {
     if (!editing) return;
     const sd = Date.parse(draft.startDate);
@@ -150,6 +131,7 @@ export default function LeavesForm(): ReactElement {
     setDraft((prev) => (prev.totalDays === days ? prev : { ...prev, totalDays: days }));
   }, [draft.startDate, draft.endDate, editing]);
 
+  // Preview leave when dates or type changes
   useEffect(() => {
     if (!employeeId) return;
     if (!draft.leaveType || !draft.startDate || !draft.endDate) {
@@ -157,23 +139,27 @@ export default function LeavesForm(): ReactElement {
       return;
     }
     let mounted = true;
-    leaveService
+        leaveService
       .previewLeave(employeeId, draft.leaveType, draft.startDate, draft.endDate)
       .then((res) => {
         if (!mounted) return;
-        const d = res.data as any;
-        const normalized = normalizePreview(d);
-        setPreview(normalized);
+        
+        if (res.data) {
+          const normalized = normalizePreview(res.data);
+          setPreview(normalized);
+        } else {
+          console.warn("Preview failed: no data");
+          setPreview(null);
+          toast.warning("No preview data available");
+        }
       })
+
       .catch((err) => {
         console.error("Preview error", err);
-        setPreview({
-          totalDays: 0,
-          availableBalance: 0,
-          remainingAfter: 0
-        });
-        toast.error(err?.response?.data?.message || "Preview failed");
+        setPreview(null);
+        toast.error("Failed to generate leave preview");
       });
+    
     return () => {
       mounted = false;
     };
@@ -199,16 +185,18 @@ export default function LeavesForm(): ReactElement {
         leaveService
           .previewLeave(employeeId, draft.leaveType, draft.startDate, draft.endDate)
           .then((res) => {
-            const d = res.data as any;
-            const normalized = normalizePreview(d);
-            setPreview(normalized);
+            if (res.data) {
+              const normalized = normalizePreview(res.data);
+              setPreview(normalized);
+            }
           });
 
         setSaved(draft);
       })
+
       .catch((err) => {
         console.error("Apply leave failed", err);
-        toast.error(err?.response?.data?.message || "Failed to apply leave");
+        toast.error("An unexpected error occurred");
       });
   }, [draft, employeeId]);
 
@@ -339,17 +327,23 @@ export default function LeavesForm(): ReactElement {
               <Field label="Leave Type" required>
                 <div className="relative">
                   <select
-                    disabled={!editing}
+                    disabled={!editing || loadingTypes}
                     className="h-10 w-full rounded-lg border border-slate-300 pl-10 pr-3 text-sm disabled:bg-slate-50 disabled:text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white transition-all appearance-none"
                     value={draft.leaveType}
                     onChange={(e) => patch("leaveType", e.target.value as LeaveType)}
                     required
                   >
-                    {availableTypes.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
+                    {loadingTypes ? (
+                      <option>Loading...</option>
+                    ) : availableTypes.length === 0 ? (
+                      <option disabled>No leave types available</option>
+                    ) : (
+                      availableTypes.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))
+                    )}
                   </select>
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -542,8 +536,7 @@ function normalizePreview(d: any): LeavePreview {
       "balance_after",
       "remaining_balance",
       "balanceAfterLeave",
-      "balance_after_leave",
       "balance_after_leave"
     ),
-  };
+  }
 }

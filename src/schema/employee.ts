@@ -10,4 +10,5 @@ export const createEmployeeSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   departmentId: z.string().optional(),
   role: z.string(), // Dynamic role - will be fetched from company roles
+  CompanyRole: z.string().optional().nullable(),
 });

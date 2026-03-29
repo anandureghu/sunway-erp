@@ -41,9 +41,9 @@ import type { ModulePermission } from "@/types/role";
 import { useAuth } from "@/context/AuthContext";
 import {
   getSidebarItems,
-  fetchMyPermissions,
   getVisibleEmployeeSubModules,
 } from "@/service/companyService";
+import permissionService from "@/service/permissionService";
 import { toggleGlobalSettingsView } from "@/store/uiSlice";
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
@@ -88,10 +88,12 @@ export function AppSidebar() {
 
   const handlePointerLeaveSidebar = (e: MouseEvent<HTMLDivElement>) => {
     if (isMobile || isPinned) return;
-    const related = e.relatedTarget as Node | null;
-    if (related && e.currentTarget.contains(related)) return;
-    const strip = document.querySelector('[data-sidebar="edge-strip"]');
-    if (related && strip?.contains(related)) return;
+    const related = e.relatedTarget as EventTarget | null;
+    if (related && related instanceof Node) {
+      if (e.currentTarget.contains(related)) return;
+      const strip = document.querySelector('[data-sidebar="edge-strip"]');
+      if (strip && strip instanceof Node && strip.contains(related)) return;
+    }
     setOpen(false);
   };
 
@@ -172,20 +174,25 @@ export function AppSidebar() {
     if (!user?.companyId) return;
 
     if (isAdmin) {
-      getSidebarItems(user.companyId).then(setSidebarItems);
-      setPermissions([]);
+      // Skip permission checks when building sidebar for admins
+      getSidebarItems(String(user.companyId), { skipPermissions: true }).then(
+        setSidebarItems,
+      );
+      // Represent ADMIN bypass with `null` so downstream checks can detect it
+      setPermissions(null as any);
     } else {
-      Promise.all([getSidebarItems(user.companyId), fetchMyPermissions()]).then(
-        ([items, perms]) => {
+      // First fetch the cached role-based permissions, then build sidebar using them
+      permissionService.getMyPermissions().then((perms) => {
+        getSidebarItems(String(user.companyId), { permissions: perms }).then((items) => {
           setSidebarItems(items);
           setPermissions(perms);
-        },
-      );
+        });
+      });
     }
   }, [user, isAdmin]);
 
   const employeeSubModules = getVisibleEmployeeSubModules(
-    isAdmin ? [] : permissions,
+    isAdmin ? null : permissions,
     empBase,
   );
 

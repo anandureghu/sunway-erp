@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { apiClient } from "./apiClient";
-import type { Company, SidebarItem } from "@/types/company";
+import type { SidebarItem } from "@/types/company";
 import type { ModulePermission } from "@/types/role";
 import {
   Users,
@@ -63,20 +63,36 @@ export async function fetchMyPermissions(): Promise<ModulePermission[]> {
  * Returns true if the user has at least VIEW_OWN or VIEW_ALL for a module.
  * If no permissions found at all (empty array) → allow everything (ADMIN/HR bypass).
  */
-export function canView(permissions: ModulePermission[], module: string): boolean {
-  if (permissions.length === 0) return true; // ADMIN bypass — no restrictions
-  const p = permissions.find((x) => x.module === module);
+export function canView(permissions: ModulePermission[] | null, module: string): boolean {
+  // Admin bypass
+  if (permissions === null) return true;
+
+  // Empty array => deny-by-default
+  if (!permissions || permissions.length === 0) return false;
+
+  const p = permissions.find((x) => x.module?.toUpperCase() === module.toUpperCase());
   if (!p) return false;
-  return p.viewOwn || p.viewAll;
+  return !!(p?.viewOwn || p?.viewAll);
 }
 
 export const getSidebarItems = async (
-  companyId: string
+  companyId: string,
+  options?: { skipPermissions?: boolean; permissions?: ModulePermission[] | null }
 ): Promise<SidebarItem[]> => {
 
-  const [company, permissions]: [Company, ModulePermission[]] =
-    await Promise.all([fetchCompany(companyId), fetchMyPermissions()]);
+  // Determine permissions to use for filtering
+  let permissions: ModulePermission[] | null = null;
 
+  if (options?.permissions !== undefined) {
+    permissions = options.permissions;
+  } else if (options?.skipPermissions) {
+    // Admin bypass
+    permissions = null;
+  } else {
+    permissions = await fetchMyPermissions();
+  }
+
+  const company = await fetchCompany(companyId);
   if (!company) return [];
 
   return [
@@ -149,7 +165,7 @@ export const getSidebarItems = async (
 // Export this so AppSidebar can filter sub-modules too
 
 export const getVisibleEmployeeSubModules = (
-  permissions: ModulePermission[],
+  permissions: ModulePermission[] | null,
   empBase: string | null
 ) => {
   const all = [

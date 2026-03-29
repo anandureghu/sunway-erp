@@ -24,7 +24,7 @@ import SuppliersPage from "./pages/purchase/suppliers-page";
 import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
 import ReceivingPage from "./pages/purchase/receiving-page";
 import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
-import { PrivateRoute } from "./components/protected-route";
+import { PermissionProtectedRoute as PrivateRoute } from "./components/protected-route";
 import { useAppDispatch, useAppSelector } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
 import Payroll from "./pages/finance/payroll";
@@ -113,6 +113,7 @@ import { setAdminView, setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
+import { ErrorBoundary } from "./components/error-boundary";
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -122,21 +123,23 @@ export default function App() {
     dispatch(setGlobalSettingsView(false));
   }, []);
   return (
-    <Routes>
-      {/* App frame */}
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <AppLayout />
-          </PrivateRoute>
-        }
-      >
+    <ErrorBoundary>
+      <Routes>
+        {/* App frame */}
         <Route
-          index
-          element={adminView ? <DashboardPage /> : <DashboardPage />}
-        />
-        <Route path="profile" element={<UserProfilePage />} />
+          path="/"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={adminView ? <DashboardPage /> : <DashboardPage />}
+          />
+          <Route path="profile" element={<UserProfilePage />} />
+
 
         {/* Finance */}
         <Route path="finance">
@@ -328,6 +331,8 @@ export default function App() {
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </ErrorBoundary>
   );
 }
+
