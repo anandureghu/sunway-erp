@@ -3,6 +3,7 @@ export type Gender = "Male" | "Female" | "Other";
 export type MaritalStatus = "Single" | "Married" | "Divorced" | "Widowed";
 
 export interface Employee {
+  userId: any;
   id?: string;
   employeeNo?: string;
   firstName?: string;

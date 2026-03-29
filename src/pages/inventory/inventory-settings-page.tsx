@@ -6,6 +6,18 @@ import CustomersPage from "../admin/customers/customers-page";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
+import PermissionsTab from "@/components/permissions-tab";
+
+const INVENTORY_MODULES = [
+  { id: "category", label: "Categories" },
+  { id: "warehouse", label: "Warehouse" },
+  { id: "stock", label: "Stock Management" },
+  { id: "item", label: "Items" },
+  { id: "purchase", label: "Purchase" },
+  { id: "receipt", label: "Goods Receipt" },
+  { id: "sales", label: "Sales" },
+];
+
 const InventorySettingsPage = () => {
   const tabsList = [
     {
@@ -27,6 +39,11 @@ const InventorySettingsPage = () => {
       value: "vendors",
       label: "Suppliers",
       element: () => <VendorsPage />,
+    },
+    {
+      value: "permissions",
+      label: "Permissions",
+      element: () => <PermissionsTab moduleType="INVENTORY" modules={INVENTORY_MODULES} />,
     },
   ];
 
@@ -68,7 +85,7 @@ const InventorySettingsPage = () => {
       </div> */}
 
       <AppTab
-        // title="Inventory Settings"
+        title="Inventory Settings"
         variant="warning"
         // subtitle="Manage inventory masters and supplier data"
         tabs={tabsList}

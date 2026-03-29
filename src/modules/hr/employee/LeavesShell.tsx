@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useParams, useSearchParams } from "react-router-dom";
+import { NavLink, Outlet, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { CalendarDays, BarChart2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
@@ -7,6 +7,7 @@ import type { Employee } from "@/types/hr";
 
 export default function LeavesShell() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [sp, setSp] = useSearchParams();
 
   const [emp, setEmp] = useState<Employee | null>(null);
@@ -28,6 +29,8 @@ export default function LeavesShell() {
     else next.delete("edit");
     setSp(next, { replace: true });
   };
+
+  const isHistoryTab = location.pathname.endsWith("/history");
 
   useEffect(() => {
     const onSaved = () => setEditing(false);
@@ -55,19 +58,20 @@ export default function LeavesShell() {
             Employee Leave History
           </Tab>
         </div>
-
-        <EditUpdateButton
-          module="LEAVES"
-          editing={editing}
-          onEdit={() => setEditing(true)}
-          onCancel={() => {
-            try { document.dispatchEvent(new CustomEvent("leaves:cancel")); } catch {}
-            setEditing(false);
-          }}
-          onSave={() => {
-            try { document.dispatchEvent(new CustomEvent("leaves:save")); } catch {}
-          }}
-        />
+        {!isHistoryTab && (
+          <EditUpdateButton
+            module="LEAVES"
+            editing={editing}
+            onEdit={() => setEditing(true)}
+            onCancel={() => {
+              try { document.dispatchEvent(new CustomEvent("leaves:cancel")); } catch {}
+              setEditing(false);
+            }}
+            onSave={() => {
+              try { document.dispatchEvent(new CustomEvent("leaves:save")); } catch {}
+            }}
+          />
+        )}
       </div>
 
       {/* Body */}

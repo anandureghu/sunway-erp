@@ -3,6 +3,7 @@
 export const EMPLOYEES: Employee[] = [
   { 
     id: "E-1001", 
+    userId: undefined,
     employeeNo: "1001", 
     firstName: "Aisha", 
     lastName: "Rahman", 
@@ -18,6 +19,7 @@ export const EMPLOYEES: Employee[] = [
   },
   { 
     id: "E-1002", 
+    userId: undefined,
     employeeNo: "1002", 
     firstName: "Vivek", 
     lastName: "Menon",  
@@ -33,6 +35,7 @@ export const EMPLOYEES: Employee[] = [
   },
   { 
     id: "E-1003", 
+    userId: undefined,
     employeeNo: "1003", 
     firstName: "Sara",  
     lastName: "Khan",   
@@ -48,6 +51,7 @@ export const EMPLOYEES: Employee[] = [
   },
   {
     id: "E-1004",
+    userId: undefined,
     employeeNo: "1004",
     firstName: "Wei",
     lastName: "Chen",
@@ -63,6 +67,7 @@ export const EMPLOYEES: Employee[] = [
   },
   {
     id: "E-1005",
+    userId: undefined,
     employeeNo: "1005",
     firstName: "Raj",
     lastName: "Patel",
@@ -80,6 +85,7 @@ export const EMPLOYEES: Employee[] = [
   // Duplicate entries (intentional) to reproduce previous overview
   { 
     id: "E-1006", 
+    userId: undefined,
     employeeNo: "1001", 
     firstName: "Aisha", 
     lastName: "Rahman", 
@@ -95,6 +101,7 @@ export const EMPLOYEES: Employee[] = [
   },
   { 
     id: "E-1007", 
+    userId: undefined,
     employeeNo: "1003", 
     firstName: "Sara", 
     lastName: "Khan", 

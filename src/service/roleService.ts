@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { permissionService } from "./permissionService";
 import type { CreateRoleRequest, UpdateRoleRequest } from "@/types/role";
 
 /**
@@ -47,6 +48,7 @@ async function createRole(payload: CreateRoleRequest): Promise<RoleResponse> {
  */
 async function updateRole(payload: UpdateRoleRequest): Promise<RoleResponse> {
   const res = await apiClient.put<RoleResponse>(`/roles/${payload.id}`, payload);
+  permissionService.clearPermissionCache();
   return res.data;
 }
 

@@ -143,8 +143,12 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user?.companyId) {
-      getSidebarItems(user.companyId).then((items) => {
-        setSidebarItems(items);
+      const isAdmin = (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+        (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
+
+      getSidebarItems(user.companyId, { skipPermissions: isAdmin }).then((items) => {
+        setSidebarItems(items)
+        console.debug("Dashboard: fetched sidebarItems for companyId=", user.companyId, items);
       });
     }
   }, [user]);
@@ -160,6 +164,17 @@ const Dashboard = () => {
           Comprehensive business management solutions
         </p>
       </div>
+
+      {/* Fallback when no modules are available */}
+      {sidebarItems.length === 0 && (
+        <div className="mb-6">
+          <Card>
+            <CardContent className="py-6 text-center text-sm text-muted-foreground">
+              No modules available for this company or your current permissions.
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* System Sections */}
       <div className="space-y-12">

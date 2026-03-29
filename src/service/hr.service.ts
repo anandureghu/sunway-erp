@@ -138,6 +138,26 @@ async function getActiveJobCodes(): Promise<JobCode[]> {
 }
 
 /* =====================================================
+   ADMIN RESET EMPLOYEE PASSWORD
+===================================================== */
+
+/**
+ * Admin password reset - for when an employee forgets their password.
+ * Only ADMIN and SUPER_ADMIN can perform this action.
+ * No current password verification required.
+ *
+ * @param employeeId - The ID of the employee to reset password for
+ * @param newPassword - The new password to set
+ * @throws Error if not authorized or password doesn't meet requirements
+ */
+async function resetEmployeePassword(
+  employeeId: number,
+  payload: { newPassword: string }
+): Promise<void> {
+  await apiClient.put(`/users/${employeeId}/admin-reset-password`, payload);
+}
+
+/* =====================================================
    EXPORT SERVICE
 ===================================================== */
 export const hrService = {
@@ -149,6 +169,7 @@ export const hrService = {
   deleteEmployee,
   uploadImage,
   getActiveJobCodes,
+  resetEmployeePassword,
 };
 
 export default hrService;

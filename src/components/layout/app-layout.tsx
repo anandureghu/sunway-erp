@@ -24,7 +24,7 @@ const AppLayout = () => {
   return (
     <div className="flex min-h-svh w-full">
       <SidebarProvider>
-        <EmployeeSelectionProvider>
+<EmployeeSelectionProvider>
           <LayoutBody />
         </EmployeeSelectionProvider>
       </SidebarProvider>

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Eye } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { generateId } from "@/lib/utils";
 import { addressService } from "@/service/addressService";
 import { contactService } from "@/service/contactService";
@@ -13,7 +13,7 @@ import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
 import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 
-type Ctx = { editing: boolean; setEditing?: (v: boolean) => void };
+type Ctx = { editing: boolean; setEditing?: (v: boolean) => void; isAdmin?: boolean };
 
 type Address = {
   id: string;
@@ -30,6 +30,14 @@ type ContactInfo = {
   phone: string;
   altPhone: string;
   notes: string;
+};
+
+type PasswordState = {
+  newPassword: string;
+  confirmPassword: string;
+  showPassword: boolean;
+  isLoading: boolean;
+  passwordStrength: "weak" | "medium" | "strong";
 };
 
 const SEED: ContactInfo = {
@@ -49,6 +57,14 @@ const INITIAL_ADDRESS: Address = {
   country: "",
 };
 
+const INITIAL_PASSWORD_STATE: PasswordState = {
+  newPassword: "",
+  confirmPassword: "",
+  showPassword: false,
+  isLoading: false,
+  passwordStrength: "weak",
+};
+
 function isAddressValid(address: Address) {
   return (
     Boolean(address.line1?.trim()) &&
@@ -58,14 +74,31 @@ function isAddressValid(address: Address) {
   );
 }
 
+function calculatePasswordStrength(password: string): "weak" | "medium" | "strong" {
+  if (!password) return "weak";
+  
+  let strength = 0;
+  if (password.length >= 8) strength++;
+  if (password.length >= 12) strength++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+  if (/\d/.test(password)) strength++;
+  if (/[!@#$%^&*]/.test(password)) strength++;
+  
+  if (strength <= 1) return "weak";
+  if (strength <= 3) return "medium";
+  return "strong";
+}
+
 export default function ContactInfoForm() {
-  const { editing, setEditing } = useOutletContext<Ctx>();
+  const { editing, setEditing, isAdmin } = useOutletContext<Ctx>();
 
   const [saved, setSaved] = useState(SEED);
   const [draft, setDraft] = useState(SEED);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [viewingAddressId, setViewingAddressId] = useState<string | null>(null);
+  const [passwordState, setPasswordState] = useState<PasswordState>(INITIAL_PASSWORD_STATE);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const params = useParams<{ id?: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
@@ -265,6 +298,81 @@ export default function ContactInfoForm() {
     })();
   }, []);
 
+  // Password Management
+  const handlePasswordChange = (field: keyof PasswordState, value: any) => {
+    const newState = { ...passwordState, [field]: value };
+    
+    if (field === "newPassword") {
+      newState.passwordStrength = calculatePasswordStrength(value);
+    }
+    
+    setPasswordState(newState);
+  };
+
+  const isPasswordValid = () => {
+    return (
+      passwordState.newPassword.length >= 8 &&
+      passwordState.newPassword === passwordState.confirmPassword &&
+      passwordState.passwordStrength !== "weak"
+    );
+  };
+
+  const handleResetPassword = async () => {
+    if (!isPasswordValid()) {
+      toast.error("Passwords must match and meet security requirements");
+      return;
+    }
+
+    if (!employeeId) {
+      toast.error("Employee ID not found");
+      return;
+    }
+
+    setPasswordState((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      // Call your password reset service here
+      await hrService.resetEmployeePassword(employeeId, {
+        newPassword: passwordState.newPassword,
+      });
+
+      toast.success("Password reset successfully");
+      setShowPasswordModal(false);
+      setPasswordState(INITIAL_PASSWORD_STATE);
+    } catch (err) {
+      console.error("Failed to reset password", err);
+      toast.error("Failed to reset password. Please try again.");
+    } finally {
+      setPasswordState((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const getPasswordStrengthColor = (strength: string) => {
+    switch (strength) {
+      case "weak":
+        return "bg-red-500";
+      case "medium":
+        return "bg-yellow-500";
+      case "strong":
+        return "bg-green-500";
+      default:
+        return "bg-slate-300";
+    }
+  };
+
+  const getPasswordStrengthText = (strength: string) => {
+    switch (strength) {
+      case "weak":
+        return "Weak";
+      case "medium":
+        return "Medium";
+      case "strong":
+        return "Strong";
+      default:
+        return "N/A";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-slate-50 to-white rounded-2xl p-6 shadow-md border border-slate-100">
@@ -280,6 +388,15 @@ export default function ContactInfoForm() {
           </div>
 
           <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Button
+                onClick={() => setShowPasswordModal(true)}
+                className="bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-md hover:shadow-lg rounded-lg flex items-center gap-2 px-4 py-2"
+              >
+                <Lock className="h-4 w-4" />
+                Reset Password
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setEditing?.(true);
@@ -293,6 +410,146 @@ export default function ContactInfoForm() {
           </div>
         </div>
       </div>
+
+      {/* Password Reset Modal */}
+      {showPasswordModal && isAdmin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <Card className="w-full max-w-md mx-4 rounded-2xl shadow-2xl border-0">
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+                  <div className="bg-gradient-to-br from-amber-600 to-orange-500 text-white p-2 rounded-lg">
+                    <Lock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Reset Employee Password</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Enter a new secure password for the employee</p>
+                  </div>
+                </div>
+
+                {/* New Password Field */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={passwordState.showPassword ? "text" : "password"}
+                      placeholder="Enter new password"
+                      value={passwordState.newPassword}
+                      onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
+                      className="pr-10 ring-0 focus:ring-2 focus:ring-amber-200 border-slate-300 rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handlePasswordChange("showPassword", !passwordState.showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                    >
+                      {passwordState.showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Password Strength Indicator */}
+                  {passwordState.newPassword && (
+                    <div className="space-y-2">
+                      <div className="flex gap-1">
+                        {[1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className={`h-1.5 flex-1 rounded-full transition-colors ${
+                              i === 1 || (i === 2 && passwordState.passwordStrength !== "weak") || (i === 3 && passwordState.passwordStrength === "strong")
+                                ? getPasswordStrengthColor(passwordState.passwordStrength)
+                                : "bg-slate-200"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">
+                          Strength: <span className="font-semibold text-slate-700">{getPasswordStrengthText(passwordState.passwordStrength)}</span>
+                        </span>
+                        {passwordState.passwordStrength === "strong" && (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Password Requirements */}
+                  <div className="bg-slate-50 rounded-lg p-3 space-y-1">
+                    <p className="text-xs font-semibold text-slate-600 uppercase">Requirements:</p>
+                    <ul className="text-xs text-slate-600 space-y-1">
+                      <li className={`flex items-center gap-2 ${passwordState.newPassword.length >= 8 ? "text-green-600" : ""}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${passwordState.newPassword.length >= 8 ? "bg-green-500" : "bg-slate-300"}`} />
+                        At least 8 characters
+                      </li>
+                      <li className={`flex items-center gap-2 ${/[a-z]/.test(passwordState.newPassword) && /[A-Z]/.test(passwordState.newPassword) ? "text-green-600" : ""}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${/[a-z]/.test(passwordState.newPassword) && /[A-Z]/.test(passwordState.newPassword) ? "bg-green-500" : "bg-slate-300"}`} />
+                        Mix of upper and lowercase
+                      </li>
+                      <li className={`flex items-center gap-2 ${/\d/.test(passwordState.newPassword) ? "text-green-600" : ""}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${/\d/.test(passwordState.newPassword) ? "bg-green-500" : "bg-slate-300"}`} />
+                        At least one number
+                      </li>
+                      <li className={`flex items-center gap-2 ${/[!@#$%^&*]/.test(passwordState.newPassword) ? "text-green-600" : ""}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${/[!@#$%^&*]/.test(passwordState.newPassword) ? "bg-green-500" : "bg-slate-300"}`} />
+                        Special character (!@#$%^&*)
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Confirm Password Field */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">Confirm Password</Label>
+                  <Input
+                    type={passwordState.showPassword ? "text" : "password"}
+                    placeholder="Confirm password"
+                    value={passwordState.confirmPassword}
+                    onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
+                    className={`ring-0 border-slate-300 rounded-lg ${
+                      passwordState.confirmPassword && passwordState.newPassword !== passwordState.confirmPassword
+                        ? "focus:ring-2 focus:ring-red-200 border-red-300"
+                        : "focus:ring-2 focus:ring-amber-200"
+                    }`}
+                  />
+                  {passwordState.confirmPassword && passwordState.newPassword !== passwordState.confirmPassword && (
+                    <div className="flex items-center gap-2 text-red-600">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-xs font-medium">Passwords do not match</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Actions */}
+                <div className="flex gap-3 pt-4 border-t border-slate-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordState(INITIAL_PASSWORD_STATE);
+                    }}
+                    className="flex-1 rounded-lg"
+                    disabled={passwordState.isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleResetPassword}
+                    disabled={!isPasswordValid() || passwordState.isLoading}
+                    className="flex-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-lg hover:shadow-lg disabled:opacity-50"
+                  >
+                    {passwordState.isLoading ? "Resetting..." : "Reset Password"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <FormSection title="Contact Information">
         <FormRow columns={3}>
@@ -550,4 +807,3 @@ export default function ContactInfoForm() {
     </div>
   );
 }
-

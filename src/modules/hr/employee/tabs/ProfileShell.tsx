@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { useState, useCallback, useEffect } from "react";
 import { IdCard, Contact } from "lucide-react";
 import EditUpdateButton from "@/components/EditUpdateButton";
@@ -9,10 +10,12 @@ import type { Employee } from "@/types/hr";
 export interface ProfileCtx {
   editing: boolean;
   setEditing?: (v: boolean) => void;
+  isAdmin?: boolean;
 }
 
 export default function ProfileShell(): ReactElement {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [emp, setEmp] = useState<Employee | null>(null);
 
   useEffect(() => {
@@ -60,7 +63,7 @@ export default function ProfileShell(): ReactElement {
 
       {/* Active tab content */}
       <div className="p-4" role="tabpanel">
-        <Outlet context={{ editing, setEditing } satisfies ProfileCtx} />
+      <Outlet context={{ editing, setEditing, isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' } satisfies ProfileCtx & {isAdmin: boolean}} />
       </div>
     </div>
   );
