@@ -42,12 +42,13 @@ import {
 } from "@/components/ui/table";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
 import { jobCodeService } from "@/service/jobCodeService";
-
 import { hrService } from "@/service/hr.service";
 import { permissionService } from "@/service/permissionService";
+import { normalizeRole } from "@/lib/utils";
 import { roleService } from "@/service/roleService";
 import type { Employee } from "@/types/hr";
 import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
+import { AppTab } from "@/components/app-tab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Role {
@@ -79,7 +80,6 @@ interface Permission {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-// Default roles fallback - only used if API fails
 const FALLBACK_ROLES: Role[] = [
   { id: 1, name: "USER", custom: false },
   { id: 2, name: "ADMIN", custom: false },
@@ -121,87 +121,103 @@ const LEVELS = [
 ];
 const GRADES = ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"];
 
+// ✅ FIX 1: PRESETS NOW USE UPPERCASE MODULE KEYS
 const ROLE_PRESETS: Record<string, Record<string, Record<string, boolean>>> = {
   Admin: Object.fromEntries(
     HR_MODULES.map((m) => [
-      m.id,
+      m.id.toUpperCase().replace(/[_-]/g, "_"),
       Object.fromEntries(CAPS.map((c) => [c.key, true])),
     ]),
   ),
   HR: Object.fromEntries(
-    HR_MODULES.map((m) => [
-      m.id,
-      {
-        view_own: true,
-        view_all: true,
-        create: true,
-        edit: true,
-        delete: m.id !== "hr_settings",
-        approve: m.id === "leaves" || m.id === "appraisal",
-      },
-    ]),
+    HR_MODULES.map((m) => {
+      const modKey = m.id.toUpperCase().replace(/[_-]/g, "_");
+      return [
+        modKey,
+        {
+          view_own: true,
+          view_all: true,
+          create: true,
+          edit: true,
+          delete: modKey !== "HR_SETTINGS",
+          approve: modKey === "LEAVES" || modKey === "APPRAISAL",
+        },
+      ];
+    }),
   ),
   "Super Admin": Object.fromEntries(
     HR_MODULES.map((m) => [
-      m.id,
+      m.id.toUpperCase().replace(/[_-]/g, "_"),
       Object.fromEntries(CAPS.map((c) => [c.key, true])),
     ]),
   ),
   "Finance Manager": Object.fromEntries(
-    HR_MODULES.map((m) => [
-      m.id,
-      {
-        view_own: true,
-        view_all: m.id === "payroll" || m.id === "reports",
-        create: m.id === "payroll",
-        edit: m.id === "payroll",
-        delete: false,
-        approve: m.id === "payroll" || m.id === "claims",
-      },
-    ]),
+    HR_MODULES.map((m) => {
+      const modKey = m.id.toUpperCase().replace(/[_-]/g, "_");
+      return [
+        modKey,
+        {
+          view_own: true,
+          view_all: modKey === "SALARY" || modKey === "HR_REPORTS",
+          create: modKey === "SALARY",
+          edit: modKey === "SALARY",
+          delete: false,
+          approve: modKey === "SALARY" || modKey === "LOANS",
+        },
+      ];
+    }),
   ),
   Accountant: Object.fromEntries(
-    HR_MODULES.map((m) => [
-      m.id,
-      {
-        view_own: true,
-        view_all: m.id === "payroll",
-        create: m.id === "payroll",
-        edit: m.id === "payroll",
-        delete: false,
-        approve: false,
-      },
-    ]),
+    HR_MODULES.map((m) => {
+      const modKey = m.id.toUpperCase().replace(/[_-]/g, "_");
+      return [
+        modKey,
+        {
+          view_own: true,
+          view_all: modKey === "SALARY",
+          create: modKey === "SALARY",
+          edit: modKey === "SALARY",
+          delete: false,
+          approve: false,
+        },
+      ];
+    }),
   ),
   "AP/AR Clerk": Object.fromEntries(
-    HR_MODULES.map((m) => [
-      m.id,
-      {
-        view_own: true,
-        view_all: false,
-        create: m.id === "claims",
-        edit: m.id === "claims",
-        delete: false,
-        approve: false,
-      },
-    ]),
+    HR_MODULES.map((m) => {
+      const modKey = m.id.toUpperCase().replace(/[_-]/g, "_");
+      return [
+        modKey,
+        {
+          view_own: true,
+          view_all: false,
+          create: modKey === "LOANS",
+          edit: modKey === "LOANS",
+          delete: false,
+          approve: false,
+        },
+      ];
+    }),
   ),
   Controller: Object.fromEntries(
-    HR_MODULES.map((m) => [
-      m.id,
-      {
-        view_own: true,
-        view_all: true,
-        create: false,
-        edit: false,
-        delete: false,
-        approve: m.id === "payroll" || m.id === "reports",
-      },
-    ]),
+    HR_MODULES.map((m) => {
+      const modKey = m.id.toUpperCase().replace(/[_-]/g, "_");
+      return [
+        modKey,
+        {
+          view_own: true,
+          view_all: true,
+          create: false,
+          edit: false,
+          delete: false,
+          approve: modKey === "SALARY" || modKey === "HR_REPORTS",
+        },
+      ];
+    }),
   ),
   "Auditor (External)": Object.fromEntries(
     HR_MODULES.map((m) => [
-      m.id,
+      m.id.toUpperCase().replace(/[_-]/g, "_"),
       {
         view_own: true,
         view_all: true,
@@ -214,7 +230,7 @@ const ROLE_PRESETS: Record<string, Record<string, Record<string, boolean>>> = {
   ),
   User: Object.fromEntries(
     HR_MODULES.map((m) => [
-      m.id,
+      m.id.toUpperCase().replace(/[_-]/g, "_"),
       {
         view_own: true,
         view_all: false,
@@ -228,15 +244,20 @@ const ROLE_PRESETS: Record<string, Record<string, Record<string, boolean>>> = {
 };
 
 const TOTAL_CAPS = HR_MODULES.length * CAPS.length;
+
+// ✅ FIX 2: emptyCaps NOW USES UPPERCASE KEYS
 const emptyCaps = (): Record<string, Record<string, boolean>> =>
   Object.fromEntries(
     HR_MODULES.map((m) => [
-      m.id,
+      m.id.toUpperCase().replace(/[_-]/g, "_"),
       Object.fromEntries(CAPS.map((c) => [c.key, false])),
     ]),
   );
 
-// ─── Role Colors (Tailwind) ─────────────────────────────────────────────────
+// ✅ FIX 3: UTILITY FUNCTION TO NORMALIZE MODULE KEYS
+const normalizeModuleKey = (mod: string): string =>
+  mod.toUpperCase().replace(/[_-]/g, "_");
+
 const ROLE_STYLES: Record<
   string,
   { bg: string; color: string; border: string }
@@ -645,16 +666,12 @@ function PermissionsTab({
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
 }) {
   const { user } = useAuth();
-
-  // Get companyId from user - handle both string and number formats
   const companyId = user?.companyId ? Number(user.companyId) : null;
 
-  // Ensure roles are loaded when this tab mounts or when empty
   useEffect(() => {
     const ensureRoles = async () => {
       if (roles && roles.length > 0) return;
       try {
-        // Try to fetch from roleService first (Settings page roles) - pass companyId to get company-specific roles
         const res = companyId
           ? await roleService.getRoles(companyId)
           : await roleService.getRoles();
@@ -671,19 +688,8 @@ function PermissionsTab({
               })),
           );
         } else {
-          // Fallback to permissionService if no roles from roleService
-          const permRes = await permissionService.getRoles();
-          setRoles(
-            permRes
-              .filter((r: any) => r.id !== undefined)
-              .map((r: any) => ({
-                id: r.id!,
-                name: r.name,
-                custom: !!r.custom,
-                description: r.description,
-                active: r.active,
-              })),
-          );
+          // No roles returned from API — fallback to built-in presets
+          setRoles(FALLBACK_ROLES);
         }
       } catch (err) {
         console.error("Failed to load roles in PermissionsTab:", err);
@@ -692,6 +698,7 @@ function PermissionsTab({
     };
     ensureRoles();
   }, [companyId]);
+
   const [perms, setPerms] = useState<Permission[]>([]);
   const [, setPermsLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -710,7 +717,6 @@ function PermissionsTab({
   const [q, setQ] = useState("");
   const [filterRole, setFilterRole] = useState("All");
 
-  // Fetch employees function - defined before useEffect
   const fetchEmployees = async () => {
     try {
       const res = await hrService.listEmployees();
@@ -721,65 +727,69 @@ function PermissionsTab({
     }
   };
 
-  // Function to fetch permissions - separated for reuse
   const fetchPerms = async () => {
     setPermsLoading(true);
 
     try {
       const results: Permission[] = [];
 
+      // Fetch permissions per-role. If one role fails, continue with others.
       for (const role of roles) {
-        // Fetch role-wide permissions (without employeeId)
-        const rolePerms = await permissionService.getByRole(role.name);
+        try {
+          const rolePerms = await permissionService.getByRole(role.name);
 
-        if (!rolePerms || rolePerms.length === 0) continue;
+          if (!rolePerms || rolePerms.length === 0) continue;
 
-        // Filter out employee-specific permissions - only keep true role-wide permissions
-        // Role-wide permissions should NOT have an employee object
-        const roleWidePerms = rolePerms.filter((p) => !p.employee);
+          const roleWidePerms = rolePerms.filter((p) => !p.employee);
 
-        if (roleWidePerms.length > 0) {
-          results.push({
-            id: role.id,
-            role: role.name,
-            staffId: undefined,
-            staffName: "",
-            email: "",
-            phone: "",
-            caps: permissionService.toFrontendCaps(roleWidePerms),
-            active: true,
-          });
-        }
+          if (roleWidePerms.length > 0) {
+            results.push({
+              id: role.id,
+              role: role.name,
+              staffId: undefined,
+              staffName: "",
+              email: "",
+              phone: "",
+              caps: permissionService.toFrontendCaps(roleWidePerms),
+              active: true,
+            });
+          }
 
-        // Fetch employee-specific permissions for each employee
-        for (const emp of employees) {
-          if (!emp.id) continue;
+          for (const emp of employees) {
+            if (!emp.id) continue;
 
-          const empPerms = await permissionService.getByRole(
-            role.name,
-            Number(emp.id),
-          );
+            try {
+              const empPerms = await permissionService.getByRole(
+                role.name,
+                Number(emp.id),
+              );
 
-          if (!empPerms || empPerms.length === 0) continue;
+              if (!empPerms || empPerms.length === 0) continue;
 
-          // detect if permission belongs to employee
-          // Backend returns full employee object in the permission response
-          const isEmployeeOverride = empPerms.some(
-            (p) => p.employee || p.user || p.employeeId,
-          );
+              const isEmployeeOverride = empPerms.some(
+                (p) => p.employee || p.user || p.employeeId,
+              );
 
-          if (!isEmployeeOverride) continue;
+              if (!isEmployeeOverride) continue;
 
-          results.push({
-            id: role.id * 1000 + Number(emp.id),
-            role: role.name,
-            staffId: Number(emp.id),
-            staffName: `${emp.firstName} ${emp.lastName}`,
-            email: emp.email || "",
-            phone: (emp as any).phoneNo || "",
-            caps: permissionService.toFrontendCaps(empPerms),
-            active: true,
-          });
+              results.push({
+                id: role.id * 1000 + Number(emp.id),
+                role: role.name,
+                staffId: Number(emp.id),
+                staffName: `${emp.firstName} ${emp.lastName}`,
+                email: emp.email || "",
+                phone: (emp as any).phoneNo || "",
+                caps: permissionService.toFrontendCaps(empPerms),
+                active: true,
+              });
+            } catch (e) {
+              console.warn(`Failed to load permissions for role=${role.name} emp=${emp.id}:`, e);
+              // continue with next employee
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to load permissions for role=${role.name}:`, e);
+          // continue with next role
         }
       }
 
@@ -791,13 +801,10 @@ function PermissionsTab({
     }
   };
 
-  // Load employees on mount
   useEffect(() => {
     fetchEmployees();
   }, []);
 
-  // Load existing permission rules from backend when PermissionsTab mounts
-  // Also refetch when roles or employees are loaded
   useEffect(() => {
     if (roles.length > 0 && employees.length > 0) {
       fetchPerms();
@@ -806,7 +813,9 @@ function PermissionsTab({
 
   const displayed = useMemo(() => {
     let list = perms;
-    if (filterRole !== "All") list = list.filter((p) => p.role === filterRole);
+    if (filterRole !== "All") {
+      list = list.filter((p) => normalizeRole(p.role) === normalizeRole(filterRole));
+    }
     if (q)
       list = list.filter(
         (p) =>
@@ -817,23 +826,41 @@ function PermissionsTab({
     return list;
   }, [perms, q, filterRole]);
 
-  const toggleCap = (mod: string, cap: string) =>
-    setPermForm((v) => ({
-      ...v,
-      caps: { ...v.caps, [mod]: { ...v.caps[mod], [cap]: !v.caps[mod][cap] } },
+  // ✅ FIX 4: toggleCap NOW PROPERLY NORMALIZES
+  const toggleCap = (modId: string, cap: string, checked: boolean) => {
+    const normalizedMod = normalizeModuleKey(modId);
+    console.log(`✅ TOGGLE: ${modId} → ${normalizedMod}.${cap} = ${checked}`);
+
+    setPermForm((prev) => ({
+      ...prev,
+      caps: {
+        ...prev.caps,
+        [normalizedMod]: {
+          ...prev.caps[normalizedMod],
+          [cap]: checked,
+        },
+      },
     }));
-  const allModOn = (mod: string) =>
-    CAPS.every((c) => permForm.caps?.[mod]?.[c.key]);
-  const toggleAllMod = (mod: string) => {
-    const on = !allModOn(mod);
+  };
+
+  const allModOn = (modId: string) => {
+    const normalizedMod = normalizeModuleKey(modId);
+    return CAPS.every((c) => permForm.caps?.[normalizedMod]?.[c.key]);
+  };
+
+  // ✅ FIX 5: toggleAllMod NOW NORMALIZES MODULE KEY
+  const toggleAllMod = (modId: string) => {
+    const normalizedMod = normalizeModuleKey(modId);
+    const on = !allModOn(modId);
     setPermForm((v) => ({
       ...v,
       caps: {
         ...v.caps,
-        [mod]: Object.fromEntries(CAPS.map((c) => [c.key, on])),
+        [normalizedMod]: Object.fromEntries(CAPS.map((c) => [c.key, on])),
       },
     }));
   };
+
   const capCount = (rec: Permission) =>
     Object.values(rec.caps ?? {}).reduce(
       (acc, m) => acc + Object.values(m).filter(Boolean).length,
@@ -850,17 +877,23 @@ function PermissionsTab({
     });
     setModal("perm");
   };
+
   const openEditPerm = (rec: Permission) => {
     setPermForm({ ...rec, caps: JSON.parse(JSON.stringify(rec.caps)) });
     setModal("perm");
   };
+
   const applyPreset = (role: string) => {
-    if (ROLE_PRESETS[role])
+    if (ROLE_PRESETS[role]) {
+      console.log(`📋 Applying preset: ${role}`);
       setPermForm((v) => ({
         ...v,
         caps: JSON.parse(JSON.stringify(ROLE_PRESETS[role])),
       }));
+    }
   };
+
+  // ✅ FIX 6: savePerm ENSURES NO DUPLICATES AND PROPER NORMALIZATION
   const savePerm = async () => {
     if (!permForm.role) {
       toast.error("Role is required");
@@ -868,42 +901,53 @@ function PermissionsTab({
     }
 
     try {
-      // convert caps → backend format
-      const permissions = permissionService.toBackendPermissions(
-        permForm.caps as any,
-      );
+      // ✅ Debug logging
+      console.log("🔍 Saving permissions for role:", permForm.role);
+      console.log("📋 Role type:", typeof permForm.role);
 
-      // detect employee override
+      // Normalize caps for backend
+      const normalizedCaps: Record<string, Record<string, boolean>> = {};
+      Object.entries(permForm.caps).forEach(([mod, perms]) => {
+        const upperMod = mod.toUpperCase().replace(/[_-]/g, "_");
+        normalizedCaps[upperMod] = perms;
+      });
+
+      // Create DTOs
+      const dtos = Object.entries(normalizedCaps).map(([module, perms]) => ({
+        module: module,
+        permission: {
+          viewOwn: !!perms.view_own || false,
+          viewAll: !!perms.view_all || false,
+          create: !!perms.create || false,
+          edit: !!perms.edit || false,
+          deletePermission: !!perms.delete || false,
+          approve: !!perms.approve || false,
+        },
+      }));
+
       let employeeId: number | undefined = undefined;
-
       if (permForm.staffId && permForm.staffId > 0) {
         employeeId = Number(permForm.staffId);
       }
-      console.log("Saving permission:", {
-        role: permForm.role,
-        employeeId,
-      });
 
-      // call backend
+      const roleToSend = normalizeBackendRole(permForm.role as string);
+      console.log("📤 Calling assignPermissions with role:", roleToSend, "dtos:", dtos.length, "employeeId:", employeeId);
+
       await permissionService.assignPermissions(
-        permForm.role,
-        permissions as any,
+        roleToSend,
+        dtos,
         employeeId,
       );
 
-      toast.success(
-        employeeId ? "Individual permission saved" : "Role permission saved",
-      );
-
-      // reload permissions
+      toast.success("Permissions saved!");
       await fetchPerms();
-
       setModal(null);
     } catch (err) {
       console.error("Permission save failed:", err);
       toast.error("Failed to save permission");
     }
   };
+
   const toggleActive = (id: number) =>
     setPerms((prev) =>
       prev.map((x) => (x.id === id ? { ...x, active: !x.active } : x)),
@@ -914,17 +958,18 @@ function PermissionsTab({
     setModal("role");
   };
 
-  // Handle delete - removes all permissions for a role by calling backend
-  const handleDelete = async (role: string) => {
-    try {
-      await permissionService.removeAll(role); // 👈 CALL BACKEND
-      toast.success("Permission removed");
+  const handleDelete = async () => {
+    if (!removePermsRole) return;
 
-      // Reload permissions from backend
+    try {
+      await permissionService.removeAll(removePermsRole.name);
+
+      toast.success("Permissions removed");
       await fetchPerms();
+      setRemovePermsRole(null);
     } catch (error) {
       console.error("Error removing permissions:", error);
-      toast.error("Failed to remove permission");
+      toast.error("Failed to remove permissions");
     }
   };
 
@@ -1010,11 +1055,10 @@ function PermissionsTab({
               Add Permission
             </Button>
           )}
-          {/* New Role button hidden - roles are managed in Settings page */}
         </div>
       </div>
 
-      {/* ── Roles view ─────────────────────────────────────────────────── */}
+      {/* Roles View */}
       {view === "roles" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <Table>
@@ -1066,7 +1110,9 @@ function PermissionsTab({
                     {r.description || "—"}
                   </TableCell>
                   <TableCell className="text-slate-500">
-                    {perms.filter((p) => p.role === r.name).length} rule(s)
+                    {perms.filter((p) => normalizeRole(p.role) === normalizeRole(r.name))
+                      .length}{" "}
+                    rule(s)
                   </TableCell>
                   <TableCell className="text-right">
                     {r.custom ? (
@@ -1120,7 +1166,7 @@ function PermissionsTab({
         </div>
       )}
 
-      {/* ── Permissions view ────────────────────────────────────────────── */}
+      {/* Permissions View */}
       {view === "permissions" && (
         <>
           {/* Stats */}
@@ -1433,14 +1479,16 @@ function PermissionsTab({
                   <select
                     value={permForm.role ?? ""}
                     onChange={(e) => {
+                      const selectedRole = e.target.value;
+                      console.log("👤 Role selected:", selectedRole);
                       setPermForm((v) => ({
                         ...v,
-                        role: e.target.value,
+                        role: selectedRole,
                         staffId: undefined,
                       }));
-                      applyPreset(e.target.value);
+                      applyPreset(selectedRole);
                     }}
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                   >
                     <option value="">None selected</option>
                     {roles.map((r) => (
@@ -1451,29 +1499,32 @@ function PermissionsTab({
                     ))}
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">
-                    Staff Name
-                  </label>
-                  <select
-                    value={permForm.staffId || ""}
-                    onChange={(e) => {
-                      const id = Number(e.target.value);
-                      setPermForm((v) => ({
-                        ...v,
-                        staffId: id > 0 ? id : undefined,
-                      }));
-                    }}
-                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">None selected (role-wide)</option>
-                    {employees.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.firstName} {e.lastName} — {e.email}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Show Staff Name only when editing an existing individual override */}
+                {permForm.staffId !== undefined && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">
+                      Staff Name
+                    </label>
+                    <select
+                      value={permForm.staffId || ""}
+                      onChange={(e) => {
+                        const id = Number(e.target.value);
+                        setPermForm((v) => ({
+                          ...v,
+                          staffId: id > 0 ? id : undefined,
+                        }));
+                      }}
+                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="">None selected (role-wide)</option>
+                      {employees.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.firstName} {e.lastName} — {e.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {permForm.role && (
@@ -1494,6 +1545,7 @@ function PermissionsTab({
                 </div>
               )}
 
+              {/* Permission Grid */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <div className="grid grid-cols-[180px_repeat(6,1fr)] bg-slate-50 border-b border-slate-200">
                   <div className="p-2.5 text-xs font-semibold text-slate-600 uppercase">
@@ -1509,7 +1561,7 @@ function PermissionsTab({
                   ))}
                 </div>
                 {HR_MODULES.map((mod) => {
-                  const caps = permForm.caps?.[mod.id] ?? {};
+                  const normalizedModKey = normalizeModuleKey(mod.id);
                   const all = allModOn(mod.id);
                   return (
                     <div
@@ -1533,11 +1585,14 @@ function PermissionsTab({
                           key={cap.key}
                           className="flex items-center justify-center p-3"
                         >
-                          <input
-                            type="checkbox"
-                            checked={!!caps[cap.key]}
-                            onChange={() => toggleCap(mod.id, cap.key)}
-                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          <Switch
+                            checked={
+                              permForm.caps?.[normalizedModKey]?.[cap.key] ||
+                              false
+                            }
+                            onCheckedChange={(checked) =>
+                              toggleCap(mod.id, cap.key, checked)
+                            }
                           />
                         </div>
                       ))}
@@ -1573,7 +1628,7 @@ function PermissionsTab({
         </Dialog>
       )}
 
-      {/* Delete Permission */}
+      {/* Delete Permission Dialog */}
       <Dialog open={!!del} onOpenChange={() => setDel(null)}>
         <DialogContent>
           <DialogHeader>
@@ -1592,14 +1647,18 @@ function PermissionsTab({
                 if (!del) return;
 
                 try {
-                  // 👇 DELETE FROM BACKEND
-                  await permissionService.removeAll(del.role);
+                  const modules = Object.keys(del.caps || {});
+
+                  for (const mod of modules) {
+                    await permissionService.removePermission(
+                      del.role,
+                      mod,
+                      del.staffId,
+                    );
+                  }
 
                   toast.success("Permission removed");
-
-                  // 👇 Reload from server
                   await fetchPerms();
-
                   setDel(null);
                 } catch (error) {
                   console.error("Error removing permission:", error);
@@ -1613,7 +1672,7 @@ function PermissionsTab({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Role */}
+      {/* Delete Role Dialog */}
       <Dialog open={!!delRole} onOpenChange={() => setDelRole(null)}>
         <DialogContent>
           <DialogHeader>
@@ -1647,7 +1706,7 @@ function PermissionsTab({
         </DialogContent>
       </Dialog>
 
-      {/* Remove All Permissions for Role */}
+      {/* Remove All Permissions Dialog */}
       <Dialog
         open={!!removePermsRole}
         onOpenChange={() => setRemovePermsRole(null)}
@@ -1667,10 +1726,8 @@ function PermissionsTab({
             <Button
               variant="destructive"
               onClick={async () => {
-                if (!removePermsRole) return;
                 try {
-                  await handleDelete(removePermsRole.name);
-                  setRemovePermsRole(null);
+                  await handleDelete();
                 } catch (error) {
                   console.error("Error removing permissions:", error);
                   toast.error("Failed to remove permissions");
@@ -1699,58 +1756,11 @@ type TabId = (typeof TABS)[number]["id"];
 export default function HRSettingsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tab, setTab] = useState<TabId>("leaves");
+  const [] = useState<TabId>("leaves");
   const [jobs, setJobs] = useState<JobCode[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [] = useState([]);
 
-  useEffect(() => {
-    loadRoles();
-  }, []);
-
-  // Get companyId from user - handle both string and number formats
-  const companyId = user?.companyId ? Number(user.companyId) : null;
-
-  const loadRoles = async () => {
-    try {
-      // Try to fetch from roleService first (Settings page roles) - pass companyId to get company-specific roles
-      const res = companyId
-        ? await roleService.getRoles(companyId)
-        : await roleService.getRoles();
-      if (res && res.length > 0) {
-        setRoles(
-          res
-            .filter((r) => r.id !== undefined)
-            .map((r) => ({
-              id: r.id!,
-              name: r.name,
-              custom: !!r.custom,
-              description: r.description,
-              active: r.active,
-            })),
-        );
-      } else {
-        // Fallback to permissionService if no roles from roleService
-        const permRes = await permissionService.getRoles();
-        setRoles(
-          permRes
-            .filter((r) => r.id !== undefined)
-            .map((r) => ({
-              id: r.id!,
-              name: r.name,
-              custom: !!r.custom,
-              description: r.description,
-              active: r.active,
-            })),
-        );
-      }
-    } catch (error) {
-      console.error("Error loading roles:", error);
-      // fallback to defaults
-      setRoles(FALLBACK_ROLES);
-    }
-  };
-
-  // Allow both ADMIN and SUPER_ADMIN to access HR Settings
   const isAuthorized = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   if (!isAuthorized) {
@@ -1771,8 +1781,7 @@ export default function HRSettingsPage() {
             <p className="text-muted-foreground text-center">
               You do not have permission to access HR Settings.
               <br />
-              This feature is only available to users with the{" "}
-              <strong>ADMIN</strong> or <strong>SUPER_ADMIN</strong> role.
+              This feature is only available to users with the <strong>ADMIN</strong> or <strong>SUPER_ADMIN</strong> role.
             </p>
           </CardContent>
         </Card>
@@ -1780,59 +1789,34 @@ export default function HRSettingsPage() {
     );
   }
 
+  const tabsList = [
+    { value: "leaves", label: "Leave Types", element: () => <LeaveCustomizationForm /> },
+    { value: "jobs", label: "Job Codes", element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} /> },
+    { value: "permissions", label: "Permissions", element: () => <PermissionsTab roles={roles} setRoles={setRoles} /> },
+    { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Top Header */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-5">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                <Settings className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">
-                  HR Settings
-                </h1>
-                <p className="text-xs text-slate-500">
-                  Manage leave types · job codes · departments · permissions
-                </p>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 -mb-px">
-              {TABS.map((t) => {
-                const Icon = t.icon;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                      tab === t.id
-                        ? "border-indigo-600 text-indigo-600"
-                        : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {tab === "leaves" && <LeaveCustomizationForm />}
-        {tab === "jobs" && <JobCodesTab jobs={jobs} setJobs={setJobs} />}
-        {tab === "perms" && (
-          <PermissionsTab roles={roles} setRoles={setRoles} />
-        )}
-        {tab === "appraisal" && <AppraisalTab />}
-      </div>
+    <div className="p-5">
+      <AppTab
+        title="HR Settings"
+        variant="primary"
+        subtitle="Manage leave policies, job codes, permissions, and appraisal"
+        tabs={tabsList}
+        defaultValue="leaves"
+      />
     </div>
   );
+}
+
+function normalizeBackendRole(role: string): string {
+  if (!role) return "";
+  // Normalize display name to backend identifier: uppercase, spaces/hyphens -> _, strip invalid chars
+  return role
+    .toString()
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_")
+    .replace(/[^A-Z0-9_]/g, "_");
 }

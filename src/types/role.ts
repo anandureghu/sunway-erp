@@ -152,13 +152,21 @@ export interface Permission {
 
 // Module permission map - using flat properties for frontend
 export interface ModulePermission {
-  module: string;
-  viewOwn: boolean;
-  viewAll: boolean;
-  createPermission: boolean;
-  editPermission: boolean;
-  deletePermission: boolean;
-  approve: boolean;
+  permission?: {
+    viewOwn?: boolean;
+    viewAll?: boolean;
+    create?: boolean;
+    edit?: boolean;
+    deletePermission?: boolean;
+    approve?: boolean;
+  };
+  module?: string;
+  viewOwn?: boolean;
+  viewAll?: boolean;
+  createPermission?: boolean;
+  editPermission?: boolean;
+  deletePermission?: boolean;
+  approve?: boolean;
   employeeId?: number;
   user?: number;
   // Employee object returned from backend when fetching employee-specific permissions
@@ -244,6 +252,7 @@ export const createEmptyModulePermission = (module: string): ModulePermission =>
   editPermission: false,
   deletePermission: false,
   approve: false,
+  permission: undefined
 });
 
 // Get all modules with empty permissions

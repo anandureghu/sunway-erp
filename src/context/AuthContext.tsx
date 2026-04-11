@@ -70,9 +70,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // Use /my-permissions — no HR_SETTINGS permission required
-      const perms = await permissionService.getMyPermissions();
-      const caps = permissionService.toFrontendCaps(perms);
+      // Prefer role-wide permissions (companyRole) — fall back to my-permissions
+      // `role` here is expected to be the companyRole (e.g., "Manager") when
+      // available; permissionService.getByRole will normalize the name.
+      let perms = [] as any[];
+      try {
+        perms = await permissionService.getByRole(role as string);
+      } catch (err) {
+        // If role-wide fetch fails, try per-user permissions as a fallback
+        console.warn("getByRole failed, falling back to getMyPermissions:", err);
+        perms = await permissionService.getMyPermissions();
+      }
+
+      const caps = permissionService.toFrontendCaps(perms as any[]);
       setPermissions(caps);
     } catch (err) {
       console.error("Failed to fetch permissions:", err);
@@ -107,44 +117,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const applyUserFromToken = (token: string) => {
     const decoded: DecodedToken = jwtDecode(token);
+    // Normalize role string from token to avoid case-mismatch issues
+    const rawRole = String(decoded.role ?? "USER").toUpperCase();
     const role =
-      (decoded.role as Role) === "ADMIN" ||
-      (decoded.role as Role) === "SUPER_ADMIN" ||
-      (decoded.role as Role) === "USER"
-        ? (decoded.role as Role)
-        : "USER";
+      rawRole === "ADMIN" || rawRole === "SUPER_ADMIN" || rawRole === "USER"
+        ? (rawRole as Role)
+        : ("USER" as Role);
 
     setUser({
-      id: decoded.userId != null ? String(decoded.userId) : undefined,
+      userId: decoded.userId != null ? String(decoded.userId) : undefined,
       username: decoded.username || decoded.sub,
       role,
     });
 
-    // Fetch permissions based on user role
-    fetchPermissions(role);
-
-    // Only fetch /users/{id} if token actually contains a userId.
+    // If token contains a userId, fetch the full user profile first so we can
+    // use `companyRole` for permission decisions. Otherwise fall back to the
+    // security role from token.
     if (decoded.userId != null) {
-        apiClient
-          .get("/users/" + decoded.userId)
-          .then((response) => {
-            setUser({
-              ...response.data,              // spread all fields from /users/{id}
-              id: String(decoded.userId),    // ✅ keep id from JWT as string
-              role,                          // ✅ keep role from JWT
-            });
-            fetchAccountPeriodStatus();
-            if (response.data.companyId) {
-              fetchCompany(response.data.companyId);
-            }
-          })
+      apiClient
+        .get("/users/" + decoded.userId)
+        .then((response) => {
+          const profile = response.data;
+          // Keep security role but prefer companyRole for permissions
+          setUser({
+            ...profile,
+            id: String(decoded.userId),
+            role,
+          });
+
+          if (profile.companyId) {
+            fetchCompany(profile.companyId);
+          }
+
+          // Use companyRole when available for permission resolution
+          const effectiveRole = profile.companyRole ?? role;
+          fetchPermissions(effectiveRole);
+        })
         .catch((e) => {
-          // Don't hard-logout on profile fetch failure; token may still be valid.
-          console.warn(
-            "Failed to load user profile:",
-            e?.response?.status || e,
-          );
+          console.warn("Failed to load user profile:", e?.response?.status || e);
+          // fallback to token role if profile fetch fails
+          fetchPermissions(role);
         });
+    } else {
+      // No userId in token — fall back to token role
+      fetchPermissions(role);
     }
   };
 

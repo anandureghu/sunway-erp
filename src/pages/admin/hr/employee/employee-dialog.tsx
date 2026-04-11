@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/service/apiClient";
+import roleService from "@/service/roleService";
 import { toast } from "sonner";
 
 import { useForm } from "react-hook-form";
@@ -32,7 +33,9 @@ import {
 } from "@/components/ui/form";
 import type { Department } from "@/types/department";
 import { createEmployeeSchema } from "@/schema/employee";
-import { type Employee, type Role } from "@/types/hr";
+import { type Employee } from "@/types/hr";
+import type { z } from "zod";
+
 
 // ✅ Fixed: hardcoded Spring Security roles only — never mix with companyRole
 const SECURITY_ROLES = [
@@ -75,6 +78,8 @@ export function EmployeeDialog({
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [deptLoading, setDeptLoading] = useState(false);
+  const [companyRoles, setCompanyRoles] = useState<any[]>([]);
+  const [roleLoading, setRoleLoading] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(createEmployeeSchema),
@@ -87,6 +92,7 @@ export function EmployeeDialog({
       password: "",
       departmentId: "",
       role: presetRole,
+      CompanyRole: "",
     },
   });
 
@@ -104,6 +110,7 @@ export function EmployeeDialog({
           ? String(employee.departmentId)
           : "",
         role: (employee.role as string) ?? presetRole,
+        CompanyRole: employee.companyRole || "",
       });
     }
   }, [open, employee, mode]);
@@ -121,6 +128,18 @@ export function EmployeeDialog({
     }
   }, [form.watch("firstName"), form.watch("lastName")]);
 
+  const fetchCompanyRoles = async () => {
+    setRoleLoading(true);
+    try {
+      const res = await roleService.getActiveRoles(companyId);
+      setCompanyRoles(res);
+    } catch {
+      toast.error("Failed to load roles");
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
   const fetchDepartments = async () => {
     setDeptLoading(true);
     apiClient
@@ -131,18 +150,14 @@ export function EmployeeDialog({
   };
 
   useEffect(() => {
-    if (open) fetchDepartments();
-  }, [open]);
+    if (open) {
+      fetchCompanyRoles();
+      fetchDepartments();
+    }
+  }, [open, companyId]);
 
-  type FormValues = {
-    employeeNo?: string | number | null;
-    firstName: string;
-    lastName: string;
-    email: string;
-    username: string;
-    password?: string | null;
-    departmentId?: string | number | null;
-    role?: Role;
+  type FormValues = z.infer<typeof createEmployeeSchema> & {
+    CompanyRole?: string | null;
   };
 
   const onSubmit = async (values: FormValues): Promise<void> => {
@@ -157,6 +172,7 @@ export function EmployeeDialog({
       companyId,
       departmentId: values.departmentId ? Number(values.departmentId) : null,
       role: values.role || presetRole,
+      CompanyRole: values.CompanyRole || null,
     };
 
     try {
@@ -361,6 +377,33 @@ export function EmployeeDialog({
                     <SelectContent>
                       {SECURITY_ROLES.map((r) => (
                         <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* 🔥 NEW: CompanyRole dropdown - DYNAMIC from /api/roles */}
+            <FormField
+              control={form.control}
+              name="CompanyRole"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Role (Team Lead, Manager, etc.)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={roleLoading}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={roleLoading ? "Loading roles..." : "Select company role"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">No Role</SelectItem>
+                      {companyRoles.map((role: any) => (
+                        <SelectItem key={role.id} value={role.name}>
+                          {role.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

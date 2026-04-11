@@ -8,15 +8,18 @@ import { User } from "lucide-react";
 import type { Employee, EmployeeStatus } from "../types/hr";
 import { useAuth } from "@/context/AuthContext";
 import roleService from "@/service/roleService";
+import { permissionService } from "@/service/permissionService";
 import type { RoleOption } from "@/types/role";
 
 export default function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, permissions } = useAuth();
+  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, Record<string, boolean>> | null>(permissions ?? null);
 
   const [emp, setEmp] = useState<Employee | null>(null);
   const [editing, setEditing] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [, setRoleOptions] = useState<RoleOption[]>([]);
 
   // Check if current user is admin
@@ -71,6 +74,49 @@ export default function EmployeeProfilePage() {
       mounted = false;
     };
   }, [id]);
+
+  // Enforce view permissions: if user lacks viewAll and viewOwn (for this record), deny access
+  useEffect(() => {
+    if (!emp) return;
+
+    // Admin bypass
+    if (permissions === null) {
+      setAccessDenied(false);
+      return;
+    }
+
+    const moduleKey = "employee_profile";
+    const caps = permissions ? (permissions as any)[moduleKey] : null;
+    const hasViewAll = caps?.view_all ?? false;
+    const hasViewOwn = caps?.view_own ?? false;
+
+    const allowed = hasViewAll || (hasViewOwn && String(emp.id) === String(currentUser?.id));
+
+    setAccessDenied(!allowed);
+  }, [emp, permissions, currentUser]);
+
+  // Ensure we have current user's permissions — fallback to direct fetch when context permissions are empty/object
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (!permissions || Object.keys(permissions).length === 0) {
+          const perms = await permissionService.getMyPermissions();
+          const caps = permissionService.toFrontendCaps(perms);
+          if (mounted) setEffectivePermissions(caps);
+        } else {
+          setEffectivePermissions(permissions);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch fallback permissions:', e);
+        if (mounted) setEffectivePermissions(permissions ?? {});
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [permissions]);
 
   type FormState = {
     employeeNo: string;
@@ -197,6 +243,22 @@ export default function EmployeeProfilePage() {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+          Access denied. You do not have permission to view this employee.
+        </div>
+        <Link
+          to="/hr/employees"
+          className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-gray-50"
+        >
+          ← Back to Employees
+        </Link>
+      </div>
+    );
+  }
+
   const onChange =
     (key: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -209,6 +271,17 @@ export default function EmployeeProfilePage() {
     };
 
   const onSave = async () => {
+    // Check edit permission
+    const moduleKey = "employee_profile";
+    const caps = permissions ? (permissions as any)[moduleKey] : null;
+    const canEdit = permissions === null || (caps?.edit ?? false);
+
+    if (!canEdit) {
+      toast.error("You don't have permission to edit this employee.");
+      setEditing(false);
+      return;
+    }
+
     try {
       // Only admin can update the role field
       const payload: any = {
@@ -345,6 +418,10 @@ export default function EmployeeProfilePage() {
     setEditing(false);
   };
 
+  const moduleKey = "employee_profile";
+  const caps = effectivePermissions ? (effectivePermissions as any)[moduleKey] : null;
+  const canEdit = effectivePermissions === null || (caps?.edit ?? false);
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border">
@@ -381,12 +458,14 @@ export default function EmployeeProfilePage() {
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => setEditing(true)}
-                className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90"
-              >
-                Edit / Update
-              </button>
+              canEdit ? (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="h-9 rounded-md bg-white px-3 text-sm font-medium text-blue-700 hover:bg-white/90"
+                >
+                  Edit / Update
+                </button>
+              ) : null
             )}
           </div>
         </div>
