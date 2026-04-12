@@ -134,7 +134,7 @@ export const purchaseRequisitions: PurchaseRequisition[] = [
     department: "Maintenance",
     requestedDate: "2025-02-05",
     requiredDate: "2025-02-20",
-    status: "pending",
+    status: "submitted",
     items: [
       {
         id: "pri-3",

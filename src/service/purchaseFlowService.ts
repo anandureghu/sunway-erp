@@ -12,10 +12,16 @@ function normalizeStatus(status?: string) {
 
 // Purchase Requisition DTOs
 export interface PurchaseRequisitionCreateDTO {
+  debitAccountId: number;
+  creditAccountId: number;
+  preferredSupplierId: number;
+  departmentId?: number;
+  requestedByUserId?: number;
   items: Array<{
     itemId: number;
     requestedQty: number;
     remarks?: string;
+    estimatedUnitCost?: number;
   }>;
 }
 
@@ -23,6 +29,7 @@ export interface PurchaseRequisitionItemDTO {
   itemId: number;
   requestedQty: number;
   remarks?: string;
+  estimatedUnitCost?: number;
 }
 
 export interface PurchaseRequisitionResponseDTO {
@@ -31,6 +38,19 @@ export interface PurchaseRequisitionResponseDTO {
   status: string;
   createdAt: string;
   approvedAt?: string | null;
+  convertedAt?: string | null;
+  preferredSupplierId?: number;
+  preferredSupplierName?: string;
+  departmentId?: number;
+  departmentName?: string;
+  requestedById?: number;
+  requestedByName?: string;
+  createdPurchaseOrderId?: number | null;
+  debitAccountId?: number | null;
+  debitAccountName?: string | null;
+  creditAccountId?: number | null;
+  creditAccountName?: string | null;
+  financeTransactionId?: number | null;
   items: PurchaseRequisitionItemDTO[];
 }
 
@@ -56,6 +76,7 @@ export interface PurchaseOrderItemDTO {
 export interface PurchaseOrderResponseDTO {
   id: number;
   orderNumber: string;
+  sourceRequisitionId?: number | null;
   supplierId: number;
   supplierName: string;
   orderDate: string;
@@ -65,28 +86,71 @@ export interface PurchaseOrderResponseDTO {
   createdAt: string;
   createdById: number;
   createdByName: string;
+  /** From backend: false until vendor payable is confirmed in AP */
+  vendorPaymentSettled?: boolean | null;
 }
 
 function toPurchaseRequisition(
   dto: PurchaseRequisitionResponseDTO,
 ): PurchaseRequisition {
-  const items: PurchaseRequisitionItem[] = (dto.items || []).map((li, idx) => ({
-    id: `pri-${dto.id}-${idx}`,
-    requisitionId: String(dto.id),
-    itemId: li.itemId,
-    quantity: Number(li.requestedQty || 0),
-    notes: li.remarks,
-    item: li,
-  }));
+  const items: PurchaseRequisitionItem[] = (dto.items || []).map((li, idx) => {
+    const est =
+      li.estimatedUnitCost != null && li.estimatedUnitCost !== undefined
+        ? Number(li.estimatedUnitCost)
+        : undefined;
+    const qty = Number(li.requestedQty || 0);
+    return {
+      id: `pri-${dto.id}-${idx}`,
+      requisitionId: String(dto.id),
+      itemId: li.itemId,
+      quantity: qty,
+      notes: li.remarks,
+      estimatedUnitCost: est,
+      unitPrice: est,
+      estimatedTotal: est != null ? est * qty : undefined,
+      item: li,
+    };
+  });
+
+  const st = normalizeStatus(dto.status) as PurchaseRequisition["status"];
 
   return {
     id: String(dto.id),
     requisitionNo: dto.requisitionNumber || `PR-${dto.id}`,
-    requestedBy: "", // API doesn't provide this
+    requestedBy: dto.requestedById != null ? String(dto.requestedById) : "",
+    requestedById:
+      dto.requestedById != null ? String(dto.requestedById) : undefined,
+    requestedByName: dto.requestedByName,
+    department:
+      dto.departmentName ||
+      (dto.departmentId != null ? String(dto.departmentId) : undefined),
+    departmentId:
+      dto.departmentId != null ? String(dto.departmentId) : undefined,
+    departmentName: dto.departmentName,
+    preferredSupplierId:
+      dto.preferredSupplierId != null
+        ? String(dto.preferredSupplierId)
+        : undefined,
+    preferredSupplierName: dto.preferredSupplierName,
     requestedDate: dto.createdAt || "",
-    status: (normalizeStatus(dto.status) as any) || "draft",
+    status: st || "draft",
     items,
     approvedDate: dto.approvedAt || undefined,
+    convertedAt: dto.convertedAt || undefined,
+    createdPurchaseOrderId:
+      dto.createdPurchaseOrderId != null
+        ? String(dto.createdPurchaseOrderId)
+        : undefined,
+    debitAccountId:
+      dto.debitAccountId != null ? String(dto.debitAccountId) : undefined,
+    debitAccountName: dto.debitAccountName ?? undefined,
+    creditAccountId:
+      dto.creditAccountId != null ? String(dto.creditAccountId) : undefined,
+    creditAccountName: dto.creditAccountName ?? undefined,
+    financeTransactionId:
+      dto.financeTransactionId != null
+        ? String(dto.financeTransactionId)
+        : undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",
   };
@@ -111,9 +175,17 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
   return {
     id: String(dto.id),
     orderNo: dto.orderNumber || `PO-${dto.id}`,
+    requisitionId:
+      dto.sourceRequisitionId != null && dto.sourceRequisitionId !== undefined
+        ? String(dto.sourceRequisitionId)
+        : undefined,
     supplierId: String(dto.supplierId || ""),
     orderDate: dto.orderDate || "",
     status: (normalizeStatus(dto.status) as any) || "draft",
+    vendorPaymentSettled:
+      dto.vendorPaymentSettled === undefined || dto.vendorPaymentSettled === null
+        ? true
+        : Boolean(dto.vendorPaymentSettled),
     items,
     subtotal: total,
     tax: 0,
@@ -136,6 +208,36 @@ export async function listPurchaseRequisitions(): Promise<
   return (res.data || []).map(toPurchaseRequisition);
 }
 
+export async function getPurchaseRequisition(
+  id: string | number,
+): Promise<PurchaseRequisition> {
+  try {
+    const res = await apiClient.get<PurchaseRequisitionResponseDTO>(
+      `/purchase/requisitions/${id}`,
+    );
+    return toPurchaseRequisition(res.data);
+  } catch (e: unknown) {
+    const ax = e as {
+      response?: {
+        status?: number;
+        data?: { message?: string; detail?: string };
+      };
+    };
+    const status = ax.response?.status;
+    const body = ax.response?.data;
+    const msg = String(body?.message ?? body?.detail ?? "");
+    const treatAsMissing =
+      status === 404 || (msg.length > 0 && /no static resource/i.test(msg));
+
+    if (treatAsMissing) {
+      const list = await listPurchaseRequisitions();
+      const found = list.find((r) => String(r.id) === String(id));
+      if (found) return found;
+    }
+    throw e;
+  }
+}
+
 export async function createPurchaseRequisition(
   payload: PurchaseRequisitionCreateDTO,
 ) {
@@ -151,60 +253,6 @@ export async function submitPurchaseRequisition(id: string | number) {
     `/purchase/requisitions/${id}/submit`,
   );
   return toPurchaseRequisition(res.data);
-}
-
-export async function convertRequisitionToPO(
-  id: string | number,
-): Promise<PurchaseOrder> {
-  // The convert-to-po endpoint should return a PurchaseOrderResponseDTO
-  // But if it returns a PurchaseRequisitionResponseDTO, we'll handle that too
-  try {
-    const res = await apiClient.post<any>(
-      `/purchase/requisitions/${id}/convert-to-po`,
-    );
-
-    // Check if response is a PurchaseOrder (has orderNumber)
-    if (res.data && ("orderNumber" in res.data || "order_number" in res.data)) {
-      return toPurchaseOrder(res.data as PurchaseOrderResponseDTO);
-    }
-
-    // If response is a PurchaseRequisition, the PO was created but not returned
-    // Fetch all orders and find the one created from this requisition
-    if (
-      res.data &&
-      ("requisitionNumber" in res.data || "requisition_number" in res.data)
-    ) {
-      const requisition = toPurchaseRequisition(
-        res.data as PurchaseRequisitionResponseDTO,
-      );
-      // Wait a bit for the backend to process, then fetch orders
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const orders = await listPurchaseOrders();
-      const createdOrder = orders.find(
-        (o) => o.requisitionId === requisition.id,
-      );
-      if (createdOrder) {
-        return createdOrder;
-      }
-      // If not found immediately, it might still be processing
-      throw new Error(
-        "Purchase order is being created. Please check Purchase Orders page in a moment.",
-      );
-    }
-
-    throw new Error("Unexpected response format from convert-to-po endpoint");
-  } catch (error: any) {
-    // If it's already our custom error, re-throw it
-    if (error.message && error.message.includes("Purchase order")) {
-      throw error;
-    }
-    // Otherwise, wrap the error
-    throw new Error(
-      error?.response?.data?.message ||
-        error?.message ||
-        "Failed to convert requisition to purchase order",
-    );
-  }
 }
 
 export async function approvePurchaseRequisition(id: string | number) {

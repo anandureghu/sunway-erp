@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GOODS_RECEIPT_COLUMNS } from "@/lib/columns/purchase-columns";
 import { Plus, Search, ArrowLeft, ClipboardCheck } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   listPurchaseOrders,
   getGoodsReceiptsByPurchaseOrder,
@@ -16,6 +16,7 @@ import type { Row } from "@tanstack/react-table";
 
 export default function ReceivingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -32,6 +33,17 @@ export default function ReceivingPage() {
     },
     [navigate],
   );
+
+  // Deep-link from PO list/detail: open receipt form for a PO
+  useEffect(() => {
+    const st = location.state as { openReceiveForOrderId?: string } | null;
+    const oid = st?.openReceiveForOrderId;
+    if (oid) {
+      setSelectedOrderId(oid);
+      setShowCreateForm(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Load orders and receipts
   useEffect(() => {

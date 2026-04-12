@@ -35,10 +35,10 @@ export type Supplier = {
 // Purchase Requisition Types
 export type PurchaseRequisitionStatus =
   | "draft"
-  | "pending"
+  | "submitted"
   | "approved"
   | "rejected"
-  | "cancelled";
+  | "converted";
 
 export type PurchaseRequisitionItem = {
   id: string;
@@ -47,6 +47,7 @@ export type PurchaseRequisitionItem = {
   item?: PurchaseRequisitionItemDTO;
   quantity: number;
   unitPrice?: number;
+  estimatedUnitCost?: number;
   estimatedTotal?: number;
   notes?: string;
 };
@@ -56,7 +57,12 @@ export type PurchaseRequisition = {
   requisitionNo: string;
   requestedBy: string;
   requestedByName?: string;
+  requestedById?: string;
   department?: string;
+  departmentId?: string;
+  departmentName?: string;
+  preferredSupplierId?: string;
+  preferredSupplierName?: string;
   requestedDate: string;
   requiredDate?: string;
   status: PurchaseRequisitionStatus;
@@ -66,6 +72,15 @@ export type PurchaseRequisition = {
   approvedBy?: string;
   approvedByName?: string;
   approvedDate?: string;
+  convertedAt?: string;
+  /** Set when approval creates a purchase order in the same request. */
+  createdPurchaseOrderId?: string;
+  debitAccountId?: string;
+  debitAccountName?: string;
+  creditAccountId?: string;
+  creditAccountName?: string;
+  /** Finance transaction posted on approve. */
+  financeTransactionId?: string;
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
@@ -108,6 +123,8 @@ export type PurchaseOrder = {
   orderDate: string;
   expectedDate?: string;
   status: PurchaseOrderStatus;
+  /** False until vendor payable is confirmed under AP → Vendor payments */
+  vendorPaymentSettled?: boolean;
   items: PurchaseOrderItem[];
   subtotal: number;
   tax: number;

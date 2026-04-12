@@ -139,6 +139,54 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
     return { subtotal, tax, discount, total: subtotal + tax };
   }, [orderItems]);
 
+  const recomputeLine = (row: SalesOrderItem): SalesOrderItem => {
+    const qty = row.quantity > 0 ? row.quantity : 0.01;
+    const unitPrice =
+      Number.isFinite(row.unitPrice) && row.unitPrice >= 0 ? row.unitPrice : 0;
+    const rawDisc = row.discountPercent ?? row.discount ?? 0;
+    const discountPct = Math.min(100, Math.max(0, rawDisc));
+    const discountAmount = (unitPrice * qty * discountPct) / 100;
+    const lineSubtotal = unitPrice * qty - discountAmount;
+    const tax = companyTaxActive ? lineSubtotal * (companyTaxRate / 100) : 0;
+    const total = lineSubtotal + tax;
+    return {
+      ...row,
+      quantity: qty,
+      unitPrice,
+      discountPercent: discountPct,
+      discount: discountPct,
+      lineSubtotal,
+      taxRate: companyTaxActive ? companyTaxRate : 0,
+      taxAmount: tax,
+      tax,
+      total,
+    };
+  };
+
+  const updateOrderLine = (
+    lineId: string,
+    patch: Partial<{
+      quantity: number;
+      unitPrice: number;
+      discountPercent: number;
+      warehouseId: number;
+    }>,
+  ) => {
+    setOrderItems((prev) =>
+      prev.map((row) => {
+        if (row.id !== lineId) return row;
+        const merged: SalesOrderItem = {
+          ...row,
+          ...patch,
+          ...(patch.discountPercent !== undefined
+            ? { discount: patch.discountPercent }
+            : {}),
+        };
+        return recomputeLine(merged);
+      }),
+    );
+  };
+
   const addItemToOrder = () => {
     if (!selectedItem || itemQuantity <= 0) return;
     const item = items.find((i) => String(i.id) === String(selectedItem));
@@ -460,28 +508,111 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
               </Button>
 
               {orderItems.length > 0 ? (
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-lg border overflow-x-auto">
+                  <table className="w-full text-sm min-w-[720px]">
                     <thead className="bg-muted/60">
                       <tr>
                         <th className="text-left p-3">Item</th>
-                        <th className="text-left p-3">Qty</th>
-                        <th className="text-left p-3">Total</th>
-                        <th className="text-left p-3">Action</th>
+                        <th className="text-right p-3 w-28">Qty</th>
+                        <th className="text-right p-3 w-32">Unit price</th>
+                        <th className="text-right p-3 w-24">Disc %</th>
+                        <th className="text-left p-3 min-w-[140px]">Warehouse</th>
+                        <th className="text-right p-3 w-32">Line total</th>
+                        <th className="text-left p-3 w-24" />
                       </tr>
                     </thead>
                     <tbody>
                       {orderItems.map((item) => (
                         <tr key={item.id} className="border-t">
-                          <td className="p-3">{item.item?.name}</td>
-                          <td className="p-3">{item.quantity}</td>
-                          <td className="p-3">
-                            ₹{item.total.toLocaleString()}
+                          <td className="p-3 align-middle">
+                            {item.item?.name ?? item.itemName}
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 align-middle">
+                            <Input
+                              type="number"
+                              min={0.01}
+                              step={0.01}
+                              className="text-right h-9 tabular-nums"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateOrderLine(item.id, {
+                                  quantity: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </td>
+                          <td className="p-3 align-middle">
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              className="text-right h-9 tabular-nums"
+                              value={item.unitPrice}
+                              onChange={(e) =>
+                                updateOrderLine(item.id, {
+                                  unitPrice: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </td>
+                          <td className="p-3 align-middle">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.1}
+                              className="text-right h-9 tabular-nums"
+                              value={item.discountPercent ?? item.discount}
+                              onChange={(e) =>
+                                updateOrderLine(item.id, {
+                                  discountPercent:
+                                    parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </td>
+                          <td className="p-3 align-middle">
+                            <Select
+                              value={
+                                item.warehouseId
+                                  ? String(item.warehouseId)
+                                  : ""
+                              }
+                              onValueChange={(value) =>
+                                updateOrderLine(item.id, {
+                                  warehouseId: Number(value),
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Warehouse" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {warehouses
+                                  .filter((wh) => wh.status === "active")
+                                  .map((wh) => (
+                                    <SelectItem
+                                      key={wh.id}
+                                      value={String(wh.id)}
+                                    >
+                                      {wh.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-3 text-right font-medium align-middle tabular-nums">
+                            ₹
+                            {item.total.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </td>
+                          <td className="p-3 align-middle">
                             <Button
                               type="button"
                               variant="ghost"
+                              size="sm"
                               onClick={() => removeItem(item.id)}
                             >
                               Remove

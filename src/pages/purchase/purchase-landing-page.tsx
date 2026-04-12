@@ -265,19 +265,19 @@ export default function PurchaseLandingPage() {
               </CardContent>
             </Card>
 
-            {/* Create New Purchase Order */}
+            {/* Purchase requisitions (POs are created when a requisition is approved) */}
             <Card className="hover:shadow-lg transition-shadow border-2 hover:border-green-300 min-w-0 flex flex-col h-full justify-between">
               <CardHeader className="flex-shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
                 <div className="flex items-start gap-3 min-w-0">
                   <div className="p-2 sm:p-2.5 lg:p-3 bg-green-100 rounded-lg flex-shrink-0 self-start">
-                    <FileText className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
+                    <ClipboardCheck className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
                   </div>
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <CardTitle className="text-base sm:text-base lg:text-lg break-words leading-tight font-semibold">
-                      Create Purchase Order
+                      New purchase order
                     </CardTitle>
                     <CardDescription className="text-xs sm:text-sm break-words mt-1.5">
-                      Create a new purchase order
+                      Start with a requisition; approving it creates a draft PO
                     </CardDescription>
                   </div>
                 </div>
@@ -288,10 +288,10 @@ export default function PurchaseLandingPage() {
                   className="w-full bg-green-600 hover:bg-green-700 text-sm sm:text-sm lg:text-base"
                 >
                   <Link
-                    to="/inventory/purchase/orders/new"
+                    to="/inventory/purchase/requisitions/new"
                     className="block text-center"
                   >
-                    Create Purchase Order
+                    Create requisition
                   </Link>
                 </Button>
               </CardContent>

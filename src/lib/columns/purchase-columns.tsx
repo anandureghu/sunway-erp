@@ -24,17 +24,40 @@ import {
   FileText,
   Package,
   CheckCircle,
+  Send,
+  Link2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
+export type PurchaseOrderColumnActions = {
+  /** Navigate to full PO detail */
+  onOpenOrder?: (id: string) => void;
+  onConfirm?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  /** Quick preview in dialog (optional) */
+  onViewDetails?: (id: string) => void;
+  onEdit?: (id: string) => void;
+  /** Goods receipt flow */
+  onReceiveGoods?: (orderId: string) => void;
+  /** Link to originating PR */
+  onViewRequisition?: (requisitionId: string) => void;
+};
+
 // Purchase Order Columns
 export function createPurchaseOrderColumns(
-  onConfirm?: (id: string) => void,
-  onCancel?: (id: string) => void,
-  onViewDetails?: (id: string) => void,
-  onEdit?: (id: string) => void
+  actions: PurchaseOrderColumnActions = {},
 ): ColumnDef<PurchaseOrder>[] {
+  const {
+    onOpenOrder,
+    onConfirm,
+    onCancel,
+    onViewDetails,
+    onEdit,
+    onReceiveGoods,
+    onViewRequisition,
+  } = actions;
+
   return [
     {
       accessorKey: "orderNo",
@@ -77,6 +100,7 @@ export function createPurchaseOrderColumns(
         const statusColors: Record<string, string> = {
           draft: "bg-gray-100 text-gray-800",
           pending: "bg-yellow-100 text-yellow-800",
+          confirmed: "bg-blue-100 text-blue-800",
           approved: "bg-blue-100 text-blue-800",
           ordered: "bg-purple-100 text-purple-800",
           partially_received: "bg-orange-100 text-orange-800",
@@ -106,60 +130,93 @@ export function createPurchaseOrderColumns(
       id: "actions",
       cell: ({ row }) => {
         const order = row.original;
-        const canConfirm = order.status === "draft" || order.status === "pending";
-        const canCancel = order.status === "draft" || order.status === "pending";
-        
+        const st = (order.status || "").toLowerCase();
+        const vendorOk = order.vendorPaymentSettled !== false;
+        const canRelease = st === "draft" && vendorOk;
+        const canCancel = st === "draft";
+        const canReceive =
+          st === "confirmed" ||
+          st === "ordered" ||
+          st === "partially_received" ||
+          st === "approved";
+        const reqId = order.requisitionId;
+
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {onViewDetails && (
-                <DropdownMenuItem onClick={() => onViewDetails(order.id)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-              )}
-              {order.status === "draft" && onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(order.id)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Order
-                </DropdownMenuItem>
-              )}
-              {canConfirm && onConfirm && (
-                <DropdownMenuItem onClick={() => onConfirm(order.id)}>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Confirm Order
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Package className="mr-2 h-4 w-4" />
-                Receive Goods
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileText className="mr-2 h-4 w-4" />
-                Create Invoice
-              </DropdownMenuItem>
-              {canCancel && onCancel && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    className="text-red-600"
-                    onClick={() => onCancel(order.id)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Cancel Order
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Actions</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Order</DropdownMenuLabel>
+                {onOpenOrder && (
+                  <DropdownMenuItem onClick={() => onOpenOrder(order.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Open detail
                   </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                )}
+                {onViewDetails && (
+                  <DropdownMenuItem onClick={() => onViewDetails(order.id)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Quick preview
+                  </DropdownMenuItem>
+                )}
+
+                {reqId && onViewRequisition && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Source</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => onViewRequisition(reqId)}
+                    >
+                      <Link2 className="mr-2 h-4 w-4" />
+                      View requisition
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {(canRelease || canReceive) && <DropdownMenuSeparator />}
+                {(canRelease || canReceive) && (
+                  <DropdownMenuLabel>Procurement</DropdownMenuLabel>
+                )}
+                {canRelease && onConfirm && (
+                  <DropdownMenuItem onClick={() => onConfirm(order.id)}>
+                    <Send className="mr-2 h-4 w-4" />
+                    Release to supplier
+                  </DropdownMenuItem>
+                )}
+                {order.status === "draft" && onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(order.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit draft
+                  </DropdownMenuItem>
+                )}
+                {canReceive && onReceiveGoods && (
+                  <DropdownMenuItem onClick={() => onReceiveGoods(order.id)}>
+                    <Package className="mr-2 h-4 w-4" />
+                    Record receipt
+                  </DropdownMenuItem>
+                )}
+
+                {canCancel && onCancel && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Danger</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => onCancel(order.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Cancel order
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       },
     },
@@ -167,7 +224,8 @@ export function createPurchaseOrderColumns(
 }
 
 // Backward compatibility - export default columns without handlers
-export const PURCHASE_ORDER_COLUMNS: ColumnDef<PurchaseOrder>[] = createPurchaseOrderColumns();
+export const PURCHASE_ORDER_COLUMNS: ColumnDef<PurchaseOrder>[] =
+  createPurchaseOrderColumns();
 
 // Supplier Columns
 export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [

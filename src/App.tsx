@@ -197,7 +197,6 @@ export default function App() {
           <Route path="sales/invoices" element={<InvoicesPage />} />
           <Route path="purchase" element={<PurchaseLandingPage />} />
           <Route path="purchase/orders" element={<PurchaseOrdersPage />} />
-          <Route path="purchase/orders/new" element={<PurchaseOrdersPage />} />
           <Route
             path="purchase/orders/:id"
             element={<PurchaseOrderDetailPage />}
@@ -215,6 +214,10 @@ export default function App() {
           />
           <Route
             path="purchase/requisitions"
+            element={<PurchaseRequisitionsPage />}
+          />
+          <Route
+            path="purchase/requisitions/new"
             element={<PurchaseRequisitionsPage />}
           />
           <Route
