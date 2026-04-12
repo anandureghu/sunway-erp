@@ -45,7 +45,9 @@ export default function InvoicesPage({
   const [salesOrders, setSalesOrders] = useState<SalesOrderResponseDTO[]>([]);
 
   useEffect(() => {
-    apiClient.get<Invoice[]>("/invoices").then((res) => setInvoices(res.data));
+    apiClient
+      .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
+      .then((res) => setInvoices(res.data));
     apiClient
       .get<SalesOrderResponseDTO[]>("/sales/orders")
       .then((res) => setSalesOrders(res.data));

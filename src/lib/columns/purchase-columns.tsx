@@ -9,12 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type {
-  PurchaseOrder,
-  Supplier,
-  PurchaseInvoice,
-  GoodsReceipt,
-} from "@/types/purchase";
+import type { PurchaseOrder, Supplier, GoodsReceipt } from "@/types/purchase";
+import type { FinanceInvoice } from "@/types/finance-invoice";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
   MoreHorizontal,
@@ -320,42 +316,64 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
   },
 ];
 
-// Purchase Invoice Columns
-export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
+// Purchase Invoice Columns (API FinanceInvoice)
+export const PURCHASE_INVOICE_COLUMNS: ColumnDef<FinanceInvoice>[] = [
   {
-    accessorKey: "invoiceNo",
-    header: "Invoice No",
+    accessorKey: "invoiceId",
+    header: "ERP ref",
     cell: ({ row }) => {
-      return <span className="font-medium">{row.getValue("invoiceNo")}</span>;
+      return <span className="font-medium">{row.getValue("invoiceId")}</span>;
     },
   },
   {
-    accessorKey: "supplierName",
+    id: "supplierInvNo",
+    header: "Supplier #",
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {row.original.supplierInvoiceNumber || "—"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "toParty",
     header: "Supplier",
   },
   {
-    accessorKey: "date",
+    id: "po",
+    header: "PO",
+    cell: ({ row }) => (
+      <span>{row.original.purchaseOrder?.orderNumber || "—"}</span>
+    ),
+  },
+  {
+    accessorKey: "invoiceDate",
     header: "Invoice Date",
     cell: ({ row }) => {
-      const date = row.getValue("date") as string;
-      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      const d = row.original.invoiceDate;
+      return (
+        <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>
+      );
     },
   },
   {
     accessorKey: "dueDate",
     header: "Due Date",
     cell: ({ row }) => {
-      const date = row.getValue("dueDate") as string;
-      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      const d = row.original.dueDate;
+      return (
+        <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>
+      );
     },
   },
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
+      const status = (row.getValue("status") as string) || "";
+      const key = status.toLowerCase();
       const statusColors: Record<string, string> = {
         draft: "bg-gray-100 text-gray-800",
+        unpaid: "bg-yellow-100 text-yellow-800",
         pending: "bg-yellow-100 text-yellow-800",
         paid: "bg-green-100 text-green-800",
         partially_paid: "bg-blue-100 text-blue-800",
@@ -363,22 +381,37 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
         cancelled: "bg-gray-100 text-gray-800",
       };
       return (
-        <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
+        <Badge className={statusColors[key] || "bg-gray-100 text-gray-800"}>
           {status
-            .replace("_", " ")
-            .split(" ")
-            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-            .join(" ")}
+            ? status
+                .replace(/_/g, " ")
+                .split(" ")
+                .map(
+                  (s) =>
+                    s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(),
+                )
+                .join(" ")
+            : "—"}
         </Badge>
       );
     },
   },
   {
-    accessorKey: "total",
-    header: "Total Amount",
+    accessorKey: "amount",
+    header: "Total",
     cell: ({ row }) => {
-      const amount = row.getValue("total") as number;
+      const amount = row.original.amount ?? 0;
       return <span className="font-semibold">₹ {amount.toLocaleString()}</span>;
+    },
+  },
+  {
+    id: "doc",
+    header: "Document",
+    cell: ({ row }) => {
+      const src = row.original.documentSource;
+      if (src === "SUPPLIER_UPLOAD") return <span className="text-xs">PDF</span>;
+      if (src === "EXTERNAL_LINK") return <span className="text-xs">Link</span>;
+      return <span className="text-xs text-muted-foreground">Generated</span>;
     },
   },
   {
@@ -400,7 +433,7 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
             </DropdownMenuItem>
             <DropdownMenuItem>
               <FileText className="mr-2 h-4 w-4" />
-              Download PDF
+              Open document
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
