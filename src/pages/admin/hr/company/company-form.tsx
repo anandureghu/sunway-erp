@@ -13,11 +13,12 @@ import { useEffect } from "react";
 import { type CompanyFormData, COMPANY_SCHEMA } from "@/schema/company";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import SelectCurrency from "@/components/select-currency";
+import type { Company } from "@/types/company";
 
 interface CompanyFormProps {
   onSubmit: (data: CompanyFormData) => Promise<void> | void;
   loading?: boolean;
-  defaultValues?: Partial<CompanyFormData> | null;
+  defaultValues?: Partial<CompanyFormData> | Partial<Company> | null;
   isEditMode?: boolean;
 }
 
@@ -43,12 +44,29 @@ export const CompanyForm = ({
       isTaxActive: false,
       phoneNo: "",
       currencyId: 0,
-      ...defaultValues, // merge defaults safely
+      ...defaultValues,
     },
   });
 
   useEffect(() => {
-    if (defaultValues) form.reset(defaultValues);
+    if (defaultValues) {
+      form.reset({
+        companyName: "",
+        noOfEmployees: 0,
+        crNo: 0,
+        companyCode: "",
+        computerCard: "",
+        street: "",
+        city: "",
+        state: "",
+        country: "India",
+        taxRate: 0,
+        isTaxActive: false,
+        phoneNo: "",
+        currencyId: 0,
+        ...defaultValues,
+      });
+    }
   }, [defaultValues, form]);
 
   const handleSubmit: SubmitHandler<CompanyFormData> = async (values) => {
@@ -233,7 +251,10 @@ export const CompanyForm = ({
                 : undefined
             }
             onChange={(v) => form.setValue("currencyId", Number(v))}
-            disabled={!!defaultValues?.currencyId}
+            disabled={
+              !!(defaultValues as Partial<CompanyFormData> | undefined)
+                ?.currencyId
+            }
           />
         </div>
 

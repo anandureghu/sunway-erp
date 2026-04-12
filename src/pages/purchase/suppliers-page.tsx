@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
+import { listVendors } from "@/service/vendorService";
 import { toast } from "sonner";
 import { getVendorColumns } from "@/lib/columns/vendor-listing-admin";
 import type { Vendor } from "@/types/vendor";
@@ -24,8 +25,8 @@ export default function SuppliersPage() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get("/vendors");
-      const mappedVendors = res.data.map((vendor: any) => ({
+      const list = await listVendors();
+      const mappedVendors = list.map((vendor: any) => ({
         ...vendor,
         createdAt:
           vendor.createdAt ||

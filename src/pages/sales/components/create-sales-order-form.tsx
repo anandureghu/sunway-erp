@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Info, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,14 +21,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SALES_ORDER_SCHEMA, type SalesOrderFormData } from "@/schema/sales";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import type { BankAccount } from "@/types/bank-account";
 import { useAuth } from "@/context/AuthContext";
 import { listCustomers } from "@/service/customerService";
 import { listItems, listWarehouses } from "@/service/inventoryService";
 import { apiClient } from "@/service/apiClient";
 import { createSalesOrder } from "@/service/salesFlowService";
 import type { SalesOrderItem } from "@/types/sales";
-import SelectAccount from "@/components/select-account";
+import type { Company } from "@/types/company";
+import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 
 type Props = {
   onCancel: () => void;
@@ -45,9 +45,14 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
   const [customers, setCustomers] = useState<any[]>([]);
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [salesDefaultsMissing, setSalesDefaultsMissing] = useState(false);
+  const [resolvedSalesAccounts, setResolvedSalesAccounts] = useState<{
+    bankAccountId: number;
+    debitAccountId: number;
+    creditAccountId: number;
+  } | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const companyTaxActive = Boolean(company?.isTaxActive);
   const companyTaxRateRaw = Number(company?.taxRate ?? 0);
@@ -61,9 +66,6 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         customerId: z.string().min(1, "Customer is required"),
         orderDate: z.string().min(1, "Order date is required"),
         invoiceDueDate: z.string().min(1, "Invoice due date is required"),
-        bankAccountId: z.string().min(1, "Bank account is required"),
-        debitAccountId: z.string().min(1, "Debit account is required"),
-        creditAccountId: z.string().min(1, "Credit account is required"),
         requiredDate: z.string().optional(),
         shippingAddress: z.string().optional(),
         notes: z.string().optional(),
@@ -103,10 +105,23 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         setItems(it);
         setWarehouses(wh);
         if (user?.companyId) {
-          const bankResponse = await apiClient.get<BankAccount[]>(
-            `/bank-accounts/company/${user.companyId}`,
+          const companyRes = await apiClient.get<Company>(
+            `/companies/${user.companyId}`,
           );
-          if (!cancelled) setBankAccounts(bankResponse.data || []);
+          if (!cancelled && companyRes.data) {
+            const co = companyRes.data;
+            if (!hasSalesAccountingDefaults(co)) {
+              setSalesDefaultsMissing(true);
+              setResolvedSalesAccounts(null);
+            } else {
+              setSalesDefaultsMissing(false);
+              setResolvedSalesAccounts({
+                bankAccountId: co.defaultBankAccountId!,
+                debitAccountId: co.defaultSalesDebitAccountId!,
+                creditAccountId: co.defaultSalesCreditAccountId!,
+              });
+            }
+          }
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -229,6 +244,11 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
   };
 
   const onSubmit = async (data: any) => {
+    if (!resolvedSalesAccounts) {
+      return toast.error(
+        "Default accounts are not loaded. Open Global Settings → Default Accounts.",
+      );
+    }
     if (orderItems.length === 0) return toast.error("Add at least one item.");
     const completeData = {
       ...data,
@@ -254,9 +274,9 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         customerId: Number(data.customerId),
         orderDate: data.orderDate,
         invoiceDueDate: data.invoiceDueDate,
-        bankAccountId: Number(data.bankAccountId),
-        debitAccountId: Number(data.debitAccountId),
-        creditAccountId: Number(data.creditAccountId),
+        bankAccountId: resolvedSalesAccounts.bankAccountId,
+        debitAccountId: resolvedSalesAccounts.debitAccountId,
+        creditAccountId: resolvedSalesAccounts.creditAccountId,
         items: orderItems.map((it) => ({
           itemId: Number(it.itemId),
           quantity: Math.round(it.quantity),
@@ -288,6 +308,37 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
 
   if (loadError) {
     return <div className="p-10 text-center text-red-600">{loadError}</div>;
+  }
+
+  if (salesDefaultsMissing) {
+    return (
+      <div className="p-4 sm:p-6 max-w-lg space-y-4">
+        <Card className="border-amber-200 bg-amber-50/90 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100 text-base">
+              <Info className="h-5 w-5 shrink-0" />
+              Set default accounts first
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-amber-900/90 dark:text-amber-100/90 space-y-3">
+            <p>
+              Configure sales debit, sales credit, and default bank in Global
+              Settings before creating sales orders.
+            </p>
+            <Button asChild variant="secondary" className="w-full sm:w-auto">
+              <Link to="/admin/default-accounts">
+                Open Default Accounts (Global Settings)
+              </Link>
+            </Button>
+            <div>
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Back
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -366,61 +417,10 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
                 <Label>Invoice Due Date *</Label>
                 <Input type="date" {...register("invoiceDueDate")} />
               </div>
-              <div className="space-y-2">
-                <Label>Bank Account *</Label>
-                <Select
-                  value={watch("bankAccountId") || ""}
-                  onValueChange={(value) =>
-                    setValue("bankAccountId", value, { shouldValidate: true })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select bank account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts.map((account) => (
-                      <SelectItem key={account.id} value={String(account.id)}>
-                        {account.bankName} - {account.accountNumber}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formState.errors.bankAccountId && (
-                  <p className="text-sm text-red-500">
-                    {formState.errors.bankAccountId.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <SelectAccount
-                  label="Debit Account *"
-                  useId
-                  value={watch("debitAccountId")}
-                  onChange={(value) =>
-                    setValue("debitAccountId", value, { shouldValidate: true })
-                  }
-                />
-                {formState.errors.debitAccountId && (
-                  <p className="text-sm text-red-500">
-                    {formState.errors.debitAccountId.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <SelectAccount
-                  label="Credit Account *"
-                  useId
-                  value={watch("creditAccountId")}
-                  onChange={(value) =>
-                    setValue("creditAccountId", value, { shouldValidate: true })
-                  }
-                />
-                {formState.errors.creditAccountId && (
-                  <p className="text-sm text-red-500">
-                    {formState.errors.creditAccountId.message}
-                  </p>
-                )}
-              </div>
+              <p className="text-sm text-muted-foreground md:col-span-2">
+                Bank and GL accounts use your company defaults from Global
+                Settings → Default Accounts.
+              </p>
               <div className="space-y-2 md:col-span-2">
                 <Label>Shipping Address</Label>
                 <Textarea

@@ -22,8 +22,12 @@ import { toast } from "sonner";
 import SelectUser from "@/components/select-user";
 import SelectDepartment from "@/components/select-department";
 import SelectVendor from "@/components/select-vendor";
-import SelectAccount from "@/components/select-account";
 import { useAuth } from "@/context/AuthContext";
+import { apiClient } from "@/service/apiClient";
+import type { Company } from "@/types/company";
+import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
+import { Link } from "react-router-dom";
+import { Info } from "lucide-react";
 
 type Props = {
   onCancel: () => void;
@@ -54,6 +58,8 @@ export function CreatePurchaseRequisitionForm({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] =
+    useState(false);
 
   const [requestedByUserId, setRequestedByUserId] = useState<string | undefined>(
     user?.userId != null ? String(user.userId) : undefined,
@@ -73,6 +79,24 @@ export function CreatePurchaseRequisitionForm({
         const it = await listItems();
         if (cancelled) return;
         setItems(it);
+        if (companyId) {
+          const companyRes = await apiClient.get<Company>(
+            `/companies/${companyId}`,
+          );
+          if (cancelled) return;
+          const co = companyRes.data;
+          if (!co || !hasPurchaseAccountingDefaults(co)) {
+            setPurchaseDefaultsMissing(true);
+          } else {
+            setPurchaseDefaultsMissing(false);
+            if (co.defaultPurchaseDebitAccountId != null) {
+              setDebitAccountId(String(co.defaultPurchaseDebitAccountId));
+            }
+            if (co.defaultPurchaseCreditAccountId != null) {
+              setCreditAccountId(String(co.defaultPurchaseCreditAccountId));
+            }
+          }
+        }
       } catch (e: any) {
         if (!cancelled) {
           setLoadError(
@@ -86,7 +110,7 @@ export function CreatePurchaseRequisitionForm({
     return () => {
       cancelled = true;
     };
-  }, [reloadSeq]);
+  }, [reloadSeq, companyId]);
 
   const addItemToRequisition = () => {
     if (!selectedItem || itemQuantity <= 0) return;
@@ -166,7 +190,9 @@ export function CreatePurchaseRequisitionForm({
       return;
     }
     if (!debitAccountId || !creditAccountId) {
-      toast.error("Select debit and credit accounts for this commitment.");
+      toast.error(
+        "Purchase default accounts are not loaded. Configure them under Global Settings → Default Accounts.",
+      );
       return;
     }
     if (debitAccountId === creditAccountId) {
@@ -230,8 +256,9 @@ export function CreatePurchaseRequisitionForm({
               Create Purchase Requisition
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              When approved, a draft purchase order is created and a matching
-              finance transaction is posted to the accounts you choose.
+              When approved, a draft purchase order is created and finance
+              posts to your company default purchase accounts (Global Settings
+              → Default Accounts).
             </p>
           </div>
         </div>
@@ -249,6 +276,26 @@ export function CreatePurchaseRequisitionForm({
             Retry
           </Button>
         </div>
+      ) : purchaseDefaultsMissing ? (
+        <Card className="border-amber-200 bg-amber-50/90 dark:bg-amber-950/20 max-w-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100 text-base">
+              <Info className="h-5 w-5 shrink-0" />
+              Set default accounts first
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-amber-900/90 dark:text-amber-100/90 space-y-3">
+            <p>
+              Configure purchase debit and purchase credit in Global Settings
+              before creating purchase requisitions.
+            </p>
+            <Button asChild variant="secondary">
+              <Link to="/admin/default-accounts">
+                Open Default Accounts (Global Settings)
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <form onSubmit={onSubmit} className="space-y-6">
           <Card>
@@ -256,6 +303,10 @@ export function CreatePurchaseRequisitionForm({
               <CardTitle>Request details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                GL accounts for this requisition use your company purchase
+                defaults (Global Settings → Default Accounts).
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <SelectUser
@@ -283,33 +334,6 @@ export function CreatePurchaseRequisitionForm({
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Accounting</CardTitle>
-              <p className="text-sm text-muted-foreground font-normal">
-                Debit is typically expense or inventory; credit is often
-                accounts payable or a clearing account. Balances are checked
-                when you save, submit, and approve.
-              </p>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <SelectAccount
-                useId
-                label="Debit account *"
-                value={debitAccountId}
-                onChange={setDebitAccountId}
-                placeholder="Select debit account"
-              />
-              <SelectAccount
-                useId
-                label="Credit account *"
-                value={creditAccountId}
-                onChange={setCreditAccountId}
-                placeholder="Select credit account"
-              />
             </CardContent>
           </Card>
 

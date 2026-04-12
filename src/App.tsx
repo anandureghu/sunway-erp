@@ -113,6 +113,7 @@ import { setAdminView, setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
+import DefaultAccountsSettingsPage from "@/pages/admin/hr/company/default-accounts-settings-page";
 import { ErrorBoundary } from "./components/error-boundary";
 
 export default function App() {
@@ -169,6 +170,10 @@ export default function App() {
         <Route path="admin">
           <Route path="company" element={<CompanyPage />} />
           <Route path="bank-accounts" element={<CompanyBankAccounts />} />
+          <Route
+            path="default-accounts"
+            element={<DefaultAccountsSettingsPage />}
+          />
           <Route path="department" element={<DepartmentListPage />} />
           <Route path="division" element={<DivisionListPage />} />
           <Route path="accounting-period" element={<AccountingPeriodPage />} />
