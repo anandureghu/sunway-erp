@@ -3,29 +3,43 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { FormRow, FormField } from "@/modules/hr/components/form-components";
-import { User, Upload, Camera, Calendar, Briefcase } from "lucide-react";
+import {
+  User,
+  Upload,
+  Camera,
+  Calendar,
+  Briefcase,
+  MapPin,
+  Globe,
+  Heart,
+  ShieldCheck,
+  Hash,
+  UserCircle2,
+  Building2,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import roleService from "@/service/roleService";
+import { cn } from "@/lib/utils";
 
 type Prefix = "" | "Mr." | "Mrs." | "Ms." | "Miss" | "Dr.";
 
 type EmpProfile = {
-  employeeNo: string;
-  prefix: Prefix;
-  firstName: string;
-  lastName: string;
-  photoUrl?: string;
-  joinDate: string;
-  dateOfBirth: string;
-  gender: "Male" | "Female" | "Other" | "";
+  employeeNo:     string;
+  prefix:         Prefix;
+  firstName:      string;
+  lastName:       string;
+  photoUrl?:      string;
+  joinDate:       string;
+  dateOfBirth:    string;
+  gender:         "Male" | "Female" | "Other" | "";
   maritalStatus?: "Single" | "Married" | "Divorced" | "Widowed" | "";
-  status?: string;
-  birthplace?: string;
-  hometown?: string;
-  nationality?: string;
-  religion?: string;
+  status?:        string;
+  birthplace?:    string;
+  hometown?:      string;
+  nationality?:   string;
+  religion?:      string;
   identification?: string;
-  companyRole?: string;  // ✅ HR-managed role e.g. "Manager", "HR Lead"
+  companyRole?:   string;
 };
 
 const NEW_EMP: EmpProfile = {
@@ -35,6 +49,95 @@ const NEW_EMP: EmpProfile = {
   religion: "", identification: "", companyRole: "",
 };
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+const getInitials = (first?: string, last?: string) => {
+  const f = (first ?? "").trim()[0] ?? "";
+  const l = (last  ?? "").trim()[0] ?? "";
+  return (f + l).toUpperCase() || "?";
+};
+
+const getStatusMeta = (status?: string) => {
+  switch (status) {
+    case "Active":
+      return { dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100" };
+    case "On Leave":
+      return { dot: "bg-amber-400",   badge: "bg-amber-50   text-amber-700   border-amber-200   ring-amber-100"   };
+    default:
+      return { dot: "bg-slate-400",   badge: "bg-slate-50   text-slate-600   border-slate-200   ring-slate-100"   };
+  }
+};
+
+// ── shared styled select ──────────────────────────────────────────────────────
+const StyledSelect = ({
+  disabled,
+  value,
+  onChange,
+  children,
+}: {
+  disabled?: boolean;
+  value: string;
+  onChange: React.ChangeEventHandler<HTMLSelectElement>;
+  children: React.ReactNode;
+}) => (
+  <select
+    disabled={disabled}
+    value={value}
+    onChange={onChange}
+    className={cn(
+      "h-9 w-full rounded-lg border border-slate-200 px-3 text-sm",
+      "focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30",
+      "transition-all bg-white",
+      disabled && "bg-slate-50 text-slate-500 cursor-not-allowed",
+    )}
+  >
+    {children}
+  </select>
+);
+
+// ── field with leading icon ───────────────────────────────────────────────────
+const IconInput = ({
+  icon,
+  ...props
+}: React.ComponentProps<typeof Input> & { icon: React.ReactNode }) => (
+  <div className="relative">
+    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+      {icon}
+    </span>
+    <Input
+      {...props}
+      className={cn(
+        "h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30",
+        props.disabled && "bg-slate-50 text-slate-600",
+        props.className,
+      )}
+    />
+  </div>
+);
+
+// ── section heading ───────────────────────────────────────────────────────────
+const SectionHeading = ({
+  icon,
+  label,
+  description,
+  accent = "from-violet-600 to-blue-600",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+  accent?: string;
+}) => (
+  <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm", accent)}>
+      {icon}
+    </div>
+    <div>
+      <h3 className="text-sm font-bold text-slate-800">{label}</h3>
+      {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+    </div>
+  </div>
+);
+
+// ── main component ────────────────────────────────────────────────────────────
 export default function EmployeeProfileForm() {
   const { id } = useParams<{ id: string }>();
   const isNew = !id;
@@ -43,8 +146,8 @@ export default function EmployeeProfileForm() {
 
   const [editing, setEditing] = useState<boolean>(isNew);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [saved, setSaved] = useState<EmpProfile>(NEW_EMP);
-  const [draft, setDraft] = useState<EmpProfile>(NEW_EMP);
+  const [saved,  setSaved]  = useState<EmpProfile>(NEW_EMP);
+  const [draft,  setDraft]  = useState<EmpProfile>(NEW_EMP);
   const [imageHover, setImageHover] = useState(false);
   const [, setPendingFile] = useState<File | null>(null);
   const [companyRoleOptions, setCompanyRoleOptions] = useState<{ label: string; value: string }[]>([]);
@@ -52,10 +155,10 @@ export default function EmployeeProfileForm() {
   const set = useCallback(
     <K extends keyof EmpProfile>(k: K, v: EmpProfile[K]) =>
       setDraft((d) => ({ ...d, [k]: v })),
-    []
+    [],
   );
 
-  // ✅ Fetch company roles from Settings → Roles
+  // Fetch company roles
   useEffect(() => {
     const companyId = currentUser?.companyId;
     if (!companyId) return;
@@ -69,6 +172,7 @@ export default function EmployeeProfileForm() {
       .catch(() => console.error("Failed to fetch company roles"));
   }, [currentUser?.companyId]);
 
+  // Load employee
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -89,7 +193,7 @@ export default function EmployeeProfileForm() {
             ...NEW_EMP, ...(emp as any),
             photoUrl:    (emp as any).imageUrl ?? "",
             status:      fromBackendStatus((emp as any).status),
-            prefix: ((emp as any).prefix ?? "") as Prefix,
+            prefix:      ((emp as any).prefix ?? "") as Prefix,
             companyRole: (emp as any).companyRole ?? (emp as any).CompanyRole ?? "",
           };
           setSaved(merged);
@@ -107,14 +211,12 @@ export default function EmployeeProfileForm() {
     const toBackendStatus = (s?: string | null) => {
       if (!s) return null;
       const low = String(s).toLowerCase();
-      if (low === "active")   return "ACTIVE";
-      if (low === "inactive") return "INACTIVE";
-      if (low === "on leave" || low === "on_leave") return "ON_LEAVE";
+      if (low === "active")                           return "ACTIVE";
+      if (low === "inactive")                         return "INACTIVE";
+      if (low === "on leave" || low === "on_leave")  return "ON_LEAVE";
       return String(s).toUpperCase();
     };
-
     const statusVal = toBackendStatus(updated.status ?? null);
-
     const payload: any = {
       employeeNo:     updated.employeeNo,
       firstName:      updated.firstName,
@@ -130,11 +232,9 @@ export default function EmployeeProfileForm() {
       nationality:    updated.nationality    || null,
       religion:       updated.religion       || null,
       identification: updated.identification || null,
-      companyRole:    updated.companyRole    || null,  // ✅ sends companyRole, never role enum
+      companyRole:    updated.companyRole    || null,
     };
-
     if (statusVal != null) payload.status = statusVal;
-
     try {
       const { hrService } = await import("@/service/hr.service");
       let createdResult: any = null;
@@ -192,202 +292,317 @@ export default function EmployeeProfileForm() {
     });
   };
 
-  const getStatusBadge = (status?: string) => {
-    switch (status) {
-      case "Active":   return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case "On Leave": return "bg-amber-100 text-amber-700 border-amber-200";
-      default:         return "bg-slate-100 text-slate-700 border-slate-200";
-    }
-  };
+  const statusMeta = getStatusMeta(draft.status);
+  const initials   = getInitials(draft.firstName, draft.lastName);
+  const fullName   = [draft.prefix, draft.firstName, draft.lastName].filter(Boolean).join(" ");
 
   return (
-    <div className="space-y-6">
-      {/* Header Card with Photo */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="bg-blue-600 h-24" />
-        <div className="px-8 pb-8">
-          <div className="flex flex-col md:flex-row items-start md:items-end gap-6 -mt-12">
-            <div className="relative">
-              <div
-                className={`relative w-28 h-28 rounded-xl border-4 border-white shadow-md bg-slate-100 overflow-hidden transition-all duration-200 ${imageHover ? "shadow-lg" : ""}`}
-                onMouseEnter={() => setImageHover(true)}
-                onMouseLeave={() => setImageHover(false)}
-              >
-                {draft.photoUrl ? (
-                  <img src={draft.photoUrl} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <User className="h-12 w-12 text-slate-400" />
-                  </div>
-                )}
-                <div
-                  className={`absolute inset-0 bg-slate-900/60 flex items-center justify-center transition-opacity duration-200 cursor-pointer ${imageHover ? "opacity-100" : "opacity-0"}`}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Camera className="h-6 w-6 text-white" />
+    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
+
+      {/* ── Hero header card ── */}
+      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
+        {/* Gradient banner */}
+        <div className="relative h-28 bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 overflow-hidden">
+          {/* Dot pattern overlay */}
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+            }}
+          />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute -left-8 bottom-0  h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        </div>
+
+        {/* Profile row — avatar overlaps banner, name sits safely below */}
+        <div className="px-6 pb-5">
+          {/* Avatar — pulled up to overlap the banner */}
+          <div className="relative shrink-0 -mt-12 mb-3 w-fit">
+            <div
+              className="relative h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-lg cursor-pointer"
+              onMouseEnter={() => setImageHover(true)}
+              onMouseLeave={() => setImageHover(false)}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {draft.photoUrl ? (
+                <img src={draft.photoUrl} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-white text-2xl font-bold select-none">
+                  {initials}
                 </div>
+              )}
+              <div className={cn(
+                "absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200",
+                imageHover ? "opacity-100" : "opacity-0",
+              )}>
+                <Camera className="h-5 w-5 text-white" />
               </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg shadow-md"
-              >
-                <Upload className="h-3.5 w-3.5" />
-              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md hover:shadow-lg transition-shadow"
+            >
+              <Upload className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Name + meta — always below the banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-slate-900 leading-tight truncate">
+                {fullName || "New Employee"}
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                {draft.employeeNo ? (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-mono font-medium text-slate-600">
+                    <Hash className="h-3 w-3" />{draft.employeeNo}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">No employee number</span>
+                )}
+                {draft.companyRole && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 border border-violet-100">
+                    <Briefcase className="h-3 w-3" />{draft.companyRole}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-semibold text-slate-800">
-                    {draft.prefix && `${draft.prefix} `}{draft.firstName || "New"} {draft.lastName || "Employee"}
-                  </h2>
-                  <p className="text-slate-600 mt-1 text-sm">{draft.employeeNo || "Employee Number Not Assigned"}</p>
-                </div>
-                <div className={`px-3 py-1.5 rounded-lg border font-medium text-sm ${getStatusBadge(draft.status)}`}>
-                  {draft.status || "Active"}
-                </div>
-              </div>
-            </div>
+            {/* Status badge */}
+            <span className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
+              statusMeta.badge,
+            )}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
+              {draft.status || "Active"}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Personal Information */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <User className="h-5 w-5 text-slate-600" />
-            Personal Information
-          </h3>
-          <p className="text-sm text-slate-500 mt-1">Basic employee details and identification</p>
-        </div>
+      {/* ── Personal Information ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<UserCircle2 className="h-4 w-4" />}
+          label="Personal Information"
+          description="Basic identity and demographic details"
+          accent="from-violet-600 to-blue-600"
+        />
+        <FormRow columns={3}>
+          <FormField label="Employee No">
+            <IconInput
+              icon={<Hash className="h-4 w-4" />}
+              disabled
+              value={draft.employeeNo}
+              readOnly
+              className="font-mono"
+            />
+          </FormField>
 
-        <div className="p-6">
-          <FormRow columns={3}>
-            <FormField label="Employee No">
-              <div className="relative">
-                <Input disabled value={draft.employeeNo} readOnly className="pl-10 bg-slate-50 font-mono" />
-                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              </div>
-            </FormField>
+          <FormField label="Prefix">
+            <StyledSelect
+              disabled={!editing}
+              value={draft.prefix}
+              onChange={(e) => set("prefix", e.target.value as Prefix)}
+            >
+              <option value="">Select prefix</option>
+              <option value="Mr.">Mr.</option>
+              <option value="Mrs.">Mrs.</option>
+              <option value="Ms.">Ms.</option>
+              <option value="Miss">Miss</option>
+              <option value="Dr.">Dr.</option>
+            </StyledSelect>
+          </FormField>
 
-            <FormField label="Prefix">
-              <select disabled={!editing} value={draft.prefix} onChange={(e) => set("prefix", e.target.value as Prefix)}
-                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all">
-                <option value="">Select prefix</option>
-                <option value="Mr.">Mr.</option><option value="Mrs.">Mrs.</option>
-                <option value="Ms.">Ms.</option><option value="Miss">Miss</option>
-                <option value="Dr.">Dr.</option>
-              </select>
-            </FormField>
+          <FormField label="First Name" required>
+            <IconInput
+              icon={<User className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.firstName}
+              onChange={(e) => set("firstName", e.target.value)}
+              placeholder="Enter first name"
+            />
+          </FormField>
 
-            <FormField label="First Name" required>
-              <Input disabled={!editing} value={draft.firstName} onChange={(e) => set("firstName", e.target.value)}
-                placeholder="Enter first name" className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-            </FormField>
+          <FormField label="Last Name" required>
+            <IconInput
+              icon={<User className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.lastName}
+              onChange={(e) => set("lastName", e.target.value)}
+              placeholder="Enter last name"
+            />
+          </FormField>
 
-            <FormField label="Last Name" required>
-              <Input disabled={!editing} value={draft.lastName} onChange={(e) => set("lastName", e.target.value)}
-                placeholder="Enter last name" className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-            </FormField>
+          <FormField label="Date of Birth">
+            <IconInput
+              icon={<Calendar className="h-4 w-4" />}
+              type="date"
+              disabled={!editing}
+              value={draft.dateOfBirth}
+              onChange={(e) => set("dateOfBirth", e.target.value)}
+            />
+          </FormField>
 
-            <FormField label="Date of Birth">
-              <div className="relative">
-                <Input type="date" disabled={!editing} value={draft.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)}
-                  className="pl-10 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              </div>
-            </FormField>
+          <FormField label="Gender">
+            <StyledSelect
+              disabled={!editing}
+              value={draft.gender}
+              onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
+            >
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </StyledSelect>
+          </FormField>
 
-            <FormField label="Gender">
-              <select disabled={!editing} value={draft.gender} onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
-                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all">
-                <option value="">Select gender</option>
-                <option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
-              </select>
-            </FormField>
+          <FormField label="Marital Status">
+            <StyledSelect
+              disabled={!editing}
+              value={draft.maritalStatus ?? ""}
+              onChange={(e) => set("maritalStatus", e.target.value as EmpProfile["maritalStatus"])}
+            >
+              <option value="">Select status</option>
+              <option value="Single">Single</option>
+              <option value="Married">Married</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Widowed">Widowed</option>
+            </StyledSelect>
+          </FormField>
 
-            <FormField label="Marital Status">
-              <select disabled={!editing} value={draft.maritalStatus ?? ""} onChange={(e) => set("maritalStatus", e.target.value as EmpProfile["maritalStatus"])}
-                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all">
-                <option value="">Select status</option>
-                <option value="Single">Single</option><option value="Married">Married</option>
-                <option value="Divorced">Divorced</option><option value="Widowed">Widowed</option>
-              </select>
-            </FormField>
+          <FormField label="Identification No">
+            <IconInput
+              icon={<ShieldCheck className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.identification ?? ""}
+              onChange={(e) => set("identification", e.target.value)}
+              placeholder="Enter ID number"
+            />
+          </FormField>
 
-            <FormField label="Join Date">
-              <div className="relative">
-                <Input type="date" disabled={!editing} value={draft.joinDate} onChange={(e) => set("joinDate", e.target.value)}
-                  className="pl-10 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              </div>
-            </FormField>
-
-            <FormField label="Employment Status">
-              <select disabled={!editing} value={draft.status ?? "Active"} onChange={(e) => set("status", e.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all">
-                <option value="Active">Active</option>
-                <option value="On Leave">On Leave</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </FormField>
-
-            <FormField label="Birthplace">
-              <Input disabled={!editing} value={draft.birthplace ?? ""} onChange={(e) => set("birthplace", e.target.value)}
-                placeholder="Enter birthplace" className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-            </FormField>
-
-            <FormField label="Hometown">
-              <Input disabled={!editing} value={draft.hometown ?? ""} onChange={(e) => set("hometown", e.target.value)}
-                placeholder="Enter hometown" className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-            </FormField>
-
-            <FormField label="Nationality">
-              <Input disabled={!editing} value={draft.nationality ?? ""} onChange={(e) => set("nationality", e.target.value)}
-                placeholder="Enter nationality" className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-            </FormField>
-
-            <FormField label="Religion">
-              <Input disabled={!editing} value={draft.religion ?? ""} onChange={(e) => set("religion", e.target.value)}
-                placeholder="Enter religion" className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-            </FormField>
-
-            <FormField label="Identification">
-              <Input disabled={!editing} value={draft.identification ?? ""} onChange={(e) => set("identification", e.target.value)}
-                placeholder="Enter ID number" className="focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all" />
-            </FormField>
-
-            {/* ✅ Company Role — fetched from Settings → Roles, editable by admin/HR */}
-            <FormField label="Role">
-              {isAdmin ? (
-                <select
-                  disabled={!editing}
-                  value={draft.companyRole ?? ""}
-                  onChange={(e) => set("companyRole", e.target.value)}
-                  className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500 focus:ring-2 focus:ring-slate-400 focus:border-transparent transition-all"
-                >
-                  <option value="">Select role</option>
-                  {companyRoleOptions.map((r) => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </select>
-              ) : (
-                <Input disabled value={draft.companyRole || "—"} className="bg-slate-50 text-slate-500" />
-              )}
-            </FormField>
-          </FormRow>
-        </div>
+          <FormField label="Religion">
+            <IconInput
+              icon={<Heart className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.religion ?? ""}
+              onChange={(e) => set("religion", e.target.value)}
+              placeholder="Enter religion"
+            />
+          </FormField>
+        </FormRow>
       </div>
 
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+      {/* ── Professional Details ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<Briefcase className="h-4 w-4" />}
+          label="Professional Details"
+          description="Employment status, role, and joining information"
+          accent="from-emerald-500 to-teal-600"
+        />
+        <FormRow columns={3}>
+          <FormField label="Join Date">
+            <IconInput
+              icon={<Calendar className="h-4 w-4" />}
+              type="date"
+              disabled={!editing}
+              value={draft.joinDate}
+              onChange={(e) => set("joinDate", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Employment Status">
+            <StyledSelect
+              disabled={!editing}
+              value={draft.status ?? "Active"}
+              onChange={(e) => set("status", e.target.value)}
+            >
+              <option value="Active">Active</option>
+              <option value="On Leave">On Leave</option>
+              <option value="Inactive">Inactive</option>
+            </StyledSelect>
+          </FormField>
+
+          <FormField label="Role">
+            {isAdmin ? (
+              <StyledSelect
+                disabled={!editing}
+                value={draft.companyRole ?? ""}
+                onChange={(e) => set("companyRole", e.target.value)}
+              >
+                <option value="">Select role</option>
+                {companyRoleOptions.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </StyledSelect>
+            ) : (
+              <IconInput
+                icon={<Building2 className="h-4 w-4" />}
+                disabled
+                value={draft.companyRole || "—"}
+              />
+            )}
+          </FormField>
+        </FormRow>
+      </div>
+
+      {/* ── Origin & Background ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<Globe className="h-4 w-4" />}
+          label="Origin & Background"
+          description="Nationality, birthplace, and hometown information"
+          accent="from-amber-500 to-orange-500"
+        />
+        <FormRow columns={3}>
+          <FormField label="Nationality">
+            <IconInput
+              icon={<Globe className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.nationality ?? ""}
+              onChange={(e) => set("nationality", e.target.value)}
+              placeholder="Enter nationality"
+            />
+          </FormField>
+
+          <FormField label="Birthplace">
+            <IconInput
+              icon={<MapPin className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.birthplace ?? ""}
+              onChange={(e) => set("birthplace", e.target.value)}
+              placeholder="Enter birthplace"
+            />
+          </FormField>
+
+          <FormField label="Hometown">
+            <IconInput
+              icon={<MapPin className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.hometown ?? ""}
+              onChange={(e) => set("hometown", e.target.value)}
+              placeholder="Enter hometown"
+            />
+          </FormField>
+        </FormRow>
+      </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
         onChange={async (e) => {
           const file = e.target.files?.[0];
           if (file) {
             if (id) {
               const url = await uploadImage(file, Number(id));
               set("photoUrl", url);
-              setSaved(prev => ({ ...prev, photoUrl: url }));
+              setSaved((prev) => ({ ...prev, photoUrl: url }));
               toast.success("Photo uploaded successfully!");
             } else {
               setPendingFile(file);

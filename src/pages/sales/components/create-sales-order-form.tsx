@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Info, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,14 +21,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SALES_ORDER_SCHEMA, type SalesOrderFormData } from "@/schema/sales";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import type { BankAccount } from "@/types/bank-account";
 import { useAuth } from "@/context/AuthContext";
 import { listCustomers } from "@/service/customerService";
 import { listItems, listWarehouses } from "@/service/inventoryService";
 import { apiClient } from "@/service/apiClient";
 import { createSalesOrder } from "@/service/salesFlowService";
 import type { SalesOrderItem } from "@/types/sales";
-import SelectAccount from "@/components/select-account";
+import type { Company } from "@/types/company";
+import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 
 type Props = {
   onCancel: () => void;
@@ -45,9 +45,14 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
   const [customers, setCustomers] = useState<any[]>([]);
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [salesDefaultsMissing, setSalesDefaultsMissing] = useState(false);
+  const [resolvedSalesAccounts, setResolvedSalesAccounts] = useState<{
+    bankAccountId: number;
+    debitAccountId: number;
+    creditAccountId: number;
+  } | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const companyTaxActive = Boolean(company?.isTaxActive);
   const companyTaxRateRaw = Number(company?.taxRate ?? 0);
@@ -61,9 +66,6 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         customerId: z.string().min(1, "Customer is required"),
         orderDate: z.string().min(1, "Order date is required"),
         invoiceDueDate: z.string().min(1, "Invoice due date is required"),
-        bankAccountId: z.string().min(1, "Bank account is required"),
-        debitAccountId: z.string().min(1, "Debit account is required"),
-        creditAccountId: z.string().min(1, "Credit account is required"),
         requiredDate: z.string().optional(),
         shippingAddress: z.string().optional(),
         notes: z.string().optional(),
@@ -103,10 +105,23 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         setItems(it);
         setWarehouses(wh);
         if (user?.companyId) {
-          const bankResponse = await apiClient.get<BankAccount[]>(
-            `/bank-accounts/company/${user.companyId}`,
+          const companyRes = await apiClient.get<Company>(
+            `/companies/${user.companyId}`,
           );
-          if (!cancelled) setBankAccounts(bankResponse.data || []);
+          if (!cancelled && companyRes.data) {
+            const co = companyRes.data;
+            if (!hasSalesAccountingDefaults(co)) {
+              setSalesDefaultsMissing(true);
+              setResolvedSalesAccounts(null);
+            } else {
+              setSalesDefaultsMissing(false);
+              setResolvedSalesAccounts({
+                bankAccountId: co.defaultBankAccountId!,
+                debitAccountId: co.defaultSalesDebitAccountId!,
+                creditAccountId: co.defaultSalesCreditAccountId!,
+              });
+            }
+          }
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -138,6 +153,54 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
     );
     return { subtotal, tax, discount, total: subtotal + tax };
   }, [orderItems]);
+
+  const recomputeLine = (row: SalesOrderItem): SalesOrderItem => {
+    const qty = row.quantity > 0 ? row.quantity : 0.01;
+    const unitPrice =
+      Number.isFinite(row.unitPrice) && row.unitPrice >= 0 ? row.unitPrice : 0;
+    const rawDisc = row.discountPercent ?? row.discount ?? 0;
+    const discountPct = Math.min(100, Math.max(0, rawDisc));
+    const discountAmount = (unitPrice * qty * discountPct) / 100;
+    const lineSubtotal = unitPrice * qty - discountAmount;
+    const tax = companyTaxActive ? lineSubtotal * (companyTaxRate / 100) : 0;
+    const total = lineSubtotal + tax;
+    return {
+      ...row,
+      quantity: qty,
+      unitPrice,
+      discountPercent: discountPct,
+      discount: discountPct,
+      lineSubtotal,
+      taxRate: companyTaxActive ? companyTaxRate : 0,
+      taxAmount: tax,
+      tax,
+      total,
+    };
+  };
+
+  const updateOrderLine = (
+    lineId: string,
+    patch: Partial<{
+      quantity: number;
+      unitPrice: number;
+      discountPercent: number;
+      warehouseId: number;
+    }>,
+  ) => {
+    setOrderItems((prev) =>
+      prev.map((row) => {
+        if (row.id !== lineId) return row;
+        const merged: SalesOrderItem = {
+          ...row,
+          ...patch,
+          ...(patch.discountPercent !== undefined
+            ? { discount: patch.discountPercent }
+            : {}),
+        };
+        return recomputeLine(merged);
+      }),
+    );
+  };
 
   const addItemToOrder = () => {
     if (!selectedItem || itemQuantity <= 0) return;
@@ -181,6 +244,11 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
   };
 
   const onSubmit = async (data: any) => {
+    if (!resolvedSalesAccounts) {
+      return toast.error(
+        "Default accounts are not loaded. Open Global Settings → Default Accounts.",
+      );
+    }
     if (orderItems.length === 0) return toast.error("Add at least one item.");
     const completeData = {
       ...data,
@@ -206,9 +274,9 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         customerId: Number(data.customerId),
         orderDate: data.orderDate,
         invoiceDueDate: data.invoiceDueDate,
-        bankAccountId: Number(data.bankAccountId),
-        debitAccountId: Number(data.debitAccountId),
-        creditAccountId: Number(data.creditAccountId),
+        bankAccountId: resolvedSalesAccounts.bankAccountId,
+        debitAccountId: resolvedSalesAccounts.debitAccountId,
+        creditAccountId: resolvedSalesAccounts.creditAccountId,
         items: orderItems.map((it) => ({
           itemId: Number(it.itemId),
           quantity: Math.round(it.quantity),
@@ -240,6 +308,37 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
 
   if (loadError) {
     return <div className="p-10 text-center text-red-600">{loadError}</div>;
+  }
+
+  if (salesDefaultsMissing) {
+    return (
+      <div className="p-4 sm:p-6 max-w-lg space-y-4">
+        <Card className="border-amber-200 bg-amber-50/90 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100 text-base">
+              <Info className="h-5 w-5 shrink-0" />
+              Set default accounts first
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-amber-900/90 dark:text-amber-100/90 space-y-3">
+            <p>
+              Configure sales debit, sales credit, and default bank in Global
+              Settings before creating sales orders.
+            </p>
+            <Button asChild variant="secondary" className="w-full sm:w-auto">
+              <Link to="/admin/default-accounts">
+                Open Default Accounts (Global Settings)
+              </Link>
+            </Button>
+            <div>
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Back
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -318,61 +417,10 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
                 <Label>Invoice Due Date *</Label>
                 <Input type="date" {...register("invoiceDueDate")} />
               </div>
-              <div className="space-y-2">
-                <Label>Bank Account *</Label>
-                <Select
-                  value={watch("bankAccountId") || ""}
-                  onValueChange={(value) =>
-                    setValue("bankAccountId", value, { shouldValidate: true })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select bank account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts.map((account) => (
-                      <SelectItem key={account.id} value={String(account.id)}>
-                        {account.bankName} - {account.accountNumber}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formState.errors.bankAccountId && (
-                  <p className="text-sm text-red-500">
-                    {formState.errors.bankAccountId.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <SelectAccount
-                  label="Debit Account *"
-                  useId
-                  value={watch("debitAccountId")}
-                  onChange={(value) =>
-                    setValue("debitAccountId", value, { shouldValidate: true })
-                  }
-                />
-                {formState.errors.debitAccountId && (
-                  <p className="text-sm text-red-500">
-                    {formState.errors.debitAccountId.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <SelectAccount
-                  label="Credit Account *"
-                  useId
-                  value={watch("creditAccountId")}
-                  onChange={(value) =>
-                    setValue("creditAccountId", value, { shouldValidate: true })
-                  }
-                />
-                {formState.errors.creditAccountId && (
-                  <p className="text-sm text-red-500">
-                    {formState.errors.creditAccountId.message}
-                  </p>
-                )}
-              </div>
+              <p className="text-sm text-muted-foreground md:col-span-2">
+                Bank and GL accounts use your company defaults from Global
+                Settings → Default Accounts.
+              </p>
               <div className="space-y-2 md:col-span-2">
                 <Label>Shipping Address</Label>
                 <Textarea
@@ -460,28 +508,111 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
               </Button>
 
               {orderItems.length > 0 ? (
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-lg border overflow-x-auto">
+                  <table className="w-full text-sm min-w-[720px]">
                     <thead className="bg-muted/60">
                       <tr>
                         <th className="text-left p-3">Item</th>
-                        <th className="text-left p-3">Qty</th>
-                        <th className="text-left p-3">Total</th>
-                        <th className="text-left p-3">Action</th>
+                        <th className="text-right p-3 w-28">Qty</th>
+                        <th className="text-right p-3 w-32">Unit price</th>
+                        <th className="text-right p-3 w-24">Disc %</th>
+                        <th className="text-left p-3 min-w-[140px]">Warehouse</th>
+                        <th className="text-right p-3 w-32">Line total</th>
+                        <th className="text-left p-3 w-24" />
                       </tr>
                     </thead>
                     <tbody>
                       {orderItems.map((item) => (
                         <tr key={item.id} className="border-t">
-                          <td className="p-3">{item.item?.name}</td>
-                          <td className="p-3">{item.quantity}</td>
-                          <td className="p-3">
-                            ₹{item.total.toLocaleString()}
+                          <td className="p-3 align-middle">
+                            {item.item?.name ?? item.itemName}
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 align-middle">
+                            <Input
+                              type="number"
+                              min={0.01}
+                              step={0.01}
+                              className="text-right h-9 tabular-nums"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateOrderLine(item.id, {
+                                  quantity: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </td>
+                          <td className="p-3 align-middle">
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              className="text-right h-9 tabular-nums"
+                              value={item.unitPrice}
+                              onChange={(e) =>
+                                updateOrderLine(item.id, {
+                                  unitPrice: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </td>
+                          <td className="p-3 align-middle">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.1}
+                              className="text-right h-9 tabular-nums"
+                              value={item.discountPercent ?? item.discount}
+                              onChange={(e) =>
+                                updateOrderLine(item.id, {
+                                  discountPercent:
+                                    parseFloat(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </td>
+                          <td className="p-3 align-middle">
+                            <Select
+                              value={
+                                item.warehouseId
+                                  ? String(item.warehouseId)
+                                  : ""
+                              }
+                              onValueChange={(value) =>
+                                updateOrderLine(item.id, {
+                                  warehouseId: Number(value),
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Warehouse" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {warehouses
+                                  .filter((wh) => wh.status === "active")
+                                  .map((wh) => (
+                                    <SelectItem
+                                      key={wh.id}
+                                      value={String(wh.id)}
+                                    >
+                                      {wh.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-3 text-right font-medium align-middle tabular-nums">
+                            ₹
+                            {item.total.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </td>
+                          <td className="p-3 align-middle">
                             <Button
                               type="button"
                               variant="ghost"
+                              size="sm"
                               onClick={() => removeItem(item.id)}
                             >
                               Remove

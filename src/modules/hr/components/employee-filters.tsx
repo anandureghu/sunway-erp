@@ -1,31 +1,42 @@
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface EmployeeFiltersProps {
   onFilterStatus: (status: string | null) => void;
   activeFilter: string | null;
 }
 
-export function EmployeeFilters({ onFilterStatus, activeFilter }: EmployeeFiltersProps) {
-  const filters = [
-    { label: "All", value: null, color: "bg-blue-500 hover:bg-blue-600 text-white" },
-    { label: "Active", value: "active", color: "bg-green-500 hover:bg-green-600 text-white" },
-    { label: "Inactive", value: "inactive", color: "bg-red-500 hover:bg-red-600 text-white" },
-    { label: "On Leave", value: "on leave", color: "bg-amber-500 hover:bg-amber-600 text-white" }
-  ];
+const filters = [
+  { label: "All",      value: null,       dot: "bg-blue-500" },
+  { label: "Active",   value: "active",   dot: "bg-emerald-500" },
+  { label: "On Leave", value: "on leave", dot: "bg-amber-500" },
+  { label: "Inactive", value: "inactive", dot: "bg-rose-500" },
+] as const;
 
+export function EmployeeFilters({
+  onFilterStatus,
+  activeFilter,
+}: EmployeeFiltersProps) {
   return (
-    <div className="flex gap-2 mb-4">
-      {filters.map(filter => (
-        <Button
-          key={filter.label}
-          variant={activeFilter === filter.value ? "default" : "outline"}
-          size="sm"
-          onClick={() => onFilterStatus(filter.value)}
-          className={`capitalize ${filter.color}`}
-        >
-          {filter.label}
-        </Button>
-      ))}
+    <div className="flex flex-wrap gap-1.5">
+      {filters.map((f) => {
+        const isActive = activeFilter === f.value;
+        return (
+          <button
+            key={f.label}
+            type="button"
+            onClick={() => onFilterStatus(f.value)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all",
+              isActive
+                ? "border-foreground/20 bg-foreground text-background shadow-sm"
+                : "border-border bg-background text-muted-foreground hover:border-foreground/20 hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <span className={cn("h-1.5 w-1.5 rounded-full", f.dot)} />
+            {f.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

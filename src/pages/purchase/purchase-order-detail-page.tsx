@@ -1,13 +1,30 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import {
+  ArrowLeft,
+  Send,
+  Package,
+  Link2,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
 import { format } from "date-fns";
-import { getPurchaseOrder } from "@/service/purchaseFlowService";
+import {
+  getPurchaseOrder,
+  confirmPurchaseOrder,
+  cancelPurchaseOrder,
+  getGoodsReceiptsByPurchaseOrder,
+} from "@/service/purchaseFlowService";
+import { listVendors } from "@/service/vendorService";
+import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import type { PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
+import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
+import type { RelatedGrRef } from "./components/related-purchase-documents";
 
 export default function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,43 +32,109 @@ export default function PurchaseOrderDetailPage() {
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!id) {
       setError("Order ID is required");
       setLoading(false);
       return;
     }
+    setLoading(true);
+    setError(null);
+    try {
+      const raw = await getPurchaseOrder(id);
+      const vendors = await listVendors();
+      const [enriched] = enrichPurchaseOrdersWithVendors([raw], vendors);
+      setOrder(enriched);
+    } catch (e: any) {
+      const errorMessage =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Failed to load purchase order";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!order?.id) {
+      setLinkedReceipts([]);
+      return;
+    }
     let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const orderData = await getPurchaseOrder(id);
+    getGoodsReceiptsByPurchaseOrder(order.id)
+      .then((list) => {
         if (!cancelled) {
-          setOrder(orderData);
+          setLinkedReceipts(
+            list.map((r) => ({ id: r.id, receiptNo: r.receiptNo })),
+          );
         }
-      } catch (e: any) {
-        if (!cancelled) {
-          const errorMessage =
-            e?.response?.data?.message ||
-            e?.message ||
-            "Failed to load purchase order";
-          setError(errorMessage);
-          toast.error(errorMessage);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedReceipts([]);
+      });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [order?.id]);
+
+  const handleRelease = async () => {
+    if (!order) return;
+    setActionLoading(true);
+    try {
+      await confirmPurchaseOrder(order.id);
+      toast.success("Purchase order released to supplier.");
+      await load();
+    } catch (e: any) {
+      toast.error(
+        e?.response?.data?.message || e?.message || "Failed to release PO",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!order) return;
+    if (order.status !== "draft") {
+      toast.error("Only draft orders can be cancelled.");
+      return;
+    }
+    if (
+      !confirm(
+        `Cancel ${order.orderNo}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await cancelPurchaseOrder(order.id);
+      toast.success("Purchase order cancelled.");
+      await load();
+    } catch (e: any) {
+      toast.error(
+        e?.response?.data?.message || e?.message || "Failed to cancel",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReceive = () => {
+    if (!order) return;
+    navigate("/inventory/purchase/receiving", {
+      state: { openReceiveForOrderId: order.id },
+    });
+  };
 
   if (loading) {
     return (
@@ -90,43 +173,132 @@ export default function PurchaseOrderDetailPage() {
     cancelled: "bg-red-100 text-red-800",
   };
 
+  const st = (order.status || "").toLowerCase();
+  const vendorPaymentOk = order.vendorPaymentSettled !== false;
+  const canRelease = st === "draft" && vendorPaymentOk;
+  const canCancel = st === "draft";
+  const canReceive =
+    st === "confirmed" ||
+    st === "ordered" ||
+    st === "partially_received" ||
+    st === "approved";
+  const reqId = order.requisitionId;
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Purchase Order - {order.orderNo}
-            </h1>
-            <p className="text-muted-foreground">
-              Complete information about this purchase order
+            <h1 className="text-2xl sm:text-3xl font-bold">{order.orderNo}</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Purchase order — release when ready, then record receipts against
+              this PO
             </p>
           </div>
         </div>
-        <Badge
-          className={statusColors[order.status] || "bg-gray-100 text-gray-800"}
-        >
-          {order.status
-            .replace("_", " ")
-            .split(" ")
-            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-            .join(" ")}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            className={statusColors[order.status] || "bg-gray-100 text-gray-800"}
+          >
+            {order.status
+              .replace("_", " ")
+              .split(" ")
+              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+              .join(" ")}
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void load()}
+            disabled={loading}
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Order Info */}
+      <Card className="border-primary/20 bg-muted/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Actions</CardTitle>
+          <p className="text-sm text-muted-foreground font-normal">
+            Release sends the PO to the supplier (confirms it). Receiving posts
+            goods against this order. Vendor payment must be confirmed under
+            Finance → Accounts payable → Vendor payments first.
+          </p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {st === "draft" && !vendorPaymentOk && (
+            <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-950 px-3 py-2">
+              Confirm the vendor payable in{" "}
+              <strong>Finance → Accounts payable → Vendor payments</strong>{" "}
+              (use <em>Confirm vendor payment</em>) before you can release this
+              PO to the supplier.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+          {canRelease && (
+            <Button
+              onClick={() => void handleRelease()}
+              disabled={actionLoading}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Release to supplier
+            </Button>
+          )}
+          {canReceive && (
+            <Button variant="secondary" onClick={handleReceive}>
+              <Package className="mr-2 h-4 w-4" />
+              Record receipt
+            </Button>
+          )}
+          {reqId && (
+            <Button variant="outline" asChild>
+              <Link to={`/inventory/purchase/requisitions/${reqId}`}>
+                <Link2 className="mr-2 h-4 w-4" />
+                View requisition
+              </Link>
+            </Button>
+          )}
+          {canCancel && (
+            <Button
+              variant="destructive"
+              onClick={() => void handleCancel()}
+              disabled={actionLoading}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Cancel order
+            </Button>
+          )}
+          {!canRelease && !canReceive && !canCancel && !reqId && (
+            <p className="text-sm text-muted-foreground py-1">
+              No actions for this status.
+            </p>
+          )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <RelatedPurchaseDocumentsCard
+        context="po"
+        requisitionId={order.requisitionId}
+        purchaseOrderId={order.id}
+        goodsReceipts={linkedReceipts}
+      />
+
+      <Separator />
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Order Information</CardTitle>
+          <CardTitle className="text-lg">Order information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Order Number</p>
+              <p className="text-sm text-muted-foreground">Order number</p>
               <p className="font-medium">{order.orderNo}</p>
             </div>
             <div>
@@ -144,7 +316,7 @@ export default function PurchaseOrderDetailPage() {
               </Badge>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Order Date</p>
+              <p className="text-sm text-muted-foreground">Order date</p>
               <p className="font-medium">
                 {order.orderDate
                   ? format(new Date(order.orderDate), "MMM dd, yyyy")
@@ -153,22 +325,27 @@ export default function PurchaseOrderDetailPage() {
             </div>
             {order.expectedDate && (
               <div>
-                <p className="text-sm text-muted-foreground">Expected Date</p>
+                <p className="text-sm text-muted-foreground">Expected date</p>
                 <p className="font-medium">
                   {format(new Date(order.expectedDate), "MMM dd, yyyy")}
                 </p>
               </div>
             )}
-            {order.orderedByName && (
-              <div>
-                <p className="text-sm text-muted-foreground">Ordered By</p>
-                <p className="font-medium">{order.orderedByName}</p>
+            {reqId && (
+              <div className="sm:col-span-2">
+                <p className="text-sm text-muted-foreground">Source</p>
+                <Link
+                  className="font-medium text-primary underline"
+                  to={`/inventory/purchase/requisitions/${reqId}`}
+                >
+                  Requisition #{reqId}
+                </Link>
               </div>
             )}
-            {order.approvedByName && (
+            {order.orderedByName && (
               <div>
-                <p className="text-sm text-muted-foreground">Approved By</p>
-                <p className="font-medium">{order.approvedByName}</p>
+                <p className="text-sm text-muted-foreground">Created by</p>
+                <p className="font-medium">{order.orderedByName}</p>
               </div>
             )}
           </div>
@@ -181,25 +358,24 @@ export default function PurchaseOrderDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Supplier Info */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Supplier Information</CardTitle>
+          <CardTitle className="text-lg">Supplier</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {order.supplier ? (
             <>
               <div>
-                <p className="text-sm text-muted-foreground">Supplier Name</p>
+                <p className="text-sm text-muted-foreground">Name</p>
                 <p className="font-medium">
-                  {(order.supplier as any)?.vendorName ||
-                    (order.supplier as any)?.name ||
+                  {(order.supplier as { vendorName?: string }).vendorName ||
+                    order.supplier.name ||
                     "N/A"}
                 </p>
               </div>
               {order.supplier.code && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Supplier Code</p>
+                  <p className="text-sm text-muted-foreground">Code</p>
                   <p className="font-medium">{order.supplier.code}</p>
                 </div>
               )}
@@ -215,52 +391,36 @@ export default function PurchaseOrderDetailPage() {
                   <p className="font-medium">{order.supplier.phone}</p>
                 </div>
               )}
-              {order.shippingAddress && (
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Shipping Address
-                  </p>
-                  <p className="font-medium">{order.shippingAddress}</p>
-                </div>
-              )}
             </>
           ) : (
-            <p className="text-muted-foreground">
-              Supplier information not available
+            <p className="text-muted-foreground text-sm">
+              Supplier details load from vendor master when available.
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Order Items */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Order Items</CardTitle>
+          <CardTitle className="text-lg">Line items</CardTitle>
         </CardHeader>
         <CardContent>
           {order.items.length > 0 ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-5 gap-4 font-medium text-sm border-b pb-2">
+            <div className="space-y-3 overflow-x-auto">
+              <div className="grid grid-cols-5 gap-4 font-medium text-sm border-b pb-2 min-w-[480px]">
                 <div>Item</div>
-                <div className="text-right">Quantity</div>
-                <div className="text-right">Unit Price</div>
-                <div className="text-right">Total</div>
+                <div className="text-right">Qty</div>
+                <div className="text-right">Unit</div>
+                <div className="text-right">Line total</div>
                 <div className="text-right">Received</div>
               </div>
               {order.items.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-5 gap-4 text-sm border-b pb-2"
+                  className="grid grid-cols-5 gap-4 text-sm border-b pb-2 min-w-[480px]"
                 >
                   <div>
-                    <p className="font-medium">
-                      {item.item?.itemId || `Item ${item.itemId}`}
-                    </p>
-                    {item.item?.itemId && (
-                      <p className="text-xs text-muted-foreground">
-                        SKU: {item.item.itemId}
-                      </p>
-                    )}
+                    <p className="font-medium">Item #{item.itemId}</p>
                   </div>
                   <div className="text-right">{item.quantity}</div>
                   <div className="text-right">
@@ -270,33 +430,32 @@ export default function PurchaseOrderDetailPage() {
                     ₹{item.total.toLocaleString()}
                   </div>
                   <div className="text-right text-muted-foreground">
-                    {item.receivedQuantity || 0} / {item.quantity}
+                    {item.receivedQuantity ?? 0} / {item.quantity}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No items in this order</p>
+            <p className="text-muted-foreground">No line items</p>
           )}
         </CardContent>
       </Card>
 
-      {/* Order Totals */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Order Summary</CardTitle>
+          <CardTitle className="text-lg">Totals</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-2 max-w-md">
             <div className="flex justify-between">
-              <span>Subtotal:</span>
+              <span>Subtotal</span>
               <span className="font-medium">
                 ₹{order.subtotal.toLocaleString()}
               </span>
             </div>
             {order.tax > 0 && (
               <div className="flex justify-between">
-                <span>Tax:</span>
+                <span>Tax</span>
                 <span className="font-medium">
                   ₹{order.tax.toLocaleString()}
                 </span>
@@ -304,14 +463,14 @@ export default function PurchaseOrderDetailPage() {
             )}
             {order.discount > 0 && (
               <div className="flex justify-between">
-                <span>Discount:</span>
+                <span>Discount</span>
                 <span className="font-medium">
                   ₹{order.discount.toLocaleString()}
                 </span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold border-t pt-2">
-              <span>Total:</span>
+              <span>Total</span>
               <span>₹{order.total.toLocaleString()}</span>
             </div>
           </div>

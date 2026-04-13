@@ -1,3 +1,6 @@
+/** Which finance list this row belongs to (filters API). */
+export type PaymentsPageVariant = "customer" | "vendor";
+
 export interface PaymentResponseDTO {
   id: number;
   paymentCode: string | null;
@@ -10,6 +13,10 @@ export interface PaymentResponseDTO {
   effectiveDate: string;
 
   invoiceId: string | null;
+
+  /** CUSTOMER = AR; VENDOR = AP vendor payable */
+  paymentDirection?: string | null;
+  purchaseOrderId?: number | null;
 
   pdfUrl: string | null;
 

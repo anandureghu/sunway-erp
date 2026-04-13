@@ -42,7 +42,7 @@ const AccountsReceivablePage = () => {
       value: "payments",
       label: "Customer Payments",
       element: ({ companyId }: AccountsReceivableProps) => (
-        <PaymentsPage companyId={companyId || 0} />
+        <PaymentsPage companyId={companyId || 0} variant="customer" />
       ),
     },
     // { value: "agreements", label: "Agreements" },

@@ -1,29 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-// import { Button } from "@/components/ui/button";
 
-import type { PaymentResponseDTO } from "@/types/payment";
+import type {
+  PaymentResponseDTO,
+  PaymentsPageVariant,
+} from "@/types/payment";
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
 import { PaymentDialog } from "./payment-dialog";
 import { useNavigate } from "react-router-dom";
 
-export default function PaymentsPage({ companyId }: { companyId: number }) {
+export default function PaymentsPage({
+  companyId,
+  variant = "customer",
+}: {
+  companyId: number;
+  variant?: PaymentsPageVariant;
+}) {
   const navigate = useNavigate();
   const [payments, setPayments] = useState<PaymentResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PaymentResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
 
-  const fetchPayments = async () => {
+  const directionParam = variant === "vendor" ? "VENDOR" : "CUSTOMER";
+  const title =
+    variant === "vendor" ? "Vendor payments" : "Customer payments";
+  const subtitle =
+    variant === "vendor"
+      ? "Accounts payable — payables created from purchase orders and vendor settlements."
+      : "Accounts receivable — customer receipts against sales invoices.";
+
+  const fetchPayments = useCallback(async () => {
+    if (!companyId) {
+      setPayments([]);
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await apiClient.get(`/finance/payments/company/${companyId}`);
+      setLoading(true);
+      const res = await apiClient.get<PaymentResponseDTO[]>(
+        `/finance/payments/company/${companyId}`,
+        { params: { direction: directionParam } },
+      );
       setPayments(res.data);
     } catch (err) {
       console.error(err);
@@ -31,11 +56,11 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId, directionParam]);
 
   useEffect(() => {
-    fetchPayments();
-  }, [companyId]);
+    void fetchPayments();
+  }, [fetchPayments]);
 
   const handleDialogSuccess = (
     updated: PaymentResponseDTO,
@@ -50,22 +75,6 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
     setSelected(null);
   };
 
-  // const handleEdit = (payment: PaymentResponseDTO) => {
-  //   setSelected(payment);
-  //   setOpen(true);
-  // };
-
-  // const handleDelete = async (payment: PaymentResponseDTO) => {
-  //   try {
-  //     await apiClient.delete(`/finance/payments/${payment.id}`);
-  //     toast.success("Payment deleted");
-  //     setPayments((prev) => prev.filter((p) => p.id !== payment.id));
-  //   } catch (err) {
-  //     console.error(err);
-  //     toast.error("Failed to delete payment");
-  //   }
-  // };
-
   const handleConfirmPayment = async (payment: PaymentResponseDTO) => {
     try {
       const res = await apiClient.post<PaymentResponseDTO>(
@@ -74,10 +83,16 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
       setPayments((prev) =>
         prev.map((p) => (p.id === payment.id ? res.data : p)),
       );
-      toast.success("Payment confirmed");
-    } catch (err: any) {
+      toast.success(
+        variant === "vendor"
+          ? "Vendor payment confirmed"
+          : "Payment confirmed",
+      );
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
       toast.error(
-        err?.response?.data?.message || err?.message || "Failed to confirm payment",
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Failed to confirm payment"),
       );
     }
   };
@@ -88,21 +103,25 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
       const invoiceId = res.data?.id;
       if (!invoiceId) throw new Error("Invoice not found");
       navigate(`/sales/invoices/${invoiceId}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
       toast.error(
-        err?.response?.data?.message || err?.message || "Unable to open invoice",
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Unable to open invoice"),
       );
     }
   };
 
+  const handleOpenPurchaseOrder = (purchaseOrderId: number) => {
+    navigate(`/inventory/purchase/orders/${purchaseOrderId}`);
+  };
+
   const columns = PAYMENT_COLUMNS({
+    variant,
     onConfirm: handleConfirmPayment,
     onOpenInvoice: handleOpenInvoice,
+    onOpenPurchaseOrder: handleOpenPurchaseOrder,
   });
-  //   {
-  //   onEdit: handleEdit,
-  //   onDelete: handleDelete,
-  // }
 
   if (loading)
     return (
@@ -112,8 +131,11 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
     );
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Customer Payments</h1>
+    <div className="p-6 space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+      </div>
 
       <Card>
         <CardHeader>
@@ -122,15 +144,6 @@ export default function PaymentsPage({ companyId }: { companyId: number }) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input placeholder="Search payments..." className="pl-10" />
             </div>
-
-            {/* <Button
-              onClick={() => {
-                setSelected(null);
-                setOpen(true);
-              }}
-            >
-              Add Payment
-            </Button> */}
           </div>
         </CardHeader>
 

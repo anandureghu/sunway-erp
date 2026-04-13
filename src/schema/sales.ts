@@ -37,9 +37,6 @@ export const SALES_ORDER_SCHEMA = z.object({
   customerId: z.string().min(1, "Customer is required"),
   orderDate: z.string().min(1, "Order date is required"),
   invoiceDueDate: z.string().min(1, "Invoice due date is required"),
-  bankAccountId: z.string().min(1, "Bank account is required"),
-  debitAccountId: z.string().min(1, "Debit account is required"),
-  creditAccountId: z.string().min(1, "Credit account is required"),
   requiredDate: z.string().optional(),
   items: z
     .array(SALES_ORDER_ITEM_SCHEMA)

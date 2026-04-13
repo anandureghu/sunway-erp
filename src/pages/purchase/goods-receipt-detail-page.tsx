@@ -1,13 +1,19 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Printer } from "lucide-react";
 import { format } from "date-fns";
-import { getGoodsReceiptById } from "@/service/purchaseFlowService";
+import {
+  getGoodsReceiptById,
+  getGoodsReceiptsByPurchaseOrder,
+  getPurchaseOrder,
+} from "@/service/purchaseFlowService";
 import type { GoodsReceipt } from "@/types/purchase";
 import { toast } from "sonner";
+import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
+import type { RelatedGrRef } from "./components/related-purchase-documents";
 
 export default function GoodsReceiptDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +21,10 @@ export default function GoodsReceiptDetailPage() {
   const [receipt, setReceipt] = useState<GoodsReceipt | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
+  const [requisitionIdForLink, setRequisitionIdForLink] = useState<
+    string | undefined
+  >(undefined);
 
   useEffect(() => {
     if (!id) {
@@ -28,7 +38,9 @@ export default function GoodsReceiptDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        
+        setRequisitionIdForLink(undefined);
+        setLinkedReceipts([]);
+
         // Try to get receipt directly by ID
         const foundReceipt = await getGoodsReceiptById(id);
         
@@ -36,6 +48,17 @@ export default function GoodsReceiptDetailPage() {
         
         if (foundReceipt) {
           setReceipt(foundReceipt);
+          const reqFromOrder = foundReceipt.order?.requisitionId;
+          if (reqFromOrder) {
+            setRequisitionIdForLink(reqFromOrder);
+          } else if (foundReceipt.orderId) {
+            try {
+              const po = await getPurchaseOrder(foundReceipt.orderId);
+              if (po.requisitionId) setRequisitionIdForLink(po.requisitionId);
+            } catch {
+              /* ignore */
+            }
+          }
         } else {
           setError("Goods receipt not found. The receipt may not exist or may have been deleted.");
           toast.error("Goods receipt not found");
@@ -61,6 +84,28 @@ export default function GoodsReceiptDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!receipt?.orderId) {
+      setLinkedReceipts([]);
+      return;
+    }
+    let cancelled = false;
+    getGoodsReceiptsByPurchaseOrder(receipt.orderId)
+      .then((list) => {
+        if (!cancelled) {
+          setLinkedReceipts(
+            list.map((r) => ({ id: r.id, receiptNo: r.receiptNo })),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedReceipts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [receipt?.orderId]);
 
   if (loading) {
     return (
@@ -201,6 +246,15 @@ export default function GoodsReceiptDetailPage() {
         </div>
       </div>
 
+      <div className="no-print mb-4">
+        <RelatedPurchaseDocumentsCard
+          context="gr"
+          requisitionId={requisitionIdForLink}
+          purchaseOrderId={receipt.orderId}
+          goodsReceipts={linkedReceipts}
+        />
+      </div>
+
       {/* Print Header */}
       <div className="print-header hidden print:block">
         <h1 className="text-3xl font-bold mb-2">
@@ -249,10 +303,26 @@ export default function GoodsReceiptDetailPage() {
                   : "N/A"}
               </p>
             </div>
-            {receipt.order?.orderNo && (
+            {receipt.orderId && (
               <div>
-                <p className="text-sm text-muted-foreground">Purchase Order</p>
-                <p className="font-medium">{receipt.order.orderNo}</p>
+                <p className="text-sm text-muted-foreground">Purchase order</p>
+                <Link
+                  className="font-medium text-primary hover:underline"
+                  to={`/inventory/purchase/orders/${receipt.orderId}`}
+                >
+                  {receipt.order?.orderNo || `PO #${receipt.orderId}`}
+                </Link>
+              </div>
+            )}
+            {requisitionIdForLink && (
+              <div>
+                <p className="text-sm text-muted-foreground">Requisition</p>
+                <Link
+                  className="font-medium text-primary hover:underline"
+                  to={`/inventory/purchase/requisitions/${requisitionIdForLink}`}
+                >
+                  PR #{requisitionIdForLink}
+                </Link>
               </div>
             )}
             {receipt.receivedByName && (

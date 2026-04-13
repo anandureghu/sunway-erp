@@ -9,12 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type {
-  PurchaseOrder,
-  Supplier,
-  PurchaseInvoice,
-  GoodsReceipt,
-} from "@/types/purchase";
+import type { PurchaseOrder, Supplier, GoodsReceipt } from "@/types/purchase";
+import type { FinanceInvoice } from "@/types/finance-invoice";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
   MoreHorizontal,
@@ -24,17 +20,40 @@ import {
   FileText,
   Package,
   CheckCircle,
+  Send,
+  Link2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
+export type PurchaseOrderColumnActions = {
+  /** Navigate to full PO detail */
+  onOpenOrder?: (id: string) => void;
+  onConfirm?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  /** Quick preview in dialog (optional) */
+  onViewDetails?: (id: string) => void;
+  onEdit?: (id: string) => void;
+  /** Goods receipt flow */
+  onReceiveGoods?: (orderId: string) => void;
+  /** Link to originating PR */
+  onViewRequisition?: (requisitionId: string) => void;
+};
+
 // Purchase Order Columns
 export function createPurchaseOrderColumns(
-  onConfirm?: (id: string) => void,
-  onCancel?: (id: string) => void,
-  onViewDetails?: (id: string) => void,
-  onEdit?: (id: string) => void
+  actions: PurchaseOrderColumnActions = {},
 ): ColumnDef<PurchaseOrder>[] {
+  const {
+    onOpenOrder,
+    onConfirm,
+    onCancel,
+    onViewDetails,
+    onEdit,
+    onReceiveGoods,
+    onViewRequisition,
+  } = actions;
+
   return [
     {
       accessorKey: "orderNo",
@@ -77,6 +96,7 @@ export function createPurchaseOrderColumns(
         const statusColors: Record<string, string> = {
           draft: "bg-gray-100 text-gray-800",
           pending: "bg-yellow-100 text-yellow-800",
+          confirmed: "bg-blue-100 text-blue-800",
           approved: "bg-blue-100 text-blue-800",
           ordered: "bg-purple-100 text-purple-800",
           partially_received: "bg-orange-100 text-orange-800",
@@ -106,60 +126,93 @@ export function createPurchaseOrderColumns(
       id: "actions",
       cell: ({ row }) => {
         const order = row.original;
-        const canConfirm = order.status === "draft" || order.status === "pending";
-        const canCancel = order.status === "draft" || order.status === "pending";
-        
+        const st = (order.status || "").toLowerCase();
+        const vendorOk = order.vendorPaymentSettled !== false;
+        const canRelease = st === "draft" && vendorOk;
+        const canCancel = st === "draft";
+        const canReceive =
+          st === "confirmed" ||
+          st === "ordered" ||
+          st === "partially_received" ||
+          st === "approved";
+        const reqId = order.requisitionId;
+
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {onViewDetails && (
-                <DropdownMenuItem onClick={() => onViewDetails(order.id)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-              )}
-              {order.status === "draft" && onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(order.id)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Order
-                </DropdownMenuItem>
-              )}
-              {canConfirm && onConfirm && (
-                <DropdownMenuItem onClick={() => onConfirm(order.id)}>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Confirm Order
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Package className="mr-2 h-4 w-4" />
-                Receive Goods
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileText className="mr-2 h-4 w-4" />
-                Create Invoice
-              </DropdownMenuItem>
-              {canCancel && onCancel && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    className="text-red-600"
-                    onClick={() => onCancel(order.id)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Cancel Order
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Actions</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Order</DropdownMenuLabel>
+                {onOpenOrder && (
+                  <DropdownMenuItem onClick={() => onOpenOrder(order.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Open detail
                   </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                )}
+                {onViewDetails && (
+                  <DropdownMenuItem onClick={() => onViewDetails(order.id)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Quick preview
+                  </DropdownMenuItem>
+                )}
+
+                {reqId && onViewRequisition && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Source</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => onViewRequisition(reqId)}
+                    >
+                      <Link2 className="mr-2 h-4 w-4" />
+                      View requisition
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {(canRelease || canReceive) && <DropdownMenuSeparator />}
+                {(canRelease || canReceive) && (
+                  <DropdownMenuLabel>Procurement</DropdownMenuLabel>
+                )}
+                {canRelease && onConfirm && (
+                  <DropdownMenuItem onClick={() => onConfirm(order.id)}>
+                    <Send className="mr-2 h-4 w-4" />
+                    Release to supplier
+                  </DropdownMenuItem>
+                )}
+                {order.status === "draft" && onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(order.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit draft
+                  </DropdownMenuItem>
+                )}
+                {canReceive && onReceiveGoods && (
+                  <DropdownMenuItem onClick={() => onReceiveGoods(order.id)}>
+                    <Package className="mr-2 h-4 w-4" />
+                    Record receipt
+                  </DropdownMenuItem>
+                )}
+
+                {canCancel && onCancel && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Danger</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => onCancel(order.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Cancel order
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       },
     },
@@ -167,7 +220,8 @@ export function createPurchaseOrderColumns(
 }
 
 // Backward compatibility - export default columns without handlers
-export const PURCHASE_ORDER_COLUMNS: ColumnDef<PurchaseOrder>[] = createPurchaseOrderColumns();
+export const PURCHASE_ORDER_COLUMNS: ColumnDef<PurchaseOrder>[] =
+  createPurchaseOrderColumns();
 
 // Supplier Columns
 export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
@@ -262,42 +316,64 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
   },
 ];
 
-// Purchase Invoice Columns
-export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
+// Purchase Invoice Columns (API FinanceInvoice)
+export const PURCHASE_INVOICE_COLUMNS: ColumnDef<FinanceInvoice>[] = [
   {
-    accessorKey: "invoiceNo",
-    header: "Invoice No",
+    accessorKey: "invoiceId",
+    header: "ERP ref",
     cell: ({ row }) => {
-      return <span className="font-medium">{row.getValue("invoiceNo")}</span>;
+      return <span className="font-medium">{row.getValue("invoiceId")}</span>;
     },
   },
   {
-    accessorKey: "supplierName",
+    id: "supplierInvNo",
+    header: "Supplier #",
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {row.original.supplierInvoiceNumber || "—"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "toParty",
     header: "Supplier",
   },
   {
-    accessorKey: "date",
+    id: "po",
+    header: "PO",
+    cell: ({ row }) => (
+      <span>{row.original.purchaseOrder?.orderNumber || "—"}</span>
+    ),
+  },
+  {
+    accessorKey: "invoiceDate",
     header: "Invoice Date",
     cell: ({ row }) => {
-      const date = row.getValue("date") as string;
-      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      const d = row.original.invoiceDate;
+      return (
+        <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>
+      );
     },
   },
   {
     accessorKey: "dueDate",
     header: "Due Date",
     cell: ({ row }) => {
-      const date = row.getValue("dueDate") as string;
-      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      const d = row.original.dueDate;
+      return (
+        <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>
+      );
     },
   },
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
+      const status = (row.getValue("status") as string) || "";
+      const key = status.toLowerCase();
       const statusColors: Record<string, string> = {
         draft: "bg-gray-100 text-gray-800",
+        unpaid: "bg-yellow-100 text-yellow-800",
         pending: "bg-yellow-100 text-yellow-800",
         paid: "bg-green-100 text-green-800",
         partially_paid: "bg-blue-100 text-blue-800",
@@ -305,22 +381,37 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
         cancelled: "bg-gray-100 text-gray-800",
       };
       return (
-        <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
+        <Badge className={statusColors[key] || "bg-gray-100 text-gray-800"}>
           {status
-            .replace("_", " ")
-            .split(" ")
-            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-            .join(" ")}
+            ? status
+                .replace(/_/g, " ")
+                .split(" ")
+                .map(
+                  (s) =>
+                    s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(),
+                )
+                .join(" ")
+            : "—"}
         </Badge>
       );
     },
   },
   {
-    accessorKey: "total",
-    header: "Total Amount",
+    accessorKey: "amount",
+    header: "Total",
     cell: ({ row }) => {
-      const amount = row.getValue("total") as number;
+      const amount = row.original.amount ?? 0;
       return <span className="font-semibold">₹ {amount.toLocaleString()}</span>;
+    },
+  },
+  {
+    id: "doc",
+    header: "Document",
+    cell: ({ row }) => {
+      const src = row.original.documentSource;
+      if (src === "SUPPLIER_UPLOAD") return <span className="text-xs">PDF</span>;
+      if (src === "EXTERNAL_LINK") return <span className="text-xs">Link</span>;
+      return <span className="text-xs text-muted-foreground">Generated</span>;
     },
   },
   {
@@ -342,7 +433,7 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<PurchaseInvoice>[] = [
             </DropdownMenuItem>
             <DropdownMenuItem>
               <FileText className="mr-2 h-4 w-4" />
-              Download PDF
+              Open document
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

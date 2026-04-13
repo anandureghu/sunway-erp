@@ -43,6 +43,10 @@ const STATUS_PALETTE: Record<string, string> = {
   // —— In progress / warning ——
   PENDING: "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
   pending: "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
+  SUBMITTED: "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
+  submitted: "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
+  CONVERTED: "border-transparent bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100",
+  converted: "border-transparent bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100",
   PENDING_APPROVAL: "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
   DRAFT: "border-transparent bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100",
   draft: "border-transparent bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100",

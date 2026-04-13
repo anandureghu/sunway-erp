@@ -18,6 +18,11 @@ export interface Company {
   companyCode: string;
   isTaxActive?: boolean;
   taxRate?: number;
+  defaultSalesDebitAccountId?: number | null;
+  defaultSalesCreditAccountId?: number | null;
+  defaultPurchaseDebitAccountId?: number | null;
+  defaultPurchaseCreditAccountId?: number | null;
+  defaultBankAccountId?: number | null;
 }
 
 export type IModules = "hr" | "finance" | "inventory";

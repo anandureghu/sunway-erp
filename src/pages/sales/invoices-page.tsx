@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
-import { Search, Plus, ArrowLeft } from "lucide-react";
+import { Search, Plus, ArrowLeft, Info } from "lucide-react";
 import { format } from "date-fns";
 import {
   Select,
@@ -23,6 +23,9 @@ import { type Invoice } from "@/types/sales";
 import { apiClient } from "@/service/apiClient";
 import SelectAccount from "@/components/select-account";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import type { Company } from "@/types/company";
+import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 import type { Row } from "@tanstack/react-table";
 
 export default function InvoicesPage({
@@ -42,7 +45,9 @@ export default function InvoicesPage({
   const [salesOrders, setSalesOrders] = useState<SalesOrderResponseDTO[]>([]);
 
   useEffect(() => {
-    apiClient.get<Invoice[]>("/invoices").then((res) => setInvoices(res.data));
+    apiClient
+      .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
+      .then((res) => setInvoices(res.data));
     apiClient
       .get<SalesOrderResponseDTO[]>("/sales/orders")
       .then((res) => setSalesOrders(res.data));
@@ -197,7 +202,11 @@ function CreateInvoiceForm({
   salesOrders: SalesOrderResponseDTO[];
   onCancel: () => void;
 }) {
+  const { user } = useAuth();
   const [selectedOrderId, setSelectedOrderId] = useState("");
+  const [companyDefaults, setCompanyDefaults] = useState<Company | null>(null);
+  const [companyLoading, setCompanyLoading] = useState(true);
+  const [salesDefaultsMissing, setSalesDefaultsMissing] = useState(false);
 
   const {
     register,
@@ -219,6 +228,40 @@ function CreateInvoiceForm({
   const invoiceDate = watch("date");
 
   useEffect(() => {
+    if (!user?.companyId) {
+      setCompanyLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCompanyLoading(true);
+    apiClient
+      .get<Company>(`/companies/${user.companyId}`)
+      .then((res) => {
+        if (cancelled || !res.data) return;
+        const co = res.data;
+        setCompanyDefaults(co);
+        if (!hasSalesAccountingDefaults(co)) {
+          setSalesDefaultsMissing(true);
+        } else {
+          setSalesDefaultsMissing(false);
+          if (co.defaultSalesDebitAccountId != null) {
+            setValue("debitAccount", String(co.defaultSalesDebitAccountId));
+          }
+          if (co.defaultSalesCreditAccountId != null) {
+            setValue("creditAccount", String(co.defaultSalesCreditAccountId));
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCompanyLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.companyId, setValue]);
+
+  useEffect(() => {
     if (invoiceDate) {
       const d = new Date(invoiceDate);
       d.setDate(d.getDate() + 30);
@@ -227,11 +270,28 @@ function CreateInvoiceForm({
   }, [invoiceDate, setValue]);
 
   const onSubmit = async (data: InvoiceFormData) => {
+    if (!selectedOrder) {
+      toast.error("Select a sales order.");
+      return;
+    }
+    if (!data.debitAccount || !data.creditAccount) {
+      toast.error(
+        "Debit and credit accounts are required. Set them under Global Settings → Default Accounts.",
+      );
+      return;
+    }
     try {
       await apiClient.post("/invoices", {
-        ...data,
+        orderId: Number(data.orderId),
+        toParty: selectedOrder.customerName,
+        invoiceDate: data.date,
+        dueDate: data.dueDate,
+        debitAccount: Number(data.debitAccount),
+        creditAccount: Number(data.creditAccount),
+        notesRemarks: data.notes,
         type: "SALES",
-        amount: selectedOrder?.totalAmount,
+        amount: selectedOrder.totalAmount,
+        bankAccountId: companyDefaults?.defaultBankAccountId ?? undefined,
       });
       onCancel();
     } catch (e: any) {
@@ -241,6 +301,49 @@ function CreateInvoiceForm({
       });
     }
   };
+
+  if (companyLoading) {
+    return (
+      <div className="p-6 text-muted-foreground">Loading company settings…</div>
+    );
+  }
+
+  if (salesDefaultsMissing) {
+    return (
+      <div className="p-6 max-w-lg space-y-4">
+        <div className="flex justify-between mb-2">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={onCancel}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold">Create Invoice</h1>
+          </div>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+        <Card className="border-amber-200 bg-amber-50/90 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100 text-base">
+              <Info className="h-5 w-5 shrink-0" />
+              Set default accounts first
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-amber-900/90 dark:text-amber-100/90 space-y-3">
+            <p>
+              Configure sales debit, sales credit, and default bank in Global
+              Settings before creating invoices.
+            </p>
+            <Button asChild variant="secondary">
+              <Link to="/admin/default-accounts">
+                Open Default Accounts (Global Settings)
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -322,6 +425,13 @@ function CreateInvoiceForm({
                 onChange={(val) => setValue("creditAccount", val)}
               />
             </div>
+
+            {companyDefaults?.defaultBankAccountId != null && (
+              <div className="col-span-2 text-sm text-muted-foreground">
+                Bank account on this invoice uses the company default (configure
+                under Settings → Company).
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Invoice Date *</Label>

@@ -30,8 +30,13 @@ export default function CompanyDetailPage() {
   const [openCreateAdmin, setOpenCreateAdmin] = useState(false);
 
   const handleCreateAdmin = () => {
+    console.log("handleCreateAdmin: called, setting openCreateAdmin=true");
     setOpenCreateAdmin(true);
   };
+
+  useEffect(() => {
+    console.log("CompanyDetailPage render:", { id, companyId: company?.id, openCreateAdmin });
+  }, [id, company, openCreateAdmin]);
 
   const fetchCompany = async () => {
     try {
@@ -310,7 +315,7 @@ export default function CompanyDetailPage() {
       <EmployeeDialog
         open={openCreateAdmin}
         onOpenChange={setOpenCreateAdmin}
-        companyId={Number(id)}
+        companyId={company?.id ?? Number(id)}
         presetRole="ADMIN"
         onSuccess={() => {
           setOpenCreateAdmin(false);

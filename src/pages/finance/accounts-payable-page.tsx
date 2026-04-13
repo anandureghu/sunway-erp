@@ -38,7 +38,7 @@ const AccountsPayablePage = () => {
       value: "payments",
       label: "Vendor Payments",
       element: ({ companyId }: AccountsPayableProps) => (
-        <PaymentsPage companyId={companyId || 0} />
+        <PaymentsPage companyId={companyId || 0} variant="vendor" />
       ),
     },
   ];
