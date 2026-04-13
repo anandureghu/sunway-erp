@@ -5,13 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Eye, EyeOff, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Plus, Trash2, Eye, EyeOff, Lock, AlertCircle, CheckCircle2,
+  Mail, Phone, PhoneCall, MapPin, StickyNote, KeyRound, PencilLine,
+  Home,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { generateId } from "@/lib/utils";
 import { addressService } from "@/service/addressService";
 import { contactService } from "@/service/contactService";
 import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
-import { FormRow, FormField, FormSection } from "@/modules/hr/components/form-components";
 
 type Ctx = { editing: boolean; setEditing?: (v: boolean) => void; isAdmin?: boolean };
 
@@ -374,175 +378,162 @@ export default function ContactInfoForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-slate-50 to-white rounded-2xl p-6 shadow-md border border-slate-100">
-        <div className="flex items-center justify-between gap-4">
+    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
+
+      {/* ── Page header ── */}
+      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
+        <div className="flex items-center justify-between gap-4 px-6 py-5">
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-indigo-600 to-cyan-500 text-white p-3 rounded-xl shadow-lg">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="opacity-95" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5C3 6.29 4.79 4.5 7 4.5H17C19.21 4.5 21 6.29 21 8.5V15.5C21 17.71 19.21 19.5 17 19.5H7C4.79 19.5 3 17.71 3 15.5V8.5Z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
+              <Mail className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-slate-800">Contact Information</h2>
-              <p className="text-sm text-slate-500">Update email, phone and addresses for this employee</p>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight">Contact Information</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Manage email, phone numbers, and addresses</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {isAdmin && (
               <Button
                 onClick={() => setShowPasswordModal(true)}
-                className="bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-md hover:shadow-lg rounded-lg flex items-center gap-2 px-4 py-2"
+                size="sm"
+                className="h-9 gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold shadow-sm hover:shadow-md"
               >
-                <Lock className="h-4 w-4" />
+                <KeyRound className="h-3.5 w-3.5" />
                 Reset Password
               </Button>
             )}
-            <Button
-              onClick={() => {
-                setEditing?.(true);
-                handleAddAddress();
-              }}
-              className="bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-md hover:shadow-lg rounded-lg flex items-center gap-2 px-4 py-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Address
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* Password Reset Modal */}
+      {/* ── Password Reset Modal ── */}
       {showPasswordModal && isAdmin && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <Card className="w-full max-w-md mx-4 rounded-2xl shadow-2xl border-0">
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
-                  <div className="bg-gradient-to-br from-amber-600 to-orange-500 text-white p-2 rounded-lg">
-                    <Lock className="h-5 w-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <Card className="w-full max-w-md mx-4 rounded-2xl shadow-2xl border border-slate-200">
+            <CardContent className="p-0 overflow-hidden rounded-2xl">
+              {/* Modal header strip */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 to-orange-500" />
+              <div className="p-6 space-y-5">
+                {/* Title */}
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm">
+                    <Lock className="h-4 w-4" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">Reset Employee Password</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Enter a new secure password for the employee</p>
+                    <h3 className="font-bold text-slate-900 text-sm">Reset Employee Password</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Enter a new secure password for this employee</p>
                   </div>
                 </div>
 
-                {/* New Password Field */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">New Password</Label>
+                <div className="h-px w-full bg-slate-100" />
+
+                {/* New Password */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">New Password</Label>
                   <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type={passwordState.showPassword ? "text" : "password"}
                       placeholder="Enter new password"
                       value={passwordState.newPassword}
                       onChange={(e) => handlePasswordChange("newPassword", e.target.value)}
-                      className="pr-10 ring-0 focus:ring-2 focus:ring-amber-200 border-slate-300 rounded-lg"
+                      className="h-9 pl-9 pr-10 rounded-lg border-slate-200 focus-visible:border-amber-400 focus-visible:ring-amber-400/30"
                     />
                     <button
                       type="button"
                       onClick={() => handlePasswordChange("showPassword", !passwordState.showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-700 transition-colors"
                     >
-                      {passwordState.showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      {passwordState.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
 
-                  {/* Password Strength Indicator */}
+                  {/* Strength bar */}
                   {passwordState.newPassword && (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 pt-1">
                       <div className="flex gap-1">
                         {[1, 2, 3].map((i) => (
-                          <div
-                            key={i}
-                            className={`h-1.5 flex-1 rounded-full transition-colors ${
-                              i === 1 || (i === 2 && passwordState.passwordStrength !== "weak") || (i === 3 && passwordState.passwordStrength === "strong")
-                                ? getPasswordStrengthColor(passwordState.passwordStrength)
-                                : "bg-slate-200"
-                            }`}
-                          />
+                          <div key={i} className={cn(
+                            "h-1.5 flex-1 rounded-full transition-colors",
+                            i === 1 || (i === 2 && passwordState.passwordStrength !== "weak") || (i === 3 && passwordState.passwordStrength === "strong")
+                              ? getPasswordStrengthColor(passwordState.passwordStrength)
+                              : "bg-slate-200",
+                          )} />
                         ))}
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-muted-foreground">
                           Strength: <span className="font-semibold text-slate-700">{getPasswordStrengthText(passwordState.passwordStrength)}</span>
                         </span>
                         {passwordState.passwordStrength === "strong" && (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Password Requirements */}
-                  <div className="bg-slate-50 rounded-lg p-3 space-y-1">
-                    <p className="text-xs font-semibold text-slate-600 uppercase">Requirements:</p>
-                    <ul className="text-xs text-slate-600 space-y-1">
-                      <li className={`flex items-center gap-2 ${passwordState.newPassword.length >= 8 ? "text-green-600" : ""}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${passwordState.newPassword.length >= 8 ? "bg-green-500" : "bg-slate-300"}`} />
-                        At least 8 characters
-                      </li>
-                      <li className={`flex items-center gap-2 ${/[a-z]/.test(passwordState.newPassword) && /[A-Z]/.test(passwordState.newPassword) ? "text-green-600" : ""}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${/[a-z]/.test(passwordState.newPassword) && /[A-Z]/.test(passwordState.newPassword) ? "bg-green-500" : "bg-slate-300"}`} />
-                        Mix of upper and lowercase
-                      </li>
-                      <li className={`flex items-center gap-2 ${/\d/.test(passwordState.newPassword) ? "text-green-600" : ""}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${/\d/.test(passwordState.newPassword) ? "bg-green-500" : "bg-slate-300"}`} />
-                        At least one number
-                      </li>
-                      <li className={`flex items-center gap-2 ${/[!@#$%^&*]/.test(passwordState.newPassword) ? "text-green-600" : ""}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${/[!@#$%^&*]/.test(passwordState.newPassword) ? "bg-green-500" : "bg-slate-300"}`} />
-                        Special character (!@#$%^&*)
-                      </li>
-                    </ul>
+                  {/* Requirements checklist */}
+                  <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 space-y-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Requirements</p>
+                    {[
+                      { ok: passwordState.newPassword.length >= 8,                                                          label: "At least 8 characters" },
+                      { ok: /[a-z]/.test(passwordState.newPassword) && /[A-Z]/.test(passwordState.newPassword),            label: "Upper & lowercase letters" },
+                      { ok: /\d/.test(passwordState.newPassword),                                                           label: "At least one number" },
+                      { ok: /[!@#$%^&*]/.test(passwordState.newPassword),                                                  label: "Special character (!@#$%^&*)" },
+                    ].map(({ ok, label }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", ok ? "bg-emerald-500" : "bg-slate-300")} />
+                        <span className={cn("text-xs", ok ? "text-emerald-700" : "text-slate-500")}>{label}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Confirm Password Field */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">Confirm Password</Label>
-                  <Input
-                    type={passwordState.showPassword ? "text" : "password"}
-                    placeholder="Confirm password"
-                    value={passwordState.confirmPassword}
-                    onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
-                    className={`ring-0 border-slate-300 rounded-lg ${
-                      passwordState.confirmPassword && passwordState.newPassword !== passwordState.confirmPassword
-                        ? "focus:ring-2 focus:ring-red-200 border-red-300"
-                        : "focus:ring-2 focus:ring-amber-200"
-                    }`}
-                  />
+                {/* Confirm Password */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type={passwordState.showPassword ? "text" : "password"}
+                      placeholder="Confirm new password"
+                      value={passwordState.confirmPassword}
+                      onChange={(e) => handlePasswordChange("confirmPassword", e.target.value)}
+                      className={cn(
+                        "h-9 pl-9 rounded-lg border-slate-200 focus-visible:ring-amber-400/30",
+                        passwordState.confirmPassword && passwordState.newPassword !== passwordState.confirmPassword
+                          ? "border-rose-300 focus-visible:border-rose-400"
+                          : "focus-visible:border-amber-400",
+                      )}
+                    />
+                  </div>
                   {passwordState.confirmPassword && passwordState.newPassword !== passwordState.confirmPassword && (
-                    <div className="flex items-center gap-2 text-red-600">
-                      <AlertCircle className="h-4 w-4" />
-                      <span className="text-xs font-medium">Passwords do not match</span>
-                    </div>
+                    <p className="flex items-center gap-1 text-xs text-rose-600">
+                      <AlertCircle className="h-3.5 w-3.5" /> Passwords do not match
+                    </p>
                   )}
                 </div>
 
-                {/* Footer Actions */}
-                <div className="flex gap-3 pt-4 border-t border-slate-200">
+                {/* Actions */}
+                <div className="flex gap-2 pt-1">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      setShowPasswordModal(false);
-                      setPasswordState(INITIAL_PASSWORD_STATE);
-                    }}
-                    className="flex-1 rounded-lg"
+                    className="flex-1 h-9 rounded-lg text-xs"
                     disabled={passwordState.isLoading}
+                    onClick={() => { setShowPasswordModal(false); setPasswordState(INITIAL_PASSWORD_STATE); }}
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleResetPassword}
+                    className="flex-1 h-9 rounded-lg text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white disabled:opacity-50"
                     disabled={!isPasswordValid() || passwordState.isLoading}
-                    className="flex-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-lg hover:shadow-lg disabled:opacity-50"
+                    onClick={handleResetPassword}
                   >
-                    {passwordState.isLoading ? "Resetting..." : "Reset Password"}
+                    {passwordState.isLoading ? (
+                      <><span className="mr-1.5 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Resetting…</>
+                    ) : "Reset Password"}
                   </Button>
                 </div>
               </div>
@@ -551,259 +542,271 @@ export default function ContactInfoForm() {
         </div>
       )}
 
-      <FormSection title="Contact Information">
-        <FormRow columns={3}>
-          <FormField label="Email" required>
-            <Input
-              disabled={!editing}
-              value={draft.email}
-              onChange={(e) => set("email", e.target.value)}
-              placeholder="you@example.com"
-              aria-required="true"
-              required
-              className="ring-0 focus:ring-2 focus:ring-indigo-200"
-            />
-          </FormField>
-          <FormField label="Phone" required>
-            <Input
-              disabled={!editing}
-              value={draft.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="+1 (555) 000-0000"
-              aria-required="true"
-              required
-              className="ring-0 focus:ring-2 focus:ring-indigo-200"
-            />
-          </FormField>
-          <FormField label="Alt Phone">
-            <Input
-              disabled={!editing}
-              value={draft.altPhone}
-              onChange={(e) => set("altPhone", e.target.value)}
-              placeholder="+1 (555) 000-0000"
-              className="ring-0 focus:ring-2 focus:ring-indigo-200"
-            />
-          </FormField>
-        </FormRow>
-      </FormSection>
-
-      <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-slate-800">Addresses</h3>
+      {/* ── Contact Details ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHead icon={<Phone className="h-3.5 w-3.5" />} label="Contact Details" accent="from-violet-600 to-blue-600" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Field label="Email Address" required>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                disabled={!editing}
+                value={draft.email}
+                onChange={(e) => set("email", e.target.value)}
+                placeholder="you@example.com"
+                className={cn(iCls, "pl-9")}
+              />
+            </div>
+          </Field>
+          <Field label="Phone Number" required>
+            <div className="relative">
+              <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                disabled={!editing}
+                value={draft.phone}
+                onChange={(e) => set("phone", e.target.value)}
+                placeholder="+1 (555) 000-0000"
+                className={cn(iCls, "pl-9")}
+              />
+            </div>
+          </Field>
+          <Field label="Alt. Phone">
+            <div className="relative">
+              <PhoneCall className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                disabled={!editing}
+                value={draft.altPhone}
+                onChange={(e) => set("altPhone", e.target.value)}
+                placeholder="+1 (555) 000-0000"
+                className={cn(iCls, "pl-9")}
+              />
+            </div>
+          </Field>
         </div>
+      </div>
 
-        <div className="grid gap-4">
-          {addresses.map((address) => (
-            <Card key={address.id} className="rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
+      {/* ── Addresses ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHead icon={<MapPin className="h-3.5 w-3.5" />} label="Addresses" accent="from-emerald-500 to-teal-600" />
+
+        {addresses.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+              <Home className="h-5 w-5 text-slate-400" />
+            </div>
+            <p className="text-sm text-slate-500">No addresses added yet</p>
+            <Button
+              size="sm"
+              onClick={() => { setEditing?.(true); handleAddAddress(); }}
+              className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white text-xs"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add First Address
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {addresses.map((address, idx) => (
+              <div
+                key={address.id}
+                className={cn(
+                  "rounded-xl border transition-all",
+                  editingAddressId === address.id
+                    ? "border-violet-200 bg-violet-50/30 shadow-sm"
+                    : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm",
+                )}
+              >
+                {/* ── Editing mode ── */}
                 {editingAddressId === address.id ? (
-                  <div className="space-y-4">
-                    <FormRow columns={2}>
-                      <FormField label="Address Line 1" required>
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="h-4 w-4 text-violet-600" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-violet-700">
+                        Address {idx + 1}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Field label="Address Line 1" required>
                         <Input
                           disabled={!editing}
                           value={address.line1}
-                          onChange={(e) =>
-                            handleSaveAddress({
-                              ...address,
-                              line1: e.target.value,
-                            })
-                          }
+                          onChange={(e) => handleSaveAddress({ ...address, line1: e.target.value })}
                           placeholder="Street address"
-                          aria-required="true"
-                          required
+                          className={cn(iCls)}
                         />
-                      </FormField>
-                      <FormField label="Address Line 2">
+                      </Field>
+                      <Field label="Address Line 2">
                         <Input
                           disabled={!editing}
                           value={address.line2}
-                          onChange={(e) =>
-                            handleSaveAddress({
-                              ...address,
-                              line2: e.target.value,
-                            })
-                          }
+                          onChange={(e) => handleSaveAddress({ ...address, line2: e.target.value })}
                           placeholder="Apartment, suite, etc."
+                          className={cn(iCls)}
                         />
-                      </FormField>
-                      <FormField label="City" required>
+                      </Field>
+                      <Field label="City" required>
                         <Input
                           disabled={!editing}
                           value={address.city}
-                          onChange={(e) =>
-                            handleSaveAddress({
-                              ...address,
-                              city: e.target.value,
-                            })
-                          }
+                          onChange={(e) => handleSaveAddress({ ...address, city: e.target.value })}
                           placeholder="City"
-                          aria-required="true"
-                          required
+                          className={cn(iCls)}
                         />
-                      </FormField>
-                      <FormField label="State">
+                      </Field>
+                      <Field label="State / Province">
                         <Input
                           disabled={!editing}
                           value={address.state}
-                          onChange={(e) =>
-                            handleSaveAddress({
-                              ...address,
-                              state: e.target.value,
-                            })
-                          }
-                          placeholder="State/Province"
+                          onChange={(e) => handleSaveAddress({ ...address, state: e.target.value })}
+                          placeholder="State / Province"
+                          className={cn(iCls)}
                         />
-                      </FormField>
-                      <FormField label="Postal Code" required>
+                      </Field>
+                      <Field label="Postal Code" required>
                         <Input
                           disabled={!editing}
                           value={address.zipcode}
-                          onChange={(e) =>
-                            handleSaveAddress({
-                              ...address,
-                              zipcode: e.target.value,
-                            })
-                          }
+                          onChange={(e) => handleSaveAddress({ ...address, zipcode: e.target.value })}
                           placeholder="Postal code"
-                          aria-required="true"
-                          required
+                          className={cn(iCls, "font-mono")}
                         />
-                      </FormField>
-                      <FormField label="Country" required>
+                      </Field>
+                      <Field label="Country" required>
                         <Input
                           disabled={!editing}
                           value={address.country}
-                          onChange={(e) =>
-                            handleSaveAddress({
-                              ...address,
-                              country: e.target.value,
-                            })
-                          }
+                          onChange={(e) => handleSaveAddress({ ...address, country: e.target.value })}
                           placeholder="Country"
-                          aria-required="true"
-                          required
+                          className={cn(iCls)}
                         />
-                      </FormField>
-                    </FormRow>
-
-                    <div className="flex justify-end gap-2 mt-4">
-                      <Button variant="outline" onClick={handleCancelAddress} className="rounded-md px-4">
+                      </Field>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={handleCancelAddress}>
                         Cancel
                       </Button>
-                      <Button disabled={!isAddressValid(address)} onClick={() => setEditingAddressId(null)} className="rounded-md px-4 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white">
-                        Save
+                      <Button
+                        size="sm"
+                        disabled={!isAddressValid(address)}
+                        onClick={() => setEditingAddressId(null)}
+                        className="h-8 rounded-lg text-xs bg-gradient-to-r from-violet-600 to-blue-600 text-white disabled:opacity-50"
+                      >
+                        Done
+                      </Button>
+                    </div>
+                  </div>
+                ) : viewingAddressId === address.id ? (
+                  /* ── Detail view ── */
+                  <div className="p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-emerald-600" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Address {idx + 1} — Details</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+                      {[
+                        { label: "Line 1",      value: address.line1   },
+                        { label: "Line 2",      value: address.line2   },
+                        { label: "City",        value: address.city    },
+                        { label: "State",       value: address.state   },
+                        { label: "Postal Code", value: address.zipcode },
+                        { label: "Country",     value: address.country },
+                      ].map(({ label, value }) => (
+                        <div key={label}>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+                          <p className="text-sm text-slate-800 mt-0.5">{value || "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                      <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={() => setViewingAddressId(null)}>
+                        Close
+                      </Button>
+                      <Button size="sm" className="h-8 rounded-lg text-xs bg-gradient-to-r from-violet-600 to-blue-600 text-white"
+                        onClick={() => { setViewingAddressId(null); handleEditAddress(address); }}>
+                        <PencilLine className="mr-1 h-3 w-3" /> Edit
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {viewingAddressId !== address.id && (
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium text-slate-800">{address.line1 || "Unnamed Address"}</p>
-                          <div className="text-sm text-slate-500 mt-1">
-                            <p>
-                              {address.line2 && address.line2 + ", "}
-                              {address.city}
-                            </p>
-                            <p>
-                              {address.state} {address.zipcode}{address.state || address.zipcode ? ", " : ""}{address.country}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewingAddressId(address.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditAddress(address)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAddress(address.id)}
-                            className="text-red-600 rounded-lg flex-1"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {viewingAddressId === address.id && (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-xs font-semibold text-slate-500 uppercase">Address Line 1</p>
-                            <p className="text-sm mt-1 text-slate-800">{address.line1 || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-500 uppercase">Address Line 2</p>
-                            <p className="text-sm mt-1 text-slate-800">{address.line2 || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-500 uppercase">City</p>
-                            <p className="text-sm mt-1 text-slate-800">{address.city || "—"}</p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-xs font-semibold text-slate-500 uppercase">State</p>
-                            <p className="text-sm mt-1 text-slate-800">{address.state || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-500 uppercase">Postal Code</p>
-                            <p className="text-sm mt-1 text-slate-800">{address.zipcode || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-slate-500 uppercase">Country</p>
-                            <p className="text-sm mt-1 text-slate-800">{address.country || "—"}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end gap-2 pt-4 border-t">
-                          <Button variant="outline" size="sm" onClick={() => setViewingAddressId(null)} className="rounded-md px-3">Close</Button>
-                          <Button size="sm" onClick={() => { setViewingAddressId(null); handleEditAddress(address); }} className="rounded-md px-3 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white">Edit</Button>
-                        </div>
-                      </div>
-                    )}
+                  /* ── Summary row ── */
+                  <div className="flex items-center gap-4 px-5 py-4">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                      <Home className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{address.line1 || "Unnamed Address"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[address.line2, address.city, address.state, address.zipcode, address.country]
+                          .filter(Boolean).join(", ")}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs gap-1"
+                        onClick={() => setViewingAddressId(address.id)}>
+                        <Eye className="h-3.5 w-3.5" /> View
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs gap-1"
+                        onClick={() => handleEditAddress(address)}>
+                        <PencilLine className="h-3.5 w-3.5" /> Edit
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                        onClick={() => handleDeleteAddress(address.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {addresses.length === 0 && (
-          <div className="text-center p-6 text-slate-500 bg-white rounded-lg border border-slate-100">
-            No addresses added yet. Click "Add Address" to add one.
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm">Notes / Remarks</Label>
-        <Textarea
-          disabled={!editing}
-          value={draft.notes}
-          onChange={(e) => set("notes", e.target.value)}
-          className="min-h-[120px] w-full rounded-lg border-slate-200"
-          placeholder="Enter any additional notes"
-        />
+      {/* ── Notes ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHead icon={<StickyNote className="h-3.5 w-3.5" />} label="Notes & Remarks" accent="from-slate-500 to-slate-700" />
+        <div className="relative">
+          <StickyNote className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Textarea
+            disabled={!editing}
+            value={draft.notes}
+            onChange={(e) => set("notes", e.target.value)}
+            placeholder="Enter any additional notes or remarks…"
+            className="min-h-[100px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 resize-none disabled:bg-slate-50"
+          />
+        </div>
       </div>
+    </div>
+  );
+}
+
+/* ── UI helpers ── */
+
+const iCls =
+  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
+
+function SectionHead({ icon, label, accent = "from-violet-600 to-blue-600" }: {
+  icon: React.ReactNode; label: string; accent?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 mb-5">
+      <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white", accent)}>
+        {icon}
+      </div>
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{label}</span>
+      <div className="flex-1 h-px bg-slate-100" />
+    </div>
+  );
+}
+
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-slate-700">
+        {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
+      </Label>
+      {children}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import roleService from "@/service/roleService";
 import type { RoleOption } from "@/types/role";
 
 export type SelectedEmployee = {
+  employeeNo: string;
   id: string;
   no: string;
   name: string;

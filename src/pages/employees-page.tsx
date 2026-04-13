@@ -10,10 +10,14 @@ import type { Employee } from "@/types/hr";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { EmployeeFilters } from "@/modules/hr/components/employee-filters";
 import { EmployeeStats } from "@/modules/hr/components/employee-stats";
 import { AddEmployeeModal } from "@/context/employee-selection";
 import { useAuth } from "@/context/AuthContext";
+import { UserPlus, Users2, LayoutGrid } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface EmployeeTableProps {
   data: Employee[];
@@ -28,55 +32,109 @@ const EmployeeTable = ({ data, onSelect }: EmployeeTableProps) => (
   />
 );
 
-interface EmployeeSearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
-}
+// ── Department distribution widget ────────────────────────────────────────────
+const DepartmentBreakdown = ({ employees }: { employees: Employee[] }) => {
+  const depts = useMemo(() => {
+    const map = new Map<string, number>();
+    employees.forEach((e) => {
+      const d = e.department?.trim();
+      if (d) map.set(d, (map.get(d) ?? 0) + 1);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+  }, [employees]);
 
-interface EmployeeSearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
-  showAdd?: boolean;
-  onAddClick?: () => void;
-}
+  if (depts.length === 0) return null;
+  const max = depts[0][1];
 
-const EmployeeSearchBar = ({
-  value,
-  onChange,
-  showAdd,
-  onAddClick,
-}: EmployeeSearchBarProps) => (
-  <div className="flex items-center justify-between gap-3 p-4">
-    <div className="flex gap-2 w-full max-w-md items-center">
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Search by No / Name / Dept / Designation / Status"
-        className="h-9 flex-1"
-      />
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onChange("")}
-        className="h-9 whitespace-nowrap"
-      >
-        Reset
-      </Button>
-    </div>
+  return (
+    <Card className="shadow-sm h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-100">
+            <LayoutGrid className="h-3.5 w-3.5 text-violet-600" />
+          </div>
+          Department Headcount
+        </CardTitle>
+      </CardHeader>
+      <Separator />
+      <CardContent className="pt-4 space-y-2.5">
+        {depts.map(([dept, count]) => (
+          <div key={dept}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-foreground truncate max-w-[65%]">{dept}</span>
+              <span className="text-xs font-semibold text-muted-foreground tabular-nums">{count}</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-all duration-500"
+                style={{ width: `${Math.round((count / max) * 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
 
-    {showAdd && (
-      <div className="flex-shrink-0">
-        <Button
-          variant="default"
-          className="bg-orange-500 hover:bg-orange-600 text-white h-9"
-          onClick={onAddClick}
-        >
-          + Add Employee
-        </Button>
-      </div>
-    )}
-  </div>
-);
+// ── Workforce breakdown widget ─────────────────────────────────────────────────
+const WorkforceBreakdown = ({ employees }: { employees: Employee[] }) => {
+  const breakdown = useMemo(() => {
+    const normalize = (s?: string | null) =>
+      String(s ?? "").trim().toUpperCase();
+
+    const total  = employees.length;
+    const male   = employees.filter((e) => normalize(e.gender) === "MALE").length;
+    const female = employees.filter((e) => normalize(e.gender) === "FEMALE").length;
+    const other  = total - male - female;
+
+    const depts  = new Set(employees.map((e) => e.department).filter(Boolean)).size;
+    const joined = employees.filter((e) => {
+      if (!e.joinDate) return false;
+      const y = new Date(e.joinDate).getFullYear();
+      return y === new Date().getFullYear();
+    }).length;
+
+    return { total, male, female, other, depts, joined };
+  }, [employees]);
+
+  const rows = [
+    { label: "Male",              value: breakdown.male,   color: "bg-blue-500",    of: breakdown.total },
+    { label: "Female",            value: breakdown.female, color: "bg-pink-500",    of: breakdown.total },
+    { label: "Departments",       value: breakdown.depts,  color: "bg-violet-500",  of: null },
+    { label: "Joined this year",  value: breakdown.joined, color: "bg-emerald-500", of: null },
+  ];
+
+  return (
+    <Card className="shadow-sm h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100">
+            <Users2 className="h-3.5 w-3.5 text-blue-600" />
+          </div>
+          Workforce Breakdown
+        </CardTitle>
+      </CardHeader>
+      <Separator />
+      <CardContent className="pt-4 space-y-3">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center gap-3">
+            <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full", r.color)} />
+            <span className="flex-1 text-xs text-muted-foreground">{r.label}</span>
+            <span className="text-sm font-bold tabular-nums">{r.value}</span>
+            {r.of !== null && r.of > 0 && (
+              <span className="text-xs text-muted-foreground w-10 text-right">
+                {Math.round((r.value / r.of) * 100)}%
+              </span>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,6 +185,7 @@ export default function EmployeesPage() {
   const handleEmployeeSelect = (employee: Employee) => {
     setSelected({
       id: employee.id?.toString() || "",
+      employeeNo: employee.employeeNo?.toString() || "",
       no: employee.employeeNo?.toString() || "",
       name: `${employee.firstName} ${employee.lastName}`,
       firstName: employee.firstName?.toString() || "",
@@ -367,11 +426,16 @@ export default function EmployeesPage() {
       window.removeEventListener("employee:updated", handler as EventListener);
   }, []);
 
+  const showAdd =
+    permissions === null ||
+    permissionsLoading ||
+    ["employee_profile", "current_job"].some(
+      (m) => (permissions as any)?.[m]?.create === true,
+    );
+
   return (
-    <div className="space-y-4 p-10">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Employee Overview</h2>
-      </div>
+    <div className="space-y-5 px-6 py-6 max-w-[1400px] mx-auto">
+
       {showAddEmployee && (
         <AddEmployeeModal
           isOpen={showAddEmployee}
@@ -381,24 +445,78 @@ export default function EmployeesPage() {
           }}
           onClose={() => setShowAddEmployee(false)}
         />
-      )}{" "}
-      <EmployeeStats employees={employees} onFilter={setStatusFilter} />
-      <div className="rounded-md border bg-white">
-        <div className="p-4">
-          <EmployeeSearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            showAdd={
-              // Only show add button when user can create employees
-              permissions === null || // admin
-              permissionsLoading ||
-              // allow if any relevant module has create permission
-              (["employee_profile", "current_job"].some(
-                (m) => (permissions as any)?.[m]?.create === true,
-              ))
-            }
-            onAddClick={() => setShowAddEmployee(true)}
-          />
+      )}
+
+      {/* ── Page header ─────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Employee Overview</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage and monitor your organisation's workforce
+          </p>
+        </div>
+        {showAdd && (
+          <Button
+            onClick={() => setShowAddEmployee(true)}
+            className="gap-2 bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-sm
+                       hover:from-violet-700 hover:to-blue-700 hover:shadow-md transition-all self-start sm:self-auto"
+          >
+            <UserPlus className="h-4 w-4" />
+            Add Employee
+          </Button>
+        )}
+      </div>
+
+      {/* ── KPI stat cards ───────────────────────────────────────────────── */}
+      <EmployeeStats
+        employees={employees}
+        onFilter={setStatusFilter}
+        activeFilter={statusFilter}
+      />
+
+      {/* ── Insight widgets ──────────────────────────────────────────────── */}
+      {employees.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <DepartmentBreakdown employees={employees} />
+          <WorkforceBreakdown  employees={employees} />
+        </div>
+      )}
+
+      {/* ── Employee table ───────────────────────────────────────────────── */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
+              <Users2 className="h-4 w-4 text-slate-600" />
+            </div>
+            Employee Directory
+            <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
+              {filteredEmployees.length} of {employees.length}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <Separator />
+
+        {/* Search + filter toolbar */}
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <LayoutGrid className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search name, dept, designation…"
+              className="h-9 pl-9 pr-9 text-sm"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
 
           <EmployeeFilters
             onFilterStatus={setStatusFilter}
@@ -406,13 +524,20 @@ export default function EmployeesPage() {
           />
         </div>
 
-        <div className="px-4 pb-4">
-          <EmployeeTable
-            data={filteredEmployees}
-            onSelect={handleEmployeeSelect}
-          />
+        <div className={cn("px-5 pb-5", filteredEmployees.length === 0 && "min-h-[200px] flex items-center justify-center")}>
+          {filteredEmployees.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+              <Users2 className="h-10 w-10 opacity-30" />
+              <p className="text-sm">No employees match your current filters.</p>
+              <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setStatusFilter(null); }}>
+                Clear filters
+              </Button>
+            </div>
+          ) : (
+            <EmployeeTable data={filteredEmployees} onSelect={handleEmployeeSelect} />
+          )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -28,7 +28,10 @@ import {
   Award,
   MapPin,
   TrendingUp,
+  Globe,
+  LayoutGrid,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 import { useAuth } from "@/context/AuthContext";
 import type { CurrentJobCtx } from "../CurrentJobLayout";
@@ -397,397 +400,290 @@ export default function CurrentJobForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="flex items-start gap-4">
-          <div className="bg-blue-100 p-3 rounded-xl">
-            <Briefcase className="h-6 w-6 text-blue-600" />
+    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
+
+      {/* ── Page header ── */}
+      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
+        <div className="flex items-center gap-4 px-6 py-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
+            <Briefcase className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-slate-800">
-              Current Job Information
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Manage employment position and organizational details
+            <h1 className="text-lg font-bold text-slate-900 leading-tight">Current Job</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Manage employment position, department, and work location details
             </p>
           </div>
         </div>
       </div>
 
-      {/* Quick Summary Cards - Always Visible */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Briefcase className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-blue-600 font-medium">
-                Current Position
-              </p>
-              <p className="text-sm font-semibold text-blue-900">
-                {formData.jobTitle || "Not set"}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* ── KPI summary strip ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          icon={<Briefcase className="h-4 w-4" />}
+          label="Position"
+          value={formData.jobTitle || "—"}
+          accent="text-violet-600 bg-violet-50 border-violet-100"
+        />
+        <KpiCard
+          icon={<Building2 className="h-4 w-4" />}
+          label="Department"
+          value={formData.departmentName || formData.departmentCode || "—"}
+          accent="text-emerald-600 bg-emerald-50 border-emerald-100"
+        />
+        <KpiCard
+          icon={<Calendar className="h-4 w-4" />}
+          label="Start Date"
+          value={
+            formData.startDate
+              ? new Date(formData.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              : "—"
+          }
+          accent="text-amber-600 bg-amber-50 border-amber-100"
+        />
+        <KpiCard
+          icon={<MapPin className="h-4 w-4" />}
+          label="Work Location"
+          value={formData.workLocation || "—"}
+          accent="text-blue-600 bg-blue-50 border-blue-100"
+        />
+      </div>
 
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-600 p-2 rounded-lg">
-              <Building2 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-emerald-600 font-medium">Department</p>
-              <p className="text-sm font-semibold text-emerald-900">
-                {formData.departmentName ||
-                  formData.departmentCode ||
-                  "Not set"}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* ── Position Details ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<LayoutGrid className="h-3.5 w-3.5" />}
+          label="Position Details"
+          accent="from-violet-600 to-blue-600"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Job Code */}
+          <Field label="Job Code" required error={errors.jobCode}>
+            {loadingJobCodes ? (
+              <Input className={fieldCls} disabled placeholder="Loading job codes…" />
+            ) : jobCodes.length > 0 ? (
+              <div className="relative">
+                <Briefcase className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Select value={formData.jobCode} onValueChange={handleJobCodeChange}>
+                  <SelectTrigger className={cn(fieldCls, "pl-9")} disabled={!editing}>
+                    <SelectValue placeholder="Select job code" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jobCodes.map((jc) => (
+                      <SelectItem key={jc.id} value={jc.code}>
+                        {jc.code} — {jc.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <Briefcase className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className={cn(fieldCls, "pl-9")}
+                    disabled={!editing}
+                    value={formData.jobCode}
+                    onChange={(e) => updateField("jobCode")(e.target.value)}
+                    placeholder="e.g., JD001"
+                  />
+                </div>
+                <p className="text-[11px] text-amber-600 mt-1">No job codes configured — enter manually.</p>
+              </>
+            )}
+          </Field>
 
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
-          <div className="flex items-center gap-3">
-            <div className="bg-amber-600 p-2 rounded-lg">
-              <Calendar className="h-5 w-5 text-white" />
+          {/* Job Title */}
+          <Field label="Job Title" required error={errors.jobTitle}>
+            <div className="relative">
+              <Award className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.jobTitle}
+                onChange={(e) => updateField("jobTitle")(e.target.value)}
+                placeholder="e.g., Senior Developer"
+              />
             </div>
-            <div>
-              <p className="text-xs text-amber-600 font-medium">Start Date</p>
-              <p className="text-sm font-semibold text-amber-900">
-                {formData.startDate
-                  ? new Date(formData.startDate).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "Not set"}
-              </p>
-            </div>
-          </div>
-        </div>
+          </Field>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-600 p-2 rounded-lg">
-              <MapPin className="h-5 w-5 text-white" />
+          {/* Job Level */}
+          <Field label="Job Level">
+            <div className="relative">
+              <TrendingUp className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.jobLevel}
+                onChange={(e) => updateField("jobLevel")(e.target.value)}
+                placeholder="e.g., Senior, Manager"
+              />
             </div>
-            <div>
-              <p className="text-xs text-purple-600 font-medium">
-                Work Location
-              </p>
-              <p className="text-sm font-semibold text-purple-900">
-                {formData.workLocation || "Not set"}
-              </p>
-            </div>
-          </div>
+          </Field>
         </div>
       </div>
 
-      {/* All Job Information in One Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-blue-600" />
-            <h3 className="text-base font-semibold text-slate-800">
-              Job Information
-            </h3>
-          </div>
+      {/* ── Department ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<Building2 className="h-3.5 w-3.5" />}
+          label="Department"
+          accent="from-emerald-500 to-teal-600"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Department Code */}
+          <Field label="Department" required error={errors.departmentCode}>
+            {loadingDepartments ? (
+              <Input className={fieldCls} disabled placeholder="Loading departments…" />
+            ) : (
+              <div className="relative">
+                <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Select value={formData.departmentCode} onValueChange={handleDepartmentChange}>
+                  <SelectTrigger className={cn(fieldCls, "pl-9")} disabled={!editing}>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.departmentCode}>
+                        {dept.departmentCode} — {dept.departmentName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </Field>
+
+          {/* Department Name (auto-filled, editable) */}
+          <Field label="Department Name">
+            <div className="relative">
+              <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.departmentName}
+                onChange={(e) => updateField("departmentName")(e.target.value)}
+                placeholder="Auto-filled from selection"
+              />
+            </div>
+          </Field>
+
+          {/* Grade */}
+          <Field label="Grade">
+            <div className="relative">
+              <Award className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.grade}
+                onChange={(e) => updateField("grade")(e.target.value)}
+                placeholder="e.g., Grade 5"
+              />
+            </div>
+          </Field>
         </div>
+      </div>
 
-        <div className="p-6 space-y-8">
-          {/* Position Details */}
-          <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-              <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-              Position Details
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Field label="Job Code" required error={errors.jobCode}>
-                <div className="relative">
-                  {loadingJobCodes ? (
-                    <Input
-                      className="h-10 pl-10 border-slate-300 bg-slate-50"
-                      disabled
-                      placeholder="Loading..."
-                    />
-                  ) : jobCodes.length > 0 ? (
-                    <>
-                      <div className="relative">
-                        <Select
-                          value={formData.jobCode}
-                          onValueChange={handleJobCodeChange}
-                        >
-                          <SelectTrigger
-                            className="h-10 pl-10"
-                            disabled={!editing}
-                          >
-                            <SelectValue placeholder="Select Job Code" />
-                          </SelectTrigger>
-
-                          <SelectContent>
-                            {jobCodes.map((jc) => (
-                              <SelectItem key={jc.id} value={jc.code}>
-                                {jc.code} - {jc.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="relative">
-                        <Input
-                          className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                          disabled={!editing}
-                          value={formData.jobCode}
-                          onChange={(e) =>
-                            updateField("jobCode")(e.target.value)
-                          }
-                          placeholder="Enter Job Code (e.g., JD001)"
-                        />
-                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                      </div>
-                      <p className="text-xs text-amber-600 mt-1">
-                        No job codes available. Please enter manually or contact
-                        admin to set up job codes.
-                      </p>
-                    </>
-                  )}
-                </div>
-              </Field>
-
-              <Field label="Job Title" required error={errors.jobTitle}>
-                <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.jobTitle}
-                    onChange={(e) => updateField("jobTitle")(e.target.value)}
-                    required
-                    placeholder="e.g., Senior Developer"
-                  />
-                  <Award className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
-
-              <Field label="Job Level" error={errors.jobLevel}>
-                <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.jobLevel}
-                    onChange={(e) => updateField("jobLevel")(e.target.value)}
-                    placeholder="e.g., Senior, Manager"
-                  />
-                  <TrendingUp className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
+      {/* ── Dates ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<Calendar className="h-3.5 w-3.5" />}
+          label="Employment Dates"
+          accent="from-amber-500 to-orange-500"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Field label="Start Date" required error={errors.startDate}>
+            <div className="relative">
+              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.startDate}
+                onChange={(e) => updateField("startDate")(e.target.value)}
+              />
             </div>
-          </div>
+          </Field>
 
-          {/* Divider */}
-          <div className="border-t border-slate-200"></div>
-
-          {/* Department Information */}
-          <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-              <div className="w-1 h-4 bg-emerald-600 rounded-full"></div>
-              Department Information
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Field
-                label="Department Code"
-                required
-                error={errors.departmentCode}
-              >
-                <div className="relative">
-                  {loadingDepartments ? (
-                    <Input
-                      className="h-10 pl-10 border-slate-300 bg-slate-50"
-                      disabled
-                      placeholder="Loading..."
-                    />
-                  ) : (
-                    <>
-                      <div className="relative">
-                        <Select
-                          value={formData.departmentCode}
-                          onValueChange={handleDepartmentChange}
-                        >
-                          <SelectTrigger
-                            className="h-10 pl-10"
-                            disabled={!editing}
-                          >
-                            <SelectValue placeholder="Select Department" />
-                          </SelectTrigger>
-
-                          <SelectContent>
-                            {departments.map((dept) => (
-                              <SelectItem
-                                key={dept.id}
-                                value={dept.departmentCode}
-                              >
-                                {dept.departmentCode} - {dept.departmentName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </Field>
-
-              <Field label="Department Name" error={errors.departmentName}>
-                <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.departmentName}
-                    onChange={(e) =>
-                      updateField("departmentName")(e.target.value)
-                    }
-                    placeholder="e.g., Information Technology"
-                  />
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
-
-              <Field label="Grade" error={errors.grade}>
-                <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.grade}
-                    onChange={(e) => updateField("grade")(e.target.value)}
-                    placeholder="e.g., Grade 5"
-                  />
-                  <Award className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
+          <Field label="Effective From" required error={errors.effectiveFrom}>
+            <div className="relative">
+              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.effectiveFrom}
+                onChange={(e) => updateField("effectiveFrom")(e.target.value)}
+              />
             </div>
-          </div>
+          </Field>
 
-          {/* Divider */}
-          <div className="border-t border-slate-200"></div>
-
-          {/* Employment Dates */}
-          <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-              <div className="w-1 h-4 bg-amber-600 rounded-full"></div>
-              Employment Dates
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Field label="Start Date" required error={errors.startDate}>
-                <div className="relative">
-                  <Input
-                    type="date"
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.startDate}
-                    onChange={(e) => updateField("startDate")(e.target.value)}
-                    required
-                  />
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
-
-              <Field
-                label="Effective From"
-                required
-                error={errors.effectiveFrom}
-              >
-                <div className="relative">
-                  <Input
-                    type="date"
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.effectiveFrom}
-                    onChange={(e) =>
-                      updateField("effectiveFrom")(e.target.value)
-                    }
-                    required
-                  />
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
-
-              <Field label="Expected End Date" error={errors.expectedEndDate}>
-                <div className="relative">
-                  <Input
-                    type="date"
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.expectedEndDate}
-                    onChange={(e) =>
-                      updateField("expectedEndDate")(e.target.value)
-                    }
-                  />
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
+          <Field label="Expected End Date" error={errors.expectedEndDate}>
+            <div className="relative">
+              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.expectedEndDate}
+                onChange={(e) => updateField("expectedEndDate")(e.target.value)}
+              />
             </div>
-          </div>
+            {!errors.expectedEndDate && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">Optional — leave blank for open-ended contracts</p>
+            )}
+          </Field>
+        </div>
+      </div>
 
-          {/* Divider */}
-          <div className="border-t border-slate-200"></div>
-
-          {/* Work Location */}
-          <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-              <div className="w-1 h-4 bg-purple-600 rounded-full"></div>
-              Work Location
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Field label="Work Location" required error={errors.workLocation}>
-                <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.workLocation}
-                    onChange={(e) =>
-                      updateField("workLocation")(e.target.value)
-                    }
-                    required
-                    placeholder="e.g., Office, Remote, Hybrid"
-                  />
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
-
-              <Field label="Work City" error={errors.workCity}>
-                <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.workCity}
-                    onChange={(e) => updateField("workCity")(e.target.value)}
-                    placeholder="e.g., New York"
-                  />
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
-
-              <Field label="Work Country" error={errors.workCountry}>
-                <div className="relative">
-                  <Input
-                    className="h-10 pl-10 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all"
-                    disabled={!editing}
-                    value={formData.workCountry}
-                    onChange={(e) => updateField("workCountry")(e.target.value)}
-                    placeholder="e.g., United States"
-                  />
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-              </Field>
+      {/* ── Work Location ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<Globe className="h-3.5 w-3.5" />}
+          label="Work Location"
+          accent="from-blue-500 to-indigo-600"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Field label="Work Location" required error={errors.workLocation}>
+            <div className="relative">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.workLocation}
+                onChange={(e) => updateField("workLocation")(e.target.value)}
+                placeholder="Office / Remote / Hybrid"
+              />
             </div>
-          </div>
+          </Field>
+
+          <Field label="Work City">
+            <div className="relative">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.workCity}
+                onChange={(e) => updateField("workCity")(e.target.value)}
+                placeholder="e.g., Kuala Lumpur"
+              />
+            </div>
+          </Field>
+
+          <Field label="Work Country">
+            <div className="relative">
+              <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.workCountry}
+                onChange={(e) => updateField("workCountry")(e.target.value)}
+                placeholder="e.g., Malaysia"
+              />
+            </div>
+          </Field>
         </div>
       </div>
     </div>
@@ -795,6 +691,52 @@ export default function CurrentJobForm() {
 }
 
 /* ================= UI HELPERS ================= */
+
+/** Shared input class — consistent across all fields */
+const fieldCls =
+  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
+
+function SectionHeading({
+  icon,
+  label,
+  accent = "from-violet-600 to-blue-600",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  accent?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 mb-5">
+      <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white", accent)}>
+        {icon}
+      </div>
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{label}</span>
+      <div className="flex-1 h-px bg-slate-100" />
+    </div>
+  );
+}
+
+function KpiCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <div className={cn("flex items-center gap-3 rounded-xl border p-3.5 bg-white shadow-sm", accent)}>
+      <div className={cn("shrink-0", accent.split(" ")[0])}>{icon}</div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="truncate text-sm font-bold text-slate-800">{value}</p>
+      </div>
+    </div>
+  );
+}
 
 function Field({
   label,
@@ -808,16 +750,15 @@ function Field({
   error?: string;
 }) {
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-slate-700">
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-slate-700">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-rose-500 ml-0.5">*</span>}
       </Label>
       {children}
       {error && (
-        <p className="text-xs text-red-500 flex items-center gap-1">
-          <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
-          {error}
+        <p className="flex items-center gap-1 text-xs text-rose-500">
+          <span>⚠</span> {error}
         </p>
       )}
     </div>

@@ -1,11 +1,27 @@
 import { apiClient } from "@/service/apiClient";
 
-const BASE = "/employees";
+// ── CORRECTED base paths ──────────────────────────────────────────────────
+// GET  /api/employees/{employeeId}/leaves/available-types  → available leave types
+// GET  /api/employees/{employeeId}/leaves/preview          → preview leave
+// POST /api/employees/{employeeId}/leaves                  → apply leave
+// GET  /api/employees/{employeeId}/leaves                  → fetch all leaves (history)
+// ────────────────────────────────────────────────────────────────────────────
 
 export interface LeavePreview {
   totalDays: number;
   availableBalance: number;
   remainingAfter: number;
+}
+
+export interface LeaveHistoryItem {
+  leaveCode: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  dateReported: string;
+  totalDays: number;
+  leaveStatus: string;
+  leaveBalance: number | string;
 }
 
 export interface ApiResponse<T> {
@@ -15,69 +31,47 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-/**
- * Leave Service - Handles all leave-related API calls
- * 
- * IMPORTANT: This service wraps all responses in a structured format
- * so the frontend can consistently handle success/error cases.
- */
 export const leaveService = {
   /**
-   * Fetch available leave types for an employee
-   * Returns: { success: true, data: ["Annual Leave", ...] }
-   *       OR { success: false, message: "...", data: [] }
+   * ✅ FIXED: Fetch available leave types for an employee
+   * Endpoint: GET /api/employees/{employeeId}/leaves/available-types
    */
   async fetchAvailableLeaveTypes(employeeId: number) {
     try {
       const response = await apiClient.get(
-        `${BASE}/${employeeId}/leaves/available-types`
+        `/employees/${employeeId}/leaves/available-types`
       );
 
-      // Handle different response formats from backend
       let leaveTypes: string[] = [];
-      
+
+      // Handle various response formats from the API
       if (Array.isArray(response.data)) {
-        // Direct array response: ["Annual Leave", "Sick Leave", ...]
         leaveTypes = response.data;
-      } else if (response.data?.data && Array.isArray(response.data.data)) {
-        // Nested response: { data: ["Annual Leave", ...], ... }
-        leaveTypes = response.data.data;
       } else if (response.data?.leaveTypes && Array.isArray(response.data.leaveTypes)) {
-        // Other nested: { leaveTypes: [...], ... }
         leaveTypes = response.data.leaveTypes;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        leaveTypes = response.data.data;
       }
 
-      return {
-        success: true,
-        message: "Leave types fetched successfully",
-        data: leaveTypes
+      console.log("✅ Leave types fetched:", leaveTypes);
+      return { 
+        success: true, 
+        message: "Leave types fetched successfully", 
+        data: leaveTypes 
       };
     } catch (error: any) {
-      // Extract error details from response
-      const errorMessage = 
-        error.response?.data?.message || 
-        error.response?.data?.error || 
-        "Failed to fetch leave types";
-      
-      const errorDetails = 
-        error.response?.data?.details || 
-        error.message || 
-        "Unknown error";
-
-      console.error(`Error fetching leave types: ${errorMessage}`, errorDetails);
-
+      console.error("❌ Error fetching leave types:", error?.response?.data ?? error.message);
       return {
         success: false,
-        message: errorMessage,
-        details: errorDetails,
-        data: [] // Always return empty array for consistency
+        message: error.response?.data?.error || error.response?.data?.message || "Failed to fetch leave types",
+        data: [] as string[],
       };
     }
   },
 
   /**
-   * Preview a leave application
-   * Shows how many days will be used and remaining balance
+   * ✅ FIXED: Preview a leave application
+   * Endpoint: GET /api/employees/{employeeId}/leaves/preview?leaveType=X&startDate=Y&endDate=Z
    */
   async previewLeave(
     employeeId: number,
@@ -86,105 +80,220 @@ export const leaveService = {
     endDate: string
   ) {
     try {
-      const response = await apiClient.get<LeavePreview>(
-        `${BASE}/${employeeId}/leaves/preview`,
-        {
-          params: { leaveType, startDate, endDate },
+      const response = await apiClient.get(
+        `/employees/${employeeId}/leaves/preview`,
+        { 
+          params: { 
+            leaveType, 
+            startDate, 
+            endDate 
+          } 
         }
       );
-      return {
-        success: true,
-        message: "Preview generated",
-        data: response.data
+
+      // Normalize response data
+      const preview = normalizePreview(response.data);
+
+      console.log("✅ Preview generated:", preview);
+      return { 
+        success: true, 
+        message: "Preview generated", 
+        data: preview 
       };
     } catch (error: any) {
-      console.error("Error previewing leave:", error);
+      console.error("❌ Error previewing leave:", error?.response?.data ?? error.message);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to preview leave",
-        details: error.response?.data?.details || error.message,
-        data: {
-          totalDays: 0,
-          availableBalance: 0,
-          remainingAfter: 0
-        }
+        message: error.response?.data?.error || error.response?.data?.message || "Failed to preview leave",
+        data: { 
+          totalDays: 0, 
+          availableBalance: 0, 
+          remainingAfter: 0 
+        },
       };
     }
   },
 
   /**
-   * Apply for a leave
-   * Creates a new leave request
+   * ✅ FIXED: Apply for a leave
+   * Endpoint: POST /api/employees/{employeeId}/leaves
+   * Body: { leaveType, startDate, endDate, ... }
    */
   async applyLeave(
     employeeId: number,
-    payload: { leaveType: string; startDate: string; endDate: string }
+    payload: {
+      leaveType: string;
+      startDate: string;
+      endDate: string;
+      dateReported?: string;
+      leaveCode?: string;
+      leaveStatus?: string;
+      leaveBalance?: number;
+    }
   ) {
     try {
       const response = await apiClient.post(
-        `${BASE}/${employeeId}/leaves`,
+        `/employees/${employeeId}/leaves`,
         payload
       );
-      return {
-        success: true,
-        message: "Leave applied successfully",
-        data: response.data
+
+      console.log("✅ Leave applied successfully:", response.data);
+      return { 
+        success: true, 
+        message: "Leave applied successfully", 
+        data: response.data 
       };
     } catch (error: any) {
-      console.error("Error applying leave:", error);
+      console.error("❌ Error applying leave:", error?.response?.data ?? error.message);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to apply leave",
-        details: error.response?.data?.details || error.message,
-        data: null
+        message: error.response?.data?.error || error.response?.data?.message || "Failed to apply leave",
+        data: null,
       };
     }
   },
 
   /**
-   * Fetch leave history
-   * Gets all past and current leave records
+   * ✅ FIXED: Fetch all leave records for an employee
+   * Endpoint: GET /api/employees/{employeeId}/leaves
    */
   async fetchLeaveHistory(employeeId: number) {
     try {
       const response = await apiClient.get(
-        `${BASE}/${employeeId}/leaves/history`
+        `/employees/${employeeId}/leaves`
       );
-      return {
-        success: true,
-        message: "Leave history fetched",
-        data: response.data
+
+      // Normalize response to array
+      const history = normalizeHistoryResponse(response.data);
+
+      console.log("✅ Leave history fetched:", history);
+      return { 
+        success: true, 
+        message: "Leave history fetched", 
+        data: history 
       };
     } catch (error: any) {
-      console.error("Error fetching leave history:", error);
+      console.error("❌ Error fetching leave history:", error?.response?.data ?? error.message);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to fetch leave history",
-        details: error.response?.data?.details || error.message,
-        data: []
+        message: error.response?.data?.error || error.response?.data?.message || "Failed to fetch leave history",
+        data: [],
       };
     }
   },
 
   /**
-   * Fetch all leaves (GET /api/employees/{id}/leaves)
+   * Alias for fetchLeaveHistory (backward compatibility)
    */
   async fetchLeaves(employeeId: number) {
-    try {
-      const response = await apiClient.get(`${BASE}/${employeeId}/leaves`);
-      return {
-        success: true,
-        message: "Leaves fetched",
-        data: response.data
-      };
-    } catch (error: any) {
-      console.error("Error fetching leaves:", error);
-      return {
-        success: false,
-        message: error.response?.data?.message || "Failed to fetch leaves",
-        details: error.response?.data?.details || error.message,
-        data: []
-      };
-    }
+    return this.fetchLeaveHistory(employeeId);
   },
 };
+
+/* ═══════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════ */
+
+/**
+ * ✅ Normalize preview response from various API response shapes
+ */
+function normalizePreview(data: any): LeavePreview {
+  const pickNumber = (...keys: string[]) => {
+    for (const k of keys) {
+      if (data == null) break;
+      const v = data[k];
+      if (v !== undefined && v !== null && v !== "") {
+        return Number(v);
+      }
+    }
+    return 0;
+  };
+
+  return {
+    totalDays: pickNumber(
+      "totalDays",
+      "total_days",
+      "total",
+      "days",
+      "daysRequested",
+      "days_requested"
+    ),
+    availableBalance: pickNumber(
+      "availableBalance",
+      "available_balance",
+      "available",
+      "balance",
+      "currentBalance",
+      "current_balance",
+      "remainingLeaves",
+      "remaining_leaves"
+    ),
+    remainingAfter: pickNumber(
+      "remainingAfter",
+      "remaining_after",
+      "remaining",
+      "balanceAfter",
+      "balance_after",
+      "remaining_balance",
+      "remainingBalance",
+      "remaining_leaves"
+    ),
+  };
+}
+
+/**
+ * ✅ Normalize leave history response from various API response shapes
+ */
+function normalizeHistoryResponse(data: any): LeaveHistoryItem[] {
+  if (!data) return [];
+
+  let items: any[] = [];
+
+  // Direct array
+  if (Array.isArray(data)) {
+    items = data;
+  }
+  // { leaves: [...] }  ← GET /employees/{id}/leaves controller response
+  else if (Array.isArray(data.leaves)) {
+    items = data.leaves;
+  }
+  // { history: [...] }  ← GET /employees/{id}/leaves/history controller response
+  else if (Array.isArray(data.history)) {
+    items = data.history;
+  }
+  // { data: [...] }
+  else if (Array.isArray(data.data)) {
+    items = data.data;
+  }
+  // Spring Page: { content: [...] }
+  else if (Array.isArray(data.content)) {
+    items = data.content;
+  }
+
+  // Normalize each item and calculate totalDays from dates when not provided
+  return items.map((item: any) => {
+    const startDate = item.startDate || item.start_date || "";
+    const endDate   = item.endDate   || item.end_date   || "";
+
+    const calculatedDays =
+      startDate && endDate
+        ? Math.max(
+            Math.floor(
+              (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000
+            ) + 1,
+            1
+          )
+        : 0;
+
+    return {
+      leaveCode:    item.leaveCode    || item.leave_code    || "—",
+      leaveType:    item.leaveType    || item.leave_type    || "—",
+      startDate,
+      endDate,
+      dateReported: item.dateReported || item.date_reported || "",
+      totalDays:    item.totalDays != null ? Number(item.totalDays) : calculatedDays,
+      leaveStatus:  item.leaveStatus  || item.leave_status  || "Pending",
+      leaveBalance: item.leaveBalance ?? item.leave_balance ?? "",
+    };
+  });
+}
