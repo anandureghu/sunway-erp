@@ -23,7 +23,12 @@ import { SALES_ORDER_SCHEMA, type SalesOrderFormData } from "@/schema/sales";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { useAuth } from "@/context/AuthContext";
 import { listCustomers } from "@/service/customerService";
-import { listItems, listWarehouses } from "@/service/inventoryService";
+import {
+  listItems,
+  listItemWarehouseStock,
+  listWarehouses,
+} from "@/service/inventoryService";
+import type { ItemWarehouseStockRowDTO } from "@/service/erpApiTypes";
 import { apiClient } from "@/service/apiClient";
 import { createSalesOrder } from "@/service/salesFlowService";
 import type { SalesOrderItem } from "@/types/sales";
@@ -42,6 +47,9 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
   const [itemQuantity, setItemQuantity] = useState(1);
   const [itemDiscount, setItemDiscount] = useState(0);
   const [itemWarehouse, setItemWarehouse] = useState("");
+  const [pickerStockRows, setPickerStockRows] = useState<
+    ItemWarehouseStockRowDTO[]
+  >([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -140,6 +148,34 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
     };
   }, [user?.companyId]);
 
+  useEffect(() => {
+    if (!selectedItem) {
+      setPickerStockRows([]);
+      return;
+    }
+    let cancelled = false;
+    listItemWarehouseStock(selectedItem)
+      .then((rows) => {
+        if (!cancelled) setPickerStockRows(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setPickerStockRows([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedItem]);
+
+  useEffect(() => {
+    if (!selectedItem) return;
+    const inv = items.find((i) => String(i.id) === selectedItem);
+    if (inv?.warehouse_id != null) {
+      setItemWarehouse(String(inv.warehouse_id));
+    } else {
+      setItemWarehouse("");
+    }
+  }, [selectedItem, items]);
+
   const totals = useMemo(() => {
     const subtotal = orderItems.reduce(
       (sum, item) => sum + item.total - item.tax,
@@ -207,6 +243,14 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
     const item = items.find((i) => String(i.id) === String(selectedItem));
     if (!item) return;
 
+    const whId = itemWarehouse
+      ? Number(itemWarehouse)
+      : Number(item.warehouse_id ?? 0);
+    if (!whId) {
+      toast.error("Select a warehouse for this line.");
+      return;
+    }
+
     const unitPrice = item.sellingPrice;
     const discountAmount = (unitPrice * itemQuantity * itemDiscount) / 100;
     const subtotal = unitPrice * itemQuantity - discountAmount;
@@ -229,7 +273,7 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         discount: itemDiscount,
         tax,
         total,
-        warehouseId: Number(itemWarehouse || 0),
+        warehouseId: whId,
         item,
       },
     ]);
@@ -279,6 +323,7 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
         creditAccountId: resolvedSalesAccounts.creditAccountId,
         items: orderItems.map((it) => ({
           itemId: Number(it.itemId),
+          warehouseId: Number(it.warehouseId),
           quantity: Math.round(it.quantity),
           unitPrice: it.unitPrice,
           discountPercent: it.discountPercent ?? it.discount,
@@ -502,6 +547,45 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
                   </Select>
                 </div>
               </div>
+              {selectedItem && pickerStockRows.length > 0 && (
+                <div className="text-sm border rounded-md p-3 bg-muted/30 space-y-2">
+                  <p className="font-medium">Stock by warehouse</p>
+                  <ul className="space-y-1 max-h-36 overflow-y-auto">
+                    {pickerStockRows.map((r) => (
+                      <li
+                        key={r.warehouseId}
+                        className="flex justify-between gap-4 tabular-nums"
+                      >
+                        <span>{r.warehouseName}</span>
+                        <span>Available: {r.available}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {itemWarehouse ? (
+                    <p
+                      className={
+                        itemQuantity >
+                        (pickerStockRows.find(
+                          (x) => String(x.warehouseId) === itemWarehouse,
+                        )?.available ?? 0)
+                          ? "text-amber-800 dark:text-amber-200"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      Selected warehouse available:{" "}
+                      {pickerStockRows.find(
+                        (x) => String(x.warehouseId) === itemWarehouse,
+                      )?.available ?? 0}
+                      .{" "}
+                      {itemQuantity >
+                        (pickerStockRows.find(
+                          (x) => String(x.warehouseId) === itemWarehouse,
+                        )?.available ?? 0) &&
+                        "Reduce quantity or choose a warehouse with enough stock."}
+                    </p>
+                  ) : null}
+                </div>
+              )}
               <Button type="button" onClick={addItemToOrder}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Item

@@ -7,6 +7,7 @@ import type {
   ItemResponseDTO,
   ItemStockAdjustPayload,
   ItemStockReceivePayload,
+  ItemWarehouseStockRowDTO,
   WarehouseCreateDTO,
   WarehouseResponseDTO,
   WarehouseUpdateDTO,
@@ -142,6 +143,15 @@ export const getItemById = async (id: string) => {
   const res = await apiClient.get<ItemResponseDTO>(`/inventory/items/${id}`);
   return res.data;
 };
+
+export async function listItemWarehouseStock(
+  itemId: Id | string,
+): Promise<ItemWarehouseStockRowDTO[]> {
+  const res = await apiClient.get<ItemWarehouseStockRowDTO[]>(
+    `/inventory/items/${itemId}/warehouse-stock`,
+  );
+  return res.data || [];
+}
 
 // export async function createItem(payload: ItemCreateDTO) {
 //   const res = await apiClient.post<ItemResponseDTO>(

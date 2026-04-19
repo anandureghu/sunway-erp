@@ -13,6 +13,16 @@ import {
 import type { GoodsReceipt, PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
 import type { Row } from "@tanstack/react-table";
+import { listItems, listWarehouses } from "@/service/inventoryService";
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import type { Warehouse } from "@/types/inventory";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ReceivingPage() {
   const navigate = useNavigate();
@@ -296,6 +306,7 @@ function CreateReceiptForm({
   const [receiptItems, setReceiptItems] = useState<
     Array<{
       itemId: number;
+      warehouseId: number;
       receivedQty: number;
       acceptedQty: number;
       rejectedQty: number;
@@ -304,25 +315,60 @@ function CreateReceiptForm({
   >([]);
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [catalogItems, setCatalogItems] = useState<ItemResponseDTO[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+
+  const defaultWarehouseIdForItem = (itemId: number) => {
+    const it = catalogItems.find((i) => Number(i.id) === itemId);
+    if (it?.warehouse_id != null) return Number(it.warehouse_id);
+    const first = warehouses.find((w) => w.status === "active");
+    return first ? Number(first.id) : 0;
+  };
+
+  const buildReceiptLines = (order: PurchaseOrder) =>
+    order.items.map((item) => ({
+      itemId: Number(item.itemId),
+      warehouseId: defaultWarehouseIdForItem(Number(item.itemId)),
+      receivedQty: item.quantity,
+      acceptedQty: item.quantity,
+      rejectedQty: 0,
+      remarks: "",
+    }));
 
   useEffect(() => {
     (async () => {
       try {
-        const ordersData = await listPurchaseOrders();
+        const [ordersData, itemsData, whData] = await Promise.all([
+          listPurchaseOrders(),
+          listItems(),
+          listWarehouses(),
+        ]);
         setOrders(ordersData);
+        setCatalogItems(itemsData);
+        setWarehouses(whData);
         if (orderId) {
           const order = ordersData.find((o) => o.id === orderId);
           if (order) {
             setSelectedOrder(order);
-            // Initialize receipt items from order items
             setReceiptItems(
-              order.items.map((item) => ({
-                itemId: Number(item.itemId),
-                receivedQty: item.quantity,
-                acceptedQty: item.quantity,
-                rejectedQty: 0,
-                remarks: "",
-              })),
+              order.items.map((item) => {
+                const iid = Number(item.itemId);
+                const it = itemsData.find((i) => Number(i.id) === iid);
+                const whId =
+                  it?.warehouse_id != null
+                    ? Number(it.warehouse_id)
+                    : whData.find((w) => w.status === "active")
+                      ? Number(whData.find((w) => w.status === "active")!.id)
+                      : 0;
+                return {
+                  itemId: iid,
+                  warehouseId: whId,
+                  receivedQty: item.quantity,
+                  acceptedQty: item.quantity,
+                  rejectedQty: 0,
+                  remarks: "",
+                };
+              }),
             );
           }
         }
@@ -340,6 +386,10 @@ function CreateReceiptForm({
     }
     if (receiptItems.length === 0) {
       toast.error("Please add items to receive");
+      return;
+    }
+    if (receiptItems.some((r) => !r.warehouseId || r.warehouseId <= 0)) {
+      toast.error("Select a warehouse for each receipt line.");
       return;
     }
 
@@ -367,7 +417,11 @@ function CreateReceiptForm({
 
   const updateItem = (index: number, field: string, value: number | string) => {
     const updated = [...receiptItems];
-    updated[index] = { ...updated[index], [field]: value };
+    if (field === "warehouseId") {
+      updated[index] = { ...updated[index], warehouseId: Number(value) };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
     // Auto-calculate accepted + rejected = received
     if (field === "receivedQty") {
       const received = Number(value);
@@ -407,15 +461,7 @@ function CreateReceiptForm({
                 const order = orders.find((o) => o.id === e.target.value);
                 setSelectedOrder(order || null);
                 if (order) {
-                  setReceiptItems(
-                    order.items.map((item) => ({
-                      itemId: Number(item.itemId),
-                      receivedQty: item.quantity,
-                      acceptedQty: item.quantity,
-                      rejectedQty: 0,
-                      remarks: "",
-                    })),
-                  );
+                  setReceiptItems(buildReceiptLines(order));
                 }
               }}
               className="w-full p-2 border rounded"
@@ -455,6 +501,7 @@ function CreateReceiptForm({
                   <thead className="bg-muted">
                     <tr>
                       <th className="p-2 text-left">Item</th>
+                      <th className="p-2 text-left">Warehouse</th>
                       <th className="p-2 text-left">Ordered Qty</th>
                       <th className="p-2 text-left">Received Qty</th>
                       <th className="p-2 text-left">Accepted Qty</th>
@@ -471,6 +518,34 @@ function CreateReceiptForm({
                         <tr key={idx} className="border-t">
                           <td className="p-2">
                             {orderItem?.item?.itemId || `Item ${item.itemId}`}
+                          </td>
+                          <td className="p-2 min-w-[160px]">
+                            <Select
+                              value={
+                                item.warehouseId
+                                  ? String(item.warehouseId)
+                                  : ""
+                              }
+                              onValueChange={(v) =>
+                                updateItem(idx, "warehouseId", v)
+                              }
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Warehouse" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {warehouses
+                                  .filter((w) => w.status === "active")
+                                  .map((wh) => (
+                                    <SelectItem
+                                      key={wh.id}
+                                      value={String(wh.id)}
+                                    >
+                                      {wh.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
                           </td>
                           <td className="p-2">{orderItem?.quantity || 0}</td>
                           <td className="p-2">

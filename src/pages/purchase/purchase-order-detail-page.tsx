@@ -407,27 +407,52 @@ export default function PurchaseOrderDetailPage() {
         <CardContent>
           {order.items.length > 0 ? (
             <div className="space-y-3 overflow-x-auto">
-              <div className="grid grid-cols-5 gap-4 font-medium text-sm border-b pb-2 min-w-[480px]">
+              <div className="grid grid-cols-7 gap-2 sm:gap-3 font-medium text-sm border-b pb-2 min-w-[720px]">
                 <div>Item</div>
                 <div className="text-right">Qty</div>
-                <div className="text-right">Unit</div>
+                <div className="text-right">Item cost</div>
+                <div className="text-right">Other</div>
+                <div className="text-right">Applied</div>
                 <div className="text-right">Line total</div>
                 <div className="text-right">Received</div>
               </div>
               {order.items.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-5 gap-4 text-sm border-b pb-2 min-w-[480px]"
+                  className="grid grid-cols-7 gap-2 sm:gap-3 text-sm border-b pb-2 min-w-[720px]"
                 >
                   <div>
                     <p className="font-medium">Item #{item.itemId}</p>
                   </div>
                   <div className="text-right">{item.quantity}</div>
-                  <div className="text-right">
-                    ₹{item.unitPrice.toLocaleString()}
+                  <div className="text-right tabular-nums">
+                    {item.actualItemPrice != null
+                      ? `₹${item.actualItemPrice.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "—"}
                   </div>
-                  <div className="text-right font-medium">
-                    ₹{item.total.toLocaleString()}
+                  <div className="text-right tabular-nums text-muted-foreground">
+                    {item.otherUnitCost != null &&
+                    item.otherUnitCost > 0
+                      ? `₹${item.otherUnitCost.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "—"}
+                  </div>
+                  <div className="text-right tabular-nums font-medium">
+                    ₹{item.unitPrice.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                  <div className="text-right font-medium tabular-nums">
+                    ₹{item.total.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                   <div className="text-right text-muted-foreground">
                     {item.receivedQuantity ?? 0} / {item.quantity}

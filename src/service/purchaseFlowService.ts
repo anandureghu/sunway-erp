@@ -21,7 +21,10 @@ export interface PurchaseRequisitionCreateDTO {
     itemId: number;
     requestedQty: number;
     remarks?: string;
+    /** Applied line rate; server recomputes from item cost + otherUnitCost. */
     estimatedUnitCost?: number;
+    /** Optional override; when set, used instead of item cost price. */
+    otherUnitCost?: number;
   }>;
 }
 
@@ -29,6 +32,9 @@ export interface PurchaseRequisitionItemDTO {
   itemId: number;
   requestedQty: number;
   remarks?: string;
+  /** Snapshot of item cost price from master. */
+  actualItemPrice?: number;
+  otherUnitCost?: number;
   estimatedUnitCost?: number;
 }
 
@@ -62,15 +68,18 @@ export interface PurchaseOrderCreateDTO {
     itemId: number;
     quantity: number;
     unitCost: number;
-    lineTotal?: number; // Optional - backend might calculate this
+    otherUnitCost?: number;
+    lineTotal?: number;
   }>;
 }
 
 export interface PurchaseOrderItemDTO {
   itemId: number;
   quantity: number;
+  actualItemPrice?: number;
+  otherUnitCost?: number;
   unitCost: number;
-  lineTotal?: number; // Optional - backend might calculate this
+  lineTotal?: number;
 }
 
 export interface PurchaseOrderResponseDTO {
@@ -98,6 +107,14 @@ function toPurchaseRequisition(
       li.estimatedUnitCost != null && li.estimatedUnitCost !== undefined
         ? Number(li.estimatedUnitCost)
         : undefined;
+    const actualSnap =
+      li.actualItemPrice != null && li.actualItemPrice !== undefined
+        ? Number(li.actualItemPrice)
+        : undefined;
+    const other =
+      li.otherUnitCost != null && li.otherUnitCost !== undefined
+        ? Number(li.otherUnitCost)
+        : undefined;
     const qty = Number(li.requestedQty || 0);
     return {
       id: `pri-${dto.id}-${idx}`,
@@ -105,6 +122,8 @@ function toPurchaseRequisition(
       itemId: li.itemId,
       quantity: qty,
       notes: li.remarks,
+      actualItemPrice: actualSnap,
+      otherUnitCost: other,
       estimatedUnitCost: est,
       unitPrice: est,
       estimatedTotal: est != null ? est * qty : undefined,
@@ -163,6 +182,14 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     itemId: li.itemId,
     item: li,
     quantity: Number(li.quantity || 0),
+    actualItemPrice:
+      li.actualItemPrice != null && li.actualItemPrice !== undefined
+        ? Number(li.actualItemPrice)
+        : undefined,
+    otherUnitCost:
+      li.otherUnitCost != null && li.otherUnitCost !== undefined
+        ? Number(li.otherUnitCost)
+        : undefined,
     unitPrice: Number(li.unitCost || 0),
     discount: 0,
     tax: 0,
@@ -384,6 +411,7 @@ export interface GoodsReceiptCreateDTO {
   purchaseOrderId: number;
   items: Array<{
     itemId: number;
+    warehouseId: number;
     receivedQty: number;
     acceptedQty: number;
     rejectedQty: number;
@@ -395,8 +423,10 @@ export interface GoodsReceiptResponseDTO {
   id: number;
   purchaseOrderId: number;
   receivedAt: string;
+  documentPdfUrl?: string | null;
   items: Array<{
     itemId: number;
+    warehouseId?: number;
     receivedQty: number;
     acceptedQty: number;
     rejectedQty: number;
@@ -425,7 +455,10 @@ function toGoodsReceipt(
       acceptedQuantity: Number(li.acceptedQty || 0),
       rejectedQuantity: Number(li.rejectedQty || 0),
       qualityStatus: (li.rejectedQty > 0 ? "partial" : "passed") as any,
-      warehouseId: orderItem?.warehouseId || "",
+      warehouseId:
+        li.warehouseId != null && li.warehouseId !== undefined
+          ? String(li.warehouseId)
+          : orderItem?.warehouseId || "",
       notes: li.remarks,
     };
   });
@@ -436,11 +469,25 @@ function toGoodsReceipt(
     orderId: String(dto.purchaseOrderId || ""),
     order: order,
     receiptDate: dto.receivedAt || "",
+    documentPdfUrl: dto.documentPdfUrl ?? null,
     status: "completed" as const,
     items,
     createdAt: dto.receivedAt || "",
     updatedAt: dto.receivedAt || "",
   };
+}
+
+export async function getGoodsReceiptPdfUrl(
+  receiptId: string | number,
+): Promise<string> {
+  const res = await apiClient.get<string>(
+    `/purchase/receipts/${receiptId}/pdf`,
+  );
+  const data = res.data;
+  if (typeof data === "string") {
+    return data.replace(/^"|"$/g, "").trim();
+  }
+  return String(data ?? "").trim();
 }
 
 // --- Goods Receipts ---

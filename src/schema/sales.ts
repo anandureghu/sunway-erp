@@ -29,7 +29,7 @@ export const SALES_ORDER_ITEM_SCHEMA = z.object({
     .max(100, "Discount cannot exceed 100%")
     .default(0),
   tax: z.number().min(0).default(0),
-  warehouseId: z.number().optional(),
+  warehouseId: z.number().min(1, "Warehouse is required for each line"),
 });
 
 // Sales Order Schema

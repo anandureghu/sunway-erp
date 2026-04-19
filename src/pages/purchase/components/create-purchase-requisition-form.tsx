@@ -34,6 +34,22 @@ type Props = {
   onCreated?: () => void;
 };
 
+function parseOptionalOtherCost(s: string): number | undefined {
+  const t = s.trim();
+  if (t === "") return undefined;
+  const n = parseFloat(t);
+  if (Number.isNaN(n) || n <= 0) return undefined;
+  return n;
+}
+
+function appliedFromActualAndOther(
+  actualItemCost: number,
+  otherUnitCost?: number,
+): number {
+  if (otherUnitCost != null && otherUnitCost > 0) return otherUnitCost;
+  return actualItemCost;
+}
+
 export function CreatePurchaseRequisitionForm({
   onCancel,
   onCreated,
@@ -52,7 +68,8 @@ export function CreatePurchaseRequisitionForm({
   >([]);
   const [selectedItem, setSelectedItem] = useState<string>("");
   const [itemQuantity, setItemQuantity] = useState<number>(1);
-  const [itemUnitPrice, setItemUnitPrice] = useState<number>(0);
+  /** Optional override; empty means use item cost price. */
+  const [itemOtherCostInput, setItemOtherCostInput] = useState<string>("");
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -112,15 +129,20 @@ export function CreatePurchaseRequisitionForm({
     };
   }, [reloadSeq, companyId]);
 
+  useEffect(() => {
+    setItemOtherCostInput("");
+  }, [selectedItem]);
+
   const addItemToRequisition = () => {
     if (!selectedItem || itemQuantity <= 0) return;
 
     const inv = items.find((i) => String(i.id) === selectedItem);
     if (!inv) return;
 
-    const unitPrice =
-      itemUnitPrice > 0 ? itemUnitPrice : Number(inv.costPrice ?? 0);
-    const estimatedTotal = unitPrice * itemQuantity;
+    const actualItemPrice = Number(inv.costPrice ?? 0);
+    const other = parseOptionalOtherCost(itemOtherCostInput);
+    const applied = appliedFromActualAndOther(actualItemPrice, other);
+    const estimatedTotal = applied * itemQuantity;
 
     const newItem: PurchaseRequisitionItem = {
       id: `temp-${Date.now()}`,
@@ -128,15 +150,17 @@ export function CreatePurchaseRequisitionForm({
       itemId: Number(inv.id),
       item: inv as any,
       quantity: itemQuantity,
-      unitPrice,
-      estimatedUnitCost: unitPrice,
+      actualItemPrice,
+      otherUnitCost: other,
+      unitPrice: applied,
+      estimatedUnitCost: applied,
       estimatedTotal,
     };
 
     setRequisitionItems([...requisitionItems, newItem]);
     setSelectedItem("");
     setItemQuantity(1);
-    setItemUnitPrice(0);
+    setItemOtherCostInput("");
   };
 
   const removeItem = (itemId: string) => {
@@ -147,7 +171,7 @@ export function CreatePurchaseRequisitionForm({
     lineId: string,
     updates: {
       quantity?: number;
-      unitPrice?: number;
+      otherUnitCost?: number;
       lineNotes?: string;
     },
   ) => {
@@ -156,18 +180,23 @@ export function CreatePurchaseRequisitionForm({
         if (row.id !== lineId) return row;
         const quantity =
           updates.quantity !== undefined ? updates.quantity : row.quantity;
-        const unitPrice =
-          updates.unitPrice !== undefined
-            ? updates.unitPrice
-            : (row.unitPrice ?? row.estimatedUnitCost ?? 0);
         const q = quantity > 0 ? quantity : row.quantity;
-        const estimatedUnitCost = unitPrice;
-        const estimatedTotal = q * estimatedUnitCost;
+        const actual = row.actualItemPrice ?? 0;
+        let other = row.otherUnitCost;
+        if (updates.otherUnitCost !== undefined) {
+          other =
+            updates.otherUnitCost != null && updates.otherUnitCost > 0
+              ? updates.otherUnitCost
+              : undefined;
+        }
+        const applied = appliedFromActualAndOther(actual, other);
+        const estimatedTotal = q * applied;
         return {
           ...row,
           quantity: q,
-          unitPrice,
-          estimatedUnitCost,
+          otherUnitCost: other,
+          unitPrice: applied,
+          estimatedUnitCost: applied,
           estimatedTotal,
           ...(updates.lineNotes !== undefined
             ? { notes: updates.lineNotes }
@@ -214,13 +243,29 @@ export function CreatePurchaseRequisitionForm({
       requestedByUserId: requestedByUserId
         ? Number(requestedByUserId)
         : undefined,
-      items: requisitionItems.map((item) => ({
-        itemId: Number(item.itemId),
-        requestedQty: Math.round(item.quantity),
-        remarks: (item.notes || notes || "").trim(),
-        estimatedUnitCost:
-          item.estimatedUnitCost ?? item.unitPrice ?? undefined,
-      })),
+      items: requisitionItems.map((item) => {
+        const applied = item.estimatedUnitCost ?? item.unitPrice ?? undefined;
+        const payload: {
+          itemId: number;
+          requestedQty: number;
+          remarks: string;
+          estimatedUnitCost?: number;
+          otherUnitCost?: number;
+        } = {
+          itemId: Number(item.itemId),
+          requestedQty: Math.round(item.quantity),
+          remarks: (item.notes || notes || "").trim(),
+          estimatedUnitCost: applied,
+        };
+        if (
+          item.otherUnitCost != null &&
+          item.otherUnitCost !== undefined &&
+          item.otherUnitCost > 0
+        ) {
+          payload.otherUnitCost = item.otherUnitCost;
+        }
+        return payload;
+      }),
     };
 
     createPurchaseRequisition(payload)
@@ -342,7 +387,7 @@ export function CreatePurchaseRequisitionForm({
               <CardTitle>Line items</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label>Item</Label>
                   <Select value={selectedItem} onValueChange={setSelectedItem}>
@@ -375,16 +420,29 @@ export function CreatePurchaseRequisitionForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Est. unit cost</Label>
+                  <Label>Item cost (from master)</Label>
+                  <div className="h-10 px-3 flex items-center rounded-md border bg-muted/50 text-sm tabular-nums">
+                    {selectedItem
+                      ? `₹${Number(
+                          items.find((i) => String(i.id) === selectedItem)
+                            ?.costPrice ?? 0,
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "—"}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Other cost price</Label>
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={itemUnitPrice}
-                    onChange={(e) =>
-                      setItemUnitPrice(parseFloat(e.target.value) || 0)
-                    }
-                    placeholder="Uses item cost if empty"
+                    value={itemOtherCostInput}
+                    onChange={(e) => setItemOtherCostInput(e.target.value)}
+                    placeholder="Optional override"
                   />
                 </div>
 
@@ -405,9 +463,11 @@ export function CreatePurchaseRequisitionForm({
                     <thead className="bg-muted">
                       <tr>
                         <th className="p-2 text-left">Item</th>
-                        <th className="p-2 text-right w-28">Qty</th>
-                        <th className="p-2 text-right w-32">Est. unit</th>
-                        <th className="p-2 text-right">Est. total</th>
+                        <th className="p-2 text-right w-24">Qty</th>
+                        <th className="p-2 text-right w-28">Item cost</th>
+                        <th className="p-2 text-right w-32">Other cost</th>
+                        <th className="p-2 text-right w-28">Applied</th>
+                        <th className="p-2 text-right min-w-[7rem]">Est. total</th>
                         <th className="p-2 text-left min-w-[140px]">Line notes</th>
                         <th className="p-2 text-left w-24" />
                       </tr>
@@ -433,19 +493,56 @@ export function CreatePurchaseRequisitionForm({
                               }
                             />
                           </td>
+                          <td className="p-2 text-right align-middle tabular-nums text-muted-foreground">
+                            ₹
+                            {(row.actualItemPrice ?? 0).toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              },
+                            )}
+                          </td>
                           <td className="p-2 align-middle">
                             <Input
                               type="number"
                               min={0}
                               step={0.01}
                               className="text-right h-9 tabular-nums"
-                              value={row.unitPrice ?? row.estimatedUnitCost ?? 0}
-                              onChange={(e) =>
-                                updateRequisitionLine(row.id, {
-                                  unitPrice: parseFloat(e.target.value) || 0,
-                                })
+                              placeholder="—"
+                              value={
+                                row.otherUnitCost != null &&
+                                row.otherUnitCost > 0
+                                  ? row.otherUnitCost
+                                  : ""
                               }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const num =
+                                  v === ""
+                                    ? undefined
+                                    : parseFloat(v);
+                                updateRequisitionLine(row.id, {
+                                  otherUnitCost:
+                                    num === undefined ||
+                                    Number.isNaN(num) ||
+                                    num <= 0
+                                      ? undefined
+                                      : num,
+                                });
+                              }}
                             />
+                          </td>
+                          <td className="p-2 text-right align-middle tabular-nums font-medium">
+                            ₹
+                            {(
+                              row.estimatedUnitCost ??
+                              row.unitPrice ??
+                              0
+                            ).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </td>
                           <td className="p-2 text-right font-medium align-middle tabular-nums">
                             ₹{(row.estimatedTotal ?? 0).toLocaleString(undefined, {
