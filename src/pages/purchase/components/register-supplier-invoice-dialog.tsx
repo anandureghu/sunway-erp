@@ -200,9 +200,17 @@ export function RegisterSupplierInvoiceDialog({
       setExtractedText(null);
       setExternalUrl("");
     } catch (err: unknown) {
-      toast.error("Failed to create invoice", {
-        description: err instanceof Error ? err.message : String(err),
-      });
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("already exists for this purchase order")) {
+        toast.error("This PO already has an invoice", {
+          description:
+            "Open Purchase Invoices, find the invoice for this PO, and attach your supplier PDF there.",
+        });
+      } else {
+        toast.error("Failed to create invoice", {
+          description: msg,
+        });
+      }
     } finally {
       setSubmitting(false);
     }

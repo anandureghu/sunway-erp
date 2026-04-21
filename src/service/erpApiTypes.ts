@@ -199,9 +199,19 @@ export type ItemStockAdjustPayload = {
   warehouseId?: number;
 };
 
+/** Per-warehouse stock for an item (GET /inventory/items/{id}/warehouse-stock). */
+export type ItemWarehouseStockRowDTO = {
+  warehouseId: number;
+  warehouseName: string;
+  quantityOnHand: number;
+  reserved: number;
+  available: number;
+};
+
 // --- Sales flow ---
 export type SalesOrderItemDTO = {
   itemId?: Id;
+  warehouseId?: Id;
   quantity?: number; // int32
   unitPrice?: number; // double
   discountPercent?: number;

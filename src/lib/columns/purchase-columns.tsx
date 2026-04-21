@@ -496,6 +496,27 @@ export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] = [
     },
   },
   {
+    id: "receiptPdf",
+    header: "Receipt PDF",
+    cell: ({ row }) => {
+      const url = row.original.documentPdfUrl;
+      if (!url) {
+        return <span className="text-muted-foreground text-sm">—</span>;
+      }
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary text-sm underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Open
+        </a>
+      );
+    },
+  },
+  {
     id: "actions",
     cell: () => {
       return (

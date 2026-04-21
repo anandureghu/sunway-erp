@@ -46,6 +46,10 @@ export type PurchaseRequisitionItem = {
   itemId: number;
   item?: PurchaseRequisitionItemDTO;
   quantity: number;
+  /** Snapshot of item cost price when the line was added. */
+  actualItemPrice?: number;
+  /** Optional negotiated / other unit cost. */
+  otherUnitCost?: number;
   unitPrice?: number;
   estimatedUnitCost?: number;
   estimatedTotal?: number;
@@ -102,6 +106,11 @@ export type PurchaseOrderItem = {
   itemId: number;
   item?: PurchaseOrderItemDTO;
   quantity: number;
+  /** Snapshot of item cost price from master. */
+  actualItemPrice?: number;
+  /** Optional other / negotiated unit cost. */
+  otherUnitCost?: number;
+  /** Applied unit cost (same as unitCost in API). */
   unitPrice: number;
   discount: number;
   tax: number;
@@ -180,6 +189,8 @@ export type GoodsReceipt = {
   orderId: string;
   order?: PurchaseOrder;
   receiptDate: string;
+  /** Backend-generated goods receipt PDF (public URL). */
+  documentPdfUrl?: string | null;
   status: GoodsReceiptStatus;
   items: GoodsReceiptItem[];
   receivedBy?: string;

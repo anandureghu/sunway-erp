@@ -58,11 +58,11 @@ export default function LoginPage() {
       const accessToken =
         typeof responseData === "string"
           ? responseData
-          : responseData.token ??
+          : (responseData.token ??
             responseData.accessToken ??
             responseData.access_token ??
             responseData?.access?.token ??
-            responseData?.access?.accessToken;
+            responseData?.access?.accessToken);
 
       if (!accessToken) {
         console.error("Login response missing token string:", response.data);
@@ -86,7 +86,7 @@ export default function LoginPage() {
         accessToken,
         (responseData.refreshToken as string) ??
           (responseData.refresh_token as string) ??
-          ""
+          "",
       );
 
       const forcePasswordReset =

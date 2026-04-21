@@ -99,10 +99,17 @@ export default function PaymentsPage({
 
   const handleOpenInvoice = async (invoiceCode: string) => {
     try {
-      const res = await apiClient.get(`/invoices/code/${invoiceCode}`);
+      const res = await apiClient.get<{
+        id: number;
+        type?: "SALES" | "PURCHASE";
+      }>(`/invoices/code/${invoiceCode}`);
       const invoiceId = res.data?.id;
       if (!invoiceId) throw new Error("Invoice not found");
-      navigate(`/sales/invoices/${invoiceId}`);
+      if (res.data?.type === "PURCHASE") {
+        navigate(`/inventory/purchase/invoices/${invoiceId}`);
+      } else {
+        navigate(`/sales/invoices/${invoiceId}`);
+      }
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       toast.error(

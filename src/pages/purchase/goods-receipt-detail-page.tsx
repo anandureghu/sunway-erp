@@ -7,6 +7,7 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { format } from "date-fns";
 import {
   getGoodsReceiptById,
+  getGoodsReceiptPdfUrl,
   getGoodsReceiptsByPurchaseOrder,
   getPurchaseOrder,
 } from "@/service/purchaseFlowService";
@@ -25,6 +26,8 @@ export default function GoodsReceiptDetailPage() {
   const [requisitionIdForLink, setRequisitionIdForLink] = useState<
     string | undefined
   >(undefined);
+  const [receiptPdfUrl, setReceiptPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -106,6 +109,28 @@ export default function GoodsReceiptDetailPage() {
       cancelled = true;
     };
   }, [receipt?.orderId]);
+
+  useEffect(() => {
+    setReceiptPdfUrl(receipt?.documentPdfUrl ?? null);
+  }, [receipt?.documentPdfUrl, receipt?.id]);
+
+  const ensureReceiptPdf = async () => {
+    if (!receipt) return;
+    setPdfLoading(true);
+    try {
+      const url = await getGoodsReceiptPdfUrl(receipt.id);
+      setReceiptPdfUrl(url);
+      setReceipt((prev) => (prev ? { ...prev, documentPdfUrl: url } : prev));
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message?: string }).message)
+          : "Could not load receipt PDF";
+      toast.error(msg);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -254,6 +279,39 @@ export default function GoodsReceiptDetailPage() {
           goodsReceipts={linkedReceipts}
         />
       </div>
+
+      <Card className="no-print mb-4">
+        <CardHeader>
+          <CardTitle className="text-lg">Goods receipt PDF</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {receiptPdfUrl ? (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <a href={receiptPdfUrl} target="_blank" rel="noreferrer">
+                  Open in new tab
+                </a>
+              </Button>
+              <div className="h-[min(520px,70vh)] w-full overflow-hidden rounded-md border">
+                <iframe
+                  title="Goods receipt PDF"
+                  src={receiptPdfUrl}
+                  className="h-full min-h-[400px] w-full"
+                />
+              </div>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void ensureReceiptPdf()}
+              disabled={pdfLoading}
+            >
+              {pdfLoading ? "Loading…" : "Load or generate receipt PDF"}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Print Header */}
       <div className="print-header hidden print:block">
