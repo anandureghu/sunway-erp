@@ -1,5 +1,5 @@
 import { apiClient } from "@/service/apiClient";
-import { type PicklistResponseDTO } from "@/service/erpApiTypes";
+import { type PicklistResponseDTO, type SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,16 +12,47 @@ const PicklistDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [picklist, setPicklist] = useState<PicklistResponseDTO | null>(null);
+  const [salesOrder, setSalesOrder] = useState<SalesOrderResponseDTO | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    setLoading(true);
     apiClient
       .get<PicklistResponseDTO>(`/warehouse/picklists/${id}`)
-      .then(({ data }) => setPicklist(data));
+      .then(async ({ data }) => {
+        if (!mounted) return;
+        setPicklist(data);
+        if (!data.salesOrderId) return;
+        try {
+          const so = await apiClient.get<SalesOrderResponseDTO>(`/sales/orders/${data.salesOrderId}`);
+          if (mounted) {
+            setSalesOrder(so.data);
+          }
+        } catch {
+          if (mounted) {
+            setSalesOrder(null);
+          }
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
-  if (!picklist) {
+  if (loading || !picklist) {
     return <div className="p-6 text-muted-foreground">Loading…</div>;
   }
+
+  const getOrderLineForItem = (itemId?: number) => {
+    if (!itemId || !salesOrder?.items) return undefined;
+    return salesOrder.items.find((line) => line.itemId === itemId);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -39,7 +70,7 @@ const PicklistDetailPage = () => {
           </h1>
           {picklist.createdAt && (
             <p className="text-sm text-muted-foreground">
-              Created at {new Date(picklist.createdAt).toLocaleDateString()}
+              Created at {new Date(picklist.createdAt).toLocaleString()}
             </p>
           )}
         </div>
@@ -61,8 +92,18 @@ const PicklistDetailPage = () => {
               <p className="font-medium">{picklist.picklistNumber}</p>
             </div>
             <div>
+              <p className="text-muted-foreground">Picklist ID</p>
+              <p className="font-medium">#{picklist.id}</p>
+            </div>
+            <div>
               <p className="text-muted-foreground">Status</p>
               <p className="font-medium capitalize">{picklist.status}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Created Time</p>
+              <p className="font-medium">
+                {picklist.createdAt ? new Date(picklist.createdAt).toLocaleString() : "-"}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -77,6 +118,29 @@ const PicklistDetailPage = () => {
               <p className="text-muted-foreground">Sales Order ID</p>
               <p className="font-medium">#{picklist.salesOrderId}</p>
             </div>
+            <div>
+              <p className="text-muted-foreground">Order Number</p>
+              <p className="font-medium">{salesOrder?.orderNumber || "-"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Customer</p>
+              <p className="font-medium">{salesOrder?.customerName || "-"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Order Status</p>
+              <p className="font-medium capitalize">{salesOrder?.status?.toLowerCase() || "-"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Payment Status</p>
+              <p className="font-medium">{salesOrder?.paymentStatus || "-"}</p>
+            </div>
+            <Button
+              variant="outline"
+              className="mt-2"
+              onClick={() => navigate(`/inventory/sales/orders/${picklist.salesOrderId}`)}
+            >
+              View Sales Order Details
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -92,21 +156,54 @@ const PicklistDetailPage = () => {
               <thead className="bg-muted">
                 <tr>
                   <th className="px-3 py-2 text-left">Item</th>
+                  <th className="px-3 py-2 text-left">Warehouse</th>
+                  <th className="px-3 py-2 text-right">Unit Price</th>
                   <th className="px-3 py-2 text-right">Quantity</th>
+                  <th className="px-3 py-2 text-right">Line Total</th>
                 </tr>
               </thead>
               <tbody>
                 {picklist.items && picklist.items.length > 0 ? (
-                  picklist.items.map((item) => (
-                    <tr key={item.itemId} className="border-t">
-                      <td className="px-3 py-2">{item.itemName}</td>
+                  picklist.items.map((item) => {
+                    const orderLine = getOrderLineForItem(item.itemId);
+                    return (
+                    <tr
+                      key={item.itemId}
+                      className="border-t cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/inventory/stocks/${item.itemId}`)}
+                    >
+                      <td className="px-3 py-2 font-medium text-primary underline underline-offset-2">
+                        {item.itemName}
+                      </td>
+                      <td className="px-3 py-2">{orderLine?.warehouseName || "-"}</td>
+                      <td className="px-3 py-2 text-right">
+                        {orderLine?.unitPrice != null
+                          ? Number(orderLine.unitPrice).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "-"}
+                      </td>
                       <td className="px-3 py-2 text-right font-medium">
                         {item.quantity}
                       </td>
+                      <td className="px-3 py-2 text-right">
+                        {orderLine?.lineTotal != null
+                          ? Number(orderLine.lineTotal).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "-"}
+                      </td>
                     </tr>
-                  ))
+                  );
+                  })
                 ) : (
-                  <p>no items added to picklist</p>
+                  <tr>
+                    <td className="px-3 py-3 text-muted-foreground" colSpan={5}>
+                      No items added to this picklist.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

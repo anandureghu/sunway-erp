@@ -153,6 +153,11 @@ export async function listSalesOrders(): Promise<SalesOrder[]> {
   return (res.data || []).map(toSalesOrder);
 }
 
+export async function getSalesOrderById(id: Id | string): Promise<SalesOrder> {
+  const res = await apiClient.get<SalesOrderResponseDTO>(`/sales/orders/${id}`);
+  return toSalesOrder(res.data);
+}
+
 export async function createSalesOrder(payload: SalesOrderCreateDTO) {
   const res = await apiClient.post<SalesOrderResponseDTO>(
     "/sales/orders",

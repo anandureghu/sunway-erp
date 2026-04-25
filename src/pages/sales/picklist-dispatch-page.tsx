@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Package, Truck, Plus, ArrowLeft } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,8 +30,11 @@ import { CreateDispatchForm } from "./components/create-dispatch-form";
 import { CreatePicklistForm } from "./components/create-picklist-form";
 
 export default function PicklistDispatchPage() {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("picklists");
-  const [showCreatePicklist, setShowCreatePicklist] = useState(false);
+  const [showCreatePicklist, setShowCreatePicklist] = useState(
+    Boolean((location.state as { salesOrderId?: string } | null)?.salesOrderId),
+  );
   const [showCreateDispatch, setShowCreateDispatch] = useState(false);
   const [picklists, setPicklists] = useState<Picklist[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
@@ -39,6 +42,8 @@ export default function PicklistDispatchPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const initialSalesOrderId =
+    (location.state as { salesOrderId?: string } | null)?.salesOrderId || "";
 
   const loadData = useCallback(async () => {
     try {
@@ -127,6 +132,7 @@ export default function PicklistDispatchPage() {
     return (
       <CreatePicklistForm
         salesOrders={salesOrders}
+        initialSalesOrderId={initialSalesOrderId}
         onCancel={() => setShowCreatePicklist(false)}
         onCreated={loadData}
       />
