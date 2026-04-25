@@ -5,6 +5,7 @@ import type {
   Picklist,
   PicklistItem,
   Dispatch,
+  DispatchTrackingEvent,
 } from "@/types/sales";
 import type {
   Id,
@@ -14,6 +15,8 @@ import type {
   PicklistResponseDTO,
   ShipmentCreateDTO,
   ShipmentResponseDTO,
+  ShipmentTrackingEventDTO,
+  ShipmentTrackingEventCreateDTO,
   ItemResponseDTO,
 } from "@/service/erpApiTypes";
 
@@ -21,7 +24,33 @@ function normalizeStatus(status?: string) {
   return (status || "").toLowerCase();
 }
 
+function normalizePaymentStatus(status?: string) {
+  const normalized = (status || "").trim().toUpperCase();
+  if (!normalized) return "UNPAID";
+  if (normalized === "PAID") return "PAID";
+  if (normalized === "PARTIALLY_PAID" || normalized === "PARTIAL" || normalized === "PARTIALLY PAID") {
+    return "PARTIALLY_PAID";
+  }
+  if (normalized === "OVERDUE") return "OVERDUE";
+  if (normalized === "CANCELLED") return "CANCELLED";
+  if (normalized === "UNPAID" || normalized === "PENDING") return "UNPAID";
+  return normalized;
+}
+
 function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
+  const dtoAny = dto as SalesOrderResponseDTO & {
+    invoiceStatus?: string;
+    payment_status?: string;
+    paymentState?: string;
+    statusPayment?: string;
+  };
+  const rawPaymentStatus =
+    dto.paymentStatus ||
+    dtoAny.invoiceStatus ||
+    dtoAny.payment_status ||
+    dtoAny.paymentState ||
+    dtoAny.statusPayment;
+
   const items: SalesOrderItem[] = (dto.items || []).map((li, idx) => ({
     id: `soi-${dto.id}-${idx}`,
     orderId: String(dto.id),
@@ -56,7 +85,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     invoiceDueDate: dto.invoiceDueDate || "",
     requiredDate: undefined,
     status: (normalizeStatus(dto.status) as any) || "draft",
-    paymentStatus: dto.paymentStatus || "UNPAID",
+    paymentStatus: normalizePaymentStatus(rawPaymentStatus),
     items,
     subtotal,
     tax,
@@ -71,7 +100,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     debitAccountName: dto.debitAccountName,
     creditAccountId: dto.creditAccountId,
     creditAccountName: dto.creditAccountName,
-    shippingAddress: undefined,
+    shippingAddress: dto.shippingAddress || dto.deliveryAddress || undefined,
     notes: undefined,
     salesPerson: undefined,
     createdBy: undefined,
@@ -100,8 +129,8 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     id: String(dto.id),
     picklistNo: dto.picklistNumber || `PL-${dto.id}`,
     orderId: String(dto.salesOrderId || ""),
-    warehouseId: "", // Backend doesn't return warehouseId in PicklistResponseDTO
-    // Will be enriched from sales order if needed via attachOrderAndItems
+    warehouseId: dto.warehouseId ? String(dto.warehouseId) : "",
+    warehouse: dto.warehouse,
     status,
     items,
     assignedTo: undefined,
@@ -113,18 +142,32 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
 }
 
 function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
-  // Map backend status -> UI dispatch statuses (created, dispatched, in_transit, delivered, cancelled)
+  // Map backend status -> UI dispatch statuses.
   const s = normalizeStatus(dto.status);
   const status =
     s === "delivered"
       ? "delivered"
       : s === "in_transit"
         ? "in_transit"
-        : s === "dispatched"
-          ? "dispatched"
-          : s === "cancelled"
-            ? "cancelled"
-            : "created"; // Default to "created"
+        : s === "out_for_delivery"
+          ? "out_for_delivery"
+          : s === "failed_delivery"
+            ? "failed_delivery"
+            : s === "dispatched"
+              ? "dispatched"
+              : s === "cancelled"
+                ? "cancelled"
+                : "created"; // Default to "created"
+
+  const trackingEvents: DispatchTrackingEvent[] = (dto.trackingEvents || []).map(
+    (event: ShipmentTrackingEventDTO) => ({
+      id: event.id ? String(event.id) : undefined,
+      status: (normalizeStatus(event.status) as DispatchTrackingEvent["status"]) || status,
+      location: event.location || undefined,
+      notes: event.notes || undefined,
+      eventAt: event.eventAt || undefined,
+    }),
+  );
 
   return {
     id: String(dto.id),
@@ -133,17 +176,22 @@ function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
     picklistId: String(dto.picklistId || ""),
     status,
     vehicleId: undefined,
-    vehicleNumber: undefined,
-    driverName: undefined,
-    driverPhone: undefined,
-    estimatedDeliveryDate: undefined,
+    vehicleNumber: dto.vehicleNumber || undefined,
+    driverName: dto.driverName || undefined,
+    driverPhone: dto.driverPhone || undefined,
+    estimatedDeliveryDate: dto.estimatedDeliveryDate || undefined,
     actualDeliveryDate: dto.deliveredAt || undefined,
-    deliveryAddress: "", // Backend doesn't provide this in ShipmentResponseDTO
+    deliveryAddress: dto.deliveryAddress || "",
+    carrierName: dto.carrierName || undefined,
     trackingNumber: dto.trackingNumber || undefined,
-    notes: dto.carrierName || undefined,
+    notes: dto.notes || undefined,
     createdBy: undefined,
-    createdAt: dto.dispatchedAt || dto.deliveredAt || "",
+    createdAt: dto.createdAt || dto.dispatchedAt || dto.deliveredAt || "",
     updatedAt: undefined,
+    inTransitAt: dto.inTransitAt || undefined,
+    outForDeliveryAt: dto.outForDeliveryAt || undefined,
+    failedDeliveryAt: dto.failedDeliveryAt || undefined,
+    trackingEvents,
   };
 }
 
@@ -245,6 +293,17 @@ export async function createShipmentFromPicklist(
   return toShipmentAsDispatch(res.data);
 }
 
+export async function updateShipmentDetails(
+  id: Id | string,
+  payload: ShipmentCreateDTO,
+) {
+  const res = await apiClient.put<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}`,
+    payload,
+  );
+  return toShipmentAsDispatch(res.data);
+}
+
 export async function dispatchShipment(id: Id | string) {
   const res = await apiClient.post<ShipmentResponseDTO>(
     `/warehouse/shipments/${id}/dispatch`,
@@ -266,9 +325,35 @@ export async function markShipmentDelivered(id: Id | string) {
   return toShipmentAsDispatch(res.data);
 }
 
+export async function markShipmentOutForDelivery(id: Id | string) {
+  const res = await apiClient.post<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}/out-for-delivery`,
+  );
+  return toShipmentAsDispatch(res.data);
+}
+
+export async function markShipmentFailedDelivery(id: Id | string, notes?: string) {
+  const res = await apiClient.post<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}/failed-delivery`,
+    notes ? { notes } : undefined,
+  );
+  return toShipmentAsDispatch(res.data);
+}
+
 export async function cancelShipment(id: Id | string) {
   const res = await apiClient.post<ShipmentResponseDTO>(
     `/warehouse/shipments/${id}/cancel`,
+  );
+  return toShipmentAsDispatch(res.data);
+}
+
+export async function addShipmentTrackingEvent(
+  id: Id | string,
+  payload: ShipmentTrackingEventCreateDTO,
+) {
+  const res = await apiClient.post<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}/tracking-events`,
+    payload,
   );
   return toShipmentAsDispatch(res.data);
 }
@@ -306,10 +391,12 @@ export function attachOrderAndItems(
   const dispatchesEnriched = dispatches.map((d) => {
     const pick = picklists.find((p) => p.id === d.picklistId);
     const orderId = pick?.orderId || "";
+    const order = orderId ? orderById.get(orderId) : undefined;
     return {
       ...d,
       orderId,
-      order: orderId ? orderById.get(orderId) : undefined,
+      order,
+      deliveryAddress: d.deliveryAddress || order?.shippingAddress || "",
     };
   });
 

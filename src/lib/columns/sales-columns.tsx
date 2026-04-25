@@ -385,10 +385,14 @@ export const PICKLIST_COLUMNS: ColumnDef<Picklist>[] = createPicklistColumns();
 
 // Dispatch Columns
 export function createDispatchColumns(
+  onViewDetails?: (id: string) => void,
   onDispatch?: (id: string) => void,
   onMarkInTransit?: (id: string) => void,
+  onMarkOutForDelivery?: (id: string) => void,
   onMarkDelivered?: (id: string) => void,
+  onMarkFailedDelivery?: (id: string) => void,
   onCancel?: (id: string) => void,
+  onUpdateTracking?: (id: string) => void,
 ): ColumnDef<Dispatch>[] {
   return [
     {
@@ -419,8 +423,10 @@ export function createDispatchColumns(
           created: "bg-gray-100 text-gray-800",
           dispatched: "bg-blue-100 text-blue-800",
           in_transit: "bg-yellow-100 text-yellow-800",
+          out_for_delivery: "bg-indigo-100 text-indigo-800",
           delivered: "bg-green-100 text-green-800",
           cancelled: "bg-red-100 text-red-800",
+          failed_delivery: "bg-red-100 text-red-800",
         };
         return (
           <Badge
@@ -453,9 +459,16 @@ export function createDispatchColumns(
         const dispatch = row.original;
         const canDispatch = dispatch.status === "created";
         const canMarkInTransit = dispatch.status === "dispatched";
+        const canMarkOutForDelivery = dispatch.status === "in_transit";
         const canMarkDelivered =
-          dispatch.status === "in_transit" || dispatch.status === "dispatched";
-        const canCancel = dispatch.status === "created";
+          dispatch.status === "out_for_delivery" ||
+          dispatch.status === "in_transit" ||
+          dispatch.status === "dispatched";
+        const canMarkFailed =
+          dispatch.status === "out_for_delivery" ||
+          dispatch.status === "in_transit" ||
+          dispatch.status === "dispatched";
+        const canCancel = dispatch.status !== "delivered" && dispatch.status !== "cancelled";
 
         return (
           <DropdownMenu>
@@ -467,10 +480,12 @@ export function createDispatchColumns(
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
-              </DropdownMenuItem>
+              {onViewDetails && (
+                <DropdownMenuItem onClick={() => onViewDetails(dispatch.id)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </DropdownMenuItem>
+              )}
               {canDispatch && onDispatch && (
                 <DropdownMenuItem onClick={() => onDispatch(dispatch.id)}>
                   <Truck className="mr-2 h-4 w-4" />
@@ -483,10 +498,24 @@ export function createDispatchColumns(
                   Mark In Transit
                 </DropdownMenuItem>
               )}
+              {canMarkOutForDelivery && onMarkOutForDelivery && (
+                <DropdownMenuItem
+                  onClick={() => onMarkOutForDelivery(dispatch.id)}
+                >
+                  <Truck className="mr-2 h-4 w-4" />
+                  Mark Out For Delivery
+                </DropdownMenuItem>
+              )}
               {canMarkDelivered && onMarkDelivered && (
                 <DropdownMenuItem onClick={() => onMarkDelivered(dispatch.id)}>
                   <Package className="mr-2 h-4 w-4" />
                   Mark Delivered
+                </DropdownMenuItem>
+              )}
+              {canMarkFailed && onMarkFailedDelivery && (
+                <DropdownMenuItem onClick={() => onMarkFailedDelivery(dispatch.id)}>
+                  <Package className="mr-2 h-4 w-4" />
+                  Mark Failed Delivery
                 </DropdownMenuItem>
               )}
               {canCancel && onCancel && (
@@ -501,10 +530,12 @@ export function createDispatchColumns(
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem>
-                <Eye className="mr-2 h-4 w-4" />
-                Update Tracking
-              </DropdownMenuItem>
+              {onUpdateTracking && (
+                <DropdownMenuItem onClick={() => onUpdateTracking(dispatch.id)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Update Tracking
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );

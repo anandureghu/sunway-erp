@@ -102,9 +102,24 @@ export function CreateSalesOrderForm({
   });
 
   const selectedCustomerId = watch("customerId");
+  const shippingAddressValue = watch("shippingAddress");
   const selectedCustomer = customers.find(
     (c) => String(c.id) === String(selectedCustomerId),
   );
+
+  const composeCustomerAddress = (customer: any) => {
+    if (!customer) return "";
+    const parts = [
+      customer.address || customer.street,
+      customer.city,
+      customer.state,
+      customer.country,
+      customer.postalCode || customer.pin,
+    ]
+      .map((part) => (typeof part === "string" ? part.trim() : ""))
+      .filter(Boolean);
+    return parts.join(", ");
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -386,6 +401,10 @@ export function CreateSalesOrderForm({
 
     try {
       setSubmitLoading(true);
+      const manualShippingAddress =
+        typeof data.shippingAddress === "string" ? data.shippingAddress.trim() : "";
+      const fallbackCustomerAddress = composeCustomerAddress(selectedCustomer);
+      const resolvedShippingAddress = manualShippingAddress || fallbackCustomerAddress || undefined;
       const payloadItems = orderItems.map((it) => ({
         itemId: Number(it.itemId),
         warehouseId: Number(it.warehouseId),
@@ -397,6 +416,8 @@ export function CreateSalesOrderForm({
       if (isEditMode && initialOrder?.id) {
         const updated = await updateSalesOrder(initialOrder.id, {
           orderDate: data.orderDate,
+          invoiceDueDate: data.invoiceDueDate,
+          shippingAddress: resolvedShippingAddress,
           items: payloadItems,
         });
         toast.success(`Sales order ${updated.orderNo} updated successfully!`);
@@ -405,6 +426,7 @@ export function CreateSalesOrderForm({
           customerId: Number(data.customerId),
           orderDate: data.orderDate,
           invoiceDueDate: data.invoiceDueDate,
+          shippingAddress: resolvedShippingAddress,
           bankAccountId: effectiveSalesAccounts.bankAccountId,
           debitAccountId: effectiveSalesAccounts.debitAccountId,
           creditAccountId: effectiveSalesAccounts.creditAccountId,
@@ -515,9 +537,24 @@ export function CreateSalesOrderForm({
                 <Label>Customer *</Label>
                 <Select
                   value={selectedCustomerId || ""}
-                  onValueChange={(value) =>
-                    setValue("customerId", value, { shouldValidate: true })
-                  }
+                  onValueChange={(value) => {
+                    setValue("customerId", value, { shouldValidate: true });
+
+                    // Auto-fill from customer profile only when address is currently empty.
+                    const currentShipping = (shippingAddressValue || "").trim();
+                    if (currentShipping) return;
+
+                    const customerForSelection = customers.find(
+                      (c) => String(c.id) === String(value),
+                    );
+                    const defaultAddress = composeCustomerAddress(customerForSelection);
+                    if (!defaultAddress) return;
+
+                    setValue("shippingAddress", defaultAddress, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    });
+                  }}
                   disabled={isEditMode}
                 >
                   <SelectTrigger>

@@ -48,6 +48,7 @@ const PicklistDetailPage = () => {
   if (loading || !picklist) {
     return <div className="p-6 text-muted-foreground">Loading…</div>;
   }
+  const canCreateDispatch = picklist.status?.toLowerCase() === "picked";
 
   const getOrderLineForItem = (itemId?: number) => {
     if (!itemId || !salesOrder?.items) return undefined;
@@ -74,9 +75,26 @@ const PicklistDetailPage = () => {
             </p>
           )}
         </div>
-        <Badge variant="outline" className="capitalize">
-          {picklist.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {canCreateDispatch && (
+            <Button
+              onClick={() =>
+                navigate("/inventory/sales/picklist", {
+                  state: {
+                    activeTab: "dispatches",
+                    initialPicklistId: String(picklist.id),
+                    openCreateDispatch: true,
+                  },
+                })
+              }
+            >
+              Dispatch Shipment
+            </Button>
+          )}
+          <Badge variant="outline" className="capitalize">
+            {picklist.status}
+          </Badge>
+        </div>
       </div>
 
       {/* Info cards */}

@@ -20,12 +20,13 @@ import {
   generatePicklistFromSalesOrder,
   getSalesOrderById,
 } from "@/service/salesFlowService";
-import type { SalesOrder } from "@/types/sales";
+import type { Picklist, SalesOrder } from "@/types/sales";
 import type { Warehouse } from "@/types/inventory";
 
 type Props = {
   onCancel: () => void;
   salesOrders: SalesOrder[];
+  picklists: Picklist[];
   initialSalesOrderId?: string;
   onCreated: () => Promise<void>;
 };
@@ -33,6 +34,7 @@ type Props = {
 export function CreatePicklistForm({
   onCancel,
   salesOrders,
+  picklists,
   initialSalesOrderId,
   onCreated,
 }: Props) {
@@ -128,6 +130,16 @@ export function CreatePicklistForm({
     }
     if (!selectedOrder || selectedOrder.items.length === 0) {
       toast.error("Selected sales order has no line items.");
+      return;
+    }
+    const existingActivePicklist = picklists.find(
+      (pl) =>
+        pl.orderId === selectedOrderId && pl.status !== "cancelled",
+    );
+    if (existingActivePicklist) {
+      toast.error(
+        `Picklist ${existingActivePicklist.picklistNo} already exists for this order.`,
+      );
       return;
     }
     try {

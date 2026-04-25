@@ -23,7 +23,9 @@ import {
   listShipmentsAsDispatches,
   markPicklistPicked,
   markShipmentDelivered,
+  markShipmentFailedDelivery,
   markShipmentInTransit,
+  markShipmentOutForDelivery,
 } from "@/service/salesFlowService";
 import { listItems } from "@/service/inventoryService";
 import { CreateDispatchForm } from "./components/create-dispatch-form";
@@ -31,19 +33,46 @@ import { CreatePicklistForm } from "./components/create-picklist-form";
 
 export default function PicklistDispatchPage() {
   const location = useLocation();
+  const navState = (location.state as
+    | {
+        salesOrderId?: string;
+        initialPicklistId?: string;
+        openCreateDispatch?: boolean;
+        activeTab?: "picklists" | "dispatches";
+      }
+    | null) ?? null;
   const [activeTab, setActiveTab] = useState("picklists");
   const [showCreatePicklist, setShowCreatePicklist] = useState(
-    Boolean((location.state as { salesOrderId?: string } | null)?.salesOrderId),
+    Boolean(navState?.salesOrderId),
   );
-  const [showCreateDispatch, setShowCreateDispatch] = useState(false);
+  const [showCreateDispatch, setShowCreateDispatch] = useState(
+    Boolean(navState?.openCreateDispatch),
+  );
+  const [initialPicklistId, setInitialPicklistId] = useState(navState?.initialPicklistId || "");
   const [picklists, setPicklists] = useState<Picklist[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const initialSalesOrderId =
-    (location.state as { salesOrderId?: string } | null)?.salesOrderId || "";
+  const initialSalesOrderId = navState?.salesOrderId || "";
+
+  useEffect(() => {
+    if (navState?.activeTab) {
+      setActiveTab(navState.activeTab);
+    }
+    if (navState?.initialPicklistId) {
+      setInitialPicklistId(navState.initialPicklistId);
+    }
+    if (navState?.openCreateDispatch) {
+      setShowCreateDispatch(true);
+      setShowCreatePicklist(false);
+    }
+  }, [
+    navState?.activeTab,
+    navState?.initialPicklistId,
+    navState?.openCreateDispatch,
+  ]);
 
   const loadData = useCallback(async () => {
     try {
@@ -99,7 +128,10 @@ export default function PicklistDispatchPage() {
             toast.error(e?.message || "Failed to cancel picklist");
           }
         },
-        () => setShowCreateDispatch(true),
+        (id) => {
+          setInitialPicklistId(id);
+          setShowCreateDispatch(true);
+        },
       ),
     [loadData],
   );
@@ -107,6 +139,9 @@ export default function PicklistDispatchPage() {
   const dispatchColumns = useMemo(
     () =>
       createDispatchColumns(
+        (id) => {
+          navigate(`/inventory/sales/tracking?dispatchId=${id}`);
+        },
         async (id) => {
           await dispatchShipment(id);
           await loadData();
@@ -116,7 +151,18 @@ export default function PicklistDispatchPage() {
           await loadData();
         },
         async (id) => {
+          await markShipmentOutForDelivery(id);
+          await loadData();
+        },
+        async (id) => {
           await markShipmentDelivered(id);
+          await loadData();
+        },
+        async (id) => {
+          await markShipmentFailedDelivery(
+            id,
+            "Marked failed from dispatch screen",
+          );
           await loadData();
         },
         async (id) => {
@@ -124,14 +170,18 @@ export default function PicklistDispatchPage() {
           await cancelShipment(id);
           await loadData();
         },
+        (id) => {
+          navigate(`/inventory/sales/tracking?dispatchId=${id}`);
+        },
       ),
-    [loadData],
+    [loadData, navigate],
   );
 
   if (showCreatePicklist) {
     return (
       <CreatePicklistForm
         salesOrders={salesOrders}
+        picklists={picklists}
         initialSalesOrderId={initialSalesOrderId}
         onCancel={() => setShowCreatePicklist(false)}
         onCreated={loadData}
@@ -143,7 +193,11 @@ export default function PicklistDispatchPage() {
     return (
       <CreateDispatchForm
         picklists={picklists}
-        onCancel={() => setShowCreateDispatch(false)}
+        initialPicklistId={initialPicklistId}
+        onCancel={() => {
+          setShowCreateDispatch(false);
+          setInitialPicklistId("");
+        }}
         onCreated={loadData}
       />
     );
@@ -169,7 +223,12 @@ export default function PicklistDispatchPage() {
             Generate Picklist
           </Button>
         ) : (
-          <Button onClick={() => setShowCreateDispatch(true)}>
+          <Button
+            onClick={() => {
+              setInitialPicklistId("");
+              setShowCreateDispatch(true);
+            }}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create Dispatch
           </Button>
