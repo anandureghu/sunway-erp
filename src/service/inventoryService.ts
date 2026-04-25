@@ -4,6 +4,7 @@ import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
   CategoryUpdateDTO,
+  ItemUpdateDTO,
   ItemResponseDTO,
   ItemStockAdjustPayload,
   ItemStockReceivePayload,
@@ -170,10 +171,23 @@ export const createItem = async (formData: FormData) => {
   return res.data;
 };
 
-export async function updateItem(id: Id | string, payload: FormData) {
+export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
   const res = await apiClient.put<ItemResponseDTO>(
     `/inventory/items/${id}`,
     payload,
+  );
+  return res.data;
+}
+
+export async function updateItemMultipart(id: Id | string, payload: FormData) {
+  const res = await apiClient.put<ItemResponseDTO>(
+    `/inventory/items/${id}`,
+    payload,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
   );
   return res.data;
 }
