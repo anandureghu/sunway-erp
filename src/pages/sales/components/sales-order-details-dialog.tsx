@@ -145,11 +145,11 @@ export function SalesOrderDetailsDialog({ open, order, onOpenChange }: Props) {
                         </div>
                         <div className="text-right">{item.quantity}</div>
                         <div className="text-right">
-                          ₹{item.unitPrice.toLocaleString()}
+                          {item.unitPrice.toLocaleString()}
                         </div>
                         <div className="text-right">{item.discount}%</div>
                         <div className="text-right font-medium">
-                          ₹{item.total.toLocaleString()}
+                          {item.total.toLocaleString()}
                         </div>
                       </div>
                     ))}

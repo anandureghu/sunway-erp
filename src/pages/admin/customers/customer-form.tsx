@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
 
 interface CustomerFormProps {
   onSubmit: (data: CustomerFormData) => Promise<void> | void;
@@ -31,13 +32,14 @@ export const CustomerForm = ({
   loading,
   defaultValues,
 }: CustomerFormProps) => {
+  const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(CUSTOMER_SCHEMA),
     defaultValues: {
       customerName: "",
       taxId: "",
       paymentTerms: "",
-      currencyCode: "USD",
+      currencyCode: companyCurrencyCode ?? "",
       creditLimit: 0,
       isActive: true,
       street: "",
@@ -187,7 +189,7 @@ export const CustomerForm = ({
                 <FormLabel>Currency Code</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value || "USD"}
+                  value={field.value || companyCurrencyCode || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -198,7 +200,6 @@ export const CustomerForm = ({
                     <SelectItem value="USD">USD</SelectItem>
                     <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="INR">INR</SelectItem>
                     <SelectItem value="QAR">QAR</SelectItem>
                   </SelectContent>
                 </Select>

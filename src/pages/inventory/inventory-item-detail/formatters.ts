@@ -24,7 +24,7 @@ export function formatInr(value: unknown, empty = "—"): string {
   if (!Number.isFinite(n)) {
     return empty;
   }
-  return `₹ ${n.toLocaleString(undefined, {
+  return `${n.toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;

@@ -218,7 +218,7 @@ export default function PurchaseLandingPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           label="Total purchases"
-          value={`₹${totalPurchases.toLocaleString()}`}
+          value={totalPurchases.toLocaleString()}
           icon={DollarSign}
           hint="From sample invoice data"
         />

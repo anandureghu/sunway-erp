@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 // Sales Order Columns
 export function createSalesOrderColumns(
@@ -88,9 +89,7 @@ export function createSalesOrderColumns(
       header: "Total Amount",
       cell: ({ row }) => {
         const amount = row.getValue("total") as number;
-        return (
-          <span className="font-semibold">₹ {amount.toLocaleString()}</span>
-        );
+        return <CurrencyAmount amount={amount} className="font-semibold" />;
       },
     },
     {

@@ -134,7 +134,7 @@ export function PurchaseOrderDetailsDialog({
                         <div className="text-right">{item.quantity}</div>
                         <div className="text-right tabular-nums">
                           {item.actualItemPrice != null
-                            ? `₹${item.actualItemPrice.toLocaleString(undefined, {
+                            ? `${item.actualItemPrice.toLocaleString(undefined, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}`
@@ -143,20 +143,20 @@ export function PurchaseOrderDetailsDialog({
                         <div className="text-right tabular-nums text-muted-foreground">
                           {item.otherUnitCost != null &&
                           item.otherUnitCost > 0
-                            ? `₹${item.otherUnitCost.toLocaleString(undefined, {
+                            ? `${item.otherUnitCost.toLocaleString(undefined, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}`
                             : "—"}
                         </div>
                         <div className="text-right font-medium tabular-nums">
-                          ₹{item.unitPrice.toLocaleString(undefined, {
+                          {item.unitPrice.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                         </div>
                         <div className="text-right font-medium tabular-nums">
-                          ₹{item.total.toLocaleString(undefined, {
+                          {item.total.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
@@ -179,20 +179,20 @@ export function PurchaseOrderDetailsDialog({
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
                     <span className="font-medium">
-                      ₹{order.subtotal.toLocaleString()}
+                      {order.subtotal.toLocaleString()}
                     </span>
                   </div>
                   {order.tax > 0 && (
                     <div className="flex justify-between">
                       <span>Tax:</span>
                       <span className="font-medium">
-                        ₹{order.tax.toLocaleString()}
+                        {order.tax.toLocaleString()}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
                     <span>Total:</span>
-                    <span>₹{order.total.toLocaleString()}</span>
+                    <span>{order.total.toLocaleString()}</span>
                   </div>
                 </div>
               </CardContent>

@@ -621,7 +621,7 @@ export function CreateSalesOrderForm({
                         .filter((i) => i.status === "active")
                         .map((item) => (
                           <SelectItem key={item.id} value={String(item.id)}>
-                            {item.name} - ₹{item.sellingPrice || 0}
+                            {item.name} - {item.sellingPrice || 0}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -811,7 +811,7 @@ export function CreateSalesOrderForm({
                             </Select>
                           </td>
                           <td className="p-3 text-right font-medium align-middle tabular-nums">
-                            ₹
+
                             {item.total.toLocaleString(undefined, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
@@ -849,15 +849,15 @@ export function CreateSalesOrderForm({
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>₹{totals.subtotal.toLocaleString()}</span>
+                <span>{totals.subtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Discount</span>
-                <span>-₹{totals.discount.toLocaleString()}</span>
+                <span>-{totals.discount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tax</span>
-                <span>₹{totals.tax.toLocaleString()}</span>
+                <span>{totals.tax.toLocaleString()}</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 {companyTaxActive
@@ -866,7 +866,7 @@ export function CreateSalesOrderForm({
               </p>
               <div className="flex justify-between text-base font-semibold border-t pt-3">
                 <span>Total</span>
-                <span>₹{totals.total.toLocaleString()}</span>
+                <span>{totals.total.toLocaleString()}</span>
               </div>
               <div className="space-y-2">
                 <Label>Notes</Label>

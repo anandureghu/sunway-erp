@@ -433,7 +433,7 @@ export function PurchaseOrderForm({
                           />
                         </td>
                         <td className="p-3 text-right font-medium align-middle tabular-nums">
-                          ₹{(applied * line.quantity).toLocaleString(undefined, {
+                          {(applied * line.quantity).toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
@@ -469,7 +469,7 @@ export function PurchaseOrderForm({
         <CardContent className="space-y-3">
           <div className="flex justify-between text-base font-semibold">
             <span>Total</span>
-            <span>₹{totalAmount.toLocaleString()}</span>
+            <span>{totalAmount.toLocaleString()}</span>
           </div>
           <Button
             type="button"

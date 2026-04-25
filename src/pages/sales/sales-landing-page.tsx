@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { salesOrders, invoices, dispatches, customers } from "@/lib/sales-data";
+import { formatMoney } from "@/lib/utils";
 
 type ActionCard = {
   title: string;
@@ -160,7 +161,7 @@ export default function SalesLandingPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           label="Gross Sales"
-          value={`₹${totalSales.toLocaleString()}`}
+          value={formatMoney(totalSales)}
           icon={DollarSign}
           hint="Invoice total"
         />

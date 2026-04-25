@@ -427,7 +427,7 @@ export default function PurchaseRequisitionDetailPage() {
                   <div className="text-right">{item.quantity}</div>
                   <div className="text-right tabular-nums">
                     {item.actualItemPrice != null
-                      ? `₹${item.actualItemPrice.toLocaleString(undefined, {
+                      ? `${item.actualItemPrice.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -435,7 +435,7 @@ export default function PurchaseRequisitionDetailPage() {
                   </div>
                   <div className="text-right tabular-nums text-muted-foreground">
                     {item.otherUnitCost != null && item.otherUnitCost > 0
-                      ? `₹${item.otherUnitCost.toLocaleString(undefined, {
+                      ? `${item.otherUnitCost.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -443,7 +443,7 @@ export default function PurchaseRequisitionDetailPage() {
                   </div>
                   <div className="text-right tabular-nums font-medium">
                     {item.unitPrice != null
-                      ? `₹${item.unitPrice.toLocaleString(undefined, {
+                      ? `${item.unitPrice.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -451,7 +451,7 @@ export default function PurchaseRequisitionDetailPage() {
                   </div>
                   <div className="text-right font-medium tabular-nums">
                     {item.estimatedTotal != null
-                      ? `₹${item.estimatedTotal.toLocaleString(undefined, {
+                      ? `${item.estimatedTotal.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -474,7 +474,7 @@ export default function PurchaseRequisitionDetailPage() {
           <CardContent>
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
-              <span>₹{requisition.totalAmount.toLocaleString()}</span>
+              <span>{requisition.totalAmount.toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>

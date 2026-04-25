@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export type PurchaseOrderColumnActions = {
   /** Navigate to full PO detail */
@@ -119,7 +120,7 @@ export function createPurchaseOrderColumns(
       header: "Total Amount",
       cell: ({ row }) => {
         const amount = row.getValue("total") as number;
-        return <span className="font-semibold">₹ {amount.toLocaleString()}</span>;
+        return <CurrencyAmount amount={amount} className="font-semibold" />;
       },
     },
     {
@@ -401,7 +402,7 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<FinanceInvoice>[] = [
     header: "Total",
     cell: ({ row }) => {
       const amount = row.original.amount ?? 0;
-      return <span className="font-semibold">₹ {amount.toLocaleString()}</span>;
+      return <CurrencyAmount amount={amount} className="font-semibold" />;
     },
   },
   {

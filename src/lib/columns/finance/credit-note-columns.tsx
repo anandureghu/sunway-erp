@@ -36,15 +36,11 @@ export const CREDIT_NOTE_COLUMNS: ColumnDef<CreditNote>[] = [
   {
     accessorKey: "amount",
     header: "Amount",
-    cell: ({ row }) => (
-      <CreditAmount amount={row.original.amount} currencyCode="₹" />
-    ),
+    cell: ({ row }) => <CreditAmount amount={row.original.amount} />,
   },
   {
     accessorKey: "remainingAmount",
     header: "Remaining Amount",
-    cell: ({ row }) => (
-      <CreditAmount amount={row.original.remainingAmount} currencyCode="₹" />
-    ),
+    cell: ({ row }) => <CreditAmount amount={row.original.remainingAmount} />,
   },
 ];

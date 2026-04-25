@@ -422,7 +422,7 @@ export default function InventoryReportsPage() {
                   Total Inventory Value
                 </p>
                 <p className="text-2xl font-bold mt-1">
-                  ₹{kpis.totalValue.toLocaleString()}
+                  {kpis.totalValue.toLocaleString()}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-blue-500" />
@@ -505,7 +505,7 @@ export default function InventoryReportsPage() {
               <CardContent>
                 <ChartContainer
                   config={{
-                    value: { label: "Value (₹)", color: "hsl(var(--chart-1))" },
+                    value: { label: "Value", color: "hsl(var(--chart-1))" },
                   }}
                   className="h-[300px]"
                 >
@@ -525,7 +525,7 @@ export default function InventoryReportsPage() {
                                       Value
                                     </span>
                                     <span className="font-bold">
-                                      ₹{payload[0].value?.toLocaleString()}
+                                      {payload[0].value?.toLocaleString()}
                                     </span>
                                   </div>
                                 </div>
@@ -556,7 +556,7 @@ export default function InventoryReportsPage() {
               <CardContent>
                 <ChartContainer
                   config={{
-                    value: { label: "Value (₹)", color: "hsl(var(--chart-2))" },
+                    value: { label: "Value", color: "hsl(var(--chart-2))" },
                   }}
                   className="h-[300px]"
                 >
@@ -590,7 +590,7 @@ export default function InventoryReportsPage() {
                                   {payload[0].payload.category}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  ₹{payload[0].value?.toLocaleString()}
+                                  {payload[0].value?.toLocaleString()}
                                 </p>
                               </div>
                             );
@@ -636,10 +636,10 @@ export default function InventoryReportsPage() {
                           {item.quantity.toLocaleString()}
                         </td>
                         <td className="p-2 text-right">
-                          ₹{item.unitCost.toLocaleString()}
+                          {item.unitCost.toLocaleString()}
                         </td>
                         <td className="p-2 text-right font-semibold">
-                          ₹{item.totalValue.toLocaleString()}
+                          {item.totalValue.toLocaleString()}
                         </td>
                         <td className="p-2 text-sm text-muted-foreground">
                           {item.warehouse}
@@ -667,13 +667,13 @@ export default function InventoryReportsPage() {
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <span className="font-medium">Cost of Goods Sold (COGS)</span>
                   <span className="text-2xl font-bold">
-                    ₹{inventoryTurnover.totalCOGS.toLocaleString()}
+                    {inventoryTurnover.totalCOGS.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <span className="font-medium">Average Inventory Value</span>
                   <span className="text-2xl font-bold">
-                    ₹{inventoryTurnover.avgInventoryValue.toLocaleString()}
+                    {inventoryTurnover.avgInventoryValue.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
@@ -733,7 +733,7 @@ export default function InventoryReportsPage() {
                                   Days to Sell: {data.daysToSell.toFixed(0)}
                                 </p>
                                 <p className="text-sm">
-                                  COGS: ₹{data.cogs.toLocaleString()}
+                                  COGS: {data.cogs.toLocaleString()}
                                 </p>
                               </div>
                             );
@@ -774,10 +774,10 @@ export default function InventoryReportsPage() {
                       <tr key={idx} className="border-b">
                         <td className="p-2 font-medium">{cat.category}</td>
                         <td className="p-2 text-right">
-                          ₹{cat.inventoryValue.toLocaleString()}
+                          {cat.inventoryValue.toLocaleString()}
                         </td>
                         <td className="p-2 text-right">
-                          ₹{cat.cogs.toLocaleString()}
+                          {cat.cogs.toLocaleString()}
                         </td>
                         <td className="p-2 text-right font-semibold">
                           {cat.turnoverRatio.toFixed(2)}x
@@ -805,7 +805,7 @@ export default function InventoryReportsPage() {
               <CardContent>
                 <ChartContainer
                   config={{
-                    value: { label: "Value (₹)", color: "hsl(var(--chart-4))" },
+                    value: { label: "Value", color: "hsl(var(--chart-4))" },
                   }}
                   className="h-[300px]"
                 >
@@ -822,7 +822,7 @@ export default function InventoryReportsPage() {
                               <div className="rounded-lg border bg-background p-2 shadow-sm">
                                 <p className="font-medium">{data.range}</p>
                                 <p className="text-sm">
-                                  Value: ₹{data.value.toLocaleString()}
+                                  Value: {data.value.toLocaleString()}
                                 </p>
                                 <p className="text-sm">
                                   Quantity: {data.quantity.toLocaleString()}
@@ -860,7 +860,6 @@ export default function InventoryReportsPage() {
                       </p>
                     </div>
                     <span className="text-2xl font-bold text-red-600">
-                      ₹
                       {ageingAndExpiry.expiredItems
                         .reduce((sum, item) => sum + item.value, 0)
                         .toLocaleString()}
@@ -876,7 +875,6 @@ export default function InventoryReportsPage() {
                       </p>
                     </div>
                     <span className="text-2xl font-bold text-orange-600">
-                      ₹
                       {ageingAndExpiry.expiringSoon
                         .reduce((sum, item) => sum + item.value, 0)
                         .toLocaleString()}
@@ -892,7 +890,6 @@ export default function InventoryReportsPage() {
                       </p>
                     </div>
                     <span className="text-2xl font-bold text-yellow-600">
-                      ₹
                       {ageingAndExpiry.warningItems
                         .reduce((sum, item) => sum + item.value, 0)
                         .toLocaleString()}
@@ -913,7 +910,6 @@ export default function InventoryReportsPage() {
                       </p>
                     </div>
                     <span className="text-2xl font-bold text-green-600">
-                      ₹
                       {ageingAndExpiry.expiryAnalysis
                         .filter((item) => item.status === "safe")
                         .reduce((sum, item) => sum + item.value, 0)
@@ -971,7 +967,7 @@ export default function InventoryReportsPage() {
                             {item.quantity.toLocaleString()}
                           </td>
                           <td className="p-2 text-right">
-                            ₹{item.value.toLocaleString()}
+                            {item.value.toLocaleString()}
                           </td>
                           <td className="p-2">
                             <Badge
@@ -1012,7 +1008,7 @@ export default function InventoryReportsPage() {
               <CardContent>
                 <ChartContainer
                   config={{
-                    value: { label: "Value (₹)", color: "hsl(var(--chart-1))" },
+                    value: { label: "Value", color: "hsl(var(--chart-1))" },
                   }}
                   className="h-[300px]"
                 >
@@ -1043,7 +1039,7 @@ export default function InventoryReportsPage() {
                             return (
                               <div className="rounded-lg border bg-background p-2 shadow-sm">
                                 <p className="font-medium">
-                                  ₹{payload[0].value?.toLocaleString()}
+                                  {payload[0].value?.toLocaleString()}
                                 </p>
                               </div>
                             );
@@ -1122,7 +1118,7 @@ export default function InventoryReportsPage() {
                     Average Item Value
                   </p>
                   <p className="text-2xl font-bold mt-1">
-                    ₹{kpis.avgItemValue.toLocaleString()}
+                    {kpis.avgItemValue.toLocaleString()}
                   </p>
                 </div>
                 <div className="p-4 border rounded-lg">
