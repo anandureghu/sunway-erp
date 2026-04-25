@@ -215,8 +215,8 @@ export default function PurchaseRequisitionDetailPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Actions</CardTitle>
           <p className="text-sm text-muted-foreground font-normal">
-            Same steps as in the requisition list: submit when ready, then an
-            approver releases it to procurement by creating the purchase order.
+            Submit when ready. Once the requisition is approve it will be
+            released to the procurement as a purchase order
           </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -318,7 +318,9 @@ export default function PurchaseRequisitionDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   Preferred supplier
                 </p>
-                <p className="font-medium">{requisition.preferredSupplierName}</p>
+                <p className="font-medium">
+                  {requisition.preferredSupplierName}
+                </p>
               </div>
             )}
             {requisition.debitAccountName && (

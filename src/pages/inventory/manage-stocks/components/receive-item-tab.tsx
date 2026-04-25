@@ -105,7 +105,7 @@ export function ReceiveItemTab({
     setValue("warehouseId", String(item.warehouse_id), {
       shouldValidate: true,
     });
-    setItemSearchQuery(item.name);
+    setItemSearchQuery("");
   };
 
   const onReceiveItem = async (data: ReceiveItemFormData) => {
@@ -169,9 +169,7 @@ export function ReceiveItemTab({
                 label=""
                 query={itemSearchQuery}
                 onQueryChange={setItemSearchQuery}
-                results={
-                  itemSearchQuery.length > 0 ? searchResults : []
-                }
+                results={itemSearchQuery.length > 0 ? searchResults : []}
                 onSelect={handleItemSelect}
                 hiddenInputProps={register("itemId")}
                 errorText={errors.itemId?.message}
