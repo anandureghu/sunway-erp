@@ -59,6 +59,9 @@ export default function SalesOrdersPage() {
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return orders.filter((order) => {
+      if (order.status === "cancelled") {
+        return false;
+      }
       const matchesSearch =
         !q ||
         order.orderNo.toLowerCase().includes(q) ||
@@ -68,6 +71,20 @@ export default function SalesOrdersPage() {
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchQuery, statusFilter]);
+
+  const historyOrders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (order.status !== "cancelled") {
+        return false;
+      }
+      return (
+        !q ||
+        order.orderNo.toLowerCase().includes(q) ||
+        order.customerName.toLowerCase().includes(q)
+      );
+    });
+  }, [orders, searchQuery]);
 
   const handleConfirmOrder = useCallback(
     async (id: string) => {
@@ -193,6 +210,7 @@ export default function SalesOrdersPage() {
         loading={loading}
         error={loadError}
         orders={filteredOrders}
+        historyOrders={historyOrders}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         columns={columns}

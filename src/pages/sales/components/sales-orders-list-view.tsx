@@ -19,6 +19,7 @@ type Props = {
   loading: boolean;
   error: string | null;
   orders: SalesOrder[];
+  historyOrders: SalesOrder[];
   searchQuery: string;
   statusFilter: string;
   columns: ColumnDef<SalesOrder>[];
@@ -32,6 +33,7 @@ export function SalesOrdersListView({
   loading,
   error,
   orders,
+  historyOrders,
   searchQuery,
   statusFilter,
   columns,
@@ -97,7 +99,6 @@ export function SalesOrdersListView({
                     <SelectItem value="picked">Picked</SelectItem>
                     <SelectItem value="dispatched">Dispatched</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -119,6 +120,36 @@ export function SalesOrdersListView({
             <DataTable
               columns={columns}
               data={orders}
+              onRowClick={(row) => onRowClick(row.original.id)}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              Order History
+              <Badge variant="secondary">{historyOrders.length}</Badge>
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="py-16 text-center text-muted-foreground">
+              Loading order history...
+            </div>
+          ) : error ? (
+            <div className="py-16 text-center text-red-600">{error}</div>
+          ) : historyOrders.length === 0 ? (
+            <div className="py-16 text-center text-muted-foreground">
+              No cancelled orders in history.
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={historyOrders}
               onRowClick={(row) => onRowClick(row.original.id)}
             />
           )}
