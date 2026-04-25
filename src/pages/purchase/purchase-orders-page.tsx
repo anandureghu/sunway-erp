@@ -14,6 +14,7 @@ import {
 import type { Row } from "@tanstack/react-table";
 import { PurchaseOrdersListView } from "./components/purchase-orders-list-view";
 import { PurchaseOrderDetailsDialog } from "./components/purchase-order-details-dialog";
+import { PurchaseOrderForm } from "./components/purchase-order-form";
 
 export default function PurchaseOrdersPage() {
   const location = useLocation();
@@ -28,6 +29,7 @@ export default function PurchaseOrdersPage() {
   const [selectedOrderForDetails, setSelectedOrderForDetails] =
     useState<PurchaseOrder | null>(null);
   const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
+  const [orderToEdit, setOrderToEdit] = useState<PurchaseOrder | null>(null);
 
   const refreshOrders = useCallback(async () => {
     setLoading(true);
@@ -141,9 +143,21 @@ export default function PurchaseOrdersPage() {
     [orders],
   );
 
-  const handleEdit = useCallback(() => {
-    toast.info("Edit functionality coming soon");
-  }, []);
+  const handleEdit = useCallback(
+    (id: string) => {
+      const order = orders.find((o) => o.id === id);
+      if (!order) {
+        toast.error("Order not found");
+        return;
+      }
+      if (order.status !== "draft") {
+        toast.error("Only draft orders can be edited.");
+        return;
+      }
+      setOrderToEdit(order);
+    },
+    [orders],
+  );
 
   const handleRowClick = useCallback(
     (row: Row<PurchaseOrder>) => {
@@ -176,6 +190,20 @@ export default function PurchaseOrdersPage() {
       handleEdit,
     ],
   );
+
+  if (orderToEdit) {
+    return (
+      <PurchaseOrderForm
+        mode="edit"
+        initialOrder={orderToEdit}
+        onCancel={() => setOrderToEdit(null)}
+        onSaved={() => {
+          setOrderToEdit(null);
+          void refreshOrders();
+        }}
+      />
+    );
+  }
 
   return (
     <>

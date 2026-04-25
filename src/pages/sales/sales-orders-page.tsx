@@ -23,6 +23,7 @@ export default function SalesOrdersPage() {
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new"),
   );
+  const [orderToEdit, setOrderToEdit] = useState<SalesOrder | null>(null);
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -175,9 +176,22 @@ export default function SalesOrdersPage() {
     [orders],
   );
 
-  const handleEdit = useCallback(() => {
-    toast.info("Edit functionality coming soon");
-  }, []);
+  const handleEdit = useCallback(
+    (id: string) => {
+      const order = orders.find((o) => o.id === id);
+      if (!order) {
+        toast.error("Order not found");
+        return;
+      }
+      if (order.status !== "draft") {
+        toast.error("Only draft orders can be edited.");
+        return;
+      }
+      setOrderToEdit(order);
+      setShowCreateForm(true);
+    },
+    [orders],
+  );
 
   const columns = useMemo(
     () =>
@@ -201,7 +215,22 @@ export default function SalesOrdersPage() {
   );
 
   if (showCreateForm) {
-    return <CreateSalesOrderForm onCancel={() => setShowCreateForm(false)} />;
+    return (
+      <CreateSalesOrderForm
+        mode={orderToEdit ? "edit" : "create"}
+        initialOrder={orderToEdit}
+        onSuccess={() => {
+          setOrderToEdit(null);
+          setShowCreateForm(false);
+          void refreshOrders();
+          navigate("/inventory/sales/orders", { replace: true });
+        }}
+        onCancel={() => {
+          setOrderToEdit(null);
+          setShowCreateForm(false);
+        }}
+      />
+    );
   }
 
   return (
@@ -214,7 +243,10 @@ export default function SalesOrdersPage() {
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         columns={columns}
-        onCreateNew={() => setShowCreateForm(true)}
+        onCreateNew={() => {
+          setOrderToEdit(null);
+          setShowCreateForm(true);
+        }}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}

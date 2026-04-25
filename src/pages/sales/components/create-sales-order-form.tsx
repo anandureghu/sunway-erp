@@ -30,16 +30,24 @@ import {
 } from "@/service/inventoryService";
 import type { ItemWarehouseStockRowDTO } from "@/service/erpApiTypes";
 import { apiClient } from "@/service/apiClient";
-import { createSalesOrder } from "@/service/salesFlowService";
-import type { SalesOrderItem } from "@/types/sales";
+import { createSalesOrder, updateSalesOrder } from "@/service/salesFlowService";
+import type { SalesOrder, SalesOrderItem } from "@/types/sales";
 import type { Company } from "@/types/company";
 import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 
 type Props = {
   onCancel: () => void;
+  onSuccess?: () => void;
+  mode?: "create" | "edit";
+  initialOrder?: SalesOrder | null;
 };
 
-export function CreateSalesOrderForm({ onCancel }: Props) {
+export function CreateSalesOrderForm({
+  onCancel,
+  onSuccess,
+  mode = "create",
+  initialOrder = null,
+}: Props) {
   const navigate = useNavigate();
   const { user, company } = useAuth();
   const [orderItems, setOrderItems] = useState<SalesOrderItem[]>([]);
@@ -62,6 +70,7 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
     creditAccountId: number;
   } | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const isEditMode = mode === "edit" && Boolean(initialOrder?.id);
   const companyTaxActive = Boolean(company?.isTaxActive);
   const companyTaxRateRaw = Number(company?.taxRate ?? 0);
   const companyTaxRate = Number.isFinite(companyTaxRateRaw) ? companyTaxRateRaw : 0;
@@ -176,6 +185,58 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
     }
   }, [selectedItem, items]);
 
+  useEffect(() => {
+    if (!isEditMode || !initialOrder) return;
+    setValue("customerId", String(initialOrder.customerId || ""), {
+      shouldValidate: true,
+    });
+    setValue(
+      "orderDate",
+      initialOrder.orderDate
+        ? format(new Date(initialOrder.orderDate), "yyyy-MM-dd")
+        : format(new Date(), "yyyy-MM-dd"),
+    );
+    setValue(
+      "invoiceDueDate",
+      initialOrder.invoiceDueDate
+        ? format(new Date(initialOrder.invoiceDueDate), "yyyy-MM-dd")
+        : format(new Date(), "yyyy-MM-dd"),
+    );
+    setValue("shippingAddress", initialOrder.shippingAddress || "");
+    setValue("notes", initialOrder.notes || "");
+
+    setOrderItems(
+      (initialOrder.items || []).map((item, idx) => {
+        const qty = item.quantity > 0 ? item.quantity : 0.01;
+        const unitPrice =
+          Number.isFinite(item.unitPrice) && item.unitPrice >= 0
+            ? item.unitPrice
+            : 0;
+        const discountPercent = Math.min(
+          100,
+          Math.max(0, item.discountPercent ?? item.discount ?? 0),
+        );
+        const lineSubtotal = unitPrice * qty - (unitPrice * qty * discountPercent) / 100;
+        const tax = companyTaxActive ? lineSubtotal * (companyTaxRate / 100) : 0;
+        return {
+          ...item,
+          id: item.id || `edit-${Date.now()}-${idx}`,
+          orderId: initialOrder.id,
+          quantity: qty,
+          unitPrice,
+          discountPercent,
+          discount: discountPercent,
+          lineSubtotal,
+          taxRate: companyTaxActive ? companyTaxRate : 0,
+          taxAmount: tax,
+          tax,
+          total: lineSubtotal + tax,
+          warehouseId: item.warehouseId ? Number(item.warehouseId) : undefined,
+        };
+      }),
+    );
+  }, [initialOrder, isEditMode, setValue]);
+
   const totals = useMemo(() => {
     const subtotal = orderItems.reduce(
       (sum, item) => sum + item.total - item.tax,
@@ -189,6 +250,17 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
     );
     return { subtotal, tax, discount, total: subtotal + tax };
   }, [orderItems]);
+
+  const effectiveSalesAccounts = useMemo(() => {
+    if (!isEditMode || !initialOrder) return resolvedSalesAccounts;
+    const bankAccountId = initialOrder.bankAccountId ?? resolvedSalesAccounts?.bankAccountId;
+    const debitAccountId =
+      initialOrder.debitAccountId ?? resolvedSalesAccounts?.debitAccountId;
+    const creditAccountId =
+      initialOrder.creditAccountId ?? resolvedSalesAccounts?.creditAccountId;
+    if (!bankAccountId || !debitAccountId || !creditAccountId) return null;
+    return { bankAccountId, debitAccountId, creditAccountId };
+  }, [initialOrder, isEditMode, resolvedSalesAccounts]);
 
   const recomputeLine = (row: SalesOrderItem): SalesOrderItem => {
     const qty = row.quantity > 0 ? row.quantity : 0.01;
@@ -288,7 +360,7 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
   };
 
   const onSubmit = async (data: any) => {
-    if (!resolvedSalesAccounts) {
+    if (!effectiveSalesAccounts) {
       return toast.error(
         "Default accounts are not loaded. Open Global Settings → Default Accounts.",
       );
@@ -314,29 +386,42 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
 
     try {
       setSubmitLoading(true);
-      const created = await createSalesOrder({
-        customerId: Number(data.customerId),
-        orderDate: data.orderDate,
-        invoiceDueDate: data.invoiceDueDate,
-        bankAccountId: resolvedSalesAccounts.bankAccountId,
-        debitAccountId: resolvedSalesAccounts.debitAccountId,
-        creditAccountId: resolvedSalesAccounts.creditAccountId,
-        items: orderItems.map((it) => ({
-          itemId: Number(it.itemId),
-          warehouseId: Number(it.warehouseId),
-          quantity: Math.round(it.quantity),
-          unitPrice: it.unitPrice,
-          discountPercent: it.discountPercent ?? it.discount,
-          taxRate: it.taxRate ?? 0,
-        })),
-      });
-      toast.success(`Sales order ${created.orderNo} created successfully!`);
-      navigate("/inventory/sales/orders", { replace: true });
+      const payloadItems = orderItems.map((it) => ({
+        itemId: Number(it.itemId),
+        warehouseId: Number(it.warehouseId),
+        quantity: Math.round(it.quantity),
+        unitPrice: it.unitPrice,
+        discountPercent: it.discountPercent ?? it.discount,
+        taxRate: it.taxRate ?? 0,
+      }));
+      if (isEditMode && initialOrder?.id) {
+        const updated = await updateSalesOrder(initialOrder.id, {
+          orderDate: data.orderDate,
+          items: payloadItems,
+        });
+        toast.success(`Sales order ${updated.orderNo} updated successfully!`);
+      } else {
+        const created = await createSalesOrder({
+          customerId: Number(data.customerId),
+          orderDate: data.orderDate,
+          invoiceDueDate: data.invoiceDueDate,
+          bankAccountId: effectiveSalesAccounts.bankAccountId,
+          debitAccountId: effectiveSalesAccounts.debitAccountId,
+          creditAccountId: effectiveSalesAccounts.creditAccountId,
+          items: payloadItems,
+        });
+        toast.success(`Sales order ${created.orderNo} created successfully!`);
+      }
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/inventory/sales/orders", { replace: true });
+      }
     } catch (error: any) {
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to create sales order.",
+          `Failed to ${isEditMode ? "update" : "create"} sales order.`,
       );
     } finally {
       setSubmitLoading(false);
@@ -404,7 +489,9 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
                 <p className="text-xs uppercase tracking-wide text-white/70">
                   Sales
                 </p>
-                <h1 className="text-2xl font-bold">Create Sales Order</h1>
+                <h1 className="text-2xl font-bold">
+                  {isEditMode ? "Edit Sales Order" : "Create Sales Order"}
+                </h1>
               </div>
             </div>
             <Button variant="secondary" onClick={onCancel}>
@@ -431,6 +518,7 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
                   onValueChange={(value) =>
                     setValue("customerId", value, { shouldValidate: true })
                   }
+                  disabled={isEditMode}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select customer" />
@@ -752,7 +840,13 @@ export function CreateSalesOrderForm({ onCancel }: Props) {
                 className="w-full"
                 disabled={submitLoading || orderItems.length === 0}
               >
-                {submitLoading ? "Creating..." : "Create Sales Order"}
+                {submitLoading
+                  ? isEditMode
+                    ? "Saving..."
+                    : "Creating..."
+                  : isEditMode
+                    ? "Save Changes"
+                    : "Create Sales Order"}
               </Button>
             </CardContent>
           </Card>
