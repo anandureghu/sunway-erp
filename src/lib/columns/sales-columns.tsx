@@ -18,7 +18,6 @@ import {
   Trash2,
   Package,
   Truck,
-  FileText,
   Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -155,16 +154,11 @@ export function createSalesOrderColumns(
                     </DropdownMenuItem>
                   </>
                 )}
-                {order.status === "confirmed" &&
-                  !canGeneratePicklist && (
-                    <DropdownMenuItem disabled>
-                      Awaiting full payment
-                    </DropdownMenuItem>
-                  )}
-                <DropdownMenuItem>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Create Invoice
-                </DropdownMenuItem>
+                {order.status === "confirmed" && !canGeneratePicklist && (
+                  <DropdownMenuItem disabled>
+                    Awaiting full payment
+                  </DropdownMenuItem>
+                )}
                 {canCancel && onCancel && (
                   <>
                     <DropdownMenuSeparator />
@@ -274,7 +268,7 @@ export const CUSTOMER_COLUMNS: ColumnDef<Customer>[] = [
 export function createPicklistColumns(
   onMarkPicked?: (id: string) => void,
   onCancel?: (id: string) => void,
-  onCreateDispatch?: (id: string) => void
+  onCreateDispatch?: (id: string) => void,
 ): ColumnDef<Picklist>[] {
   return [
     {
@@ -394,7 +388,7 @@ export function createDispatchColumns(
   onDispatch?: (id: string) => void,
   onMarkInTransit?: (id: string) => void,
   onMarkDelivered?: (id: string) => void,
-  onCancel?: (id: string) => void
+  onCancel?: (id: string) => void,
 ): ColumnDef<Dispatch>[] {
   return [
     {
