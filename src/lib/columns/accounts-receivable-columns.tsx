@@ -58,7 +58,7 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
   },
   {
     accessorKey: "total",
-    header: "Amount (₹)",
+    header: "Amount",
     cell: ({ row }) => {
       const type = row.original.type;
       const total =
@@ -69,9 +69,9 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
         return <span className="text-muted-foreground">—</span>;
       }
       return type === "SALES" ? (
-        <CreditAmount amount={total} currencyCode="₹" />
+        <CreditAmount amount={total} />
       ) : (
-        <DebitAmount amount={total} currencyCode="₹" />
+        <DebitAmount amount={total} />
       );
     },
   },

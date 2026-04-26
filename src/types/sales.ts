@@ -133,8 +133,18 @@ export type DispatchStatus =
   | "created"
   | "dispatched"
   | "in_transit"
+  | "out_for_delivery"
   | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "failed_delivery";
+
+export type DispatchTrackingEvent = {
+  id?: string;
+  status: DispatchStatus;
+  location?: string;
+  notes?: string;
+  eventAt?: string;
+};
 
 export type Dispatch = {
   id: string;
@@ -151,11 +161,16 @@ export type Dispatch = {
   estimatedDeliveryDate?: string;
   actualDeliveryDate?: string;
   deliveryAddress: string;
+  carrierName?: string;
   trackingNumber?: string;
   notes?: string;
   createdBy?: string;
   createdAt: string;
   updatedAt?: string;
+  inTransitAt?: string;
+  outForDeliveryAt?: string;
+  failedDeliveryAt?: string;
+  trackingEvents?: DispatchTrackingEvent[];
 };
 
 // Delivery Tracking Types

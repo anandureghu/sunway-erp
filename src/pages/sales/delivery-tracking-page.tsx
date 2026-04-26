@@ -3,15 +3,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Search, Truck, ArrowLeft, CheckCircle2, Circle } from "lucide-react";
 import { format } from "date-fns";
 import type { Dispatch } from "@/types/sales";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
+  addShipmentTrackingEvent,
+  cancelShipment,
+  dispatchShipment,
   listShipmentsAsDispatches,
   attachOrderAndItems,
   listSalesOrders,
   listPicklists,
+  markShipmentDelivered,
+  markShipmentFailedDelivery,
+  markShipmentInTransit,
+  markShipmentOutForDelivery,
+  updateShipmentDetails,
 } from "@/service/salesFlowService";
 import { listItems } from "@/service/inventoryService";
 import { cn } from "@/lib/utils";
@@ -22,6 +46,8 @@ import {
 } from "./components/delivery-tracking-utils";
 
 export default function DeliveryTrackingPage() {
+  const [searchParams] = useSearchParams();
+  const selectedDispatchId = searchParams.get("dispatchId");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDispatch, setSelectedDispatch] = useState<Dispatch | null>(
     null,
@@ -29,6 +55,33 @@ export default function DeliveryTrackingPage() {
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+  const [trackingStatus, setTrackingStatus] = useState<string>("created");
+  const [trackingCarrierName, setTrackingCarrierName] = useState("");
+  const [trackingNumberInput, setTrackingNumberInput] = useState("");
+  const [trackingDriverName, setTrackingDriverName] = useState("");
+  const [trackingDriverPhone, setTrackingDriverPhone] = useState("");
+  const [trackingEstimatedDate, setTrackingEstimatedDate] = useState("");
+  const [trackingLocation, setTrackingLocation] = useState("");
+  const [trackingNotes, setTrackingNotes] = useState("");
+
+  const loadDispatches = async () => {
+    const [shipments, orders, picklists, items] = await Promise.all([
+      listShipmentsAsDispatches(),
+      listSalesOrders(),
+      listPicklists(),
+      listItems(),
+    ]);
+    const { dispatchesEnriched } = attachOrderAndItems(
+      orders,
+      picklists,
+      shipments,
+      items,
+    );
+    setDispatches(dispatchesEnriched);
+    return dispatchesEnriched;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -36,20 +89,10 @@ export default function DeliveryTrackingPage() {
       try {
         setLoading(true);
         setLoadError(null);
-        const [shipments, orders, picklists, items] = await Promise.all([
-          listShipmentsAsDispatches(),
-          listSalesOrders(),
-          listPicklists(),
-          listItems(),
-        ]);
-        if (cancelled) return;
-        const { dispatchesEnriched } = attachOrderAndItems(
-          orders,
-          picklists,
-          shipments,
-          items,
-        );
-        setDispatches(dispatchesEnriched);
+        const dispatchesEnriched = await loadDispatches();
+        if (cancelled || !selectedDispatchId) return;
+        const match = dispatchesEnriched.find((dispatch) => dispatch.id === selectedDispatchId);
+        if (match) setSelectedDispatch(match);
       } catch (e: any) {
         if (!cancelled) setLoadError(e?.message || "Failed to load shipments");
       } finally {
@@ -59,7 +102,7 @@ export default function DeliveryTrackingPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedDispatchId]);
 
   const filteredDispatches = useMemo(() => {
     return dispatches.filter((dispatch) => {
@@ -72,6 +115,200 @@ export default function DeliveryTrackingPage() {
       );
     });
   }, [dispatches, searchQuery]);
+
+  useEffect(() => {
+    if (!selectedDispatchId || dispatches.length === 0) return;
+    const match = dispatches.find((dispatch) => dispatch.id === selectedDispatchId);
+    if (match) {
+      setSelectedDispatch(match);
+    }
+  }, [dispatches, selectedDispatchId]);
+
+  const trackingHistory = useMemo(
+    () => (selectedDispatch ? getTrackingHistory(selectedDispatch) : []),
+    [selectedDispatch],
+  );
+
+  const refreshSelectedDispatch = async () => {
+    const dispatchesEnriched = await loadDispatches();
+    if (selectedDispatch) {
+      const updated = dispatchesEnriched.find((d) => d.id === selectedDispatch.id);
+      if (updated) setSelectedDispatch(updated);
+    }
+  };
+
+  const handleStatusAction = async (
+    action:
+      | "dispatch"
+      | "in_transit"
+      | "out_for_delivery"
+      | "delivered"
+      | "failed_delivery"
+      | "cancelled",
+  ) => {
+    if (!selectedDispatch || updatingStatus) return;
+    try {
+      setUpdatingStatus(true);
+      if (action === "dispatch") await dispatchShipment(selectedDispatch.id);
+      if (action === "in_transit") await markShipmentInTransit(selectedDispatch.id);
+      if (action === "out_for_delivery")
+        await markShipmentOutForDelivery(selectedDispatch.id);
+      if (action === "delivered") await markShipmentDelivered(selectedDispatch.id);
+      if (action === "failed_delivery")
+        await markShipmentFailedDelivery(
+          selectedDispatch.id,
+          "Marked failed from tracking screen",
+        );
+      if (action === "cancelled") await cancelShipment(selectedDispatch.id);
+      await refreshSelectedDispatch();
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const submitTrackingUpdate = async () => {
+    if (!selectedDispatch) return;
+    await updateShipmentDetails(selectedDispatch.id, {
+      carrierName: trackingCarrierName || undefined,
+      trackingNumber: trackingNumberInput || undefined,
+      driverName: trackingDriverName || undefined,
+      driverPhone: trackingDriverPhone || undefined,
+      estimatedDeliveryDate: trackingEstimatedDate || undefined,
+      deliveryAddress: selectedDispatch.deliveryAddress || undefined,
+      notes: selectedDispatch.notes || undefined,
+    });
+
+    let workingStatus = selectedDispatch.status;
+    const currentIndex = statusOrder.includes(workingStatus as any)
+      ? statusOrder.indexOf(workingStatus as any)
+      : -1;
+    const targetIndex = statusOrder.includes(trackingStatus as any)
+      ? statusOrder.indexOf(trackingStatus as any)
+      : -1;
+
+    if (
+      targetIndex > currentIndex &&
+      !["failed_delivery", "cancelled"].includes(trackingStatus)
+    ) {
+      for (let i = currentIndex + 1; i <= targetIndex; i += 1) {
+        workingStatus = await applyStatusTransition(selectedDispatch.id, workingStatus, statusOrder[i]);
+      }
+    } else if (trackingStatus !== workingStatus) {
+      workingStatus = await applyStatusTransition(
+        selectedDispatch.id,
+        workingStatus,
+        trackingStatus as any,
+      );
+    }
+
+    if (trackingLocation || trackingNotes) {
+      await addShipmentTrackingEvent(selectedDispatch.id, {
+        status: workingStatus.toUpperCase(),
+        location: trackingLocation || undefined,
+        notes: trackingNotes || undefined,
+        eventAt: new Date().toISOString(),
+      });
+    }
+    setTrackingDialogOpen(false);
+    setTrackingCarrierName("");
+    setTrackingNumberInput("");
+    setTrackingDriverName("");
+    setTrackingDriverPhone("");
+    setTrackingEstimatedDate("");
+    setTrackingLocation("");
+    setTrackingNotes("");
+    await refreshSelectedDispatch();
+  };
+
+  const statusOrder = [
+    "created",
+    "dispatched",
+    "in_transit",
+    "out_for_delivery",
+    "delivered",
+  ] as const;
+
+  const applyStatusTransition = async (
+    id: string,
+    currentStatus: Dispatch["status"],
+    targetStatus: Dispatch["status"],
+  ): Promise<Dispatch["status"]> => {
+    if (currentStatus === targetStatus) return currentStatus;
+    if (targetStatus === "cancelled") {
+      await cancelShipment(id);
+      return "cancelled";
+    }
+    if (targetStatus === "failed_delivery") {
+      await markShipmentFailedDelivery(id, trackingNotes || "Marked failed from tracking update");
+      return "failed_delivery";
+    }
+    if (targetStatus === "dispatched" && currentStatus === "created") {
+      await dispatchShipment(id);
+      return "dispatched";
+    }
+    if (targetStatus === "in_transit") {
+      if (currentStatus === "created") {
+        await dispatchShipment(id);
+      }
+      await markShipmentInTransit(id);
+      return "in_transit";
+    }
+    if (targetStatus === "out_for_delivery") {
+      if (currentStatus === "created") await dispatchShipment(id);
+      if (currentStatus === "created" || currentStatus === "dispatched") {
+        await markShipmentInTransit(id);
+      }
+      await markShipmentOutForDelivery(id);
+      return "out_for_delivery";
+    }
+    if (targetStatus === "delivered") {
+      if (currentStatus === "created") await dispatchShipment(id);
+      if (currentStatus === "created" || currentStatus === "dispatched") {
+        await markShipmentInTransit(id);
+      }
+      if (
+        currentStatus === "created" ||
+        currentStatus === "dispatched" ||
+        currentStatus === "in_transit"
+      ) {
+        await markShipmentOutForDelivery(id);
+      }
+      await markShipmentDelivered(id);
+      return "delivered";
+    }
+    return currentStatus;
+  };
+
+  const showDispatchAction = selectedDispatch?.status === "created";
+  const showInTransitAction = selectedDispatch?.status === "dispatched";
+  const showOutForDeliveryAction = selectedDispatch?.status === "in_transit";
+  const showDeliveredAction =
+    selectedDispatch?.status === "dispatched" ||
+    selectedDispatch?.status === "in_transit" ||
+    selectedDispatch?.status === "out_for_delivery";
+  const showFailedAction =
+    selectedDispatch?.status === "dispatched" ||
+    selectedDispatch?.status === "in_transit" ||
+    selectedDispatch?.status === "out_for_delivery";
+  const showCancelAction =
+    selectedDispatch?.status !== "cancelled" &&
+    selectedDispatch?.status !== "delivered";
+
+  useEffect(() => {
+    if (!trackingDialogOpen || !selectedDispatch) return;
+    setTrackingStatus(selectedDispatch.status);
+    setTrackingCarrierName(selectedDispatch.carrierName || "");
+    setTrackingNumberInput(selectedDispatch.trackingNumber || "");
+    setTrackingDriverName(selectedDispatch.driverName || "");
+    setTrackingDriverPhone(selectedDispatch.driverPhone || "");
+    setTrackingEstimatedDate(
+      selectedDispatch.estimatedDeliveryDate
+        ? selectedDispatch.estimatedDeliveryDate.slice(0, 10)
+        : "",
+    );
+    setTrackingLocation("");
+    setTrackingNotes(selectedDispatch.notes || "");
+  }, [trackingDialogOpen, selectedDispatch]);
 
   return (
     <div className="p-6">
@@ -199,6 +436,68 @@ export default function DeliveryTrackingPage() {
                     {getStatusDisplay(selectedDispatch.status).label}
                   </Badge>
                 </div>
+                <div className="pt-3 flex flex-wrap gap-2">
+                  {showDispatchAction && (
+                    <Button
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusAction("dispatch")}
+                    >
+                      Dispatch Shipment
+                    </Button>
+                  )}
+                  {showInTransitAction && (
+                    <Button
+                      variant="secondary"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusAction("in_transit")}
+                    >
+                      Mark In Transit
+                    </Button>
+                  )}
+                  {showOutForDeliveryAction && (
+                    <Button
+                      variant="secondary"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusAction("out_for_delivery")}
+                    >
+                      Mark Out For Delivery
+                    </Button>
+                  )}
+                  {showDeliveredAction && (
+                    <Button
+                      variant="secondary"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusAction("delivered")}
+                    >
+                      Mark Delivered
+                    </Button>
+                  )}
+                  {showFailedAction && (
+                    <Button
+                      variant="secondary"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusAction("failed_delivery")}
+                    >
+                      Mark Failed
+                    </Button>
+                  )}
+                  {showCancelAction && (
+                    <Button
+                      variant="destructive"
+                      disabled={updatingStatus}
+                      onClick={() => handleStatusAction("cancelled")}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => setTrackingDialogOpen(true)}
+                    disabled={updatingStatus}
+                  >
+                    Update Tracking
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Info Cards */}
@@ -209,7 +508,7 @@ export default function DeliveryTrackingPage() {
                         CARRIER
                       </p>
                       <p className="font-semibold">
-                        {selectedDispatch.notes || "Not specified"}
+                        {selectedDispatch.carrierName || "Not specified"}
                       </p>
                     </CardContent>
                   </Card>
@@ -236,8 +535,12 @@ export default function DeliveryTrackingPage() {
                       <p className="font-semibold">
                         {selectedDispatch.status === "in_transit"
                           ? "In Transit"
+                          : selectedDispatch.status === "out_for_delivery"
+                            ? "Out for Delivery"
                           : selectedDispatch.status === "delivered"
                             ? getDestination(selectedDispatch)
+                            : selectedDispatch.status === "failed_delivery"
+                              ? "Delivery Attempt Failed"
                             : "Origin"}
                       </p>
                     </CardContent>
@@ -248,11 +551,9 @@ export default function DeliveryTrackingPage() {
                 <div>
                   <CardTitle className="mb-4">Tracking History</CardTitle>
                   <div className="space-y-6">
-                    {getTrackingHistory(selectedDispatch).map(
+                    {trackingHistory.map(
                       (event, index) => {
-                        const isLast =
-                          index ===
-                          getTrackingHistory(selectedDispatch).length - 1;
+                        const isLast = index === trackingHistory.length - 1;
                         return (
                           <div key={index} className="flex gap-4">
                             <div className="flex flex-col items-center">
@@ -323,6 +624,103 @@ export default function DeliveryTrackingPage() {
           )}
         </div>
       </div>
+      <Dialog open={trackingDialogOpen} onOpenChange={setTrackingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Tracking</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="tracking-status">Status</Label>
+              <Select value={trackingStatus} onValueChange={setTrackingStatus}>
+                <SelectTrigger id="tracking-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="created">Created</SelectItem>
+                  <SelectItem value="dispatched">Dispatched</SelectItem>
+                  <SelectItem value="in_transit">In Transit</SelectItem>
+                  <SelectItem value="out_for_delivery">Out For Delivery</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="failed_delivery">Failed Delivery</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tracking-carrier">Carrier Name</Label>
+                <Input
+                  id="tracking-carrier"
+                  value={trackingCarrierName}
+                  onChange={(e) => setTrackingCarrierName(e.target.value)}
+                  placeholder="Carrier name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tracking-number-input">Tracking Number</Label>
+                <Input
+                  id="tracking-number-input"
+                  value={trackingNumberInput}
+                  onChange={(e) => setTrackingNumberInput(e.target.value)}
+                  placeholder="Tracking number"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tracking-driver-name">Driver Name</Label>
+                <Input
+                  id="tracking-driver-name"
+                  value={trackingDriverName}
+                  onChange={(e) => setTrackingDriverName(e.target.value)}
+                  placeholder="Driver name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tracking-driver-phone">Driver Phone</Label>
+                <Input
+                  id="tracking-driver-phone"
+                  value={trackingDriverPhone}
+                  onChange={(e) => setTrackingDriverPhone(e.target.value)}
+                  placeholder="Driver phone"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tracking-eta">Estimated Delivery Date</Label>
+                <Input
+                  id="tracking-eta"
+                  type="date"
+                  value={trackingEstimatedDate}
+                  onChange={(e) => setTrackingEstimatedDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tracking-location">Location</Label>
+              <Input
+                id="tracking-location"
+                value={trackingLocation}
+                onChange={(e) => setTrackingLocation(e.target.value)}
+                placeholder="Current location checkpoint"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tracking-notes">Notes</Label>
+              <Textarea
+                id="tracking-notes"
+                value={trackingNotes}
+                onChange={(e) => setTrackingNotes(e.target.value)}
+                placeholder="Any delivery/tracking notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrackingDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitTrackingUpdate}>Save Update</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

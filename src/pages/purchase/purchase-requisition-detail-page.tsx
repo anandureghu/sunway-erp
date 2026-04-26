@@ -215,8 +215,8 @@ export default function PurchaseRequisitionDetailPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Actions</CardTitle>
           <p className="text-sm text-muted-foreground font-normal">
-            Same steps as in the requisition list: submit when ready, then an
-            approver releases it to procurement by creating the purchase order.
+            Submit when ready. Once the requisition is approve it will be
+            released to the procurement as a purchase order
           </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -318,7 +318,9 @@ export default function PurchaseRequisitionDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   Preferred supplier
                 </p>
-                <p className="font-medium">{requisition.preferredSupplierName}</p>
+                <p className="font-medium">
+                  {requisition.preferredSupplierName}
+                </p>
               </div>
             )}
             {requisition.debitAccountName && (
@@ -427,7 +429,7 @@ export default function PurchaseRequisitionDetailPage() {
                   <div className="text-right">{item.quantity}</div>
                   <div className="text-right tabular-nums">
                     {item.actualItemPrice != null
-                      ? `₹${item.actualItemPrice.toLocaleString(undefined, {
+                      ? `${item.actualItemPrice.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -435,7 +437,7 @@ export default function PurchaseRequisitionDetailPage() {
                   </div>
                   <div className="text-right tabular-nums text-muted-foreground">
                     {item.otherUnitCost != null && item.otherUnitCost > 0
-                      ? `₹${item.otherUnitCost.toLocaleString(undefined, {
+                      ? `${item.otherUnitCost.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -443,7 +445,7 @@ export default function PurchaseRequisitionDetailPage() {
                   </div>
                   <div className="text-right tabular-nums font-medium">
                     {item.unitPrice != null
-                      ? `₹${item.unitPrice.toLocaleString(undefined, {
+                      ? `${item.unitPrice.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -451,7 +453,7 @@ export default function PurchaseRequisitionDetailPage() {
                   </div>
                   <div className="text-right font-medium tabular-nums">
                     {item.estimatedTotal != null
-                      ? `₹${item.estimatedTotal.toLocaleString(undefined, {
+                      ? `${item.estimatedTotal.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}`
@@ -474,7 +476,7 @@ export default function PurchaseRequisitionDetailPage() {
           <CardContent>
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
-              <span>₹{requisition.totalAmount.toLocaleString()}</span>
+              <span>{requisition.totalAmount.toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>

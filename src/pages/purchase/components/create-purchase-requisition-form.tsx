@@ -423,7 +423,7 @@ export function CreatePurchaseRequisitionForm({
                   <Label>Item cost (from master)</Label>
                   <div className="h-10 px-3 flex items-center rounded-md border bg-muted/50 text-sm tabular-nums">
                     {selectedItem
-                      ? `₹${Number(
+                      ? `${Number(
                           items.find((i) => String(i.id) === selectedItem)
                             ?.costPrice ?? 0,
                         ).toLocaleString(undefined, {
@@ -494,7 +494,7 @@ export function CreatePurchaseRequisitionForm({
                             />
                           </td>
                           <td className="p-2 text-right align-middle tabular-nums text-muted-foreground">
-                            ₹
+
                             {(row.actualItemPrice ?? 0).toLocaleString(
                               undefined,
                               {
@@ -534,7 +534,7 @@ export function CreatePurchaseRequisitionForm({
                             />
                           </td>
                           <td className="p-2 text-right align-middle tabular-nums font-medium">
-                            ₹
+
                             {(
                               row.estimatedUnitCost ??
                               row.unitPrice ??
@@ -545,7 +545,7 @@ export function CreatePurchaseRequisitionForm({
                             })}
                           </td>
                           <td className="p-2 text-right font-medium align-middle tabular-nums">
-                            ₹{(row.estimatedTotal ?? 0).toLocaleString(undefined, {
+                            {(row.estimatedTotal ?? 0).toLocaleString(undefined, {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}
@@ -596,7 +596,7 @@ export function CreatePurchaseRequisitionForm({
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total estimated</span>
-                  <span>₹{total.toLocaleString()}</span>
+                  <span>{total.toLocaleString()}</span>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes (optional)</Label>

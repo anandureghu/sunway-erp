@@ -4,6 +4,7 @@ import type { SidebarItem } from "@/types/company";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { apiClient } from "@/service/apiClient";
+import { formatCurrencyAmount } from "@/lib/currency";
 
 // ✅ FIXED: Matches your ModulePermissionDTO structure
 export function canViewModule(permissions: ModulePermission[] | null, module: string): boolean {
@@ -134,10 +135,9 @@ export function formatDate(date: string) {
 
 export function formatMoney(
   amount: string | number,
-  currencySymbol: string = "$",
+  currencyCode?: string,
 ) {
-  const num = typeof amount === "string" ? parseFloat(amount) : amount;
-  return `${num.toLocaleString("en-US")} ${currencySymbol}`;
+  return formatCurrencyAmount({ amount, currencyCode });
 }
 
 export const toISO = (date: string) => new Date(date).toISOString();

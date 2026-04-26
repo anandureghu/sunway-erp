@@ -126,7 +126,7 @@ export function VarianceTab({
     setVarianceValue("warehouseId", String(item.warehouse_id), {
       shouldValidate: true,
     });
-    setVarianceItemSearchQuery(item.name);
+    setVarianceItemSearchQuery("");
   };
 
   const onAdjustStock = async (data: StockAdjustmentFormData) => {

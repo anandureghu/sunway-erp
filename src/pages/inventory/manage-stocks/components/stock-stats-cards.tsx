@@ -7,6 +7,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { formatMoney } from "@/lib/utils";
 
 type StockStatsCardsProps = {
   totalItems: number;
@@ -117,7 +118,7 @@ export function StockStatsCards({
       />
       <KpiCard
         label="Inventory value"
-        value={`₹ ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+        value={formatMoney(totalValue)}
         sublabel="Available × cost"
         icon={TrendingUp}
         topBarClass="from-emerald-500 to-teal-500"

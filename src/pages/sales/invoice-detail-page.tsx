@@ -39,7 +39,7 @@ const formatDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString() : MISSING;
 
 const money = (n?: number) =>
-  typeof n === "number" ? `₹ ${n.toLocaleString()}` : MISSING;
+  typeof n === "number" ? n.toLocaleString() : MISSING;
 
 /* =======================
    COMPONENT

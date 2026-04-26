@@ -100,8 +100,11 @@ const CategoriesMaster = () => {
     setEditingCategory(category);
     resetCategory({
       name: category.name,
-      status: "active" as const,
-      parentId: category.parentId,
+      status:
+        category.status === "inactive"
+          ? ("inactive" as const)
+          : ("active" as const),
+      parentId: category.parentId ? String(category.parentId) : undefined,
     });
     setShowCategoryForm(true);
   };

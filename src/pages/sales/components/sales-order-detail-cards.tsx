@@ -43,9 +43,9 @@ export function SalesOrderDetailCards({ so }: Props) {
                         </p>
                       </td>
                       <td className="px-4 py-3 text-right">{item.quantity || 0}</td>
-                      <td className="px-4 py-3 text-right">₹ {(item.unitPrice || 0).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right">{(item.unitPrice || 0).toFixed(2)}</td>
                       <td className="px-4 py-3 text-right font-semibold">
-                        ₹ {(item.lineTotal || 0).toFixed(2)}
+                        {(item.lineTotal || 0).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -60,7 +60,7 @@ export function SalesOrderDetailCards({ so }: Props) {
             </div>
             <div className="flex items-center justify-between text-base font-semibold mt-2">
               <span>Order Total</span>
-              <span>₹ {(so.totalAmount || 0).toFixed(2)}</span>
+              <span>{(so.totalAmount || 0).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -150,7 +150,7 @@ export function SalesOrderDetailCards({ so }: Props) {
               </div>
               <div className="flex items-center justify-between font-semibold text-base">
                 <span>Total</span>
-                <span>₹ {(so.totalAmount || 0).toFixed(2)}</span>
+                <span>{(so.totalAmount || 0).toFixed(2)}</span>
               </div>
             </div>
             <Separator />

@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
 
 interface VendorFormProps {
   onSubmit: (data: VendorFormData) => Promise<void> | void;
@@ -32,13 +33,14 @@ export const VendorForm = ({
   loading,
   defaultValues,
 }: VendorFormProps) => {
+  const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
   const form = useForm<VendorFormData>({
     resolver: zodResolver(VENDOR_SCHEMA),
     defaultValues: {
       vendorName: "",
       taxId: "",
       paymentTerms: "",
-      currencyCode: "USD",
+      currencyCode: companyCurrencyCode ?? "",
       creditLimit: 0,
       active: true,
       street: "",
@@ -178,7 +180,7 @@ export const VendorForm = ({
                 <FormLabel>Currency Code</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value || "USD"}
+                  value={field.value || companyCurrencyCode || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -189,7 +191,6 @@ export const VendorForm = ({
                     <SelectItem value="USD">USD</SelectItem>
                     <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="INR">INR</SelectItem>
                     <SelectItem value="QAR">QAR</SelectItem>
                   </SelectContent>
                 </Select>

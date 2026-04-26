@@ -31,9 +31,7 @@ export const GL_BALANCE_COLUMNS = ({
   {
     accessorKey: "totalAssets",
     header: "Assets",
-    cell: ({ row }) => (
-      <DebitAmount amount={Number(row.getValue("totalAssets"))} currencyCode="₹" />
-    ),
+    cell: ({ row }) => <DebitAmount amount={Number(row.getValue("totalAssets"))} />,
   },
 
   {
@@ -42,7 +40,6 @@ export const GL_BALANCE_COLUMNS = ({
     cell: ({ row }) => (
       <CreditAmount
         amount={Number(row.getValue("totalLiabilities"))}
-        currencyCode="₹"
       />
     ),
   },
@@ -53,7 +50,6 @@ export const GL_BALANCE_COLUMNS = ({
     cell: ({ row }) => (
       <CreditAmount
         amount={Number(row.getValue("totalRevenue"))}
-        currencyCode="₹"
       />
     ),
   },
@@ -64,7 +60,6 @@ export const GL_BALANCE_COLUMNS = ({
     cell: ({ row }) => (
       <DebitAmount
         amount={Number(row.getValue("totalExpenses"))}
-        currencyCode="₹"
       />
     ),
   },
@@ -75,7 +70,6 @@ export const GL_BALANCE_COLUMNS = ({
     cell: ({ row }) => (
       <SignedColoredAmount
         amount={Number(row.getValue("balance"))}
-        currencyCode="₹"
       />
     ),
   },

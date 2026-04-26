@@ -24,16 +24,16 @@ export const PAYMENT_COLUMNS = ({
 
   {
     accessorKey: "amount",
-    header: "Amount (₹)",
+    header: "Amount",
     cell: ({ row }) => {
       const item = row.original;
       const amt = Number(row.getValue("amount"));
       const dir =
         item.paymentDirection || (variant === "vendor" ? "VENDOR" : "CUSTOMER");
       if (dir === "VENDOR") {
-        return <DebitAmount amount={amt} currencyCode="₹" />;
+        return <DebitAmount amount={amt} />;
       }
-      return <CreditAmount amount={Math.abs(amt)} currencyCode="₹" />;
+      return <CreditAmount amount={Math.abs(amt)} />;
     },
   },
 

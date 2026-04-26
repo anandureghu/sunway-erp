@@ -49,18 +49,81 @@ import { toggleGlobalSettingsView } from "@/store/uiSlice";
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
 /* ── Per-module color palette ─────────────────────────────── */
-const MODULE_COLORS: Record<string, { bg: string; text: string; activeBg: string; activeText: string; dot: string }> = {
-  Profile:     { bg: "bg-violet-100",  text: "text-violet-600",  activeBg: "bg-violet-600",  activeText: "text-white", dot: "bg-violet-500" },
-  "Current Job":{ bg: "bg-blue-100",   text: "text-blue-600",    activeBg: "bg-blue-600",    activeText: "text-white", dot: "bg-blue-500" },
-  Salary:      { bg: "bg-emerald-100", text: "text-emerald-600", activeBg: "bg-emerald-600", activeText: "text-white", dot: "bg-emerald-500" },
-  Leaves:      { bg: "bg-amber-100",   text: "text-amber-600",   activeBg: "bg-amber-600",   activeText: "text-white", dot: "bg-amber-500" },
-  Loans:       { bg: "bg-orange-100",  text: "text-orange-600",  activeBg: "bg-orange-600",  activeText: "text-white", dot: "bg-orange-500" },
-  Dependents:  { bg: "bg-pink-100",    text: "text-pink-600",    activeBg: "bg-pink-600",    activeText: "text-white", dot: "bg-pink-500" },
-  Appraisal:   { bg: "bg-yellow-100",  text: "text-yellow-600",  activeBg: "bg-yellow-600",  activeText: "text-white", dot: "bg-yellow-500" },
-  Immigration: { bg: "bg-indigo-100",  text: "text-indigo-600",  activeBg: "bg-indigo-600",  activeText: "text-white", dot: "bg-indigo-500" },
+const MODULE_COLORS: Record<
+  string,
+  {
+    bg: string;
+    text: string;
+    activeBg: string;
+    activeText: string;
+    dot: string;
+  }
+> = {
+  Profile: {
+    bg: "bg-violet-100",
+    text: "text-violet-600",
+    activeBg: "bg-violet-600",
+    activeText: "text-white",
+    dot: "bg-violet-500",
+  },
+  "Current Job": {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    activeBg: "bg-blue-600",
+    activeText: "text-white",
+    dot: "bg-blue-500",
+  },
+  Salary: {
+    bg: "bg-emerald-100",
+    text: "text-emerald-600",
+    activeBg: "bg-emerald-600",
+    activeText: "text-white",
+    dot: "bg-emerald-500",
+  },
+  Leaves: {
+    bg: "bg-amber-100",
+    text: "text-amber-600",
+    activeBg: "bg-amber-600",
+    activeText: "text-white",
+    dot: "bg-amber-500",
+  },
+  Loans: {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    activeBg: "bg-orange-600",
+    activeText: "text-white",
+    dot: "bg-orange-500",
+  },
+  Dependents: {
+    bg: "bg-pink-100",
+    text: "text-pink-600",
+    activeBg: "bg-pink-600",
+    activeText: "text-white",
+    dot: "bg-pink-500",
+  },
+  Appraisal: {
+    bg: "bg-yellow-100",
+    text: "text-yellow-600",
+    activeBg: "bg-yellow-600",
+    activeText: "text-white",
+    dot: "bg-yellow-500",
+  },
+  Immigration: {
+    bg: "bg-indigo-100",
+    text: "text-indigo-600",
+    activeBg: "bg-indigo-600",
+    activeText: "text-white",
+    dot: "bg-indigo-500",
+  },
 };
 
-const defaultColor = { bg: "bg-slate-100", text: "text-slate-600", activeBg: "bg-slate-600", activeText: "text-white", dot: "bg-slate-500" };
+const defaultColor = {
+  bg: "bg-slate-100",
+  text: "text-slate-600",
+  activeBg: "bg-slate-600",
+  activeText: "text-white",
+  dot: "bg-slate-500",
+};
 
 export function AppSidebar() {
   const location = useLocation();
@@ -128,12 +191,29 @@ export function AppSidebar() {
       icon: LayoutDashboard,
       color: "text-sky-600 dark:text-sky-400",
       items: [
-        { title: "Company",           url: `/settings/${user?.companyId}`,       icon: Building },
-        { title: "Department",        url: "/admin/department",                   icon: FileText },
-        { title: "Division",          url: "/admin/division",                     icon: Split },
-        { title: "Roles",             url: `/settings/roles/${user?.companyId}`,  icon: Building },
-        { title: "Accounting Period", url: "/admin/accounting-period",            icon: Banknote },
-        { title: "Bank Accounts",     url: "/admin/bank-accounts",                icon: Banknote },
+        {
+          title: "Company",
+          url: `/settings/${user?.companyId}`,
+          icon: Building,
+        },
+        { title: "Department", url: "/admin/department", icon: FileText },
+        { title: "Division", url: "/admin/division", icon: Split },
+        {
+          title: "Roles",
+          url: `/settings/roles/${user?.companyId}`,
+          icon: Building,
+        },
+        {
+          title: "Accounting Period",
+          url: "/admin/accounting-period",
+          icon: Banknote,
+        },
+        { title: "Bank Accounts", url: "/admin/bank-accounts", icon: Banknote },
+        {
+          title: "Default Accounts",
+          url: "/admin/default-accounts",
+          icon: Banknote,
+        },
       ],
     },
   ];
@@ -156,14 +236,18 @@ export function AppSidebar() {
     if (!user?.companyId) return;
 
     if (isAdmin) {
-      getSidebarItems(String(user.companyId), { skipPermissions: true }).then(setSidebarItems);
+      getSidebarItems(String(user.companyId), { skipPermissions: true }).then(
+        setSidebarItems,
+      );
       setPermissions(null as any);
     } else {
       permissionService.getMyPermissions().then((perms) => {
-        getSidebarItems(String(user.companyId), { permissions: perms }).then((items) => {
-          setSidebarItems(items);
-          setPermissions(perms);
-        });
+        getSidebarItems(String(user.companyId), { permissions: perms }).then(
+          (items) => {
+            setSidebarItems(items);
+            setPermissions(perms);
+          },
+        );
       });
     }
   }, [user, isAdmin]);
@@ -215,29 +299,37 @@ export function AppSidebar() {
               title={isPinned ? "Unstick sidebar" : "Stick sidebar"}
               aria-label={isPinned ? "Unstick sidebar" : "Stick sidebar"}
             >
-              {isPinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
+              {isPinned ? (
+                <Pin className="h-3.5 w-3.5" />
+              ) : (
+                <PinOff className="h-3.5 w-3.5" />
+              )}
             </button>
           </div>
         </SidebarHeader>
 
         {/* ── Content ─────────────────────────────────────── */}
         <SidebarContent className="gap-0 px-3 py-3 group-data-[collapsible=icon]:px-1">
-
           {/* Dashboard link */}
           {!adminView && !globalSettingsView && (
             <SidebarMenu className="mb-2">
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-auto p-0">
-                  <Link to="/" className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                    path === "/"
-                      ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                  )}>
-                    <span className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-lg",
-                      path === "/" ? "bg-white/20" : "bg-slate-200",
-                    )}>
+                  <Link
+                    to="/"
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                      path === "/"
+                        ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-lg",
+                        path === "/" ? "bg-white/20" : "bg-slate-200",
+                      )}
+                    >
                       <Home className="h-3.5 w-3.5" />
                     </span>
                     <span>Dashboard</span>
@@ -253,7 +345,9 @@ export function AppSidebar() {
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-sm">
                 <Settings className="h-4 w-4 text-white" />
               </span>
-              <span className="text-sm font-bold text-slate-800">Global Settings</span>
+              <span className="text-sm font-bold text-slate-800">
+                Global Settings
+              </span>
             </div>
           )}
 
@@ -264,11 +358,17 @@ export function AppSidebar() {
               ? globalSettings
               : sidebarItems
           ).map((section) => (
-            <Collapsible key={section.title} defaultOpen className="group/collapsible mb-1">
+            <Collapsible
+              key={section.title}
+              defaultOpen
+              className="group/collapsible mb-1"
+            >
               <SidebarGroup className="py-0">
                 <SidebarGroupLabel asChild>
                   <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-50">
-                    <section.icon className={cn("h-3.5 w-3.5", section.color)} />
+                    <section.icon
+                      className={cn("h-3.5 w-3.5", section.color)}
+                    />
                     <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       {section.title}
                     </span>
@@ -282,7 +382,10 @@ export function AppSidebar() {
                       {section.items.map((item) => {
                         const active = path.startsWith(item.url);
                         return (
-                          <SidebarMenuSub key={item.title} className="border-none">
+                          <SidebarMenuSub
+                            key={item.title}
+                            className="border-none"
+                          >
                             <SidebarMenuItem>
                               <SidebarMenuButton asChild className="h-auto p-0">
                                 <Link
@@ -294,10 +397,14 @@ export function AppSidebar() {
                                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                                   )}
                                 >
-                                  <span className={cn(
-                                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
-                                    active ? "bg-white/20" : "bg-slate-200 group-hover:bg-slate-300",
-                                  )}>
+                                  <span
+                                    className={cn(
+                                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                      active
+                                        ? "bg-white/20"
+                                        : "bg-slate-200 group-hover:bg-slate-300",
+                                    )}
+                                  >
                                     <item.icon className="h-3.5 w-3.5" />
                                   </span>
                                   <span className="truncate">{item.title}</span>
@@ -311,12 +418,15 @@ export function AppSidebar() {
                                   <div className="mb-2 rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 px-3 py-2.5">
                                     <div className="flex items-center gap-2.5">
                                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 text-xs font-bold text-white shadow-sm">
-                                        {selected.firstName?.[0]?.toUpperCase() ?? "E"}
-                                        {selected.lastName?.[0]?.toUpperCase() ?? ""}
+                                        {selected.firstName?.[0]?.toUpperCase() ??
+                                          "E"}
+                                        {selected.lastName?.[0]?.toUpperCase() ??
+                                          ""}
                                       </div>
                                       <div className="min-w-0">
                                         <p className="truncate text-xs font-bold text-slate-800">
-                                          {selected.firstName} {selected.lastName}
+                                          {selected.firstName}{" "}
+                                          {selected.lastName}
                                         </p>
                                         <p className="truncate text-[10px] text-slate-400">
                                           {selected.employeeNo ?? "Employee"}
@@ -329,8 +439,11 @@ export function AppSidebar() {
                                   <div className="space-y-0.5">
                                     {employeeSubModules.map((sm) => {
                                       const disabled = !sm.to || sm.to === "#";
-                                      const active = !!(sm.to && path.startsWith(sm.to));
-                                      const colors = MODULE_COLORS[sm.title] ?? defaultColor;
+                                      const active = !!(
+                                        sm.to && path.startsWith(sm.to)
+                                      );
+                                      const colors =
+                                        MODULE_COLORS[sm.title] ?? defaultColor;
 
                                       return (
                                         <SidebarMenuButton
@@ -344,10 +457,22 @@ export function AppSidebar() {
                                               aria-disabled
                                               title="Select an employee first"
                                             >
-                                              <span className={cn("flex h-6 w-6 items-center justify-center rounded-lg", colors.bg)}>
-                                                <sm.icon className={cn("h-3.5 w-3.5", colors.text)} />
+                                              <span
+                                                className={cn(
+                                                  "flex h-6 w-6 items-center justify-center rounded-lg",
+                                                  colors.bg,
+                                                )}
+                                              >
+                                                <sm.icon
+                                                  className={cn(
+                                                    "h-3.5 w-3.5",
+                                                    colors.text,
+                                                  )}
+                                                />
                                               </span>
-                                              <span className="text-xs text-slate-500">{sm.title}</span>
+                                              <span className="text-xs text-slate-500">
+                                                {sm.title}
+                                              </span>
                                             </div>
                                           ) : (
                                             <Link
@@ -355,20 +480,34 @@ export function AppSidebar() {
                                               className={cn(
                                                 "flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-all duration-150",
                                                 active
-                                                  ? cn("shadow-sm", colors.activeBg, colors.activeText)
+                                                  ? cn(
+                                                      "shadow-sm",
+                                                      colors.activeBg,
+                                                      colors.activeText,
+                                                    )
                                                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                                               )}
                                             >
-                                              <span className={cn(
-                                                "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
-                                                active ? "bg-white/25" : colors.bg,
-                                              )}>
-                                                <sm.icon className={cn(
-                                                  "h-3.5 w-3.5",
-                                                  active ? (colors.activeText) : colors.text,
-                                                )} />
+                                              <span
+                                                className={cn(
+                                                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                                  active
+                                                    ? "bg-white/25"
+                                                    : colors.bg,
+                                                )}
+                                              >
+                                                <sm.icon
+                                                  className={cn(
+                                                    "h-3.5 w-3.5",
+                                                    active
+                                                      ? colors.activeText
+                                                      : colors.text,
+                                                  )}
+                                                />
                                               </span>
-                                              <span className="truncate text-xs font-medium">{sm.title}</span>
+                                              <span className="truncate text-xs font-medium">
+                                                {sm.title}
+                                              </span>
                                               {active && (
                                                 <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
                                               )}
@@ -407,14 +546,17 @@ export function AppSidebar() {
                       : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800",
                   )}
                 >
-                  <span className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-lg",
-                    globalSettingsView ? "bg-violet-100" : "bg-slate-200",
-                  )}>
-                    {globalSettingsView
-                      ? <ArrowLeft className="h-3.5 w-3.5 text-violet-600" />
-                      : <Settings className="h-3.5 w-3.5 text-slate-500" />
-                    }
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-lg",
+                      globalSettingsView ? "bg-violet-100" : "bg-slate-200",
+                    )}
+                  >
+                    {globalSettingsView ? (
+                      <ArrowLeft className="h-3.5 w-3.5 text-violet-600" />
+                    ) : (
+                      <Settings className="h-3.5 w-3.5 text-slate-500" />
+                    )}
                   </span>
                   <span>{globalSettingsView ? "Back to app" : "Settings"}</span>
                 </Link>

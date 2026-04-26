@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import SelectAccount from "@/components/select-account";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
 
 interface Props {
   open: boolean;
@@ -36,6 +37,7 @@ export function ChartOfAccountDialog({
   onSuccess,
   companyId,
 }: Props) {
+  const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
   const [form, setForm] = useState<CreateAccountDTO>({
     companyId,
     accountCode: "",
@@ -43,7 +45,7 @@ export function ChartOfAccountDialog({
     description: "",
     type: "ASSET",
     parentId: null,
-    currency: "INR",
+    currency: companyCurrencyCode ?? "",
     status: "active",
     glAccountClassTypeKey: "",
     glAccountType: "",
@@ -64,7 +66,7 @@ export function ChartOfAccountDialog({
         glAccountType: account.glAccountType ?? "",
       });
     }
-  }, [account, companyId]);
+  }, [account, companyId, companyCurrencyCode]);
 
   const update = (key: keyof CreateAccountDTO, value: string | number) =>
     setForm((f) => ({ ...f, [key]: value }));

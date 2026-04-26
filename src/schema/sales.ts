@@ -57,6 +57,7 @@ export const PICKLIST_SCHEMA = z.object({
 export const DISPATCH_SCHEMA = z.object({
   orderId: z.string().optional(), // Optional - can be derived from picklist
   picklistId: z.string().min(1, "Picklist is required"),
+  carrierName: z.string().optional(),
   vehicleNumber: z.string().optional(),
   driverName: z.string().optional(),
   driverPhone: z.string().optional(),
@@ -75,7 +76,7 @@ export const DELIVERY_TRACKING_SCHEMA = z.object({
     "in_transit",
     "out_for_delivery",
     "delivered",
-    "failed",
+    "failed_delivery",
   ]),
   notes: z.string().optional(),
   deliveredBy: z.string().optional(),

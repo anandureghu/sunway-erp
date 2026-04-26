@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "currency:check": "node ./scripts/check-hardcoded-currency.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

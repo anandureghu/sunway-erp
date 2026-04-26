@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
-import { Search, Plus, ArrowLeft, Info } from "lucide-react";
-import { format } from "date-fns";
+import { Search, ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,19 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { INVOICE_SCHEMA, type InvoiceFormData } from "@/schema/sales";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { type SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { type Invoice } from "@/types/sales";
 import { apiClient } from "@/service/apiClient";
-import SelectAccount from "@/components/select-account";
-import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
-import type { Company } from "@/types/company";
-import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 import type { Row } from "@tanstack/react-table";
 
 export default function InvoicesPage({
@@ -40,17 +29,12 @@ export default function InvoicesPage({
     (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [salesOrders, setSalesOrders] = useState<SalesOrderResponseDTO[]>([]);
 
   useEffect(() => {
     apiClient
       .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
       .then((res) => setInvoices(res.data));
-    apiClient
-      .get<SalesOrderResponseDTO[]>("/sales/orders")
-      .then((res) => setSalesOrders(res.data));
   }, []);
 
   const filteredInvoices = invoices.filter((invoice) => {
@@ -65,15 +49,6 @@ export default function InvoicesPage({
 
     return matchesSearch && matchesStatus;
   });
-
-  if (showCreateForm) {
-    return (
-      <CreateInvoiceForm
-        salesOrders={salesOrders}
-        onCancel={() => setShowCreateForm(false)}
-      />
-    );
-  }
 
   const unpaidCount = invoices.filter((inv) => inv.status === "UNPAID").length;
 
@@ -105,10 +80,6 @@ export default function InvoicesPage({
               </p>
             </div>
           </div>
-          <Button onClick={() => setShowCreateForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Invoice
-          </Button>
         </div>
       )}
 
@@ -191,298 +162,6 @@ export default function InvoicesPage({
           />
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function CreateInvoiceForm({
-  salesOrders,
-  onCancel,
-}: {
-  salesOrders: SalesOrderResponseDTO[];
-  onCancel: () => void;
-}) {
-  const { user } = useAuth();
-  const [selectedOrderId, setSelectedOrderId] = useState("");
-  const [companyDefaults, setCompanyDefaults] = useState<Company | null>(null);
-  const [companyLoading, setCompanyLoading] = useState(true);
-  const [salesDefaultsMissing, setSalesDefaultsMissing] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<InvoiceFormData>({
-    resolver: zodResolver(INVOICE_SCHEMA),
-    defaultValues: {
-      date: format(new Date(), "yyyy-MM-dd"),
-    },
-  });
-
-  const selectedOrder = salesOrders.find(
-    (o) => o.id.toString() === selectedOrderId,
-  );
-
-  const invoiceDate = watch("date");
-
-  useEffect(() => {
-    if (!user?.companyId) {
-      setCompanyLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setCompanyLoading(true);
-    apiClient
-      .get<Company>(`/companies/${user.companyId}`)
-      .then((res) => {
-        if (cancelled || !res.data) return;
-        const co = res.data;
-        setCompanyDefaults(co);
-        if (!hasSalesAccountingDefaults(co)) {
-          setSalesDefaultsMissing(true);
-        } else {
-          setSalesDefaultsMissing(false);
-          if (co.defaultSalesDebitAccountId != null) {
-            setValue("debitAccount", String(co.defaultSalesDebitAccountId));
-          }
-          if (co.defaultSalesCreditAccountId != null) {
-            setValue("creditAccount", String(co.defaultSalesCreditAccountId));
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setCompanyLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.companyId, setValue]);
-
-  useEffect(() => {
-    if (invoiceDate) {
-      const d = new Date(invoiceDate);
-      d.setDate(d.getDate() + 30);
-      setValue("dueDate", format(d, "yyyy-MM-dd"));
-    }
-  }, [invoiceDate, setValue]);
-
-  const onSubmit = async (data: InvoiceFormData) => {
-    if (!selectedOrder) {
-      toast.error("Select a sales order.");
-      return;
-    }
-    if (!data.debitAccount || !data.creditAccount) {
-      toast.error(
-        "Debit and credit accounts are required. Set them under Global Settings → Default Accounts.",
-      );
-      return;
-    }
-    try {
-      await apiClient.post("/invoices", {
-        orderId: Number(data.orderId),
-        toParty: selectedOrder.customerName,
-        invoiceDate: data.date,
-        dueDate: data.dueDate,
-        debitAccount: Number(data.debitAccount),
-        creditAccount: Number(data.creditAccount),
-        notesRemarks: data.notes,
-        type: "SALES",
-        amount: selectedOrder.totalAmount,
-        bankAccountId: companyDefaults?.defaultBankAccountId ?? undefined,
-      });
-      onCancel();
-    } catch (e: any) {
-      console.error(e);
-      toast.error("Failed to create invoice", {
-        description: e?.response?.data?.message || "",
-      });
-    }
-  };
-
-  if (companyLoading) {
-    return (
-      <div className="p-6 text-muted-foreground">Loading company settings…</div>
-    );
-  }
-
-  if (salesDefaultsMissing) {
-    return (
-      <div className="p-6 max-w-lg space-y-4">
-        <div className="flex justify-between mb-2">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={onCancel}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-bold">Create Invoice</h1>
-          </div>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
-        <Card className="border-amber-200 bg-amber-50/90 dark:bg-amber-950/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100 text-base">
-              <Info className="h-5 w-5 shrink-0" />
-              Set default accounts first
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-amber-900/90 dark:text-amber-100/90 space-y-3">
-            <p>
-              Configure sales debit, sales credit, and default bank in Global
-              Settings before creating invoices.
-            </p>
-            <Button asChild variant="secondary">
-              <Link to="/admin/default-accounts">
-                Open Default Accounts (Global Settings)
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">Create Invoice</h1>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Information</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Sales Order *</Label>
-              <Select
-                value={selectedOrderId}
-                onValueChange={(val) => {
-                  setSelectedOrderId(val);
-                  setValue("orderId", val);
-
-                  const order = salesOrders.find(
-                    (o) => o.id.toString() === val,
-                  );
-
-                  if (order) {
-                    setValue("customerId", order.customerId?.toString() || "");
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select order" />
-                </SelectTrigger>
-                <SelectContent>
-                  {salesOrders
-                    .filter(
-                      (o) => o.status !== "cancelled" && o.status !== "draft",
-                    )
-                    .map((order) => (
-                      <SelectItem key={order.id} value={order.id.toString()}>
-                        {order.orderNumber} – {order.customerName} – ₹
-                        {order.totalAmount?.toLocaleString()}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {errors.orderId && (
-                <p className="text-sm text-red-500">{errors.orderId.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Customer</Label>
-              <Input value={selectedOrder?.customerName || ""} disabled />
-            </div>
-
-            <div>
-              <SelectAccount
-                label="Debit Account"
-                useId
-                value={watch("debitAccount")}
-                onChange={(val) => setValue("debitAccount", val)}
-              />
-            </div>
-
-            <div>
-              <SelectAccount
-                label="Credit Account"
-                useId
-                value={watch("creditAccount")}
-                onChange={(val) => setValue("creditAccount", val)}
-              />
-            </div>
-
-            {companyDefaults?.defaultBankAccountId != null && (
-              <div className="col-span-2 text-sm text-muted-foreground">
-                Bank account on this invoice uses the company default (configure
-                under Settings → Company).
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>Invoice Date *</Label>
-              <Input type="date" {...register("date")} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Due Date *</Label>
-              <Input type="date" {...register("dueDate")} />
-            </div>
-
-            <div className="col-span-2 space-y-2">
-              <Label>Payment Terms</Label>
-              <Input {...register("paymentTerms")} />
-            </div>
-
-            <div className="col-span-2 space-y-2">
-              <Label>Notes</Label>
-              <Input {...register("notes")} />
-            </div>
-          </CardContent>
-        </Card>
-
-        {selectedOrder && (
-          <Card>
-            <CardContent className="text-sm space-y-1">
-              <p>
-                <span className="text-muted-foreground">Order:</span>{" "}
-                {selectedOrder.orderNumber}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Customer:</span>{" "}
-                {selectedOrder.customerName}
-              </p>
-              <p>
-                <span className="text-muted-foreground">Total:</span> ₹
-                {selectedOrder.totalAmount?.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="flex justify-end gap-4">
-          <Button variant="outline" type="button" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!selectedOrderId}>
-            Create Invoice
-          </Button>
-        </div>
-      </form>
     </div>
   );
 }

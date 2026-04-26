@@ -222,6 +222,7 @@ export type SalesOrderCreateDTO = {
   customerId?: Id;
   orderDate?: string; // date
   invoiceDueDate?: string; // date
+  shippingAddress?: string;
   bankAccountId?: Id;
   debitAccountId?: Id;
   creditAccountId?: Id;
@@ -230,6 +231,8 @@ export type SalesOrderCreateDTO = {
 
 export type SalesOrderUpdateDTO = {
   orderDate?: string; // date
+  invoiceDueDate?: string; // date
+  shippingAddress?: string;
   items?: SalesOrderItemDTO[];
 };
 
@@ -256,6 +259,8 @@ export type SalesOrderResponseDTO = {
   customerPhone?: string;
   orderDate?: string; // date
   invoiceDueDate?: string; // date
+  shippingAddress?: string;
+  deliveryAddress?: string;
   status?: string;
   paymentStatus?: string;
   subtotalAmount?: number;
@@ -312,7 +317,34 @@ export type ShipmentResponseDTO = {
   status?: string;
   carrierName?: string;
   trackingNumber?: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  estimatedDeliveryDate?: string;
+  deliveryAddress?: string;
+  notes?: string;
+  createdAt?: string;
   dispatchedAt?: string;
+  inTransitAt?: string;
+  outForDeliveryAt?: string;
   deliveredAt?: string;
+  failedDeliveryAt?: string;
   items?: ShipmentItemDTO[];
+  trackingEvents?: ShipmentTrackingEventDTO[];
+};
+
+export type ShipmentTrackingEventDTO = {
+  id?: Id;
+  status?: string;
+  location?: string;
+  notes?: string;
+  eventAt?: string;
+  createdByUserId?: Id;
+};
+
+export type ShipmentTrackingEventCreateDTO = {
+  status?: string;
+  location?: string;
+  notes?: string;
+  eventAt?: string;
 };

@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { SalesOrderDetailCards } from "./components/sales-order-detail-cards";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 const SalesOrdersDetailPage = () => {
   const { id } = useParams();
@@ -86,7 +87,10 @@ const SalesOrdersDetailPage = () => {
             </div>
             <div className="text-right">
               <p className="text-xs uppercase tracking-wide text-white/70">Order Value</p>
-              <p className="text-2xl font-bold">₹ {so.totalAmount?.toFixed(2) || "0.00"}</p>
+              <CurrencyAmount
+                amount={so.totalAmount ?? 0}
+                className="text-2xl font-bold text-white"
+              />
             </div>
           </div>
         </div>

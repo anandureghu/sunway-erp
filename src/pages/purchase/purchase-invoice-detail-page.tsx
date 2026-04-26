@@ -240,27 +240,27 @@ export default function PurchaseInvoiceDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>
-                    ₹{(invoice.subtotalAmount ?? 0).toLocaleString()}
+                    {(invoice.subtotalAmount ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax</span>
-                  <span>₹{(invoice.taxAmount ?? 0).toLocaleString()}</span>
+                  <span>{(invoice.taxAmount ?? 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Discount</span>
                   <span>
-                    ₹{(invoice.discountAmount ?? 0).toLocaleString()}
+                    {(invoice.discountAmount ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold border-t pt-2">
                   <span>Total</span>
-                  <span>₹{(invoice.amount ?? 0).toLocaleString()}</span>
+                  <span>{(invoice.amount ?? 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-muted-foreground">Outstanding</span>
                   <span>
-                    ₹{(invoice.outstanding ?? invoice.openAmount ?? 0).toLocaleString()}
+                    {(invoice.outstanding ?? invoice.openAmount ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>

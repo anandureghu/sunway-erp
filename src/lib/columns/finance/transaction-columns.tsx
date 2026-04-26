@@ -112,7 +112,7 @@ export const TRANSACTION_COLUMNS = ({
       if (!hasD) {
         return <span className="text-muted-foreground text-sm">—</span>;
       }
-      return <DebitAmount amount={tx.amount} currencyCode="₹" />;
+      return <DebitAmount amount={tx.amount} />;
     },
   },
   {
@@ -125,7 +125,7 @@ export const TRANSACTION_COLUMNS = ({
       if (!hasC) {
         return <span className="text-muted-foreground text-sm">—</span>;
       }
-      return <CreditAmount amount={tx.amount} currencyCode="₹" />;
+      return <CreditAmount amount={tx.amount} />;
     },
   },
   {

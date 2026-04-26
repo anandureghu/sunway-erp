@@ -4,6 +4,7 @@ import {
   listCategories,
   createCategory,
   updateItem,
+  updateItemMultipart,
 } from "@/service/inventoryService";
 import type { ItemCategory } from "@/types/inventory";
 import { toast } from "sonner";
@@ -153,7 +154,7 @@ function CreateItemForm({
     },
   });
 
-  const buildPayload = (data: ItemFormData) => ({
+  const buildPayload = (data: ItemFormData, warehouseId?: number) => ({
     sku: data.sku?.toUpperCase(),
     name: data.name,
     type: data.itemType,
@@ -161,7 +162,7 @@ function CreateItemForm({
     subCategory: data.subcategory,
     brand: data.brand,
     description: data.description,
-    warehouse: data.warehouse,
+    warehouse: warehouseId ?? data.warehouse,
     quantity: Number(data.quantity ?? 0),
     minimum: 0,
     maximum: 0,
@@ -214,7 +215,10 @@ function CreateItemForm({
       setSubmitting(true);
 
       const formData = new FormData();
-      const payload = buildPayload(data);
+      const resolvedWarehouseId = Number(
+        data.warehouse ?? getValues("warehouse") ?? initialData?.warehouse_id,
+      );
+      const payload = buildPayload(data, resolvedWarehouseId);
 
       formData.append(
         "data",
@@ -228,7 +232,16 @@ function CreateItemForm({
       }
 
       if (editMode) {
-        const updated = await updateItem(data.id!, formData);
+        const editItemId = initialData?.id ?? (data.id ? Number(data.id) : NaN);
+        if (!Number.isFinite(editItemId)) {
+          throw new Error("Missing item id for update");
+        }
+        if (!Number.isFinite(resolvedWarehouseId) || resolvedWarehouseId <= 0) {
+          throw new Error("Please select a valid warehouse");
+        }
+        const updated = data.image
+          ? await updateItemMultipart(editItemId, formData)
+          : await updateItem(editItemId, payload);
         toast.success("Item updated successfully!");
         onSuccess(updated);
       } else {
