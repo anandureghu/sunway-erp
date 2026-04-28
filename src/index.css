@@ -124,6 +124,34 @@
   }
 }
 
+/*
+ * Sidebar layout — push <main> past the fixed sidebar panel.
+ *
+ * The shadcn Sidebar renders its panel as position:fixed and puts an invisible
+ * spacer div (same width) in the flex row.  The spacer has zero height, which
+ * means some layout engines don't count it when computing flex-item widths, so
+ * the Tailwind peer-data utility on <main> is unreliable.
+ *
+ * This plain-CSS sibling rule is the authoritative layout driver:
+ *   • It targets <main> directly — no class generation needed.
+ *   • @media (min-width: 768px) matches exactly the `md:block` breakpoint used
+ *     to show the peer div, so it never fires on mobile (where the sidebar is a
+ *     Sheet drawer and the peer div is display:none).
+ *   • `var(--sidebar-width, 13rem)` reads the value set inline by SidebarProvider.
+ */
+@media (min-width: 768px) {
+  .peer[data-state="expanded"] ~ main {
+    margin-left: var(--sidebar-width, 13rem);
+  }
+  .peer[data-state="collapsed"] ~ main {
+    margin-left: 0;
+  }
+}
+
+main {
+  transition: margin-left 200ms linear;
+}
+
 @layer utilities {
   .bg-primary-gradient {
     @apply bg-gradient-to-br from-blue-500 to-indigo-600;

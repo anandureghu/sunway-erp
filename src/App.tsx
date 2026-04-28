@@ -105,6 +105,7 @@ import PicklistDetailPage from "./pages/sales/picklist-detail-page";
 import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
 import HRSettingsPage from "./pages/hr/settings-page";
+import HRReportsPage from "./pages/hr/hr-reports-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
 import DivisionListPage from "./pages/admin/hr/division/division-list-page";
 import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
@@ -250,6 +251,9 @@ export default function App() {
 
           {/* employees list */}
           <Route path="employees" element={<EmployeesPage />} />
+
+          {/* HR Reports */}
+          <Route path="reports" element={<HRReportsPage />} />
 
           {/* HR Settings */}
           <Route path="settings" element={<HRSettingsPage />} />
