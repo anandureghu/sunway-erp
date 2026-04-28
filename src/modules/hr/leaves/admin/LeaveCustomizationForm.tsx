@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   RefreshCw,
-  Info,
   Plus,
   Minus,
   Calendar,
@@ -14,6 +13,7 @@ import {
   Zap,
   Lock,
   Loader2,
+  Info,
 } from "lucide-react";
 import { type LeavePolicy, type LeaveType } from "@/types/hr";
 import { leavePolicyService } from "@/service/leavePolicyService";
@@ -117,7 +117,6 @@ export default function LeaveCustomizationForm() {
 
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedGender, setSelectedGender] = useState<Gender>("FEMALE");
-  const [showGenderInfo, setShowGenderInfo] = useState(false);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -303,107 +302,89 @@ export default function LeaveCustomizationForm() {
     );
   }
 
+  const visibleRoles = selectedRole ? roles.filter((r) => r.key === selectedRole) : roles;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 rounded-3xl shadow-2xl">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40"></div>
+    <div className="space-y-5 p-5 bg-slate-50/60 min-h-screen">
 
-          <div className="relative p-8">
-            <div className="flex items-start justify-between gap-6">
-              <div className="flex items-start gap-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl"></div>
-                  <div className="relative bg-white/10 backdrop-blur-sm border-2 border-white/20 rounded-2xl p-4">
-                    <Calendar className="h-10 w-10 text-white" strokeWidth={1.5} />
-                  </div>
-                </div>
-                <div className="text-white">
-                  <h1 className="text-3xl font-bold mb-2 tracking-tight">Leave Policy Configuration</h1>
-                  <p className="text-blue-100 text-sm">Configuring leave policies for {company.companyName}</p>
-                </div>
-              </div>
-
-              {hasChanges && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-700 border border-amber-300 shadow-lg">
-                  <Zap className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Unsaved Changes</span>
-                </div>
-              )}
+      {/* ── Header ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 shadow-lg">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-8 left-1/3 h-32 w-32 rounded-full bg-indigo-400/20 blur-2xl" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner">
+              <Calendar className="h-5 w-5 text-white" />
             </div>
-          </div>
-        </div>
-
-        {/* Instructions */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 flex items-start gap-4">
-          <div className="bg-blue-100 rounded-full p-3 flex-shrink-0">
-            <Info className="h-5 w-5 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-slate-900 mb-1">Configuring policies for {company.companyName}</h3>
-            <p className="text-sm text-slate-600">
-              Set the number of days allowed for each leave type per employee role.
-            </p>
-          </div>
-        </div>
-
-        {/* Gender Selector */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6">
-          <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-slate-900 mb-1">Gender-Specific Leave Configuration</h3>
-              <p className="text-sm text-slate-600">Select a gender to view applicable leave types.</p>
+              <h1 className="text-lg font-bold text-white leading-tight">Leave Policy Configuration</h1>
+              <p className="text-xs text-blue-100 mt-0.5">{company.companyName}</p>
             </div>
-            <button onClick={() => setShowGenderInfo(!showGenderInfo)} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
-              {showGenderInfo ? "Hide Info" : "Show Info"}
-            </button>
+          </div>
+          {hasChanges && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-300/40 px-3 py-1.5 text-xs font-semibold text-amber-100">
+              <Zap className="h-3.5 w-3.5" />
+              Unsaved Changes
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── Controls row: gender + role filter ── */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 space-y-4">
+
+        {/* Gender */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50">
+              <Users className="h-4 w-4 text-indigo-600" />
+            </div>
+            <span className="text-sm font-semibold text-slate-700">View by Gender</span>
           </div>
 
-          {showGenderInfo && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Maternity Leave is available only to female employees.
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-3 mt-4">
-            {(["MALE", "FEMALE", "OTHER"] as Gender[]).map((gender) => (
+          <div className="flex items-center gap-2">
+            {(["MALE", "FEMALE", "OTHER"] as Gender[]).map((g) => (
               <button
-                key={gender}
-                onClick={() => setSelectedGender(gender)}
-                className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                  selectedGender === gender
-                    ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                key={g}
+                onClick={() => setSelectedGender(g)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  selectedGender === g
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                {gender === "MALE" && "👨 Male"}
-                {gender === "FEMALE" && "👩 Female"}
-                {gender === "OTHER" && "🧑 Other"}
+                {g === "MALE"   && <span>♂</span>}
+                {g === "FEMALE" && <span>♀</span>}
+                {g === "OTHER"  && <span>⊕</span>}
+                {g.charAt(0) + g.slice(1).toLowerCase()}
               </button>
             ))}
           </div>
-
-          {selectedGender !== "FEMALE" && (
-            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-2">
-              <Lock className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-orange-700">
-                <strong>Maternity Leave is hidden</strong> for {selectedGender === "MALE" ? "male" : "other"} employees.
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Role Filter */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        {selectedGender !== "FEMALE" && (
+          <div className="flex items-center gap-2 rounded-lg bg-orange-50 border border-orange-200 px-3 py-2">
+            <Lock className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+            <p className="text-xs text-orange-700">
+              <span className="font-semibold">Maternity Leave</span> is hidden for {selectedGender === "MALE" ? "male" : "other"} employees.
+            </p>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="h-px bg-slate-100" />
+
+        {/* Role pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 mr-1">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Role</span>
+          </div>
           <button
             onClick={() => setSelectedRole(null)}
-            className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
               selectedRole === null
-                ? "bg-slate-900 text-white"
-                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                ? "bg-slate-800 text-white"
+                : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
           >
             All Roles
@@ -412,128 +393,159 @@ export default function LeaveCustomizationForm() {
             <button
               key={role.key}
               onClick={() => setSelectedRole(role.key)}
-              className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
                 selectedRole === role.key
-                  ? (role.color?.bg || "bg-blue-100 text-blue-700")
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  ? "bg-indigo-100 text-indigo-700 border border-indigo-200"
+                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
               }`}
             >
               {role.label}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Policies Grid */}
-        <div className="space-y-6">
-          {(selectedRole ? roles.filter((r) => r.key === selectedRole) : roles).map((role) => (
-            <div key={role.key} className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      {/* ── Info tip ── */}
+      <div className="flex items-center gap-2.5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+        <Info className="h-4 w-4 shrink-0 text-blue-500" />
+        <p className="text-xs text-blue-700">
+          Set the number of leave days allowed per role. Changes apply across all employees with that role.
+        </p>
+      </div>
+
+      {/* ── Policy cards per role ── */}
+      <div className="space-y-4">
+        {visibleRoles.map((role) => {
+          const total = getTotalDays(role.key, selectedGender);
+          return (
+            <div key={role.key} className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+
+              {/* Role header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
                 <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-slate-600" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
+                    <Users className="h-4 w-4 text-indigo-600" />
+                  </div>
                   <div>
-                    <h3 className="font-bold text-slate-900">{role.label}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{role.key}</p>
+                    <p className="text-sm font-bold text-slate-800">{role.label}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">{role.key}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-600">Total Days:</span>
-                  <span className="text-2xl font-bold text-emerald-600">{getTotalDays(role.key, selectedGender)}</span>
+                  <span className="text-xs text-slate-500 font-medium">Total entitlement</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-sm font-bold text-emerald-700">
+                    {total} <span className="font-normal text-emerald-600">days</span>
+                  </span>
                 </div>
               </div>
 
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Leave type tiles */}
+              <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {leaveTypes.map((leaveType) => {
-                  if (!isLeaveTypeApplicable(leaveType, selectedGender)) {
-                    return null;
-                  }
-                  
+                  if (!isLeaveTypeApplicable(leaveType, selectedGender)) return null;
+
                   const policy = policies.find((p) => p.role === role.key && p.leaveType === leaveType);
                   const colors = LEAVE_TYPE_COLORS[leaveType] || { bg: "bg-slate-50 border-slate-200", text: "text-slate-700", icon: "text-slate-500" };
                   const isRestricted = isLeaveTypeGenderRestricted(leaveType);
+                  const days = policy?.daysAllowed ?? 0;
 
                   return (
-                    <div key={leaveType} className={`${colors.bg} border rounded-xl p-4 transition-all hover:shadow-md relative`}>
-                      {isRestricted && (
-                        <div className="absolute top-2 right-2 bg-pink-500 text-white rounded-full p-1.5" title="Gender-restricted leave type">
-                          <Lock className="h-3 w-3" />
-                        </div>
-                      )}
-
-                      <div className="space-y-3">
-                        <div className="pr-6">
-                          <p className={`text-xs font-bold uppercase tracking-wide ${colors.text}`}>{leaveType}</p>
-                          {isRestricted && <p className="text-xs text-pink-600 mt-1">Female employees only</p>}
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            onClick={() => decrementPolicy(role.key, leaveType)}
-                            disabled={!policy || policy.daysAllowed === 0}
-                            className="p-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                          >
-                            <Minus className="h-4 w-4 text-slate-600" />
-                          </button>
-
-                          <Input
-                            type="number"
-                            min="0"
-                            max="365"
-                            value={policy?.daysAllowed || 0}
-                            onChange={(e) => updatePolicy(role.key, leaveType, parseInt(e.target.value) || 0)}
-                            className="flex-1 text-center text-3xl font-bold border-2 border-slate-300 focus:border-blue-500 py-3"
-                            placeholder="0"
-                          />
-
-                          <button
-                            onClick={() => incrementPolicy(role.key, leaveType)}
-                            disabled={!policy || policy.daysAllowed >= 365}
-                            className="p-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                          >
-                            <Plus className="h-4 w-4 text-slate-600" />
-                          </button>
-                        </div>
-
-                        <p className="text-xs text-slate-500 text-center">days</p>
+                    <div
+                      key={leaveType}
+                      className={`relative flex flex-col gap-3 rounded-xl border p-4 transition-all hover:shadow-md ${colors.bg}`}
+                    >
+                      {/* Type label + lock */}
+                      <div className="flex items-start justify-between gap-1">
+                        <p className={`text-[11px] font-bold uppercase tracking-wide leading-tight ${colors.text}`}>
+                          {leaveType}
+                        </p>
+                        {isRestricted && (
+                          <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white" title="Female only">
+                            <Lock className="h-2.5 w-2.5" />
+                          </span>
+                        )}
                       </div>
+
+                      {/* Stepper */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => decrementPolicy(role.key, leaveType)}
+                          disabled={days === 0}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+
+                        <Input
+                          type="number"
+                          min="0"
+                          max="365"
+                          value={days}
+                          onChange={(e) => updatePolicy(role.key, leaveType, parseInt(e.target.value) || 0)}
+                          className="h-9 flex-1 border-0 bg-white/70 text-center text-xl font-bold shadow-sm ring-1 ring-slate-200 focus-visible:ring-blue-400 rounded-lg p-0"
+                        />
+
+                        <button
+                          onClick={() => incrementPolicy(role.key, leaveType)}
+                          disabled={days >= 365}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+
+                      <p className="text-center text-[10px] font-medium text-slate-400 tracking-wide uppercase">
+                        days / year
+                      </p>
+
+                      {isRestricted && (
+                        <p className="text-center text-[10px] text-pink-500 font-medium">Female only</p>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Action Buttons */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1">
-              {hasChanges && (
-                <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="text-sm font-medium">
-                    You have unsaved changes for {company.companyName}. Click Save to apply.
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {hasChanges && (
-                <Button variant="outline" onClick={handleDiscardChanges} className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4" />
-                  Discard
-                </Button>
-              )}
-
+      {/* ── Action bar ── */}
+      <div className="sticky bottom-0 z-10 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-sm shadow-lg px-5 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            {hasChanges ? (
+              <div className="flex items-center gap-2 text-amber-700">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="text-sm font-medium">You have unsaved changes — click Save to apply.</span>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">All changes are saved.</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {hasChanges && (
               <Button
-                onClick={handleSave}
-                disabled={loading || !hasChanges}
-                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:shadow-lg"
+                variant="outline"
+                onClick={handleDiscardChanges}
+                className="h-9 gap-1.5 text-sm"
               >
-                <CheckCircle2 className="h-4 w-4" />
-                {loading ? "Saving..." : `Save for ${company.companyName}`}
+                <RefreshCw className="h-3.5 w-3.5" />
+                Discard
               </Button>
-            </div>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={loading || !hasChanges}
+              className="h-9 gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 text-sm font-semibold disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              {loading ? "Saving…" : "Save Policies"}
+            </Button>
           </div>
         </div>
       </div>

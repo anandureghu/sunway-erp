@@ -32,8 +32,8 @@ const SIDEBAR_CONFIG = {
     MAX_AGE: 60 * 60 * 24 * 7 // 7 days
   },
   WIDTH: {
-    DESKTOP: "16rem",
-    MOBILE: "18rem",
+    DESKTOP: "18rem",
+    MOBILE: "13rem",
     ICON: "3rem"
   },
   KEYBOARD_SHORTCUT: "b"

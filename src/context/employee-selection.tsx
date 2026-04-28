@@ -3,12 +3,11 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import roleService from "@/service/roleService";
 import type { RoleOption } from "@/types/role";
+import { UserPlus, User, Globe, Shield, X, ChevronDown } from "lucide-react";
 
 export type SelectedEmployee = {
   employeeNo: string;
@@ -154,169 +153,145 @@ export function AddEmployeeModal({
     onClose();
   };
 
+  const inputCls =
+    "h-9 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100";
+  const selectCls =
+    "h-9 w-full appearance-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100";
+  const labelCls = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1";
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add Employee</DialogTitle>
-          <p className="text-sm text-gray-600">
-            Provide required account details and optional profile fields.
-          </p>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
+        {/* Header */}
+        <div className="relative flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner">
+            <UserPlus className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-white leading-tight">Add New Employee</h2>
+            <p className="text-xs text-blue-100">Fill in the details to create an employee record</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-lg p-1.5 text-white/70 transition hover:bg-white/20 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium">Prefix</label>
-              <select
-                name="prefix"
-                value={form.prefix}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              >
-                <option value="">Select</option>
-                <option value="Mr.">Mr.</option>
-                <option value="Mrs.">Mrs.</option>
-                <option value="Ms.">Ms.</option>
-                <option value="Dr.">Dr.</option>
-              </select>
+        <div className="max-h-[70vh] overflow-y-auto px-6 py-5 space-y-6 bg-gray-50">
+          {/* Personal Information */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50">
+                <User className="h-4 w-4 text-blue-600" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-700">Personal Information</h3>
             </div>
-            <div>
-              <label className="text-sm font-medium">First Name</label>
-              <input
-                name="firstName"
-                placeholder="First Name"
-                value={form.firstName}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={labelCls}>Prefix</label>
+                <div className="relative">
+                  <select name="prefix" value={form.prefix} onChange={handleChange} className={selectCls}>
+                    <option value="">Select</option>
+                    <option value="Mr.">Mr.</option>
+                    <option value="Mrs.">Mrs.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Dr.">Dr.</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>First Name <span className="text-red-400">*</span></label>
+                <input name="firstName" placeholder="e.g. John" value={form.firstName} onChange={handleChange} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Last Name <span className="text-red-400">*</span></label>
+                <input name="lastName" placeholder="e.g. Doe" value={form.lastName} onChange={handleChange} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Gender</label>
+                <div className="relative">
+                  <select name="gender" value={form.gender} onChange={handleChange} className={selectCls}>
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Marital Status</label>
+                <div className="relative">
+                  <select name="maritalStatus" value={form.maritalStatus} onChange={handleChange} className={selectCls}>
+                    <option value="">Select</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Divorced">Divorced</option>
+                    <option value="Widowed">Widowed</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Date of Birth</label>
+                <div className="relative">
+                  <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className={inputCls} />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">Last Name</label>
-              <input
-                name="lastName"
-                placeholder="Last Name"
-                value={form.lastName}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
+          </div>
+
+          {/* Background Details */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50">
+                <Globe className="h-4 w-4 text-indigo-600" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-700">Background Details</h3>
             </div>
-
-            {/* Username / Password fields removed */}
-
-            {/* Email / Phone fields removed */}
-
-            <div>
-              <label className="text-sm font-medium">Gender</label>
-              <select
-                name="gender"
-                value={form.gender}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              >
-                <option value="">Select</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Birthplace</label>
+                <input name="birthplace" placeholder="City / country of birth" value={form.birthplace} onChange={handleChange} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Hometown</label>
+                <input name="hometown" placeholder="Hometown" value={form.hometown} onChange={handleChange} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Nationality</label>
+                <input name="nationality" placeholder="e.g. Malaysian" value={form.nationality} onChange={handleChange} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Religion</label>
+                <input name="religion" placeholder="e.g. Islam" value={form.religion} onChange={handleChange} className={inputCls} />
+              </div>
+              <div className="col-span-2">
+                <label className={labelCls}>Identification No.</label>
+                <input name="identification" placeholder="IC / Passport / National ID" value={form.identification} onChange={handleChange} className={inputCls} />
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="text-sm font-medium">Marital Status</label>
-              <select
-                name="maritalStatus"
-                value={form.maritalStatus}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              >
-                <option value="">Select</option>
-                <option value="Single">Single</option>
-                <option value="Married">Married</option>
-              </select>
+          {/* Role */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-50">
+                <Shield className="h-4 w-4 text-violet-600" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-700">Access & Role</h3>
             </div>
-
-            <div>
-              <label className="text-sm font-medium">Date of Birth</label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={form.dateOfBirth}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Birthplace</label>
-              <input
-                name="birthplace"
-                placeholder="Birthplace"
-                value={form.birthplace}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Hometown</label>
-              <input
-                name="hometown"
-                placeholder="Hometown"
-                value={form.hometown}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Nationality</label>
-              <input
-                name="nationality"
-                placeholder="Nationality"
-                value={form.nationality}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Religion</label>
-              <input
-                name="religion"
-                placeholder="Religion"
-                value={form.religion}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Identification</label>
-              <input
-                name="identification"
-                placeholder="ID number / identification"
-                value={form.identification}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Role</label>
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border px-3 py-2"
-              >
+            <div className="relative">
+              <label className={labelCls}>Role</label>
+              <select name="role" value={form.role} onChange={handleChange} className={selectCls}>
                 {roleOptions.length > 0 ? (
                   roleOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                    <option key={option.value} value={option.value}>{option.label}</option>
                   ))
                 ) : (
-                  // Fallback options when no roles are loaded
                   <>
                     <option value="USER">User</option>
                     <option value="ADMIN">Admin</option>
@@ -328,22 +303,28 @@ export function AddEmployeeModal({
                   </>
                 )}
               </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 bottom-2.5 h-3.5 w-3.5 text-gray-400" />
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center justify-end">
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-gray-100 bg-white px-6 py-4">
+          <p className="text-xs text-gray-400"><span className="text-red-400">*</span> Required fields</p>
+          <div className="flex items-center gap-2">
             <button
               onClick={onClose}
               type="button"
-              className="mr-2 inline-flex h-9 items-center rounded-md border px-3 text-sm"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               type="button"
-              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm text-white"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-indigo-700"
             >
+              <UserPlus className="h-4 w-4" />
               Save Employee
             </button>
           </div>

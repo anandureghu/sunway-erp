@@ -177,8 +177,8 @@ const BenefitRow = ({
       {typeValue === "ALLOWANCE" && (
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Allowance Amount</Label>
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+          <div className="flex h-9 overflow-hidden rounded-lg border border-violet-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
+            <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-2.5 text-xs font-semibold text-violet-700">
               {currencySymbol}
             </span>
             <Input
@@ -187,7 +187,7 @@ const BenefitRow = ({
               onChange={(e) => onAmountChange(e.target.value)}
               placeholder="0.00"
               disabled={disabled}
-              className="pl-8 h-9 rounded-lg border-violet-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+              className="h-full flex-1 rounded-none border-0 pl-2.5 shadow-none focus-visible:ring-0"
               min="0"
               step="0.01"
             />
@@ -431,8 +431,8 @@ export default function SalaryForm() {
                 <Label className="text-xs font-semibold text-slate-700">
                   Monthly Basic Salary <span className="text-rose-500">*</span>
                 </Label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-violet-600">
+                <div className="flex h-12 overflow-hidden rounded-xl border border-violet-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
+                  <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-3 text-sm font-bold text-violet-700">
                     {currencySymbol}
                   </span>
                   <Input
@@ -441,7 +441,7 @@ export default function SalaryForm() {
                     onChange={(e) => updateField("basicSalary")(e.target.value)}
                     placeholder="0.00"
                     disabled={!editing}
-                    className="pl-10 h-12 text-lg font-bold rounded-xl border-violet-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 tabular-nums"
+                    className="h-full flex-1 rounded-none border-0 pl-3 text-lg font-bold shadow-none focus-visible:ring-0 tabular-nums"
                     min="0"
                     step="0.01"
                   />
@@ -510,8 +510,8 @@ export default function SalaryForm() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Allowance Amount</Label>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                  <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
+                    <span className="flex shrink-0 items-center border-r border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-500">
                       {currencySymbol}
                     </span>
                     <Input
@@ -520,7 +520,7 @@ export default function SalaryForm() {
                       onChange={(e) => updateField("otherAllowance")(e.target.value)}
                       placeholder="0.00"
                       disabled={!editing}
-                      className="pl-8 h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                      className="h-full flex-1 rounded-none border-0 pl-2.5 shadow-none focus-visible:ring-0"
                       min="0"
                       step="0.01"
                     />

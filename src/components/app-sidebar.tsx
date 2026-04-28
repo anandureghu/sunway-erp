@@ -428,15 +428,15 @@ export function AppSidebar() {
                                           {selected.firstName}{" "}
                                           {selected.lastName}
                                         </p>
-                                        <p className="truncate text-[10px] text-slate-400">
+                                        <p className="truncate text-xs text-slate-400">
                                           {selected.employeeNo ?? "Employee"}
                                         </p>
                                       </div>
                                     </div>
                                   </div>
 
-                                  {/* Submodule links */}
-                                  <div className="space-y-0.5">
+                                  {/* Submodule links — larger but distinct */}
+                                  <div className="space-y-px">
                                     {employeeSubModules.map((sm) => {
                                       const disabled = !sm.to || sm.to === "#";
                                       const active = !!(
@@ -446,14 +446,10 @@ export function AppSidebar() {
                                         MODULE_COLORS[sm.title] ?? defaultColor;
 
                                       return (
-                                        <SidebarMenuButton
-                                          asChild
-                                          key={sm.title}
-                                          className="h-auto p-0"
-                                        >
+                                        <SidebarMenuButton asChild key={sm.title} className="h-auto p-0">
                                           {disabled ? (
                                             <div
-                                              className="flex cursor-not-allowed items-center gap-2.5 rounded-xl px-2.5 py-2 opacity-40"
+                                              className="flex cursor-not-allowed items-center gap-2 rounded-md px-2.5 py-1.5 opacity-40"
                                               aria-disabled
                                               title="Select an employee first"
                                             >
@@ -570,3 +566,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
