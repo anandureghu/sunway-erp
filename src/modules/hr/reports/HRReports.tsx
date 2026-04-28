@@ -498,7 +498,7 @@ export default function HRReports() {
                       return (
                         <tr key={role} className="hover:bg-slate-50/50">
                           <td className="py-2.5 px-3 font-semibold text-slate-700 border-b border-slate-50">
-                            {role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                            {role.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
                           </td>
                           {leaveTypes.map((lt, i) => {
                             const days = policyMatrix[role]?.[lt] ?? 0;
