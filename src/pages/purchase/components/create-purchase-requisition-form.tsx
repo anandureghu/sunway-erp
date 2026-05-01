@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { createPurchaseRequisition } from "@/service/purchaseFlowService";
 import type { PurchaseRequisitionItem } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { toast } from "sonner";
-import SelectUser from "@/components/select-user";
+import SelectUser, { type SelectUserOption } from "@/components/select-user";
 import SelectDepartment from "@/components/select-department";
 import SelectVendor from "@/components/select-vendor";
 import { useAuth } from "@/context/AuthContext";
@@ -48,6 +48,45 @@ function appliedFromActualAndOther(
 ): number {
   if (otherUnitCost != null && otherUnitCost > 0) return otherUnitCost;
   return actualItemCost;
+}
+
+function extractDepartmentId(payload: any): string {
+  const direct = payload?.departmentId;
+  const nested = payload?.data?.departmentId;
+  const employeeNested = payload?.employee?.departmentId;
+  const departmentEntityId = payload?.department?.id;
+  const value = direct ?? nested ?? employeeNested;
+  const normalized = value ?? departmentEntityId;
+  return normalized != null && normalized !== "" ? String(normalized) : "";
+}
+
+async function resolveRequesterDepartmentId(userId: string): Promise<string> {
+  try {
+    const userRes = await apiClient.get(`/users/${userId}`);
+    const fromUserDetails = extractDepartmentId(userRes?.data);
+    if (fromUserDetails) return fromUserDetails;
+  } catch {
+    // Try additional sources below.
+  }
+
+  try {
+    const employeesRes = await apiClient.get("/employees");
+    const employees = Array.isArray(employeesRes?.data) ? employeesRes.data : [];
+    const employee = employees.find(
+      (e: any) => String(e?.userId) === String(userId),
+    );
+    const fromEmployees = extractDepartmentId(employee);
+    if (fromEmployees) return fromEmployees;
+  } catch {
+    // Final fallback below.
+  }
+
+  try {
+    const profileRes = await apiClient.get(`/users/${userId}/profile`);
+    return extractDepartmentId(profileRes?.data);
+  } catch {
+    return "";
+  }
 }
 
 export function CreatePurchaseRequisitionForm({
@@ -86,6 +125,8 @@ export function CreatePurchaseRequisitionForm({
   const [debitAccountId, setDebitAccountId] = useState<string>("");
   const [creditAccountId, setCreditAccountId] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const requesterSyncSeqRef = useRef(0);
+  const didInitRequesterSyncRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +173,43 @@ export function CreatePurchaseRequisitionForm({
   useEffect(() => {
     setItemOtherCostInput("");
   }, [selectedItem]);
+
+  const syncDepartmentForRequester = async (
+    userId: string,
+    selectedUser?: SelectUserOption | null,
+  ) => {
+    const seq = ++requesterSyncSeqRef.current;
+    const selectedUserDepartmentId = extractDepartmentId(selectedUser);
+    if (selectedUserDepartmentId) {
+      setDepartmentId(selectedUserDepartmentId);
+      return;
+    }
+
+    const requesterDepartmentId = await resolveRequesterDepartmentId(userId);
+    if (seq !== requesterSyncSeqRef.current) return;
+    setDepartmentId(requesterDepartmentId);
+  };
+
+  const handleRequesterSelection = (
+    nextUserId: string | undefined,
+    selectedUser?: SelectUserOption | null,
+  ) => {
+    setRequestedByUserId(nextUserId);
+    if (!nextUserId) {
+      setDepartmentId("");
+      return;
+    }
+    void syncDepartmentForRequester(nextUserId, selectedUser ?? null);
+  };
+
+  useEffect(() => {
+    if (didInitRequesterSyncRef.current) return;
+    didInitRequesterSyncRef.current = true;
+    if (!requestedByUserId) {
+      return;
+    }
+    void syncDepartmentForRequester(requestedByUserId);
+  }, [requestedByUserId]);
 
   const addItemToRequisition = () => {
     if (!selectedItem || itemQuantity <= 0) return;
@@ -357,7 +435,7 @@ export function CreatePurchaseRequisitionForm({
                   <SelectUser
                     label="Requested by"
                     value={requestedByUserId}
-                    onChange={setRequestedByUserId}
+                    onChange={handleRequesterSelection}
                     placeholder="Select user"
                   />
                 </div>

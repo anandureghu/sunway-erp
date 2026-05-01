@@ -10,6 +10,12 @@ import { Label } from "./ui/label";
 import { fetchUsers } from "@/service/userService";
 import type { User } from "@/types/hr";
 
+export type SelectUserOption = User & {
+  departmentId?: number | string | null;
+  department?: { id?: number | string | null } | null;
+  employee?: { departmentId?: number | string | null } | null;
+};
+
 const SelectUser = ({
   onChange,
   value,
@@ -19,9 +25,9 @@ const SelectUser = ({
   label?: string;
   placeholder?: string;
   value: string | undefined;
-  onChange: (v: string) => void;
+  onChange: (v: string, user?: SelectUserOption | null) => void;
 }) => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<SelectUserOption[]>([]);
 
   useEffect(() => {
     fetchUsers().then((data) => {
@@ -29,16 +35,22 @@ const SelectUser = ({
     });
   }, []);
 
+  const handleChange = (selectedUserId: string) => {
+    const selectedUser =
+      users.find((u) => String(u.id) === selectedUserId) ?? null;
+    onChange(selectedUserId, selectedUser);
+  };
+
   return (
     <>
       <Label>{label ? label : "User"}</Label>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={handleChange}>
         <SelectTrigger>
           <SelectValue placeholder={placeholder || "Select User"} />
         </SelectTrigger>
 
         <SelectContent>
-          {users.map((d: User) => (
+          {users.map((d) => (
             <SelectItem key={d.id} value={String(d.id)}>
               <div>
                 <h2 className="font-semibold">{d.fullName}</h2>
