@@ -58,9 +58,10 @@ export default function LeavesShell() {
             Employee Leave History
           </Tab>
         </div>
-        {!isHistoryTab && (
+{!isHistoryTab && (
           <EditUpdateButton
             module="LEAVES"
+            label="Request Leave"
             editing={editing}
             onEdit={() => setEditing(true)}
             onCancel={() => {

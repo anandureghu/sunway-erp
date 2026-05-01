@@ -38,7 +38,8 @@ export interface Employee {
   email?: string;
   username?: string;
   role?: Role;  // Security role (for permissions) - e.g., "ADMIN", "HR", "USER"
-  companyRole?: string;  // Company role (for display) - e.g., "HR Manager", "Finance Lead"
+  companyRole?: string;  // Company role name (for display) - e.g., "HR Manager", "Finance Lead"
+  companyRoleId?: number | null; // Company role ID (PK reference to CompanyRole table) - new from backend
   companyName?: string;
   imageUrl?: string;
 }
@@ -120,6 +121,7 @@ export interface LeavePolicy {
   genderRestricted?: boolean;
   allowedGender?: string | null;
   defaultDays?: number;
+  includeWeekends?: boolean;
 }
 
 export interface Salary {

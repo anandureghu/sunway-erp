@@ -10,7 +10,6 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/service/apiClient";
-import roleService from "@/service/roleService";
 import { toast } from "sonner";
 
 import { useForm } from "react-hook-form";
@@ -32,17 +31,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import type { Department } from "@/types/department";
 import { createEmployeeSchema } from "@/schema/employee";
 import { type Employee } from "@/types/hr";
 import type { z } from "zod";
-import { fetchDepartments as fetchDepartmentsService } from "@/service/departmentService";
 import { cn } from "@/lib/utils";
 import {
   User,
+<<<<<<< Updated upstream
   Building2,
   ShieldCheck,
   Briefcase,
+=======
+  Mail,
+  AtSign,
+  ShieldCheck,
+  Hash,
+>>>>>>> Stashed changes
   UserPlus,
   UserCog,
 } from "lucide-react";
@@ -93,9 +97,7 @@ type EmployeeDialogProps = {
   onSuccess: () => void;
 };
 
-type FormValues = z.infer<typeof createEmployeeSchema> & {
-  CompanyRole?: string | null;
-};
+type FormValues = z.infer<typeof createEmployeeSchema>;
 
 // ── main component ────────────────────────────────────────────────────────────
 export function EmployeeDialog({
@@ -108,20 +110,29 @@ export function EmployeeDialog({
   presetRole = "ADMIN",
   onSuccess,
 }: EmployeeDialogProps) {
+<<<<<<< Updated upstream
   const [loading,      setLoading]      = useState(false);
   const [departments,  setDepartments]  = useState<Department[]>([]);
   const [deptLoading,  setDeptLoading]  = useState(false);
   const [companyRoles, setCompanyRoles] = useState<any[]>([]);
   const [roleLoading,  setRoleLoading]  = useState(false);
+=======
+  const [loading, setLoading] = useState(false);
+>>>>>>> Stashed changes
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createEmployeeSchema),
     defaultValues: {
       firstName:    "",
       lastName:     "",
+<<<<<<< Updated upstream
       departmentId: "",
+=======
+      email:        "",
+      username:     "",
+      password:     "",
+>>>>>>> Stashed changes
       role:         presetRole,
-      CompanyRole:  "",
     },
   });
 
@@ -131,28 +142,39 @@ export function EmployeeDialog({
   const initials  = getInitials(firstName, lastName);
   const fullName  = [firstName, lastName].filter(Boolean).join(" ") || (mode === "edit" ? "Employee" : "New Employee");
 
-  // Pre-fill on edit
+// Pre-fill on edit
   useEffect(() => {
     if (open && mode === "edit" && employee) {
       form.reset({
         firstName:    employee.firstName,
         lastName:     employee.lastName,
+<<<<<<< Updated upstream
         departmentId: employee.departmentId ? String(employee.departmentId) : "",
+=======
+        email:        employee.email,
+        username:     employee.username,
+        password:     "",
+>>>>>>> Stashed changes
         role:         (employee.role as string) ?? presetRole,
-        CompanyRole:  employee.companyRole || "",
       });
     }
     if (open && mode === "create") {
       form.reset({
         firstName:    "",
         lastName:     "",
+<<<<<<< Updated upstream
         departmentId: "",
+=======
+        email:        "",
+        username:     "",
+        password:     "",
+>>>>>>> Stashed changes
         role:         presetRole,
-        CompanyRole:  "",
       });
     }
   }, [open, employee, mode]);
 
+<<<<<<< Updated upstream
   // Load data when dialog opens
   useEffect(() => {
     if (!open) return;
@@ -187,14 +209,29 @@ export function EmployeeDialog({
   }, [open, companyId]);
 
   const onSubmit = async (values: FormValues): Promise<void> => {
+=======
+  // Auto-generate username in create mode
+  useEffect(() => {
+    if (mode === "edit") return;
+    if (firstName && lastName) {
+// Username format: firstName[0].lastName (e.g., "j.doe")
+      form.setValue("username", `${firstName.toLowerCase().charAt(0)}.${lastName.toLowerCase()}`);
+    }
+  }, [firstName, lastName]);
+
+const onSubmit = async (values: FormValues): Promise<void> => {
+>>>>>>> Stashed changes
     setLoading(true);
     const payload = {
       firstName:    values.firstName,
       lastName:     values.lastName,
+<<<<<<< Updated upstream
+=======
+      email:        values.email,
+      username:     values.username,
+>>>>>>> Stashed changes
       companyId,
-      departmentId: values.departmentId ? Number(values.departmentId) : null,
       role:         values.role || presetRole,
-      CompanyRole:  values.CompanyRole || null,
     };
 
     try {
@@ -318,42 +355,98 @@ export function EmployeeDialog({
                 />
               </div>
 
+<<<<<<< Updated upstream
               {/* Section: Role & Department */}
               <SectionLabel>Role &amp; Department</SectionLabel>
-
-              {/* Department */}
+=======
+              {/* Employee No */}
               <FormField
                 control={form.control}
-                name="departmentId"
+                name="employeeNo"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs font-semibold text-gray-700">
-                      Department <span className="text-muted-foreground font-normal">(optional)</span>
+                      Employee Number <span className="text-muted-foreground font-normal">(optional)</span>
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className={cn(
-                          "h-9 rounded-lg border-violet-200/80 pl-3",
-                          "focus:border-violet-400 focus:ring-violet-400/30"
-                        )}>
-                          <Building2 className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                          <SelectValue placeholder={deptLoading ? "Loading…" : "Select department"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments.map((d: Department) => (
-                          <SelectItem key={d.id} value={String(d.id)}>
-                            {d.departmentName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <div className="relative">
+                        <FieldIcon><Hash className="h-4 w-4" /></FieldIcon>
+                        <Input
+                          placeholder="e.g. EMP-001"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 font-mono"
+                        />
+                      </div>
+                    </FormControl>
                     <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
 
-              {/* System role */}
+              {/* Section: Account */}
+              <SectionLabel>Account Details</SectionLabel>
+
+              {/* Email */}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-semibold text-gray-700">Email Address</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <FieldIcon><Mail className="h-4 w-4" /></FieldIcon>
+                        <Input
+                          type="email"
+                          placeholder="john.doe@company.com"
+                          {...field}
+                          className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+{/* Username (auto-generated) */}
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-semibold text-gray-700">Username</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <FieldIcon><AtSign className="h-4 w-4" /></FieldIcon>
+                        <Input
+placeholder="j.doe"
+                          {...field}
+                          className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              {/* Password info - auto-generated on backend */}
+              {mode === "create" && (
+                <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                  Password will be auto-generated and sent to the employee's email.
+                </div>
+              )}
+
+{/* Section: Role */}
+              <SectionLabel>System Role</SectionLabel>
+>>>>>>> Stashed changes
+
+{/* System role - default is ADMIN */}
               <FormField
                 control={form.control}
                 name="role"
@@ -373,42 +466,6 @@ export function EmployeeDialog({
                       <SelectContent>
                         {SECURITY_ROLES.map((r) => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              {/* Company / team role */}
-              <FormField
-                control={form.control}
-                name="CompanyRole"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-semibold text-gray-700">
-                      Company Role <span className="text-muted-foreground font-normal">(Team Lead, Manager…)</span>
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                      disabled={roleLoading}
-                    >
-                      <FormControl>
-                        <SelectTrigger className={cn(
-                          "h-9 rounded-lg border-violet-200/80 pl-3",
-                          "focus:border-violet-400 focus:ring-violet-400/30"
-                        )}>
-                          <Briefcase className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                          <SelectValue placeholder={roleLoading ? "Loading roles…" : "Select company role"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {companyRoles.map((r: any) => (
-                          <SelectItem key={r.id} value={r.name || ""}>
-                            {r.name}
-                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

@@ -44,8 +44,8 @@ import {
   getSidebarItems,
   getVisibleEmployeeSubModules,
 } from "@/service/companyService";
-import permissionService from "@/service/permissionService";
 import { toggleGlobalSettingsView } from "@/store/uiSlice";
+
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
@@ -132,7 +132,7 @@ export function AppSidebar() {
   const dispatch = useAppDispatch();
   const path = location.pathname;
   const { selected } = useEmployeeSelection();
-  const { user } = useAuth();
+  const { user, permissions: authPermissions } = useAuth();
 
   const { adminView, globalSettingsView } = useAppSelector((s) => s.ui);
 
@@ -174,6 +174,8 @@ export function AppSidebar() {
   const [permissions, setPermissions] = useState<ModulePermission[]>([]);
 
   const isAdmin = ADMIN_ROLES.includes(user?.role ?? "");
+  const isHrManager = /hr\s*manager/i.test(user?.companyRole ?? "");
+  const isPrivileged = isAdmin || isHrManager;
 
   const adminSections = [
     {
@@ -248,28 +250,27 @@ export function AppSidebar() {
     prevAdminView.current = adminView;
   }, [adminView, navigate]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!user?.companyId) return;
 
-    if (isAdmin) {
+    if (isPrivileged) {
       getSidebarItems(String(user.companyId), { skipPermissions: true }).then(
         setSidebarItems,
       );
       setPermissions(null as any);
     } else {
-      permissionService.getMyPermissions().then((perms) => {
-        getSidebarItems(String(user.companyId), { permissions: perms }).then(
-          (items) => {
-            setSidebarItems(items);
-            setPermissions(perms);
-          },
-        );
-      });
+      // Use permissions from AuthContext directly
+      getSidebarItems(String(user.companyId), { permissions: authPermissions }).then(
+        (items) => {
+          setSidebarItems(items);
+          setPermissions(authPermissions as any);
+        },
+      );
     }
-  }, [user, isAdmin]);
+  }, [user, isPrivileged, authPermissions]);
 
   const employeeSubModules = getVisibleEmployeeSubModules(
-    isAdmin ? null : permissions,
+    isPrivileged ? null : permissions,
     empBase,
   );
 
@@ -582,4 +583,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-

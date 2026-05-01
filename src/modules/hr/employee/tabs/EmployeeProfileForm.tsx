@@ -39,14 +39,15 @@ type EmpProfile = {
   nationality?:   string;
   religion?:      string;
   identification?: string;
-  companyRole?:   string;
+  companyRole?:   string;       // Role name (for display)
+  companyRoleId?: number | null; // Role ID (FK to CompanyRole table)
 };
 
 const NEW_EMP: EmpProfile = {
   employeeNo: "", prefix: "", firstName: "", lastName: "",
   joinDate: "", dateOfBirth: "", gender: "", maritalStatus: "",
   status: "Active", birthplace: "", hometown: "", nationality: "",
-  religion: "", identification: "", companyRole: "",
+  religion: "", identification: "", companyRole: "", companyRoleId: null,
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -150,7 +151,7 @@ export default function EmployeeProfileForm() {
   const [draft,  setDraft]  = useState<EmpProfile>(NEW_EMP);
   const [imageHover, setImageHover] = useState(false);
   const [, setPendingFile] = useState<File | null>(null);
-  const [companyRoleOptions, setCompanyRoleOptions] = useState<{ label: string; value: string }[]>([]);
+  const [companyRoleOptions, setCompanyRoleOptions] = useState<{ label: string; value: number; id: number }[]>([]);
 
   const set = useCallback(
     <K extends keyof EmpProfile>(k: K, v: EmpProfile[K]) =>
@@ -158,7 +159,7 @@ export default function EmployeeProfileForm() {
     [],
   );
 
-  // Fetch company roles
+  // Fetch company roles with IDs
   useEffect(() => {
     const companyId = currentUser?.companyId;
     if (!companyId) return;
@@ -166,7 +167,7 @@ export default function EmployeeProfileForm() {
       .then((roles) => {
         const options = roles
           .filter((r) => r.active !== false)
-          .map((r) => ({ label: r.name, value: r.name }));
+          .map((r) => ({ label: r.name, value: r.id ?? 0, id: r.id ?? 0 }));
         setCompanyRoleOptions(options);
       })
       .catch(() => console.error("Failed to fetch company roles"));
@@ -191,10 +192,11 @@ export default function EmployeeProfileForm() {
           };
           const merged: EmpProfile = {
             ...NEW_EMP, ...(emp as any),
-            photoUrl:    (emp as any).imageUrl ?? "",
-            status:      fromBackendStatus((emp as any).status),
-            prefix:      ((emp as any).prefix ?? "") as Prefix,
-            companyRole: (emp as any).companyRole ?? (emp as any).CompanyRole ?? "",
+            photoUrl:      (emp as any).imageUrl ?? "",
+            status:        fromBackendStatus((emp as any).status),
+            prefix:        ((emp as any).prefix ?? "") as Prefix,
+            companyRole:   (emp as any).companyRole ?? (emp as any).CompanyRole ?? "",
+            companyRoleId: (emp as any).companyRoleId ?? null,
           };
           setSaved(merged);
           setDraft(merged);
@@ -233,6 +235,7 @@ export default function EmployeeProfileForm() {
       religion:       updated.religion       || null,
       identification: updated.identification || null,
       companyRole:    updated.companyRole    || null,
+      companyRoleId:  updated.companyRoleId  || null,
     };
     if (statusVal != null) payload.status = statusVal;
     try {
@@ -530,12 +533,17 @@ export default function EmployeeProfileForm() {
             {isAdmin ? (
               <StyledSelect
                 disabled={!editing}
-                value={draft.companyRole ?? ""}
-                onChange={(e) => set("companyRole", e.target.value)}
+                value={draft.companyRoleId ? String(draft.companyRoleId) : ""}
+                onChange={(e) => {
+                  const selectedId = Number(e.target.value) || null;
+                  const selectedOption = companyRoleOptions.find((r) => r.id === selectedId);
+                  set("companyRoleId", selectedId);
+                  set("companyRole", selectedOption?.label ?? "");
+                }}
               >
                 <option value="">Select role</option>
                 {companyRoleOptions.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
+                  <option key={r.id} value={r.id}>{r.label}</option>
                 ))}
               </StyledSelect>
             ) : (

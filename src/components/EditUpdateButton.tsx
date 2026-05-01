@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { permissionService } from "@/service/permissionService";
-import type { ModulePermission } from "@/types/role";
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
@@ -12,9 +11,10 @@ type Props = {
   onSave:   () => void;
   onCancel: () => void;
   module:   string;
+  label?:   string; // Optional custom label for the button (e.g., "Request Leave")
 };
 
-export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, module }: Props) {
+export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, module, label }: Props) {
   const { user } = useAuth();
   const isAdmin = ADMIN_ROLES.includes((user?.role ?? "").toUpperCase());
 
@@ -33,7 +33,7 @@ export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, mo
 
     if (!user) return;
 
-    permissionService.getMyPermissions().then((perms: ModulePermission[]) => {
+    permissionService.getMyPermissions().then((perms: any[]) => {
       // debug
       console.debug("PERMISSIONS:", perms);
       console.debug("MODULE:", module);
@@ -63,7 +63,7 @@ export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, mo
 
   return (
     <div className="flex gap-2">
-      {!editing ? (
+{!editing ? (
         <Button
           onClick={onEdit}
           disabled={loading || !canEdit}
@@ -71,7 +71,7 @@ export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, mo
           className="rounded-xl bg-white text-black shadow-sm hover:bg-white/90 border px-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span className="mr-2 text-[18px] leading-none">✏️</span>
-          <span className="font-semibold">Edit/Update</span>
+          <span className="font-semibold">{label ? label : "Edit/Update"}</span>
         </Button>
       ) : (
         <>

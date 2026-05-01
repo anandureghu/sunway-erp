@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyDialog } from "./company-dialog";
+import { EmployeeDialog } from "../employee/employee-dialog";
 import { useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 
@@ -18,6 +19,10 @@ export default function CompanyListPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Company | null>(null);
   const [open, setOpen] = useState(false);
+  
+  // State for admin employee dialog (opened after company creation)
+  const [empDialogOpen, setEmpDialogOpen] = useState(false);
+  const [newCompanyForAdmin, setNewCompanyForAdmin] = useState<Company | null>(null);
 
   const fetchCompanies = async () => {
     try {
@@ -38,6 +43,9 @@ export default function CompanyListPage() {
   const handleDialogSuccess = (updated: Company, mode: "add" | "edit") => {
     if (mode === "add") {
       setCompanies((prev) => [...prev, updated]);
+      // After adding a new company, prompt to create admin
+      setNewCompanyForAdmin(updated);
+      setEmpDialogOpen(true);
     } else {
       setCompanies((prev) =>
         prev.map((c) => (c.id === updated.id ? updated : c)),
@@ -73,6 +81,12 @@ export default function CompanyListPage() {
     onEdit: handleEdit,
     onDelete: handleDelete,
   });
+
+  const handleAdminCreated = () => {
+    setEmpDialogOpen(false);
+    setNewCompanyForAdmin(null);
+    toast.success("Admin created successfully! You can now log in with the admin credentials.");
+  };
 
   if (loading)
     return (
@@ -124,6 +138,18 @@ export default function CompanyListPage() {
         company={selected}
         onSuccess={handleDialogSuccess}
       />
+
+      {/* Admin Employee Dialog - Opens after company creation */}
+      {newCompanyForAdmin && (
+        <EmployeeDialog
+          open={empDialogOpen}
+          onOpenChange={setEmpDialogOpen}
+          companyId={newCompanyForAdmin.id}
+          mode="create"
+          presetRole="ADMIN"
+          onSuccess={handleAdminCreated}
+        />
+      )}
     </div>
   );
 }

@@ -41,6 +41,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
+import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel";
+import PayrollSettings from "@/modules/hr/payroll/PayrollSettings";
 import { jobCodeService } from "@/service/jobCodeService";
 import { hrService } from "@/service/hr.service";
 import { permissionService } from "@/service/permissionService";
@@ -50,7 +52,6 @@ import type { Employee } from "@/types/hr";
 import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 import { AppTab } from "@/components/app-tab";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface Role {
   id: number;
   name: string;
@@ -70,6 +71,7 @@ interface JobCode {
 
 interface Permission {
   id: number;
+  roleId?: number;
   role: string;
   staffId?: number;
   staffName: string;
@@ -78,14 +80,6 @@ interface Permission {
   caps: Record<string, Record<string, boolean>>;
   active: boolean;
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-const FALLBACK_ROLES: Role[] = [
-  { id: 1, name: "USER", custom: false },
-  { id: 2, name: "ADMIN", custom: false },
-  { id: 3, name: "HR", custom: false },
-  { id: 4, name: "SUPER_ADMIN", custom: false },
-];
 
 const HR_MODULES = [
   { id: "employee_profile", label: "Employee Profile" },
@@ -121,7 +115,6 @@ const LEVELS = [
 ];
 const GRADES = ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"];
 
-// ✅ FIX 1: PRESETS NOW USE UPPERCASE MODULE KEYS
 const ROLE_PRESETS: Record<string, Record<string, Record<string, boolean>>> = {
   Admin: Object.fromEntries(
     HR_MODULES.map((m) => [
@@ -245,7 +238,6 @@ const ROLE_PRESETS: Record<string, Record<string, Record<string, boolean>>> = {
 
 const TOTAL_CAPS = HR_MODULES.length * CAPS.length;
 
-// ✅ FIX 2: emptyCaps NOW USES UPPERCASE KEYS
 const emptyCaps = (): Record<string, Record<string, boolean>> =>
   Object.fromEntries(
     HR_MODULES.map((m) => [
@@ -254,7 +246,6 @@ const emptyCaps = (): Record<string, Record<string, boolean>> =>
     ]),
   );
 
-// ✅ FIX 3: UTILITY FUNCTION TO NORMALIZE MODULE KEYS
 const normalizeModuleKey = (mod: string): string =>
   mod.toUpperCase().replace(/[_-]/g, "_");
 
@@ -319,7 +310,6 @@ const AVATAR_COLORS = [
   "bg-pink-500",
 ];
 
-// ─── Job Codes Tab ────────────────────────────────────────────────────────────
 function JobCodesTab({
   jobs,
   setJobs,
@@ -361,6 +351,7 @@ function JobCodesTab({
     setForm({ code: "", title: "", level: "Mid", grade: "G3", active: true });
     setModal(true);
   };
+
   const openEdit = (r: JobCode) => {
     setForm({ ...r });
     setModal(true);
@@ -398,7 +389,6 @@ function JobCodesTab({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Job Codes</h2>
@@ -426,29 +416,16 @@ function JobCodesTab({
         </div>
       </div>
 
-      {/* Table */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="font-semibold text-slate-600">
-                Job Code
-              </TableHead>
-              <TableHead className="font-semibold text-slate-600">
-                Job Title
-              </TableHead>
-              <TableHead className="font-semibold text-slate-600">
-                Job Level
-              </TableHead>
-              <TableHead className="font-semibold text-slate-600">
-                Grade
-              </TableHead>
-              <TableHead className="font-semibold text-slate-600">
-                Status
-              </TableHead>
-              <TableHead className="font-semibold text-slate-600 text-right">
-                Actions
-              </TableHead>
+              <TableHead className="font-semibold text-slate-600">Job Code</TableHead>
+              <TableHead className="font-semibold text-slate-600">Job Title</TableHead>
+              <TableHead className="font-semibold text-slate-600">Job Level</TableHead>
+              <TableHead className="font-semibold text-slate-600">Grade</TableHead>
+              <TableHead className="font-semibold text-slate-600">Status</TableHead>
+              <TableHead className="font-semibold text-slate-600 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -459,22 +436,14 @@ function JobCodesTab({
                     {j.code}
                   </code>
                 </TableCell>
-                <TableCell className="font-medium text-slate-900">
-                  {j.title}
-                </TableCell>
+                <TableCell className="font-medium text-slate-900">{j.title}</TableCell>
                 <TableCell>
-                  <Badge
-                    variant="secondary"
-                    className="bg-green-50 text-green-700 border-green-200"
-                  >
+                  <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200">
                     {j.level}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant="outline"
-                    className="border-yellow-300 text-yellow-700"
-                  >
+                  <Badge variant="outline" className="border-yellow-300 text-yellow-700">
                     {j.grade}
                   </Badge>
                 </TableCell>
@@ -482,26 +451,18 @@ function JobCodesTab({
                   {j.active ? (
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <span className="text-sm font-medium text-green-600">
-                        Active
-                      </span>
+                      <span className="text-sm font-medium text-green-600">Active</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <XCircle className="h-4 w-4 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-400">
-                        Inactive
-                      </span>
+                      <span className="text-sm font-medium text-slate-400">Inactive</span>
                     </div>
                   )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(j)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(j)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
@@ -521,12 +482,8 @@ function JobCodesTab({
                 <TableCell colSpan={6} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Briefcase className="h-12 w-12 text-slate-300" />
-                    <p className="text-slate-500 font-medium">
-                      No job codes found
-                    </p>
-                    <p className="text-slate-400 text-sm">
-                      Add your first job code to get started
-                    </p>
+                    <p className="text-slate-500 font-medium">No job codes found</p>
+                    <p className="text-slate-400 text-sm">Add your first job code to get started</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -535,24 +492,18 @@ function JobCodesTab({
         </Table>
       </div>
 
-      {/* Add/Edit Modal */}
       <Dialog open={modal} onOpenChange={setModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              {form.id ? "Edit Job Code" : "Add Job Code"}
-            </DialogTitle>
+            <DialogTitle>{form.id ? "Edit Job Code" : "Add Job Code"}</DialogTitle>
             <DialogDescription>
-              Only Job Code, Title, Level and Grade are set here. Department is
-              assigned on the employee profile.
+              Only Job Code, Title, Level and Grade are set here. Department is assigned on the employee profile.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Job Code *
-                </label>
+                <label className="text-sm font-medium text-slate-700">Job Code *</label>
                 <Input
                   value={form.code ?? ""}
                   onChange={(e) => F({ code: e.target.value.toUpperCase() })}
@@ -560,9 +511,7 @@ function JobCodesTab({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Grade *
-                </label>
+                <label className="text-sm font-medium text-slate-700">Grade *</label>
                 <select
                   value={form.grade ?? "G3"}
                   onChange={(e) => F({ grade: e.target.value })}
@@ -575,9 +524,7 @@ function JobCodesTab({
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">
-                Job Title *
-              </label>
+              <label className="text-sm font-medium text-slate-700">Job Title *</label>
               <Input
                 value={form.title ?? ""}
                 onChange={(e) => F({ title: e.target.value })}
@@ -586,9 +533,7 @@ function JobCodesTab({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Job Level *
-                </label>
+                <label className="text-sm font-medium text-slate-700">Job Level *</label>
                 <select
                   value={form.level ?? "Mid"}
                   onChange={(e) => F({ level: e.target.value })}
@@ -600,46 +545,34 @@ function JobCodesTab({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Status
-                </label>
+                <label className="text-sm font-medium text-slate-700">Status</label>
                 <div className="flex items-center gap-2 pt-2">
                   <Switch
                     checked={form.active ?? true}
-                    onCheckedChange={(checked: boolean) =>
-                      F({ active: checked })
-                    }
+                    onCheckedChange={(checked: boolean) => F({ active: checked })}
                   />
-                  <span className="text-sm text-slate-600">
-                    {form.active ? "Active" : "Inactive"}
-                  </span>
+                  <span className="text-sm text-slate-600">{form.active ? "Active" : "Inactive"}</span>
                 </div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModal(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
             <Button onClick={save}>Save Job Code</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <Dialog open={!!del} onOpenChange={() => setDel(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Job Code</DialogTitle>
             <DialogDescription>
-              Delete "{del?.code} — {del?.title}"? Employees assigned to this
-              code must be reassigned.
+              Delete "{del?.code} — {del?.title}"? Employees assigned to this code must be reassigned.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDel(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setDel(null)}>Cancel</Button>
             <Button
               variant="destructive"
               onClick={() => {
@@ -657,7 +590,6 @@ function JobCodesTab({
   );
 }
 
-// ─── Permissions Tab ──────────────────────────────────────────────────────────
 function PermissionsTab({
   roles,
   setRoles,
@@ -668,45 +600,23 @@ function PermissionsTab({
   const { user } = useAuth();
   const companyId = user?.companyId ? Number(user.companyId) : null;
 
-  useEffect(() => {
-    const ensureRoles = async () => {
-      if (roles && roles.length > 0) return;
-      try {
-        const res = companyId
-          ? await roleService.getRoles(companyId)
-          : await roleService.getRoles();
-        if (res && res.length > 0) {
-          setRoles(
-            res
-              .filter((r: any) => r.id !== undefined)
-              .map((r: any) => ({
-                id: r.id!,
-                name: r.name,
-                custom: !!r.custom,
-                description: r.description,
-                active: r.active,
-              })),
-          );
-        } else {
-          // No roles returned from API — fallback to built-in presets
-          setRoles(FALLBACK_ROLES);
-        }
-      } catch (err) {
-        console.error("Failed to load roles in PermissionsTab:", err);
-        setRoles(FALLBACK_ROLES);
-      }
-    };
-    ensureRoles();
-  }, [companyId]);
-
   const [perms, setPerms] = useState<Permission[]>([]);
   const [, setPermsLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [view, setView] = useState<"permissions" | "roles">("permissions");
   const [modal, setModal] = useState<"perm" | "role" | null>(null);
   const [permForm, setPermForm] = useState<
-    Partial<Permission> & { caps: Record<string, Record<string, boolean>> }
-  >({ role: "", staffId: undefined, caps: emptyCaps(), active: true });
+    Partial<Permission> & {
+      roleId?: number;
+      caps: Record<string, Record<string, boolean>>;
+    }
+  >({
+    roleId: undefined,
+    role: "",
+    staffId: undefined,
+    caps: emptyCaps(),
+    active: true,
+  });
   const [roleForm, setRoleForm] = useState<Partial<Role>>({
     name: "",
     description: "",
@@ -716,6 +626,34 @@ function PermissionsTab({
   const [removePermsRole, setRemovePermsRole] = useState<Role | null>(null);
   const [q, setQ] = useState("");
   const [filterRole, setFilterRole] = useState("All");
+
+  useEffect(() => {
+    const ensureRoles = async () => {
+      try {
+        const res = companyId
+          ? await roleService.getRoles(companyId)
+          : await roleService.getRoles();
+
+        setRoles(
+          (res || [])
+            .filter((r: any) => r.id !== undefined)
+            .map((r: any) => ({
+              id: r.id,
+              name: r.name,
+              custom: !!r.custom,
+              description: r.description,
+              active: r.active,
+            })),
+        );
+      } catch (err) {
+        console.error("Failed to load roles in PermissionsTab:", err);
+        setRoles([]);
+        toast.error("Failed to load company roles");
+      }
+    };
+
+    ensureRoles();
+  }, [companyId, setRoles]);
 
   const fetchEmployees = async () => {
     try {
@@ -733,63 +671,47 @@ function PermissionsTab({
     try {
       const results: Permission[] = [];
 
-      // Fetch permissions per-role. If one role fails, continue with others.
       for (const role of roles) {
         try {
-          const rolePerms = await permissionService.getByRole(role.name);
-
+          const rolePerms = await permissionService.getCompanyRolePermissions(role.id);
           if (!rolePerms || rolePerms.length === 0) continue;
 
-          const roleWidePerms = rolePerms.filter((p) => !p.employee);
-
-          if (roleWidePerms.length > 0) {
-            results.push({
-              id: role.id,
-              role: role.name,
-              staffId: undefined,
-              staffName: "",
-              email: "",
-              phone: "",
-              caps: permissionService.toFrontendCaps(roleWidePerms),
-              active: true,
-            });
-          }
-
-          for (const emp of employees) {
-            if (!emp.id) continue;
-
-            try {
-              const empPerms = await permissionService.getByRole(
-                role.name,
-                Number(emp.id),
-              );
-
-              if (!empPerms || empPerms.length === 0) continue;
-
-              const isEmployeeOverride = empPerms.some(
-                (p) => p.employee || p.user || p.employeeId,
-              );
-
-              if (!isEmployeeOverride) continue;
-
-              results.push({
-                id: role.id * 1000 + Number(emp.id),
-                role: role.name,
-                staffId: Number(emp.id),
-                staffName: `${emp.firstName} ${emp.lastName}`,
-                email: emp.email || "",
-                phone: (emp as any).phoneNo || "",
-                caps: permissionService.toFrontendCaps(empPerms),
-                active: true,
-              });
-            } catch (e) {
-              console.warn(`Failed to load permissions for role=${role.name} emp=${emp.id}:`, e);
-              // continue with next employee
-            }
-          }
+          results.push({
+            id: role.id,
+            roleId: role.id,
+            role: role.name,
+            staffId: undefined,
+            staffName: "",
+            email: "",
+            phone: "",
+            caps: permissionService.toFrontendCaps(rolePerms),
+            active: true,
+          });
         } catch (e) {
           console.warn(`Failed to load permissions for role=${role.name}:`, e);
-          // continue with next role
+        }
+      }
+
+      for (const emp of employees) {
+        if (!emp.id) continue;
+
+        try {
+          const empPerms = await permissionService.getEmployeePermissions(Number(emp.id));
+          if (!empPerms || empPerms.length === 0) continue;
+
+          results.push({
+            id: 100000 + Number(emp.id),
+            roleId: undefined,
+            role: emp.companyRole || String(emp.role || "Unassigned"),
+            staffId: Number(emp.id),
+            staffName: `${emp.firstName} ${emp.lastName}`,
+            email: emp.email || "",
+            phone: (emp as any).phoneNo || "",
+            caps: permissionService.toFrontendCaps(empPerms),
+            active: true,
+          });
+        } catch (e) {
+          console.warn(`Failed to load employee override for emp=${emp.id}:`, e);
         }
       }
 
@@ -806,31 +728,29 @@ function PermissionsTab({
   }, []);
 
   useEffect(() => {
-    if (roles.length > 0 && employees.length > 0) {
+    if (roles.length > 0 && employees.length >= 0) {
       fetchPerms();
     }
-  }, [roles.length, employees.length]);
+  }, [roles, employees.length]);
 
   const displayed = useMemo(() => {
     let list = perms;
     if (filterRole !== "All") {
       list = list.filter((p) => normalizeRole(p.role) === normalizeRole(filterRole));
     }
-    if (q)
+    if (q) {
       list = list.filter(
         (p) =>
           (p.staffName ?? "").toLowerCase().includes(q.toLowerCase()) ||
           p.role.toLowerCase().includes(q.toLowerCase()) ||
           (p.email ?? "").toLowerCase().includes(q.toLowerCase()),
       );
+    }
     return list;
   }, [perms, q, filterRole]);
 
-  // ✅ FIX 4: toggleCap NOW PROPERLY NORMALIZES
   const toggleCap = (modId: string, cap: string, checked: boolean) => {
     const normalizedMod = normalizeModuleKey(modId);
-    console.log(`✅ TOGGLE: ${modId} → ${normalizedMod}.${cap} = ${checked}`);
-
     setPermForm((prev) => ({
       ...prev,
       caps: {
@@ -848,7 +768,6 @@ function PermissionsTab({
     return CAPS.every((c) => permForm.caps?.[normalizedMod]?.[c.key]);
   };
 
-  // ✅ FIX 5: toggleAllMod NOW NORMALIZES MODULE KEY
   const toggleAllMod = (modId: string) => {
     const normalizedMod = normalizeModuleKey(modId);
     const on = !allModOn(modId);
@@ -870,6 +789,7 @@ function PermissionsTab({
   const openAddPerm = () => {
     setPermForm({
       id: undefined,
+      roleId: undefined,
       role: "",
       staffId: undefined,
       caps: emptyCaps(),
@@ -879,13 +799,16 @@ function PermissionsTab({
   };
 
   const openEditPerm = (rec: Permission) => {
-    setPermForm({ ...rec, caps: JSON.parse(JSON.stringify(rec.caps)) });
+    setPermForm({
+      ...rec,
+      roleId: rec.roleId,
+      caps: JSON.parse(JSON.stringify(rec.caps)),
+    });
     setModal("perm");
   };
 
   const applyPreset = (role: string) => {
     if (ROLE_PRESETS[role]) {
-      console.log(`📋 Applying preset: ${role}`);
       setPermForm((v) => ({
         ...v,
         caps: JSON.parse(JSON.stringify(ROLE_PRESETS[role])),
@@ -893,53 +816,37 @@ function PermissionsTab({
     }
   };
 
-  // ✅ FIX 6: savePerm ENSURES NO DUPLICATES AND PROPER NORMALIZATION
   const savePerm = async () => {
-    if (!permForm.role) {
+    if (!permForm.roleId && !permForm.staffId) {
       toast.error("Role is required");
       return;
     }
 
     try {
-      // ✅ Debug logging
-      console.log("🔍 Saving permissions for role:", permForm.role);
-      console.log("📋 Role type:", typeof permForm.role);
-
-      // Normalize caps for backend
       const normalizedCaps: Record<string, Record<string, boolean>> = {};
-      Object.entries(permForm.caps).forEach(([mod, perms]) => {
-        const upperMod = mod.toUpperCase().replace(/[_-]/g, "_");
-        normalizedCaps[upperMod] = perms;
+      Object.entries(permForm.caps).forEach(([mod, values]) => {
+        normalizedCaps[normalizeModuleKey(mod)] = values;
       });
 
-      // Create DTOs
       const dtos = Object.entries(normalizedCaps).map(([module, perms]) => ({
-        module: module,
+        module,
         permission: {
-          viewOwn: !!perms.view_own || false,
-          viewAll: !!perms.view_all || false,
-          create: !!perms.create || false,
-          edit: !!perms.edit || false,
-          deletePermission: !!perms.delete || false,
-          approve: !!perms.approve || false,
+          viewOwn: !!perms.view_own,
+          viewAll: !!perms.view_all,
+          create: !!perms.create,
+          edit: !!perms.edit,
+          deletePermission: !!perms.delete,
+          approve: !!perms.approve,
         },
       }));
 
-      let employeeId: number | undefined = undefined;
-      if (permForm.staffId && permForm.staffId > 0) {
-        employeeId = Number(permForm.staffId);
+      if (permForm.staffId && Number(permForm.staffId) > 0) {
+        await permissionService.assignEmployeePermissions(Number(permForm.staffId), dtos);
+      } else {
+        await permissionService.assignCompanyRolePermissions(Number(permForm.roleId), dtos);
       }
 
-      const roleToSend = normalizeBackendRole(permForm.role as string);
-      console.log("📤 Calling assignPermissions with role:", roleToSend, "dtos:", dtos.length, "employeeId:", employeeId);
-
-      await permissionService.assignPermissions(
-        roleToSend,
-        dtos,
-        employeeId,
-      );
-
-      toast.success("Permissions saved!");
+      toast.success("Permissions saved");
       await fetchPerms();
       setModal(null);
     } catch (err) {
@@ -962,8 +869,7 @@ function PermissionsTab({
     if (!removePermsRole) return;
 
     try {
-      await permissionService.removeAll(removePermsRole.name);
-
+      await permissionService.removeAllCompanyRolePermissions(removePermsRole.id);
       toast.success("Permissions removed");
       await fetchPerms();
       setRemovePermsRole(null);
@@ -975,12 +881,14 @@ function PermissionsTab({
 
   const saveRole = async () => {
     if (!roleForm.name?.trim()) return;
+
     try {
       if (roleForm.id) {
         const payload = {
           id: roleForm.id,
           name: roleForm.name,
           description: roleForm.description,
+          companyId: companyId ?? undefined,
         };
         const updated = await permissionService.updateRole(payload as any);
         setRoles((prev) =>
@@ -991,6 +899,7 @@ function PermissionsTab({
                   name: updated.name,
                   custom: !!updated.custom,
                   description: updated.description,
+                  active: updated.active,
                 }
               : r,
           ),
@@ -1000,16 +909,20 @@ function PermissionsTab({
         const payload = {
           name: roleForm.name,
           description: roleForm.description,
+          companyId: companyId ?? undefined,
+          active: true,
         };
         const created = await permissionService.createRole(payload as any);
         if (created.id !== undefined) {
+          const createdId = created.id;
           setRoles((prev) => [
             ...prev,
             {
-              id: created.id!,
+              id: createdId,
               name: created.name,
               custom: !!created.custom,
               description: created.description,
+              active: created.active,
             },
           ]);
         }
@@ -1024,7 +937,6 @@ function PermissionsTab({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Permissions</h2>
@@ -1035,9 +947,7 @@ function PermissionsTab({
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={() =>
-              setView((v) => (v === "permissions" ? "roles" : "permissions"))
-            }
+            onClick={() => setView((v) => (v === "permissions" ? "roles" : "permissions"))}
           >
             {view === "permissions" ? (
               <Settings className="h-4 w-4 mr-2" />
@@ -1047,10 +957,7 @@ function PermissionsTab({
             {view === "permissions" ? "Manage Roles" : "Back to Permissions"}
           </Button>
           {view === "permissions" && (
-            <Button
-              onClick={openAddPerm}
-              className="bg-gradient-to-r from-indigo-600 to-blue-600"
-            >
+            <Button onClick={openAddPerm} className="bg-gradient-to-r from-indigo-600 to-blue-600">
               <Plus className="h-4 w-4 mr-2" />
               Add Permission
             </Button>
@@ -1058,27 +965,16 @@ function PermissionsTab({
         </div>
       </div>
 
-      {/* Roles View */}
       {view === "roles" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="font-semibold text-slate-600">
-                  Role Name
-                </TableHead>
-                <TableHead className="font-semibold text-slate-600">
-                  Type
-                </TableHead>
-                <TableHead className="font-semibold text-slate-600">
-                  Description
-                </TableHead>
-                <TableHead className="font-semibold text-slate-600">
-                  Permission Rules
-                </TableHead>
-                <TableHead className="font-semibold text-slate-600 text-right">
-                  Actions
-                </TableHead>
+                <TableHead className="font-semibold text-slate-600">Role Name</TableHead>
+                <TableHead className="font-semibold text-slate-600">Type</TableHead>
+                <TableHead className="font-semibold text-slate-600">Description</TableHead>
+                <TableHead className="font-semibold text-slate-600">Permission Rules</TableHead>
+                <TableHead className="font-semibold text-slate-600 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1089,39 +985,25 @@ function PermissionsTab({
                       className={`${ROLE_STYLES[r.name]?.bg || "bg-gray-100"} ${ROLE_STYLES[r.name]?.color || "text-gray-700"} border ${ROLE_STYLES[r.name]?.border || "border-gray-200"}`}
                     >
                       {r.name}
-                      {r.custom && (
-                        <span className="ml-1 text-[10px]">CUSTOM</span>
-                      )}
+                      {r.custom && <span className="ml-1 text-[10px]">CUSTOM</span>}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={
-                        r.custom
-                          ? "border-purple-300 text-purple-700"
-                          : "border-slate-300 text-slate-600"
-                      }
+                      className={r.custom ? "border-purple-300 text-purple-700" : "border-slate-300 text-slate-600"}
                     >
                       {r.custom ? "Custom" : "System"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-slate-500">{r.description || "—"}</TableCell>
                   <TableCell className="text-slate-500">
-                    {r.description || "—"}
-                  </TableCell>
-                  <TableCell className="text-slate-500">
-                    {perms.filter((p) => normalizeRole(p.role) === normalizeRole(r.name))
-                      .length}{" "}
-                    rule(s)
+                    {perms.filter((p) => p.roleId === r.id && !p.staffId).length} rule(s)
                   </TableCell>
                   <TableCell className="text-right">
                     {r.custom ? (
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditRole(r)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => openEditRole(r)}>
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -1153,58 +1035,42 @@ function PermissionsTab({
                         >
                           <KeyRound className="h-4 w-4" />
                         </Button>
-                        <span className="text-sm text-slate-400 italic">
-                          System role
-                        </span>
+                        <span className="text-sm text-slate-400 italic">System role</span>
                       </div>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
+              {roles.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-slate-500">
+                    No company roles found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
       )}
 
-      {/* Permissions View */}
       {view === "permissions" && (
         <>
-          {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              {
-                label: "Total Rules",
-                val: perms.length,
-                color: "text-blue-600",
-              },
-              {
-                label: "Active",
-                val: perms.filter((p) => p.active).length,
-                color: "text-green-600",
-              },
-              {
-                label: "By Employee",
-                val: perms.filter((p) => p.staffId).length,
-                color: "text-purple-600",
-              },
-              {
-                label: "By Role",
-                val: perms.filter((p) => !p.staffId).length,
-                color: "text-yellow-600",
-              },
+              { label: "Total Rules", val: perms.length, color: "text-blue-600" },
+              { label: "Active", val: perms.filter((p) => p.active).length, color: "text-green-600" },
+              { label: "By Employee", val: perms.filter((p) => p.staffId).length, color: "text-purple-600" },
+              { label: "By Role", val: perms.filter((p) => !p.staffId).length, color: "text-yellow-600" },
             ].map((s) => (
               <Card key={s.label} className="bg-white border-slate-200">
                 <CardContent className="p-4">
                   <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
-                  <p className="text-xs text-slate-500 font-medium">
-                    {s.label}
-                  </p>
+                  <p className="text-xs text-slate-500 font-medium">{s.label}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Filters */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-wrap gap-2">
               {["All", ...roles.map((r) => r.name)].map((r) => (
@@ -1213,9 +1079,7 @@ function PermissionsTab({
                   variant={filterRole === r ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterRole(r)}
-                  className={
-                    filterRole === r ? "bg-indigo-600 hover:bg-indigo-700" : ""
-                  }
+                  className={filterRole === r ? "bg-indigo-600 hover:bg-indigo-700" : ""}
                 >
                   {r}
                 </Button>
@@ -1232,35 +1096,18 @@ function PermissionsTab({
             </div>
           </div>
 
-          {/* Table */}
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">
-                    Staff Name
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
-                    Role
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
-                    Scope
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
-                    Email
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
-                    Phone
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
-                    Access
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
-                    Status
-                  </TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-right">
-                    Options
-                  </TableHead>
+                  <TableHead className="font-semibold text-slate-600">Staff Name</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Role</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Scope</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Email</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Phone</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Access</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Status</TableHead>
+                  <TableHead className="font-semibold text-slate-600 text-right">Options</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1269,12 +1116,8 @@ function PermissionsTab({
                     <TableCell colSpan={8} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
                         <KeyRound className="h-12 w-12 text-slate-300" />
-                        <p className="text-slate-500 font-medium">
-                          No permission rules yet
-                        </p>
-                        <p className="text-slate-400 text-sm">
-                          Click 'Add' to grant an employee or role access
-                        </p>
+                        <p className="text-slate-500 font-medium">No permission rules yet</p>
+                        <p className="text-slate-400 text-sm">Click 'Add' to grant an employee or role access</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1283,10 +1126,7 @@ function PermissionsTab({
                     const cnt = capCount(p);
                     const pct = Math.round((cnt / TOTAL_CAPS) * 100);
                     return (
-                      <TableRow
-                        key={p.id}
-                        className={`hover:bg-slate-50/50 ${!p.active && "opacity-50"}`}
-                      >
+                      <TableRow key={p.id} className={`hover:bg-slate-50/50 ${!p.active && "opacity-50"}`}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             {p.staffName ? (
@@ -1309,17 +1149,9 @@ function PermissionsTab({
                             )}
                             <div>
                               <p className="font-medium text-slate-900">
-                                {p.staffName || (
-                                  <span className="italic text-slate-400">
-                                    All {p.role}s
-                                  </span>
-                                )}
+                                {p.staffName || <span className="italic text-slate-400">All {p.role}s</span>}
                               </p>
-                              {p.staffName && (
-                                <p className="text-xs text-slate-400">
-                                  Individual override
-                                </p>
-                              )}
+                              {p.staffName && <p className="text-xs text-slate-400">Individual override</p>}
                             </div>
                           </div>
                         </TableCell>
@@ -1333,21 +1165,13 @@ function PermissionsTab({
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className={
-                              p.staffId
-                                ? "border-purple-300 text-purple-700"
-                                : "border-green-300 text-green-700"
-                            }
+                            className={p.staffId ? "border-purple-300 text-purple-700" : "border-green-300 text-green-700"}
                           >
                             {p.staffId ? "Individual" : "Role-wide"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-slate-500 font-mono text-sm">
-                          {p.email || "—"}
-                        </TableCell>
-                        <TableCell className="text-slate-500 font-mono text-sm">
-                          {p.phone || "—"}
-                        </TableCell>
+                        <TableCell className="text-slate-500 font-mono text-sm">{p.email || "—"}</TableCell>
+                        <TableCell className="text-slate-500 font-mono text-sm">{p.phone || "—"}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -1363,24 +1187,15 @@ function PermissionsTab({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Switch
-                              checked={p.active}
-                              onChange={() => toggleActive(p.id)}
-                            />
-                            <span
-                              className={`text-sm font-medium ${p.active ? "text-green-600" : "text-slate-400"}`}
-                            >
+                            <Switch checked={p.active} onChange={() => toggleActive(p.id)} />
+                            <span className={`text-sm font-medium ${p.active ? "text-green-600" : "text-slate-400"}`}>
                               {p.active ? "On" : "Off"}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditPerm(p)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => openEditPerm(p)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
@@ -1403,154 +1218,125 @@ function PermissionsTab({
         </>
       )}
 
-      {/* Role Modal */}
       {modal === "role" && (
         <Dialog open={modal === "role"} onOpenChange={() => setModal(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {roleForm.id ? "Edit Role" : "Create New Role"}
-              </DialogTitle>
+              <DialogTitle>{roleForm.id ? "Edit Role" : "Create New Role"}</DialogTitle>
               <DialogDescription>
                 Custom roles can be assigned when adding permissions.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Role Name *
-                </label>
+                <label className="text-sm font-medium text-slate-700">Role Name *</label>
                 <Input
                   value={roleForm.name ?? ""}
-                  onChange={(e) =>
-                    setRoleForm((v) => ({ ...v, name: e.target.value }))
-                  }
+                  onChange={(e) => setRoleForm((v) => ({ ...v, name: e.target.value }))}
                   placeholder="e.g. HR Supervisor"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Description
-                </label>
+                <label className="text-sm font-medium text-slate-700">Description</label>
                 <Input
                   value={roleForm.description ?? ""}
-                  onChange={(e) =>
-                    setRoleForm((v) => ({ ...v, description: e.target.value }))
-                  }
+                  onChange={(e) => setRoleForm((v) => ({ ...v, description: e.target.value }))}
                   placeholder="e.g. Oversees HR operations"
                 />
               </div>
               <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600">
-                💡 After creating the role, go to <strong>Permissions</strong>{" "}
-                and add a rule to configure access.
+                After creating the role, go to <strong>Permissions</strong> and add a rule to configure access.
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setModal(null)}>
-                Cancel
-              </Button>
-              <Button onClick={saveRole}>
-                {roleForm.id ? "Save Changes" : "Create Role"}
-              </Button>
+              <Button variant="outline" onClick={() => setModal(null)}>Cancel</Button>
+              <Button onClick={saveRole}>{roleForm.id ? "Save Changes" : "Create Role"}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Permission Modal */}
       {modal === "perm" && (
         <Dialog open={modal === "perm"} onOpenChange={() => setModal(null)}>
           <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {permForm.id ? "Edit Permissions" : "Add Permissions"}
-              </DialogTitle>
+              <DialogTitle>{permForm.id ? "Edit Permissions" : "Add Permissions"}</DialogTitle>
               <DialogDescription>
-                Choose a role and optionally an individual employee, then
-                configure their HR access.
+                Choose a role and optionally an individual employee, then configure their HR access.
               </DialogDescription>
             </DialogHeader>
+
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">
-                    Role *
-                  </label>
+                  <label className="text-sm font-medium text-slate-700">Role *</label>
                   <select
-                    value={permForm.role ?? ""}
+                    value={permForm.roleId ? String(permForm.roleId) : ""}
                     onChange={(e) => {
-                      const selectedRole = e.target.value;
-                      console.log("👤 Role selected:", selectedRole);
+                      const roleId = Number(e.target.value);
+                      const selectedRole = roles.find((r) => r.id === roleId);
                       setPermForm((v) => ({
                         ...v,
-                        role: selectedRole,
-                        staffId: undefined,
+                        roleId: roleId || undefined,
+                        role: selectedRole?.name ?? "",
                       }));
-                      applyPreset(selectedRole);
+                      if (selectedRole?.name) {
+                        applyPreset(selectedRole.name);
+                      }
                     }}
                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                   >
                     <option value="">None selected</option>
                     {roles.map((r) => (
-                      <option key={r.id} value={r.name}>
+                      <option key={r.id} value={String(r.id)}>
                         {r.name}
                         {r.custom ? " (Custom)" : ""}
                       </option>
                     ))}
                   </select>
                 </div>
-                {/* Show Staff Name only when editing an existing individual override */}
-                {permForm.staffId !== undefined && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">
-                      Staff Name
-                    </label>
-                    <select
-                      value={permForm.staffId || ""}
-                      onChange={(e) => {
-                        const id = Number(e.target.value);
-                        setPermForm((v) => ({
-                          ...v,
-                          staffId: id > 0 ? id : undefined,
-                        }));
-                      }}
-                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="">None selected (role-wide)</option>
-                      {employees.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {e.firstName} {e.lastName} — {e.email}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Staff Name</label>
+                  <select
+                    value={permForm.staffId ? String(permForm.staffId) : ""}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      setPermForm((v) => ({
+                        ...v,
+                        staffId: id > 0 ? id : undefined,
+                      }));
+                    }}
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">None selected (role-wide)</option>
+                    {employees.map((e) => (
+                      <option key={e.id} value={String(e.id)}>
+                        {e.firstName} {e.lastName} — {e.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {permForm.role && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
                   <span className="text-sm text-blue-700">
-                    ✅ Default permissions loaded for{" "}
-                    <strong>{permForm.role}</strong>
+                    Default permissions loaded for <strong>{permForm.role}</strong>
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() =>
-                      setPermForm((v) => ({ ...v, caps: emptyCaps() }))
-                    }
+                    onClick={() => setPermForm((v) => ({ ...v, caps: emptyCaps() }))}
                   >
                     Clear all
                   </Button>
                 </div>
               )}
 
-              {/* Permission Grid */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <div className="grid grid-cols-[180px_repeat(6,1fr)] bg-slate-50 border-b border-slate-200">
-                  <div className="p-2.5 text-xs font-semibold text-slate-600 uppercase">
-                    Module
-                  </div>
+                  <div className="p-2.5 text-xs font-semibold text-slate-600 uppercase">Module</div>
                   {CAPS.map((c) => (
                     <div
                       key={c.key}
@@ -1560,18 +1346,18 @@ function PermissionsTab({
                     </div>
                   ))}
                 </div>
+
                 {HR_MODULES.map((mod) => {
                   const normalizedModKey = normalizeModuleKey(mod.id);
                   const all = allModOn(mod.id);
+
                   return (
                     <div
                       key={mod.id}
                       className="grid grid-cols-[180px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
                     >
                       <div className="p-3">
-                        <p className="text-sm font-medium text-slate-900">
-                          {mod.label}
-                        </p>
+                        <p className="text-sm font-medium text-slate-900">{mod.label}</p>
                         <button
                           type="button"
                           onClick={() => toggleAllMod(mod.id)}
@@ -1581,18 +1367,10 @@ function PermissionsTab({
                         </button>
                       </div>
                       {CAPS.map((cap) => (
-                        <div
-                          key={cap.key}
-                          className="flex items-center justify-center p-3"
-                        >
+                        <div key={cap.key} className="flex items-center justify-center p-3">
                           <Switch
-                            checked={
-                              permForm.caps?.[normalizedModKey]?.[cap.key] ||
-                              false
-                            }
-                            onCheckedChange={(checked) =>
-                              toggleCap(mod.id, cap.key, checked)
-                            }
+                            checked={permForm.caps?.[normalizedModKey]?.[cap.key] || false}
+                            onCheckedChange={(checked) => toggleCap(mod.id, cap.key, checked)}
                           />
                         </div>
                       ))}
@@ -1604,31 +1382,25 @@ function PermissionsTab({
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                 <Switch
                   checked={permForm.active ?? true}
-                  onCheckedChange={(v: boolean) =>
-                    setPermForm((f) => ({ ...f, active: v }))
-                  }
+                  onCheckedChange={(v: boolean) => setPermForm((f) => ({ ...f, active: v }))}
                 />
                 <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    Permission Active
-                  </p>
+                  <p className="text-sm font-medium text-slate-900">Permission Active</p>
                   <p className="text-xs text-slate-500">
                     Inactive rules are saved but not enforced
                   </p>
                 </div>
               </div>
             </div>
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setModal(null)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setModal(null)}>Cancel</Button>
               <Button onClick={savePerm}>Save Permissions</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Delete Permission Dialog */}
       <Dialog open={!!del} onOpenChange={() => setDel(null)}>
         <DialogContent>
           <DialogHeader>
@@ -1638,23 +1410,20 @@ function PermissionsTab({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDel(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setDel(null)}>Cancel</Button>
             <Button
               variant="destructive"
               onClick={async () => {
                 if (!del) return;
 
                 try {
-                  const modules = Object.keys(del.caps || {});
-
-                  for (const mod of modules) {
-                    await permissionService.removePermission(
-                      del.role,
-                      mod,
-                      del.staffId,
-                    );
+                  if (del.staffId) {
+                    await permissionService.removeAllEmployeePermissions(del.staffId);
+                  } else if (del.roleId) {
+                    await permissionService.removeAllCompanyRolePermissions(del.roleId);
+                  } else {
+                    toast.error("Role not found");
+                    return;
                   }
 
                   toast.success("Permission removed");
@@ -1672,7 +1441,6 @@ function PermissionsTab({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Role Dialog */}
       <Dialog open={!!delRole} onOpenChange={() => setDelRole(null)}>
         <DialogContent>
           <DialogHeader>
@@ -1682,16 +1450,14 @@ function PermissionsTab({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDelRole(null)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setDelRole(null)}>Cancel</Button>
             <Button
               variant="destructive"
               onClick={async () => {
                 if (!delRole) return;
                 try {
                   await permissionService.deleteRole(delRole.id);
-                  setRoles((prev) => prev.filter((r) => r.id !== delRole?.id));
+                  setRoles((prev) => prev.filter((r) => r.id !== delRole.id));
                   setDelRole(null);
                   toast.success("Role deleted");
                 } catch (error) {
@@ -1706,34 +1472,17 @@ function PermissionsTab({
         </DialogContent>
       </Dialog>
 
-      {/* Remove All Permissions Dialog */}
-      <Dialog
-        open={!!removePermsRole}
-        onOpenChange={() => setRemovePermsRole(null)}
-      >
+      <Dialog open={!!removePermsRole} onOpenChange={() => setRemovePermsRole(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Remove All Permissions</DialogTitle>
             <DialogDescription>
-              Remove all permissions for role "{removePermsRole?.name}"? This
-              action cannot be undone.
+              Remove all permissions for role "{removePermsRole?.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRemovePermsRole(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                try {
-                  await handleDelete();
-                } catch (error) {
-                  console.error("Error removing permissions:", error);
-                  toast.error("Failed to remove permissions");
-                }
-              }}
-            >
+            <Button variant="outline" onClick={() => setRemovePermsRole(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>
               Remove All
             </Button>
           </DialogFooter>
@@ -1743,7 +1492,6 @@ function PermissionsTab({
   );
 }
 
-// ─── Root ─────────────────────────────────────────────────────────────────────
 const TABS = [
   { id: "leaves", label: "Leave Types", icon: Calendar },
   { id: "jobs", label: "Job Codes", icon: Briefcase },
@@ -1761,7 +1509,10 @@ export default function HRSettingsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [] = useState([]);
 
-  const isAuthorized = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const isAuthorized =
+    user?.role === "ADMIN" ||
+    user?.role === "SUPER_ADMIN" ||
+    /hr\s*manager/i.test(user?.companyRole ?? "");
 
   if (!isAuthorized) {
     return (
@@ -1791,9 +1542,11 @@ export default function HRSettingsPage() {
 
   const tabsList = [
     { value: "leaves", label: "Leave Types", element: () => <LeaveCustomizationForm /> },
+    { value: "leave-approvals", label: "Leave Approvals", element: () => <LeaveApprovalPanel /> },
     { value: "jobs", label: "Job Codes", element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} /> },
     { value: "permissions", label: "Permissions", element: () => <PermissionsTab roles={roles} setRoles={setRoles} /> },
     { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
+    { value: "payroll", label: "Payroll", element: () => <PayrollSettings /> },
   ];
 
   return (
@@ -1807,16 +1560,4 @@ export default function HRSettingsPage() {
       />
     </div>
   );
-}
-
-function normalizeBackendRole(role: string): string {
-  if (!role) return "";
-  // Normalize display name to backend identifier: uppercase, spaces/hyphens -> _, strip invalid chars
-  return role
-    .toString()
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "_")
-    .replace(/-/g, "_")
-    .replace(/[^A-Z0-9_]/g, "_");
 }

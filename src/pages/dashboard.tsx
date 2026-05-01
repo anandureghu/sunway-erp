@@ -18,6 +18,7 @@ import {
   ShoppingCart,
   Wallet,
   DollarSign,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -137,21 +138,58 @@ const getSystemSubtitle = (title: string): string => {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, permissions: authPermissions, permissionsLoading } = useAuth();
   const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user?.companyId) {
-      const isAdmin = (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
-        (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
-
-      getSidebarItems(user.companyId, { skipPermissions: isAdmin }).then((items) => {
-        setSidebarItems(items)
-        console.debug("Dashboard: fetched sidebarItems for companyId=", user.companyId, items);
-      });
+    if (!user?.companyId) {
+      setIsLoading(false);
+      return;
     }
-  }, [user]);
+
+    // FIX: Check if permissions are still loading
+    // Don't fetch sidebar items until permissions are ready
+    if (permissionsLoading) {
+      console.debug("Dashboard: Permissions still loading...");
+      setIsLoading(true);
+      return;
+    }
+
+    const isAdmin = (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+      (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
+
+    console.debug("Dashboard: Fetching sidebar items", {
+      companyId: user.companyId,
+      isAdmin,
+      hasPermissions: !!authPermissions,
+      permissionKeys: authPermissions ? Object.keys(authPermissions) : null,
+    });
+
+    // Pass permissionsLoading flag so canView() knows the state
+    getSidebarItems(user.companyId, {
+      skipPermissions: isAdmin,
+      permissions: authPermissions,
+      permissionsLoading, // NEW: pass loading state
+    }).then((items) => {
+      setSidebarItems(items);
+      setIsLoading(false);
+      console.debug("Dashboard: Fetched sidebar items:", items);
+    });
+  }, [user, authPermissions, permissionsLoading]); // Include permissionsLoading
+
+  // Show loading state while permissions are being fetched
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading your modules...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
