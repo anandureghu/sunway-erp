@@ -38,7 +38,12 @@ export const COMPANY_SCHEMA = z.object({
     .min(0, "Tax rate should not be less than 0")
     .optional(),
 
-  currencyId: z.number().optional(),
+  currencyId: z
+    .number({
+      required_error: "Currency is required",
+      invalid_type_error: "Currency is required",
+    })
+    .min(1, { message: "Currency is required" }),
 });
 
 export type CompanyFormData = z.infer<typeof COMPANY_SCHEMA>;

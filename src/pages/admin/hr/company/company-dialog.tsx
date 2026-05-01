@@ -12,6 +12,7 @@ import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
 import type { CompanyFormData } from "@/schema/company";
 import { CompanyForm } from "./company-form";
+import type { AxiosError } from "axios";
 
 interface CompanyDialogProps {
   open: boolean;
@@ -19,6 +20,47 @@ interface CompanyDialogProps {
   company?: Company | null; // optional: for edit mode
   onSuccess: (company: Company, mode: "add" | "edit") => void;
 }
+
+type ApiErrorPayload = {
+  message?: string;
+  error?: string;
+  details?: string[];
+  errors?: string[] | Record<string, string | string[]>;
+};
+
+const extractApiMessages = (error: unknown): string[] => {
+  const fallback = "Failed to save company. Please try again.";
+  const axiosError = error as AxiosError<ApiErrorPayload>;
+  const data = axiosError?.response?.data;
+
+  if (!data) return [fallback];
+
+  const messages: string[] = [];
+
+  if (typeof data.message === "string" && data.message.trim()) {
+    messages.push(data.message);
+  }
+  if (typeof data.error === "string" && data.error.trim()) {
+    messages.push(data.error);
+  }
+  if (Array.isArray(data.details)) {
+    messages.push(...data.details.filter((item): item is string => !!item));
+  }
+  if (Array.isArray(data.errors)) {
+    messages.push(...data.errors.filter((item): item is string => !!item));
+  } else if (data.errors && typeof data.errors === "object") {
+    Object.values(data.errors).forEach((value) => {
+      if (Array.isArray(value)) {
+        messages.push(...value.filter((item): item is string => !!item));
+      } else if (typeof value === "string" && value.trim()) {
+        messages.push(value);
+      }
+    });
+  }
+
+  const unique = [...new Set(messages.map((m) => m.trim()).filter(Boolean))];
+  return unique.length ? unique : [fallback];
+};
 
 export const CompanyDialog = ({
   open,
@@ -45,9 +87,8 @@ export const CompanyDialog = ({
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting company:", error);
-      toast.error(
-        `Failed to ${isEditMode ? "update" : "add"} company. Please try again.`,
-      );
+      const messages = extractApiMessages(error);
+      messages.forEach((message) => toast.error(message));
     } finally {
       setSubmitting(false);
     }
