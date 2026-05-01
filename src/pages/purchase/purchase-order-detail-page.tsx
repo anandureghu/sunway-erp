@@ -25,6 +25,7 @@ import type { PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -108,11 +109,7 @@ export default function PurchaseOrderDetailPage() {
       toast.error("Only draft orders can be cancelled.");
       return;
     }
-    if (
-      !confirm(
-        `Cancel ${order.orderNo}? This cannot be undone.`,
-      )
-    ) {
+    if (!confirm(`Cancel ${order.orderNo}? This cannot be undone.`)) {
       return;
     }
     setActionLoading(true);
@@ -201,7 +198,9 @@ export default function PurchaseOrderDetailPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge
-            className={statusColors[order.status] || "bg-gray-100 text-gray-800"}
+            className={
+              statusColors[order.status] || "bg-gray-100 text-gray-800"
+            }
           >
             {order.status
               .replace("_", " ")
@@ -234,50 +233,50 @@ export default function PurchaseOrderDetailPage() {
           {st === "draft" && !vendorPaymentOk && (
             <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-950 px-3 py-2">
               Confirm the vendor payable in{" "}
-              <strong>Finance → Accounts payable → Vendor payments</strong>{" "}
-              (use <em>Confirm vendor payment</em>) before you can release this
-              PO to the supplier.
+              <strong>Finance → Accounts payable → Vendor payments</strong> (use{" "}
+              <em>Confirm vendor payment</em>) before you can release this PO to
+              the supplier.
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-          {canRelease && (
-            <Button
-              onClick={() => void handleRelease()}
-              disabled={actionLoading}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              Release to supplier
-            </Button>
-          )}
-          {canReceive && (
-            <Button variant="secondary" onClick={handleReceive}>
-              <Package className="mr-2 h-4 w-4" />
-              Record receipt
-            </Button>
-          )}
-          {reqId && (
-            <Button variant="outline" asChild>
-              <Link to={`/inventory/purchase/requisitions/${reqId}`}>
-                <Link2 className="mr-2 h-4 w-4" />
-                View requisition
-              </Link>
-            </Button>
-          )}
-          {canCancel && (
-            <Button
-              variant="destructive"
-              onClick={() => void handleCancel()}
-              disabled={actionLoading}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Cancel order
-            </Button>
-          )}
-          {!canRelease && !canReceive && !canCancel && !reqId && (
-            <p className="text-sm text-muted-foreground py-1">
-              No actions for this status.
-            </p>
-          )}
+            {canRelease && (
+              <Button
+                onClick={() => void handleRelease()}
+                disabled={actionLoading}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Release to supplier
+              </Button>
+            )}
+            {canReceive && (
+              <Button variant="secondary" onClick={handleReceive}>
+                <Package className="mr-2 h-4 w-4" />
+                Record receipt
+              </Button>
+            )}
+            {reqId && (
+              <Button variant="outline" asChild>
+                <Link to={`/inventory/purchase/requisitions/${reqId}`}>
+                  <Link2 className="mr-2 h-4 w-4" />
+                  View requisition
+                </Link>
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                variant="destructive"
+                onClick={() => void handleCancel()}
+                disabled={actionLoading}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Cancel order
+              </Button>
+            )}
+            {!canRelease && !canReceive && !canCancel && !reqId && (
+              <p className="text-sm text-muted-foreground py-1">
+                No actions for this status.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -426,33 +425,16 @@ export default function PurchaseOrderDetailPage() {
                   </div>
                   <div className="text-right">{item.quantity}</div>
                   <div className="text-right tabular-nums">
-                    {item.actualItemPrice != null
-                      ? `${item.actualItemPrice.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "—"}
+                    <CurrencyAmount amount={item.actualItemPrice ?? 0} />
                   </div>
                   <div className="text-right tabular-nums text-muted-foreground">
-                    {item.otherUnitCost != null &&
-                    item.otherUnitCost > 0
-                      ? `${item.otherUnitCost.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "—"}
+                    <CurrencyAmount amount={item.otherUnitCost ?? 0} />
                   </div>
                   <div className="text-right tabular-nums font-medium">
-                    {item.unitPrice.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    <CurrencyAmount amount={item.unitPrice} />
                   </div>
                   <div className="text-right font-medium tabular-nums">
-                    {item.total.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    <CurrencyAmount amount={item.total} />
                   </div>
                   <div className="text-right text-muted-foreground">
                     {item.receivedQuantity ?? 0} / {item.quantity}
@@ -475,14 +457,14 @@ export default function PurchaseOrderDetailPage() {
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span className="font-medium">
-                {order.subtotal.toLocaleString()}
+                <CurrencyAmount amount={order.subtotal} />
               </span>
             </div>
             {order.tax > 0 && (
               <div className="flex justify-between">
                 <span>Tax</span>
                 <span className="font-medium">
-                  {order.tax.toLocaleString()}
+                  <CurrencyAmount amount={order.tax} />
                 </span>
               </div>
             )}
@@ -490,13 +472,15 @@ export default function PurchaseOrderDetailPage() {
               <div className="flex justify-between">
                 <span>Discount</span>
                 <span className="font-medium">
-                  {order.discount.toLocaleString()}
+                  <CurrencyAmount amount={order.discount} />
                 </span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold border-t pt-2">
               <span>Total</span>
-              <span>{order.total.toLocaleString()}</span>
+              <span>
+                <CurrencyAmount amount={order.total} />
+              </span>
             </div>
           </div>
         </CardContent>

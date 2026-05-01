@@ -34,6 +34,7 @@ import { createSalesOrder, updateSalesOrder } from "@/service/salesFlowService";
 import type { SalesOrder, SalesOrderItem } from "@/types/sales";
 import type { Company } from "@/types/company";
 import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type Props = {
   onCancel: () => void;
@@ -73,7 +74,9 @@ export function CreateSalesOrderForm({
   const isEditMode = mode === "edit" && Boolean(initialOrder?.id);
   const companyTaxActive = Boolean(company?.isTaxActive);
   const companyTaxRateRaw = Number(company?.taxRate ?? 0);
-  const companyTaxRate = Number.isFinite(companyTaxRateRaw) ? companyTaxRateRaw : 0;
+  const companyTaxRate = Number.isFinite(companyTaxRateRaw)
+    ? companyTaxRateRaw
+    : 0;
 
   const { register, handleSubmit, setValue, watch, formState } = useForm<
     Omit<SalesOrderFormData, "items"> & { items?: unknown[] }
@@ -231,8 +234,11 @@ export function CreateSalesOrderForm({
           100,
           Math.max(0, item.discountPercent ?? item.discount ?? 0),
         );
-        const lineSubtotal = unitPrice * qty - (unitPrice * qty * discountPercent) / 100;
-        const tax = companyTaxActive ? lineSubtotal * (companyTaxRate / 100) : 0;
+        const lineSubtotal =
+          unitPrice * qty - (unitPrice * qty * discountPercent) / 100;
+        const tax = companyTaxActive
+          ? lineSubtotal * (companyTaxRate / 100)
+          : 0;
         return {
           ...item,
           id: item.id || `edit-${Date.now()}-${idx}`,
@@ -268,7 +274,8 @@ export function CreateSalesOrderForm({
 
   const effectiveSalesAccounts = useMemo(() => {
     if (!isEditMode || !initialOrder) return resolvedSalesAccounts;
-    const bankAccountId = initialOrder.bankAccountId ?? resolvedSalesAccounts?.bankAccountId;
+    const bankAccountId =
+      initialOrder.bankAccountId ?? resolvedSalesAccounts?.bankAccountId;
     const debitAccountId =
       initialOrder.debitAccountId ?? resolvedSalesAccounts?.debitAccountId;
     const creditAccountId =
@@ -402,9 +409,12 @@ export function CreateSalesOrderForm({
     try {
       setSubmitLoading(true);
       const manualShippingAddress =
-        typeof data.shippingAddress === "string" ? data.shippingAddress.trim() : "";
+        typeof data.shippingAddress === "string"
+          ? data.shippingAddress.trim()
+          : "";
       const fallbackCustomerAddress = composeCustomerAddress(selectedCustomer);
-      const resolvedShippingAddress = manualShippingAddress || fallbackCustomerAddress || undefined;
+      const resolvedShippingAddress =
+        manualShippingAddress || fallbackCustomerAddress || undefined;
       const payloadItems = orderItems.map((it) => ({
         itemId: Number(it.itemId),
         warehouseId: Number(it.warehouseId),
@@ -547,7 +557,8 @@ export function CreateSalesOrderForm({
                     const customerForSelection = customers.find(
                       (c) => String(c.id) === String(value),
                     );
-                    const defaultAddress = composeCustomerAddress(customerForSelection);
+                    const defaultAddress =
+                      composeCustomerAddress(customerForSelection);
                     if (!defaultAddress) return;
 
                     setValue("shippingAddress", defaultAddress, {
@@ -725,7 +736,9 @@ export function CreateSalesOrderForm({
                         <th className="text-right p-3 w-28">Qty</th>
                         <th className="text-right p-3 w-32">Unit price</th>
                         <th className="text-right p-3 w-24">Disc %</th>
-                        <th className="text-left p-3 min-w-[140px]">Warehouse</th>
+                        <th className="text-left p-3 min-w-[140px]">
+                          Warehouse
+                        </th>
                         <th className="text-right p-3 w-32">Line total</th>
                         <th className="text-left p-3 w-24" />
                       </tr>
@@ -783,9 +796,7 @@ export function CreateSalesOrderForm({
                           <td className="p-3 align-middle">
                             <Select
                               value={
-                                item.warehouseId
-                                  ? String(item.warehouseId)
-                                  : ""
+                                item.warehouseId ? String(item.warehouseId) : ""
                               }
                               onValueChange={(value) =>
                                 updateOrderLine(item.id, {
@@ -811,11 +822,7 @@ export function CreateSalesOrderForm({
                             </Select>
                           </td>
                           <td className="p-3 text-right font-medium align-middle tabular-nums">
-
-                            {item.total.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            <CurrencyAmount amount={item.total} />
                           </td>
                           <td className="p-3 align-middle">
                             <Button
@@ -849,15 +856,21 @@ export function CreateSalesOrderForm({
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>{totals.subtotal.toLocaleString()}</span>
+                <span>
+                  <CurrencyAmount amount={totals.subtotal} />
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Discount</span>
-                <span>-{totals.discount.toLocaleString()}</span>
+                <span>
+                  -<CurrencyAmount amount={totals.discount} />
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tax</span>
-                <span>{totals.tax.toLocaleString()}</span>
+                <span>
+                  <CurrencyAmount amount={totals.tax} />
+                </span>
               </div>
               <p className="text-xs text-muted-foreground">
                 {companyTaxActive
@@ -866,7 +879,9 @@ export function CreateSalesOrderForm({
               </p>
               <div className="flex justify-between text-base font-semibold border-t pt-3">
                 <span>Total</span>
-                <span>{totals.total.toLocaleString()}</span>
+                <span>
+                  <CurrencyAmount amount={totals.total} />
+                </span>
               </div>
               <div className="space-y-2">
                 <Label>Notes</Label>

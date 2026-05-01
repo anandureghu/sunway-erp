@@ -28,6 +28,7 @@ import type { Company } from "@/types/company";
 import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
 import { Link } from "react-router-dom";
 import { Info } from "lucide-react";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type Props = {
   onCancel: () => void;
@@ -71,7 +72,9 @@ async function resolveRequesterDepartmentId(userId: string): Promise<string> {
 
   try {
     const employeesRes = await apiClient.get("/employees");
-    const employees = Array.isArray(employeesRes?.data) ? employeesRes.data : [];
+    const employees = Array.isArray(employeesRes?.data)
+      ? employeesRes.data
+      : [];
     const employee = employees.find(
       (e: any) => String(e?.userId) === String(userId),
     );
@@ -89,10 +92,7 @@ async function resolveRequesterDepartmentId(userId: string): Promise<string> {
   }
 }
 
-export function CreatePurchaseRequisitionForm({
-  onCancel,
-  onCreated,
-}: Props) {
+export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   const navigate = useNavigate();
   const { user, company } = useAuth();
   const companyId =
@@ -114,12 +114,11 @@ export function CreatePurchaseRequisitionForm({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] =
-    useState(false);
+  const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] = useState(false);
 
-  const [requestedByUserId, setRequestedByUserId] = useState<string | undefined>(
-    user?.userId != null ? String(user.userId) : undefined,
-  );
+  const [requestedByUserId, setRequestedByUserId] = useState<
+    string | undefined
+  >(user?.userId != null ? String(user.userId) : undefined);
   const [departmentId, setDepartmentId] = useState<string>("");
   const [preferredSupplierId, setPreferredSupplierId] = useState<string>("");
   const [debitAccountId, setDebitAccountId] = useState<string>("");
@@ -285,10 +284,7 @@ export function CreatePurchaseRequisitionForm({
   };
 
   const calculateTotal = () =>
-    requisitionItems.reduce(
-      (sum, item) => sum + (item.estimatedTotal || 0),
-      0,
-    );
+    requisitionItems.reduce((sum, item) => sum + (item.estimatedTotal || 0), 0);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -379,9 +375,9 @@ export function CreatePurchaseRequisitionForm({
               Create Purchase Requisition
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              When approved, a draft purchase order is created and finance
-              posts to your company default purchase accounts (Global Settings
-              → Default Accounts).
+              When approved, a draft purchase order is created and finance posts
+              to your company default purchase accounts (Global Settings →
+              Default Accounts).
             </p>
           </div>
         </div>
@@ -499,17 +495,16 @@ export function CreatePurchaseRequisitionForm({
 
                 <div className="space-y-2">
                   <Label>Item cost (from master)</Label>
-                  <div className="h-10 px-3 flex items-center rounded-md border bg-muted/50 text-sm tabular-nums">
-                    {selectedItem
-                      ? `${Number(
-                          items.find((i) => String(i.id) === selectedItem)
-                            ?.costPrice ?? 0,
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "—"}
-                  </div>
+                  <CurrencyAmount
+                    amount={
+                      selectedItem
+                        ? Number(
+                            items.find((i) => String(i.id) === selectedItem)
+                              ?.costPrice ?? 0,
+                          )
+                        : 0
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -545,8 +540,12 @@ export function CreatePurchaseRequisitionForm({
                         <th className="p-2 text-right w-28">Item cost</th>
                         <th className="p-2 text-right w-32">Other cost</th>
                         <th className="p-2 text-right w-28">Applied</th>
-                        <th className="p-2 text-right min-w-[7rem]">Est. total</th>
-                        <th className="p-2 text-left min-w-[140px]">Line notes</th>
+                        <th className="p-2 text-right min-w-[7rem]">
+                          Est. total
+                        </th>
+                        <th className="p-2 text-left min-w-[140px]">
+                          Line notes
+                        </th>
                         <th className="p-2 text-left w-24" />
                       </tr>
                     </thead>
@@ -554,8 +553,9 @@ export function CreatePurchaseRequisitionForm({
                       {requisitionItems.map((row) => (
                         <tr key={row.id} className="border-t">
                           <td className="p-2 align-middle">
-                            {items.find((i) => String(i.id) === String(row.itemId))
-                              ?.name ?? `Item #${row.itemId}`}
+                            {items.find(
+                              (i) => String(i.id) === String(row.itemId),
+                            )?.name ?? `Item #${row.itemId}`}
                           </td>
                           <td className="p-2 align-middle">
                             <Input
@@ -572,14 +572,7 @@ export function CreatePurchaseRequisitionForm({
                             />
                           </td>
                           <td className="p-2 text-right align-middle tabular-nums text-muted-foreground">
-
-                            {(row.actualItemPrice ?? 0).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              },
-                            )}
+                            <CurrencyAmount amount={row.actualItemPrice ?? 0} />
                           </td>
                           <td className="p-2 align-middle">
                             <Input
@@ -597,9 +590,7 @@ export function CreatePurchaseRequisitionForm({
                               onChange={(e) => {
                                 const v = e.target.value;
                                 const num =
-                                  v === ""
-                                    ? undefined
-                                    : parseFloat(v);
+                                  v === "" ? undefined : parseFloat(v);
                                 updateRequisitionLine(row.id, {
                                   otherUnitCost:
                                     num === undefined ||
@@ -612,21 +603,14 @@ export function CreatePurchaseRequisitionForm({
                             />
                           </td>
                           <td className="p-2 text-right align-middle tabular-nums font-medium">
-
-                            {(
-                              row.estimatedUnitCost ??
-                              row.unitPrice ??
-                              0
-                            ).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            <CurrencyAmount
+                              amount={
+                                row.estimatedUnitCost ?? row.unitPrice ?? 0
+                              }
+                            />
                           </td>
                           <td className="p-2 text-right font-medium align-middle tabular-nums">
-                            {(row.estimatedTotal ?? 0).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            <CurrencyAmount amount={row.estimatedTotal ?? 0} />
                           </td>
                           <td className="p-2 align-middle">
                             <Input
@@ -674,7 +658,9 @@ export function CreatePurchaseRequisitionForm({
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total estimated</span>
-                  <span>{total.toLocaleString()}</span>
+                  <span>
+                    <CurrencyAmount amount={total} />
+                  </span>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes (optional)</Label>

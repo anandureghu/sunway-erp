@@ -29,24 +29,23 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import CreateItemForm from "../item-form";
 import { ChangeItemImageDialog } from "./change-item-image-dialog";
-import {
-  formatInr,
-  safeLocaleQty,
-  toFiniteNumber,
-} from "./formatters";
+import { safeLocaleQty, toFiniteNumber } from "./formatters";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 function apiErrorMessage(e: unknown): string {
-  const ax = e as { response?: { data?: { message?: string } }; message?: string };
-  return (
-    ax.response?.data?.message ??
-    ax.message ??
-    "Failed to load item"
-  );
+  const ax = e as {
+    response?: { data?: { message?: string } };
+    message?: string;
+  };
+  return ax.response?.data?.message ?? ax.message ?? "Failed to load item";
 }
 
 const STATUS_STYLES: Record<
   string,
-  { variant: "default" | "secondary" | "destructive" | "outline"; label: string }
+  {
+    variant: "default" | "secondary" | "destructive" | "outline";
+    label: string;
+  }
 > = {
   active: { variant: "default", label: "Active" },
   discontinued: { variant: "secondary", label: "Discontinued" },
@@ -118,7 +117,9 @@ export default function InventoryItemDetail() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4">
         <Package className="h-12 w-12 text-muted-foreground/50" />
-        <p className="text-center text-muted-foreground">{error ?? "Item not found."}</p>
+        <p className="text-center text-muted-foreground">
+          {error ?? "Item not found."}
+        </p>
         <Button variant="outline" onClick={() => navigate("/inventory/stocks")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to catalog
@@ -153,7 +154,9 @@ export default function InventoryItemDetail() {
             Inventory
           </button>
           <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
-          <span className="font-medium text-foreground line-clamp-1">{item.name}</span>
+          <span className="font-medium text-foreground line-clamp-1">
+            {item.name}
+          </span>
         </nav>
 
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
@@ -171,7 +174,10 @@ export default function InventoryItemDetail() {
                     />
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted to-muted/50 text-muted-foreground">
-                      <Package className="h-20 w-20 opacity-30" strokeWidth={1} />
+                      <Package
+                        className="h-20 w-20 opacity-30"
+                        strokeWidth={1}
+                      />
                       <span className="text-sm">No product photo</span>
                     </div>
                   )}
@@ -208,7 +214,9 @@ export default function InventoryItemDetail() {
                 <div className="space-y-2 min-w-0">
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     SKU{" "}
-                    <span className="font-mono text-foreground">{item.sku}</span>
+                    <span className="font-mono text-foreground">
+                      {item.sku}
+                    </span>
                   </p>
                   <h1 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                     {item.name}
@@ -225,7 +233,10 @@ export default function InventoryItemDetail() {
                     ) : null}
                   </div>
                 </div>
-                <Badge variant={statusMeta.variant} className="shrink-0 capitalize">
+                <Badge
+                  variant={statusMeta.variant}
+                  className="shrink-0 capitalize"
+                >
                   {statusMeta.label}
                 </Badge>
               </div>
@@ -238,12 +249,12 @@ export default function InventoryItemDetail() {
                       Selling price
                     </p>
                     <p className="mt-1 text-4xl font-bold tracking-tight text-primary tabular-nums">
-                      {formatInr(item.sellingPrice)}
+                      <CurrencyAmount amount={item.sellingPrice} />
                     </p>
                     <p className="mt-2 text-sm text-muted-foreground">
                       Cost:{" "}
                       <span className="font-medium text-foreground tabular-nums">
-                        {formatInr(item.costPrice)}
+                        <CurrencyAmount amount={item.costPrice} />
                       </span>
                     </p>
                   </div>
@@ -306,16 +317,24 @@ export default function InventoryItemDetail() {
                   Inventory
                 </h2>
                 <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <Spec label="Available">{safeLocaleQty(item.available, unit)}</Spec>
-                  <Spec label="Total quantity">{safeLocaleQty(item.quantity, unit)}</Spec>
+                  <Spec label="Available">
+                    {safeLocaleQty(item.available, unit)}
+                  </Spec>
+                  <Spec label="Total quantity">
+                    {safeLocaleQty(item.quantity, unit)}
+                  </Spec>
                   <Spec label="Reserved">
-                    {item.reserved != null && Number.isFinite(Number(item.reserved))
+                    {item.reserved != null &&
+                    Number.isFinite(Number(item.reserved))
                       ? safeLocaleQty(item.reserved, unit)
                       : "—"}
                   </Spec>
-                  <Spec label="Reorder level">{safeLocaleQty(item.reorderLevel, unit, "Not set")}</Spec>
+                  <Spec label="Reorder level">
+                    {safeLocaleQty(item.reorderLevel, unit, "Not set")}
+                  </Spec>
                   <Spec label="Maximum">
-                    {item.maximum != null && Number.isFinite(Number(item.maximum))
+                    {item.maximum != null &&
+                    Number.isFinite(Number(item.maximum))
                       ? safeLocaleQty(item.maximum, unit)
                       : "—"}
                   </Spec>
@@ -337,7 +356,9 @@ export default function InventoryItemDetail() {
                     </li>
                     <li className="flex justify-between gap-4 border-b border-border/50 pb-3">
                       <span className="text-muted-foreground">Subcategory</span>
-                      <span className="font-medium">{item.subCategory ?? "—"}</span>
+                      <span className="font-medium">
+                        {item.subCategory ?? "—"}
+                      </span>
                     </li>
                     <li className="flex justify-between gap-4">
                       <span className="text-muted-foreground">Barcode</span>
@@ -353,11 +374,17 @@ export default function InventoryItemDetail() {
                     <Truck className="h-4 w-4 text-muted-foreground" />
                     Fulfillment
                   </h2>
-                  <p className="font-medium leading-snug">{item.warehouse_name}</p>
+                  <p className="font-medium leading-snug">
+                    {item.warehouse_name}
+                  </p>
                   <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                     {item.warehouse_location}
                   </p>
-                  <Button variant="link" className="mt-3 h-auto p-0 text-primary" asChild>
+                  <Button
+                    variant="link"
+                    className="mt-3 h-auto p-0 text-primary"
+                    asChild
+                  >
                     <Link to={`/inventory/warehouses/${item.warehouse_id}`}>
                       <MapPin className="mr-1.5 h-4 w-4" />
                       View warehouse
@@ -372,7 +399,8 @@ export default function InventoryItemDetail() {
                   Description
                 </h2>
                 <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                  {item.description?.trim() || "No description added for this product."}
+                  {item.description?.trim() ||
+                    "No description added for this product."}
                 </p>
               </div>
 

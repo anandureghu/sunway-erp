@@ -19,12 +19,12 @@ import {
   Receipt,
   Search,
   Clock,
-  DollarSign,
   ArrowRight,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { salesOrders, invoices, dispatches, customers } from "@/lib/sales-data";
-import { formatMoney } from "@/lib/utils";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
 
 type ActionCard = {
   title: string;
@@ -38,6 +38,7 @@ type ActionCard = {
 export default function SalesLandingPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const { currencySymbol } = useCompanyCurrency();
 
   const totalSales = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const pendingOrders = salesOrders.filter(
@@ -147,10 +148,19 @@ export default function SalesLandingPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-white/90">
+              <Button
+                asChild
+                size="lg"
+                className="bg-white text-slate-900 hover:bg-white/90"
+              >
                 <Link to="/inventory/sales/orders/new">Create Order</Link>
               </Button>
-              <Button asChild size="lg" variant="secondary" className="bg-white/10 text-white border-white/20">
+              <Button
+                asChild
+                size="lg"
+                variant="secondary"
+                className="bg-white/10 text-white border-white/20"
+              >
                 <Link to="/inventory/sales/orders">Manage Orders</Link>
               </Button>
             </div>
@@ -161,8 +171,8 @@ export default function SalesLandingPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           label="Gross Sales"
-          value={formatMoney(totalSales)}
-          icon={DollarSign}
+          value={<CurrencyAmount amount={totalSales} />}
+          icon={currencySymbol || ""}
           hint="Invoice total"
         />
         <MetricCard
@@ -229,7 +239,10 @@ export default function SalesLandingPage() {
               </CardHeader>
               <CardContent>
                 <Button asChild className="w-full">
-                  <Link to={action.to} className="flex items-center justify-center gap-2">
+                  <Link
+                    to={action.to}
+                    className="flex items-center justify-center gap-2"
+                  >
                     {action.cta}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -250,9 +263,9 @@ function MetricCard({
   icon: Icon,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   hint: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }> | string;
 }) {
   return (
     <Card className="shadow-sm">
@@ -260,11 +273,17 @@ function MetricCard({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="text-2xl font-semibold mt-1">{value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{hint}</p>
+            <p className="text-2xl font-semibold mt-1">{value as string}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {hint as string}
+            </p>
           </div>
-          <div className="rounded-xl bg-muted p-2.5">
-            <Icon className="h-5 w-5 text-foreground" />
+          <div className="rounded-xl bg-muted p-2.5 w-10 h-10 flex items-center justify-center">
+            {typeof Icon === "string" ? (
+              Icon
+            ) : (
+              <Icon className="h-5 w-5 text-foreground" />
+            )}
           </div>
         </div>
       </CardContent>

@@ -11,6 +11,7 @@ import {
 } from "@/service/invoiceService";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { toast } from "sonner";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function PurchaseInvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -85,9 +86,7 @@ export default function PurchaseInvoiceDetailPage() {
     !previewUrl;
 
   const openDocumentHref =
-    invoice.externalDocumentUrl ||
-    invoice.pdfUrl ||
-    undefined;
+    invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
 
   return (
     <div className="p-6 space-y-6">
@@ -119,9 +118,7 @@ export default function PurchaseInvoiceDetailPage() {
             </Button>
           )}
           <Badge
-            className={
-              statusColors[statusRaw] || "bg-gray-100 text-gray-800"
-            }
+            className={statusColors[statusRaw] || "bg-gray-100 text-gray-800"}
           >
             {(invoice.status || "—")
               .replace(/_/g, " ")
@@ -192,7 +189,9 @@ export default function PurchaseInvoiceDetailPage() {
                   <p className="font-medium">{invoice.toParty || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Purchase order</p>
+                  <p className="text-sm text-muted-foreground">
+                    Purchase order
+                  </p>
                   <p className="font-medium">
                     {invoice.purchaseOrder?.orderNumber || "—"}
                   </p>
@@ -240,27 +239,33 @@ export default function PurchaseInvoiceDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>
-                    {(invoice.subtotalAmount ?? 0).toLocaleString()}
+                    <CurrencyAmount amount={invoice.subtotalAmount ?? 0} />
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax</span>
-                  <span>{(invoice.taxAmount ?? 0).toLocaleString()}</span>
+                  <span>
+                    <CurrencyAmount amount={invoice.taxAmount ?? 0} />
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Discount</span>
                   <span>
-                    {(invoice.discountAmount ?? 0).toLocaleString()}
+                    <CurrencyAmount amount={invoice.discountAmount ?? 0} />
                   </span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold border-t pt-2">
                   <span>Total</span>
-                  <span>{(invoice.amount ?? 0).toLocaleString()}</span>
+                  <span>
+                    <CurrencyAmount amount={invoice.amount ?? 0} />
+                  </span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-muted-foreground">Outstanding</span>
                   <span>
-                    {(invoice.outstanding ?? invoice.openAmount ?? 0).toLocaleString()}
+                    <CurrencyAmount
+                      amount={invoice.outstanding ?? invoice.openAmount ?? 0}
+                    />
                   </span>
                 </div>
               </div>
