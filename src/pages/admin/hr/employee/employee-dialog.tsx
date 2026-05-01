@@ -37,19 +37,15 @@ import type { z } from "zod";
 import { cn } from "@/lib/utils";
 import {
   User,
-<<<<<<< Updated upstream
-  Building2,
-  ShieldCheck,
-  Briefcase,
-=======
   Mail,
   AtSign,
   ShieldCheck,
   Hash,
->>>>>>> Stashed changes
   UserPlus,
   UserCog,
 } from "lucide-react";
+
+import { Label } from "@/components/ui/label";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const getInitials = (first?: string, last?: string) => {
@@ -110,28 +106,16 @@ export function EmployeeDialog({
   presetRole = "ADMIN",
   onSuccess,
 }: EmployeeDialogProps) {
-<<<<<<< Updated upstream
-  const [loading,      setLoading]      = useState(false);
-  const [departments,  setDepartments]  = useState<Department[]>([]);
-  const [deptLoading,  setDeptLoading]  = useState(false);
-  const [companyRoles, setCompanyRoles] = useState<any[]>([]);
-  const [roleLoading,  setRoleLoading]  = useState(false);
-=======
   const [loading, setLoading] = useState(false);
->>>>>>> Stashed changes
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createEmployeeSchema),
     defaultValues: {
       firstName:    "",
       lastName:     "",
-<<<<<<< Updated upstream
-      departmentId: "",
-=======
       email:        "",
       username:     "",
       password:     "",
->>>>>>> Stashed changes
       role:         presetRole,
     },
   });
@@ -148,13 +132,9 @@ export function EmployeeDialog({
       form.reset({
         firstName:    employee.firstName,
         lastName:     employee.lastName,
-<<<<<<< Updated upstream
-        departmentId: employee.departmentId ? String(employee.departmentId) : "",
-=======
         email:        employee.email,
         username:     employee.username,
         password:     "",
->>>>>>> Stashed changes
         role:         (employee.role as string) ?? presetRole,
       });
     }
@@ -162,54 +142,14 @@ export function EmployeeDialog({
       form.reset({
         firstName:    "",
         lastName:     "",
-<<<<<<< Updated upstream
-        departmentId: "",
-=======
         email:        "",
         username:     "",
         password:     "",
->>>>>>> Stashed changes
         role:         presetRole,
       });
     }
   }, [open, employee, mode]);
 
-<<<<<<< Updated upstream
-  // Load data when dialog opens
-  useEffect(() => {
-    if (!open) return;
-
-    const fetchRoles = async () => {
-      setRoleLoading(true);
-      try {
-        const res = await roleService.getActiveRoles(companyId);
-        setCompanyRoles(res);
-      } catch {
-        toast.error("Failed to load roles");
-      } finally {
-        setRoleLoading(false);
-      }
-    };
-
-    const loadDepts = async () => {
-      if (!companyId) return;
-      setDeptLoading(true);
-      try {
-        const data = await fetchDepartmentsService(companyId);
-        if (data) setDepartments(data);
-      } catch {
-        toast.error("Failed to load departments");
-      } finally {
-        setDeptLoading(false);
-      }
-    };
-
-    fetchRoles();
-    loadDepts();
-  }, [open, companyId]);
-
-  const onSubmit = async (values: FormValues): Promise<void> => {
-=======
   // Auto-generate username in create mode
   useEffect(() => {
     if (mode === "edit") return;
@@ -220,16 +160,12 @@ export function EmployeeDialog({
   }, [firstName, lastName]);
 
 const onSubmit = async (values: FormValues): Promise<void> => {
->>>>>>> Stashed changes
     setLoading(true);
     const payload = {
       firstName:    values.firstName,
       lastName:     values.lastName,
-<<<<<<< Updated upstream
-=======
       email:        values.email,
       username:     values.username,
->>>>>>> Stashed changes
       companyId,
       role:         values.role || presetRole,
     };
@@ -355,37 +291,19 @@ const onSubmit = async (values: FormValues): Promise<void> => {
                 />
               </div>
 
-<<<<<<< Updated upstream
-              {/* Section: Role & Department */}
-              <SectionLabel>Role &amp; Department</SectionLabel>
-=======
-              {/* Employee No */}
-              <FormField
-                control={form.control}
-                name="employeeNo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-semibold text-gray-700">
-                      Employee Number <span className="text-muted-foreground font-normal">(optional)</span>
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <FieldIcon><Hash className="h-4 w-4" /></FieldIcon>
-                        <Input
-                          placeholder="e.g. EMP-001"
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                          className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 font-mono"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+{/* Employee No - using standard Input since employeeNo is not in the form schema */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-700">
+                  Employee Number <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <div className="relative">
+                  <FieldIcon><Hash className="h-4 w-4" /></FieldIcon>
+                  <Input
+                    placeholder="e.g. EMP-001"
+                    className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 font-mono"
+                  />
+                </div>
+              </div>
 
               {/* Section: Account */}
               <SectionLabel>Account Details</SectionLabel>
@@ -444,7 +362,6 @@ placeholder="j.doe"
 
 {/* Section: Role */}
               <SectionLabel>System Role</SectionLabel>
->>>>>>> Stashed changes
 
 {/* System role - default is ADMIN */}
               <FormField

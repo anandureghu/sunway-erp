@@ -97,17 +97,16 @@ export default function LeavesForm(): ReactElement {
     setLoadingTypes(true);
 
         leaveService.fetchAvailableLeaveTypes(employeeId)
-      .then((result) => {
+.then((result) => {
         // Use API-returned types if successful and non-empty, else fall back to defaults
-        const types =
-          result.success && result.data.length > 0
-            ? result.data
-            : DEFAULT_LEAVE_TYPES;
+        const types = result.success && result.data && result.data.length > 0
+          ? result.data
+          : DEFAULT_LEAVE_TYPES;
 
-        setAvailableTypes(types);
+        setAvailableTypes(types as string[]);
 
         // Auto-select first leave type if current draft type isn't in the list
-        if (types.length > 0 && !types.includes(draft.leaveType)) {
+        if (types && types.length > 0 && !types.includes(draft.leaveType)) {
           setDraft(d => ({ ...d, leaveType: types[0] }));
         }
       })

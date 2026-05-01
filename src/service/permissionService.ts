@@ -100,6 +100,8 @@ function modulePermissionsToPermissionRecords(
   permissions: ModulePermission[]
 ): PermissionRecord[] {
   return permissions.map((perm) => ({
+    employeeId: undefined,
+    employee: undefined,
     module: perm.module,
     viewOwn: perm.permission.viewOwn,
     viewAll: perm.permission.viewAll,
