@@ -17,7 +17,6 @@ import {
   Receipt,
   Search,
   Clock,
-  DollarSign,
   X,
   ClipboardCheck,
   ArrowRight,
@@ -31,19 +30,22 @@ import {
   goodsReceipts,
   suppliers,
 } from "@/lib/purchase-data";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type ActionCard = {
   title: string;
   description: string;
   to: string;
   cta: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }> | string;
   tone: string;
 };
 
 export default function PurchaseLandingPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const { currencySymbol } = useCompanyCurrency();
 
   const totalPurchases = purchaseInvoices.reduce(
     (sum, inv) => sum + inv.total,
@@ -51,9 +53,7 @@ export default function PurchaseLandingPage() {
   );
   const pendingOrders = purchaseOrders.filter(
     (o) =>
-      o.status === "draft" ||
-      o.status === "pending" ||
-      o.status === "approved",
+      o.status === "draft" || o.status === "pending" || o.status === "approved",
   ).length;
   const receiptsToday = goodsReceipts.filter((gr) => {
     const today = new Date().toDateString();
@@ -218,8 +218,8 @@ export default function PurchaseLandingPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           label="Total purchases"
-          value={totalPurchases.toLocaleString()}
-          icon={DollarSign}
+          value={<CurrencyAmount amount={totalPurchases} />}
+          icon={currencySymbol || ""}
           hint="From sample invoice data"
         />
         <MetricCard
@@ -336,9 +336,9 @@ function MetricCard({
   icon: Icon,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   hint: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }> | string;
 }) {
   return (
     <Card className="shadow-sm border-border/80 overflow-hidden">
@@ -347,12 +347,16 @@ function MetricCard({
           <div className="min-w-0 space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
             <p className="text-2xl font-semibold tracking-tight tabular-nums truncate">
-              {value}
+              {value as string}
             </p>
             <p className="text-xs text-muted-foreground">{hint}</p>
           </div>
-          <div className="rounded-xl bg-muted/80 p-2.5 ring-1 ring-border/50">
-            <Icon className="h-5 w-5 text-foreground/80" />
+          <div className="rounded-xl bg-muted/80 p-2.5 ring-1 ring-border/50 w-10 h-10 flex items-center justify-center">
+            {typeof Icon === "string" ? (
+              Icon
+            ) : (
+              <Icon className="h-5 w-5 text-foreground/80" />
+            )}
           </div>
         </div>
       </CardContent>

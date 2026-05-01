@@ -2,14 +2,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
-import { Building2, CalendarClock, CreditCard, Mail, Phone, ReceiptText, User } from "lucide-react";
+import {
+  CalendarClock,
+  CreditCard,
+  Mail,
+  Phone,
+  ReceiptText,
+  User,
+} from "lucide-react";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type Props = {
   so: SalesOrderResponseDTO;
 };
 
 export function SalesOrderDetailCards({ so }: Props) {
-  const totalItems = (so.items || []).reduce((acc, item) => acc + (item.quantity || 0), 0);
+  const totalItems = (so.items || []).reduce(
+    (acc, item) => acc + (item.quantity || 0),
+    0,
+  );
   const itemRows = so.items || [];
 
   return (
@@ -29,7 +40,9 @@ export function SalesOrderDetailCards({ so }: Props) {
                   <tr>
                     <th className="px-4 py-3 text-left font-medium">Item</th>
                     <th className="px-4 py-3 text-right font-medium">Qty</th>
-                    <th className="px-4 py-3 text-right font-medium">Unit Price</th>
+                    <th className="px-4 py-3 text-right font-medium">
+                      Unit Price
+                    </th>
                     <th className="px-4 py-3 text-right font-medium">Amount</th>
                   </tr>
                 </thead>
@@ -37,15 +50,21 @@ export function SalesOrderDetailCards({ so }: Props) {
                   {itemRows.map((item) => (
                     <tr key={item.itemId} className="border-t">
                       <td className="px-4 py-3">
-                        <p className="font-medium">{item.itemName || "Unnamed item"}</p>
+                        <p className="font-medium">
+                          {item.itemName || "Unnamed item"}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           Warehouse: {item.warehouseName || "N/A"}
                         </p>
                       </td>
-                      <td className="px-4 py-3 text-right">{item.quantity || 0}</td>
-                      <td className="px-4 py-3 text-right">{(item.unitPrice || 0).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right">
+                        {item.quantity || 0}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <CurrencyAmount amount={item.unitPrice || 0} />
+                      </td>
                       <td className="px-4 py-3 text-right font-semibold">
-                        {(item.lineTotal || 0).toFixed(2)}
+                        <CurrencyAmount amount={item.lineTotal || 0} />
                       </td>
                     </tr>
                   ))}
@@ -60,12 +79,14 @@ export function SalesOrderDetailCards({ so }: Props) {
             </div>
             <div className="flex items-center justify-between text-base font-semibold mt-2">
               <span>Order Total</span>
-              <span>{(so.totalAmount || 0).toFixed(2)}</span>
+              <span>
+                <CurrencyAmount amount={so.totalAmount || 0} />
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -89,7 +110,7 @@ export function SalesOrderDetailCards({ so }: Props) {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
+          {/* <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
@@ -110,7 +131,7 @@ export function SalesOrderDetailCards({ so }: Props) {
                 <p className="font-medium">{so.creditAccountName || "N/A"}</p>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
 
@@ -133,7 +154,11 @@ export function SalesOrderDetailCards({ so }: Props) {
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Payment Status</span>
               <Badge
-                variant={(so.paymentStatus || "").toUpperCase() === "PAID" ? "default" : "outline"}
+                variant={
+                  (so.paymentStatus || "").toUpperCase() === "PAID"
+                    ? "default"
+                    : "outline"
+                }
               >
                 {(so.paymentStatus || "UNPAID").replace("_", " ")}
               </Badge>
@@ -150,7 +175,9 @@ export function SalesOrderDetailCards({ so }: Props) {
               </div>
               <div className="flex items-center justify-between font-semibold text-base">
                 <span>Total</span>
-                <span>{(so.totalAmount || 0).toFixed(2)}</span>
+                <span>
+                  <CurrencyAmount amount={so.totalAmount || 0} />
+                </span>
               </div>
             </div>
             <Separator />

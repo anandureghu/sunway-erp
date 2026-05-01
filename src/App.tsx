@@ -115,7 +115,11 @@ import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
 import DefaultAccountsSettingsPage from "@/pages/admin/hr/company/default-accounts-settings-page";
+import TaxSettingsPage from "@/pages/admin/hr/company/tax-settings-page";
+import InvoiceSettingsPage from "@/pages/admin/hr/company/invoice-settings-page";
+import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
 import { ErrorBoundary } from "./components/error-boundary";
+import PublicInvoicePage from "./pages/public/public-invoice-page";
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -175,6 +179,9 @@ export default function App() {
             path="default-accounts"
             element={<DefaultAccountsSettingsPage />}
           />
+          <Route path="tax-settings" element={<TaxSettingsPage />} />
+          <Route path="social-settings" element={<SocialSettingsPage />} />
+          <Route path="invoice-settings" element={<InvoiceSettingsPage />} />
           <Route path="department" element={<DepartmentListPage />} />
           <Route path="division" element={<DivisionListPage />} />
           <Route path="accounting-period" element={<AccountingPeriodPage />} />
@@ -340,6 +347,7 @@ export default function App() {
       </Route>
 
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="/public/invoices/:invoiceCode" element={<PublicInvoicePage />} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

@@ -14,10 +14,12 @@ const SelectCurrency = ({
   onChange,
   value,
   disabled = false,
+  disableLabel = false,
 }: {
   value: string | undefined;
   onChange: (v: string) => void;
   disabled?: boolean;
+  disableLabel?: boolean;
 }) => {
   const [currency, setCurrency] = useState([]);
 
@@ -29,7 +31,7 @@ const SelectCurrency = ({
 
   return (
     <>
-      <Label>Currency</Label>
+      {!disableLabel && <Label>Currency</Label>}
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger>
           <SelectValue placeholder="Select Currency" />

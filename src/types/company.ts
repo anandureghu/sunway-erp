@@ -9,6 +9,9 @@ export interface Company {
   state: string;
   country: string;
   phoneNo: string;
+  companyEmail?: string | null;
+  billingEmail?: string | null;
+  websiteUrl?: string | null;
   createdAt: string;
   createdBy: string;
   hrEnabled: boolean;
@@ -23,6 +26,16 @@ export interface Company {
   defaultPurchaseDebitAccountId?: number | null;
   defaultPurchaseCreditAccountId?: number | null;
   defaultBankAccountId?: number | null;
+  invoiceHeaderSubtitle?: string | null;
+  invoiceNotesUnpaid?: string | null;
+  invoiceNotesPaid?: string | null;
+  invoiceTerms?: string | null;
+  invoiceFooterCompanyLine?: string | null;
+  invoiceFooterTaxLine?: string | null;
+  invoiceFooterSignatureNote?: string | null;
+  invoiceFooterSupportEmail?: string | null;
+  invoiceFooterBillingEmail?: string | null;
+  invoiceQrEnabled?: boolean;
 }
 
 export type IModules = "hr" | "finance" | "inventory";

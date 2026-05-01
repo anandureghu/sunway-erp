@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { createPurchaseRequisition } from "@/service/purchaseFlowService";
 import type { PurchaseRequisitionItem } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { toast } from "sonner";
-import SelectUser from "@/components/select-user";
+import SelectUser, { type SelectUserOption } from "@/components/select-user";
 import SelectDepartment from "@/components/select-department";
 import SelectVendor from "@/components/select-vendor";
 import { useAuth } from "@/context/AuthContext";
@@ -28,6 +28,7 @@ import type { Company } from "@/types/company";
 import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
 import { Link } from "react-router-dom";
 import { Info } from "lucide-react";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type Props = {
   onCancel: () => void;
@@ -50,10 +51,48 @@ function appliedFromActualAndOther(
   return actualItemCost;
 }
 
-export function CreatePurchaseRequisitionForm({
-  onCancel,
-  onCreated,
-}: Props) {
+function extractDepartmentId(payload: any): string {
+  const direct = payload?.departmentId;
+  const nested = payload?.data?.departmentId;
+  const employeeNested = payload?.employee?.departmentId;
+  const departmentEntityId = payload?.department?.id;
+  const value = direct ?? nested ?? employeeNested;
+  const normalized = value ?? departmentEntityId;
+  return normalized != null && normalized !== "" ? String(normalized) : "";
+}
+
+async function resolveRequesterDepartmentId(userId: string): Promise<string> {
+  try {
+    const userRes = await apiClient.get(`/users/${userId}`);
+    const fromUserDetails = extractDepartmentId(userRes?.data);
+    if (fromUserDetails) return fromUserDetails;
+  } catch {
+    // Try additional sources below.
+  }
+
+  try {
+    const employeesRes = await apiClient.get("/employees");
+    const employees = Array.isArray(employeesRes?.data)
+      ? employeesRes.data
+      : [];
+    const employee = employees.find(
+      (e: any) => String(e?.userId) === String(userId),
+    );
+    const fromEmployees = extractDepartmentId(employee);
+    if (fromEmployees) return fromEmployees;
+  } catch {
+    // Final fallback below.
+  }
+
+  try {
+    const profileRes = await apiClient.get(`/users/${userId}/profile`);
+    return extractDepartmentId(profileRes?.data);
+  } catch {
+    return "";
+  }
+}
+
+export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   const navigate = useNavigate();
   const { user, company } = useAuth();
   const companyId =
@@ -75,17 +114,18 @@ export function CreatePurchaseRequisitionForm({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] =
-    useState(false);
+  const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] = useState(false);
 
-  const [requestedByUserId, setRequestedByUserId] = useState<string | undefined>(
-    user?.userId != null ? String(user.userId) : undefined,
-  );
+  const [requestedByUserId, setRequestedByUserId] = useState<
+    string | undefined
+  >(user?.userId != null ? String(user.userId) : undefined);
   const [departmentId, setDepartmentId] = useState<string>("");
   const [preferredSupplierId, setPreferredSupplierId] = useState<string>("");
   const [debitAccountId, setDebitAccountId] = useState<string>("");
   const [creditAccountId, setCreditAccountId] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const requesterSyncSeqRef = useRef(0);
+  const didInitRequesterSyncRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +172,43 @@ export function CreatePurchaseRequisitionForm({
   useEffect(() => {
     setItemOtherCostInput("");
   }, [selectedItem]);
+
+  const syncDepartmentForRequester = async (
+    userId: string,
+    selectedUser?: SelectUserOption | null,
+  ) => {
+    const seq = ++requesterSyncSeqRef.current;
+    const selectedUserDepartmentId = extractDepartmentId(selectedUser);
+    if (selectedUserDepartmentId) {
+      setDepartmentId(selectedUserDepartmentId);
+      return;
+    }
+
+    const requesterDepartmentId = await resolveRequesterDepartmentId(userId);
+    if (seq !== requesterSyncSeqRef.current) return;
+    setDepartmentId(requesterDepartmentId);
+  };
+
+  const handleRequesterSelection = (
+    nextUserId: string | undefined,
+    selectedUser?: SelectUserOption | null,
+  ) => {
+    setRequestedByUserId(nextUserId);
+    if (!nextUserId) {
+      setDepartmentId("");
+      return;
+    }
+    void syncDepartmentForRequester(nextUserId, selectedUser ?? null);
+  };
+
+  useEffect(() => {
+    if (didInitRequesterSyncRef.current) return;
+    didInitRequesterSyncRef.current = true;
+    if (!requestedByUserId) {
+      return;
+    }
+    void syncDepartmentForRequester(requestedByUserId);
+  }, [requestedByUserId]);
 
   const addItemToRequisition = () => {
     if (!selectedItem || itemQuantity <= 0) return;
@@ -207,10 +284,7 @@ export function CreatePurchaseRequisitionForm({
   };
 
   const calculateTotal = () =>
-    requisitionItems.reduce(
-      (sum, item) => sum + (item.estimatedTotal || 0),
-      0,
-    );
+    requisitionItems.reduce((sum, item) => sum + (item.estimatedTotal || 0), 0);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,9 +375,9 @@ export function CreatePurchaseRequisitionForm({
               Create Purchase Requisition
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              When approved, a draft purchase order is created and finance
-              posts to your company default purchase accounts (Global Settings
-              → Default Accounts).
+              When approved, a draft purchase order is created and finance posts
+              to your company default purchase accounts (Global Settings →
+              Default Accounts).
             </p>
           </div>
         </div>
@@ -357,7 +431,7 @@ export function CreatePurchaseRequisitionForm({
                   <SelectUser
                     label="Requested by"
                     value={requestedByUserId}
-                    onChange={setRequestedByUserId}
+                    onChange={handleRequesterSelection}
                     placeholder="Select user"
                   />
                 </div>
@@ -421,17 +495,16 @@ export function CreatePurchaseRequisitionForm({
 
                 <div className="space-y-2">
                   <Label>Item cost (from master)</Label>
-                  <div className="h-10 px-3 flex items-center rounded-md border bg-muted/50 text-sm tabular-nums">
-                    {selectedItem
-                      ? `${Number(
-                          items.find((i) => String(i.id) === selectedItem)
-                            ?.costPrice ?? 0,
-                        ).toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "—"}
-                  </div>
+                  <CurrencyAmount
+                    amount={
+                      selectedItem
+                        ? Number(
+                            items.find((i) => String(i.id) === selectedItem)
+                              ?.costPrice ?? 0,
+                          )
+                        : 0
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -467,8 +540,12 @@ export function CreatePurchaseRequisitionForm({
                         <th className="p-2 text-right w-28">Item cost</th>
                         <th className="p-2 text-right w-32">Other cost</th>
                         <th className="p-2 text-right w-28">Applied</th>
-                        <th className="p-2 text-right min-w-[7rem]">Est. total</th>
-                        <th className="p-2 text-left min-w-[140px]">Line notes</th>
+                        <th className="p-2 text-right min-w-[7rem]">
+                          Est. total
+                        </th>
+                        <th className="p-2 text-left min-w-[140px]">
+                          Line notes
+                        </th>
                         <th className="p-2 text-left w-24" />
                       </tr>
                     </thead>
@@ -476,8 +553,9 @@ export function CreatePurchaseRequisitionForm({
                       {requisitionItems.map((row) => (
                         <tr key={row.id} className="border-t">
                           <td className="p-2 align-middle">
-                            {items.find((i) => String(i.id) === String(row.itemId))
-                              ?.name ?? `Item #${row.itemId}`}
+                            {items.find(
+                              (i) => String(i.id) === String(row.itemId),
+                            )?.name ?? `Item #${row.itemId}`}
                           </td>
                           <td className="p-2 align-middle">
                             <Input
@@ -494,14 +572,7 @@ export function CreatePurchaseRequisitionForm({
                             />
                           </td>
                           <td className="p-2 text-right align-middle tabular-nums text-muted-foreground">
-
-                            {(row.actualItemPrice ?? 0).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              },
-                            )}
+                            <CurrencyAmount amount={row.actualItemPrice ?? 0} />
                           </td>
                           <td className="p-2 align-middle">
                             <Input
@@ -519,9 +590,7 @@ export function CreatePurchaseRequisitionForm({
                               onChange={(e) => {
                                 const v = e.target.value;
                                 const num =
-                                  v === ""
-                                    ? undefined
-                                    : parseFloat(v);
+                                  v === "" ? undefined : parseFloat(v);
                                 updateRequisitionLine(row.id, {
                                   otherUnitCost:
                                     num === undefined ||
@@ -534,21 +603,14 @@ export function CreatePurchaseRequisitionForm({
                             />
                           </td>
                           <td className="p-2 text-right align-middle tabular-nums font-medium">
-
-                            {(
-                              row.estimatedUnitCost ??
-                              row.unitPrice ??
-                              0
-                            ).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            <CurrencyAmount
+                              amount={
+                                row.estimatedUnitCost ?? row.unitPrice ?? 0
+                              }
+                            />
                           </td>
                           <td className="p-2 text-right font-medium align-middle tabular-nums">
-                            {(row.estimatedTotal ?? 0).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            <CurrencyAmount amount={row.estimatedTotal ?? 0} />
                           </td>
                           <td className="p-2 align-middle">
                             <Input
@@ -596,7 +658,9 @@ export function CreatePurchaseRequisitionForm({
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total estimated</span>
-                  <span>{total.toLocaleString()}</span>
+                  <span>
+                    <CurrencyAmount amount={total} />
+                  </span>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes (optional)</Label>
