@@ -239,6 +239,14 @@ export type Invoice = {
 
   companyId: number;
   companyName: string;
+  companyStreet?: string;
+  companyCity?: string;
+  companyState?: string;
+  companyCountry?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  billingEmail?: string;
+  companyWebsiteUrl?: string;
 
   type: "SALES" | "PURCHASE" | string;
   orderId?: number;
@@ -274,6 +282,17 @@ export type Invoice = {
   bankAccountNumber?: string;
   bankIfscCode?: string;
   bankBranchName?: string;
+  invoiceHeaderSubtitle?: string;
+  invoiceNotesUnpaid?: string;
+  invoiceNotesPaid?: string;
+  invoiceTerms?: string;
+  invoiceFooterCompanyLine?: string;
+  invoiceFooterTaxLine?: string;
+  invoiceFooterSignatureNote?: string;
+  invoiceFooterSupportEmail?: string;
+  invoiceFooterBillingEmail?: string;
+  invoiceQrEnabled?: boolean;
+  publicInvoiceUrl?: string;
 
   pdfUrl?: string;
 

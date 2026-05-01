@@ -28,6 +28,7 @@ import {
   LayoutDashboard,
   Split,
   Banknote,
+  Receipt,
   ArrowLeft,
   Building,
   Pin,
@@ -196,6 +197,11 @@ export function AppSidebar() {
           url: `/settings/${user?.companyId}`,
           icon: Building,
         },
+        {
+          title: "Social",
+          url: "/admin/social-settings",
+          icon: FileText,
+        },
         { title: "Department", url: "/admin/department", icon: FileText },
         { title: "Division", url: "/admin/division", icon: Split },
         {
@@ -213,6 +219,16 @@ export function AppSidebar() {
           title: "Default Accounts",
           url: "/admin/default-accounts",
           icon: Banknote,
+        },
+        {
+          title: "Tax Settings",
+          url: "/admin/tax-settings",
+          icon: FileText,
+        },
+        {
+          title: "Invoice Settings",
+          url: "/admin/invoice-settings",
+          icon: Receipt,
         },
       ],
     },

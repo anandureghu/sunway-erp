@@ -56,12 +56,10 @@ const normalizeCompanyDefaults = (
     phoneNo: toOptionalString(values.phoneNo),
     crNo: toOptionalNumber(values.crNo),
     noOfEmployees: toOptionalNumber(values.noOfEmployees),
-    taxRate: toOptionalNumber(values.taxRate),
     currencyId: toOptionalNumber(currencyIdFromValues),
     hrEnabled: values.hrEnabled,
     financeEnabled: values.financeEnabled,
     inventoryEnabled: values.inventoryEnabled,
-    isTaxActive: values.isTaxActive,
   };
 };
 
@@ -90,8 +88,6 @@ export const CompanyForm = ({
       city: "",
       state: "",
       country: "India",
-      taxRate: undefined,
-      isTaxActive: false,
       phoneNo: "",
       currencyId: undefined,
       ...normalizedDefaults,
@@ -110,8 +106,6 @@ export const CompanyForm = ({
         city: "",
         state: "",
         country: "India",
-        taxRate: undefined,
-        isTaxActive: false,
         phoneNo: "",
         currencyId: undefined,
         ...normalizedDefaults,
@@ -311,54 +305,6 @@ export const CompanyForm = ({
             </FormItem>
           )}
         />
-
-        {isEditMode && (
-          <div className="space-y-2 border p-4 rounded-md">
-            <p className="font-medium text-sm">Tax Rate</p>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="taxRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="15"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value ? Number(e.target.value) : undefined,
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {/* HR */}
-              <FormField
-                control={form.control}
-                name="isTaxActive"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-2 space-y-0">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                    </FormControl>
-                    <FormLabel className="m-0">Active</FormLabel>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-        )}
 
         <div className="space-y-2 border p-4 rounded-md">
           <p className="font-medium text-sm">Subscribed Modules</p>
