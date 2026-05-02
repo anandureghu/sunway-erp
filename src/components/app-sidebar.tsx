@@ -33,6 +33,7 @@ import {
   Building,
   Pin,
   PinOff,
+  Wallet,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -198,6 +199,11 @@ export function AppSidebar() {
           title: "Company",
           url: `/settings/${user?.companyId}`,
           icon: Building,
+        },
+        {
+          title: "Payroll",
+          url: `/settings/payroll/${user?.companyId}`,
+          icon: Wallet,
         },
         {
           title: "Social",
