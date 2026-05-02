@@ -26,6 +26,7 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { invoiceMatchesStatusFilter } from "@/lib/invoice-status-filter";
 
 export default function InvoicesPage({
   disableHeader = false,
@@ -54,8 +55,10 @@ export default function InvoicesPage({
       invoice.invoiceId?.toLowerCase().includes(q) ||
       invoice.toParty?.toLowerCase().includes(q);
 
-    const matchesStatus =
-      statusFilter === "all" || invoice.status === statusFilter;
+    const matchesStatus = invoiceMatchesStatusFilter(
+      invoice.status,
+      statusFilter,
+    );
 
     return matchesSearch && matchesStatus;
   });
@@ -128,12 +131,13 @@ export default function InvoicesPage({
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Filter status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[100]">
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="Paid">Paid</SelectItem>
                   <SelectItem value="Unpaid">Unpaid</SelectItem>
                   <SelectItem value="Partially Paid">Partially Paid</SelectItem>
                   <SelectItem value="Overdue">Overdue</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>

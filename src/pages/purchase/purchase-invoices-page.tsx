@@ -4,7 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PURCHASE_INVOICE_COLUMNS } from "@/lib/columns/purchase-columns";
-import { Search, Plus, FileText, Wallet, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  Search,
+  Plus,
+  FileText,
+  Wallet,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 import type { FinanceInvoice } from "@/types/finance-invoice";
@@ -16,6 +30,7 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { invoiceMatchesStatusFilter } from "@/lib/invoice-status-filter";
 
 export default function PurchaseInvoicesPage() {
   const location = useLocation();
@@ -26,6 +41,7 @@ export default function PurchaseInvoicesPage() {
   const [rows, setRows] = useState<FinanceInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -44,11 +60,15 @@ export default function PurchaseInvoicesPage() {
 
   const filteredInvoices = rows.filter((invoice) => {
     const q = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       (invoice.invoiceId?.toLowerCase().includes(q) ?? false) ||
       (invoice.toParty?.toLowerCase().includes(q) ?? false) ||
-      (invoice.supplierInvoiceNumber?.toLowerCase().includes(q) ?? false)
+      (invoice.supplierInvoiceNumber?.toLowerCase().includes(q) ?? false);
+    const matchesStatus = invoiceMatchesStatusFilter(
+      invoice.status,
+      statusFilter,
     );
+    return matchesSearch && matchesStatus;
   });
 
   const purchaseInvoiceKpis = useMemo((): KpiSummaryStat[] => {
@@ -120,16 +140,32 @@ export default function PurchaseInvoicesPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>All purchase invoices</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search invoices..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-64"
-              />
+            <div className="flex flex-wrap gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search invoices..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 w-64"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="z-[100]">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Unpaid">Unpaid</SelectItem>
+                  <SelectItem value="Paid">Paid</SelectItem>
+                  <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+                  <SelectItem value="Overdue">Overdue</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>

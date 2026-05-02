@@ -10,7 +10,15 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { Row } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search } from "lucide-react";
+import { invoiceMatchesStatusFilter } from "@/lib/invoice-status-filter";
 
 interface AccountsPayableProps {
   companyId?: number;
@@ -21,6 +29,7 @@ function PayableInvoicesTab() {
   const [rows, setRows] = useState<FinanceInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -38,11 +47,15 @@ function PayableInvoicesTab() {
 
   const filtered = rows.filter((invoice) => {
     const q = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       (invoice.invoiceId?.toLowerCase().includes(q) ?? false) ||
       (invoice.toParty?.toLowerCase().includes(q) ?? false) ||
-      (invoice.supplierInvoiceNumber?.toLowerCase().includes(q) ?? false)
+      (invoice.supplierInvoiceNumber?.toLowerCase().includes(q) ?? false);
+    const matchesStatus = invoiceMatchesStatusFilter(
+      invoice.status,
+      statusFilter,
     );
+    return matchesSearch && matchesStatus;
   });
 
   const handleRowClick = useCallback(
@@ -58,14 +71,30 @@ function PayableInvoicesTab() {
       <p className="text-sm text-muted-foreground">
         Accounts payable bills (PURCHASE type only).
       </p>
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search by ref, supplier, supplier #…"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search by ref, supplier, supplier #…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="z-[100]">
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="Draft">Draft</SelectItem>
+            <SelectItem value="Unpaid">Unpaid</SelectItem>
+            <SelectItem value="Paid">Paid</SelectItem>
+            <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+            <SelectItem value="Overdue">Overdue</SelectItem>
+            <SelectItem value="Cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       {loading ? (
         <div className="py-10 text-center text-muted-foreground">
