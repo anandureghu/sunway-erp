@@ -19,3 +19,11 @@ export function invoiceMatchesStatusFilter(
     normalizeInvoiceStatusKey(filterValue)
   );
 }
+
+/** Paid and cancelled invoices belong in the Archived tab. */
+export function isInvoiceArchivedStatus(
+  rawStatus: string | null | undefined,
+): boolean {
+  const k = normalizeInvoiceStatusKey(rawStatus);
+  return k === "PAID" || k === "CANCELLED";
+}

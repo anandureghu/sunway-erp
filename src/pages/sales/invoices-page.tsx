@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
 import {
@@ -26,7 +27,13 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
-import { invoiceMatchesStatusFilter } from "@/lib/invoice-status-filter";
+import {
+  invoiceMatchesStatusFilter,
+  isInvoiceArchivedStatus,
+} from "@/lib/invoice-status-filter";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type InvoiceListTab = "outstanding" | "archived";
 
 export default function InvoicesPage({
   disableHeader = false,
@@ -40,6 +47,7 @@ export default function InvoicesPage({
     (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState("all");
+  const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   useEffect(() => {
@@ -48,20 +56,34 @@ export default function InvoicesPage({
       .then((res) => setInvoices(res.data));
   }, []);
 
-  const filteredInvoices = invoices.filter((invoice) => {
-    const q = searchQuery.toLowerCase();
+  const outstandingCount = useMemo(
+    () => invoices.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
+    [invoices],
+  );
+  const archivedCount = useMemo(
+    () => invoices.filter((i) => isInvoiceArchivedStatus(i.status)).length,
+    [invoices],
+  );
 
-    const matchesSearch =
-      invoice.invoiceId?.toLowerCase().includes(q) ||
-      invoice.toParty?.toLowerCase().includes(q);
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((invoice) => {
+      const archived = isInvoiceArchivedStatus(invoice.status);
+      const matchesTab =
+        listTab === "archived" ? archived : !archived;
 
-    const matchesStatus = invoiceMatchesStatusFilter(
-      invoice.status,
-      statusFilter,
-    );
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        invoice.invoiceId?.toLowerCase().includes(q) ||
+        invoice.toParty?.toLowerCase().includes(q);
 
-    return matchesSearch && matchesStatus;
-  });
+      const matchesStatus = invoiceMatchesStatusFilter(
+        invoice.status,
+        statusFilter,
+      );
+
+      return matchesTab && matchesSearch && matchesStatus;
+    });
+  }, [invoices, listTab, searchQuery, statusFilter]);
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase();
@@ -114,34 +136,65 @@ export default function InvoicesPage({
       <KpiSummaryStrip items={invoiceKpis} />
 
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>All Invoices</CardTitle>
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search invoices..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-64"
-                />
+        <CardHeader className="pb-3">
+          <Tabs
+            value={listTab}
+            onValueChange={(v) => {
+              setListTab(v as InvoiceListTab);
+              setStatusFilter("all");
+            }}
+            className="w-full gap-4"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
+                <TabsTrigger value="outstanding" className="gap-2">
+                  Outstanding
+                  <Badge variant="secondary" className="font-normal">
+                    {outstandingCount}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="archived" className="gap-2">
+                  Archived
+                  <Badge variant="secondary" className="font-normal">
+                    {archivedCount}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
+              <div className="flex flex-wrap gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search invoices..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 w-64"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter status" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" className="z-[100]">
+                    <SelectItem value="all">All</SelectItem>
+                    {listTab === "outstanding" ? (
+                      <>
+                        <SelectItem value="Unpaid">Unpaid</SelectItem>
+                        <SelectItem value="Partially Paid">
+                          Partially Paid
+                        </SelectItem>
+                        <SelectItem value="Overdue">Overdue</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="Paid">Paid</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter status" />
-                </SelectTrigger>
-                <SelectContent position="popper" className="z-[100]">
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="Paid">Paid</SelectItem>
-                  <SelectItem value="Unpaid">Unpaid</SelectItem>
-                  <SelectItem value="Partially Paid">Partially Paid</SelectItem>
-                  <SelectItem value="Overdue">Overdue</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-          </div>
+          </Tabs>
         </CardHeader>
         <CardContent>
           <DataTable
