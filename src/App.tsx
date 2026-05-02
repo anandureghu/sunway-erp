@@ -112,6 +112,7 @@ import { useEffect } from "react";
 import { setAdminView, setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
+import SettingsPayrollPage from "@/pages/settings/settings-payroll-page";
 import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
 import DefaultAccountsSettingsPage from "@/pages/admin/hr/company/default-accounts-settings-page";
 import TaxSettingsPage from "@/pages/admin/hr/company/tax-settings-page";
@@ -145,212 +146,227 @@ export default function App() {
           />
           <Route path="profile" element={<UserProfilePage />} />
 
-
-        {/* Finance */}
-        <Route path="finance">
-          <Route path="settings" element={<FinanceSettingsPage />} />
-          <Route path="receivable" element={<AccountsReceivablePage />} />
-          <Route path="payable" element={<AccountsPayablePage />} />
-          <Route path="payroll" element={<Payroll />} />
-          <Route path="ledger" element={<GeneralLedgerPage />} />
-          <Route path="journals">
-            <Route path=":id" element={<JournalDetailPage />} />
+          {/* Finance */}
+          <Route path="finance">
+            <Route path="settings" element={<FinanceSettingsPage />} />
+            <Route path="receivable" element={<AccountsReceivablePage />} />
+            <Route path="payable" element={<AccountsPayablePage />} />
+            <Route path="ledger" element={<GeneralLedgerPage />} />
+            <Route path="journals">
+              <Route path=":id" element={<JournalDetailPage />} />
+            </Route>
+            <Route path="budgets">
+              <Route path=":id" element={<BudgetDetailPage />} />
+            </Route>
+            <Route path="customers/:id" element={<CustomerDetailPage />} />
+            <Route path="vendors/:id" element={<VendorDetailPage />} />
           </Route>
-          <Route path="budgets">
-            <Route path=":id" element={<BudgetDetailPage />} />
+
+          <Route path="sales">
+            <Route path="invoices/:id" element={<InvoiceDetailPage />} />
           </Route>
-          <Route path="customers/:id" element={<CustomerDetailPage />} />
-          <Route path="vendors/:id" element={<VendorDetailPage />} />
-        </Route>
 
-        <Route path="sales">
-          <Route path="invoices/:id" element={<InvoiceDetailPage />} />
-        </Route>
-
-        <Route path="settings/:id" element={<SettingsPage />} />
-        <Route path="settings/roles/:id" element={<SettingsRolesPage />} />
-
-        {/* Admin */}
-        <Route path="admin">
-          <Route path="company" element={<CompanyPage />} />
-          <Route path="bank-accounts" element={<CompanyBankAccounts />} />
           <Route
-            path="default-accounts"
-            element={<DefaultAccountsSettingsPage />}
+            path="settings/payroll/:id"
+            element={<SettingsPayrollPage />}
           />
-          <Route path="tax-settings" element={<TaxSettingsPage />} />
-          <Route path="social-settings" element={<SocialSettingsPage />} />
-          <Route path="invoice-settings" element={<InvoiceSettingsPage />} />
-          <Route path="department" element={<DepartmentListPage />} />
-          <Route path="division" element={<DivisionListPage />} />
-          <Route path="accounting-period" element={<AccountingPeriodPage />} />
-          <Route path="leaves" element={<LeaveCustomizationPage />} />
-          <Route path="customers" element={<CustomersPage />} />
-          <Route path="customers/:id" element={<CustomerDetailPage />} />
-          <Route path="vendors" element={<VendorsPage />} />
-          <Route path="vendors/:id" element={<VendorDetailPage />} />
-        </Route>
+          <Route path="settings/:id" element={<SettingsPage />} />
+          <Route path="settings/roles/:id" element={<SettingsRolesPage />} />
 
-        {/* Inventory */}
-        <Route path="inventory">
-          <Route path="settings" element={<InventorySettingsPage />} />
-          <Route path="stocks" element={<ManageStocks />} />
-          <Route path="stocks/:id" element={<InventoryItemDetail />} />
-          <Route path="warehouses/:id" element={<WarehouseDetail />} />
-          <Route path="reports" element={<InventoryReportsPage />} />
-          <Route path="sales" element={<SalesLandingPage />} />
-          <Route path="sales/orders" element={<SalesOrdersPage />} />
-          <Route path="sales/orders/:id" element={<SalesOrdersDetailPage />} />
-          <Route path="sales/orders/new" element={<SalesOrdersPage />} />
-          <Route path="sales/customers" element={<SalesCustomersPage />} />
-          <Route path="sales/picklist" element={<PicklistDispatchPage />} />
-          <Route path="sales/picklist/:id" element={<PicklistDetailPage />} />
-          <Route path="sales/tracking" element={<DeliveryTrackingPage />} />
-          <Route path="sales/invoices" element={<InvoicesPage />} />
-          <Route path="purchase" element={<PurchaseLandingPage />} />
-          <Route path="purchase/orders" element={<PurchaseOrdersPage />} />
-          <Route
-            path="purchase/orders/:id"
-            element={<PurchaseOrderDetailPage />}
-          />
-          <Route path="purchase/suppliers" element={<SuppliersPage />} />
-          <Route path="purchase/invoices" element={<PurchaseInvoicesPage />} />
-          <Route
-            path="purchase/invoices/:id"
-            element={<PurchaseInvoiceDetailPage />}
-          />
-          <Route path="purchase/receiving" element={<ReceivingPage />} />
-          <Route
-            path="purchase/receiving/:id"
-            element={<GoodsReceiptDetailPage />}
-          />
-          <Route
-            path="purchase/requisitions"
-            element={<PurchaseRequisitionsPage />}
-          />
-          <Route
-            path="purchase/requisitions/new"
-            element={<PurchaseRequisitionsPage />}
-          />
-          <Route
-            path="purchase/requisitions/:id"
-            element={<PurchaseRequisitionDetailPage />}
-          />
-          <Route path="customers/:id" element={<CustomerDetailPage />} />
-          <Route path="vendors/:id" element={<VendorDetailPage />} />
-        </Route>
+          {/* Admin */}
+          <Route path="admin">
+            <Route path="company" element={<CompanyPage />} />
+            <Route path="bank-accounts" element={<CompanyBankAccounts />} />
+            <Route
+              path="default-accounts"
+              element={<DefaultAccountsSettingsPage />}
+            />
+            <Route path="tax-settings" element={<TaxSettingsPage />} />
+            <Route path="social-settings" element={<SocialSettingsPage />} />
+            <Route path="invoice-settings" element={<InvoiceSettingsPage />} />
+            <Route path="department" element={<DepartmentListPage />} />
+            <Route path="division" element={<DivisionListPage />} />
+            <Route
+              path="accounting-period"
+              element={<AccountingPeriodPage />}
+            />
+            <Route path="leaves" element={<LeaveCustomizationPage />} />
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="customers/:id" element={<CustomerDetailPage />} />
+            <Route path="vendors" element={<VendorsPage />} />
+            <Route path="vendors/:id" element={<VendorDetailPage />} />
+          </Route>
 
-        <Route path="companies">
-          <Route path=":id" element={<CompanyDetailPage />} />
-        </Route>
+          {/* Inventory */}
+          <Route path="inventory">
+            <Route path="settings" element={<InventorySettingsPage />} />
+            <Route path="stocks" element={<ManageStocks />} />
+            <Route path="stocks/:id" element={<InventoryItemDetail />} />
+            <Route path="warehouses/:id" element={<WarehouseDetail />} />
+            <Route path="reports" element={<InventoryReportsPage />} />
+            <Route path="sales" element={<SalesLandingPage />} />
+            <Route path="sales/orders" element={<SalesOrdersPage />} />
+            <Route
+              path="sales/orders/:id"
+              element={<SalesOrdersDetailPage />}
+            />
+            <Route path="sales/orders/new" element={<SalesOrdersPage />} />
+            <Route path="sales/customers" element={<SalesCustomersPage />} />
+            <Route path="sales/picklist" element={<PicklistDispatchPage />} />
+            <Route path="sales/picklist/:id" element={<PicklistDetailPage />} />
+            <Route path="sales/tracking" element={<DeliveryTrackingPage />} />
+            <Route path="sales/invoices" element={<InvoicesPage />} />
+            <Route path="purchase" element={<PurchaseLandingPage />} />
+            <Route path="purchase/orders" element={<PurchaseOrdersPage />} />
+            <Route
+              path="purchase/orders/:id"
+              element={<PurchaseOrderDetailPage />}
+            />
+            <Route path="purchase/suppliers" element={<SuppliersPage />} />
+            <Route
+              path="purchase/invoices"
+              element={<PurchaseInvoicesPage />}
+            />
+            <Route
+              path="purchase/invoices/:id"
+              element={<PurchaseInvoiceDetailPage />}
+            />
+            <Route path="purchase/receiving" element={<ReceivingPage />} />
+            <Route
+              path="purchase/receiving/:id"
+              element={<GoodsReceiptDetailPage />}
+            />
+            <Route
+              path="purchase/requisitions"
+              element={<PurchaseRequisitionsPage />}
+            />
+            <Route
+              path="purchase/requisitions/new"
+              element={<PurchaseRequisitionsPage />}
+            />
+            <Route
+              path="purchase/requisitions/:id"
+              element={<PurchaseRequisitionDetailPage />}
+            />
+            <Route path="customers/:id" element={<CustomerDetailPage />} />
+            <Route path="vendors/:id" element={<VendorDetailPage />} />
+          </Route>
 
-        {/* HR */}
-        <Route path="hr">
-          {/* default for /hr */}
-          <Route index element={<Navigate to="employees" replace />} />
+          <Route path="companies">
+            <Route path=":id" element={<CompanyDetailPage />} />
+          </Route>
 
-          {/* alias /hr/employee -> /hr/employees */}
-          <Route
-            path="employee"
-            element={<Navigate to="/hr/employees" replace />}
-          />
+          {/* HR */}
+          <Route path="hr">
+            {/* default for /hr */}
+            <Route index element={<Navigate to="employees" replace />} />
 
-          {/* employees list */}
-          <Route path="employees" element={<EmployeesPage />} />
+            {/* alias /hr/employee -> /hr/employees */}
+            <Route
+              path="employee"
+              element={<Navigate to="/hr/employees" replace />}
+            />
 
-          {/* HR Reports */}
-          <Route path="reports" element={<HRReportsPage />} />
+            <Route path="payroll" element={<Payroll />} />
 
-          {/* HR Settings */}
-          <Route path="settings" element={<HRSettingsPage />} />
-          <Route
-            path="settings/leave-customization"
-            element={<LeaveCustomizationPage />}
-          />
+            {/* employees list */}
+            <Route path="employees" element={<EmployeesPage />} />
 
-          {/* employee detail shell + nested tabs */}
-          <Route path="employees/:id" element={<EmployeeShell />}>
-            <Route index element={<Navigate to="profile" replace />} />
+            {/* HR Reports */}
+            <Route path="reports" element={<HRReportsPage />} />
 
-            {/* Profile (tabbed: Employee Profile / Contact Info) */}
-            <Route path="profile" element={<ProfileShell />}>
-              <Route index element={<EmployeeProfileForm />} />
-              <Route path="contact" element={<ContactInfoForm />} />
-            </Route>
+            {/* HR Settings */}
+            <Route path="settings" element={<HRSettingsPage />} />
+            <Route
+              path="settings/leave-customization"
+              element={<LeaveCustomizationPage />}
+            />
 
-            {/* Current Job */}
-            <Route path="current-job" element={<CurrentJobShell />}>
-              <Route index element={<CurrentJobForm />} />
-              <Route path="contract" element={<EmployeeContractForm />} />
-              <Route
-                path="previous-experiences"
-                element={<PreviousExperiencesForm />}
-              />
-              <Route
-                path="education"
-                element={<EducationQualificationsForm />}
-              />
-            </Route>
+            {/* employee detail shell + nested tabs */}
+            <Route path="employees/:id" element={<EmployeeShell />}>
+              <Route index element={<Navigate to="profile" replace />} />
 
-            {/* Salary */}
-            <Route path="salary" element={<SalaryShell />}>
-              <Route index element={<SalaryForm />} />
-              <Route path="bank" element={<BankForm />} />
-            </Route>
+              {/* Profile (tabbed: Employee Profile / Contact Info) */}
+              <Route path="profile" element={<ProfileShell />}>
+                <Route index element={<EmployeeProfileForm />} />
+                <Route path="contact" element={<ContactInfoForm />} />
+              </Route>
 
-            {/* Immigration */}
-            <Route path="immigration" element={<ImmigrationShell />}>
-              <Route index element={<PassportForm />} />
-              <Route
-                path="residence-permit"
-                element={<ResidencePermitForm />}
-              />
-            </Route>
+              {/* Current Job */}
+              <Route path="current-job" element={<CurrentJobShell />}>
+                <Route index element={<CurrentJobForm />} />
+                <Route path="contract" element={<EmployeeContractForm />} />
+                <Route
+                  path="previous-experiences"
+                  element={<PreviousExperiencesForm />}
+                />
+                <Route
+                  path="education"
+                  element={<EducationQualificationsForm />}
+                />
+              </Route>
 
-            {/* Loans */}
-            <Route path="loans" element={<LoansShell />}>
-              <Route index element={<LoansForm />} />
-              <Route
-                path="company-properties"
-                element={<CompanyPropertiesForm />}
-              />
-            </Route>
+              {/* Salary */}
+              <Route path="salary" element={<SalaryShell />}>
+                <Route index element={<SalaryForm />} />
+                <Route path="bank" element={<BankForm />} />
+              </Route>
 
-            {/* Dependents */}
-            <Route path="dependents" element={<DependentsShell />}>
-              <Route index element={<DependentsForm />} />
-            </Route>
+              {/* Immigration */}
+              <Route path="immigration" element={<ImmigrationShell />}>
+                <Route index element={<PassportForm />} />
+                <Route
+                  path="residence-permit"
+                  element={<ResidencePermitForm />}
+                />
+              </Route>
 
-            {/* Leaves */}
-            <Route path="leaves" element={<LeavesShell />}>
-              <Route index element={<LeavesForm />} />
-              <Route path="history" element={<LeavesHistory />} />
-            </Route>
+              {/* Loans */}
+              <Route path="loans" element={<LoansShell />}>
+                <Route index element={<LoansForm />} />
+                <Route
+                  path="company-properties"
+                  element={<CompanyPropertiesForm />}
+                />
+              </Route>
 
-            {/* Appraisal */}
-            <Route path="appraisal" element={<AppraisalShell />}>
-              <Route index element={<AppraisalsForm />} />
-              <Route path="form" element={<AppraisalsForm />} />
+              {/* Dependents */}
+              <Route path="dependents" element={<DependentsShell />}>
+                <Route index element={<DependentsForm />} />
+              </Route>
+
+              {/* Leaves */}
+              <Route path="leaves" element={<LeavesShell />}>
+                <Route index element={<LeavesForm />} />
+                <Route path="history" element={<LeavesHistory />} />
+              </Route>
+
+              {/* Appraisal */}
+              <Route path="appraisal" element={<AppraisalShell />}>
+                <Route index element={<AppraisalsForm />} />
+                <Route path="form" element={<AppraisalsForm />} />
+              </Route>
             </Route>
           </Route>
         </Route>
-      </Route>
 
-      {/* Auth */}
-      <Route path="/auth" element={<AuthLayout />}>
-        <Route path="login" element={<LoginPage />} />
-        //
-        <Route path="reset-password" element={<ResetPasswordPage />} />
-        //
-      </Route>
+        {/* Auth */}
+        <Route path="/auth" element={<AuthLayout />}>
+          <Route path="login" element={<LoginPage />} />
+          //
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+          //
+        </Route>
 
-      <Route path="/dashboard" element={<Navigate to="/" replace />} />
-      <Route path="/public/invoices/:invoiceCode" element={<PublicInvoicePage />} />
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
+        <Route
+          path="/public/invoices/:invoiceCode"
+          element={<PublicInvoicePage />}
+        />
 
-      {/* 404 */}
-      <Route path="*" element={<NotFound />} />
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </ErrorBoundary>
   );
 }
-

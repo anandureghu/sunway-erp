@@ -65,7 +65,10 @@ export function canView(
   }
 
   // Empty permissions object
-  if (typeof permissions === "object" && Object.keys(permissions).length === 0) {
+  if (
+    typeof permissions === "object" &&
+    Object.keys(permissions).length === 0
+  ) {
     console.debug(`❌ canView("${module}"): No permissions granted`);
     return false;
   }
@@ -79,7 +82,8 @@ export function canView(
 
   console.debug(
     `🔍 canView("${module}"): Looking for key "${moduleKey}" in permission keys:`,
-    Object.keys(permissions).slice(0, 5) + (Object.keys(permissions).length > 5 ? "..." : "")
+    Object.keys(permissions).slice(0, 5) +
+      (Object.keys(permissions).length > 5 ? "..." : ""),
   );
 
   // Get module permissions
@@ -199,6 +203,12 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
+              {
+                title: "Payroll",
+                url: "/hr/payroll",
+                icon: Wallet,
+              },
+
               // HR Settings — gated by HR_SETTINGS
               ...(canView(permissions, "HR_SETTINGS")
                 ? [
@@ -229,7 +239,11 @@ export const getSidebarItems = async (
                 url: "/inventory/reports",
                 icon: FileText,
               },
-              { title: "Inventory (Stocks)", url: "/inventory/stocks", icon: Package },
+              {
+                title: "Inventory (Stocks)",
+                url: "/inventory/stocks",
+                icon: Package,
+              },
               { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
               { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
               {

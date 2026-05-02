@@ -409,6 +409,7 @@ export interface DeductionItem {
 
 export interface BankDetails {
   bankName: string;
+  bankShortName?: string;
   bankBranch: string;
   accountNo: string;
 }

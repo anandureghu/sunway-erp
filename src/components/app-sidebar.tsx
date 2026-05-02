@@ -33,10 +33,11 @@ import {
   Building,
   Pin,
   PinOff,
+  Wallet,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { SidebarItem } from "@/types/company";
 import type { ModulePermission } from "@/types/role";
 import { useAuth } from "@/context/AuthContext";
@@ -188,53 +189,65 @@ export function AppSidebar() {
     },
   ];
 
-  const globalSettings = [
-    {
-      title: "All",
-      icon: LayoutDashboard,
-      color: "text-sky-600 dark:text-sky-400",
-      items: [
-        {
-          title: "Company",
-          url: `/settings/${user?.companyId}`,
-          icon: Building,
-        },
-        {
-          title: "Social",
-          url: "/admin/social-settings",
-          icon: FileText,
-        },
-        { title: "Department", url: "/admin/department", icon: FileText },
-        { title: "Division", url: "/admin/division", icon: Split },
-        {
-          title: "Roles",
-          url: `/settings/roles/${user?.companyId}`,
-          icon: Building,
-        },
-        {
-          title: "Accounting Period",
-          url: "/admin/accounting-period",
-          icon: Banknote,
-        },
-        { title: "Bank Accounts", url: "/admin/bank-accounts", icon: Banknote },
-        {
-          title: "Default Accounts",
-          url: "/admin/default-accounts",
-          icon: Banknote,
-        },
-        {
-          title: "Tax Settings",
-          url: "/admin/tax-settings",
-          icon: FileText,
-        },
-        {
-          title: "Invoice Settings",
-          url: "/admin/invoice-settings",
-          icon: Receipt,
-        },
-      ],
-    },
-  ];
+  const globalSettings = useMemo(() => {
+    const cid = user?.companyId;
+    const settingsRoot = cid != null ? `/settings/${cid}` : null;
+    const payrollSettings = cid != null ? `/settings/payroll/${cid}` : null;
+    const rolesSettings = cid != null ? `/settings/roles/${cid}` : null;
+
+    return [
+      {
+        title: "All",
+        icon: LayoutDashboard,
+        color: "text-sky-600 dark:text-sky-400",
+        items: [
+          {
+            title: "Company",
+            url: settingsRoot,
+            icon: Building,
+          },
+          {
+            title: "Payroll",
+            url: payrollSettings,
+            icon: Wallet,
+          },
+          {
+            title: "Social",
+            url: "/admin/social-settings",
+            icon: FileText,
+          },
+          { title: "Department", url: "/admin/department", icon: FileText },
+          { title: "Division", url: "/admin/division", icon: Split },
+          {
+            title: "Roles",
+            url: rolesSettings,
+            icon: Building,
+          },
+          {
+            title: "Accounting Period",
+            url: "/admin/accounting-period",
+            icon: Banknote,
+          },
+          { title: "Bank Accounts", url: "/admin/bank-accounts", icon: Banknote },
+          {
+            title: "Default Accounts",
+            url: "/admin/default-accounts",
+            icon: Banknote,
+          },
+          {
+            title: "Tax Settings",
+            url: "/admin/tax-settings",
+            icon: FileText,
+          },
+          {
+            title: "Invoice Settings",
+            url: "/admin/invoice-settings",
+            icon: Receipt,
+          },
+        ],
+      },
+    ];
+  }, [user?.companyId]);
 
   const prevAdminView = useRef<boolean | undefined>(undefined);
   useEffect(() => {
@@ -397,13 +410,25 @@ useEffect(() => {
                   <SidebarGroupContent>
                     <SidebarMenu className="gap-0.5 mt-0.5">
                       {section.items.map((item) => {
-                        const active = path.startsWith(item.url);
+                        const active =
+                          item.url != null && path.startsWith(item.url);
                         return (
                           <SidebarMenuSub
                             key={item.title}
                             className="border-none"
                           >
                             <SidebarMenuItem>
+                              {item.url == null ? (
+                                <div
+                                  className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 opacity-50 select-none"
+                                  title="Company context not loaded yet"
+                                >
+                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                                    <item.icon className="h-3.5 w-3.5" />
+                                  </span>
+                                  <span className="truncate">{item.title}</span>
+                                </div>
+                              ) : (
                               <SidebarMenuButton asChild className="h-auto p-0">
                                 <Link
                                   to={item.url}
@@ -427,6 +452,7 @@ useEffect(() => {
                                   <span className="truncate">{item.title}</span>
                                 </Link>
                               </SidebarMenuButton>
+                              )}
 
                               {/* ── Employee submodules ─────────────────── */}
                               {item.url === "/hr/employees" && selected && (
@@ -550,7 +576,13 @@ useEffect(() => {
             <SidebarMenuItem>
               <SidebarMenuButton asChild className="h-auto p-0">
                 <Link
-                  to={globalSettingsView ? "/" : `/settings/${user?.companyId}`}
+                  to={
+                    globalSettingsView
+                      ? "/"
+                      : user?.companyId != null
+                        ? `/settings/${user.companyId}`
+                        : "/"
+                  }
                   onClick={() => dispatch(toggleGlobalSettingsView())}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-150",

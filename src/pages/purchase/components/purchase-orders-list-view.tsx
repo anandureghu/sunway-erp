@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Search, ShoppingCart } from "lucide-react";
 import { DataTable } from "@/components/datatable";
@@ -12,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 
@@ -28,6 +30,12 @@ type Props = {
   onRetry: () => void;
 };
 
+type OrderTab = "open" | "terminal";
+
+function isTerminalOrderStatus(status: string): boolean {
+  return status === "received" || status === "cancelled";
+}
+
 export function PurchaseOrdersListView({
   loading,
   error,
@@ -40,6 +48,35 @@ export function PurchaseOrdersListView({
   onRowClick,
   onRetry,
 }: Props) {
+  const [tab, setTab] = useState<OrderTab>("open");
+
+  const openOrders = useMemo(
+    () => orders.filter((o) => !isTerminalOrderStatus(o.status)),
+    [orders],
+  );
+  const terminalOrders = useMemo(
+    () => orders.filter((o) => isTerminalOrderStatus(o.status)),
+    [orders],
+  );
+
+  const handleTabChange = (next: string) => {
+    const value = next as OrderTab;
+    setTab(value);
+    if (value === "terminal") {
+      if (
+        statusFilter !== "all" &&
+        statusFilter !== "received" &&
+        statusFilter !== "cancelled"
+      ) {
+        onStatusChange("all");
+      }
+    } else if (value === "open") {
+      if (statusFilter === "received" || statusFilter === "cancelled") {
+        onStatusChange("all");
+      }
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <Card className="border-0 shadow-md bg-gradient-to-r from-zinc-900 via-slate-900 to-zinc-800 text-white">
@@ -75,10 +112,13 @@ export function PurchaseOrdersListView({
       <Card className="shadow-sm">
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
               Orders
-              <Badge variant="secondary">{orders.length}</Badge>
+              <Badge variant="secondary">{openOrders.length} open</Badge>
+              <Badge variant="outline">
+                {terminalOrders.length} received / cancelled
+              </Badge>
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <div className="relative">
@@ -90,21 +130,24 @@ export function PurchaseOrdersListView({
                   className="pl-8 w-56 sm:w-64"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={onStatusChange}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="partially_received">
-                    Partially received
-                  </SelectItem>
-                  <SelectItem value="received">Received</SelectItem>
-                </SelectContent>
-              </Select>
+              {tab === "open" ? (
+                <Select value={statusFilter} onValueChange={onStatusChange}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All status</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="ordered">Ordered</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="partially_received">
+                      Partially received
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : null}
             </div>
           </div>
         </CardHeader>
@@ -129,11 +172,28 @@ export function PurchaseOrdersListView({
               </Button>
             </div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={orders}
-              onRowClick={onRowClick}
-            />
+            <Tabs value={tab} onValueChange={handleTabChange}>
+              <TabsList>
+                <TabsTrigger value="open">Open ({openOrders.length})</TabsTrigger>
+                <TabsTrigger value="terminal">
+                  Received / cancelled ({terminalOrders.length})
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="open" className="mt-4">
+                <DataTable
+                  columns={columns}
+                  data={openOrders}
+                  onRowClick={onRowClick}
+                />
+              </TabsContent>
+              <TabsContent value="terminal" className="mt-4">
+                <DataTable
+                  columns={columns}
+                  data={terminalOrders}
+                  onRowClick={onRowClick}
+                />
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>

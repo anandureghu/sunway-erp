@@ -24,6 +24,8 @@ type BankModel = {
   location:    string;
   city:        string;
   bankName:    string;
+  /** Bank code for SIF / bank payroll CSV (e.g. QIB, CBQ) */
+  bankShortName: string;
   state:       string;
   bankBranch:  string;
   country:     string;
@@ -34,7 +36,7 @@ type BankModel = {
 };
 
 const SEED: BankModel = {
-  location: "", city: "", bankName: "", state: "", bankBranch: "",
+  location: "", city: "", bankName: "", bankShortName: "", state: "", bankBranch: "",
   country: "", accountType: "", remarks: "", accountNo: "", iban: "",
 };
 
@@ -303,7 +305,7 @@ export default function BankForm() {
               label="Bank Information"
               accent="from-violet-600 to-blue-600"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Field label="Bank Name" required error={errors.bankName}>
                 <div className="relative">
                   <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -315,6 +317,23 @@ export default function BankForm() {
                     placeholder="e.g. CIMB Bank"
                   />
                 </div>
+              </Field>
+
+              <Field
+                label="Bank short name"
+                error={undefined}
+              >
+                <div className="relative">
+                  <Landmark className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 uppercase"
+                    disabled={!editing}
+                    value={draft.bankShortName}
+                    onChange={(e) => patch("bankShortName", e.target.value.toUpperCase())}
+                    placeholder="e.g. QIB, CBQ (required for bank payroll CSV)"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Used in the bank payroll file export.</p>
               </Field>
 
               <Field label="Bank Branch" required error={errors.bankBranch}>
