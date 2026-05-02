@@ -23,8 +23,11 @@ import { listVendors } from "@/service/vendorService";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import type { PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
-import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
-import type { RelatedGrRef } from "./components/related-purchase-documents";
+import {
+  RelatedPurchaseDocumentsCard,
+  type RelatedGrRef,
+} from "./components/related-purchase-documents";
+import { PurchasePageHeader } from "./components/purchase-page-header";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function PurchaseOrderDetailPage() {
@@ -182,43 +185,38 @@ export default function PurchaseOrderDetailPage() {
   const reqId = order.requisitionId;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">{order.orderNo}</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Purchase order — release when ready, then record receipts against
-              this PO
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge
-            className={
-              statusColors[order.status] || "bg-gray-100 text-gray-800"
-            }
-          >
-            {order.status
-              .replace("_", " ")
-              .split(" ")
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-              .join(" ")}
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void load()}
-            disabled={loading}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <div className="mx-auto space-y-6 p-4 sm:p-6">
+      <PurchasePageHeader
+        badge="Purchase order"
+        title={order.orderNo}
+        description="Release when ready, then record receipts against this PO."
+        backHref="/inventory/purchase/orders"
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => void load()}
+              disabled={loading}
+            >
+              <RefreshCw className="mr-1 h-4 w-4" />
+              Refresh
+            </Button>
+            <Badge
+              className={
+                statusColors[order.status] || "bg-gray-100 text-gray-800"
+              }
+            >
+              {order.status
+                .replace("_", " ")
+                .split(" ")
+                .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                .join(" ")}
+            </Badge>
+          </>
+        }
+      />
 
       <Card className="border-primary/20 bg-muted/30">
         <CardHeader className="pb-3">

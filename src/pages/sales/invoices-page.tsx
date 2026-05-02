@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
-import { Search, ArrowLeft } from "lucide-react";
+import {
+  Search,
+  FileText,
+  AlertTriangle,
+  CheckCircle2,
+  Wallet,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,10 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { type Invoice } from "@/types/sales";
 import { apiClient } from "@/service/apiClient";
 import type { Row } from "@tanstack/react-table";
+import { SalesPageHeader } from "./components/sales-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 export default function InvoicesPage({
   disableHeader = false,
@@ -50,78 +60,55 @@ export default function InvoicesPage({
     return matchesSearch && matchesStatus;
   });
 
-  const unpaidCount = invoices.filter((inv) => inv.status === "UNPAID").length;
-
-  const paidCount = invoices.filter((inv) => inv.status === "PAID").length;
-
-  const overdueCount = invoices.filter(
-    (inv) => inv.status === "OVERDUE",
-  ).length;
-
-  const draftCount = invoices.filter((inv) => inv.status === "DRAFT").length;
-
-  // No partial payment logic yet
-  const partialCount = 0;
+  const invoiceKpis = useMemo((): KpiSummaryStat[] => {
+    const norm = (s?: string) => (s || "").toUpperCase();
+    const unpaid = invoices.filter((inv) => norm(inv.status) === "UNPAID").length;
+    const paid = invoices.filter((inv) => norm(inv.status) === "PAID").length;
+    const overdue = invoices.filter((inv) => norm(inv.status) === "OVERDUE").length;
+    return [
+      {
+        label: "Total invoices",
+        value: invoices.length,
+        hint: "Sales invoices loaded",
+        accent: "sky",
+        icon: FileText,
+      },
+      {
+        label: "Unpaid",
+        value: unpaid,
+        hint: "Awaiting payment",
+        accent: "orange",
+        icon: Wallet,
+      },
+      {
+        label: "Paid",
+        value: paid,
+        hint: "Fully settled",
+        accent: "emerald",
+        icon: CheckCircle2,
+      },
+      {
+        label: "Overdue",
+        value: overdue,
+        hint: "Past due — needs collection",
+        accent: "rose",
+        icon: AlertTriangle,
+      },
+    ];
+  }, [invoices]);
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {!disableHeader && (
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/inventory/sales">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Sales Invoices</h1>
-              <p className="text-muted-foreground">
-                Manage invoices and payments
-              </p>
-            </div>
-          </div>
-        </div>
+        <SalesPageHeader
+          badge="Billing"
+          title="Sales Invoices"
+          description="Manage AR invoices issued from confirmed orders: payment status, due dates, and collections."
+          backHref="/inventory/sales"
+        />
       )}
 
-      {/* Invoice Summary Section */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        <div className="rounded-lg border p-4 bg-red-50">
-          <p className="text-sm text-red-600 font-medium">Unpaid (0%)</p>
-          <p className="text-lg font-semibold">
-            {unpaidCount} / {invoices.length}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4 bg-green-50">
-          <p className="text-sm text-green-600 font-medium">Paid (0%)</p>
-          <p className="text-lg font-semibold">
-            {paidCount} / {invoices.length}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4 bg-yellow-50">
-          <p className="text-sm text-yellow-600 font-medium">
-            Partially Paid (0%)
-          </p>
-          <p className="text-lg font-semibold">
-            {partialCount} / {invoices.length}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4 bg-orange-50">
-          <p className="text-sm text-orange-600 font-medium">Overdue (0%)</p>
-          <p className="text-lg font-semibold">
-            {overdueCount} / {invoices.length}
-          </p>
-        </div>
-
-        <div className="rounded-lg border p-4 bg-gray-50">
-          <p className="text-sm text-gray-600 font-medium">Draft (0%)</p>
-          <p className="text-lg font-semibold">
-            {draftCount} / {invoices.length}
-          </p>
-        </div>
-      </div>
+      <KpiSummaryStrip items={invoiceKpis} />
 
       <Card>
         <CardHeader>

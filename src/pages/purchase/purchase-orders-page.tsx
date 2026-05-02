@@ -13,6 +13,14 @@ import {
 } from "@/service/purchaseFlowService";
 import type { Row } from "@tanstack/react-table";
 import { PurchaseOrdersListView } from "./components/purchase-orders-list-view";
+import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
+import {
+  CircleDollarSign,
+  ClipboardList,
+  Package,
+  ShoppingCart,
+} from "lucide-react";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PurchaseOrderDetailsDialog } from "./components/purchase-order-details-dialog";
 import { PurchaseOrderForm } from "./components/purchase-order-form";
 
@@ -65,6 +73,50 @@ export default function PurchaseOrdersPage() {
   useEffect(() => {
     void refreshOrders();
   }, [refreshOrders]);
+
+  const purchaseOrderKpis = useMemo((): KpiSummaryStat[] => {
+    const terminal = (status: string) => {
+      const s = (status || "").toLowerCase();
+      return s === "received" || s === "cancelled";
+    };
+    const openCount = orders.filter((o) => !terminal(o.status)).length;
+    const draftCount = orders.filter(
+      (o) => (o.status || "").toLowerCase() === "draft",
+    ).length;
+    const openCommitment = orders
+      .filter((o) => !terminal(o.status))
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    return [
+      {
+        label: "Total POs",
+        value: orders.length,
+        hint: "All purchase orders loaded",
+        accent: "sky",
+        icon: ShoppingCart,
+      },
+      {
+        label: "Open POs",
+        value: openCount,
+        hint: "Not fully received or cancelled",
+        accent: "emerald",
+        icon: Package,
+      },
+      {
+        label: "Draft POs",
+        value: draftCount,
+        hint: "Awaiting release to supplier",
+        accent: "amber",
+        icon: ClipboardList,
+      },
+      {
+        label: "Open commitment",
+        value: <CurrencyAmount amount={openCommitment} />,
+        hint: "Sum of open PO totals",
+        accent: "violet",
+        icon: CircleDollarSign,
+      },
+    ];
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -218,6 +270,7 @@ export default function PurchaseOrdersPage() {
         onStatusChange={setStatusFilter}
         onRowClick={handleRowClick}
         onRetry={() => void refreshOrders()}
+        kpiItems={purchaseOrderKpis}
       />
       <PurchaseOrderDetailsDialog
         open={showOrderDetailsDialog}

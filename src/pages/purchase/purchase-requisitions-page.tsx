@@ -13,6 +13,13 @@ import { toast } from "sonner";
 import { PurchaseRequisitionsListView } from "./components/purchase-requisitions-list-view";
 import { CreatePurchaseRequisitionForm } from "./components/create-purchase-requisition-form";
 import { createPurchaseRequisitionColumns } from "@/lib/columns/purchase-requisition-columns";
+import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
+import {
+  ClipboardCheck,
+  ClipboardList,
+  Send,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function PurchaseRequisitionsPage() {
   const location = useLocation();
@@ -47,6 +54,49 @@ export default function PurchaseRequisitionsPage() {
     if (showCreateForm) return;
     void refreshRequisitions();
   }, [showCreateForm, location.pathname, refreshRequisitions]);
+
+  const requisitionKpis = useMemo((): KpiSummaryStat[] => {
+    const total = requisitions.length;
+    const inWorkflow = requisitions.filter(
+      (r) => r.status !== "converted" && r.status !== "rejected",
+    ).length;
+    const awaitingApproval = requisitions.filter(
+      (r) => r.status === "submitted",
+    ).length;
+    const converted = requisitions.filter(
+      (r) => r.status === "converted",
+    ).length;
+    return [
+      {
+        label: "Total requisitions",
+        value: total,
+        hint: "Loaded from procurement",
+        accent: "sky",
+        icon: ClipboardList,
+      },
+      {
+        label: "In workflow",
+        value: inWorkflow,
+        hint: "Not converted or rejected",
+        accent: "emerald",
+        icon: ClipboardCheck,
+      },
+      {
+        label: "Awaiting approval",
+        value: awaitingApproval,
+        hint: "Submitted, pending decision",
+        accent: "orange",
+        icon: Send,
+      },
+      {
+        label: "Converted to PO",
+        value: converted,
+        hint: "Approved & PO generated",
+        accent: "violet",
+        icon: CheckCircle2,
+      },
+    ];
+  }, [requisitions]);
 
   const filteredRequisitions = useMemo(() => {
     return requisitions.filter((req) => {
@@ -177,6 +227,7 @@ export default function PurchaseRequisitionsPage() {
       onStatusChange={setStatusFilter}
       onRetry={() => void refreshRequisitions()}
       onRowClick={handleRowClick}
+      kpiItems={requisitionKpis}
     />
   );
 }

@@ -21,6 +21,7 @@ import {
 import type { PurchaseRequisition } from "@/types/purchase";
 import { toast } from "sonner";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
+import { PurchasePageHeader } from "./components/purchase-page-header";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
 
 export default function PurchaseRequisitionDetailPage() {
@@ -174,42 +175,35 @@ export default function PurchaseRequisitionDetailPage() {
     requisition.status === "converted" && requisition.createdPurchaseOrderId;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">
-              {requisition.requisitionNo}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Purchase requisition — workflow: draft → submit for approval →
-              approve to generate a PO
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-          <Badge
-            className={
-              statusColors[requisition.status] || "bg-gray-100 text-gray-800"
-            }
-          >
-            {requisition.status.charAt(0).toUpperCase() +
-              requisition.status.slice(1)}
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void load()}
-            disabled={loading}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+      <PurchasePageHeader
+        badge="Requisition"
+        title={requisition.requisitionNo}
+        description="Draft → submit for approval → approve to generate a PO."
+        backHref="/inventory/purchase/requisitions"
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => void load()}
+              disabled={loading}
+            >
+              <RefreshCw className="mr-1 h-4 w-4" />
+              Refresh
+            </Button>
+            <Badge
+              className={
+                statusColors[requisition.status] || "bg-gray-100 text-gray-800"
+              }
+            >
+              {requisition.status.charAt(0).toUpperCase() +
+                requisition.status.slice(1)}
+            </Badge>
+          </>
+        }
+      />
 
       <Card className="border-primary/20 bg-muted/30">
         <CardHeader className="pb-3">

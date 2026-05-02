@@ -14,6 +14,7 @@ import {
 import type { GoodsReceipt } from "@/types/purchase";
 import { toast } from "sonner";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
+import { PurchasePageHeader } from "./components/purchase-page-header";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
 
 export default function GoodsReceiptDetailPage() {
@@ -236,39 +237,37 @@ export default function GoodsReceiptDetailPage() {
         }
       `}</style>
       
-      <div className="p-6 space-y-6 print-content">
-      {/* Header */}
-      <div className="flex items-center justify-between no-print">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Goods Receipt - {receipt.receiptNo}
-            </h1>
-            <p className="text-muted-foreground">
-              Receiving & Quality Inspection Details
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print Certificate
-          </Button>
-          <Badge
-            className={
-              statusColors[receipt.status] || "bg-gray-100 text-gray-800"
-            }
-          >
-            {receipt.status
-              .replace("_", " ")
-              .split(" ")
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-              .join(" ")}
-          </Badge>
-        </div>
+      <div className="space-y-6 p-4 sm:p-6 print-content">
+      <div className="no-print">
+        <PurchasePageHeader
+          badge="Goods receipt"
+          title={`Receipt ${receipt.receiptNo}`}
+          description="Receiving and quality inspection details for this GRN."
+          backHref="/inventory/purchase/receiving"
+          actions={
+            <>
+              <Button
+                size="lg"
+                className="bg-white text-slate-900 hover:bg-white/90"
+                onClick={handlePrint}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Print certificate
+              </Button>
+              <Badge
+                className={
+                  statusColors[receipt.status] || "bg-gray-100 text-gray-800"
+                }
+              >
+                {receipt.status
+                  .replace("_", " ")
+                  .split(" ")
+                  .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                  .join(" ")}
+              </Badge>
+            </>
+          }
+        />
       </div>
 
       <div className="no-print mb-4">

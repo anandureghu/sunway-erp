@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { SalesPageHeader } from "./components/sales-page-header";
 
 const PicklistDetailPage = () => {
   const { id } = useParams();
@@ -56,46 +56,44 @@ const PicklistDetailPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Back */}
-      <Button variant="secondary" onClick={() => navigate(-1)}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">
-            Picklist #{picklist.picklistNumber}
-          </h1>
-          {picklist.createdAt && (
-            <p className="text-sm text-muted-foreground">
-              Created at {new Date(picklist.createdAt).toLocaleString()}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {canCreateDispatch && (
-            <Button
-              onClick={() =>
-                navigate("/inventory/sales/picklist", {
-                  state: {
-                    activeTab: "dispatches",
-                    initialPicklistId: String(picklist.id),
-                    openCreateDispatch: true,
-                  },
-                })
-              }
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        badge="Picklist"
+        title={`Picklist #${picklist.picklistNumber}`}
+        description={
+          picklist.createdAt
+            ? `Created ${new Date(picklist.createdAt).toLocaleString()}`
+            : undefined
+        }
+        onBack={() => navigate("/inventory/sales/picklist")}
+        actions={
+          <>
+            {canCreateDispatch && (
+              <Button
+                size="lg"
+                className="bg-white text-slate-900 hover:bg-white/90"
+                onClick={() =>
+                  navigate("/inventory/sales/picklist", {
+                    state: {
+                      activeTab: "dispatches",
+                      initialPicklistId: String(picklist.id),
+                      openCreateDispatch: true,
+                    },
+                  })
+                }
+              >
+                Dispatch Shipment
+              </Button>
+            )}
+            <Badge
+              variant="outline"
+              className="capitalize border-white/25 bg-white/10 text-white hover:bg-white/10"
             >
-              Dispatch Shipment
-            </Button>
-          )}
-          <Badge variant="outline" className="capitalize">
-            {picklist.status}
-          </Badge>
-        </div>
-      </div>
+              {picklist.status}
+            </Badge>
+          </>
+        }
+      />
 
       {/* Info cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

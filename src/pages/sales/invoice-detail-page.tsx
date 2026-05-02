@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { Invoice } from "@/types/sales";
+import { SalesPageHeader } from "./components/sales-page-header";
 
 /* =======================
    CONSTANTS
@@ -58,7 +57,6 @@ const formatTemplate = (
 
 export default function InvoiceDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [tab, setTab] = useState<"invoice" | "receipt">("invoice");
@@ -82,6 +80,13 @@ export default function InvoiceDetailPage() {
     .split(/\r?\n/)
     .map((term) => term.trim())
     .filter(Boolean);
+  const invoiceHeaderDescription = [
+    invoice.toParty ? String(invoice.toParty) : "",
+    invoice.dueDate ? `Due ${formatDate(invoice.dueDate)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const dynamicNote = formatTemplate(
     isPaid ? invoice.invoiceNotesPaid : invoice.invoiceNotesUnpaid,
     {
@@ -152,13 +157,18 @@ export default function InvoiceDetailPage() {
   ======================= */
 
   return (
-    <div className="min-h-screen p-6" style={{ background: COLORS.gray100 }}>
-      <Button variant="ghost" onClick={() => navigate(-1)}>
-        <ArrowLeft />
-      </Button>
+    <div className="min-h-screen px-4 pb-6 pt-4 sm:px-6 sm:pt-6" style={{ background: COLORS.gray100 }}>
+      <SalesPageHeader
+        badge={isSales ? "Sales invoice" : "Purchase invoice"}
+        title={`Invoice ${safe(invoice.invoiceId)}`}
+        description={invoiceHeaderDescription || undefined}
+        backHref={
+          isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices"
+        }
+      />
 
       {/* TOGGLE */}
-      <div className="max-w-5xl mx-auto my-6 flex gap-3">
+      <div className="mx-auto my-6 flex max-w-5xl gap-3">
         {(["invoice", "receipt"] as const).map((t) => (
           <button
             key={t}

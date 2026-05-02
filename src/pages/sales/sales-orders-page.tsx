@@ -12,6 +12,14 @@ import {
 import { CreateSalesOrderForm } from "./components/create-sales-order-form";
 import { SalesOrderDetailsDialog } from "./components/sales-order-details-dialog";
 import { SalesOrdersListView } from "./components/sales-orders-list-view";
+import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
+import {
+  ClipboardList,
+  CircleDollarSign,
+  Package,
+  ShoppingBag,
+} from "lucide-react";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function SalesOrdersPage() {
   const location = useLocation();
@@ -77,6 +85,43 @@ export default function SalesOrdersPage() {
     () => orders.filter((o) => isClosedOrder(o)).length,
     [orders, isClosedOrder],
   );
+
+  const salesOrderKpis = useMemo((): KpiSummaryStat[] => {
+    const draftCount = orders.filter((o) => o.status === "draft").length;
+    const openPipelineValue = orders
+      .filter((o) => !isClosedOrder(o))
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    return [
+      {
+        label: "Total orders",
+        value: orders.length,
+        hint: "All sales orders in scope",
+        accent: "sky",
+        icon: Package,
+      },
+      {
+        label: "Open pipeline",
+        value: activeCount,
+        hint: "Excluding completed & cancelled",
+        accent: "emerald",
+        icon: ShoppingBag,
+      },
+      {
+        label: "Draft",
+        value: draftCount,
+        hint: "Awaiting confirmation",
+        accent: "amber",
+        icon: ClipboardList,
+      },
+      {
+        label: "Open order value",
+        value: <CurrencyAmount amount={openPipelineValue} />,
+        hint: "Sum of open order totals",
+        accent: "violet",
+        icon: CircleDollarSign,
+      },
+    ];
+  }, [orders, activeCount, isClosedOrder]);
 
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -263,6 +308,7 @@ export default function SalesOrdersPage() {
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
+        kpiItems={salesOrderKpis}
       />
       <SalesOrderDetailsDialog
         open={showOrderDetailsDialog}

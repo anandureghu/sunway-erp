@@ -1,5 +1,4 @@
-import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -15,6 +14,11 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SalesOrder } from "@/types/sales";
 import type { ColumnDef } from "@tanstack/react-table";
+import { SalesPageHeader } from "./sales-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 type ListTab = "active" | "closed";
 
@@ -33,6 +37,7 @@ type Props = {
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onRowClick: (id: string) => void;
+  kpiItems?: KpiSummaryStat[];
 };
 
 export function SalesOrdersListView({
@@ -50,6 +55,7 @@ export function SalesOrdersListView({
   onSearchChange,
   onStatusChange,
   onRowClick,
+  kpiItems,
 }: Props) {
   const emptyMessage =
     listTab === "active"
@@ -58,29 +64,22 @@ export function SalesOrdersListView({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <Card className="border-0 shadow-md bg-gradient-to-r from-zinc-900 via-slate-900 to-zinc-800 text-white">
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" asChild className="text-white hover:bg-white/10">
-                <Link to="/inventory/sales">
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-white/70">
-                  Sales
-                </p>
-                <h1 className="text-2xl sm:text-3xl font-bold">Manage Sales Orders</h1>
-              </div>
-            </div>
-            <Button onClick={onCreateNew} className="bg-white text-black hover:bg-white/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Create New Order
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <SalesPageHeader
+        badge="Sales orders"
+        title="Manage Sales Orders"
+        description="Review order pipeline, tabs for open vs completed work, and drill into any order."
+        backHref="/inventory/sales"
+        actions={
+          <Button size="lg" onClick={onCreateNew} className="bg-white text-slate-900 hover:bg-white/90">
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Order
+          </Button>
+        }
+      />
+
+      {kpiItems && kpiItems.length > 0 ? (
+        <KpiSummaryStrip items={kpiItems} />
+      ) : null}
 
       <Card className="shadow-sm">
         <CardHeader className="pb-3">

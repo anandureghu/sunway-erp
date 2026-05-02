@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { ArrowLeft, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
 } from "@/service/salesFlowService";
 import type { Picklist, SalesOrder } from "@/types/sales";
 import type { Warehouse } from "@/types/inventory";
+import { SalesPageHeader } from "./sales-page-header";
 
 type Props = {
   onCancel: () => void;
@@ -160,13 +161,13 @@ export function CreatePicklistForm({
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={onCancel}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold">Generate Picklist</h1>
-      </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        badge="Fulfillment"
+        title="Generate Picklist"
+        description="Select a paid, confirmed sales order and confirm the warehouse so pick lines can be prepared."
+        onBack={onCancel}
+      />
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardContent className="p-6 space-y-6">

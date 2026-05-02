@@ -19,10 +19,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Truck, ArrowLeft, CheckCircle2, Circle } from "lucide-react";
+import {
+  Search,
+  Truck,
+  CheckCircle2,
+  Circle,
+  Package,
+  Navigation,
+} from "lucide-react";
 import { format } from "date-fns";
 import type { Dispatch } from "@/types/sales";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   addShipmentTrackingEvent,
   cancelShipment,
@@ -44,6 +51,11 @@ import {
   getStatusDisplay,
   getTrackingHistory,
 } from "./components/delivery-tracking-utils";
+import { SalesPageHeader } from "./components/sales-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 export default function DeliveryTrackingPage() {
   const [searchParams] = useSearchParams();
@@ -115,6 +127,45 @@ export default function DeliveryTrackingPage() {
       );
     });
   }, [dispatches, searchQuery]);
+
+  const trackingKpis = useMemo((): KpiSummaryStat[] => {
+    const total = dispatches.length;
+    const delivered = dispatches.filter((d) => d.status === "delivered").length;
+    const pendingDispatch = dispatches.filter((d) => d.status === "created").length;
+    const inMotion = dispatches.filter((d) =>
+      ["dispatched", "in_transit", "out_for_delivery"].includes(d.status),
+    ).length;
+    return [
+      {
+        label: "Shipments",
+        value: total,
+        hint: "All tracked dispatches",
+        accent: "sky",
+        icon: Truck,
+      },
+      {
+        label: "Pending dispatch",
+        value: pendingDispatch,
+        hint: "Awaiting carrier release",
+        accent: "amber",
+        icon: Package,
+      },
+      {
+        label: "In motion",
+        value: inMotion,
+        hint: "On road or out for delivery",
+        accent: "violet",
+        icon: Navigation,
+      },
+      {
+        label: "Delivered",
+        value: delivered,
+        hint: "Confirmed customer receipt",
+        accent: "emerald",
+        icon: CheckCircle2,
+      },
+    ];
+  }, [dispatches]);
 
   useEffect(() => {
     if (!selectedDispatchId || dispatches.length === 0) return;
@@ -311,22 +362,17 @@ export default function DeliveryTrackingPage() {
   }, [trackingDialogOpen, selectedDispatch]);
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/inventory/sales">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Delivery Tracking</h1>
-            <p className="text-muted-foreground">
-              Track shipments and delivery status
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        badge="Logistics"
+        title="Delivery Tracking"
+        description="Monitor shipment movement, update milestones, and confirm customer delivery."
+        backHref="/inventory/sales"
+      />
+
+      {!loading && !loadError ? (
+        <KpiSummaryStrip items={trackingKpis} />
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
         {/* Left Sidebar - Active Dispatches */}

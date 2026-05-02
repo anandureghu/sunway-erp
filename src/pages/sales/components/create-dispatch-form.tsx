@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +21,7 @@ import {
 } from "@/service/salesFlowService";
 import { listCustomers } from "@/service/customerService";
 import type { Picklist } from "@/types/sales";
+import { SalesPageHeader } from "./sales-page-header";
 
 type Props = {
   onCancel: () => void;
@@ -136,18 +136,24 @@ export function CreateDispatchForm({
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <ArrowLeft className="h-4 w-4" />
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        badge="Fulfillment"
+        title="Create Dispatch"
+        description="Turn a picked picklist into a shipment with carrier, tracking, and delivery details."
+        onBack={onCancel}
+        actions={
+          <Button
+            size="lg"
+            variant="secondary"
+            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            type="button"
+            onClick={onCancel}
+          >
+            Cancel
           </Button>
-          <h1 className="text-3xl font-bold">Create Dispatch</h1>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
+        }
+      />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>

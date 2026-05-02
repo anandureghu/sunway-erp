@@ -12,6 +12,7 @@ import {
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { PurchasePageHeader } from "./components/purchase-page-header";
 
 export default function PurchaseInvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -89,46 +90,44 @@ export default function PurchaseInvoiceDetailPage() {
     invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Purchase invoice — {invoice.invoiceId}
-            </h1>
-            <p className="text-muted-foreground">
-              Supplier document and posted amounts
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {openDocumentHref && (
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={openDocumentHref}
-                target="_blank"
-                rel="noopener noreferrer"
+    <div className="space-y-6 p-4 sm:p-6">
+      <PurchasePageHeader
+        badge="Purchase invoice"
+        title={invoice.invoiceId}
+        description="Supplier document and posted amounts."
+        backHref="/inventory/purchase/invoices"
+        actions={
+          <>
+            {openDocumentHref && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                asChild
               >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open document
-              </a>
-            </Button>
-          )}
-          <Badge
-            className={statusColors[statusRaw] || "bg-gray-100 text-gray-800"}
-          >
-            {(invoice.status || "—")
-              .replace(/_/g, " ")
-              .toLowerCase()
-              .split(" ")
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-              .join(" ")}
-          </Badge>
-        </div>
-      </div>
+                <a
+                  href={openDocumentHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Open document
+                </a>
+              </Button>
+            )}
+            <Badge
+              className={statusColors[statusRaw] || "bg-gray-100 text-gray-800"}
+            >
+              {(invoice.status || "—")
+                .replace(/_/g, " ")
+                .toLowerCase()
+                .split(" ")
+                .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+                .join(" ")}
+            </Badge>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="lg:col-span-1">

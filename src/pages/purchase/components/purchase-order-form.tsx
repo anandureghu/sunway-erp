@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ArrowLeft, Plus, ShoppingCart } from "lucide-react";
+import { Plus, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
 import { listVendors } from "@/service/vendorService";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import { PurchasePageHeader } from "./purchase-page-header";
 
 type EditableLine = {
   id: string;
@@ -231,33 +232,27 @@ export function PurchaseOrderForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <Card className="border-0 shadow-md bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 text-white">
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onCancel}
-                className="text-white hover:bg-white/10"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-white/70">
-                  Purchase
-                </p>
-                <h1 className="text-2xl font-bold">
-                  {isEditMode ? "Edit Purchase Order" : "Create Purchase Order"}
-                </h1>
-              </div>
-            </div>
-            <Button variant="secondary" onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <PurchasePageHeader
+        badge="Purchase orders"
+        title={isEditMode ? "Edit purchase order" : "Create purchase order"}
+        description={
+          isEditMode
+            ? "Update draft lines and supplier details before releasing the PO."
+            : "Define supplier, dates, and lines for a new draft purchase order."
+        }
+        onBack={onCancel}
+        actions={
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+        }
+      />
 
       <Card className="shadow-sm">
         <CardHeader>

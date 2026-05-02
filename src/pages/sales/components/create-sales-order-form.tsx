@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, Info, Plus, ShoppingCart } from "lucide-react";
+import { Info, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ import type { SalesOrder, SalesOrderItem } from "@/types/sales";
 import type { Company } from "@/types/company";
 import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { SalesPageHeader } from "./sales-page-header";
 
 type Props = {
   onCancel: () => void;
@@ -505,33 +506,27 @@ export function CreateSalesOrderForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <Card className="border-0 shadow-md bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 text-white">
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onCancel}
-                className="text-white hover:bg-white/10"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-white/70">
-                  Sales
-                </p>
-                <h1 className="text-2xl font-bold">
-                  {isEditMode ? "Edit Sales Order" : "Create Sales Order"}
-                </h1>
-              </div>
-            </div>
-            <Button variant="secondary" onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <SalesPageHeader
+        badge="Sales orders"
+        title={isEditMode ? "Edit Sales Order" : "Create Sales Order"}
+        description={
+          isEditMode
+            ? "Update draft lines, pricing, and delivery details before confirming."
+            : "Add customer, lines, warehouses, and accounting defaults for a new draft order."
+        }
+        onBack={onCancel}
+        actions={
+          <Button
+            size="lg"
+            variant="secondary"
+            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            type="button"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+        }
+      />
 
       <form
         onSubmit={handleSubmit(onSubmit)}
