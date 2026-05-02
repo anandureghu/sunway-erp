@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ClipboardList, Search } from "lucide-react";
 import { DataTable } from "@/components/datatable";
@@ -12,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseRequisition } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 
@@ -29,6 +31,8 @@ type Props = {
   onRowClick: (row: Row<PurchaseRequisition>) => void;
 };
 
+type RequisitionTab = "active" | "converted";
+
 export function PurchaseRequisitionsListView({
   loading,
   error,
@@ -42,6 +46,27 @@ export function PurchaseRequisitionsListView({
   onRetry,
   onRowClick,
 }: Props) {
+  const [tab, setTab] = useState<RequisitionTab>("active");
+
+  const activeReqs = useMemo(
+    () => requisitions.filter((r) => r.status !== "converted"),
+    [requisitions],
+  );
+  const convertedReqs = useMemo(
+    () => requisitions.filter((r) => r.status === "converted"),
+    [requisitions],
+  );
+
+  const handleTabChange = (next: string) => {
+    const value = next as RequisitionTab;
+    setTab(value);
+    if (value === "converted" && statusFilter !== "all") {
+      onStatusChange("all");
+    } else if (value === "active" && statusFilter === "converted") {
+      onStatusChange("all");
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <Card className="border-0 shadow-md bg-gradient-to-r from-zinc-900 via-slate-900 to-zinc-800 text-white">
@@ -86,7 +111,10 @@ export function PurchaseRequisitionsListView({
             <CardTitle className="text-lg flex items-center gap-2">
               <ClipboardList className="h-5 w-5" />
               Requisitions
-              <Badge variant="secondary">{requisitions.length}</Badge>
+              <Badge variant="secondary">{activeReqs.length} active</Badge>
+              <Badge variant="outline">
+                {convertedReqs.length} converted
+              </Badge>
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <div className="relative">
@@ -98,18 +126,20 @@ export function PurchaseRequisitionsListView({
                   className="pl-8 w-56 sm:w-64"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={onStatusChange}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="converted">Converted</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+              {tab === "active" ? (
+                <Select value={statusFilter} onValueChange={onStatusChange}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All status</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="submitted">Submitted</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : null}
             </div>
           </div>
         </CardHeader>
@@ -126,11 +156,30 @@ export function PurchaseRequisitionsListView({
               </Button>
             </div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={requisitions}
-              onRowClick={onRowClick}
-            />
+            <Tabs value={tab} onValueChange={handleTabChange}>
+              <TabsList>
+                <TabsTrigger value="active">
+                  Active ({activeReqs.length})
+                </TabsTrigger>
+                <TabsTrigger value="converted">
+                  Converted ({convertedReqs.length})
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="active" className="mt-4">
+                <DataTable
+                  columns={columns}
+                  data={activeReqs}
+                  onRowClick={onRowClick}
+                />
+              </TabsContent>
+              <TabsContent value="converted" className="mt-4">
+                <DataTable
+                  columns={columns}
+                  data={convertedReqs}
+                  onRowClick={onRowClick}
+                />
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>

@@ -125,7 +125,7 @@ export default function PurchaseLandingPage() {
       tone: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/50",
     },
     {
-      title: "New purchase order",
+      title: "New purchase requisition",
       description: "Create a requisition; approval generates a draft PO.",
       to: "/inventory/purchase/requisitions/new",
       cta: "Create requisition",

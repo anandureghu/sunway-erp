@@ -338,7 +338,7 @@ export default function PurchaseRequisitionDetailPage() {
             {requisition.financeTransactionId && (
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Finance transaction (on approve)
+                  Finance transaction (vendor payment posted)
                 </p>
                 <p className="font-medium font-mono text-sm">
                   #{requisition.financeTransactionId}
