@@ -212,6 +212,10 @@ export default function App() {
             />
             <Route path="sales/orders/new" element={<SalesOrdersPage />} />
             <Route path="sales/customers" element={<SalesCustomersPage />} />
+            <Route
+              path="sales/customers/:id"
+              element={<CustomerDetailPage />}
+            />
             <Route path="sales/picklist" element={<PicklistDispatchPage />} />
             <Route path="sales/picklist/:id" element={<PicklistDetailPage />} />
             <Route path="sales/tracking" element={<DeliveryTrackingPage />} />
@@ -223,6 +227,10 @@ export default function App() {
               element={<PurchaseOrderDetailPage />}
             />
             <Route path="purchase/suppliers" element={<SuppliersPage />} />
+            <Route
+              path="purchase/suppliers/:id"
+              element={<VendorDetailPage />}
+            />
             <Route
               path="purchase/invoices"
               element={<PurchaseInvoicesPage />}

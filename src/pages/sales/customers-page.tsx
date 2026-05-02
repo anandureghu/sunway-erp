@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
 } from "@/components/kpi-summary-strip";
 
 export default function CustomersPage() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Customer | null>(null);
@@ -59,10 +61,9 @@ export default function CustomersPage() {
     }
   };
 
-  const handleRowClick = (_row: Row<Customer>) => {
-    // Optional: navigate to customer detail page
-    // const customer = row.original;
-    // navigate(`/inventory/sales/customers/${customer.id}`);
+  const handleRowClick = (row: Row<Customer>) => {
+    const customer = row.original;
+    navigate(`/inventory/sales/customers/${customer.id}`);
   };
 
   const handleDialogSuccess = (updated: Customer, mode: "add" | "edit") => {

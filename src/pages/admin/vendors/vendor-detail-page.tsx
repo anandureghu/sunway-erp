@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/service/apiClient";
@@ -7,10 +7,17 @@ import { toast } from "sonner";
 import { type Vendor } from "@/types/vendor";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { VendorDialog } from "./vendor-dialog";
+import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
+
+const PURCHASE_SUPPLIERS_LIST = "/inventory/purchase/suppliers";
+const ADMIN_VENDORS_LIST = "/admin/vendors";
 
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isPurchaseHub = pathname.includes("/inventory/purchase/suppliers");
+  const listPath = isPurchaseHub ? PURCHASE_SUPPLIERS_LIST : ADMIN_VENDORS_LIST;
 
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +39,7 @@ export default function VendorDetailPage() {
     try {
       await apiClient.delete(`/vendors/${id}`);
       toast.success("Supplier deleted");
-      navigate(-1);
+      navigate(listPath);
     } catch (err) {
       console.error(err);
       toast.error("Error deleting supplier");
@@ -57,31 +64,70 @@ export default function VendorDetailPage() {
       </div>
     );
 
+  const subtitle = [vendor.contactPersonName, vendor.email]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-3 items-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(-1)}
-            className="flex gap-1"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Button>
-          <h1 className="text-2xl font-semibold">{vendor.vendorName}</h1>
-        </div>
+    <div
+      className={
+        isPurchaseHub ? "mx-auto space-y-6 p-4 sm:p-6" : "space-y-6 p-6"
+      }
+    >
+      {isPurchaseHub ? (
+        <PurchasePageHeader
+          badge="Supplier"
+          title={vendor.vendorName}
+          description={
+            subtitle ||
+            "Vendor master record used on purchase orders and supplier invoices."
+          }
+          backHref={listPath}
+          actions={
+            <>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => setOpen(true)}
+              >
+                <Edit className="mr-2 h-4 w-4" /> Edit
+              </Button>
+              <Button
+                size="lg"
+                variant="destructive"
+                className="shadow-md"
+                onClick={handleDelete}
+              >
+                <Trash className="mr-2 h-4 w-4" /> Delete
+              </Button>
+            </>
+          }
+        />
+      ) : (
+        <div className="flex items-center justify-between">
+          <div className="flex gap-3 items-center">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="flex gap-1"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+            <h1 className="text-2xl font-semibold">{vendor.vendorName}</h1>
+          </div>
 
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setOpen(true)}>
-            <Edit className="h-4 w-4 mr-1" /> Edit
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setOpen(true)}>
+              <Edit className="h-4 w-4 mr-1" /> Edit
+            </Button>
 
-          <Button variant="destructive" onClick={handleDelete}>
-            <Trash className="h-4 w-4 mr-1" /> Delete
-          </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              <Trash className="h-4 w-4 mr-1" /> Delete
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -191,7 +237,7 @@ export default function VendorDetailPage() {
         vendor={vendor}
         onSuccess={() => {
           setOpen(false);
-          fetchVendor();
+          void fetchVendor();
         }}
       />
     </div>
