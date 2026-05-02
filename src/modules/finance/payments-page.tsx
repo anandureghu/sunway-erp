@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 
 import type {
@@ -15,6 +17,9 @@ import type {
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
 import { PaymentDialog } from "./payment-dialog";
 import { useNavigate } from "react-router-dom";
+import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
+
+type PaymentListTab = "outstanding" | "archived";
 
 export default function PaymentsPage({
   companyId,
@@ -28,6 +33,8 @@ export default function PaymentsPage({
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PaymentResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
+  const [listTab, setListTab] = useState<PaymentListTab>("outstanding");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const directionParam = variant === "vendor" ? "VENDOR" : "CUSTOMER";
   const title =
@@ -130,12 +137,35 @@ export default function PaymentsPage({
     onOpenPurchaseOrder: handleOpenPurchaseOrder,
   });
 
-  if (loading)
-    return (
-      <div className="flex h-64 justify-center items-center">
-        Loading payments...
-      </div>
-    );
+  const outstandingCount = useMemo(
+    () =>
+      payments.filter((p) => !isPaymentArchivedTab(p, variant)).length,
+    [payments, variant],
+  );
+
+  const archivedCount = useMemo(
+    () => payments.filter((p) => isPaymentArchivedTab(p, variant)).length,
+    [payments, variant],
+  );
+
+  const filteredPayments = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return payments.filter((p) => {
+      const archived = isPaymentArchivedTab(p, variant);
+      const matchesTab =
+        listTab === "archived" ? archived : !archived;
+
+      const matchesSearch =
+        !q ||
+        (p.paymentCode?.toLowerCase().includes(q) ?? false) ||
+        (p.invoiceId?.toLowerCase().includes(q) ?? false) ||
+        String(p.purchaseOrderId ?? "").includes(q) ||
+        (p.paymentMethod?.toLowerCase().includes(q) ?? false) ||
+        String(p.amount ?? "").toLowerCase().includes(q);
+
+      return matchesTab && matchesSearch;
+    });
+  }, [payments, variant, listTab, searchQuery]);
 
   return (
     <div className="p-6 space-y-4">
@@ -145,17 +175,54 @@ export default function PaymentsPage({
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input placeholder="Search payments..." className="pl-10" />
+        <CardHeader className="pb-3">
+          <Tabs
+            value={listTab}
+            onValueChange={(v) => setListTab(v as PaymentListTab)}
+            className="w-full gap-4"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
+                <TabsTrigger value="outstanding" className="gap-2">
+                  Outstanding
+                  <Badge variant="secondary" className="font-normal">
+                    {outstandingCount}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="archived" className="gap-2">
+                  Archived
+                  <Badge variant="secondary" className="font-normal">
+                    {archivedCount}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
+              <div className="relative w-full max-w-md lg:w-72">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search code, invoice, PO, method…"
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          </Tabs>
         </CardHeader>
 
         <CardContent>
-          <DataTable data={payments} columns={columns} />
+          {loading ? (
+            <div className="flex h-48 items-center justify-center text-muted-foreground">
+              Loading payments…
+            </div>
+          ) : filteredPayments.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              {listTab === "outstanding"
+                ? "No pending payments match your search."
+                : "No archived payments match your search."}
+            </div>
+          ) : (
+            <DataTable data={filteredPayments} columns={columns} />
+          )}
         </CardContent>
       </Card>
 
