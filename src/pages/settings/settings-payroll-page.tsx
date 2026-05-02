@@ -1,8 +1,27 @@
 import PayrollBankFileSettingsCard from "@/modules/hr/payroll/PayrollBankFileSettingsCard";
-import { useParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function SettingsPayrollPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!id || id === "undefined") {
+      if (user?.companyId != null) {
+        navigate(`/settings/payroll/${user.companyId}`, { replace: true });
+      }
+    }
+  }, [id, user?.companyId, navigate]);
+
+  const resolvedId =
+    id && id !== "undefined"
+      ? id
+      : user?.companyId != null
+        ? String(user.companyId)
+        : undefined;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -12,7 +31,7 @@ export default function SettingsPayrollPage() {
           Configure the bank payroll file (SIF) used for CSV export to your bank (Finance → Employee Payroll).
         </p>
         <div className="mt-8">
-          <PayrollBankFileSettingsCard companyId={id} />
+          <PayrollBankFileSettingsCard companyId={resolvedId} />
         </div>
       </div>
     </div>

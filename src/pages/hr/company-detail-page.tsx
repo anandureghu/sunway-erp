@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/service/apiClient";
@@ -14,6 +15,7 @@ import { useAppSelector } from "@/store/store";
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { globalSettingsView } = useAppSelector((state) => state.ui);
 
   const [company, setCompany] = useState<Company | null>(null);
@@ -39,6 +41,7 @@ export default function CompanyDetailPage() {
   }, [id, company, openCreateAdmin]);
 
   const fetchCompany = async () => {
+    if (!id || id === "undefined") return;
     try {
       const res = await apiClient.get(`/companies/${id}`);
       setCompany(res.data);
@@ -51,7 +54,7 @@ export default function CompanyDetailPage() {
   };
 
   const fetchCompanyAdmin = async () => {
-    if (!id) return;
+    if (!id || id === "undefined") return;
     setAdminLoading(true);
     setAdminError(null);
     // backend endpoint you showed: GET /employees/admin/{companyId}
@@ -99,9 +102,20 @@ export default function CompanyDetailPage() {
   };
 
   useEffect(() => {
-    fetchCompany();
-    fetchCompanyAdmin();
-  }, [id]);
+    if (id === "undefined" || id === undefined) {
+      const cid = user?.companyId;
+      if (cid != null) {
+        navigate(`/settings/${cid}`, { replace: true });
+      }
+      setLoading(false);
+      setAdminLoading(false);
+      return;
+    }
+    setLoading(true);
+    setAdminLoading(true);
+    void fetchCompany();
+    void fetchCompanyAdmin();
+  }, [id, user?.companyId, navigate]);
 
   if (loading)
     return (

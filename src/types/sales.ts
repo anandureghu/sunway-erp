@@ -30,6 +30,7 @@ export type SalesOrderStatus =
   | "picked"
   | "dispatched"
   | "delivered"
+  | "completed"
   | "cancelled";
 
 export type SalesOrderItem = {

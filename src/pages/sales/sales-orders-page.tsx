@@ -20,6 +20,7 @@ export default function SalesOrdersPage() {
     (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [listTab, setListTab] = useState<"active" | "closed">("active");
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new"),
   );
@@ -57,12 +58,32 @@ export default function SalesOrdersPage() {
     void refreshOrders();
   }, [showCreateForm, location.pathname, refreshOrders]);
 
+  useEffect(() => {
+    setStatusFilter("all");
+  }, [listTab]);
+
+  const isClosedOrder = useCallback(
+    (o: SalesOrder) =>
+      o.status === "cancelled" || o.status === "completed",
+    [],
+  );
+
+  const activeCount = useMemo(
+    () => orders.filter((o) => !isClosedOrder(o)).length,
+    [orders, isClosedOrder],
+  );
+
+  const closedCount = useMemo(
+    () => orders.filter((o) => isClosedOrder(o)).length,
+    [orders, isClosedOrder],
+  );
+
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return orders.filter((order) => {
-      if (order.status === "cancelled") {
-        return false;
-      }
+      const inTab =
+        listTab === "closed" ? isClosedOrder(order) : !isClosedOrder(order);
+      if (!inTab) return false;
       const matchesSearch =
         !q ||
         order.orderNo.toLowerCase().includes(q) ||
@@ -71,21 +92,7 @@ export default function SalesOrdersPage() {
         statusFilter === "all" || order.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [orders, searchQuery, statusFilter]);
-
-  const historyOrders = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return orders.filter((order) => {
-      if (order.status !== "cancelled") {
-        return false;
-      }
-      return (
-        !q ||
-        order.orderNo.toLowerCase().includes(q) ||
-        order.customerName.toLowerCase().includes(q)
-      );
-    });
-  }, [orders, searchQuery]);
+  }, [orders, searchQuery, statusFilter, listTab, isClosedOrder]);
 
   const handleConfirmOrder = useCallback(
     async (id: string) => {
@@ -124,7 +131,10 @@ export default function SalesOrdersPage() {
     async (id: string) => {
       const order = orders.find((o) => o.id === id);
       if (!order) return toast.error("Order not found");
-      if (order.status !== "draft" && order.status !== "confirmed") {
+      if (
+        order.status !== "draft" &&
+        order.status !== "confirmed"
+      ) {
         return toast.error(
           `Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`,
         );
@@ -239,7 +249,10 @@ export default function SalesOrdersPage() {
         loading={loading}
         error={loadError}
         orders={filteredOrders}
-        historyOrders={historyOrders}
+        listTab={listTab}
+        onListTabChange={setListTab}
+        activeCount={activeCount}
+        closedCount={closedCount}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         columns={columns}
