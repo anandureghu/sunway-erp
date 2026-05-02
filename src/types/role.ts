@@ -4,14 +4,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const SecurityRole = {
-  USER:             "USER",
-  ADMIN:            "ADMIN",
-  HR:               "HR",
-  SUPER_ADMIN:      "SUPER_ADMIN",
-  FINANCE_MANAGER:  "FINANCE_MANAGER",
-  ACCOUNTANT:       "ACCOUNTANT",
-  AP_AR_CLERK:      "AP_AR_CLERK",
-  CONTROLLER:       "CONTROLLER",
+  USER: "USER",
+  ADMIN: "ADMIN",
+  HR: "HR",
+  SUPER_ADMIN: "SUPER_ADMIN",
+  FINANCE_MANAGER: "FINANCE_MANAGER",
+  ACCOUNTANT: "ACCOUNTANT",
+  AP_AR_CLERK: "AP_AR_CLERK",
+  CONTROLLER: "CONTROLLER",
   AUDITOR_EXTERNAL: "AUDITOR_EXTERNAL",
 } as const;
 
@@ -37,26 +37,26 @@ const SECURITY_ROLE_LABELS: Record<string, string> = {
 
 /** A single company role returned from the backend */
 export interface CompanyRole {
-  id:           number;
-  name:         string;        // "HR Manager", "Finance Lead" etc.
+  id: number;
+  name: string; // "HR Manager", "Finance Lead" etc.
   description?: string;
-  active?:      boolean;       // Make optional to match API response
-  companyId:    number;
+  active?: boolean; // Make optional to match API response
+  companyId: number;
   createdDate?: string;
   updatedDate?: string;
 }
 
 /** Lightweight option for dropdowns / selects */
 export interface RoleOption {
-  label: string;   // display text  → role.name
-  value: string;   // stored value  → role.name (NOT id, so it matches user.companyRole)
+  label: string; // display text  → role.name
+  value: string; // stored value  → role.name (NOT id, so it matches user.companyRole)
 }
 
 /** Convert CompanyRole list from API into dropdown options */
 export const toRoleOptions = (roles: CompanyRole[]): RoleOption[] =>
   roles
-    .filter(r => r.active)
-    .map(r => ({ label: r.name, value: r.name }));
+    .filter((r) => r.active)
+    .map((r) => ({ label: r.name, value: r.name }));
 
 /**
  * Fallback options — used ONLY when the API hasn't loaded yet.
@@ -64,53 +64,21 @@ export const toRoleOptions = (roles: CompanyRole[]): RoleOption[] =>
  * Replace with real API data as soon as possible — don't rely on this.
  */
 export const fallbackRoleOptions: RoleOption[] = [
-  { label: "Admin",            value: "Admin" },
-  { label: "Super Admin",      value: "Super Admin" },
-  { label: "HR",              value: "HR" },
-  { label: "Employee",        value: "Employee" },
+  { label: "Admin", value: "Admin" },
+  { label: "Super Admin", value: "Super Admin" },
+  { label: "HR", value: "HR" },
+  { label: "Employee", value: "Employee" },
   { label: "Finance Manager", value: "Finance Manager" },
-  { label: "Accountant",      value: "Accountant" },
-  { label: "AP/AR Clerk",     value: "AP/AR Clerk" },
-  { label: "Controller",       value: "Controller" },
+  { label: "Accountant", value: "Accountant" },
+  { label: "AP/AR Clerk", value: "AP/AR Clerk" },
+  { label: "Controller", value: "Controller" },
   { label: "External Auditor", value: "External Auditor" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DISPLAY HELPERS
+// MODULES - All module names in SCREAMING_SNAKE_CASE
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Get display label for a companyRole string.
- * Falls back to the raw value if not found in options.
- *
- * Usage: getRoleLabel("HR")  → "HR"
- *        getRoleLabel("Finance Manager") → "Finance Manager"
- */
-export const getRoleLabel = (companyRole: string | null | undefined): string => {
-  if (!companyRole) return "—";
-  return companyRole; // companyRole IS the label — no mapping needed
-};
-
-/**
- * Use this anywhere you need to show a user's role in the UI.
- * Prefers companyRole (human readable), falls back to securityRole (enum).
- *
- * Usage: displayRole(user.companyRole, user.role)  → "HR Manager"
- */
-export const displayRole = (
-  companyRole: string | null | undefined,
-  securityRole: SecurityRole | string | null | undefined
-): string => {
-  if (companyRole) return companyRole;
-  if (securityRole) {
-    // Try to find a human-readable label for the security role
-    const normalizedRole = String(securityRole).toUpperCase();
-    return SECURITY_ROLE_LABELS[normalizedRole] || normalizedRole.replace(/_/g, " ");
-  }
-  return "—";
-};
-
-// Module names matching backend enum
 export const ModuleName = {
   EMPLOYEE_PROFILE: "EMPLOYEE_PROFILE",
   CURRENT_JOB: "CURRENT_JOB",
@@ -126,7 +94,7 @@ export const ModuleName = {
 
 export type ModuleName = typeof ModuleName[keyof typeof ModuleName];
 
-// Module display names for UI
+/** Module display names for UI */
 export const moduleDisplayNames: Record<string, string> = {
   EMPLOYEE_PROFILE: "Employee Profile",
   CURRENT_JOB: "Current Job",
@@ -140,7 +108,49 @@ export const moduleDisplayNames: Record<string, string> = {
   HR_SETTINGS: "HR Settings",
 };
 
-// Permission capabilities (flat structure for frontend)
+// ─────────────────────────────────────────────────────────────────────────────
+// PERMISSION TYPES - All keys in camelCase
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Flat permission structure matching backend PermissionRecord.
+ * This is the canonical structure used throughout the app.
+ */
+export interface PermissionRecord {
+  id?: number;
+  module: string; // e.g., "EMPLOYEE_PROFILE"
+  viewOwn?: boolean;
+  viewAll?: boolean;
+  createPermission?: boolean;
+  editPermission?: boolean;
+  deletePermission?: boolean;
+  approve?: boolean;
+}
+
+/**
+ * Type-safe module capabilities structure.
+ * Frontend works with this structure for UI operations.
+ */
+export type CapKey = "viewOwn" | "viewAll" | "create" | "edit" | "delete" | "approve";
+
+export interface ModuleCaps {
+  viewOwn: boolean;
+  viewAll: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+  approve: boolean;
+}
+
+/** All capabilities by module */
+export interface AllCaps {
+  [module: string]: ModuleCaps;
+}
+
+/**
+ * Permission capabilities - flat structure for frontend.
+ * Used for role-based and employee-specific permissions.
+ */
 export interface Permission {
   viewOwn: boolean;
   viewAll: boolean;
@@ -150,17 +160,14 @@ export interface Permission {
   approve: boolean;
 }
 
-// Module permission map - using flat properties for frontend
+/**
+ * Module permission with employee relationship.
+ * Matches backend ModulePermission structure.
+ */
 export interface ModulePermission {
-  permission?: {
-    viewOwn?: boolean;
-    viewAll?: boolean;
-    create?: boolean;
-    edit?: boolean;
-    deletePermission?: boolean;
-    approve?: boolean;
-  };
-  module?: string;
+  permission: any;
+  id?: number;
+  module: string;
   viewOwn?: boolean;
   viewAll?: boolean;
   createPermission?: boolean;
@@ -179,20 +186,7 @@ export interface ModulePermission {
   };
 }
 
-// Role with permissions
-export interface Role {
-  id?: number;
-  name: string;
-  description?: string;
-  custom: boolean;
-  permissions?: ModulePermission[];
-  active?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  companyId?: number;
-}
-
-// Permission rule for staff/employee
+/** Permission rule for staff/employee */
 export interface PermissionRule {
   id?: number;
   roleId?: number;
@@ -207,7 +201,23 @@ export interface PermissionRule {
   updatedAt?: string;
 }
 
-// API request/response types
+/** Role with permissions */
+export interface Role {
+  id?: number;
+  name: string;
+  description?: string;
+  custom: boolean;
+  permissions?: ModulePermission[];
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  companyId?: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API REQUEST/RESPONSE TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface CreateRoleRequest {
   name: string;
   description?: string;
@@ -233,7 +243,13 @@ export interface UpdatePermissionRuleRequest extends Partial<CreatePermissionRul
   active?: boolean;
 }
 
-// Helper to create empty permission
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS - Permission Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Create an empty permission with all flags set to false
+ */
 export const createEmptyPermission = (): Permission => ({
   viewOwn: false,
   viewAll: false,
@@ -243,7 +259,9 @@ export const createEmptyPermission = (): Permission => ({
   approve: false,
 });
 
-// Helper to create empty module permission
+/**
+ * Create an empty module permission
+ */
 export const createEmptyModulePermission = (module: string): ModulePermission => ({
   module,
   viewOwn: false,
@@ -255,19 +273,67 @@ export const createEmptyModulePermission = (module: string): ModulePermission =>
   permission: undefined
 });
 
-// Get all modules with empty permissions
-export const createEmptyPermissions = (): ModulePermission[] => 
-  Object.values(ModuleName).map(module => createEmptyModulePermission(module));
+/**
+ * Create empty permissions for all modules
+ */
+export const createEmptyPermissions = (): ModulePermission[] =>
+  Object.values(ModuleName).map((module) => createEmptyModulePermission(module));
 
-// Permission actions for UI
+/**
+ * Create empty caps structure for all modules
+ */
+export const createEmptyCaps = (): AllCaps =>
+  Object.values(ModuleName).reduce(
+    (acc, module) => ({
+      ...acc,
+      [module]: {
+        viewOwn: false,
+        viewAll: false,
+        create: false,
+        edit: false,
+        delete: false,
+        approve: false,
+      },
+    }),
+    {} as AllCaps,
+  );
+
+/**
+ * Get display label for a role string
+ */
+export const getRoleLabel = (companyRole: string | null | undefined): string => {
+  if (!companyRole) return "—";
+  return companyRole; // companyRole IS the label — no mapping needed
+};
+
+/**
+ * Use this anywhere you need to show a user's role in the UI.
+ * Prefers companyRole (human readable), falls back to securityRole (enum).
+ */
+export const displayRole = (
+  companyRole: string | null | undefined,
+  securityRole: SecurityRole | string | null | undefined,
+): string => {
+  if (companyRole) return companyRole;
+  if (securityRole) {
+    // Try to find a human-readable label for the security role
+    const normalizedRole = String(securityRole).toUpperCase();
+    return SECURITY_ROLE_LABELS[normalizedRole] || normalizedRole.replace(/_/g, " ");
+  }
+  return "—";
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERMISSION ACTIONS FOR UI
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const permissionActions = [
   { key: "viewOwn", label: "View Own", description: "Can view own records" },
   { key: "viewAll", label: "View All", description: "Can view all records" },
-  { key: "createPermission", label: "Create", description: "Can create new records" },
-  { key: "editPermission", label: "Edit", description: "Can edit records" },
-  { key: "deletePermission", label: "Delete", description: "Can delete records" },
+  { key: "create", label: "Create", description: "Can create new records" },
+  { key: "edit", label: "Edit", description: "Can edit records" },
+  { key: "delete", label: "Delete", description: "Can delete records" },
   { key: "approve", label: "Approve", description: "Can approve requests" },
 ] as const;
 
 export type PermissionAction = typeof permissionActions[number]["key"];
-

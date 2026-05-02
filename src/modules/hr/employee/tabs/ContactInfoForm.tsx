@@ -338,6 +338,7 @@ export default function ContactInfoForm() {
       // Call your password reset service here
       await hrService.resetEmployeePassword(employeeId, {
         newPassword: passwordState.newPassword,
+        confirmPassword: passwordState.confirmPassword,
       });
 
       toast.success("Password reset successfully");

@@ -118,17 +118,28 @@ export default function LeaveCustomizationForm() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedGender, setSelectedGender] = useState<Gender>("FEMALE");
 
-  useEffect(() => {
+useEffect(() => {
     const fetchRoles = async () => {
       try {
-        if (company?.id) {
-          const response = await roleService.getRoles(company.id);
-          if (response && response.length > 0) {
-            setRoles(convertRolesFromApi(response));
-          }
+        if (!company?.id) {
+          console.warn("No company ID available for fetching roles");
+          setRolesLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error("Failed to fetch roles:", error);
+
+        const response = await roleService.getRoles(company.id);
+        
+        // Log the response for debugging
+        console.log("Roles API response:", response);
+        console.log("Roles data length:", response?.length);
+
+        if (response && Array.isArray(response) && response.length > 0) {
+          setRoles(convertRolesFromApi(response));
+        } else {
+          console.warn("No roles returned from API, using defaults");
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch roles:", error?.response?.data ?? error.message);
       } finally {
         setRolesLoading(false);
       }
@@ -139,14 +150,33 @@ export default function LeaveCustomizationForm() {
   useEffect(() => {
     const fetchLeaveTypes = async () => {
       try {
-        if (company?.id) {
-          const response = await leavePolicyService.getLeaveTypes(company.id);
-          if (response.data && response.data.length > 0) {
-            setLeaveTypes(response.data.map((lt: { name: string }) => lt.name));
-          }
+        if (!company?.id) {
+          console.warn("No company ID available for fetching leave types");
+          setLeaveTypesLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error("Failed to fetch leave types:", error);
+
+        const response = await leavePolicyService.getLeaveTypes(company.id);
+        
+        // Log the response for debugging
+        console.log("Leave types API response:", response);
+        console.log("Leave types data:", response.data);
+
+        if (response.data && Array.isArray(response.data)) {
+          const normalizedLeaveTypes = response.data
+            .map((lt: any) => (typeof lt === "string" ? lt : lt?.name))
+            .filter((lt: string | undefined): lt is string => typeof lt === "string");
+
+          if (normalizedLeaveTypes.length > 0) {
+            setLeaveTypes(normalizedLeaveTypes);
+          } else {
+            console.warn("No leave types returned from API, using defaults");
+          }
+        } else {
+          console.warn("No leave types returned from API, using defaults");
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch leave types:", error?.response?.data ?? error.message);
       } finally {
         setLeaveTypesLoading(false);
       }
@@ -175,6 +205,7 @@ export default function LeaveCustomizationForm() {
               role: role.key,
               leaveType: leaveType as LeaveType,
               daysAllowed: existing ? existing.defaultDays : 0,
+              includeWeekends: existing?.includeWeekends ?? false,
             });
           });
         });
@@ -239,6 +270,17 @@ export default function LeaveCustomizationForm() {
     }
   };
 
+  const toggleWeekends = (role: string, leaveType: string) => {
+    setPolicies((prev) =>
+      prev.map((p) =>
+        p.role === role && p.leaveType === leaveType
+          ? { ...p, includeWeekends: !p.includeWeekends }
+          : p
+      )
+    );
+    setHasChanges(true);
+  };
+
   const handleSave = async () => {
     if (!company?.id) return;
 
@@ -253,6 +295,7 @@ export default function LeaveCustomizationForm() {
         paid: p.leaveType !== "Unpaid Leave",
         genderRestricted: p.leaveType === "Maternity Leave",
         allowedGender: p.leaveType === "Maternity Leave" ? "FEMALE" : null,
+        includeWeekends: p.includeWeekends ?? false,
       }));
 
       await leavePolicyService.savePolicies(company.id, payload);
@@ -497,6 +540,22 @@ export default function LeaveCustomizationForm() {
                       <p className="text-center text-[10px] font-medium text-slate-400 tracking-wide uppercase">
                         days / year
                       </p>
+
+                      {/* Include Weekends toggle */}
+                      <button
+                        type="button"
+                        onClick={() => toggleWeekends(role.key, leaveType)}
+                        className={`w-full flex items-center justify-between gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-semibold transition-colors ${
+                          policy?.includeWeekends
+                            ? "border-violet-200 bg-violet-50 text-violet-700"
+                            : "border-slate-200 bg-white/60 text-slate-500 hover:border-slate-300"
+                        }`}
+                      >
+                        <span>Incl. Weekends</span>
+                        <span className={`inline-flex h-3.5 w-6 rounded-full relative transition-colors ${policy?.includeWeekends ? "bg-violet-500" : "bg-slate-200"}`}>
+                          <span className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${policy?.includeWeekends ? "translate-x-2.5" : "translate-x-0.5"}`} />
+                        </span>
+                      </button>
 
                       {isRestricted && (
                         <p className="text-center text-[10px] text-pink-500 font-medium">Female only</p>

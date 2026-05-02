@@ -156,3 +156,9 @@ export const hasAnyRole = (
   if (!userRole) return false;
   return allowedRoles.includes(userRole);
 };
+
+// ✅ Username generator: firstName[0].lastName format (e.g., "j.doe")
+export function generateUsername(firstName: string, lastName: string): string {
+  if (!firstName || !lastName) return "";
+  return (firstName.substring(0, 1) + "." + lastName).toLowerCase();
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { ReactElement } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -7,12 +7,12 @@ import { useParams } from "react-router-dom";
 import { leaveService } from "@/service/leaveService";
 import { toast } from "sonner";
 import type { LeavePreview } from "@/service/leaveService";
-import { Calendar, Clock, CheckCircle, FileText, TrendingUp, CalendarDays, Layers } from "lucide-react";
+import { Calendar, Clock, CheckCircle, FileText, TrendingUp, CalendarDays, Layers, Upload, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
-type LeaveStatus = "Pending" | "Approved" | "Rejected";
+type LeaveStatus = "Pending for Approval" | "Approved" | "Rejected";
 type LeaveType = string;
 
 // Default leave types as fallback when API fails
@@ -24,7 +24,26 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Maternity Leave",
 ];
 
-const STATUS: LeaveStatus[] = ["Pending", "Approved", "Rejected"];
+// Employees can only submit — approval is done by manager/HR in the history view
+const STATUS: LeaveStatus[] = ["Pending for Approval"];
+
+// Leave types that require a supporting document
+const REQUIRES_DOCUMENT = ["Sick Leave"];
+
+/** Count working days (Mon–Fri) between two ISO date strings. */
+function countWorkingDays(start: string, end: string): number {
+  const s = new Date(start);
+  const e = new Date(end);
+  if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return 0;
+  let count = 0;
+  const cur = new Date(s);
+  while (cur <= e) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
 
 type LeaveRecord = {
   leaveCode: string;
@@ -35,35 +54,36 @@ type LeaveRecord = {
   leaveBalance: string;
   leaveStatus: LeaveStatus;
   totalDays: number;
+  includeWeekends: boolean;
 };
 
 const SEED: LeaveRecord = {
   leaveCode: "L001",
   leaveType: "Annual Leave",
-  startDate: "2025-10-22",
-  endDate: "2025-10-31",
-  dateReported: "2025-10-22",
+  startDate: "",
+  endDate: "",
+  dateReported: new Date().toISOString().slice(0, 10),
   leaveBalance: "",
-  leaveStatus: "Pending",
-  totalDays: 8,
+  leaveStatus: "Pending for Approval",
+  totalDays: 0,
+  includeWeekends: false,
 };
 
 export default function LeavesForm(): ReactElement {
   const { editing } = useOutletContext<Ctx>();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [draft, setDraft] = useState<LeaveRecord>({
-    ...SEED,
-    startDate: "",
-    endDate: "",
-    dateReported: new Date().toISOString().slice(0, 10),
-    totalDays: 0,
-  });
+  const [draft, setDraft] = useState<LeaveRecord>({ ...SEED });
   const [saved, setSaved] = useState<LeaveRecord | null>(null);
   const [preview, setPreview] = useState<LeavePreview | null>(null);
   const [availableTypes, setAvailableTypes] = useState<string[]>(DEFAULT_LEAVE_TYPES);
   const [loadingTypes, setLoadingTypes] = useState(true);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
+
+  const needsDoc = REQUIRES_DOCUMENT.some((t) => draft.leaveType?.toLowerCase().includes(t.toLowerCase()));
 
   // ============================================================
   // ✅ FIX: Fetch available leave types with proper error handling
@@ -77,17 +97,16 @@ export default function LeavesForm(): ReactElement {
     setLoadingTypes(true);
 
         leaveService.fetchAvailableLeaveTypes(employeeId)
-      .then((result) => {
+.then((result) => {
         // Use API-returned types if successful and non-empty, else fall back to defaults
-        const types =
-          result.success && result.data.length > 0
-            ? result.data
-            : DEFAULT_LEAVE_TYPES;
+        const types = result.success && result.data && result.data.length > 0
+          ? result.data
+          : DEFAULT_LEAVE_TYPES;
 
-        setAvailableTypes(types);
+        setAvailableTypes(types as string[]);
 
         // Auto-select first leave type if current draft type isn't in the list
-        if (types.length > 0 && !types.includes(draft.leaveType)) {
+        if (types && types.length > 0 && !types.includes(draft.leaveType)) {
           setDraft(d => ({ ...d, leaveType: types[0] }));
         }
       })
@@ -121,14 +140,20 @@ export default function LeavesForm(): ReactElement {
   // Calculate total days based on start and end dates
   useEffect(() => {
     if (!editing) return;
-    const sd = Date.parse(draft.startDate);
-    const ed = Date.parse(draft.endDate);
     let days = 0;
-    if (!Number.isNaN(sd) && !Number.isNaN(ed) && ed >= sd) {
-      days = Math.floor((ed - sd) / (1000 * 60 * 60 * 24)) + 1;
+    if (draft.startDate && draft.endDate) {
+      if (draft.includeWeekends) {
+        const sd = Date.parse(draft.startDate);
+        const ed = Date.parse(draft.endDate);
+        if (!Number.isNaN(sd) && !Number.isNaN(ed) && ed >= sd) {
+          days = Math.floor((ed - sd) / (1000 * 60 * 60 * 24)) + 1;
+        }
+      } else {
+        days = countWorkingDays(draft.startDate, draft.endDate);
+      }
     }
     setDraft((prev) => (prev.totalDays === days ? prev : { ...prev, totalDays: days }));
-  }, [draft.startDate, draft.endDate, editing]);
+  }, [draft.startDate, draft.endDate, draft.includeWeekends, editing]);
 
   // Preview leave when dates or type changes
   useEffect(() => {
@@ -175,28 +200,48 @@ export default function LeavesForm(): ReactElement {
       return;
     }
 
+// IMPORTANT: Do NOT send leaveStatus to backend
+    // New leave requests should always be PENDING by default
+    // Only HR/Department managers can approve via the approval panel
     const payload = {
       leaveType:    draft.leaveType,
       startDate:    draft.startDate,
       endDate:      draft.endDate,
       dateReported: draft.dateReported,
       leaveCode:    draft.leaveCode,
-      leaveStatus:  draft.leaveStatus,
+      // Leave status should be set by backend - don't send from frontend
+      // leaveStatus is intentionally omitted so backend sets it to PENDING
       // Send balance so it's stored and visible in history
       leaveBalance: draft.leaveBalance !== "" ? Number(draft.leaveBalance) : undefined,
     };
 
+    // Validate: sick leave requires a document
+    if (needsDoc && !docFile) {
+      setDocError("A supporting document (e.g. medical certificate) is required for Sick Leave.");
+      return;
+    }
+
     leaveService
       .applyLeave(employeeId, payload)
-      .then((result) => {
+      .then(async (result) => {
         // Service never throws — check the success flag explicitly
         if (!result.success) {
           toast.error(result.message || "Failed to apply leave");
           return;
         }
 
+        // Upload document if present
+        if (docFile && result.data?.leaveCode) {
+          const upRes = await leaveService.uploadLeaveDocument(employeeId, result.data.leaveCode, docFile);
+          if (!upRes.success) toast.warning("Leave submitted but document upload failed.");
+        } else if (docFile && draft.leaveCode) {
+          await leaveService.uploadLeaveDocument(employeeId, draft.leaveCode, docFile);
+        }
+
         toast.success("Leave applied successfully");
         setSaved(draft);
+        setDocFile(null);
+        setDocError(null);
 
         // Signal the shell to exit edit mode (LeavesShell listens for "leaves:saved")
         document.dispatchEvent(new Event("leaves:saved"));
@@ -415,16 +460,47 @@ export default function LeavesForm(): ReactElement {
           </Field>
         </div>
 
-        {/* Duration display — shows when both dates are set */}
-        {draft.startDate && draft.endDate && draft.totalDays > 0 && (
-          <div className="mt-4 flex items-center gap-2 rounded-lg border border-violet-100 bg-violet-50 px-4 py-2.5 w-fit">
-            <CalendarDays className="h-4 w-4 text-violet-600 shrink-0" />
-            <span className="text-sm text-violet-800">
-              <span className="font-bold">{draft.totalDays}</span>{" "}
-              {draft.totalDays === 1 ? "day" : "days"} selected
+        {/* Include Weekends toggle + duration */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {/* Toggle */}
+          <button
+            type="button"
+            disabled={!editing}
+            onClick={() => patch("includeWeekends", !draft.includeWeekends)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
+              draft.includeWeekends
+                ? "border-violet-300 bg-violet-50 text-violet-700"
+                : "border-slate-200 bg-white text-slate-500 hover:border-violet-200 hover:text-violet-600",
+              !editing && "opacity-50 cursor-not-allowed",
+            )}
+          >
+            <span className={cn(
+              "inline-flex h-4 w-7 rounded-full transition-colors relative",
+              draft.includeWeekends ? "bg-violet-500" : "bg-slate-200",
+            )}>
+              <span className={cn(
+                "absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform",
+                draft.includeWeekends ? "translate-x-3.5" : "translate-x-0.5",
+              )} />
             </span>
-          </div>
-        )}
+            Include Weekends
+          </button>
+
+          {/* Duration pill */}
+          {draft.startDate && draft.endDate && draft.totalDays > 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-violet-100 bg-violet-50 px-4 py-2 w-fit">
+              <CalendarDays className="h-4 w-4 text-violet-600 shrink-0" />
+              <span className="text-sm text-violet-800">
+                <span className="font-bold">{draft.totalDays}</span>{" "}
+                {draft.totalDays === 1 ? "day" : "days"} selected
+                {!draft.includeWeekends && (
+                  <span className="ml-1 text-[10px] text-violet-500">(working days)</span>
+                )}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Summary ── */}
@@ -456,6 +532,77 @@ export default function LeavesForm(): ReactElement {
           </Field>
         </div>
       </div>
+
+      {/* ── Document Upload (Sick Leave) ── */}
+      {needsDoc && (
+        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <SectionHead icon={<Upload className="h-3.5 w-3.5" />} label="Supporting Document" accent="from-rose-500 to-pink-600" />
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              setDocFile(f);
+              setDocError(null);
+              e.target.value = "";
+            }}
+          />
+
+          {docFile ? (
+            /* File selected — show preview row */
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800">{docFile.name}</p>
+                <p className="text-xs text-slate-500">{(docFile.size / 1024).toFixed(1)} KB</p>
+              </div>
+              {editing && (
+                <button
+                  type="button"
+                  onClick={() => { setDocFile(null); setDocError(null); }}
+                  className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-rose-100 hover:text-rose-600 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            /* Drop zone */
+            <button
+              type="button"
+              disabled={!editing}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-8",
+                "flex flex-col items-center gap-3 transition-colors",
+                editing
+                  ? "cursor-pointer hover:border-violet-300 hover:bg-violet-50/60"
+                  : "cursor-not-allowed opacity-60",
+              )}
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+                <Upload className="h-5 w-5" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-slate-700">Upload medical certificate</p>
+                <p className="mt-0.5 text-xs text-slate-500">PDF, JPG, or PNG · max 5 MB</p>
+              </div>
+            </button>
+          )}
+
+          {docError && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {docError}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Live preview card (shown when dates + type are set) ── */}
       {preview && (
