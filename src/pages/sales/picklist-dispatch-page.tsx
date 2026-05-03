@@ -38,14 +38,13 @@ import {
 
 export default function PicklistDispatchPage() {
   const location = useLocation();
-  const navState = (location.state as
-    | {
-        salesOrderId?: string;
-        initialPicklistId?: string;
-        openCreateDispatch?: boolean;
-        activeTab?: "picklists" | "dispatches";
-      }
-    | null) ?? null;
+  const navState =
+    (location.state as {
+      salesOrderId?: string;
+      initialPicklistId?: string;
+      openCreateDispatch?: boolean;
+      activeTab?: "picklists" | "dispatches";
+    } | null) ?? null;
   const [activeTab, setActiveTab] = useState("picklists");
   const [showCreatePicklist, setShowCreatePicklist] = useState(
     Boolean(navState?.salesOrderId),
@@ -53,7 +52,9 @@ export default function PicklistDispatchPage() {
   const [showCreateDispatch, setShowCreateDispatch] = useState(
     Boolean(navState?.openCreateDispatch),
   );
-  const [initialPicklistId, setInitialPicklistId] = useState(navState?.initialPicklistId || "");
+  const [initialPicklistId, setInitialPicklistId] = useState(
+    navState?.initialPicklistId || "",
+  );
   const [picklists, setPicklists] = useState<Picklist[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
@@ -99,7 +100,8 @@ export default function PicklistDispatchPage() {
       setPicklists(picklistsEnriched);
       setDispatches(dispatchesEnriched);
     } catch (e: any) {
-      const message = e?.response?.data?.message || e?.message || "Failed to load data";
+      const message =
+        e?.response?.data?.message || e?.message || "Failed to load data";
       setLoadError(message);
       toast.error(message);
     } finally {
@@ -124,7 +126,8 @@ export default function PicklistDispatchPage() {
           }
         },
         async (id) => {
-          if (!confirm("Are you sure you want to cancel this picklist?")) return;
+          if (!confirm("Are you sure you want to cancel this picklist?"))
+            return;
           try {
             await cancelPicklist(id);
             toast.success("Picklist cancelled");
@@ -171,7 +174,8 @@ export default function PicklistDispatchPage() {
           await loadData();
         },
         async (id) => {
-          if (!confirm("Are you sure you want to cancel this shipment?")) return;
+          if (!confirm("Are you sure you want to cancel this shipment?"))
+            return;
           await cancelShipment(id);
           await loadData();
         },
@@ -187,8 +191,7 @@ export default function PicklistDispatchPage() {
     const pickedReady = picklists.filter((p) => p.status === "picked").length;
     const shipmentsTotal = dispatches.length;
     const activeShipments = dispatches.filter(
-      (d) =>
-        !["delivered", "cancelled", "failed_delivery"].includes(d.status),
+      (d) => !["delivered", "cancelled", "failed_delivery"].includes(d.status),
     ).length;
     return [
       {
@@ -251,7 +254,6 @@ export default function PicklistDispatchPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Fulfillment"
         title="Picklist & Dispatch"
         description="Generate warehouse picklists from paid orders and create shipments when lines are picked."
         backHref="/inventory/sales"
@@ -304,14 +306,20 @@ export default function PicklistDispatchPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="py-10 text-center text-muted-foreground">Loading picklists...</div>
+                <div className="py-10 text-center text-muted-foreground">
+                  Loading picklists...
+                </div>
               ) : loadError ? (
-                <div className="py-10 text-center text-red-600">{loadError}</div>
+                <div className="py-10 text-center text-red-600">
+                  {loadError}
+                </div>
               ) : (
                 <DataTable
                   columns={picklistColumns}
                   data={picklists}
-                  onRowClick={(row) => navigate(`/inventory/sales/picklist/${row.original.id}`)}
+                  onRowClick={(row) =>
+                    navigate(`/inventory/sales/picklist/${row.original.id}`)
+                  }
                 />
               )}
             </CardContent>
@@ -325,9 +333,13 @@ export default function PicklistDispatchPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="py-10 text-center text-muted-foreground">Loading shipments...</div>
+                <div className="py-10 text-center text-muted-foreground">
+                  Loading shipments...
+                </div>
               ) : loadError ? (
-                <div className="py-10 text-center text-red-600">{loadError}</div>
+                <div className="py-10 text-center text-red-600">
+                  {loadError}
+                </div>
               ) : (
                 <DataTable columns={dispatchColumns} data={dispatches} />
               )}

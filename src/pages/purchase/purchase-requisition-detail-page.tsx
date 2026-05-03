@@ -177,7 +177,6 @@ export default function PurchaseRequisitionDetailPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
-        badge="Requisition"
         title={requisition.requisitionNo}
         description="Draft → submit for approval → approve to generate a PO."
         backHref="/inventory/purchase/requisitions"

@@ -1,5 +1,8 @@
 import { apiClient } from "@/service/apiClient";
-import { type PicklistResponseDTO, type SalesOrderResponseDTO } from "@/service/erpApiTypes";
+import {
+  type PicklistResponseDTO,
+  type SalesOrderResponseDTO,
+} from "@/service/erpApiTypes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +15,9 @@ const PicklistDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [picklist, setPicklist] = useState<PicklistResponseDTO | null>(null);
-  const [salesOrder, setSalesOrder] = useState<SalesOrderResponseDTO | null>(null);
+  const [salesOrder, setSalesOrder] = useState<SalesOrderResponseDTO | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +30,9 @@ const PicklistDetailPage = () => {
         setPicklist(data);
         if (!data.salesOrderId) return;
         try {
-          const so = await apiClient.get<SalesOrderResponseDTO>(`/sales/orders/${data.salesOrderId}`);
+          const so = await apiClient.get<SalesOrderResponseDTO>(
+            `/sales/orders/${data.salesOrderId}`,
+          );
           if (mounted) {
             setSalesOrder(so.data);
           }
@@ -58,7 +65,6 @@ const PicklistDetailPage = () => {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Picklist"
         title={`Picklist #${picklist.picklistNumber}`}
         description={
           picklist.createdAt
@@ -118,7 +124,9 @@ const PicklistDetailPage = () => {
             <div>
               <p className="text-muted-foreground">Created Time</p>
               <p className="font-medium">
-                {picklist.createdAt ? new Date(picklist.createdAt).toLocaleString() : "-"}
+                {picklist.createdAt
+                  ? new Date(picklist.createdAt).toLocaleString()
+                  : "-"}
               </p>
             </div>
           </CardContent>
@@ -144,7 +152,9 @@ const PicklistDetailPage = () => {
             </div>
             <div>
               <p className="text-muted-foreground">Order Status</p>
-              <p className="font-medium capitalize">{salesOrder?.status?.toLowerCase() || "-"}</p>
+              <p className="font-medium capitalize">
+                {salesOrder?.status?.toLowerCase() || "-"}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Payment Status</p>
@@ -153,7 +163,9 @@ const PicklistDetailPage = () => {
             <Button
               variant="outline"
               className="mt-2"
-              onClick={() => navigate(`/inventory/sales/orders/${picklist.salesOrderId}`)}
+              onClick={() =>
+                navigate(`/inventory/sales/orders/${picklist.salesOrderId}`)
+              }
             >
               View Sales Order Details
             </Button>
@@ -183,36 +195,46 @@ const PicklistDetailPage = () => {
                   picklist.items.map((item) => {
                     const orderLine = getOrderLineForItem(item.itemId);
                     return (
-                    <tr
-                      key={item.itemId}
-                      className="border-t cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/inventory/stocks/${item.itemId}`)}
-                    >
-                      <td className="px-3 py-2 font-medium text-primary underline underline-offset-2">
-                        {item.itemName}
-                      </td>
-                      <td className="px-3 py-2">{orderLine?.warehouseName || "-"}</td>
-                      <td className="px-3 py-2 text-right">
-                        {orderLine?.unitPrice != null
-                          ? Number(orderLine.unitPrice).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })
-                          : "-"}
-                      </td>
-                      <td className="px-3 py-2 text-right font-medium">
-                        {item.quantity}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {orderLine?.lineTotal != null
-                          ? Number(orderLine.lineTotal).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })
-                          : "-"}
-                      </td>
-                    </tr>
-                  );
+                      <tr
+                        key={item.itemId}
+                        className="border-t cursor-pointer hover:bg-muted/50"
+                        onClick={() =>
+                          navigate(`/inventory/stocks/${item.itemId}`)
+                        }
+                      >
+                        <td className="px-3 py-2 font-medium text-primary underline underline-offset-2">
+                          {item.itemName}
+                        </td>
+                        <td className="px-3 py-2">
+                          {orderLine?.warehouseName || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {orderLine?.unitPrice != null
+                            ? Number(orderLine.unitPrice).toLocaleString(
+                                undefined,
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                },
+                              )
+                            : "-"}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium">
+                          {item.quantity}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {orderLine?.lineTotal != null
+                            ? Number(orderLine.lineTotal).toLocaleString(
+                                undefined,
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                },
+                              )
+                            : "-"}
+                        </td>
+                      </tr>
+                    );
                   })
                 ) : (
                   <tr>

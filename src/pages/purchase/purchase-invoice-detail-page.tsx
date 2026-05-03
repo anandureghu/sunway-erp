@@ -92,7 +92,6 @@ export default function PurchaseInvoiceDetailPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
-        badge="Purchase invoice"
         title={invoice.invoiceId}
         description="Supplier document and posted amounts."
         backHref="/inventory/purchase/invoices"

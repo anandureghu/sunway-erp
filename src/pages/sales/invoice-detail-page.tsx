@@ -145,7 +145,9 @@ export default function InvoiceDetailPage() {
       } else {
         await apiClient.post(`/invoices/${invoice.id}/email`);
       }
-      alert(`${tab === "receipt" ? "Receipt" : "Invoice"} email sent to customer`);
+      alert(
+        `${tab === "receipt" ? "Receipt" : "Invoice"} email sent to customer`,
+      );
     } catch (error) {
       console.error("Email sending failed", error);
       alert("Unable to send email");
@@ -157,9 +159,11 @@ export default function InvoiceDetailPage() {
   ======================= */
 
   return (
-    <div className="min-h-screen px-4 pb-6 pt-4 sm:px-6 sm:pt-6" style={{ background: COLORS.gray100 }}>
+    <div
+      className="min-h-screen px-4 pb-6 pt-4 sm:px-6 sm:pt-6"
+      style={{ background: COLORS.gray100 }}
+    >
       <SalesPageHeader
-        badge={isSales ? "Sales invoice" : "Purchase invoice"}
         title={`Invoice ${safe(invoice.invoiceId)}`}
         description={invoiceHeaderDescription || undefined}
         backHref={
@@ -237,7 +241,9 @@ export default function InvoiceDetailPage() {
             className="rounded-xl px-6 py-4 text-center"
             style={{ background: COLORS.orange500 }}
           >
-            <div className="text-xl font-bold">{isReceipt ? "RECEIPT" : "INVOICE"}</div>
+            <div className="text-xl font-bold">
+              {isReceipt ? "RECEIPT" : "INVOICE"}
+            </div>
             <div className="text-sm">#{safe(invoice.invoiceId)}</div>
           </div>
         </div>
@@ -362,7 +368,11 @@ export default function InvoiceDetailPage() {
                 style={{ borderTop: `1px solid ${COLORS.gray200}` }}
               >
                 <span>{isReceipt ? "Amount Paid" : "Outstanding"}</span>
-                <span>{isReceipt ? money(invoice.amount) : money(invoice.outstanding)}</span>
+                <span>
+                  {isReceipt
+                    ? money(invoice.amount)
+                    : money(invoice.outstanding)}
+                </span>
               </div>
             </div>
           </div>
@@ -449,7 +459,9 @@ export default function InvoiceDetailPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Paid Date</p>
-                  <p className="font-semibold">{formatDate(invoice.paidDate)}</p>
+                  <p className="font-semibold">
+                    {formatDate(invoice.paidDate)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Status</p>
@@ -519,11 +531,16 @@ export default function InvoiceDetailPage() {
             <p>{safe(invoice.invoiceFooterSignatureNote)}</p>
 
             <p className="text-gray-400">
-              For support: {safe(invoice.companyEmail || invoice.invoiceFooterSupportEmail)}
+              For support:{" "}
+              {safe(invoice.companyEmail || invoice.invoiceFooterSupportEmail)}
               <span className="mx-1">|</span>
-              For billing: {safe(invoice.billingEmail || invoice.invoiceFooterBillingEmail)}
+              For billing:{" "}
+              {safe(invoice.billingEmail || invoice.invoiceFooterBillingEmail)}
             </p>
-            <p className="text-gray-400" style={{ display: invoice.companyWebsiteUrl ? "block" : "none" }}>
+            <p
+              className="text-gray-400"
+              style={{ display: invoice.companyWebsiteUrl ? "block" : "none" }}
+            >
               Website: {safe(invoice.companyWebsiteUrl)}
             </p>
           </div>

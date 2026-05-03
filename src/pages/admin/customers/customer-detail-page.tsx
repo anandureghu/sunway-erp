@@ -64,21 +64,15 @@ export default function CustomerDetailPage() {
       </div>
     );
 
-  const displayName =
-    customer.customerName ?? customer.name ?? "Customer";
+  const displayName = customer.customerName ?? customer.name ?? "Customer";
   const subtitle = [customer.contactPersonName, customer.email]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <div
-      className={
-        isSalesHub ? "space-y-6 p-4 sm:p-6" : "space-y-6 p-6"
-      }
-    >
+    <div className={isSalesHub ? "space-y-6 p-4 sm:p-6" : "space-y-6 p-6"}>
       {isSalesHub ? (
         <SalesPageHeader
-          badge="Customer"
           title={displayName}
           description={
             subtitle ||

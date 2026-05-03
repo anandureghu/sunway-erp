@@ -157,7 +157,9 @@ export default function ReceivingPage() {
   const receivingKpis = useMemo((): KpiSummaryStat[] => {
     const receiptsTotal = receipts.length;
     const readyPo = ordersReadyForReceiving.length;
-    const completedGrn = receipts.filter((r) => r.status === "completed").length;
+    const completedGrn = receipts.filter(
+      (r) => r.status === "completed",
+    ).length;
     const openGrn = receipts.filter(
       (r) => r.status !== "completed" && r.status !== "cancelled",
     ).length;
@@ -210,7 +212,6 @@ export default function ReceivingPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
-        badge="Receiving"
         title="Receiving & quality inspection"
         description="Receive goods against released POs and record inspection outcomes."
         backHref="/inventory/purchase"
@@ -489,7 +490,6 @@ function CreateReceiptForm({
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
-        badge="Receiving"
         title="Create goods receipt"
         description="Select a released purchase order and enter quantities accepted or rejected per line."
         onBack={onCancel}
@@ -579,9 +579,7 @@ function CreateReceiptForm({
                           <td className="p-2 min-w-[160px]">
                             <Select
                               value={
-                                item.warehouseId
-                                  ? String(item.warehouseId)
-                                  : ""
+                                item.warehouseId ? String(item.warehouseId) : ""
                               }
                               onValueChange={(v) =>
                                 updateItem(idx, "warehouseId", v)

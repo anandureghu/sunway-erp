@@ -117,14 +117,17 @@ export function PurchaseOrderForm({
 
   const supplierName = useMemo(() => {
     if (!selectedSupplierId) return "";
-    const matched = vendors.find((v) => String(v.id) === String(selectedSupplierId));
+    const matched = vendors.find(
+      (v) => String(v.id) === String(selectedSupplierId),
+    );
     return matched?.vendorName || matched?.name || "";
   }, [selectedSupplierId, vendors]);
 
   const totalAmount = useMemo(
     () =>
       lines.reduce((sum, line) => {
-        const applied = line.otherUnitCost > 0 ? line.otherUnitCost : line.unitCost;
+        const applied =
+          line.otherUnitCost > 0 ? line.otherUnitCost : line.unitCost;
         return sum + applied * line.quantity;
       }, 0),
     [lines],
@@ -197,12 +200,13 @@ export function PurchaseOrderForm({
         })),
       };
 
-      const saved = isEditMode && initialOrder?.id
-        ? await updatePurchaseOrder(initialOrder.id, payload)
-        : await createPurchaseOrder({
-            supplierId: Number(selectedSupplierId),
-            ...payload,
-          });
+      const saved =
+        isEditMode && initialOrder?.id
+          ? await updatePurchaseOrder(initialOrder.id, payload)
+          : await createPurchaseOrder({
+              supplierId: Number(selectedSupplierId),
+              ...payload,
+            });
 
       toast.success(
         isEditMode
@@ -233,7 +237,6 @@ export function PurchaseOrderForm({
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PurchasePageHeader
-        badge="Purchase orders"
         title={isEditMode ? "Edit purchase order" : "Create purchase order"}
         description={
           isEditMode
@@ -309,9 +312,15 @@ export function PurchaseOrderForm({
                 value={selectedItemId}
                 onValueChange={(value) => {
                   setSelectedItemId(value);
-                  const selected = itemsMaster.find((i) => String(i.id) === value);
+                  const selected = itemsMaster.find(
+                    (i) => String(i.id) === value,
+                  );
                   setLineUnitCost(
-                    Number((selected as any)?.costPrice ?? (selected as any)?.purchasePrice ?? 0),
+                    Number(
+                      (selected as any)?.costPrice ??
+                        (selected as any)?.purchasePrice ??
+                        0,
+                    ),
                   );
                 }}
               >
@@ -336,7 +345,9 @@ export function PurchaseOrderForm({
                 min="1"
                 step="1"
                 value={lineQty}
-                onChange={(e) => setLineQty(parseInt(e.target.value || "0", 10))}
+                onChange={(e) =>
+                  setLineQty(parseInt(e.target.value || "0", 10))
+                }
               />
             </div>
             <div className="space-y-2">
@@ -356,7 +367,9 @@ export function PurchaseOrderForm({
                 min="0"
                 step="0.01"
                 value={lineOtherUnitCost}
-                onChange={(e) => setLineOtherUnitCost(Number(e.target.value || "0"))}
+                onChange={(e) =>
+                  setLineOtherUnitCost(Number(e.target.value || "0"))
+                }
               />
             </div>
           </div>
@@ -381,7 +394,9 @@ export function PurchaseOrderForm({
                 <tbody>
                   {lines.map((line) => {
                     const applied =
-                      line.otherUnitCost > 0 ? line.otherUnitCost : line.unitCost;
+                      line.otherUnitCost > 0
+                        ? line.otherUnitCost
+                        : line.unitCost;
                     return (
                       <tr key={line.id} className="border-t">
                         <td className="p-3 align-middle">{line.itemName}</td>

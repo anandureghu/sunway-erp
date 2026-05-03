@@ -76,7 +76,6 @@ export default function VendorDetailPage() {
     >
       {isPurchaseHub ? (
         <PurchasePageHeader
-          badge="Supplier"
           title={vendor.vendorName}
           description={
             subtitle ||

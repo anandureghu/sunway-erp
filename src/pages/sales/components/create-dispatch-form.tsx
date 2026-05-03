@@ -36,7 +36,9 @@ export function CreateDispatchForm({
   initialPicklistId,
   onCreated,
 }: Props) {
-  const [selectedPicklistId, setSelectedPicklistId] = useState(initialPicklistId || "");
+  const [selectedPicklistId, setSelectedPicklistId] = useState(
+    initialPicklistId || "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const {
     register,
@@ -77,7 +79,9 @@ export function CreateDispatchForm({
           preferredAddress = (fullOrder.shippingAddress || "").trim();
           if (!preferredAddress && fullOrder.customerId) {
             const customers = await listCustomers();
-            const customer = customers.find((c) => c.id === fullOrder.customerId);
+            const customer = customers.find(
+              (c) => c.id === fullOrder.customerId,
+            );
             preferredAddress = [
               customer?.address,
               customer?.city,
@@ -99,7 +103,9 @@ export function CreateDispatchForm({
       if (!cancelled) {
         setValue(
           "notes",
-          [order?.customerName, order?.customerPhone].filter(Boolean).join(" | "),
+          [order?.customerName, order?.customerPhone]
+            .filter(Boolean)
+            .join(" | "),
         );
       }
     };
@@ -128,7 +134,9 @@ export function CreateDispatchForm({
       onCancel();
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || err?.message || "Failed to create shipment.",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create shipment.",
       );
     } finally {
       setSubmitting(false);
@@ -138,7 +146,6 @@ export function CreateDispatchForm({
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Fulfillment"
         title="Create Dispatch"
         description="Turn a picked picklist into a shipment with carrier, tracking, and delivery details."
         onBack={onCancel}
@@ -197,14 +204,18 @@ export function CreateDispatchForm({
                   </SelectContent>
                 </Select>
                 {errors.picklistId && (
-                  <p className="text-sm text-red-500">{errors.picklistId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.picklistId.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="deliveryAddress">Delivery Address *</Label>
                 <Input id="deliveryAddress" {...register("deliveryAddress")} />
                 {errors.deliveryAddress && (
-                  <p className="text-sm text-red-500">{errors.deliveryAddress.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.deliveryAddress.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -230,7 +241,9 @@ export function CreateDispatchForm({
                 <Input id="driverPhone" {...register("driverPhone")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estimatedDeliveryDate">Estimated Delivery Date</Label>
+                <Label htmlFor="estimatedDeliveryDate">
+                  Estimated Delivery Date
+                </Label>
                 <Input
                   id="estimatedDeliveryDate"
                   type="date"

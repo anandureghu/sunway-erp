@@ -161,7 +161,6 @@ export default function SuppliersPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
-        badge="Vendor master"
         title="Suppliers"
         description="Maintain vendor records used on purchase orders and supplier invoices."
         backHref="/inventory/purchase"
