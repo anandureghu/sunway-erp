@@ -187,7 +187,6 @@ export default function PurchaseOrderDetailPage() {
   return (
     <div className="mx-auto space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
-        badge="Purchase order"
         title={order.orderNo}
         description="Release when ready, then record receipts against this PO."
         backHref="/inventory/purchase/orders"

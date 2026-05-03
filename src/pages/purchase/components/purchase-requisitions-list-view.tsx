@@ -76,7 +76,6 @@ export function PurchaseRequisitionsListView({
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PurchasePageHeader
-        badge="Requisitions"
         title="Purchase requisitions"
         description="Submit for approval; approving creates a draft purchase order tied to your preferred supplier."
         backHref="/inventory/purchase"
@@ -102,9 +101,7 @@ export function PurchaseRequisitionsListView({
               <ClipboardList className="h-5 w-5" />
               Requisitions
               <Badge variant="secondary">{activeReqs.length} active</Badge>
-              <Badge variant="outline">
-                {convertedReqs.length} converted
-              </Badge>
+              <Badge variant="outline">{convertedReqs.length} converted</Badge>
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <div className="relative">
@@ -152,7 +149,7 @@ export function PurchaseRequisitionsListView({
                   Active ({activeReqs.length})
                 </TabsTrigger>
                 <TabsTrigger value="converted">
-                  Converted ({convertedReqs.length})
+                  Converted To PO ({convertedReqs.length})
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="active" className="mt-4">

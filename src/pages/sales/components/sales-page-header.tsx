@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +11,7 @@ export const SALES_HEADER_CARD_CLASS =
 
 export type SalesPageHeaderProps = {
   /** Pill label above the title */
-  badge?: string;
+  titleClassName?: string;
   title: string;
   description?: string;
   /** Back navigation using a router link */
@@ -27,7 +26,7 @@ export type SalesPageHeaderProps = {
 };
 
 export function SalesPageHeader({
-  badge = "Inventory Sales Hub",
+  titleClassName = "",
   title,
   description,
   backHref,
@@ -38,7 +37,7 @@ export function SalesPageHeader({
 }: SalesPageHeaderProps) {
   return (
     <Card className={cn(SALES_HEADER_CARD_CLASS, className)}>
-      <CardContent className="p-8 sm:p-10 lg:px-12 lg:py-10">
+      <CardContent className="p-8 sm:p-10 lg:px-12 lg:py-2">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1 space-y-4">
             {(backHref || onBack) && (
@@ -69,11 +68,18 @@ export function SalesPageHeader({
                 )}
               </div>
             )}
-            <Badge className="rounded-full border-0 bg-black/25 px-3 py-1 font-normal text-white hover:bg-black/25">
+            {/* <Badge className="rounded-full border-0 bg-black/25 px-3 py-1 font-normal text-white hover:bg-black/25">
               {badge}
-            </Badge>
+            </Badge> */}
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+              <h1
+                className={cn(
+                  "text-2xl font-bold tracking-tight sm:text-4xl",
+                  titleClassName,
+                )}
+              >
+                {title}
+              </h1>
               {description ? (
                 <p className="max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
                   {description}
@@ -83,7 +89,9 @@ export function SalesPageHeader({
             {children}
           </div>
           {actions ? (
-            <div className="flex flex-shrink-0 flex-wrap items-center gap-3">{actions}</div>
+            <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
+              {actions}
+            </div>
           ) : null}
         </div>
       </CardContent>

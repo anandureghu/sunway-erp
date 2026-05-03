@@ -10,10 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 
-import type {
-  PaymentResponseDTO,
-  PaymentsPageVariant,
-} from "@/types/payment";
+import type { PaymentResponseDTO, PaymentsPageVariant } from "@/types/payment";
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
 import { PaymentDialog } from "./payment-dialog";
 import { useNavigate } from "react-router-dom";
@@ -37,12 +34,6 @@ export default function PaymentsPage({
   const [searchQuery, setSearchQuery] = useState("");
 
   const directionParam = variant === "vendor" ? "VENDOR" : "CUSTOMER";
-  const title =
-    variant === "vendor" ? "Vendor payments" : "Customer payments";
-  const subtitle =
-    variant === "vendor"
-      ? "Accounts payable — payables created from purchase orders and vendor settlements."
-      : "Accounts receivable — customer receipts against sales invoices.";
 
   const fetchPayments = useCallback(async () => {
     if (!companyId) {
@@ -91,9 +82,7 @@ export default function PaymentsPage({
         prev.map((p) => (p.id === payment.id ? res.data : p)),
       );
       toast.success(
-        variant === "vendor"
-          ? "Vendor payment confirmed"
-          : "Payment confirmed",
+        variant === "vendor" ? "Vendor payment confirmed" : "Payment confirmed",
       );
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
@@ -138,8 +127,7 @@ export default function PaymentsPage({
   });
 
   const outstandingCount = useMemo(
-    () =>
-      payments.filter((p) => !isPaymentArchivedTab(p, variant)).length,
+    () => payments.filter((p) => !isPaymentArchivedTab(p, variant)).length,
     [payments, variant],
   );
 
@@ -152,8 +140,7 @@ export default function PaymentsPage({
     const q = searchQuery.toLowerCase().trim();
     return payments.filter((p) => {
       const archived = isPaymentArchivedTab(p, variant);
-      const matchesTab =
-        listTab === "archived" ? archived : !archived;
+      const matchesTab = listTab === "archived" ? archived : !archived;
 
       const matchesSearch =
         !q ||
@@ -161,21 +148,23 @@ export default function PaymentsPage({
         (p.invoiceId?.toLowerCase().includes(q) ?? false) ||
         String(p.purchaseOrderId ?? "").includes(q) ||
         (p.paymentMethod?.toLowerCase().includes(q) ?? false) ||
-        String(p.amount ?? "").toLowerCase().includes(q);
+        String(p.amount ?? "")
+          .toLowerCase()
+          .includes(q);
 
       return matchesTab && matchesSearch;
     });
   }, [payments, variant, listTab, searchQuery]);
 
   return (
-    <div className="p-6 space-y-4">
-      <div>
+    <div className="p-0 space-y-4">
+      {/* <div>
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
-      </div>
+      </div> */}
 
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-0">
           <Tabs
             value={listTab}
             onValueChange={(v) => setListTab(v as PaymentListTab)}
@@ -184,13 +173,13 @@ export default function PaymentsPage({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="outstanding" className="gap-2">
-                  Outstanding
+                  Current Payments
                   <Badge variant="secondary" className="font-normal">
                     {outstandingCount}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="archived" className="gap-2">
-                  Archived
+                  Completed
                   <Badge variant="secondary" className="font-normal">
                     {archivedCount}
                   </Badge>

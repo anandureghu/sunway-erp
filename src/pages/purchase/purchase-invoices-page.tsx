@@ -78,8 +78,7 @@ export default function PurchaseInvoicesPage() {
   const filteredInvoices = useMemo(() => {
     return rows.filter((invoice) => {
       const archived = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab =
-        listTab === "archived" ? archived : !archived;
+      const matchesTab = listTab === "archived" ? archived : !archived;
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -142,7 +141,6 @@ export default function PurchaseInvoicesPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
-        badge="Accounts payable"
         title="Purchase invoices"
         description="Supplier invoices for posting and payment tracking (accounts payable)."
         backHref="/inventory/purchase"
@@ -174,13 +172,13 @@ export default function PurchaseInvoicesPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="outstanding" className="gap-2">
-                  Outstanding
+                  Current Invoices
                   <Badge variant="secondary" className="font-normal">
                     {outstandingCount}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="archived" className="gap-2">
-                  Archived
+                  Completed
                   <Badge variant="secondary" className="font-normal">
                     {archivedCount}
                   </Badge>

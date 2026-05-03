@@ -65,8 +65,7 @@ function PayableInvoicesTab() {
   const filtered = useMemo(() => {
     return rows.filter((invoice) => {
       const archived = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab =
-        listTab === "archived" ? archived : !archived;
+      const matchesTab = listTab === "archived" ? archived : !archived;
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -90,10 +89,10 @@ function PayableInvoicesTab() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-semibold">Purchase invoices</h2>
+      {/* <h2 className="text-2xl font-semibold">Purchase invoices</h2>
       <p className="text-sm text-muted-foreground">
         Accounts payable bills (PURCHASE type only).
-      </p>
+      </p> */}
       <Tabs
         value={listTab}
         onValueChange={(v) => {
@@ -105,13 +104,13 @@ function PayableInvoicesTab() {
         <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
             <TabsTrigger value="outstanding" className="gap-2">
-              Outstanding
+              Current Invoices
               <Badge variant="secondary" className="font-normal">
                 {outstandingCount}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="archived" className="gap-2">
-              Archived
+              Completed
               <Badge variant="secondary" className="font-normal">
                 {archivedCount}
               </Badge>
@@ -137,7 +136,9 @@ function PayableInvoicesTab() {
                   <>
                     <SelectItem value="Draft">Draft</SelectItem>
                     <SelectItem value="Unpaid">Unpaid</SelectItem>
-                    <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+                    <SelectItem value="Partially Paid">
+                      Partially Paid
+                    </SelectItem>
                     <SelectItem value="Overdue">Overdue</SelectItem>
                   </>
                 ) : (

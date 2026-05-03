@@ -48,7 +48,9 @@ export default function CustomersPage() {
   };
 
   const handleDelete = async (customer: Customer) => {
-    if (!confirm(`Are you sure you want to delete customer "${customer.name}"?`)) {
+    if (
+      !confirm(`Are you sure you want to delete customer "${customer.name}"?`)
+    ) {
       return;
     }
     try {
@@ -71,7 +73,7 @@ export default function CustomersPage() {
       fetchCustomers(); // Refresh the list
     } else {
       setCustomers((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c))
+        prev.map((c) => (c.id === updated.id ? updated : c)),
       );
       fetchCustomers(); // Also refresh to get any server-computed fields
     }
@@ -143,7 +145,6 @@ export default function CustomersPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Customers"
         title="Sales Customers"
         description="Maintain buyers used on sales orders: contacts, billing details, and account notes."
         backHref="/inventory/sales"

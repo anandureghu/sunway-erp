@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,28 +6,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   ShoppingCart,
   FileText,
   Package,
   Users,
   Receipt,
-  Search,
   Clock,
-  X,
   ClipboardCheck,
   ArrowRight,
   ClipboardList,
   CircleDollarSign,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import {
   purchaseOrders,
   purchaseInvoices,
   goodsReceipts,
-  suppliers,
 } from "@/lib/purchase-data";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PurchasePageHeader } from "./components/purchase-page-header";
@@ -47,9 +41,6 @@ type ActionCard = {
 };
 
 export default function PurchaseLandingPage() {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-
   const totalPurchases = purchaseInvoices.reduce(
     (sum, inv) => sum + inv.total,
     0,
@@ -66,57 +57,6 @@ export default function PurchaseLandingPage() {
   const unpaidInvoices = purchaseInvoices.filter(
     (inv) => inv.status === "pending" || inv.status === "overdue",
   ).length;
-
-  const handleSearch = (query: string) => {
-    if (!query.trim()) return;
-
-    const lowerQuery = query.toLowerCase();
-
-    const foundOrder = purchaseOrders.find(
-      (o) =>
-        o.orderNo.toLowerCase().includes(lowerQuery) ||
-        o.supplier?.name.toLowerCase().includes(lowerQuery),
-    );
-
-    const foundSupplier = suppliers.find(
-      (s) =>
-        s.name.toLowerCase().includes(lowerQuery) ||
-        s.code.toLowerCase().includes(lowerQuery) ||
-        s.contactPerson?.toLowerCase().includes(lowerQuery),
-    );
-
-    const foundInvoice = purchaseInvoices.find(
-      (inv) =>
-        inv.invoiceNo.toLowerCase().includes(lowerQuery) ||
-        inv.supplierName.toLowerCase().includes(lowerQuery),
-    );
-
-    if (foundOrder) {
-      navigate("/inventory/purchase/orders", { state: { searchQuery: query } });
-      return;
-    }
-    if (foundSupplier) {
-      navigate("/inventory/purchase/suppliers", {
-        state: { searchQuery: query },
-      });
-      return;
-    }
-    if (foundInvoice) {
-      navigate("/inventory/purchase/invoices", {
-        state: { searchQuery: query },
-      });
-      return;
-    }
-
-    toast.info("No matches", {
-      description: `Try an order number, supplier name, or invoice number.`,
-    });
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSearch(searchQuery);
-  };
 
   const quickActions: ActionCard[] = [
     {
@@ -201,11 +141,10 @@ export default function PurchaseLandingPage() {
   ];
 
   return (
-    <div className="mx-auto w-full space-y-6 p-4 sm:p-6">
+    <div className="mx-auto w-full space-y-6 p-4 sm:p-6 py-2">
       <PurchasePageHeader
-        badge="Inventory • Purchase hub"
         title="Purchase & supplier"
-        description="Requisitions, orders, receipts, and payables in one place— aligned with your procurement workflow."
+        description="Requisition, Orders, Payables, Receipts - Procurement workflow"
         actions={
           <>
             <Button
@@ -232,43 +171,9 @@ export default function PurchaseLandingPage() {
       <KpiSummaryStrip items={purchaseHubKpis} />
 
       {/* Search */}
-      <Card className="shadow-sm border-border/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Quick search</CardTitle>
-          <CardDescription>
-            Jump to orders, suppliers, or invoices by number or name.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative flex gap-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Search orders, suppliers, invoices…"
-                className="pl-10 pr-10 h-11 bg-muted/30 border-muted-foreground/15 focus-visible:ring-emerald-500/30"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rounded-md p-1"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
 
       {/* Actions */}
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-          Workspaces
-        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {quickActions.map((action) => {
             const Icon = action.icon;

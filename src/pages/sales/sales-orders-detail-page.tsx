@@ -20,7 +20,7 @@ const SalesOrdersDetailPage = () => {
     try {
       await apiClient.post(`/sales/orders/${so.id}/${action}`);
       const { data } = await apiClient.get<SalesOrderResponseDTO>(
-        `/sales/orders/${so.id}`
+        `/sales/orders/${so.id}`,
       );
       setSo(data);
     } catch (error) {
@@ -68,7 +68,6 @@ const SalesOrdersDetailPage = () => {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Sales order"
         title={`Order ${so.orderNumber}`}
         description={`Order date: ${so.orderDate || "N/A"}`}
         onBack={() => navigate("/inventory/sales/orders")}
@@ -82,7 +81,9 @@ const SalesOrdersDetailPage = () => {
               {statusMeta.label}
             </Badge>
             <div className="text-right">
-              <p className="text-xs uppercase tracking-wide text-white/70">Order value</p>
+              <p className="text-xs uppercase tracking-wide text-white/70">
+                Order value
+              </p>
               <CurrencyAmount
                 amount={so.totalAmount ?? 0}
                 className="text-2xl font-bold text-white"

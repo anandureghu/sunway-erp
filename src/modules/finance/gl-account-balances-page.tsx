@@ -103,32 +103,38 @@ export default function GlAccountBalancesPage() {
     });
   }, [rows, query]);
 
-  const setInitial = useCallback(async (id: number, amount: number) => {
-    try {
-      setSavingId(id);
-      await apiClient.patch(`/finance/chart-of-accounts/${id}/initial-balance`, {
-        amount,
-      });
-      toast.success("Initial balance saved");
-      await load();
-    } catch (err: unknown) {
-      const msg =
-        err &&
-        typeof err === "object" &&
-        "response" in err &&
-        err.response &&
-        typeof err.response === "object" &&
-        "data" in err.response &&
-        err.response.data &&
-        typeof err.response.data === "object" &&
-        "message" in err.response.data
-          ? String((err.response.data as { message?: string }).message)
-          : "Could not save initial balance";
-      toast.error(msg);
-    } finally {
-      setSavingId(null);
-    }
-  }, [load]);
+  const setInitial = useCallback(
+    async (id: number, amount: number) => {
+      try {
+        setSavingId(id);
+        await apiClient.patch(
+          `/finance/chart-of-accounts/${id}/initial-balance`,
+          {
+            amount,
+          },
+        );
+        toast.success("Initial balance saved");
+        await load();
+      } catch (err: unknown) {
+        const msg =
+          err &&
+          typeof err === "object" &&
+          "response" in err &&
+          err.response &&
+          typeof err.response === "object" &&
+          "data" in err.response &&
+          err.response.data &&
+          typeof err.response.data === "object" &&
+          "message" in err.response.data
+            ? String((err.response.data as { message?: string }).message)
+            : "Could not save initial balance";
+        toast.error(msg);
+      } finally {
+        setSavingId(null);
+      }
+    },
+    [load],
+  );
 
   const columns: ColumnDef<ChartOfAccounts>[] = useMemo(
     () => [
@@ -185,17 +191,11 @@ export default function GlAccountBalancesPage() {
   );
 
   if (loading) {
-    return (
-      <p className="text-center text-muted-foreground p-10">Loading...</p>
-    );
+    return <p className="text-center text-muted-foreground p-10">Loading...</p>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">GL Account Balances</h2>
-      </div>
-
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
@@ -210,9 +210,9 @@ export default function GlAccountBalancesPage() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground pt-2">
-            View each account&apos;s balance. If opening balance was not set when
-            the account was created, enter it here once—after that, balances follow
-            from transactions and journals.
+            View each account&apos;s balance. If opening balance was not set
+            when the account was created, enter it here once—after that,
+            balances follow from transactions and journals.
           </p>
         </CardHeader>
 

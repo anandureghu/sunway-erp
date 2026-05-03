@@ -86,7 +86,6 @@ export function PurchaseOrdersListView({
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PurchasePageHeader
-        badge="Purchase orders"
         title="Purchase Orders"
         description="Orders are created when a requisition is approved. Use tabs for open POs versus received or cancelled."
         backHref="/inventory/purchase"
@@ -161,9 +160,11 @@ export function PurchaseOrdersListView({
           ) : (
             <Tabs value={tab} onValueChange={handleTabChange}>
               <TabsList>
-                <TabsTrigger value="open">Open ({openOrders.length})</TabsTrigger>
+                <TabsTrigger value="open">
+                  Current Orders ({openOrders.length})
+                </TabsTrigger>
                 <TabsTrigger value="terminal">
-                  Received / cancelled ({terminalOrders.length})
+                  Completed ({terminalOrders.length})
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="open" className="mt-4">

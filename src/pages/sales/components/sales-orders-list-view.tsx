@@ -65,12 +65,16 @@ export function SalesOrdersListView({
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Sales orders"
+        titleClassName="!text-2xl"
         title="Manage Sales Orders"
         description="Review order pipeline, tabs for open vs completed work, and drill into any order."
         backHref="/inventory/sales"
         actions={
-          <Button size="lg" onClick={onCreateNew} className="bg-white text-slate-900 hover:bg-white/90">
+          <Button
+            size="lg"
+            onClick={onCreateNew}
+            className="bg-white text-slate-900 hover:bg-white/90"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Create New Order
           </Button>
@@ -91,13 +95,13 @@ export function SalesOrdersListView({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="active" className="gap-2">
-                  Open orders
+                  Current orders
                   <Badge variant="secondary" className="font-normal">
                     {activeCount}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="closed" className="gap-2">
-                  Completed & cancelled
+                  Completed
                   <Badge variant="secondary" className="font-normal">
                     {closedCount}
                   </Badge>
@@ -150,7 +154,9 @@ export function SalesOrdersListView({
           ) : error ? (
             <div className="py-16 text-center text-red-600">{error}</div>
           ) : orders.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground">{emptyMessage}</div>
+            <div className="py-16 text-center text-muted-foreground">
+              {emptyMessage}
+            </div>
           ) : (
             <DataTable
               columns={columns}

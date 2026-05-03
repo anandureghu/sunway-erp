@@ -68,8 +68,7 @@ export default function InvoicesPage({
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
       const archived = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab =
-        listTab === "archived" ? archived : !archived;
+      const matchesTab = listTab === "archived" ? archived : !archived;
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -87,9 +86,13 @@ export default function InvoicesPage({
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase();
-    const unpaid = invoices.filter((inv) => norm(inv.status) === "UNPAID").length;
+    const unpaid = invoices.filter(
+      (inv) => norm(inv.status) === "UNPAID",
+    ).length;
     const paid = invoices.filter((inv) => norm(inv.status) === "PAID").length;
-    const overdue = invoices.filter((inv) => norm(inv.status) === "OVERDUE").length;
+    const overdue = invoices.filter(
+      (inv) => norm(inv.status) === "OVERDUE",
+    ).length;
     return [
       {
         label: "Total invoices",
@@ -123,10 +126,9 @@ export default function InvoicesPage({
   }, [invoices]);
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="sm:p-0 space-y-6">
       {!disableHeader && (
         <SalesPageHeader
-          badge="Billing"
           title="Sales Invoices"
           description="Manage AR invoices issued from confirmed orders: payment status, due dates, and collections."
           backHref="/inventory/sales"
@@ -148,13 +150,13 @@ export default function InvoicesPage({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="outstanding" className="gap-2">
-                  Outstanding
+                  Current Invoices
                   <Badge variant="secondary" className="font-normal">
                     {outstandingCount}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="archived" className="gap-2">
-                  Archived
+                  Completed
                   <Badge variant="secondary" className="font-normal">
                     {archivedCount}
                   </Badge>

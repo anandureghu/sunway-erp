@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +10,6 @@ export const PURCHASE_HEADER_CARD_CLASS =
   "border-0 shadow-lg rounded-2xl bg-gradient-to-br from-zinc-950 via-emerald-950 to-zinc-950 text-white overflow-hidden";
 
 export type PurchasePageHeaderProps = {
-  badge?: string;
   title: string;
   description?: string;
   backHref?: string;
@@ -22,7 +20,6 @@ export type PurchasePageHeaderProps = {
 };
 
 export function PurchasePageHeader({
-  badge = "Inventory • Purchase hub",
   title,
   description,
   backHref,
@@ -33,7 +30,7 @@ export function PurchasePageHeader({
 }: PurchasePageHeaderProps) {
   return (
     <Card className={cn(PURCHASE_HEADER_CARD_CLASS, className)}>
-      <CardContent className="relative p-8 sm:p-10 lg:px-12 lg:py-10">
+      <CardContent className="relative p-8 sm:p-10 lg:px-12 lg:py-2">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.08]"
           aria-hidden
@@ -72,11 +69,13 @@ export function PurchasePageHeader({
                 )}
               </div>
             )}
-            <Badge className="rounded-full border-0 bg-white/90 px-3 py-1 text-xs font-medium text-slate-900 shadow-sm hover:bg-white/90 sm:text-sm">
+            {/* <Badge className="rounded-full border-0 bg-white/90 px-3 py-1 text-xs font-medium text-slate-900 shadow-sm hover:bg-white/90 sm:text-sm">
               {badge}
-            </Badge>
+            </Badge> */}
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
+                {title}
+              </h1>
               {description ? (
                 <p className="max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
                   {description}
@@ -86,7 +85,9 @@ export function PurchasePageHeader({
             {children}
           </div>
           {actions ? (
-            <div className="flex flex-shrink-0 flex-wrap items-center gap-3">{actions}</div>
+            <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
+              {actions}
+            </div>
           ) : null}
         </div>
       </CardContent>

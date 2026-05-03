@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,7 +6,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   ShoppingBag,
   ShoppingCart,
@@ -16,13 +14,12 @@ import {
   Truck,
   Users,
   Receipt,
-  Search,
   Clock,
   ArrowRight,
   CircleDollarSign,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { salesOrders, invoices, dispatches, customers } from "@/lib/sales-data";
+import { Link } from "react-router-dom";
+import { salesOrders, invoices, dispatches } from "@/lib/sales-data";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { SalesPageHeader } from "./components/sales-page-header";
 import {
@@ -40,9 +37,6 @@ type ActionCard = {
 };
 
 export default function SalesLandingPage() {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-
   const totalSales = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const pendingOrders = salesOrders.filter(
     (o) => o.status === "draft" || o.status === "confirmed",
@@ -107,32 +101,6 @@ export default function SalesLandingPage() {
     },
   ];
 
-  const handleSearch = (query: string) => {
-    if (!query.trim()) return;
-    const lowerQuery = query.toLowerCase();
-    const foundOrder = salesOrders.find(
-      (o) =>
-        o.orderNo.toLowerCase().includes(lowerQuery) ||
-        o.customerName.toLowerCase().includes(lowerQuery),
-    );
-    const foundCustomer = customers.find(
-      (c) =>
-        c.name.toLowerCase().includes(lowerQuery) ||
-        c.code.toLowerCase().includes(lowerQuery) ||
-        c.contactPerson?.toLowerCase().includes(lowerQuery),
-    );
-
-    if (foundOrder) {
-      navigate("/inventory/sales/orders", { state: { searchQuery: query } });
-      return;
-    }
-    if (foundCustomer) {
-      navigate("/inventory/sales/customers", { state: { searchQuery: query } });
-      return;
-    }
-    alert(`No results found for "${query}".`);
-  };
-
   const salesHubKpis: KpiSummaryStat[] = [
     {
       label: "Gross sales",
@@ -167,9 +135,8 @@ export default function SalesLandingPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Inventory Sales Hub"
         title="Modern Sales Operations"
-        description="Create orders, manage pipeline, and monitor fulfillment from one workspace."
+        description="Create, Manage and Track Sales Orders"
         actions={
           <>
             <Button
@@ -193,7 +160,7 @@ export default function SalesLandingPage() {
 
       <KpiSummaryStrip items={salesHubKpis} />
 
-      <Card className="shadow-sm">
+      {/* <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Quick Search</CardTitle>
           <CardDescription>
@@ -212,7 +179,7 @@ export default function SalesLandingPage() {
             />
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {quickActions.map((action) => {

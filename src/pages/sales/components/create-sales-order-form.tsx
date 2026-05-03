@@ -507,7 +507,6 @@ export function CreateSalesOrderForm({
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        badge="Sales orders"
         title={isEditMode ? "Edit Sales Order" : "Create Sales Order"}
         description={
           isEditMode

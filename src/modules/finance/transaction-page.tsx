@@ -67,15 +67,15 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
     );
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
+    <div className="p-0 space-y-6">
+      {/* <div>
         <h1 className="text-2xl font-semibold">Transactions</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Records are created automatically from finance activity (opening balances,
           approved journals, payments, etc.). Use Source to classify unknown entries
           once.
         </p>
-      </div>
+      </div> */}
 
       <Card>
         <CardHeader>
