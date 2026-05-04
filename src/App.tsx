@@ -78,6 +78,7 @@ import CompanyPropertiesForm from "./modules/hr/loans/tabs/CompanyPropertiesForm
 import SalaryShell from "@/modules/hr/salary/SalaryShell";
 import SalaryForm from "@/modules/hr/salary/tabs/SalaryForm";
 import BankForm from "@/modules/hr/salary/tabs/BankForm";
+import PayrollTab from "@/modules/hr/salary/tabs/PayrollTab";
 
 /* Immigration */
 import ImmigrationShell from "@/modules/hr/immigration/ImmigrationShell";
@@ -148,6 +149,7 @@ export default function App() {
 
           {/* Finance */}
           <Route path="finance">
+            <Route path="payroll" element={<Payroll />} />
             <Route path="settings" element={<FinanceSettingsPage />} />
             <Route path="receivable" element={<AccountsReceivablePage />} />
             <Route path="payable" element={<AccountsPayablePage />} />
@@ -318,6 +320,7 @@ export default function App() {
               <Route path="salary" element={<SalaryShell />}>
                 <Route index element={<SalaryForm />} />
                 <Route path="bank" element={<BankForm />} />
+                <Route path="payroll" element={<PayrollTab />} />
               </Route>
 
               {/* Immigration */}

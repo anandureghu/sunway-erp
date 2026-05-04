@@ -1,23 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Employee, Salary } from "@/types/hr";
-
 import { formatMoney } from "@/lib/utils";
-import { useOutletContext, useParams } from "react-router-dom";
-import { Input } from "@/components/ui/input";
-import { hrService } from "@/service/hr.service";
-import { salaryService } from "@/service/salaryService";
-import { bankService } from "@/service/bankService";
+import { useParams } from "react-router-dom";
 import { payrollService } from "@/service/payrollService";
-import { leaveService } from "@/service/leaveService";
 import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
 import { downloadPayslipPdf } from "@/service/payslipService";
-
-type SalaryCtx = { editing: boolean };
 
 interface PayrollRow {
   payDate: string;
@@ -33,187 +24,72 @@ interface PayrollRow {
   bankBranch?: string;
 }
 
-interface AppState {
-  employee: Employee | null;
-  salary: Salary | null;
-  bank: any | null;
-  currencySymbol: string;
-  leaveTaken: number;
-}
-
-
-
+/** Read-only payroll runs for this employee (generation is from HR Settings → Payroll). */
 export default function PayrollTab() {
-  const { editing }  = useOutletContext<SalaryCtx>();
-  const { id }       = useParams<{ id: string }>();
-  const employeeId   = id ? Number(id) : undefined;
-  const { user }     = useAuth();
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
+  const { user } = useAuth();
 
-  const [payrollInput, setPayrollInput] = useState({
-    payPeriodStart: "",
-    payPeriodEnd:   "",
-    payDate:        "",
-  });
-  const [history,    setHistory]    = useState<PayrollRow[]>([]);
-  const [generating, setGenerating] = useState(false);
+  const [history, setHistory] = useState<PayrollRow[]>([]);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
-
-  const [appState, setAppState] = useState<AppState>({
-    employee:      null,
-    salary:        null,
-    bank:          null,
-    currencySymbol: "$",
-    leaveTaken:    0,
-  });
-
-
-
-  const loadAppData = useCallback(async () => {
-    if (!employeeId) return;
-    try {
-      const [empRes, salRes, bankRes, leaveRes] = await Promise.all([
-        hrService.getEmployee(employeeId),
-        salaryService.get(employeeId),
-        bankService.get(employeeId),
-leaveService.fetchLeaveHistory(employeeId).catch(() => ({ data: [] })),
-      ]);
-
-      const currentYear = new Date().getFullYear();
-      const leaveTaken = (leaveRes?.data ?? [])
-        .filter((l: any) => {
-          const year = new Date(l.startDate ?? l.dateReported ?? "").getFullYear();
-          return year === currentYear;
-        })
-        .reduce((sum: number, l: any) => sum + (l.totalDays ?? 0), 0);
-
-      setAppState((prev) => ({
-        ...prev,
-        employee:  empRes,
-        salary:    salRes?.data  ?? null,
-        bank:      bankRes?.data ?? null,
-        leaveTaken,
-      }));
-    } catch (err) {
-      console.error("Failed to load employee data", err);
-      toast.error("Failed to load employee data");
-    }
-  }, [employeeId]);
-
-  useEffect(() => { loadAppData(); }, [loadAppData]);
+  const [currencySymbol, setCurrencySymbol] = useState("$");
 
   const loadPayrollHistory = useCallback(async () => {
     if (!employeeId) return;
     try {
       const res = await payrollService.getPayrollHistory(employeeId);
       setHistory(res?.data ?? []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load payroll history", err);
-      toast.error(err?.response?.data?.message || "Failed to load payroll history");
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ?? "Failed to load payroll history",
+      );
     }
   }, [employeeId]);
 
-  useEffect(() => { void loadPayrollHistory(); }, [loadPayrollHistory]);
+  useEffect(() => {
+    void loadPayrollHistory();
+  }, [loadPayrollHistory]);
 
   useEffect(() => {
     if (!user?.companyId) return;
     fetchCompany(user.companyId.toString())
       .then((company: Company) => {
         if (company?.currency?.currencyCode) {
-          setAppState((prev) => ({
-            ...prev,
-            currencySymbol: company.currency!.currencyCode,
-          }));
+          setCurrencySymbol(company.currency.currencyCode);
         }
       })
       .catch((err) => console.error("Failed to load company currency", err));
   }, [user?.companyId]);
 
-  const patchInput = (k: keyof typeof payrollInput, v: string) =>
-    setPayrollInput((p) => ({ ...p, [k]: v }));
-
-  const handleGeneratePayroll = async () => {
+  const handleDownloadPDF = async (row: PayrollRow) => {
     if (!employeeId) return;
-    if (!payrollInput.payPeriodStart || !payrollInput.payPeriodEnd || !payrollInput.payDate) {
-      toast.error("Please fill in all date fields before generating payroll");
-      return;
-    }
-
-    setGenerating(true);
+    setPdfLoading(row.payrollCode);
     try {
-      await payrollService.generatePayroll(employeeId, {
-        payPeriodStart: payrollInput.payPeriodStart,
-        payPeriodEnd:   payrollInput.payPeriodEnd,
-        payDate:        payrollInput.payDate,
-      });
-      toast.success("Payroll generated successfully");
-      await loadPayrollHistory();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to generate payroll");
+      await downloadPayslipPdf(employeeId, row.payrollCode);
+      toast.success("PDF downloaded");
+    } catch (err) {
+      console.error("PDF export failed", err);
+      toast.error("PDF export failed");
     } finally {
-      setGenerating(false);
+      setPdfLoading(null);
     }
   };
 
-const handleDownloadPDF = async (row: PayrollRow) => {
-  if (!employeeId) return;
-  setPdfLoading(row.payrollCode);
-  try {
-    await downloadPayslipPdf(employeeId, row.payrollCode);
-    toast.success("PDF downloaded");
-  } catch (err) {
-    console.error("PDF export failed", err);
-    toast.error("PDF export failed");
-  } finally {
-    setPdfLoading(null);
-  }
-};
-
   return (
     <div className="space-y-4">
-      <div className="text-lg font-semibold">Payroll</div>
-
-      <div className="grid grid-cols-3 gap-4 items-end">
-        <div>
-          <label className="text-sm font-medium">Pay Period Start</label>
-<Input
-            type="date"
-            value={payrollInput.payPeriodStart}
-            onChange={editing ? (e) => patchInput("payPeriodStart", e.target.value) : undefined}
-            disabled={!editing}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Pay Period End</label>
-<Input
-            type="date"
-            value={payrollInput.payPeriodEnd}
-            onChange={editing ? (e) => patchInput("payPeriodEnd", e.target.value) : undefined}
-            disabled={!editing}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Pay Date</label>
-<Input
-            type="date"
-            value={payrollInput.payDate}
-            onChange={editing ? (e) => patchInput("payDate", e.target.value) : undefined}
-            disabled={!editing}
-          />
-        </div>
+      <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
+        <ScrollText className="h-5 w-5 shrink-0 text-slate-500 mt-0.5" />
+        <p>
+          This is a read-only list of payroll runs for this employee. Monthly payroll generation is done from{" "}
+          <span className="font-medium text-slate-900">HR Settings → Payroll</span>.
+        </p>
       </div>
 
-      <Button
-        onClick={handleGeneratePayroll}
-        disabled={!editing || generating}
-        className="flex items-center gap-2"
-      >
-        {generating && <Loader2 className="h-4 w-4 animate-spin" />}
-        {generating ? "Generating…" : "Generate Payroll"}
-      </Button>
-
       <div>
-        <h3 className="text-lg font-semibold">Payroll History</h3>
-        <div className="overflow-x-auto rounded-md border mt-2">
+        <h3 className="text-lg font-semibold">Payroll history</h3>
+        <div className="mt-2 overflow-x-auto rounded-md border">
           <table className="min-w-full text-sm">
             <thead className="bg-muted">
               <tr className="text-left">
@@ -223,63 +99,68 @@ const handleDownloadPDF = async (row: PayrollRow) => {
                 <th className="px-3 py-2 font-medium">Deductions</th>
                 <th className="px-3 py-2 font-medium">Pay Date</th>
                 <th className="px-3 py-2 font-medium">Net Payable</th>
-                <th className="px-3 py-2 font-medium w-24 text-center">Actions</th>
+                <th className="w-24 px-3 py-2 text-center font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {history.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                  <td
+                    colSpan={7}
+                    className="p-4 text-center text-muted-foreground"
+                  >
                     No payroll history
                   </td>
                 </tr>
               )}
 
-              {history.map((row) => {
+              {history.map((row) => (
+                <tr
+                  key={row.payrollCode}
+                  className="border-t hover:bg-muted/50"
+                >
+                  <td className="px-3 py-2 font-mono text-xs">
+                    {row.payrollCode}
+                  </td>
+                  <td className="px-3 py-2">
+                    {row.payPeriodStart}
+                    {row.payPeriodEnd ? ` → ${row.payPeriodEnd}` : ""}
+                  </td>
+                  <td className="px-3 py-2">
+                    {formatMoney(row.grossPay, currencySymbol)}
+                  </td>
+                  <td className="px-3 py-2 text-red-600">
+                    -
+                    {formatMoney(
+                      String(row.totalDeductions ?? 0),
+                      currencySymbol,
+                    )}
+                  </td>
+                  <td className="px-3 py-2">{row.payDate}</td>
+                  <td className="px-3 py-2 font-bold text-green-700">
+                    {formatMoney(row.netPayable, currencySymbol)}
+                  </td>
 
-
-                return (
-                  <tr key={row.payrollCode} className="border-t hover:bg-muted/50">
-                    <td className="px-3 py-2 font-mono text-xs">{row.payrollCode}</td>
-                    <td className="px-3 py-2">
-                      {row.payPeriodStart}
-                      {row.payPeriodEnd ? ` → ${row.payPeriodEnd}` : ""}
-                    </td>
-                    <td className="px-3 py-2">
-                      {formatMoney(row.grossPay, appState.currencySymbol)}
-                    </td>
-                    <td className="px-3 py-2 text-red-600">
-                      -{formatMoney(String(row.totalDeductions ?? 0), appState.currencySymbol)}
-                    </td>
-                    <td className="px-3 py-2">{row.payDate}</td>
-                    <td className="px-3 py-2 font-bold text-green-700">
-                      {formatMoney(row.netPayable, appState.currencySymbol)}
-                    </td>
-
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-1 justify-center">
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          title="Download PDF"
-                          disabled={pdfLoading === row.payrollCode}
-                          onClick={() => handleDownloadPDF(row)}
-                        >
-                          {pdfLoading === row.payrollCode ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
-                          )}
-                        </Button>
-
-                      </div>
-
-                    </td>
-                  </tr>
-                );
-              })}
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="Download payslip PDF"
+                        disabled={pdfLoading === row.payrollCode}
+                        onClick={() => void handleDownloadPDF(row)}
+                      >
+                        {pdfLoading === row.payrollCode ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -294,4 +175,3 @@ const handleDownloadPDF = async (row: PayrollRow) => {
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
-import { NavLink, Outlet, useParams } from "react-router-dom";
-import { Banknote, Landmark, BadgeIndianRupee } from "lucide-react";
+import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
+import { Banknote, Landmark, BadgeIndianRupee, FileText } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
@@ -14,8 +14,12 @@ interface SalaryCtx {
 
 export default function SalaryShell() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const isPayrollHistoryTab = /\/salary\/payroll\/?$/.test(location.pathname);
   const [emp, setEmp] = useState<Employee | null>(null);
-  const title = emp ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})` : "";
+  const title = emp
+    ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})`
+    : "";
 
   useEffect(() => {
     let mounted = true;
@@ -24,7 +28,9 @@ export default function SalaryShell() {
         if (mounted) setEmp(e ?? null);
       });
     }
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   const [editing, setEditing] = useState(false);
@@ -57,34 +63,57 @@ export default function SalaryShell() {
       {/* Tabs + Action row */}
       <div className="px-4 pt-3 flex justify-between items-center border-b bg-white">
         <div className="flex gap-2">
-          <Tab to=""     icon={<BadgeIndianRupee className="h-4 w-4" />} label="Salary" />
-          <Tab to="bank" icon={<Landmark className="h-4 w-4" />}         label="Bank"   />
+          <Tab
+            to=""
+            icon={<BadgeIndianRupee className="h-4 w-4" />}
+            label="Salary"
+          />
+          <Tab to="bank" icon={<Landmark className="h-4 w-4" />} label="Bank" />
+          <Tab
+            to="payroll"
+            icon={<FileText className="h-4 w-4" />}
+            label="Payroll history"
+          />
         </div>
 
-        {/* ✅ module="SALARY" — button disables if user has no editPermission for SALARY */}
-        <EditUpdateButton
-          module="SALARY"
-          editing={editing}
-          onEdit={startEdit}
-          onCancel={cancel}
-          onSave={save}
-        />
+        {/* ✅ module="SALARY" — Payroll history tab is read-only */}
+        {!isPayrollHistoryTab ? (
+          <EditUpdateButton
+            module="SALARY"
+            editing={editing}
+            onEdit={startEdit}
+            onCancel={cancel}
+            onSave={save}
+          />
+        ) : null}
       </div>
 
       {/* Active tab content */}
       <div className="p-4">
-        <Outlet context={{
-          editing,
-          startEdit,
-          cancelEdit: cancel,
-          saveEdit: save,
-        } satisfies SalaryCtx} />
+        <Outlet
+          context={
+            {
+              editing,
+              startEdit,
+              cancelEdit: cancel,
+              saveEdit: save,
+            } satisfies SalaryCtx
+          }
+        />
       </div>
     </div>
   );
 }
 
-function Tab({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+function Tab({
+  to,
+  icon,
+  label,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
     <NavLink
       end
