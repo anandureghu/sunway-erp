@@ -9,6 +9,7 @@ import type {
   ItemStockAdjustPayload,
   ItemStockReceivePayload,
   ItemWarehouseStockRowDTO,
+  InventoryReportSummaryDTO,
   WarehouseCreateDTO,
   WarehouseResponseDTO,
   WarehouseUpdateDTO,
@@ -132,6 +133,27 @@ export async function getWarehouse(id: Id | string): Promise<Warehouse> {
 
 export async function deleteWarehouse(id: Id | string) {
   await apiClient.delete(`/inventory/warehouses/${id}`);
+}
+
+// ---- Reports ----
+export type InventoryReportSummaryQuery = {
+  warehouseId?: number;
+  category?: string;
+};
+
+export async function getInventoryReportSummary(
+  params?: InventoryReportSummaryQuery,
+): Promise<InventoryReportSummaryDTO> {
+  const res = await apiClient.get<InventoryReportSummaryDTO>(
+    "/inventory/reports/summary",
+    {
+      params: {
+        warehouseId: params?.warehouseId,
+        category: params?.category?.trim() || undefined,
+      },
+    },
+  );
+  return res.data;
 }
 
 // ---- Items ----

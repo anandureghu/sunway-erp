@@ -208,6 +208,60 @@ export type ItemWarehouseStockRowDTO = {
   available: number;
 };
 
+/** GET /inventory/reports/summary */
+export type InventoryReportTotalsDTO = {
+  distinctSkuCount: number;
+  totalQuantityOnHand: number;
+  totalReserved: number;
+  totalAvailable: number;
+  stockValueAtCost: number;
+  stockValueAtSelling: number;
+};
+
+export type InventoryWarehouseBreakdownDTO = {
+  warehouseId: number;
+  warehouseName: string;
+  onHand: number;
+  reserved: number;
+  available: number;
+  valueAtCost: number;
+};
+
+export type InventoryCategoryBreakdownDTO = {
+  category: string;
+  skuCount: number;
+  onHand: number;
+  valueAtCost: number;
+};
+
+export type InventoryTopStockLineDTO = {
+  itemId: number;
+  sku: string;
+  name: string;
+  warehouseId: number;
+  warehouseName: string;
+  quantityOnHand: number;
+  valueAtCost: number;
+};
+
+export type InventoryLowStockItemDTO = {
+  itemId: number;
+  sku: string;
+  name: string;
+  available: number | null;
+  reorderLevel: number | null;
+};
+
+export type InventoryReportSummaryDTO = {
+  totals: InventoryReportTotalsDTO;
+  byWarehouse: InventoryWarehouseBreakdownDTO[];
+  byCategory: InventoryCategoryBreakdownDTO[];
+  topStockLinesByValue: InventoryTopStockLineDTO[];
+  lowStockItemCount: number;
+  lowStockItems: InventoryLowStockItemDTO[];
+  generatedAt: string;
+};
+
 // --- Sales flow ---
 export type SalesOrderItemDTO = {
   itemId?: Id;
