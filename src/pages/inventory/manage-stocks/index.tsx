@@ -7,13 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import {
-  ArrowRightLeft,
-  LayoutGrid,
-  Package,
-  PackagePlus,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRightLeft, LayoutGrid, Package, PackagePlus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReceiveItemTab } from "./components/receive-item-tab";
@@ -54,17 +48,11 @@ export default function ManageStocks() {
           />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                Inventory control center
-              </div>
               <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                 Stock & movements
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Browse on-hand inventory, receive incoming goods, and post
-                variances—your operations dashboard for everything in the
-                warehouse.
+                Manage your stock and movements.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
