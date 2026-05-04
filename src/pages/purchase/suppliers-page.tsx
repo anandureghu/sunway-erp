@@ -12,6 +12,7 @@ import { getVendorColumns } from "@/lib/columns/vendor-listing-admin";
 import type { Vendor } from "@/types/vendor";
 import type { Row } from "@tanstack/react-table";
 import { VendorDialog } from "@/pages/admin/vendors/vendor-dialog";
+import { normalizeVendorFromApi } from "@/lib/vendor-api";
 import { PurchasePageHeader } from "./components/purchase-page-header";
 import {
   KpiSummaryStrip,
@@ -31,19 +32,7 @@ export default function SuppliersPage() {
     try {
       setLoading(true);
       const list = await listVendors();
-      const mappedVendors = list.map((vendor: any) => ({
-        ...vendor,
-        createdAt:
-          vendor.createdAt ||
-          vendor.created_at ||
-          vendor.dateCreated ||
-          vendor.date_created ||
-          vendor.createdDate ||
-          vendor.created_date,
-
-        is1099Vendor: vendor["1099Vendor"],
-      }));
-      setVendors(mappedVendors);
+      setVendors(list.map((row) => normalizeVendorFromApi(row)));
     } catch (error) {
       console.error("Error fetching vendors:", error);
       toast.error("Failed to load suppliers");

@@ -9,7 +9,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { type VendorFormData, VENDOR_SCHEMA } from "@/schema/vendor";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import {
@@ -34,9 +34,8 @@ export const VendorForm = ({
   defaultValues,
 }: VendorFormProps) => {
   const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
-  const form = useForm<VendorFormData>({
-    resolver: zodResolver(VENDOR_SCHEMA),
-    defaultValues: {
+  const blankDefaults = useMemo(
+    (): VendorFormData => ({
       vendorName: "",
       taxId: "",
       paymentTerms: "",
@@ -52,13 +51,26 @@ export const VendorForm = ({
       fax: "",
       websiteUrl: "",
       is1099Vendor: false,
+      remarks: "",
+    }),
+    [companyCurrencyCode],
+  );
+
+  const form = useForm<VendorFormData>({
+    resolver: zodResolver(VENDOR_SCHEMA),
+    defaultValues: {
+      ...blankDefaults,
       ...defaultValues,
     },
   });
 
   useEffect(() => {
-    if (defaultValues) form.reset(defaultValues);
-  }, [defaultValues, form]);
+    if (defaultValues) {
+      form.reset({ ...blankDefaults, ...defaultValues });
+    } else {
+      form.reset(blankDefaults);
+    }
+  }, [defaultValues, form, blankDefaults]);
 
   const handleSubmit: SubmitHandler<VendorFormData> = async (values) => {
     await onSubmit(values);
@@ -180,7 +192,7 @@ export const VendorForm = ({
                 <FormLabel>Currency Code</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value || companyCurrencyCode || ""}
+                  value={field.value ?? ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -286,7 +298,7 @@ export const VendorForm = ({
                 <FormControl>
                   <input
                     type="checkbox"
-                    checked={field.value}
+                    checked={field.value ?? true}
                     onChange={(e) => field.onChange(e.target.checked)}
                     className="h-4 w-4"
                   />
@@ -304,7 +316,7 @@ export const VendorForm = ({
                 <FormControl>
                   <input
                     type="checkbox"
-                    checked={field.value}
+                    checked={field.value ?? false}
                     onChange={(e) => field.onChange(e.target.checked)}
                     className="h-4 w-4"
                   />
