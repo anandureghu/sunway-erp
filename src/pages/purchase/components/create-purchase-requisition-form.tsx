@@ -368,7 +368,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       <PurchasePageHeader
         title="Create purchase requisition"
         description="When approved, a draft purchase order is created and finance posts to your company default purchase accounts (Global Settings → Default Accounts)."
-        onBack={onCancel}
+        backHref="/inventory/purchase"
         actions={
           <Button
             type="button"

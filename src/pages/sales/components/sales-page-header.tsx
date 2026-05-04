@@ -17,7 +17,6 @@ export type SalesPageHeaderProps = {
   /** Back navigation using a router link */
   backHref?: string;
   /** Back navigation using a button (forms, history) */
-  onBack?: () => void;
   /** Optional content below the description (badges, secondary rows) */
   children?: ReactNode;
   /** Primary / secondary actions on the right */
@@ -30,7 +29,6 @@ export function SalesPageHeader({
   title,
   description,
   backHref,
-  onBack,
   children,
   actions,
   className,
@@ -39,34 +37,17 @@ export function SalesPageHeader({
     <Card className={cn(SALES_HEADER_CARD_CLASS, className)}>
       <CardContent className="p-8 sm:p-10 lg:px-12 lg:py-2">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-4">
-            {(backHref || onBack) && (
-              <div>
-                {backHref ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-2 h-9 px-2 text-white hover:bg-white/10"
-                    asChild
-                  >
-                    <Link to={backHref}>
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-2 h-9 px-2 text-white hover:bg-white/10"
-                    onClick={onBack}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                )}
-              </div>
+          <div className="min-w-0 flex-1 space-y-4 flex gap-3">
+            {backHref && (
+              <Button
+                size="sm"
+                className="-ml-2 h-9 w-9 rounded-full px-2 bg-white text-black flex items-center justify-center hover:bg-white/90"
+                asChild
+              >
+                <Link to={backHref}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
             )}
             {/* <Badge className="rounded-full border-0 bg-black/25 px-3 py-1 font-normal text-white hover:bg-black/25">
               {badge}

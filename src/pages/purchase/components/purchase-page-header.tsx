@@ -13,7 +13,6 @@ export type PurchasePageHeaderProps = {
   title: string;
   description?: string;
   backHref?: string;
-  onBack?: () => void;
   children?: ReactNode;
   actions?: ReactNode;
   className?: string;
@@ -23,7 +22,6 @@ export function PurchasePageHeader({
   title,
   description,
   backHref,
-  onBack,
   children,
   actions,
   className,
@@ -40,34 +38,17 @@ export function PurchasePageHeader({
           }}
         />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-4">
-            {(backHref || onBack) && (
-              <div>
-                {backHref ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-2 h-9 px-2 text-white hover:bg-white/10"
-                    asChild
-                  >
-                    <Link to={backHref}>
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="-ml-2 h-9 px-2 text-white hover:bg-white/10"
-                    onClick={onBack}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                )}
-              </div>
+          <div className="min-w-0 flex-1 space-y-4 flex gap-3">
+            {backHref && (
+              <Button
+                size="sm"
+                className="-ml-2 h-9 w-9 rounded-full px-2 bg-white text-black flex items-center justify-center hover:bg-white/90"
+                asChild
+              >
+                <Link to={backHref}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
             )}
             {/* <Badge className="rounded-full border-0 bg-white/90 px-3 py-1 text-xs font-medium text-slate-900 shadow-sm hover:bg-white/90 sm:text-sm">
               {badge}

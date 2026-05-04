@@ -243,7 +243,7 @@ export function PurchaseOrderForm({
             ? "Update draft lines and supplier details before releasing the PO."
             : "Define supplier, dates, and lines for a new draft purchase order."
         }
-        onBack={onCancel}
+        backHref="/inventory/purchase"
         actions={
           <Button
             type="button"

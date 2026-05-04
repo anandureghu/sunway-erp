@@ -513,7 +513,7 @@ export function CreateSalesOrderForm({
             ? "Update draft lines, pricing, and delivery details before confirming."
             : "Add customer, lines, warehouses, and accounting defaults for a new draft order."
         }
-        onBack={onCancel}
+        backHref="/inventory/sales/orders"
         actions={
           <Button
             size="lg"
