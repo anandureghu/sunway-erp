@@ -262,6 +262,7 @@ export type SalesOrderResponseDTO = {
   shippingAddress?: string;
   deliveryAddress?: string;
   status?: string;
+  archived?: boolean;
   paymentStatus?: string;
   subtotalAmount?: number;
   discountAmount?: number;

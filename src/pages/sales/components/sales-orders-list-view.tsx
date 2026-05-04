@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import type { SalesOrder } from "@/types/sales";
 import type { ColumnDef } from "@tanstack/react-table";
 import { SalesPageHeader } from "./sales-page-header";
@@ -32,10 +34,12 @@ type Props = {
   closedCount: number;
   searchQuery: string;
   statusFilter: string;
+  showArchivedOnly: boolean;
   columns: ColumnDef<SalesOrder>[];
   onCreateNew: () => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
+  onShowArchivedOnlyChange: (value: boolean) => void;
   onRowClick: (id: string) => void;
   kpiItems?: KpiSummaryStat[];
 };
@@ -50,10 +54,12 @@ export function SalesOrdersListView({
   closedCount,
   searchQuery,
   statusFilter,
+  showArchivedOnly,
   columns,
   onCreateNew,
   onSearchChange,
   onStatusChange,
+  onShowArchivedOnlyChange,
   onRowClick,
   kpiItems,
 }: Props) {
@@ -107,7 +113,7 @@ export function SalesOrdersListView({
                   </Badge>
                 </TabsTrigger>
               </TabsList>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -142,6 +148,21 @@ export function SalesOrdersListView({
                     </SelectContent>
                   </Select>
                 </div>
+                {listTab === "closed" ? (
+                  <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                    <Switch
+                      id="show-archived-orders"
+                      checked={showArchivedOnly}
+                      onCheckedChange={onShowArchivedOnlyChange}
+                    />
+                    <Label
+                      htmlFor="show-archived-orders"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Archived only
+                    </Label>
+                  </div>
+                ) : null}
               </div>
             </div>
           </Tabs>

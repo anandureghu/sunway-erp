@@ -94,7 +94,7 @@ export function StockStatsCards({
       <KpiCard
         label="SKU lines"
         value={totalItems.toLocaleString()}
-        sublabel="Active rows in catalog"
+        sublabel="Active catalog items"
         icon={Package}
         topBarClass="from-blue-500 to-cyan-500"
         iconWrapperClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
@@ -102,14 +102,18 @@ export function StockStatsCards({
       <KpiCard
         label="Low stock"
         value={lowStockItems.toLocaleString()}
-        sublabel={hasLow ? "Needs reorder attention" : "All above reorder level"}
+        sublabel={
+          hasLow ? "Needs reorder attention" : "All above reorder level"
+        }
         icon={AlertTriangle}
         topBarClass="from-amber-500 to-orange-500"
         iconWrapperClass={cn(
           "bg-amber-500/10 text-amber-600 dark:text-amber-400",
           hasLow && "ring-amber-500/25",
         )}
-        valueClassName={hasLow ? "text-amber-700 dark:text-amber-400" : undefined}
+        valueClassName={
+          hasLow ? "text-amber-700 dark:text-amber-400" : undefined
+        }
         cardClassName={
           hasLow
             ? "border-amber-500/25 bg-amber-500/[0.03] dark:bg-amber-500/[0.06]"

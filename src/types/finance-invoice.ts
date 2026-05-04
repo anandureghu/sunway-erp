@@ -13,6 +13,7 @@ export interface FinanceInvoice {
   companyName?: string;
   toParty?: string;
   status?: string;
+  archived?: boolean;
   invoiceDate?: string;
   dueDate?: string;
   paidDate?: string;

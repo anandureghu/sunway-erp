@@ -90,6 +90,7 @@ export interface PurchaseOrderResponseDTO {
   supplierName: string;
   orderDate: string;
   status: string;
+  archived?: boolean;
   totalAmount: number;
   items: PurchaseOrderItemDTO[];
   createdAt: string;
@@ -209,6 +210,7 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     supplierId: String(dto.supplierId || ""),
     orderDate: dto.orderDate || "",
     status: (normalizeStatus(dto.status) as any) || "draft",
+    archived: Boolean(dto.archived),
     vendorPaymentSettled:
       dto.vendorPaymentSettled === undefined || dto.vendorPaymentSettled === null
         ? true
@@ -402,6 +404,13 @@ export async function confirmPurchaseOrder(id: string | number) {
 export async function cancelPurchaseOrder(id: string | number) {
   const res = await apiClient.post<PurchaseOrderResponseDTO>(
     `/purchase/orders/${id}/cancel`,
+  );
+  return toPurchaseOrder(res.data);
+}
+
+export async function archivePurchaseOrder(id: string | number) {
+  const res = await apiClient.post<PurchaseOrderResponseDTO>(
+    `/purchase/orders/${id}/archive`,
   );
   return toPurchaseOrder(res.data);
 }

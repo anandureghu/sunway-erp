@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { SALES_INVOICE_COLUMNS } from "@/lib/columns/accounts-receivable-columns";
+import { createSalesInvoiceColumns } from "@/lib/columns/accounts-receivable-columns";
 import {
   Search,
   FileText,
@@ -32,6 +32,9 @@ import {
   isInvoiceArchivedStatus,
 } from "@/lib/invoice-status-filter";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -48,7 +51,11 @@ export default function InvoicesPage({
   );
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     apiClient
@@ -61,14 +68,23 @@ export default function InvoicesPage({
     [invoices],
   );
   const archivedCount = useMemo(
-    () => invoices.filter((i) => isInvoiceArchivedStatus(i.status)).length,
+    () =>
+      invoices.filter(
+        (i) => isInvoiceArchivedStatus(i.status) && !i.archived,
+      ).length,
     [invoices],
   );
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
-      const archived = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab = listTab === "archived" ? archived : !archived;
+      const inCompletedByStatus = isInvoiceArchivedStatus(invoice.status);
+      const matchesTab =
+        listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
+      if (!matchesTab) return false;
+      if (listTab === "archived") {
+        const isArchived = Boolean(invoice.archived);
+        if (showArchivedOnly ? !isArchived : isArchived) return false;
+      }
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -80,9 +96,43 @@ export default function InvoicesPage({
         statusFilter,
       );
 
-      return matchesTab && matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [invoices, listTab, searchQuery, statusFilter]);
+  }, [invoices, listTab, searchQuery, statusFilter, showArchivedOnly]);
+
+  const handleArchiveInvoice = useCallback(async (id: number) => {
+    const invoice = invoices.find((inv) => inv.id === id);
+    if (!invoice) return toast.error("Invoice not found");
+    const normalizedStatus = (invoice.status || "").toUpperCase();
+    if (normalizedStatus !== "PAID" && normalizedStatus !== "CANCELLED") {
+      return toast.error("Only paid or cancelled invoices can be archived.");
+    }
+    if (invoice.archived) return toast.error("Invoice is already archived.");
+    if (!confirm(`Archive invoice ${invoice.invoiceId}?`)) return;
+    setProcessingInvoiceId(id);
+    try {
+      const { data } = await apiClient.post<Invoice>(`/invoices/${id}/archive`);
+      setInvoices((prev) => prev.map((inv) => (inv.id === id ? data : inv)));
+      toast.success("Invoice archived successfully");
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
+      const backendMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message;
+      toast.error(backendMessage || "Failed to archive invoice");
+    } finally {
+      setProcessingInvoiceId(null);
+    }
+  }, [invoices]);
+
+  const columns = useMemo(
+    () => createSalesInvoiceColumns(handleArchiveInvoice, processingInvoiceId),
+    [handleArchiveInvoice, processingInvoiceId],
+  );
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase();
@@ -144,6 +194,7 @@ export default function InvoicesPage({
             onValueChange={(v) => {
               setListTab(v as InvoiceListTab);
               setStatusFilter("all");
+              setShowArchivedOnly(false);
             }}
             className="w-full gap-4"
           >
@@ -162,7 +213,7 @@ export default function InvoicesPage({
                   </Badge>
                 </TabsTrigger>
               </TabsList>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -194,6 +245,21 @@ export default function InvoicesPage({
                     )}
                   </SelectContent>
                 </Select>
+                {listTab === "archived" ? (
+                  <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                    <Switch
+                      id="show-archived-invoices"
+                      checked={showArchivedOnly}
+                      onCheckedChange={setShowArchivedOnly}
+                    />
+                    <Label
+                      htmlFor="show-archived-invoices"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Archived only
+                    </Label>
+                  </div>
+                ) : null}
               </div>
             </div>
           </Tabs>
@@ -201,7 +267,7 @@ export default function InvoicesPage({
         <CardContent>
           <DataTable
             data={filteredInvoices}
-            columns={SALES_INVOICE_COLUMNS}
+            columns={columns}
             onRowClick={(row: Row<Invoice>) =>
               navigate(`/sales/invoices/${row.original.id}`)
             }

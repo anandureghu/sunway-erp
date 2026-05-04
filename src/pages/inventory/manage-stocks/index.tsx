@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ArrowRightLeft, LayoutGrid, Package, PackagePlus } from "lucide-react";
@@ -37,7 +31,7 @@ export default function ManageStocks() {
     <div className="min-h-full bg-gradient-to-b from-slate-50/90 via-background to-background dark:from-muted/15">
       <div className="mx-auto max-w-[1400px] space-y-8 px-4 py-6 sm:px-6 lg:py-8">
         {/* Page hero */}
-        <header className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 px-6 py-8 shadow-sm sm:px-8 sm:py-10">
+        <header className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 px-6 py-4 shadow-sm sm:px-8 sm:py-4">
           <div
             className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl"
             aria-hidden
@@ -52,7 +46,8 @@ export default function ManageStocks() {
                 Stock & movements
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Manage your stock and movements.
+                Manage Inventory and Stock Movements – Catalog Items, Receive
+                Stock and Manage Variance
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
@@ -74,17 +69,7 @@ export default function ManageStocks() {
           warehouseCount={stats.warehouseCount}
         />
 
-        <Card className="overflow-hidden border-border/80 shadow-md">
-          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-5 sm:px-6">
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-lg font-semibold sm:text-xl">
-                Workspace
-              </CardTitle>
-              <CardDescription>
-                Choose a mode below. Data refreshes when you switch tabs.
-              </CardDescription>
-            </div>
-          </CardHeader>
+        <Card className="overflow-hidden border-border/80 shadow-md p-0">
           <CardContent className="p-0">
             <Tabs
               value={activeTab}
@@ -92,9 +77,9 @@ export default function ManageStocks() {
                 setActiveTab(value);
                 void refetch();
               }}
-              className="w-full gap-0"
+              className="w-full gap-0 p-0"
             >
-              <div className="border-b border-border/60 bg-muted/20 px-3 pt-4 sm:px-5">
+              <div className="border-b border-border/60 bg-muted/20 px-3 py-4 sm:px-5">
                 <TabsList
                   className={cn(
                     "grid h-auto w-full grid-cols-1 gap-2 rounded-xl border border-border/50 bg-background/80 p-1.5 shadow-inner",

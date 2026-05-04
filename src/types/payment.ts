@@ -20,6 +20,9 @@ export interface PaymentResponseDTO {
 
   pdfUrl: string | null;
 
+  /** UI archive (hides from default Completed list; does not change payment method). */
+  archived?: boolean;
+
   createdAt: string;
 }
 

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PURCHASE_INVOICE_COLUMNS } from "@/lib/columns/purchase-columns";
+import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
 import {
   Search,
   Plus,
@@ -23,7 +23,10 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 import type { FinanceInvoice } from "@/types/finance-invoice";
-import { listPurchaseInvoices } from "@/service/invoiceService";
+import {
+  archiveInvoice,
+  listPurchaseInvoices,
+} from "@/service/invoiceService";
 import { RegisterSupplierInvoiceDialog } from "@/pages/purchase/components/register-supplier-invoice-dialog";
 import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
 import { toast } from "sonner";
@@ -36,8 +39,14 @@ import {
   isInvoiceArchivedStatus,
 } from "@/lib/invoice-status-filter";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 type InvoiceListTab = "outstanding" | "archived";
+
+function notArchived(inv: FinanceInvoice): boolean {
+  return !inv.archived;
+}
 
 export default function PurchaseInvoicesPage() {
   const location = useLocation();
@@ -50,6 +59,10 @@ export default function PurchaseInvoicesPage() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
+    null,
+  );
 
   const load = useCallback(() => {
     setLoading(true);
@@ -70,15 +83,24 @@ export default function PurchaseInvoicesPage() {
     () => rows.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
     [rows],
   );
-  const archivedCount = useMemo(
-    () => rows.filter((i) => isInvoiceArchivedStatus(i.status)).length,
+  const completedTabCount = useMemo(
+    () =>
+      rows.filter(
+        (i) => isInvoiceArchivedStatus(i.status) && !i.archived,
+      ).length,
     [rows],
   );
 
   const filteredInvoices = useMemo(() => {
     return rows.filter((invoice) => {
-      const archived = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab = listTab === "archived" ? archived : !archived;
+      const inCompletedByStatus = isInvoiceArchivedStatus(invoice.status);
+      const matchesTab =
+        listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
+      if (!matchesTab) return false;
+      if (listTab === "archived") {
+        const isArchived = Boolean(invoice.archived);
+        if (showArchivedOnly ? !isArchived : isArchived) return false;
+      }
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -89,20 +111,59 @@ export default function PurchaseInvoicesPage() {
         invoice.status,
         statusFilter,
       );
-      return matchesTab && matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [rows, listTab, searchQuery, statusFilter]);
+  }, [rows, listTab, searchQuery, statusFilter, showArchivedOnly]);
+
+  const handleArchiveInvoice = useCallback(
+    async (id: number) => {
+      const invoice = rows.find((inv) => inv.id === id);
+      if (!invoice) return toast.error("Invoice not found");
+      const normalizedStatus = (invoice.status || "").toUpperCase();
+      if (normalizedStatus !== "PAID" && normalizedStatus !== "CANCELLED") {
+        return toast.error("Only paid or cancelled invoices can be archived.");
+      }
+      if (invoice.archived) return toast.error("Invoice is already archived.");
+      if (!confirm(`Archive invoice ${invoice.invoiceId}?`)) return;
+      setProcessingInvoiceId(id);
+      try {
+        const updated = await archiveInvoice(id);
+        setRows((prev) => prev.map((inv) => (inv.id === id ? updated : inv)));
+        toast.success("Invoice archived successfully");
+      } catch (error: unknown) {
+        const err = error as {
+          response?: { data?: { message?: string; error?: string } };
+          message?: string;
+        };
+        const backendMessage =
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message;
+        toast.error(backendMessage || "Failed to archive invoice");
+      } finally {
+        setProcessingInvoiceId(null);
+      }
+    },
+    [rows],
+  );
+
+  const columns = useMemo(
+    () =>
+      createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId),
+    [handleArchiveInvoice, processingInvoiceId],
+  );
 
   const purchaseInvoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase().replace(/\s+/g, "_");
-    const unpaid = rows.filter((inv) => norm(inv.status) === "UNPAID").length;
-    const paid = rows.filter((inv) => norm(inv.status) === "PAID").length;
-    const overdue = rows.filter((inv) => norm(inv.status) === "OVERDUE").length;
-    const draft = rows.filter((inv) => norm(inv.status) === "DRAFT").length;
+    const visible = rows.filter(notArchived);
+    const unpaid = visible.filter((inv) => norm(inv.status) === "UNPAID").length;
+    const paid = visible.filter((inv) => norm(inv.status) === "PAID").length;
+    const overdue = visible.filter((inv) => norm(inv.status) === "OVERDUE").length;
+    const draft = visible.filter((inv) => norm(inv.status) === "DRAFT").length;
     return [
       {
         label: "Total invoices",
-        value: rows.length,
+        value: visible.length,
         hint: "Supplier invoices on file",
         accent: "sky",
         icon: FileText,
@@ -166,6 +227,7 @@ export default function PurchaseInvoicesPage() {
             onValueChange={(v) => {
               setListTab(v as InvoiceListTab);
               setStatusFilter("all");
+              setShowArchivedOnly(false);
             }}
             className="w-full gap-4"
           >
@@ -180,11 +242,11 @@ export default function PurchaseInvoicesPage() {
                 <TabsTrigger value="archived" className="gap-2">
                   Completed
                   <Badge variant="secondary" className="font-normal">
-                    {archivedCount}
+                    {completedTabCount}
                   </Badge>
                 </TabsTrigger>
               </TabsList>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -217,6 +279,21 @@ export default function PurchaseInvoicesPage() {
                     )}
                   </SelectContent>
                 </Select>
+                {listTab === "archived" ? (
+                  <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                    <Switch
+                      id="show-archived-purchase-invoices"
+                      checked={showArchivedOnly}
+                      onCheckedChange={setShowArchivedOnly}
+                    />
+                    <Label
+                      htmlFor="show-archived-purchase-invoices"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Archived only
+                    </Label>
+                  </div>
+                ) : null}
               </div>
             </div>
           </Tabs>
@@ -228,7 +305,7 @@ export default function PurchaseInvoicesPage() {
             </div>
           ) : (
             <DataTable
-              columns={PURCHASE_INVOICE_COLUMNS}
+              columns={columns}
               data={filteredInvoices}
               onRowClick={handleRowClick}
             />

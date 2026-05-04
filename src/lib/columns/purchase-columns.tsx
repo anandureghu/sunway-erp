@@ -22,6 +22,8 @@ import {
   CheckCircle,
   Send,
   Link2,
+  Archive,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -39,6 +41,9 @@ export type PurchaseOrderColumnActions = {
   onReceiveGoods?: (orderId: string) => void;
   /** Link to originating PR */
   onViewRequisition?: (requisitionId: string) => void;
+  onArchive?: (id: string) => void;
+  processingOrderId?: string | null;
+  processingAction?: "archive" | null;
 };
 
 // Purchase Order Columns
@@ -53,6 +58,9 @@ export function createPurchaseOrderColumns(
     onEdit,
     onReceiveGoods,
     onViewRequisition,
+    onArchive,
+    processingOrderId,
+    processingAction,
   } = actions;
 
   return [
@@ -69,7 +77,8 @@ export function createPurchaseOrderColumns(
       cell: ({ row }) => {
         const supplier = row.original.supplier;
         // Handle both Supplier type (with name) and Vendor type (with vendorName)
-        const supplierName = supplier?.name || (supplier as any)?.vendorName || "N/A";
+        const supplierName =
+          supplier?.name || (supplier as any)?.vendorName || "N/A";
         const supplierCode = supplier?.code || (supplier as any)?.id || "";
         return (
           <div className="flex flex-col">
@@ -105,7 +114,9 @@ export function createPurchaseOrderColumns(
           cancelled: "bg-red-100 text-red-800",
         };
         return (
-          <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
+          <Badge
+            className={statusColors[status] || "bg-gray-100 text-gray-800"}
+          >
             {status
               .replace("_", " ")
               .split(" ")
@@ -125,6 +136,7 @@ export function createPurchaseOrderColumns(
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const order = row.original;
         const st = (order.status || "").toLowerCase();
@@ -136,7 +148,10 @@ export function createPurchaseOrderColumns(
           st === "ordered" ||
           st === "partially_received" ||
           st === "approved";
+        const canArchive =
+          !order.archived && (st === "received" || st === "cancelled");
         const reqId = order.requisitionId;
+        const isProcessing = processingOrderId === order.id;
 
         return (
           <div onClick={(e) => e.stopPropagation()}>
@@ -166,9 +181,7 @@ export function createPurchaseOrderColumns(
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>Source</DropdownMenuLabel>
-                    <DropdownMenuItem
-                      onClick={() => onViewRequisition(reqId)}
-                    >
+                    <DropdownMenuItem onClick={() => onViewRequisition(reqId)}>
                       <Link2 className="mr-2 h-4 w-4" />
                       View requisition
                     </DropdownMenuItem>
@@ -208,6 +221,24 @@ export function createPurchaseOrderColumns(
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Cancel order
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {canArchive && onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={isProcessing}
+                      onClick={() => onArchive(order.id)}
+                    >
+                      {isProcessing && processingAction === "archive" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="mr-2 h-4 w-4" />
+                      )}
+                      {isProcessing && processingAction === "archive"
+                        ? "Archiving..."
+                        : "Archive"}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -318,130 +349,160 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
 ];
 
 // Purchase Invoice Columns (API FinanceInvoice)
-export const PURCHASE_INVOICE_COLUMNS: ColumnDef<FinanceInvoice>[] = [
-  {
-    accessorKey: "invoiceId",
-    header: "ERP ref",
-    cell: ({ row }) => {
-      return <span className="font-medium">{row.getValue("invoiceId")}</span>;
+export function createPurchaseInvoiceColumns(
+  onArchive?: (id: number) => void,
+  processingInvoiceId?: number | null,
+): ColumnDef<FinanceInvoice>[] {
+  return [
+    {
+      accessorKey: "invoiceId",
+      header: "ERP ref",
+      cell: ({ row }) => {
+        return <span className="font-medium">{row.getValue("invoiceId")}</span>;
+      },
     },
-  },
-  {
-    id: "supplierInvNo",
-    header: "Supplier #",
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">
-        {row.original.supplierInvoiceNumber || "—"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "toParty",
-    header: "Supplier",
-  },
-  {
-    id: "po",
-    header: "PO",
-    cell: ({ row }) => (
-      <span>{row.original.purchaseOrder?.orderNumber || "—"}</span>
-    ),
-  },
-  {
-    accessorKey: "invoiceDate",
-    header: "Invoice Date",
-    cell: ({ row }) => {
-      const d = row.original.invoiceDate;
-      return (
-        <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>
-      );
+    {
+      id: "supplierInvNo",
+      header: "Supplier #",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">
+          {row.original.supplierInvoiceNumber || "—"}
+        </span>
+      ),
     },
-  },
-  {
-    accessorKey: "dueDate",
-    header: "Due Date",
-    cell: ({ row }) => {
-      const d = row.original.dueDate;
-      return (
-        <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>
-      );
+    {
+      accessorKey: "toParty",
+      header: "Supplier",
     },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = (row.getValue("status") as string) || "";
-      const key = status.toLowerCase();
-      const statusColors: Record<string, string> = {
-        draft: "bg-gray-100 text-gray-800",
-        unpaid: "bg-yellow-100 text-yellow-800",
-        pending: "bg-yellow-100 text-yellow-800",
-        paid: "bg-green-100 text-green-800",
-        partially_paid: "bg-blue-100 text-blue-800",
-        overdue: "bg-red-100 text-red-800",
-        cancelled: "bg-gray-100 text-gray-800",
-      };
-      return (
-        <Badge className={statusColors[key] || "bg-gray-100 text-gray-800"}>
-          {status
-            ? status
-                .replace(/_/g, " ")
-                .split(" ")
-                .map(
-                  (s) =>
-                    s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(),
-                )
-                .join(" ")
-            : "—"}
-        </Badge>
-      );
+    {
+      id: "po",
+      header: "PO",
+      cell: ({ row }) => (
+        <span>{row.original.purchaseOrder?.orderNumber || "—"}</span>
+      ),
     },
-  },
-  {
-    accessorKey: "amount",
-    header: "Total",
-    cell: ({ row }) => {
-      const amount = row.original.amount ?? 0;
-      return <CurrencyAmount amount={amount} className="font-semibold" />;
+    {
+      accessorKey: "invoiceDate",
+      header: "Invoice Date",
+      cell: ({ row }) => {
+        const d = row.original.invoiceDate;
+        return <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>;
+      },
     },
-  },
-  {
-    id: "doc",
-    header: "Document",
-    cell: ({ row }) => {
-      const src = row.original.documentSource;
-      if (src === "SUPPLIER_UPLOAD") return <span className="text-xs">PDF</span>;
-      if (src === "EXTERNAL_LINK") return <span className="text-xs">Link</span>;
-      return <span className="text-xs text-muted-foreground">Generated</span>;
+    {
+      accessorKey: "dueDate",
+      header: "Due Date",
+      cell: ({ row }) => {
+        const d = row.original.dueDate;
+        return <span>{d ? format(new Date(d), "MMM dd, yyyy") : "—"}</span>;
+      },
     },
-  },
-  {
-    id: "actions",
-    cell: () => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>
-              <Eye className="mr-2 h-4 w-4" />
-              View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <FileText className="mr-2 h-4 w-4" />
-              Open document
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = (row.getValue("status") as string) || "";
+        const key = status.toLowerCase();
+        const statusColors: Record<string, string> = {
+          draft: "bg-gray-100 text-gray-800",
+          unpaid: "bg-yellow-100 text-yellow-800",
+          pending: "bg-yellow-100 text-yellow-800",
+          paid: "bg-green-100 text-green-800",
+          partially_paid: "bg-blue-100 text-blue-800",
+          overdue: "bg-red-100 text-red-800",
+          cancelled: "bg-gray-100 text-gray-800",
+        };
+        return (
+          <Badge className={statusColors[key] || "bg-gray-100 text-gray-800"}>
+            {status
+              ? status
+                  .replace(/_/g, " ")
+                  .split(" ")
+                  .map(
+                    (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(),
+                  )
+                  .join(" ")
+              : "—"}
+          </Badge>
+        );
+      },
     },
-  },
-];
+    {
+      accessorKey: "amount",
+      header: "Total",
+      cell: ({ row }) => {
+        const amount = row.original.amount ?? 0;
+        return <CurrencyAmount amount={amount} className="font-semibold" />;
+      },
+    },
+    {
+      id: "doc",
+      header: "Document",
+      cell: ({ row }) => {
+        const src = row.original.documentSource;
+        if (src === "SUPPLIER_UPLOAD")
+          return <span className="text-xs">PDF</span>;
+        if (src === "EXTERNAL_LINK") return <span className="text-xs">Link</span>;
+        return <span className="text-xs text-muted-foreground">Generated</span>;
+      },
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const inv = row.original;
+        const normalizedStatus = (inv.status || "").toUpperCase();
+        const canArchive =
+          !inv.archived &&
+          (normalizedStatus === "PAID" || normalizedStatus === "CANCELLED");
+        const isProcessing = processingInvoiceId === inv.id;
+
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Open document
+                </DropdownMenuItem>
+                {canArchive && onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={isProcessing}
+                      onClick={() => onArchive(inv.id)}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="mr-2 h-4 w-4" />
+                      )}
+                      {isProcessing ? "Archiving..." : "Archive"}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
+    },
+  ];
+}
+
+export const PURCHASE_INVOICE_COLUMNS: ColumnDef<FinanceInvoice>[] =
+  createPurchaseInvoiceColumns();
 
 // Goods Receipt Columns
 export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] = [

@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Package, Truck, Plus, ClipboardList, Radar } from "lucide-react";
 import { DataTable } from "@/components/datatable";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
@@ -300,51 +299,33 @@ export default function PicklistDispatchPage() {
         </TabsList>
 
         <TabsContent value="picklists">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Picklists</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="py-10 text-center text-muted-foreground">
-                  Loading picklists...
-                </div>
-              ) : loadError ? (
-                <div className="py-10 text-center text-red-600">
-                  {loadError}
-                </div>
-              ) : (
-                <DataTable
-                  columns={picklistColumns}
-                  data={picklists}
-                  onRowClick={(row) =>
-                    navigate(`/inventory/sales/picklist/${row.original.id}`)
-                  }
-                />
-              )}
-            </CardContent>
-          </Card>
+          {loading ? (
+            <div className="py-10 text-center text-muted-foreground">
+              Loading picklists...
+            </div>
+          ) : loadError ? (
+            <div className="py-10 text-center text-red-600">{loadError}</div>
+          ) : (
+            <DataTable
+              columns={picklistColumns}
+              data={picklists}
+              onRowClick={(row) =>
+                navigate(`/inventory/sales/picklist/${row.original.id}`)
+              }
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="dispatches">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Shipments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="py-10 text-center text-muted-foreground">
-                  Loading shipments...
-                </div>
-              ) : loadError ? (
-                <div className="py-10 text-center text-red-600">
-                  {loadError}
-                </div>
-              ) : (
-                <DataTable columns={dispatchColumns} data={dispatches} />
-              )}
-            </CardContent>
-          </Card>
+          {loading ? (
+            <div className="py-10 text-center text-muted-foreground">
+              Loading shipments...
+            </div>
+          ) : loadError ? (
+            <div className="py-10 text-center text-red-600">{loadError}</div>
+          ) : (
+            <DataTable columns={dispatchColumns} data={dispatches} />
+          )}
         </TabsContent>
       </Tabs>
     </div>

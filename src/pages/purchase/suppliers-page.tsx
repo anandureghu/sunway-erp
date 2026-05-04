@@ -141,7 +141,7 @@ export default function SuppliersPage() {
         icon: ShieldCheck,
       },
       {
-        label: "With email",
+        label: "Pending for Approval",
         value: withEmail,
         hint: "Contacts on file",
         accent: "amber",

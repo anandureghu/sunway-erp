@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { SalesOrder } from "@/types/sales";
 import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
 import {
+  archiveSalesOrder,
   cancelSalesOrder,
   confirmSalesOrder,
   listSalesOrders,
@@ -29,6 +30,7 @@ export default function SalesOrdersPage() {
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [listTab, setListTab] = useState<"active" | "closed">("active");
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new"),
   );
@@ -41,7 +43,7 @@ export default function SalesOrdersPage() {
   const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
   const [actionState, setActionState] = useState<{
     id: string;
-    type: "confirm" | "cancel";
+    type: "confirm" | "cancel" | "archive";
   } | null>(null);
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export default function SalesOrdersPage() {
 
   useEffect(() => {
     setStatusFilter("all");
+    setShowArchivedOnly(false);
   }, [listTab]);
 
   const isClosedOrder = useCallback(
@@ -82,7 +85,7 @@ export default function SalesOrdersPage() {
   );
 
   const closedCount = useMemo(
-    () => orders.filter((o) => isClosedOrder(o)).length,
+    () => orders.filter((o) => isClosedOrder(o) && !o.archived).length,
     [orders, isClosedOrder],
   );
 
@@ -129,6 +132,10 @@ export default function SalesOrdersPage() {
       const inTab =
         listTab === "closed" ? isClosedOrder(order) : !isClosedOrder(order);
       if (!inTab) return false;
+      if (listTab === "closed") {
+        const isArchived = Boolean(order.archived);
+        if (showArchivedOnly ? !isArchived : isArchived) return false;
+      }
       const matchesSearch =
         !q ||
         order.orderNo.toLowerCase().includes(q) ||
@@ -137,7 +144,7 @@ export default function SalesOrdersPage() {
         statusFilter === "all" || order.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [orders, searchQuery, statusFilter, listTab, isClosedOrder]);
+  }, [orders, searchQuery, statusFilter, listTab, isClosedOrder, showArchivedOnly]);
 
   const handleConfirmOrder = useCallback(
     async (id: string) => {
@@ -221,6 +228,45 @@ export default function SalesOrdersPage() {
     [navigate],
   );
 
+  const handleArchiveOrder = useCallback(
+    async (id: string) => {
+      const order = orders.find((o) => o.id === id);
+      if (!order) return toast.error("Order not found");
+      if (order.status !== "completed" && order.status !== "cancelled") {
+        return toast.error("Only completed or cancelled orders can be archived.");
+      }
+      if (order.archived) {
+        return toast.error("Order is already archived.");
+      }
+      if (!confirm(`Archive order ${order.orderNo}?`)) return;
+      setActionState({ id, type: "archive" });
+      try {
+        const updated = await archiveSalesOrder(id);
+        setOrders((prev) =>
+          prev.map((so) =>
+            so.id === id
+              ? {
+                  ...so,
+                  archived: updated.archived ?? true,
+                }
+              : so,
+          ),
+        );
+        toast.success("Order archived successfully");
+        void refreshOrders();
+      } catch (error: any) {
+        const backendMessage =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.message;
+        toast.error(backendMessage || "Failed to archive order");
+      } finally {
+        setActionState(null);
+      }
+    },
+    [orders, refreshOrders],
+  );
+
   const handleViewDetails = useCallback(
     (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -256,6 +302,7 @@ export default function SalesOrdersPage() {
         handleGeneratePicklist,
         handleViewDetails,
         handleEdit,
+        handleArchiveOrder,
         actionState?.id ?? null,
         actionState?.type ?? null,
       ),
@@ -265,6 +312,7 @@ export default function SalesOrdersPage() {
       handleGeneratePicklist,
       handleViewDetails,
       handleEdit,
+      handleArchiveOrder,
       actionState,
     ],
   );
@@ -300,6 +348,7 @@ export default function SalesOrdersPage() {
         closedCount={closedCount}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
+        showArchivedOnly={showArchivedOnly}
         columns={columns}
         onCreateNew={() => {
           setOrderToEdit(null);
@@ -307,6 +356,7 @@ export default function SalesOrdersPage() {
         }}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
+        onShowArchivedOnlyChange={setShowArchivedOnly}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}
       />

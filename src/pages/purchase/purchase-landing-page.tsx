@@ -16,7 +16,6 @@ import {
   ClipboardCheck,
   ArrowRight,
   ClipboardList,
-  CircleDollarSign,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -25,11 +24,13 @@ import {
   goodsReceipts,
 } from "@/lib/purchase-data";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
 import { PurchasePageHeader } from "./components/purchase-page-header";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
 
 type ActionCard = {
   title: string;
@@ -41,6 +42,7 @@ type ActionCard = {
 };
 
 export default function PurchaseLandingPage() {
+  const { currencySymbol } = useCompanyCurrency();
   const totalPurchases = purchaseInvoices.reduce(
     (sum, inv) => sum + inv.total,
     0,
@@ -57,8 +59,25 @@ export default function PurchaseLandingPage() {
   const unpaidInvoices = purchaseInvoices.filter(
     (inv) => inv.status === "pending" || inv.status === "overdue",
   ).length;
+  const totalPurchasesIcon = createCurrencySymbolIcon(currencySymbol);
 
   const quickActions: ActionCard[] = [
+    {
+      title: "Manage Requisitions",
+      description: "List, submit, and approve requisitions.",
+      to: "/inventory/purchase/requisitions",
+      cta: "All requisitions",
+      icon: ClipboardList,
+      tone: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-950/50",
+    },
+    {
+      title: "Create New requisition",
+      description: "Create a requisition; approval generates a draft PO.",
+      to: "/inventory/purchase/requisitions/new",
+      cta: "Create requisition",
+      icon: ClipboardCheck,
+      tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50",
+    },
     {
       title: "Manage Purchase Orders",
       description: "Track POs, statuses, and supplier commitments.",
@@ -68,13 +87,14 @@ export default function PurchaseLandingPage() {
       tone: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/50",
     },
     {
-      title: "New purchase requisition",
-      description: "Create a requisition; approval generates a draft PO.",
-      to: "/inventory/purchase/requisitions/new",
-      cta: "Create requisition",
-      icon: ClipboardCheck,
-      tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50",
+      title: "Receive and Inspect",
+      description: "Record receipts and quality checks.",
+      to: "/inventory/purchase/receiving",
+      cta: "Receiving",
+      icon: Package,
+      tone: "text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50",
     },
+
     {
       title: "Purchase invoices",
       description: "Review invoices, matching, and payment status.",
@@ -91,22 +111,6 @@ export default function PurchaseLandingPage() {
       icon: Users,
       tone: "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50",
     },
-    {
-      title: "Receiving & inspection",
-      description: "Record receipts and quality checks.",
-      to: "/inventory/purchase/receiving",
-      cta: "Receiving",
-      icon: Package,
-      tone: "text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50",
-    },
-    {
-      title: "Purchase requisitions",
-      description: "List, submit, and approve requisitions.",
-      to: "/inventory/purchase/requisitions",
-      cta: "All requisitions",
-      icon: ClipboardList,
-      tone: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-950/50",
-    },
   ];
 
   const purchaseHubKpis: KpiSummaryStat[] = [
@@ -115,7 +119,7 @@ export default function PurchaseLandingPage() {
       value: <CurrencyAmount amount={totalPurchases} />,
       hint: "From sample invoice data",
       accent: "emerald",
-      icon: CircleDollarSign,
+      icon: totalPurchasesIcon,
     },
     {
       label: "Pending orders",
@@ -199,11 +203,11 @@ export default function PurchaseLandingPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 flex items-end h-full">
                   <Button
                     asChild
                     variant="secondary"
-                    className="w-full group/btn border border-border/60 hover:bg-emerald-600 hover:text-white hover:border-emerald-600"
+                    className="w-full group/btn border border-border/60 bg-emerald-600 hover:bg-emerald-600/90 hover:border-emerald-600 text-white"
                   >
                     <Link
                       to={action.to}

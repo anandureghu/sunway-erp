@@ -132,6 +132,7 @@ export type PurchaseOrder = {
   orderDate: string;
   expectedDate?: string;
   status: PurchaseOrderStatus;
+  archived?: boolean;
   /** False until vendor payable is confirmed under AP → Vendor payments */
   vendorPaymentSettled?: boolean;
   items: PurchaseOrderItem[];
