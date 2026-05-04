@@ -71,7 +71,7 @@ const PicklistDetailPage = () => {
             ? `Created ${new Date(picklist.createdAt).toLocaleString()}`
             : undefined
         }
-        onBack={() => navigate("/inventory/sales/picklist")}
+        backHref="/inventory/sales/picklist"
         actions={
           <>
             {canCreateDispatch && (

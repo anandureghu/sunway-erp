@@ -148,7 +148,7 @@ export function CreateDispatchForm({
       <SalesPageHeader
         title="Create Dispatch"
         description="Turn a picked picklist into a shipment with carrier, tracking, and delivery details."
-        onBack={onCancel}
+        backHref="/inventory/sales/picklist"
         actions={
           <Button
             size="lg"

@@ -179,7 +179,7 @@ export function CreatePicklistForm({
       <SalesPageHeader
         title="Generate Picklist"
         description="Select a paid, confirmed sales order and confirm the warehouse so pick lines can be prepared."
-        onBack={onCancel}
+        backHref="/inventory/sales/picklist"
       />
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>

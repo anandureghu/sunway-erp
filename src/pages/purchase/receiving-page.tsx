@@ -492,7 +492,7 @@ function CreateReceiptForm({
       <PurchasePageHeader
         title="Create goods receipt"
         description="Select a released purchase order and enter quantities accepted or rejected per line."
-        onBack={onCancel}
+        backHref="/inventory/purchase"
         actions={
           <Button
             type="button"

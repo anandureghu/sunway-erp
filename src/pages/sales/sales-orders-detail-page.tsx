@@ -4,14 +4,13 @@ import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { SalesOrderDetailCards } from "./components/sales-order-detail-cards";
 import { SalesPageHeader } from "./components/sales-page-header";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 const SalesOrdersDetailPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [so, setSo] = useState<SalesOrderResponseDTO | null>(null);
 
   const updateStatus = async (action: "confirm" | "cancel") => {
@@ -70,7 +69,7 @@ const SalesOrdersDetailPage = () => {
       <SalesPageHeader
         title={`Order ${so.orderNumber}`}
         description={`Order date: ${so.orderDate || "N/A"}`}
-        onBack={() => navigate("/inventory/sales/orders")}
+        backHref="/inventory/sales"
         actions={
           <div className="flex flex-col items-stretch gap-3 sm:items-end">
             <Badge
