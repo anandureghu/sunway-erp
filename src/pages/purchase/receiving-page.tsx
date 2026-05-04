@@ -4,8 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GOODS_RECEIPT_COLUMNS } from "@/lib/columns/purchase-columns";
-import { Plus, Search, ArrowLeft, ClipboardCheck } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  Plus,
+  Search,
+  ClipboardCheck,
+  Package,
+  Truck,
+  CheckCircle2,
+  ClipboardList,
+} from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { PurchasePageHeader } from "./components/purchase-page-header";
 import {
   listPurchaseOrders,
   getGoodsReceiptsByPurchaseOrder,
@@ -23,6 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 export default function ReceivingPage() {
   const navigate = useNavigate();
@@ -141,6 +154,47 @@ export default function ReceivingPage() {
     return filtered;
   }, [orders, orderSearchQuery]);
 
+  const receivingKpis = useMemo((): KpiSummaryStat[] => {
+    const receiptsTotal = receipts.length;
+    const readyPo = ordersReadyForReceiving.length;
+    const completedGrn = receipts.filter(
+      (r) => r.status === "completed",
+    ).length;
+    const openGrn = receipts.filter(
+      (r) => r.status !== "completed" && r.status !== "cancelled",
+    ).length;
+    return [
+      {
+        label: "Goods receipts",
+        value: receiptsTotal,
+        hint: "Recorded against POs",
+        accent: "sky",
+        icon: ClipboardList,
+      },
+      {
+        label: "POs ready",
+        value: readyPo,
+        hint: "Eligible to receive now",
+        accent: "orange",
+        icon: Package,
+      },
+      {
+        label: "Completed GRNs",
+        value: completedGrn,
+        hint: "Inspection closed",
+        accent: "emerald",
+        icon: CheckCircle2,
+      },
+      {
+        label: "Open receipts",
+        value: openGrn,
+        hint: "Pending or in progress",
+        accent: "violet",
+        icon: Truck,
+      },
+    ];
+  }, [receipts, ordersReadyForReceiving]);
+
   if (showCreateForm) {
     return (
       <CreateReceiptForm
@@ -156,28 +210,26 @@ export default function ReceivingPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/inventory/purchase">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
+    <div className="space-y-6 p-4 sm:p-6">
+      <PurchasePageHeader
+        title="Receiving & quality inspection"
+        description="Receive goods against released POs and record inspection outcomes."
+        backHref="/inventory/purchase"
+        actions={
+          <Button
+            size="lg"
+            className="bg-white text-slate-900 hover:bg-white/90"
+            onClick={() => setShowCreateForm(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Receipt
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Receiving & Quality Inspection
-            </h1>
-            <p className="text-muted-foreground">
-              Receive goods and perform quality inspection
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => setShowCreateForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Receipt
-        </Button>
-      </div>
+        }
+      />
+
+      {!loading && !loadError ? (
+        <KpiSummaryStrip items={receivingKpis} />
+      ) : null}
 
       {/* Orders Ready for Receiving */}
       <Card className="mb-6">
@@ -436,18 +488,23 @@ function CreateReceiptForm({
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <ArrowLeft className="h-4 w-4" />
+    <div className="space-y-6 p-4 sm:p-6">
+      <PurchasePageHeader
+        title="Create goods receipt"
+        description="Select a released purchase order and enter quantities accepted or rejected per line."
+        backHref="/inventory/purchase"
+        actions={
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            onClick={onCancel}
+          >
+            Cancel
           </Button>
-          <h1 className="text-3xl font-bold">Create Goods Receipt</h1>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -522,9 +579,7 @@ function CreateReceiptForm({
                           <td className="p-2 min-w-[160px]">
                             <Select
                               value={
-                                item.warehouseId
-                                  ? String(item.warehouseId)
-                                  : ""
+                                item.warehouseId ? String(item.warehouseId) : ""
                               }
                               onValueChange={(v) =>
                                 updateItem(idx, "warehouseId", v)

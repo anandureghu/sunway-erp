@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
-import { ArrowLeft, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
 } from "@/service/salesFlowService";
 import type { Picklist, SalesOrder } from "@/types/sales";
 import type { Warehouse } from "@/types/inventory";
+import { SalesPageHeader } from "./sales-page-header";
 
 type Props = {
   onCancel: () => void;
@@ -38,7 +39,9 @@ export function CreatePicklistForm({
   initialSalesOrderId,
   onCreated,
 }: Props) {
-  const [selectedOrderId, setSelectedOrderId] = useState(initialSalesOrderId || "");
+  const [selectedOrderId, setSelectedOrderId] = useState(
+    initialSalesOrderId || "",
+  );
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -75,7 +78,9 @@ export function CreatePicklistForm({
       .catch((err: any) => {
         setSelectedOrder(null);
         toast.error(
-          err?.response?.data?.message || err?.message || "Failed to load sales order details.",
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load sales order details.",
         );
       })
       .finally(() => setLoadingOrder(false));
@@ -89,11 +94,16 @@ export function CreatePicklistForm({
   useEffect(() => {
     if (selectedOrder && selectedOrder.items.length > 0) {
       const orderWarehouseIds = Array.from(
-        new Set(selectedOrder.items.map((item) => item.warehouseId).filter(Boolean)),
+        new Set(
+          selectedOrder.items.map((item) => item.warehouseId).filter(Boolean),
+        ),
       ) as number[];
       if (orderWarehouseIds.length > 0) {
         const currentWarehouseId = watch("warehouseId");
-        if (currentWarehouseId && orderWarehouseIds.includes(currentWarehouseId)) {
+        if (
+          currentWarehouseId &&
+          orderWarehouseIds.includes(currentWarehouseId)
+        ) {
           return;
         }
         setValue("warehouseId", orderWarehouseIds[0], { shouldValidate: true });
@@ -111,15 +121,19 @@ export function CreatePicklistForm({
 
   const orderLineWarehouseIds = selectedOrder
     ? (Array.from(
-        new Set(selectedOrder.items.map((item) => item.warehouseId).filter(Boolean)),
+        new Set(
+          selectedOrder.items.map((item) => item.warehouseId).filter(Boolean),
+        ),
       ) as number[])
     : [];
 
   const preferredWarehouses = warehouses.filter(
-    (wh) => wh.status === "active" && orderLineWarehouseIds.includes(Number(wh.id)),
+    (wh) =>
+      wh.status === "active" && orderLineWarehouseIds.includes(Number(wh.id)),
   );
   const otherWarehouses = warehouses.filter(
-    (wh) => wh.status === "active" && !orderLineWarehouseIds.includes(Number(wh.id)),
+    (wh) =>
+      wh.status === "active" && !orderLineWarehouseIds.includes(Number(wh.id)),
   );
 
   const onSubmit = async (data: PicklistFormData) => {
@@ -133,8 +147,7 @@ export function CreatePicklistForm({
       return;
     }
     const existingActivePicklist = picklists.find(
-      (pl) =>
-        pl.orderId === selectedOrderId && pl.status !== "cancelled",
+      (pl) => pl.orderId === selectedOrderId && pl.status !== "cancelled",
     );
     if (existingActivePicklist) {
       toast.error(
@@ -152,7 +165,9 @@ export function CreatePicklistForm({
       onCancel();
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || err?.message || "Failed to generate picklist.",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to generate picklist.",
       );
     } finally {
       setSubmitting(false);
@@ -160,13 +175,12 @@ export function CreatePicklistForm({
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={onCancel}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold">Generate Picklist</h1>
-      </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        title="Generate Picklist"
+        description="Select a paid, confirmed sales order and confirm the warehouse so pick lines can be prepared."
+        backHref="/inventory/sales/picklist"
+      />
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardContent className="p-6 space-y-6">
@@ -194,7 +208,9 @@ export function CreatePicklistForm({
                   </SelectContent>
                 </Select>
                 {errors.orderId && (
-                  <p className="text-sm text-red-500">{errors.orderId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.orderId.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
@@ -202,7 +218,9 @@ export function CreatePicklistForm({
                 <Select
                   value={watch("warehouseId")?.toString()}
                   onValueChange={(value) =>
-                    setValue("warehouseId", Number(value), { shouldValidate: true })
+                    setValue("warehouseId", Number(value), {
+                      shouldValidate: true,
+                    })
                   }
                 >
                   <SelectTrigger>
@@ -210,7 +228,9 @@ export function CreatePicklistForm({
                   </SelectTrigger>
                   <SelectContent>
                     {loadingWarehouses ? (
-                      <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                      <div className="p-2 text-sm text-muted-foreground">
+                        Loading...
+                      </div>
                     ) : (
                       <>
                         {preferredWarehouses.map((wh) => (
@@ -238,35 +258,51 @@ export function CreatePicklistForm({
                   </div>
                   <div>
                     <p className="text-muted-foreground">Order Date</p>
-                    <p className="font-medium">{selectedOrder.orderDate || "-"}</p>
+                    <p className="font-medium">
+                      {selectedOrder.orderDate || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Invoice Due Date</p>
-                    <p className="font-medium">{selectedOrder.invoiceDueDate || "-"}</p>
+                    <p className="font-medium">
+                      {selectedOrder.invoiceDueDate || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Customer</p>
-                    <p className="font-medium">{selectedOrder.customerName || "-"}</p>
+                    <p className="font-medium">
+                      {selectedOrder.customerName || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Customer Phone</p>
-                    <p className="font-medium">{selectedOrder.customerPhone || "-"}</p>
+                    <p className="font-medium">
+                      {selectedOrder.customerPhone || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Payment Status</p>
-                    <p className="font-medium">{selectedOrder.paymentStatus || "-"}</p>
+                    <p className="font-medium">
+                      {selectedOrder.paymentStatus || "-"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Subtotal</p>
-                    <p className="font-medium">{formatAmount(selectedOrder.subtotalAmount)}</p>
+                    <p className="font-medium">
+                      {formatAmount(selectedOrder.subtotalAmount)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Tax</p>
-                    <p className="font-medium">{formatAmount(selectedOrder.taxAmount)}</p>
+                    <p className="font-medium">
+                      {formatAmount(selectedOrder.taxAmount)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Total</p>
-                    <p className="font-semibold">{formatAmount(selectedOrder.total)}</p>
+                    <p className="font-semibold">
+                      {formatAmount(selectedOrder.total)}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -276,7 +312,9 @@ export function CreatePicklistForm({
                 {!selectedOrder ? (
                   <div className="py-12 text-center">
                     <Package className="h-16 w-16 mx-auto mb-4 text-amber-500" />
-                    <p className="text-muted-foreground">Select a sales order to view items</p>
+                    <p className="text-muted-foreground">
+                      Select a sales order to view items
+                    </p>
                   </div>
                 ) : loadingOrder ? (
                   <div className="py-12 text-center text-muted-foreground">
@@ -296,12 +334,25 @@ export function CreatePicklistForm({
                       <div className="col-span-2 text-right">Line Total</div>
                     </div>
                     {selectedOrder.items.map((item) => (
-                      <div key={item.id} className="grid grid-cols-12 gap-2 py-2 border-b text-sm">
-                        <div className="col-span-4">{item.itemName || "Unknown Item"}</div>
-                        <div className="col-span-2 text-right">{item.quantity}</div>
-                        <div className="col-span-2 text-right">{formatAmount(item.unitPrice)}</div>
-                        <div className="col-span-2">{item.warehouseName || "-"}</div>
-                        <div className="col-span-2 text-right">{formatAmount(item.total)}</div>
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-12 gap-2 py-2 border-b text-sm"
+                      >
+                        <div className="col-span-4">
+                          {item.itemName || "Unknown Item"}
+                        </div>
+                        <div className="col-span-2 text-right">
+                          {item.quantity}
+                        </div>
+                        <div className="col-span-2 text-right">
+                          {formatAmount(item.unitPrice)}
+                        </div>
+                        <div className="col-span-2">
+                          {item.warehouseName || "-"}
+                        </div>
+                        <div className="col-span-2 text-right">
+                          {formatAmount(item.total)}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -310,7 +361,12 @@ export function CreatePicklistForm({
             </Card>
             <input type="hidden" {...register("assignedTo")} />
             <div className="flex gap-4">
-              <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1"
+              >
                 Cancel
               </Button>
               <Button

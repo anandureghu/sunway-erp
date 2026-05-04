@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Package, Truck, Plus, ArrowLeft } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Package, Truck, Plus, ClipboardList, Radar } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,17 +30,21 @@ import {
 import { listItems } from "@/service/inventoryService";
 import { CreateDispatchForm } from "./components/create-dispatch-form";
 import { CreatePicklistForm } from "./components/create-picklist-form";
+import { SalesPageHeader } from "./components/sales-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 export default function PicklistDispatchPage() {
   const location = useLocation();
-  const navState = (location.state as
-    | {
-        salesOrderId?: string;
-        initialPicklistId?: string;
-        openCreateDispatch?: boolean;
-        activeTab?: "picklists" | "dispatches";
-      }
-    | null) ?? null;
+  const navState =
+    (location.state as {
+      salesOrderId?: string;
+      initialPicklistId?: string;
+      openCreateDispatch?: boolean;
+      activeTab?: "picklists" | "dispatches";
+    } | null) ?? null;
   const [activeTab, setActiveTab] = useState("picklists");
   const [showCreatePicklist, setShowCreatePicklist] = useState(
     Boolean(navState?.salesOrderId),
@@ -48,7 +52,9 @@ export default function PicklistDispatchPage() {
   const [showCreateDispatch, setShowCreateDispatch] = useState(
     Boolean(navState?.openCreateDispatch),
   );
-  const [initialPicklistId, setInitialPicklistId] = useState(navState?.initialPicklistId || "");
+  const [initialPicklistId, setInitialPicklistId] = useState(
+    navState?.initialPicklistId || "",
+  );
   const [picklists, setPicklists] = useState<Picklist[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
@@ -94,7 +100,8 @@ export default function PicklistDispatchPage() {
       setPicklists(picklistsEnriched);
       setDispatches(dispatchesEnriched);
     } catch (e: any) {
-      const message = e?.response?.data?.message || e?.message || "Failed to load data";
+      const message =
+        e?.response?.data?.message || e?.message || "Failed to load data";
       setLoadError(message);
       toast.error(message);
     } finally {
@@ -119,7 +126,8 @@ export default function PicklistDispatchPage() {
           }
         },
         async (id) => {
-          if (!confirm("Are you sure you want to cancel this picklist?")) return;
+          if (!confirm("Are you sure you want to cancel this picklist?"))
+            return;
           try {
             await cancelPicklist(id);
             toast.success("Picklist cancelled");
@@ -166,7 +174,8 @@ export default function PicklistDispatchPage() {
           await loadData();
         },
         async (id) => {
-          if (!confirm("Are you sure you want to cancel this shipment?")) return;
+          if (!confirm("Are you sure you want to cancel this shipment?"))
+            return;
           await cancelShipment(id);
           await loadData();
         },
@@ -176,6 +185,45 @@ export default function PicklistDispatchPage() {
       ),
     [loadData, navigate],
   );
+
+  const fulfillmentKpis = useMemo((): KpiSummaryStat[] => {
+    const awaitingPick = picklists.filter((p) => p.status === "created").length;
+    const pickedReady = picklists.filter((p) => p.status === "picked").length;
+    const shipmentsTotal = dispatches.length;
+    const activeShipments = dispatches.filter(
+      (d) => !["delivered", "cancelled", "failed_delivery"].includes(d.status),
+    ).length;
+    return [
+      {
+        label: "Picklists",
+        value: picklists.length,
+        hint: "Warehouse documents",
+        accent: "sky",
+        icon: ClipboardList,
+      },
+      {
+        label: "Awaiting pick",
+        value: awaitingPick,
+        hint: "Still in CREATED status",
+        accent: "orange",
+        icon: Package,
+      },
+      {
+        label: "Picked ready",
+        value: pickedReady,
+        hint: "Eligible for shipment",
+        accent: "emerald",
+        icon: Truck,
+      },
+      {
+        label: "Active shipments",
+        value: activeShipments,
+        hint: `${shipmentsTotal} total · in-flight logistics`,
+        accent: "violet",
+        icon: Radar,
+      },
+    ];
+  }, [picklists, dispatches]);
 
   if (showCreatePicklist) {
     return (
@@ -204,36 +252,40 @@ export default function PicklistDispatchPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/inventory/sales">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Picklist & Dispatch</h1>
-            <p className="text-muted-foreground">Generate picklists and plan dispatches</p>
-          </div>
-        </div>
-        {activeTab === "picklists" ? (
-          <Button onClick={() => setShowCreatePicklist(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Generate Picklist
-          </Button>
-        ) : (
-          <Button
-            onClick={() => {
-              setInitialPicklistId("");
-              setShowCreateDispatch(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Dispatch
-          </Button>
-        )}
-      </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        title="Picklist & Dispatch"
+        description="Generate warehouse picklists from paid orders and create shipments when lines are picked."
+        backHref="/inventory/sales"
+        actions={
+          activeTab === "picklists" ? (
+            <Button
+              size="lg"
+              className="bg-white text-slate-900 hover:bg-white/90"
+              onClick={() => setShowCreatePicklist(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Generate Picklist
+            </Button>
+          ) : (
+            <Button
+              size="lg"
+              className="bg-white text-slate-900 hover:bg-white/90"
+              onClick={() => {
+                setInitialPicklistId("");
+                setShowCreateDispatch(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Dispatch
+            </Button>
+          )
+        }
+      />
+
+      {!loading && !loadError ? (
+        <KpiSummaryStrip items={fulfillmentKpis} />
+      ) : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -254,14 +306,20 @@ export default function PicklistDispatchPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="py-10 text-center text-muted-foreground">Loading picklists...</div>
+                <div className="py-10 text-center text-muted-foreground">
+                  Loading picklists...
+                </div>
               ) : loadError ? (
-                <div className="py-10 text-center text-red-600">{loadError}</div>
+                <div className="py-10 text-center text-red-600">
+                  {loadError}
+                </div>
               ) : (
                 <DataTable
                   columns={picklistColumns}
                   data={picklists}
-                  onRowClick={(row) => navigate(`/inventory/sales/picklist/${row.original.id}`)}
+                  onRowClick={(row) =>
+                    navigate(`/inventory/sales/picklist/${row.original.id}`)
+                  }
                 />
               )}
             </CardContent>
@@ -275,9 +333,13 @@ export default function PicklistDispatchPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="py-10 text-center text-muted-foreground">Loading shipments...</div>
+                <div className="py-10 text-center text-muted-foreground">
+                  Loading shipments...
+                </div>
               ) : loadError ? (
-                <div className="py-10 text-center text-red-600">{loadError}</div>
+                <div className="py-10 text-center text-red-600">
+                  {loadError}
+                </div>
               ) : (
                 <DataTable columns={dispatchColumns} data={dispatches} />
               )}

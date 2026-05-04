@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +21,7 @@ import {
 } from "@/service/salesFlowService";
 import { listCustomers } from "@/service/customerService";
 import type { Picklist } from "@/types/sales";
+import { SalesPageHeader } from "./sales-page-header";
 
 type Props = {
   onCancel: () => void;
@@ -36,7 +36,9 @@ export function CreateDispatchForm({
   initialPicklistId,
   onCreated,
 }: Props) {
-  const [selectedPicklistId, setSelectedPicklistId] = useState(initialPicklistId || "");
+  const [selectedPicklistId, setSelectedPicklistId] = useState(
+    initialPicklistId || "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const {
     register,
@@ -77,7 +79,9 @@ export function CreateDispatchForm({
           preferredAddress = (fullOrder.shippingAddress || "").trim();
           if (!preferredAddress && fullOrder.customerId) {
             const customers = await listCustomers();
-            const customer = customers.find((c) => c.id === fullOrder.customerId);
+            const customer = customers.find(
+              (c) => c.id === fullOrder.customerId,
+            );
             preferredAddress = [
               customer?.address,
               customer?.city,
@@ -99,7 +103,9 @@ export function CreateDispatchForm({
       if (!cancelled) {
         setValue(
           "notes",
-          [order?.customerName, order?.customerPhone].filter(Boolean).join(" | "),
+          [order?.customerName, order?.customerPhone]
+            .filter(Boolean)
+            .join(" | "),
         );
       }
     };
@@ -128,7 +134,9 @@ export function CreateDispatchForm({
       onCancel();
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || err?.message || "Failed to create shipment.",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create shipment.",
       );
     } finally {
       setSubmitting(false);
@@ -136,18 +144,23 @@ export function CreateDispatchForm({
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <ArrowLeft className="h-4 w-4" />
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        title="Create Dispatch"
+        description="Turn a picked picklist into a shipment with carrier, tracking, and delivery details."
+        backHref="/inventory/sales/picklist"
+        actions={
+          <Button
+            size="lg"
+            variant="secondary"
+            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            type="button"
+            onClick={onCancel}
+          >
+            Cancel
           </Button>
-          <h1 className="text-3xl font-bold">Create Dispatch</h1>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
+        }
+      />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
@@ -191,14 +204,18 @@ export function CreateDispatchForm({
                   </SelectContent>
                 </Select>
                 {errors.picklistId && (
-                  <p className="text-sm text-red-500">{errors.picklistId.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.picklistId.message}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="deliveryAddress">Delivery Address *</Label>
                 <Input id="deliveryAddress" {...register("deliveryAddress")} />
                 {errors.deliveryAddress && (
-                  <p className="text-sm text-red-500">{errors.deliveryAddress.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.deliveryAddress.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -224,7 +241,9 @@ export function CreateDispatchForm({
                 <Input id="driverPhone" {...register("driverPhone")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estimatedDeliveryDate">Estimated Delivery Date</Label>
+                <Label htmlFor="estimatedDeliveryDate">
+                  Estimated Delivery Date
+                </Label>
                 <Input
                   id="estimatedDeliveryDate"
                   type="date"

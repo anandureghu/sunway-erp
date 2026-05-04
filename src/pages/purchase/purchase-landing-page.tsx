@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,31 +6,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   ShoppingCart,
   FileText,
   Package,
   Users,
   Receipt,
-  Search,
   Clock,
-  X,
   ClipboardCheck,
   ArrowRight,
   ClipboardList,
+  CircleDollarSign,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import {
   purchaseOrders,
   purchaseInvoices,
   goodsReceipts,
-  suppliers,
 } from "@/lib/purchase-data";
-import { useCompanyCurrency } from "@/hooks/use-company-currency";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { PurchasePageHeader } from "./components/purchase-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 type ActionCard = {
   title: string;
@@ -43,10 +41,6 @@ type ActionCard = {
 };
 
 export default function PurchaseLandingPage() {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const { currencySymbol } = useCompanyCurrency();
-
   const totalPurchases = purchaseInvoices.reduce(
     (sum, inv) => sum + inv.total,
     0,
@@ -63,57 +57,6 @@ export default function PurchaseLandingPage() {
   const unpaidInvoices = purchaseInvoices.filter(
     (inv) => inv.status === "pending" || inv.status === "overdue",
   ).length;
-
-  const handleSearch = (query: string) => {
-    if (!query.trim()) return;
-
-    const lowerQuery = query.toLowerCase();
-
-    const foundOrder = purchaseOrders.find(
-      (o) =>
-        o.orderNo.toLowerCase().includes(lowerQuery) ||
-        o.supplier?.name.toLowerCase().includes(lowerQuery),
-    );
-
-    const foundSupplier = suppliers.find(
-      (s) =>
-        s.name.toLowerCase().includes(lowerQuery) ||
-        s.code.toLowerCase().includes(lowerQuery) ||
-        s.contactPerson?.toLowerCase().includes(lowerQuery),
-    );
-
-    const foundInvoice = purchaseInvoices.find(
-      (inv) =>
-        inv.invoiceNo.toLowerCase().includes(lowerQuery) ||
-        inv.supplierName.toLowerCase().includes(lowerQuery),
-    );
-
-    if (foundOrder) {
-      navigate("/inventory/purchase/orders", { state: { searchQuery: query } });
-      return;
-    }
-    if (foundSupplier) {
-      navigate("/inventory/purchase/suppliers", {
-        state: { searchQuery: query },
-      });
-      return;
-    }
-    if (foundInvoice) {
-      navigate("/inventory/purchase/invoices", {
-        state: { searchQuery: query },
-      });
-      return;
-    }
-
-    toast.info("No matches", {
-      description: `Try an order number, supplier name, or invoice number.`,
-    });
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSearch(searchQuery);
-  };
 
   const quickActions: ActionCard[] = [
     {
@@ -166,120 +109,71 @@ export default function PurchaseLandingPage() {
     },
   ];
 
-  return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Hero */}
-      <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white">
-        <CardContent className="p-6 sm:p-8 relative">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.07]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 50%, white 0%, transparent 50%), radial-gradient(circle at 80% 80%, white 0%, transparent 45%)",
-            }}
-          />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-3 max-w-2xl">
-              <Badge className="bg-white/15 text-white border-0 hover:bg-white/15">
-                Inventory · Purchase hub
-              </Badge>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
-                Purchase & supplier
-              </h1>
-              <p className="text-white/75 text-sm sm:text-base leading-relaxed">
-                Requisitions, orders, receipts, and payables in one place—
-                aligned with your procurement workflow.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-              <Button
-                asChild
-                size="lg"
-                className="bg-white text-slate-900 hover:bg-white/90 shadow-md"
-              >
-                <Link to="/inventory/purchase/requisitions/new">
-                  Create requisition
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="secondary"
-                className="bg-white/10 text-white border border-white/20 hover:bg-white/15"
-              >
-                <Link to="/inventory/purchase/orders">Purchase orders</Link>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+  const purchaseHubKpis: KpiSummaryStat[] = [
+    {
+      label: "Total purchases",
+      value: <CurrencyAmount amount={totalPurchases} />,
+      hint: "From sample invoice data",
+      accent: "emerald",
+      icon: CircleDollarSign,
+    },
+    {
+      label: "Pending orders",
+      value: pendingOrders,
+      hint: "Draft, pending, approved",
+      accent: "orange",
+      icon: Clock,
+    },
+    {
+      label: "Receipts today",
+      value: receiptsToday,
+      hint: "Goods receipts",
+      accent: "sky",
+      icon: Package,
+    },
+    {
+      label: "Unpaid invoices",
+      value: unpaidInvoices,
+      hint: "Pending or overdue",
+      accent: "violet",
+      icon: FileText,
+    },
+  ];
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <MetricCard
-          label="Total purchases"
-          value={<CurrencyAmount amount={totalPurchases} />}
-          icon={currencySymbol || ""}
-          hint="From sample invoice data"
-        />
-        <MetricCard
-          label="Pending orders"
-          value={String(pendingOrders)}
-          icon={Clock}
-          hint="Draft, pending, approved"
-        />
-        <MetricCard
-          label="Receipts today"
-          value={String(receiptsToday)}
-          icon={Package}
-          hint="Goods receipts"
-        />
-        <MetricCard
-          label="Unpaid invoices"
-          value={String(unpaidInvoices)}
-          icon={FileText}
-          hint="Pending or overdue"
-        />
-      </div>
+  return (
+    <div className="mx-auto w-full space-y-6 p-4 sm:p-6 py-2">
+      <PurchasePageHeader
+        title="Purchase & supplier"
+        description="Requisition, Orders, Payables, Receipts - Procurement workflow"
+        actions={
+          <>
+            <Button
+              asChild
+              size="lg"
+              className="bg-white text-slate-900 shadow-md hover:bg-white/90"
+            >
+              <Link to="/inventory/purchase/requisitions/new">
+                Create requisition
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="secondary"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            >
+              <Link to="/inventory/purchase/orders">Purchase orders</Link>
+            </Button>
+          </>
+        }
+      />
+
+      <KpiSummaryStrip items={purchaseHubKpis} />
 
       {/* Search */}
-      <Card className="shadow-sm border-border/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Quick search</CardTitle>
-          <CardDescription>
-            Jump to orders, suppliers, or invoices by number or name.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearchSubmit}>
-            <div className="relative flex gap-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Search orders, suppliers, invoices…"
-                className="pl-10 pr-10 h-11 bg-muted/30 border-muted-foreground/15 focus-visible:ring-emerald-500/30"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rounded-md p-1"
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
 
       {/* Actions */}
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-          Workspaces
-        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -326,40 +220,5 @@ export default function PurchaseLandingPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  hint,
-  icon: Icon,
-}: {
-  label: string;
-  value: React.ReactNode;
-  hint: string;
-  icon: React.ComponentType<{ className?: string }> | string;
-}) {
-  return (
-    <Card className="shadow-sm border-border/80 overflow-hidden">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className="text-2xl font-semibold tracking-tight tabular-nums truncate">
-              {value as string}
-            </p>
-            <p className="text-xs text-muted-foreground">{hint}</p>
-          </div>
-          <div className="rounded-xl bg-muted/80 p-2.5 ring-1 ring-border/50 w-10 h-10 flex items-center justify-center">
-            {typeof Icon === "string" ? (
-              Icon
-            ) : (
-              <Icon className="h-5 w-5 text-foreground/80" />
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

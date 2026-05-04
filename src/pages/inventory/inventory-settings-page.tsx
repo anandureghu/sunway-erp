@@ -3,7 +3,6 @@ import CategoriesMaster from "@/modules/inventory/settings/categories-master";
 import WarehouseMaster from "@/modules/inventory/settings/warehouse-master";
 import VendorsPage from "../admin/vendors/vendors-page";
 import CustomersPage from "../admin/customers/customers-page";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 import PermissionsTab from "@/components/permissions-tab";
@@ -43,17 +42,19 @@ const InventorySettingsPage = () => {
     {
       value: "permissions",
       label: "Permissions",
-      element: () => <PermissionsTab moduleType="INVENTORY" modules={INVENTORY_MODULES} />,
+      element: () => (
+        <PermissionsTab moduleType="INVENTORY" modules={INVENTORY_MODULES} />
+      ),
     },
   ];
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <Card className="border-0 shadow-md bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white">
-        <CardContent className="p-6 sm:p-8">
-          <Badge className="mb-3 bg-white/20 text-white hover:bg-white/20">
+        <CardContent className="p-6 sm:p-8 !py-2">
+          {/* <Badge className="mb-3 bg-white/20 text-white hover:bg-white/20">
             Inventory Configuration
-          </Badge>
+          </Badge> */}
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Inventory Settings
           </h1>
@@ -85,7 +86,7 @@ const InventorySettingsPage = () => {
       </div> */}
 
       <AppTab
-        title="Inventory Settings"
+        title=""
         variant="warning"
         // subtitle="Manage inventory masters and supplier data"
         tabs={tabsList}

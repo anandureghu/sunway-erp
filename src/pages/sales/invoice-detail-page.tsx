@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { Invoice } from "@/types/sales";
+import { SalesPageHeader } from "./components/sales-page-header";
 
 /* =======================
    CONSTANTS
@@ -58,7 +57,6 @@ const formatTemplate = (
 
 export default function InvoiceDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [tab, setTab] = useState<"invoice" | "receipt">("invoice");
@@ -82,6 +80,13 @@ export default function InvoiceDetailPage() {
     .split(/\r?\n/)
     .map((term) => term.trim())
     .filter(Boolean);
+  const invoiceHeaderDescription = [
+    invoice.toParty ? String(invoice.toParty) : "",
+    invoice.dueDate ? `Due ${formatDate(invoice.dueDate)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const dynamicNote = formatTemplate(
     isPaid ? invoice.invoiceNotesPaid : invoice.invoiceNotesUnpaid,
     {
@@ -140,7 +145,9 @@ export default function InvoiceDetailPage() {
       } else {
         await apiClient.post(`/invoices/${invoice.id}/email`);
       }
-      alert(`${tab === "receipt" ? "Receipt" : "Invoice"} email sent to customer`);
+      alert(
+        `${tab === "receipt" ? "Receipt" : "Invoice"} email sent to customer`,
+      );
     } catch (error) {
       console.error("Email sending failed", error);
       alert("Unable to send email");
@@ -152,13 +159,20 @@ export default function InvoiceDetailPage() {
   ======================= */
 
   return (
-    <div className="min-h-screen p-6" style={{ background: COLORS.gray100 }}>
-      <Button variant="ghost" onClick={() => navigate(-1)}>
-        <ArrowLeft />
-      </Button>
+    <div
+      className="min-h-screen px-4 pb-6 pt-4 sm:px-6 sm:pt-6"
+      style={{ background: COLORS.gray100 }}
+    >
+      <SalesPageHeader
+        title={`Invoice ${safe(invoice.invoiceId)}`}
+        description={invoiceHeaderDescription || undefined}
+        backHref={
+          isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices"
+        }
+      />
 
       {/* TOGGLE */}
-      <div className="max-w-5xl mx-auto my-6 flex gap-3">
+      <div className="mx-auto my-6 flex max-w-5xl gap-3">
         {(["invoice", "receipt"] as const).map((t) => (
           <button
             key={t}
@@ -227,7 +241,9 @@ export default function InvoiceDetailPage() {
             className="rounded-xl px-6 py-4 text-center"
             style={{ background: COLORS.orange500 }}
           >
-            <div className="text-xl font-bold">{isReceipt ? "RECEIPT" : "INVOICE"}</div>
+            <div className="text-xl font-bold">
+              {isReceipt ? "RECEIPT" : "INVOICE"}
+            </div>
             <div className="text-sm">#{safe(invoice.invoiceId)}</div>
           </div>
         </div>
@@ -352,7 +368,11 @@ export default function InvoiceDetailPage() {
                 style={{ borderTop: `1px solid ${COLORS.gray200}` }}
               >
                 <span>{isReceipt ? "Amount Paid" : "Outstanding"}</span>
-                <span>{isReceipt ? money(invoice.amount) : money(invoice.outstanding)}</span>
+                <span>
+                  {isReceipt
+                    ? money(invoice.amount)
+                    : money(invoice.outstanding)}
+                </span>
               </div>
             </div>
           </div>
@@ -439,7 +459,9 @@ export default function InvoiceDetailPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Paid Date</p>
-                  <p className="font-semibold">{formatDate(invoice.paidDate)}</p>
+                  <p className="font-semibold">
+                    {formatDate(invoice.paidDate)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Status</p>
@@ -509,11 +531,16 @@ export default function InvoiceDetailPage() {
             <p>{safe(invoice.invoiceFooterSignatureNote)}</p>
 
             <p className="text-gray-400">
-              For support: {safe(invoice.companyEmail || invoice.invoiceFooterSupportEmail)}
+              For support:{" "}
+              {safe(invoice.companyEmail || invoice.invoiceFooterSupportEmail)}
               <span className="mx-1">|</span>
-              For billing: {safe(invoice.billingEmail || invoice.invoiceFooterBillingEmail)}
+              For billing:{" "}
+              {safe(invoice.billingEmail || invoice.invoiceFooterBillingEmail)}
             </p>
-            <p className="text-gray-400" style={{ display: invoice.companyWebsiteUrl ? "block" : "none" }}>
+            <p
+              className="text-gray-400"
+              style={{ display: invoice.companyWebsiteUrl ? "block" : "none" }}
+            >
               Website: {safe(invoice.companyWebsiteUrl)}
             </p>
           </div>

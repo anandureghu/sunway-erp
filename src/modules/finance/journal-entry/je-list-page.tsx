@@ -60,7 +60,7 @@ export default function JournalEntryListPage() {
   }, []);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-0 space-y-6">
       <div className="flex justify-between">
         <h1 className="text-2xl font-semibold">Journal Entries</h1>
         <Button onClick={() => setOpen(true)}>Add Journal Entry</Button>

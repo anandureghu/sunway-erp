@@ -19,10 +19,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Truck, ArrowLeft, CheckCircle2, Circle } from "lucide-react";
+import {
+  Search,
+  Truck,
+  CheckCircle2,
+  Circle,
+  Package,
+  Navigation,
+} from "lucide-react";
 import { format } from "date-fns";
 import type { Dispatch } from "@/types/sales";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   addShipmentTrackingEvent,
   cancelShipment,
@@ -44,6 +51,11 @@ import {
   getStatusDisplay,
   getTrackingHistory,
 } from "./components/delivery-tracking-utils";
+import { SalesPageHeader } from "./components/sales-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 export default function DeliveryTrackingPage() {
   const [searchParams] = useSearchParams();
@@ -91,7 +103,9 @@ export default function DeliveryTrackingPage() {
         setLoadError(null);
         const dispatchesEnriched = await loadDispatches();
         if (cancelled || !selectedDispatchId) return;
-        const match = dispatchesEnriched.find((dispatch) => dispatch.id === selectedDispatchId);
+        const match = dispatchesEnriched.find(
+          (dispatch) => dispatch.id === selectedDispatchId,
+        );
         if (match) setSelectedDispatch(match);
       } catch (e: any) {
         if (!cancelled) setLoadError(e?.message || "Failed to load shipments");
@@ -116,9 +130,52 @@ export default function DeliveryTrackingPage() {
     });
   }, [dispatches, searchQuery]);
 
+  const trackingKpis = useMemo((): KpiSummaryStat[] => {
+    const total = dispatches.length;
+    const delivered = dispatches.filter((d) => d.status === "delivered").length;
+    const pendingDispatch = dispatches.filter(
+      (d) => d.status === "created",
+    ).length;
+    const inMotion = dispatches.filter((d) =>
+      ["dispatched", "in_transit", "out_for_delivery"].includes(d.status),
+    ).length;
+    return [
+      {
+        label: "Shipments",
+        value: total,
+        hint: "All tracked dispatches",
+        accent: "sky",
+        icon: Truck,
+      },
+      {
+        label: "Pending dispatch",
+        value: pendingDispatch,
+        hint: "Awaiting carrier release",
+        accent: "amber",
+        icon: Package,
+      },
+      {
+        label: "In motion",
+        value: inMotion,
+        hint: "On road or out for delivery",
+        accent: "violet",
+        icon: Navigation,
+      },
+      {
+        label: "Delivered",
+        value: delivered,
+        hint: "Confirmed customer receipt",
+        accent: "emerald",
+        icon: CheckCircle2,
+      },
+    ];
+  }, [dispatches]);
+
   useEffect(() => {
     if (!selectedDispatchId || dispatches.length === 0) return;
-    const match = dispatches.find((dispatch) => dispatch.id === selectedDispatchId);
+    const match = dispatches.find(
+      (dispatch) => dispatch.id === selectedDispatchId,
+    );
     if (match) {
       setSelectedDispatch(match);
     }
@@ -132,7 +189,9 @@ export default function DeliveryTrackingPage() {
   const refreshSelectedDispatch = async () => {
     const dispatchesEnriched = await loadDispatches();
     if (selectedDispatch) {
-      const updated = dispatchesEnriched.find((d) => d.id === selectedDispatch.id);
+      const updated = dispatchesEnriched.find(
+        (d) => d.id === selectedDispatch.id,
+      );
       if (updated) setSelectedDispatch(updated);
     }
   };
@@ -150,10 +209,12 @@ export default function DeliveryTrackingPage() {
     try {
       setUpdatingStatus(true);
       if (action === "dispatch") await dispatchShipment(selectedDispatch.id);
-      if (action === "in_transit") await markShipmentInTransit(selectedDispatch.id);
+      if (action === "in_transit")
+        await markShipmentInTransit(selectedDispatch.id);
       if (action === "out_for_delivery")
         await markShipmentOutForDelivery(selectedDispatch.id);
-      if (action === "delivered") await markShipmentDelivered(selectedDispatch.id);
+      if (action === "delivered")
+        await markShipmentDelivered(selectedDispatch.id);
       if (action === "failed_delivery")
         await markShipmentFailedDelivery(
           selectedDispatch.id,
@@ -191,7 +252,11 @@ export default function DeliveryTrackingPage() {
       !["failed_delivery", "cancelled"].includes(trackingStatus)
     ) {
       for (let i = currentIndex + 1; i <= targetIndex; i += 1) {
-        workingStatus = await applyStatusTransition(selectedDispatch.id, workingStatus, statusOrder[i]);
+        workingStatus = await applyStatusTransition(
+          selectedDispatch.id,
+          workingStatus,
+          statusOrder[i],
+        );
       }
     } else if (trackingStatus !== workingStatus) {
       workingStatus = await applyStatusTransition(
@@ -239,7 +304,10 @@ export default function DeliveryTrackingPage() {
       return "cancelled";
     }
     if (targetStatus === "failed_delivery") {
-      await markShipmentFailedDelivery(id, trackingNotes || "Marked failed from tracking update");
+      await markShipmentFailedDelivery(
+        id,
+        trackingNotes || "Marked failed from tracking update",
+      );
       return "failed_delivery";
     }
     if (targetStatus === "dispatched" && currentStatus === "created") {
@@ -311,22 +379,14 @@ export default function DeliveryTrackingPage() {
   }, [trackingDialogOpen, selectedDispatch]);
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/inventory/sales">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Delivery Tracking</h1>
-            <p className="text-muted-foreground">
-              Track shipments and delivery status
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 space-y-6">
+      <SalesPageHeader
+        title="Delivery Tracking"
+        description="Monitor shipment movement, update milestones, and confirm customer delivery."
+        backHref="/inventory/sales"
+      />
+
+      {!loading && !loadError ? <KpiSummaryStrip items={trackingKpis} /> : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
         {/* Left Sidebar - Active Dispatches */}
@@ -537,11 +597,11 @@ export default function DeliveryTrackingPage() {
                           ? "In Transit"
                           : selectedDispatch.status === "out_for_delivery"
                             ? "Out for Delivery"
-                          : selectedDispatch.status === "delivered"
-                            ? getDestination(selectedDispatch)
-                            : selectedDispatch.status === "failed_delivery"
-                              ? "Delivery Attempt Failed"
-                            : "Origin"}
+                            : selectedDispatch.status === "delivered"
+                              ? getDestination(selectedDispatch)
+                              : selectedDispatch.status === "failed_delivery"
+                                ? "Delivery Attempt Failed"
+                                : "Origin"}
                       </p>
                     </CardContent>
                   </Card>
@@ -551,61 +611,59 @@ export default function DeliveryTrackingPage() {
                 <div>
                   <CardTitle className="mb-4">Tracking History</CardTitle>
                   <div className="space-y-6">
-                    {trackingHistory.map(
-                      (event, index) => {
-                        const isLast = index === trackingHistory.length - 1;
-                        return (
-                          <div key={index} className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                              {event.status === "completed" ? (
-                                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                                  <CheckCircle2 className="h-4 w-4 text-white" />
-                                </div>
-                              ) : event.status === "current" ? (
-                                <div className="w-6 h-6 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                  <Circle className="h-3 w-3 text-white fill-white" />
-                                </div>
-                              ) : (
-                                <div className="w-6 h-6 rounded-full border-2 border-gray-300 bg-white flex-shrink-0" />
-                              )}
-                              {!isLast && (
-                                <div
-                                  className={cn(
-                                    "w-0.5 flex-1 mt-2 min-h-[40px]",
-                                    event.status === "pending"
-                                      ? "bg-gray-200"
-                                      : "bg-green-500",
-                                  )}
-                                />
-                              )}
-                            </div>
-                            <div
-                              className={cn(
-                                "flex-1 pb-2",
-                                event.status === "current" &&
-                                  "border-l-2 border-blue-500 pl-4",
-                              )}
-                            >
-                              <p className="font-semibold text-base">
-                                {event.event}
-                              </p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {event.location}
-                              </p>
-                              {event.dateTime ? (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {event.dateTime}
-                                </p>
-                              ) : event.status === "pending" ? (
-                                <p className="text-xs text-muted-foreground mt-1 italic">
-                                  Pending
-                                </p>
-                              ) : null}
-                            </div>
+                    {trackingHistory.map((event, index) => {
+                      const isLast = index === trackingHistory.length - 1;
+                      return (
+                        <div key={index} className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            {event.status === "completed" ? (
+                              <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                <CheckCircle2 className="h-4 w-4 text-white" />
+                              </div>
+                            ) : event.status === "current" ? (
+                              <div className="w-6 h-6 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center flex-shrink-0">
+                                <Circle className="h-3 w-3 text-white fill-white" />
+                              </div>
+                            ) : (
+                              <div className="w-6 h-6 rounded-full border-2 border-gray-300 bg-white flex-shrink-0" />
+                            )}
+                            {!isLast && (
+                              <div
+                                className={cn(
+                                  "w-0.5 flex-1 mt-2 min-h-[40px]",
+                                  event.status === "pending"
+                                    ? "bg-gray-200"
+                                    : "bg-green-500",
+                                )}
+                              />
+                            )}
                           </div>
-                        );
-                      },
-                    )}
+                          <div
+                            className={cn(
+                              "flex-1 pb-2",
+                              event.status === "current" &&
+                                "border-l-2 border-blue-500 pl-4",
+                            )}
+                          >
+                            <p className="font-semibold text-base">
+                              {event.event}
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {event.location}
+                            </p>
+                            {event.dateTime ? (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {event.dateTime}
+                              </p>
+                            ) : event.status === "pending" ? (
+                              <p className="text-xs text-muted-foreground mt-1 italic">
+                                Pending
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </CardContent>
@@ -640,9 +698,13 @@ export default function DeliveryTrackingPage() {
                   <SelectItem value="created">Created</SelectItem>
                   <SelectItem value="dispatched">Dispatched</SelectItem>
                   <SelectItem value="in_transit">In Transit</SelectItem>
-                  <SelectItem value="out_for_delivery">Out For Delivery</SelectItem>
+                  <SelectItem value="out_for_delivery">
+                    Out For Delivery
+                  </SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="failed_delivery">Failed Delivery</SelectItem>
+                  <SelectItem value="failed_delivery">
+                    Failed Delivery
+                  </SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
@@ -714,7 +776,10 @@ export default function DeliveryTrackingPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTrackingDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setTrackingDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button onClick={submitTrackingUpdate}>Save Update</Button>

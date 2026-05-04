@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, ClipboardList, Search } from "lucide-react";
+import { ClipboardList, Search } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +15,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseRequisition } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
+import { PurchasePageHeader } from "./purchase-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 type Props = {
   loading: boolean;
@@ -29,6 +33,7 @@ type Props = {
   onStatusChange: (value: string) => void;
   onRetry: () => void;
   onRowClick: (row: Row<PurchaseRequisition>) => void;
+  kpiItems?: KpiSummaryStat[];
 };
 
 type RequisitionTab = "active" | "converted";
@@ -45,6 +50,7 @@ export function PurchaseRequisitionsListView({
   onStatusChange,
   onRetry,
   onRowClick,
+  kpiItems,
 }: Props) {
   const [tab, setTab] = useState<RequisitionTab>("active");
 
@@ -69,41 +75,24 @@ export function PurchaseRequisitionsListView({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <Card className="border-0 shadow-md bg-gradient-to-r from-zinc-900 via-slate-900 to-zinc-800 text-white">
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                asChild
-                className="text-white hover:bg-white/10"
-              >
-                <Link to="/inventory/purchase">
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-white/70">
-                  Purchase
-                </p>
-                <h1 className="text-2xl sm:text-3xl font-bold">
-                  Purchase requisitions
-                </h1>
-                <p className="text-sm text-white/70 mt-1">
-                  Submit for approval; approving creates a draft purchase order
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={onCreateNew}
-              className="bg-white text-black hover:bg-white/90"
-            >
-              Create requisition
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <PurchasePageHeader
+        title="Purchase requisitions"
+        description="Submit for approval; approving creates a draft purchase order tied to your preferred supplier."
+        backHref="/inventory/purchase"
+        actions={
+          <Button
+            size="lg"
+            onClick={onCreateNew}
+            className="bg-white text-slate-900 hover:bg-white/90"
+          >
+            Create requisition
+          </Button>
+        }
+      />
+
+      {kpiItems && kpiItems.length > 0 ? (
+        <KpiSummaryStrip items={kpiItems} />
+      ) : null}
 
       <Card className="shadow-sm">
         <CardHeader className="pb-3">
@@ -112,9 +101,7 @@ export function PurchaseRequisitionsListView({
               <ClipboardList className="h-5 w-5" />
               Requisitions
               <Badge variant="secondary">{activeReqs.length} active</Badge>
-              <Badge variant="outline">
-                {convertedReqs.length} converted
-              </Badge>
+              <Badge variant="outline">{convertedReqs.length} converted</Badge>
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <div className="relative">
@@ -162,7 +149,7 @@ export function PurchaseRequisitionsListView({
                   Active ({activeReqs.length})
                 </TabsTrigger>
                 <TabsTrigger value="converted">
-                  Converted ({convertedReqs.length})
+                  Converted To PO ({convertedReqs.length})
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="active" className="mt-4">

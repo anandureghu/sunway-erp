@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft } from "lucide-react";
 import { listItems } from "@/service/inventoryService";
 import { createPurchaseRequisition } from "@/service/purchaseFlowService";
 import type { PurchaseRequisitionItem } from "@/types/purchase";
@@ -23,6 +22,7 @@ import SelectUser, { type SelectUserOption } from "@/components/select-user";
 import SelectDepartment from "@/components/select-department";
 import SelectVendor from "@/components/select-vendor";
 import { useAuth } from "@/context/AuthContext";
+import { PurchasePageHeader } from "./purchase-page-header";
 import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
 import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
@@ -365,26 +365,22 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <ArrowLeft className="h-4 w-4" />
+      <PurchasePageHeader
+        title="Create purchase requisition"
+        description="When approved, a draft purchase order is created and finance posts to your company default purchase accounts (Global Settings → Default Accounts)."
+        backHref="/inventory/purchase"
+        actions={
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            onClick={onCancel}
+          >
+            Cancel
           </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">
-              Create Purchase Requisition
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              When approved, a draft purchase order is created and finance posts
-              to your company default purchase accounts (Global Settings →
-              Default Accounts).
-            </p>
-          </div>
-        </div>
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
+        }
+      />
 
       {loading ? (
         <div className="py-10 text-center text-muted-foreground">Loading…</div>

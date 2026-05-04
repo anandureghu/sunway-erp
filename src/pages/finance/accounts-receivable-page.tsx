@@ -32,7 +32,7 @@ const AccountsReceivablePage = () => {
       element: () => {
         return (
           <>
-            <h1 className="text-2xl font-semibold pl-5 pt-5">Sales Invoices</h1>
+            {/* <h1 className="text-2xl font-semibold pl-5 pt-5">Sales Invoices</h1> */}
             <InvoicesPage disableHeader />
           </>
         );

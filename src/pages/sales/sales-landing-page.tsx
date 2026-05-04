@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -7,8 +6,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag,
   ShoppingCart,
@@ -17,14 +14,18 @@ import {
   Truck,
   Users,
   Receipt,
-  Search,
   Clock,
   ArrowRight,
+  CircleDollarSign,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { salesOrders, invoices, dispatches, customers } from "@/lib/sales-data";
+import { Link } from "react-router-dom";
+import { salesOrders, invoices, dispatches } from "@/lib/sales-data";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
-import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import { SalesPageHeader } from "./components/sales-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 type ActionCard = {
   title: string;
@@ -36,10 +37,6 @@ type ActionCard = {
 };
 
 export default function SalesLandingPage() {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const { currencySymbol } = useCompanyCurrency();
-
   const totalSales = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const pendingOrders = salesOrders.filter(
     (o) => o.status === "draft" || o.status === "confirmed",
@@ -104,98 +101,66 @@ export default function SalesLandingPage() {
     },
   ];
 
-  const handleSearch = (query: string) => {
-    if (!query.trim()) return;
-    const lowerQuery = query.toLowerCase();
-    const foundOrder = salesOrders.find(
-      (o) =>
-        o.orderNo.toLowerCase().includes(lowerQuery) ||
-        o.customerName.toLowerCase().includes(lowerQuery),
-    );
-    const foundCustomer = customers.find(
-      (c) =>
-        c.name.toLowerCase().includes(lowerQuery) ||
-        c.code.toLowerCase().includes(lowerQuery) ||
-        c.contactPerson?.toLowerCase().includes(lowerQuery),
-    );
-
-    if (foundOrder) {
-      navigate("/inventory/sales/orders", { state: { searchQuery: query } });
-      return;
-    }
-    if (foundCustomer) {
-      navigate("/inventory/sales/customers", { state: { searchQuery: query } });
-      return;
-    }
-    alert(`No results found for "${query}".`);
-  };
+  const salesHubKpis: KpiSummaryStat[] = [
+    {
+      label: "Gross sales",
+      value: <CurrencyAmount amount={totalSales} />,
+      hint: "Invoice total",
+      accent: "emerald",
+      icon: CircleDollarSign,
+    },
+    {
+      label: "Pending orders",
+      value: pendingOrders,
+      hint: "Draft + confirmed",
+      accent: "orange",
+      icon: Clock,
+    },
+    {
+      label: "Dispatches today",
+      value: dispatchesToday,
+      hint: "Created today",
+      accent: "sky",
+      icon: Truck,
+    },
+    {
+      label: "Unpaid invoices",
+      value: unpaidInvoices,
+      hint: "Unpaid + overdue",
+      accent: "violet",
+      icon: FileText,
+    },
+  ];
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <Card className="border-0 shadow-md bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white">
-        <CardContent className="p-6 sm:p-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <Badge className="mb-3 bg-white/20 text-white hover:bg-white/20">
-                Inventory Sales Hub
-              </Badge>
-              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">
-                Modern Sales Operations
-              </h1>
-              <p className="mt-2 text-white/80 max-w-2xl">
-                Create orders, manage pipeline, and monitor fulfillment from one
-                workspace.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                asChild
-                size="lg"
-                className="bg-white text-slate-900 hover:bg-white/90"
-              >
-                <Link to="/inventory/sales/orders/new">Create Order</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="secondary"
-                className="bg-white/10 text-white border-white/20"
-              >
-                <Link to="/inventory/sales/orders">Manage Orders</Link>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SalesPageHeader
+        title="Modern Sales Operations"
+        description="Create, Manage and Track Sales Orders"
+        actions={
+          <>
+            <Button
+              asChild
+              size="lg"
+              className="bg-white text-slate-900 hover:bg-white/90"
+            >
+              <Link to="/inventory/sales/orders/new">Create Order</Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="secondary"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            >
+              <Link to="/inventory/sales/orders">Manage Orders</Link>
+            </Button>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <MetricCard
-          label="Gross Sales"
-          value={<CurrencyAmount amount={totalSales} />}
-          icon={currencySymbol || ""}
-          hint="Invoice total"
-        />
-        <MetricCard
-          label="Pending Orders"
-          value={String(pendingOrders)}
-          icon={Clock}
-          hint="Draft + confirmed"
-        />
-        <MetricCard
-          label="Dispatches Today"
-          value={String(dispatchesToday)}
-          icon={Truck}
-          hint="Created today"
-        />
-        <MetricCard
-          label="Unpaid Invoices"
-          value={String(unpaidInvoices)}
-          icon={FileText}
-          hint="Unpaid + overdue"
-        />
-      </div>
+      <KpiSummaryStrip items={salesHubKpis} />
 
-      <Card className="shadow-sm">
+      {/* <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Quick Search</CardTitle>
           <CardDescription>
@@ -214,7 +179,7 @@ export default function SalesLandingPage() {
             />
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {quickActions.map((action) => {
@@ -253,40 +218,5 @@ export default function SalesLandingPage() {
         })}
       </div>
     </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  hint,
-  icon: Icon,
-}: {
-  label: string;
-  value: React.ReactNode;
-  hint: string;
-  icon: React.ComponentType<{ className?: string }> | string;
-}) {
-  return (
-    <Card className="shadow-sm">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="text-2xl font-semibold mt-1">{value as string}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {hint as string}
-            </p>
-          </div>
-          <div className="rounded-xl bg-muted p-2.5 w-10 h-10 flex items-center justify-center">
-            {typeof Icon === "string" ? (
-              Icon
-            ) : (
-              <Icon className="h-5 w-5 text-foreground" />
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

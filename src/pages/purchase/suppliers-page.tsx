@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Search, Users, Building2, Mail, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import { listVendors } from "@/service/vendorService";
 import { toast } from "sonner";
@@ -12,6 +12,11 @@ import { getVendorColumns } from "@/lib/columns/vendor-listing-admin";
 import type { Vendor } from "@/types/vendor";
 import type { Row } from "@tanstack/react-table";
 import { VendorDialog } from "@/pages/admin/vendors/vendor-dialog";
+import { PurchasePageHeader } from "./components/purchase-page-header";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 export default function SuppliersPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -108,6 +113,43 @@ export default function SuppliersPage() {
     );
   });
 
+  const supplierKpis = useMemo((): KpiSummaryStat[] => {
+    const total = vendors.length;
+    const active = vendors.filter((v) => v.active !== false).length;
+    const approved = vendors.filter((v) => v.approved && !v.rejected).length;
+    const withEmail = vendors.filter((v) => (v.email || "").trim()).length;
+    return [
+      {
+        label: "Total suppliers",
+        value: total,
+        hint: "Vendor master rows",
+        accent: "sky",
+        icon: Building2,
+      },
+      {
+        label: "Active",
+        value: active,
+        hint: "Available on POs",
+        accent: "emerald",
+        icon: Users,
+      },
+      {
+        label: "Approved",
+        value: approved,
+        hint: "Passed onboarding checks",
+        accent: "violet",
+        icon: ShieldCheck,
+      },
+      {
+        label: "With email",
+        value: withEmail,
+        hint: "Contacts on file",
+        accent: "amber",
+        icon: Mail,
+      },
+    ];
+  }, [vendors]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -117,38 +159,37 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/inventory/purchase">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
+    <div className="space-y-6 p-4 sm:p-6">
+      <PurchasePageHeader
+        title="Suppliers"
+        description="Maintain vendor records used on purchase orders and supplier invoices."
+        backHref="/inventory/purchase"
+        actions={
+          <Button
+            size="lg"
+            className="bg-white text-slate-900 hover:bg-white/90"
+            onClick={() => {
+              setSelected(null);
+              setOpen(true);
+            }}
+          >
+            Add New Supplier
           </Button>
-          <h1 className="text-2xl font-semibold">Suppliers</h1>
-        </div>
-      </div>
+        }
+      />
+
+      <KpiSummaryStrip items={supplierKpis} />
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by name, email, phone, or city..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button
-              onClick={() => {
-                setSelected(null);
-                setOpen(true);
-              }}
-            >
-              Add New Supplier
-            </Button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+            <Input
+              placeholder="Search by name, email, phone, or city..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </CardHeader>
 
