@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils";
 // Icon mapping for modules
 const getModuleIcon = (title: string, defaultIcon: any) => {
   const iconMap: Record<string, any> = {
-    "HR Analytics": BarChart3,
     "Employee Overview": Users,
     "HR Reports": FileText,
     "HR Settings": Settings,
@@ -47,8 +46,6 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
 // Description mapping for modules
 const getModuleDescription = (title: string): string => {
   const descriptions: Record<string, string> = {
-    "HR Analytics":
-      "Comprehensive HR metrics, workforce insights, and data-driven decision making.",
     "Employee Overview":
       "Complete employee profiles, organizational structure, and staff directory.",
     "HR Reports":

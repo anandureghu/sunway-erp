@@ -31,6 +31,7 @@ export function BankAccountDialog({
   const [form, setForm] = useState({
     bankName: "",
     accountNumber: "",
+    iban: "",
     ifscCode: "",
     branchName: "",
     accountHolderName: "",
@@ -42,6 +43,7 @@ export function BankAccountDialog({
       setForm({
         bankName: bankAccount.bankName,
         accountNumber: bankAccount.accountNumber,
+        iban: bankAccount.iban || "",
         ifscCode: bankAccount.ifscCode || "",
         branchName: bankAccount.branchName || "",
         accountHolderName: bankAccount.accountHolderName,
@@ -58,6 +60,7 @@ export function BankAccountDialog({
     setForm({
       bankName: "",
       accountNumber: "",
+      iban: "",
       ifscCode: "",
       branchName: "",
       accountHolderName: "",
@@ -112,6 +115,16 @@ export function BankAccountDialog({
             onChange={(e) =>
               setForm({ ...form, accountNumber: e.target.value })
             }
+          />
+
+          <Label>IBAN</Label>
+          <Input
+            placeholder="IBAN (e.g. QA57QNBA000000000000693123456)"
+            value={form.iban}
+            onChange={(e) =>
+              setForm({ ...form, iban: e.target.value.toUpperCase() })
+            }
+            className="font-mono"
           />
 
           <Label>IFSC Code</Label>

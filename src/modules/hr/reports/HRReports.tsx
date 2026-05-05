@@ -1,15 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
-  Tooltip, ResponsiveContainer, Legend,
+  Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  Users, UserCheck, UserX, Clock, TrendingUp, Calendar,
+  Users, UserCheck, UserX, Clock, TrendingUp,
   Globe, Building2, Award, Loader2, RefreshCw, BarChart3,
   ArrowUpRight, Briefcase,
 } from "lucide-react";
 import { hrService } from "@/service/hr.service";
-import { leavePolicyService } from "@/service/leavePolicyService";
 import { appraisalService } from "@/service/appraisalService";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -118,9 +117,10 @@ const CUSTOM_TOOLTIP = ({ active, payload }: any) => {
 
 // ── tabs ──────────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: "workforce", label: "Workforce", icon: Users },
-  { id: "leaves",    label: "Leave Policy", icon: Calendar },
-  { id: "appraisal", label: "Performance", icon: Award },
+  { id: "workforce",  label: "Workforce Overview",   icon: Users },
+  { id: "department", label: "Department Headcount", icon: Building2 },
+  { id: "breakdown",  label: "Workforce Breakdown",  icon: Globe },
+  { id: "appraisal",  label: "Performance",          icon: Award },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -130,15 +130,12 @@ export default function HRReports() {
   const [tab, setTab] = useState<TabId>("workforce");
 
   // ── data state ──────────────────────────────────────────────────────────────
-  const [employees, setEmployees]     = useState<Employee[]>([]);
-  const [leavePolicies, setLeavePolicies] = useState<any[]>([]);
-  const [leaveTypes, setLeaveTypes]   = useState<string[]>([]);
-  const [appraisals, setAppraisals]   = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [appraisals, setAppraisals] = useState<any[]>([]);
   const [appraisalYear, setAppraisalYear] = useState(new Date().getFullYear());
 
-  const [loadingEmp,   setLoadingEmp]   = useState(true);
-  const [loadingLeave, setLoadingLeave] = useState(true);
-  const [loadingAppr,  setLoadingAppr]  = useState(false);
+  const [loadingEmp,  setLoadingEmp]  = useState(true);
+  const [loadingAppr, setLoadingAppr] = useState(false);
 
   // ── fetch employees ─────────────────────────────────────────────────────────
   const fetchEmployees = async () => {
@@ -146,21 +143,6 @@ export default function HRReports() {
     try { setEmployees(await hrService.listEmployees()); }
     catch { setEmployees([]); }
     finally { setLoadingEmp(false); }
-  };
-
-  // ── fetch leave data ────────────────────────────────────────────────────────
-  const fetchLeaveData = async () => {
-    if (!company?.id) return;
-    setLoadingLeave(true);
-    try {
-      const [policies, types] = await Promise.all([
-        leavePolicyService.getPolicies(company.id).then((r) => r.data || []),
-        leavePolicyService.getLeaveTypes(company.id).then((r) => r.data?.map((lt: any) => lt.name) || []),
-      ]);
-      setLeavePolicies(policies);
-      setLeaveTypes(types);
-    } catch { setLeavePolicies([]); setLeaveTypes([]); }
-    finally { setLoadingLeave(false); }
   };
 
   // ── fetch appraisals ────────────────────────────────────────────────────────
@@ -174,7 +156,6 @@ export default function HRReports() {
   };
 
   useEffect(() => { fetchEmployees(); }, []);
-  useEffect(() => { fetchLeaveData(); }, [company?.id]);
   useEffect(() => { if (tab === "appraisal") fetchAppraisals(); }, [tab, appraisalYear]);
 
   // ── workforce analytics ─────────────────────────────────────────────────────
@@ -188,18 +169,6 @@ export default function HRReports() {
   const activeCount   = employees.filter((e) => e.status === "Active").length;
   const inactiveCount = employees.filter((e) => e.status === "Inactive").length;
   const onLeaveCount  = employees.filter((e) => e.status === "On Leave").length;
-
-  // ── leave analytics ─────────────────────────────────────────────────────────
-  const uniqueRoles = useMemo(() => [...new Set(leavePolicies.map((p) => p.role))], [leavePolicies]);
-
-  const policyMatrix = useMemo(() => {
-    const matrix: Record<string, Record<string, number>> = {};
-    leavePolicies.forEach((p) => {
-      if (!matrix[p.role]) matrix[p.role] = {};
-      matrix[p.role][p.leaveType] = p.defaultDays ?? p.daysAllowed ?? 0;
-    });
-    return matrix;
-  }, [leavePolicies]);
 
   // ── appraisal analytics ─────────────────────────────────────────────────────
   const appraisalStatusData = useMemo(() => countBy(appraisals, (a) => a.status || "Unknown"), [appraisals]);
@@ -232,7 +201,7 @@ export default function HRReports() {
             </div>
           </div>
           <button
-            onClick={() => { fetchEmployees(); fetchLeaveData(); }}
+            onClick={() => { fetchEmployees(); }}
             className="inline-flex items-center gap-2 rounded-lg bg-white/15 border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -334,59 +303,6 @@ export default function HRReports() {
               </div>
             </div>
 
-            {/* Row 2: Department bar chart */}
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <SectionTitle icon={Building2} label="Employees by Department" color="text-indigo-600" />
-              {deptData.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">No department data available</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={deptData} layout="vertical" margin={{ left: 16, right: 24, top: 4, bottom: 4 }}>
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} width={120} />
-                    <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    <Bar dataKey="value" name="Employees" radius={[0, 6, 6, 0]}>
-                      {deptData.map((_, i) => (
-                        <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            {/* Row 3: Nationality + Role distribution */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-              {/* Nationality */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Globe} label="Top Nationalities" color="text-sky-600" />
-                {nationalityData.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">No nationality data</p>
-                ) : (
-                  <div className="space-y-3">
-                    {nationalityData.map((n, i) => (
-                      <HBar key={n.name} label={n.name} value={n.value} total={employees.length} color={PALETTE[i % PALETTE.length]} />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Role distribution */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Briefcase} label="Role Distribution" color="text-violet-600" />
-                {roleData.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">No role data</p>
-                ) : (
-                  <div className="space-y-3">
-                    {roleData.map((r, i) => (
-                      <HBar key={r.name} label={r.name} value={r.value} total={employees.length} color={PALETTE[(i + 4) % PALETTE.length]} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* New hires table */}
             {newHires.length > 0 && (
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -434,136 +350,142 @@ export default function HRReports() {
         )
       )}
 
-      {/* ── LEAVE POLICY TAB ── */}
-      {tab === "leaves" && (
-        loadingLeave ? (
+      {/* ── DEPARTMENT HEADCOUNT TAB ── */}
+      {tab === "department" && (
+        loadingEmp ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
           </div>
         ) : (
           <div className="space-y-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard label="Total Employees" value={employees.length} icon={Users}     color="bg-gradient-to-br from-violet-500 to-indigo-600" />
+              <StatCard label="Departments"     value={deptData.length} icon={Building2} color="bg-gradient-to-br from-blue-500 to-sky-600" />
+              <StatCard label="Active"          value={employees.filter((e) => e.status === "Active").length} icon={UserCheck} color="bg-gradient-to-br from-emerald-500 to-teal-600" />
+              <StatCard label="On Leave"        value={employees.filter((e) => e.status === "On Leave").length} icon={Clock} color="bg-gradient-to-br from-amber-500 to-orange-600" />
+            </div>
 
-            {/* Leave type summary cards */}
             <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <SectionTitle icon={Calendar} label="Configured Leave Types" color="text-blue-600" />
-              {leaveTypes.length === 0 ? (
-                <p className="text-sm text-slate-400 py-6 text-center">No leave types configured.</p>
+              <SectionTitle icon={Building2} label="Headcount by Department" color="text-indigo-600" />
+              {deptData.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-12">No department data available</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {leaveTypes.map((lt, i) => (
-                    <span
-                      key={lt}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold"
-                      style={{
-                        backgroundColor: `${PALETTE[i % PALETTE.length]}15`,
-                        borderColor: `${PALETTE[i % PALETTE.length]}40`,
-                        color: PALETTE[i % PALETTE.length],
-                      }}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: PALETTE[i % PALETTE.length] }} />
-                      {lt}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Policy matrix */}
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm overflow-x-auto">
-              <SectionTitle icon={Users} label="Leave Entitlement Matrix (Days per Year)" color="text-violet-600" />
-              {uniqueRoles.length === 0 || leaveTypes.length === 0 ? (
-                <p className="text-sm text-slate-400 py-6 text-center">No leave policies configured yet.</p>
-              ) : (
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="py-2.5 px-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide bg-slate-50 rounded-l-lg border border-slate-100 min-w-[140px]">
-                        Role
-                      </th>
-                      {leaveTypes.map((lt, i) => (
-                        <th key={lt} className="py-2.5 px-3 text-center text-xs font-bold uppercase tracking-wide bg-slate-50 border border-slate-100"
-                          style={{ color: PALETTE[i % PALETTE.length] }}
-                        >
-                          {lt}
-                        </th>
-                      ))}
-                      <th className="py-2.5 px-3 text-center text-xs font-bold text-emerald-600 uppercase tracking-wide bg-emerald-50 rounded-r-lg border border-emerald-100">
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {uniqueRoles.map((role) => {
-                      const rowTotal = leaveTypes.reduce((sum, lt) => sum + (policyMatrix[role]?.[lt] ?? 0), 0);
-                      return (
-                        <tr key={role} className="hover:bg-slate-50/50">
-                          <td className="py-2.5 px-3 font-semibold text-slate-700 border-b border-slate-50">
-                            {role.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                          </td>
-                          {leaveTypes.map((lt, i) => {
-                            const days = policyMatrix[role]?.[lt] ?? 0;
-                            return (
-                              <td key={lt} className="py-2.5 px-3 text-center border-b border-slate-50">
-                                <span className={cn(
-                                  "inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold mx-auto",
-                                  days > 0
-                                    ? "text-white"
-                                    : "bg-slate-50 text-slate-300 border border-slate-100"
-                                )}
-                                style={days > 0 ? {
-                                  backgroundColor: `${PALETTE[i % PALETTE.length]}20`,
-                                  color: PALETTE[i % PALETTE.length],
-                                  border: `1px solid ${PALETTE[i % PALETTE.length]}40`,
-                                } : {}}
-                                >
-                                  {days > 0 ? days : "—"}
-                                </span>
-                              </td>
-                            );
-                          })}
-                          <td className="py-2.5 px-3 text-center border-b border-slate-50">
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-sm font-bold text-emerald-700 border border-emerald-100 mx-auto">
-                              {rowTotal}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {/* Days by leave type bar chart */}
-            {leavePolicies.length > 0 && leaveTypes.length > 0 && (
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={BarChart3} label="Average Entitlement by Leave Type" color="text-indigo-600" />
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart
-                    data={leaveTypes.map((lt, i) => {
-                      const values = uniqueRoles.map((r) => policyMatrix[r]?.[lt] ?? 0).filter((v) => v > 0);
-                      return {
-                        name: lt,
-                        avg: values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0,
-                        max: values.length ? Math.max(...values) : 0,
-                        fill: PALETTE[i % PALETTE.length],
-                      };
-                    })}
-                    margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
-                  >
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                <ResponsiveContainer width="100%" height={Math.max(260, deptData.length * 42)}>
+                  <BarChart data={deptData} layout="vertical" margin={{ left: 16, right: 40, top: 4, bottom: 4 }}>
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} width={130} />
                     <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    <Legend />
-                    <Bar dataKey="avg" name="Avg Days" radius={[6, 6, 0, 0]}>
-                      {leaveTypes.map((_, i) => (
+                    <Bar dataKey="value" name="Employees" radius={[0, 8, 8, 0]}>
+                      {deptData.map((_, i) => (
                         <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+              )}
+            </div>
+
+            {deptData.length > 0 && (
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <SectionTitle icon={Building2} label="Department Breakdown" color="text-violet-600" />
+                <div className="space-y-3">
+                  {deptData.map((d, i) => (
+                    <HBar key={d.name} label={d.name} value={d.value} total={employees.length} color={PALETTE[i % PALETTE.length]} />
+                  ))}
+                </div>
               </div>
             )}
+          </div>
+        )
+      )}
+
+      {/* ── WORKFORCE BREAKDOWN TAB ── */}
+      {tab === "breakdown" && (
+        loadingEmp ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <SectionTitle icon={Users} label="Employee Status" color="text-violet-600" />
+                <div className="flex items-center gap-6">
+                  <ResponsiveContainer width="50%" height={180}>
+                    <PieChart>
+                      <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+                        {statusData.map((entry) => (
+                          <Cell key={entry.name} fill={STATUS_COLOR[entry.name] || COLORS.slate} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CUSTOM_TOOLTIP />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2.5">
+                    {statusData.map((s) => (
+                      <div key={s.name} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[s.name] || COLORS.slate }} />
+                        <span className="text-sm text-slate-700 flex-1">{s.name}</span>
+                        <span className="text-sm font-bold text-slate-800 tabular-nums">{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <SectionTitle icon={Users} label="Gender Distribution" color="text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <ResponsiveContainer width="50%" height={180}>
+                    <PieChart>
+                      <Pie data={genderData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+                        {genderData.map((entry, i) => (
+                          <Cell key={entry.name} fill={PALETTE[i % PALETTE.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CUSTOM_TOOLTIP />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2.5">
+                    {genderData.map((g, i) => (
+                      <div key={g.name} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PALETTE[i % PALETTE.length] }} />
+                        <span className="text-sm text-slate-700 flex-1">{g.name}</span>
+                        <span className="text-sm font-bold text-slate-800 tabular-nums">{g.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <SectionTitle icon={Globe} label="Top Nationalities" color="text-sky-600" />
+                {nationalityData.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-8">No nationality data</p>
+                ) : (
+                  <div className="space-y-3">
+                    {nationalityData.map((n, i) => (
+                      <HBar key={n.name} label={n.name} value={n.value} total={employees.length} color={PALETTE[i % PALETTE.length]} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <SectionTitle icon={Briefcase} label="Role Distribution" color="text-violet-600" />
+                {roleData.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-8">No role data</p>
+                ) : (
+                  <div className="space-y-3">
+                    {roleData.map((r, i) => (
+                      <HBar key={r.name} label={r.name} value={r.value} total={employees.length} color={PALETTE[(i + 4) % PALETTE.length]} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )
       )}

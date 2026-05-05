@@ -89,6 +89,7 @@ import ResidencePermitForm from "@/modules/hr/immigration/tabs/ResidencePermitFo
 import LeavesShell from "@/modules/hr/employee/LeavesShell";
 import LeavesForm from "@/modules/hr/leaves/tabs/LeavesForm";
 import LeavesHistory from "@/modules/hr/leaves/tabs/LeavesHistory";
+import TimesheetTab from "@/modules/hr/leaves/tabs/TimesheetTab";
 
 /* Appraisal */
 import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
@@ -350,6 +351,7 @@ export default function App() {
               <Route path="leaves" element={<LeavesShell />}>
                 <Route index element={<LeavesForm />} />
                 <Route path="history" element={<LeavesHistory />} />
+                <Route path="timesheet" element={<TimesheetTab />} />
               </Route>
 
               {/* Appraisal */}
