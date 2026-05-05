@@ -412,6 +412,7 @@ export interface BankDetails {
   bankShortName?: string;
   bankBranch: string;
   accountNo: string;
+  iban?: string;
 }
 
 export interface PayslipData {

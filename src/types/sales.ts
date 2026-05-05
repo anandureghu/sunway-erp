@@ -65,6 +65,7 @@ export type SalesOrder = {
   invoiceDueDate?: string;
   requiredDate?: string;
   status: SalesOrderStatus;
+  archived?: boolean;
   paymentStatus?: string;
   items: SalesOrderItem[];
   subtotal: number;
@@ -256,6 +257,7 @@ export type Invoice = {
   partyClassification: string;
 
   status: string;
+  archived?: boolean;
 
   invoiceDate: string; // ISO string
   dueDate: string;

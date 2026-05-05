@@ -85,6 +85,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     invoiceDueDate: dto.invoiceDueDate || "",
     requiredDate: undefined,
     status: (normalizeStatus(dto.status) as any) || "draft",
+    archived: Boolean(dto.archived),
     paymentStatus: normalizePaymentStatus(rawPaymentStatus),
     items,
     subtotal,
@@ -224,6 +225,13 @@ export async function confirmSalesOrder(id: Id | string) {
 export async function cancelSalesOrder(id: Id | string) {
   const res = await apiClient.post<SalesOrderResponseDTO>(
     `/sales/orders/${id}/cancel`,
+  );
+  return toSalesOrder(res.data);
+}
+
+export async function archiveSalesOrder(id: Id | string) {
+  const res = await apiClient.post<SalesOrderResponseDTO>(
+    `/sales/orders/${id}/archive`,
   );
   return toSalesOrder(res.data);
 }

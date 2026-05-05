@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
+import { normalizeVendorFromApi } from "@/lib/vendor-api";
 
 export default function VendorsPage({
   financeSettings,
@@ -41,14 +42,9 @@ export default function VendorsPage({
   const fetchVendors = async () => {
     try {
       const res = await apiClient.get("/vendors");
-      const mappedVendors = res.data.content.map((vendor: Vendor) => {
-        // Debug: Log first vendor to see what fields are available
-
-        const mapped = {
-          ...vendor,
-        };
-        return mapped;
-      });
+      const mappedVendors = (res.data.content as unknown[]).map((row) =>
+        normalizeVendorFromApi(row),
+      );
       setVendors(mappedVendors);
     } catch (error) {
       console.error("Error fetching vendors:", error);
@@ -114,7 +110,7 @@ export default function VendorsPage({
     const total = vendors.length;
     const active = vendors.filter((v) => v.active !== false).length;
     const inactive = vendors.filter((v) => v.active === false).length;
-    const is1099 = vendors.filter((v) => v.is1099Vendor === true).length;
+    const is1099 = vendors.filter((v) => Boolean(v.is1099Vendor)).length;
     return { total, active, inactive, is1099 };
   }, [vendors]);
 

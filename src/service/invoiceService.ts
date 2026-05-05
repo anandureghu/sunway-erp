@@ -24,6 +24,11 @@ export async function getInvoice(id: number): Promise<FinanceInvoice> {
   return res.data;
 }
 
+export async function archiveInvoice(id: number): Promise<FinanceInvoice> {
+  const res = await apiClient.post<FinanceInvoice>(`/invoices/${id}/archive`);
+  return res.data;
+}
+
 export type CreatePurchaseInvoicePayload = {
   type: "PURCHASE";
   toParty: string;

@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { ClipboardList, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -95,41 +94,6 @@ export function PurchaseRequisitionsListView({
       ) : null}
 
       <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ClipboardList className="h-5 w-5" />
-              Requisitions
-              <Badge variant="secondary">{activeReqs.length} active</Badge>
-              <Badge variant="outline">{convertedReqs.length} converted</Badge>
-            </CardTitle>
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search…"
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="pl-8 w-56 sm:w-64"
-                />
-              </div>
-              {tab === "active" ? (
-                <Select value={statusFilter} onValueChange={onStatusChange}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All status</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : null}
-            </div>
-          </div>
-        </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-10 text-center text-muted-foreground">
@@ -144,14 +108,42 @@ export function PurchaseRequisitionsListView({
             </div>
           ) : (
             <Tabs value={tab} onValueChange={handleTabChange}>
-              <TabsList>
-                <TabsTrigger value="active">
-                  Active ({activeReqs.length})
-                </TabsTrigger>
-                <TabsTrigger value="converted">
-                  Converted To PO ({convertedReqs.length})
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <TabsList>
+                  <TabsTrigger value="active">
+                    Active ({activeReqs.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="converted">
+                    Converted To PO ({convertedReqs.length})
+                  </TabsTrigger>
+                </TabsList>
+                <div className="flex flex-wrap gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search…"
+                      value={searchQuery}
+                      onChange={(e) => onSearchChange(e.target.value)}
+                      className="pl-8 w-56 sm:w-64"
+                    />
+                  </div>
+                  {tab === "active" ? (
+                    <Select value={statusFilter} onValueChange={onStatusChange}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All status</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="submitted">Submitted</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                </div>
+              </div>
+
               <TabsContent value="active" className="mt-4">
                 <DataTable
                   columns={columns}

@@ -43,14 +43,14 @@ export const getAllCompanies = async () => {
 
 /**
  * Check if user has permission to view a module
- * 
+ *
  * @param permissions - Converted frontend format: { MODULE_NAME: { view_own, view_all, ... } }
  * @param module - Module name to check (e.g., "EMPLOYEE_PROFILE")
  * @returns true if user has view_own or view_all permission
  */
 export function canView(
   permissions: Record<string, any> | null | undefined,
-  module: string
+  module: string,
 ): boolean {
   // ADMIN bypass - null means admin has full access
   if (permissions === null) {
@@ -60,7 +60,9 @@ export function canView(
 
   // LOADING state - permissions not yet fetched
   if (permissions === undefined) {
-    console.debug(`⏳ canView("${module}"): Permissions loading - allowing for now`);
+    console.debug(
+      `⏳ canView("${module}"): Permissions loading - allowing for now`,
+    );
     return true; // Show during loading, will be filtered after
   }
 
@@ -120,7 +122,7 @@ export function canView(
   const canAccess = hasViewOwnPermission || hasViewAllPermission;
 
   console.debug(
-    `✅ canView("${module}"): view_own=${hasViewOwnPermission}, view_all=${hasViewAllPermission}, result=${canAccess}`
+    `✅ canView("${module}"): view_own=${hasViewOwnPermission}, view_all=${hasViewAllPermission}, result=${canAccess}`,
   );
 
   return canAccess;
@@ -132,24 +134,21 @@ export const getSidebarItems = async (
     skipPermissions?: boolean;
     permissions?: Record<string, any> | null;
     permissionsLoading?: boolean;
-  }
+  },
 ): Promise<SidebarItem[]> => {
   const permissions = options?.skipPermissions ? null : options?.permissions;
   const isLoadingPermissions = options?.permissionsLoading ?? false;
 
-  console.debug(
-    "📋 getSidebarItems called:",
-    {
-      companyId,
-      skipPermissions: options?.skipPermissions,
-      permissionsLoading: isLoadingPermissions,
-      hasPermissions: !!permissions,
-      permissionKeys:
-        permissions && typeof permissions === "object"
-          ? Object.keys(permissions).slice(0, 5)
-          : "N/A",
-    }
-  );
+  console.debug("📋 getSidebarItems called:", {
+    companyId,
+    skipPermissions: options?.skipPermissions,
+    permissionsLoading: isLoadingPermissions,
+    hasPermissions: !!permissions,
+    permissionKeys:
+      permissions && typeof permissions === "object"
+        ? Object.keys(permissions).slice(0, 5)
+        : "N/A",
+  });
 
   const company = await fetchCompany(companyId);
   if (!company) {
@@ -287,7 +286,7 @@ export const getSidebarItems = async (
                 icon: Landmark,
               },
               {
-                title: "Employee Payroll",
+                title: "Payroll",
                 url: "/finance/payroll",
                 icon: Users,
               },
@@ -305,7 +304,7 @@ export const getSidebarItems = async (
 
 export const getVisibleEmployeeSubModules = (
   permissions: Record<string, any> | null | undefined,
-  empBase: string | null
+  empBase: string | null,
 ) => {
   const all = [
     {

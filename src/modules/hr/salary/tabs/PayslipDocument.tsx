@@ -557,6 +557,9 @@ export const PayslipDocument: React.FC<PayslipDocumentProps> = ({
             value={maskAccountNumber(bankDetails.accountNo)}
             mono
           />
+          {bankDetails.iban ? (
+            <InfoItem label="IBAN" value={bankDetails.iban} mono />
+          ) : null}
           <InfoItem label="Payment Date" value={formatDate(payroll.payDate)} mono />
         </div>
         <div

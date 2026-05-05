@@ -11,12 +11,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Invoice } from "@/types/sales";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal } from "lucide-react";
+import { Archive, Loader2, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/lib/status-badge";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
 
-export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
+export function createSalesInvoiceColumns(
+  onArchive?: (id: number) => void,
+  processingInvoiceId?: number | null,
+): ColumnDef<Invoice>[] {
+  return [
   {
     accessorKey: "invoiceId",
     header: "Invoice No",
@@ -77,8 +81,14 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
   },
   {
     id: "actions",
+    header: "Actions",
     cell: ({ row }) => {
       const payment = row.original;
+      const normalizedStatus = (payment.status || "").toUpperCase();
+      const canArchive =
+        !payment.archived &&
+        (normalizedStatus === "PAID" || normalizedStatus === "CANCELLED");
+      const isProcessing = processingInvoiceId === payment.id;
 
       return (
         <DropdownMenu>
@@ -100,9 +110,29 @@ export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] = [
             <DropdownMenuSeparator />
             <DropdownMenuItem>View customer</DropdownMenuItem>
             <DropdownMenuItem>View payment details</DropdownMenuItem>
+            {canArchive && onArchive && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={isProcessing}
+                  onClick={() => onArchive(payment.id)}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Archive className="mr-2 h-4 w-4" />
+                  )}
+                  {isProcessing ? "Archiving..." : "Archive"}
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
-];
+  ];
+}
+
+export const SALES_INVOICE_COLUMNS: ColumnDef<Invoice>[] =
+  createSalesInvoiceColumns();

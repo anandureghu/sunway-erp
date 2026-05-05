@@ -48,9 +48,7 @@ export function createPurchaseRequisitionColumns(
       header: "Requested by",
       cell: ({ row }) => (
         <span>
-          {row.getValue("requestedByName") ||
-            row.original.requestedBy ||
-            "—"}
+          {row.getValue("requestedByName") || row.original.requestedBy || "—"}
         </span>
       ),
     },
@@ -76,9 +74,7 @@ export function createPurchaseRequisitionColumns(
       cell: ({ row }) => {
         const date = row.getValue("requestedDate") as string;
         return (
-          <span>
-            {date ? format(new Date(date), "MMM dd, yyyy") : "—"}
-          </span>
+          <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
         );
       },
     },
@@ -102,7 +98,7 @@ export function createPurchaseRequisitionColumns(
     },
     {
       id: "actions",
-      header: "",
+      header: "Actions",
       cell: ({ row }) => {
         const req = row.original;
         const canSubmit = req.status === "draft";
@@ -147,9 +143,7 @@ export function createPurchaseRequisitionColumns(
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>Procurement</DropdownMenuLabel>
-                    <DropdownMenuItem
-                      onClick={() => onOpenPurchaseOrder(poId)}
-                    >
+                    <DropdownMenuItem onClick={() => onOpenPurchaseOrder(poId)}>
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       Open purchase order
                     </DropdownMenuItem>

@@ -7,6 +7,7 @@ import { createPurchaseOrderColumns } from "@/lib/columns/purchase-columns";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import { listVendors } from "@/service/vendorService";
 import {
+  archivePurchaseOrder,
   cancelPurchaseOrder,
   confirmPurchaseOrder,
   listPurchaseOrders,
@@ -38,6 +39,10 @@ export default function PurchaseOrdersPage() {
     useState<PurchaseOrder | null>(null);
   const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
   const [orderToEdit, setOrderToEdit] = useState<PurchaseOrder | null>(null);
+  const [actionState, setActionState] = useState<{
+    id: string;
+    type: "archive";
+  } | null>(null);
 
   const refreshOrders = useCallback(async () => {
     setLoading(true);
@@ -59,10 +64,7 @@ export default function PurchaseOrdersPage() {
           "Purchase Orders API endpoint is not configured on the server.";
       } else {
         errorMessage =
-          errorData?.message ||
-          errorData?.error ||
-          e?.message ||
-          errorMessage;
+          errorData?.message || errorData?.error || e?.message || errorMessage;
       }
       setLoadError(errorMessage);
     } finally {
@@ -88,21 +90,21 @@ export default function PurchaseOrdersPage() {
       .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     return [
       {
-        label: "Total POs",
+        label: "Total Purchase Orders",
         value: orders.length,
         hint: "All purchase orders loaded",
         accent: "sky",
         icon: ShoppingCart,
       },
       {
-        label: "Open POs",
+        label: "Open Purchase Orders",
         value: openCount,
         hint: "Not fully received or cancelled",
         accent: "emerald",
         icon: Package,
       },
       {
-        label: "Draft POs",
+        label: "Draft Purchase Orders",
         value: draftCount,
         hint: "Awaiting release to supplier",
         accent: "amber",
@@ -162,9 +164,7 @@ export default function PurchaseOrdersPage() {
         return;
       }
       if (
-        !confirm(
-          `Cancel order ${order.orderNo}? This action cannot be undone.`,
-        )
+        !confirm(`Cancel order ${order.orderNo}? This action cannot be undone.`)
       ) {
         return;
       }
@@ -195,6 +195,46 @@ export default function PurchaseOrdersPage() {
     [orders],
   );
 
+  const handleArchiveOrder = useCallback(
+    async (id: string) => {
+      const order = orders.find((o) => o.id === id);
+      if (!order) return toast.error("Order not found");
+      if (order.status !== "received" && order.status !== "cancelled") {
+        return toast.error(
+          "Only received or cancelled orders can be archived.",
+        );
+      }
+      if (order.archived) return toast.error("Order is already archived.");
+      if (!confirm(`Archive order ${order.orderNo}?`)) return;
+      setActionState({ id, type: "archive" });
+      try {
+        const updated = await archivePurchaseOrder(id);
+        setOrders((prev) =>
+          prev.map((po) =>
+            po.id === id
+              ? {
+                  ...po,
+                  archived: updated.archived ?? true,
+                }
+              : po,
+          ),
+        );
+        toast.success("Order archived successfully");
+        void refreshOrders();
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            error?.message ||
+            "Failed to archive order",
+        );
+      } finally {
+        setActionState(null);
+      }
+    },
+    [orders, refreshOrders],
+  );
+
   const handleEdit = useCallback(
     (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -221,12 +261,14 @@ export default function PurchaseOrdersPage() {
   const columns = useMemo(
     () =>
       createPurchaseOrderColumns({
-        onOpenOrder: (id) =>
-          navigate(`/inventory/purchase/orders/${id}`),
+        onOpenOrder: (id) => navigate(`/inventory/purchase/orders/${id}`),
         onConfirm: handleConfirmOrder,
         onCancel: handleCancelOrder,
         onViewDetails: handleViewDetails,
         onEdit: handleEdit,
+        onArchive: handleArchiveOrder,
+        processingOrderId: actionState?.id ?? null,
+        processingAction: actionState?.type ?? null,
         onReceiveGoods: (orderId) =>
           navigate("/inventory/purchase/receiving", {
             state: { openReceiveForOrderId: orderId },
@@ -240,6 +282,8 @@ export default function PurchaseOrdersPage() {
       handleCancelOrder,
       handleViewDetails,
       handleEdit,
+      handleArchiveOrder,
+      actionState,
     ],
   );
 

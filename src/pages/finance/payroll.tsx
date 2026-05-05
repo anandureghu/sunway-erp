@@ -115,8 +115,8 @@ function CompanyPayrollExportTab() {
                 : "Settings incomplete"}
           </p>
           <p className="text-xs text-slate-600">
-            Employer EID, payer EID, payer bank short name, and payer IBAN are
-            required. Configure them under{" "}
+            Employer EID, payer EID, payer bank short name, and IBAN are required.
+            Configure them under{" "}
             <strong>Global Settings → Payroll</strong> (sidebar, or use Settings
             in the footer then Payroll).
           </p>

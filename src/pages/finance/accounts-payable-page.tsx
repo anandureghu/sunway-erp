@@ -3,9 +3,12 @@ import { DataTable } from "@/components/datatable";
 import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
-import { listPurchaseInvoices } from "@/service/invoiceService";
+import {
+  archiveInvoice,
+  listPurchaseInvoices,
+} from "@/service/invoiceService";
 import type { FinanceInvoice } from "@/types/finance-invoice";
-import { PURCHASE_INVOICE_COLUMNS } from "@/lib/columns/purchase-columns";
+import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { Row } from "@tanstack/react-table";
@@ -20,6 +23,8 @@ import {
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   invoiceMatchesStatusFilter,
   isInvoiceArchivedStatus,
@@ -38,6 +43,10 @@ function PayableInvoicesTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
+    null,
+  );
 
   const load = useCallback(() => {
     setLoading(true);
@@ -57,15 +66,24 @@ function PayableInvoicesTab() {
     () => rows.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
     [rows],
   );
-  const archivedCount = useMemo(
-    () => rows.filter((i) => isInvoiceArchivedStatus(i.status)).length,
+  const completedTabCount = useMemo(
+    () =>
+      rows.filter(
+        (i) => isInvoiceArchivedStatus(i.status) && !i.archived,
+      ).length,
     [rows],
   );
 
   const filtered = useMemo(() => {
     return rows.filter((invoice) => {
-      const archived = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab = listTab === "archived" ? archived : !archived;
+      const inCompletedByStatus = isInvoiceArchivedStatus(invoice.status);
+      const matchesTab =
+        listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
+      if (!matchesTab) return false;
+      if (listTab === "archived") {
+        const isArchived = Boolean(invoice.archived);
+        if (showArchivedOnly ? !isArchived : isArchived) return false;
+      }
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -76,9 +94,47 @@ function PayableInvoicesTab() {
         invoice.status,
         statusFilter,
       );
-      return matchesTab && matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [rows, listTab, searchQuery, statusFilter]);
+  }, [rows, listTab, searchQuery, statusFilter, showArchivedOnly]);
+
+  const handleArchiveInvoice = useCallback(
+    async (id: number) => {
+      const invoice = rows.find((inv) => inv.id === id);
+      if (!invoice) return toast.error("Invoice not found");
+      const normalizedStatus = (invoice.status || "").toUpperCase();
+      if (normalizedStatus !== "PAID" && normalizedStatus !== "CANCELLED") {
+        return toast.error("Only paid or cancelled invoices can be archived.");
+      }
+      if (invoice.archived) return toast.error("Invoice is already archived.");
+      if (!confirm(`Archive invoice ${invoice.invoiceId}?`)) return;
+      setProcessingInvoiceId(id);
+      try {
+        const updated = await archiveInvoice(id);
+        setRows((prev) => prev.map((inv) => (inv.id === id ? updated : inv)));
+        toast.success("Invoice archived successfully");
+      } catch (error: unknown) {
+        const err = error as {
+          response?: { data?: { message?: string; error?: string } };
+          message?: string;
+        };
+        const backendMessage =
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message;
+        toast.error(backendMessage || "Failed to archive invoice");
+      } finally {
+        setProcessingInvoiceId(null);
+      }
+    },
+    [rows],
+  );
+
+  const columns = useMemo(
+    () =>
+      createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId),
+    [handleArchiveInvoice, processingInvoiceId],
+  );
 
   const handleRowClick = useCallback(
     (row: Row<FinanceInvoice>) => {
@@ -98,6 +154,7 @@ function PayableInvoicesTab() {
         onValueChange={(v) => {
           setListTab(v as InvoiceListTab);
           setStatusFilter("all");
+          setShowArchivedOnly(false);
         }}
         className="w-full gap-4"
       >
@@ -112,7 +169,7 @@ function PayableInvoicesTab() {
             <TabsTrigger value="archived" className="gap-2">
               Completed
               <Badge variant="secondary" className="font-normal">
-                {archivedCount}
+                {completedTabCount}
               </Badge>
             </TabsTrigger>
           </TabsList>
@@ -149,6 +206,21 @@ function PayableInvoicesTab() {
                 )}
               </SelectContent>
             </Select>
+            {listTab === "archived" ? (
+              <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                <Switch
+                  id="ap-show-archived-invoices"
+                  checked={showArchivedOnly}
+                  onCheckedChange={setShowArchivedOnly}
+                />
+                <Label
+                  htmlFor="ap-show-archived-invoices"
+                  className="text-sm font-medium cursor-pointer whitespace-nowrap"
+                >
+                  Archived only
+                </Label>
+              </div>
+            ) : null}
           </div>
         </div>
       </Tabs>
@@ -158,7 +230,7 @@ function PayableInvoicesTab() {
         </div>
       ) : (
         <DataTable
-          columns={PURCHASE_INVOICE_COLUMNS}
+          columns={columns}
           data={filtered}
           onRowClick={handleRowClick}
         />

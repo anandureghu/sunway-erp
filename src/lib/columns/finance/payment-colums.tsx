@@ -6,17 +6,23 @@ import type {
 import { Badge } from "@/components/ui/badge";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
 import { Button } from "@/components/ui/button";
+import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
+import { Archive, Loader2 } from "lucide-react";
 
 export const PAYMENT_COLUMNS = ({
   variant = "customer",
   onConfirm,
   onOpenInvoice,
   onOpenPurchaseOrder,
+  onArchive,
+  archivingPaymentId,
 }: {
   variant?: PaymentsPageVariant;
   onConfirm: (payment: PaymentResponseDTO) => void;
   onOpenInvoice: (invoiceId: string) => void;
   onOpenPurchaseOrder: (purchaseOrderId: number) => void;
+  onArchive?: (payment: PaymentResponseDTO) => void;
+  archivingPaymentId?: number | null;
 }): ColumnDef<PaymentResponseDTO>[] => [
   { accessorKey: "id", header: "ID" },
 
@@ -123,11 +129,48 @@ export const PAYMENT_COLUMNS = ({
         dir === "VENDOR"
           ? method === "PENDING_VENDOR_PAYMENT"
           : method === "PENDING_REQUEST";
-      return isPending ? (
-        <Button size="sm" onClick={() => onConfirm(item)}>
-          {dir === "VENDOR" ? "Confirm vendor payment" : "Confirm payment"}
-        </Button>
-      ) : (
+      const settled = isPaymentArchivedTab(item, variant);
+      const canArchive =
+        settled && !item.archived && onArchive != null;
+      const isArchiving = archivingPaymentId === item.id;
+
+      if (isPending) {
+        return (
+          <Button size="sm" onClick={() => onConfirm(item)}>
+            {dir === "VENDOR" ? "Confirm vendor payment" : "Confirm payment"}
+          </Button>
+        );
+      }
+      if (item.archived) {
+        return (
+          <span className="text-muted-foreground text-xs">Archived</span>
+        );
+      }
+      if (canArchive) {
+        return (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground text-xs">Confirmed</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              disabled={isArchiving}
+              onClick={() => onArchive(item)}
+            >
+              {isArchiving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Archive className="h-3.5 w-3.5" />
+              )}
+              <span className="ml-1">
+                {isArchiving ? "Archiving…" : "Archive"}
+              </span>
+            </Button>
+          </div>
+        );
+      }
+      return (
         <span className="text-muted-foreground text-xs">Confirmed</span>
       );
     },

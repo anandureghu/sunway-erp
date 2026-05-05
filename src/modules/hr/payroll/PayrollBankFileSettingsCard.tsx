@@ -18,7 +18,7 @@ type Props = {
 };
 
 /**
- * Bank payroll file (SIF) — employer/payer EID, payer bank, IBAN. Used in Global Settings → Payroll.
+ * Bank payroll file (SIF) — employer/payer EID, payer bank, company IBAN. Used in Global Settings → Payroll.
  */
 export default function PayrollBankFileSettingsCard({ companyId: companyIdProp }: Props) {
   const { id: routeCompanyId } = useParams<{ id: string }>();
@@ -105,7 +105,7 @@ export default function PayrollBankFileSettingsCard({ companyId: companyIdProp }
             ["payrollPayerEid", "Payer EID", true],
             ["payrollPayerQid", "Payer QID", false],
             ["payrollPayerBankShortName", "Payer bank short name", true],
-            ["payrollPayerIban", "Payer IBAN", true],
+            ["payrollPayerIban", "IBAN", true],
             ["payrollSifVersion", "SIF version", false],
           ] as const
         ).map(([key, label, required]) => (

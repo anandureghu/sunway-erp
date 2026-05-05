@@ -13,6 +13,7 @@ export interface Vendor {
   contactPersonName?: string;
   fax?: string;
   websiteUrl?: string;
+  remarks?: string;
   active?: boolean;
   is1099Vendor?: boolean;
   createdAt?: string | null;

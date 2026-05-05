@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { Search, ShoppingCart } from "lucide-react";
+import { Search } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -13,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { PurchasePageHeader } from "./purchase-page-header";
@@ -55,19 +56,32 @@ export function PurchaseOrdersListView({
   kpiItems,
 }: Props) {
   const [tab, setTab] = useState<OrderTab>("open");
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
 
   const openOrders = useMemo(
     () => orders.filter((o) => !isTerminalOrderStatus(o.status)),
     [orders],
   );
   const terminalOrders = useMemo(
-    () => orders.filter((o) => isTerminalOrderStatus(o.status)),
+    () =>
+      orders.filter((o) => {
+        if (!isTerminalOrderStatus(o.status)) return false;
+        const archived = Boolean(o.archived);
+        return showArchivedOnly ? archived : !archived;
+      }),
+    [orders, showArchivedOnly],
+  );
+  const terminalUnarchivedCount = useMemo(
+    () =>
+      orders.filter((o) => isTerminalOrderStatus(o.status) && !o.archived)
+        .length,
     [orders],
   );
 
   const handleTabChange = (next: string) => {
     const value = next as OrderTab;
     setTab(value);
+    setShowArchivedOnly(false);
     if (value === "terminal") {
       if (
         statusFilter !== "all" &&
@@ -96,47 +110,6 @@ export function PurchaseOrdersListView({
       ) : null}
 
       <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Orders
-              <Badge variant="secondary">{openOrders.length} open</Badge>
-              <Badge variant="outline">
-                {terminalOrders.length} received / cancelled
-              </Badge>
-            </CardTitle>
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search orders..."
-                  value={searchQuery}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  className="pl-8 w-56 sm:w-64"
-                />
-              </div>
-              {tab === "open" ? (
-                <Select value={statusFilter} onValueChange={onStatusChange}>
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All status</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="ordered">Ordered</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="partially_received">
-                      Partially received
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : null}
-            </div>
-          </div>
-        </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-10 text-center text-muted-foreground">
@@ -158,30 +131,81 @@ export function PurchaseOrdersListView({
               </Button>
             </div>
           ) : (
-            <Tabs value={tab} onValueChange={handleTabChange}>
-              <TabsList>
-                <TabsTrigger value="open">
-                  Current Orders ({openOrders.length})
-                </TabsTrigger>
-                <TabsTrigger value="terminal">
-                  Completed ({terminalOrders.length})
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="open" className="mt-4">
-                <DataTable
-                  columns={columns}
-                  data={openOrders}
-                  onRowClick={onRowClick}
-                />
-              </TabsContent>
-              <TabsContent value="terminal" className="mt-4">
-                <DataTable
-                  columns={columns}
-                  data={terminalOrders}
-                  onRowClick={onRowClick}
-                />
-              </TabsContent>
-            </Tabs>
+            <>
+              <Tabs value={tab} onValueChange={handleTabChange}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <TabsList>
+                    <TabsTrigger value="open">
+                      Current Orders ({openOrders.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="terminal">
+                      Completed ({terminalUnarchivedCount})
+                    </TabsTrigger>
+                  </TabsList>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search orders..."
+                        value={searchQuery}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        className="pl-8 w-56 sm:w-64"
+                      />
+                    </div>
+                    {tab === "open" ? (
+                      <Select
+                        value={statusFilter}
+                        onValueChange={onStatusChange}
+                      >
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All status</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="ordered">Ordered</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="partially_received">
+                            Partially received
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : null}
+                    {tab === "terminal" ? (
+                      <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                        <Switch
+                          id="show-archived-pos"
+                          checked={showArchivedOnly}
+                          onCheckedChange={setShowArchivedOnly}
+                        />
+                        <Label
+                          htmlFor="show-archived-pos"
+                          className="text-sm font-medium cursor-pointer"
+                        >
+                          Archived only
+                        </Label>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+                <TabsContent value="open" className="mt-4">
+                  <DataTable
+                    columns={columns}
+                    data={openOrders}
+                    onRowClick={onRowClick}
+                  />
+                </TabsContent>
+                <TabsContent value="terminal" className="mt-4">
+                  <DataTable
+                    columns={columns}
+                    data={terminalOrders}
+                    onRowClick={onRowClick}
+                  />
+                </TabsContent>
+              </Tabs>
+            </>
           )}
         </CardContent>
       </Card>

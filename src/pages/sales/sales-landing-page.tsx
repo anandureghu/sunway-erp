@@ -16,11 +16,12 @@ import {
   Receipt,
   Clock,
   ArrowRight,
-  CircleDollarSign,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { salesOrders, invoices, dispatches } from "@/lib/sales-data";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
 import { SalesPageHeader } from "./components/sales-page-header";
 import {
   KpiSummaryStrip,
@@ -37,6 +38,7 @@ type ActionCard = {
 };
 
 export default function SalesLandingPage() {
+  const { currencySymbol } = useCompanyCurrency();
   const totalSales = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const pendingOrders = salesOrders.filter(
     (o) => o.status === "draft" || o.status === "confirmed",
@@ -49,6 +51,8 @@ export default function SalesLandingPage() {
   const unpaidInvoices = invoices.filter(
     (inv) => inv.status === "Unpaid" || inv.status === "Overdue",
   ).length;
+
+  const grossSalesIcon = createCurrencySymbolIcon(currencySymbol);
 
   const quickActions: ActionCard[] = [
     {
@@ -107,7 +111,7 @@ export default function SalesLandingPage() {
       value: <CurrencyAmount amount={totalSales} />,
       hint: "Invoice total",
       accent: "emerald",
-      icon: CircleDollarSign,
+      icon: grossSalesIcon,
     },
     {
       label: "Pending orders",

@@ -158,7 +158,7 @@ const BankCard = ({ data }: { data: BankModel }) => {
         </div>
         {data.iban && (
           <div className="text-right">
-            <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5">IBAN / SWIFT</p>
+            <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5">IBAN</p>
             <p className="text-xs font-mono text-white/70">{data.iban}</p>
           </div>
         )}
@@ -385,7 +385,7 @@ export default function BankForm() {
                 </div>
               </Field>
 
-              <Field label="IBAN / SWIFT Code">
+              <Field label="IBAN">
                 <div className="relative">
                   <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -393,7 +393,7 @@ export default function BankForm() {
                     disabled={!editing}
                     value={draft.iban}
                     onChange={(e) => patch("iban", e.target.value.toUpperCase())}
-                    placeholder="e.g. MY123456"
+                    placeholder="e.g. QA58DOHB000012345678901234567"
                   />
                 </div>
               </Field>
@@ -511,7 +511,7 @@ export default function BankForm() {
             {draft.iban && (
               <StatPill
                 icon={<Globe className="h-4 w-4 text-amber-600" />}
-                label="IBAN / SWIFT"
+                label="IBAN"
                 value={draft.iban}
                 accent="border-amber-100 bg-amber-50/50"
               />

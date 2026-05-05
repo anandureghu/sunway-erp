@@ -19,6 +19,7 @@ import {
   Package,
   Truck,
   Loader2,
+  Archive,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -31,8 +32,9 @@ export function createSalesOrderColumns(
   onGeneratePicklist?: (id: string) => void,
   onViewDetails?: (id: string) => void,
   onEdit?: (id: string) => void,
+  onArchive?: (id: string) => void,
   processingOrderId?: string | null,
-  processingAction?: "confirm" | "cancel" | null,
+  processingAction?: "confirm" | "cancel" | "archive" | null,
 ): ColumnDef<SalesOrder>[] {
   return [
     {
@@ -95,6 +97,7 @@ export function createSalesOrderColumns(
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const order = row.original;
         const canConfirm = order.status === "draft";
@@ -103,6 +106,9 @@ export function createSalesOrderColumns(
         const canGeneratePicklist =
           order.status === "confirmed" &&
           (order.paymentStatus || "").toUpperCase() === "PAID";
+        const canArchive =
+          !order.archived &&
+          (order.status === "completed" || order.status === "cancelled");
         const isRowProcessing = processingOrderId === order.id;
 
         return (
@@ -175,6 +181,24 @@ export function createSalesOrderColumns(
                       {isRowProcessing && processingAction === "cancel"
                         ? "Cancelling..."
                         : "Cancel Order"}
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {canArchive && onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={isRowProcessing}
+                      onClick={() => onArchive(order.id)}
+                    >
+                      {isRowProcessing && processingAction === "archive" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="mr-2 h-4 w-4" />
+                      )}
+                      {isRowProcessing && processingAction === "archive"
+                        ? "Archiving..."
+                        : "Archive"}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -321,6 +345,7 @@ export function createPicklistColumns(
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const picklist = row.original;
         const canMarkPicked = picklist.status === "created";
@@ -455,6 +480,7 @@ export function createDispatchColumns(
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const dispatch = row.original;
         const canDispatch = dispatch.status === "created";
@@ -468,7 +494,8 @@ export function createDispatchColumns(
           dispatch.status === "out_for_delivery" ||
           dispatch.status === "in_transit" ||
           dispatch.status === "dispatched";
-        const canCancel = dispatch.status !== "delivered" && dispatch.status !== "cancelled";
+        const canCancel =
+          dispatch.status !== "delivered" && dispatch.status !== "cancelled";
 
         return (
           <DropdownMenu>
@@ -513,7 +540,9 @@ export function createDispatchColumns(
                 </DropdownMenuItem>
               )}
               {canMarkFailed && onMarkFailedDelivery && (
-                <DropdownMenuItem onClick={() => onMarkFailedDelivery(dispatch.id)}>
+                <DropdownMenuItem
+                  onClick={() => onMarkFailedDelivery(dispatch.id)}
+                >
                   <Package className="mr-2 h-4 w-4" />
                   Mark Failed Delivery
                 </DropdownMenuItem>

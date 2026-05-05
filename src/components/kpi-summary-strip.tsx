@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ACCENT = {
@@ -40,7 +39,7 @@ export type KpiSummaryStat = {
   value: ReactNode;
   hint: string;
   accent: KpiAccent;
-  icon: LucideIcon;
+  icon: React.ComponentType<{ className?: string }>;
 };
 
 export function KpiSummaryStrip({

@@ -30,7 +30,10 @@ export function isPaymentPendingConfirmation(
     : method === PENDING_CUSTOMER;
 }
 
-/** Terminal / settled rows for Archived tab (confirmed payments + void-style methods). */
+/**
+ * Terminal / settled rows for the **Completed** tab (UI label; `listTab === "archived"` in code).
+ * Confirmed payments and void-style methods — not awaiting Confirm.
+ */
 export function isPaymentArchivedTab(
   p: PaymentResponseDTO,
   variant: PaymentsPageVariant,

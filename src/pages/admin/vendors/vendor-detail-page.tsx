@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { type Vendor } from "@/types/vendor";
+import { normalizeVendorFromApi } from "@/lib/vendor-api";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { VendorDialog } from "./vendor-dialog";
 import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
@@ -26,7 +27,7 @@ export default function VendorDetailPage() {
   const fetchVendor = async () => {
     try {
       const res = await apiClient.get(`/vendors/${id}`);
-      setVendor(res.data);
+      setVendor(normalizeVendorFromApi(res.data));
     } catch (err) {
       console.error("fetchVendor:", err);
       toast.error("Failed to load supplier");
