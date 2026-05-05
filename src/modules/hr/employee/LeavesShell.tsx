@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { CalendarDays, BarChart2 } from "lucide-react";
+import { CalendarDays, BarChart2, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
@@ -30,7 +30,8 @@ export default function LeavesShell() {
     setSp(next, { replace: true });
   };
 
-  const isHistoryTab = location.pathname.endsWith("/history");
+  const isHistoryTab   = location.pathname.endsWith("/history");
+  const isTimesheetTab = location.pathname.endsWith("/timesheet");
 
   useEffect(() => {
     const onSaved = () => setEditing(false);
@@ -55,10 +56,13 @@ export default function LeavesShell() {
             Employee Leaves
           </Tab>
           <Tab to="history" icon={<BarChart2 className="h-4 w-4" />}>
-            Employee Leave History
+            Leave History
+          </Tab>
+          <Tab to="timesheet" icon={<Clock className="h-4 w-4" />}>
+            Time Sheet
           </Tab>
         </div>
-{!isHistoryTab && (
+        {!isHistoryTab && !isTimesheetTab && (
           <EditUpdateButton
             module="LEAVES"
             label="Request Leave"

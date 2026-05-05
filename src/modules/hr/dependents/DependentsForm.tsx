@@ -545,14 +545,13 @@ export function DependentsForm() {
                       <FormRow columns={2}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
-                            Postal Code <span className="text-red-500">*</span>
+                            Postal Code <span className="text-slate-400 text-xs font-normal">(optional)</span>
                           </Label>
                           <Input
                             value={dependent.postalCode}
                             onChange={e => updateDependent(dependent.id, { postalCode: e.target.value })}
                             className="rounded-lg border-slate-300"
                             placeholder="Enter postal code"
-                            required
                           />
                         </div>
 

@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/table";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
 import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel";
-import PayrollSettings from "@/modules/hr/payroll/PayrollSettings";
 import { jobCodeService } from "@/service/jobCodeService";
 import { hrService } from "@/service/hr.service";
 import { permissionService } from "@/service/permissionService";
@@ -1546,7 +1545,6 @@ export default function HRSettingsPage() {
     { value: "jobs", label: "Job Codes", element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} /> },
     { value: "permissions", label: "Permissions", element: () => <PermissionsTab roles={roles} setRoles={setRoles} /> },
     { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
-    { value: "payroll", label: "Payroll", element: () => <PayrollSettings /> },
   ];
 
   return (

@@ -173,13 +173,6 @@ export const getSidebarItems = async (
             image: "/assets/images/hr.svg",
             url: "/hr/dashboard",
             items: [
-              // HR Analytics — always visible if HR is enabled
-              {
-                title: "HR Analytics",
-                url: "/hr/dashboard",
-                icon: Users,
-              },
-
               // Employee Overview — gated by EMPLOYEE_PROFILE
               ...(canView(permissions, "EMPLOYEE_PROFILE")
                 ? [

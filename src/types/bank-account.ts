@@ -3,6 +3,7 @@ export interface BankAccount {
   companyId: number;
   bankName: string;
   accountNumber: string;
+  iban?: string;
   ifscCode?: string;
   branchName?: string;
   accountHolderName: string;

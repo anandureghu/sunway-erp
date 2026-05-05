@@ -300,80 +300,75 @@ export default function EmployeeContractForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-5">
+    <div className="space-y-4">
 
         {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-start gap-4">
-            <div className="bg-violet-100 p-3 rounded-xl">
-              <FileText className="h-6 w-6 text-violet-600" />
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-violet-100 p-1.5 rounded-lg">
+              <FileText className="h-4 w-4 text-violet-600" />
             </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-800">Employee Contract</h2>
-                  <p className="text-sm text-slate-500 mt-1">Manage employment contract details and terms</p>
-                </div>
-                <div className="flex gap-2">
-                  {formData.status && (
-                    <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getStatusColor(formData.status)}`}>
-                      {formData.status}
-                    </span>
-                  )}
-                  {formData.contractType && (
-                    <span className={`px-4 py-2 rounded-full text-sm font-semibold border shadow-sm ${getContractTypeColor(formData.contractType)}`}>
-                      {formData.contractType}
-                    </span>
-                  )}
-                </div>
-              </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold text-slate-800 leading-tight">Employee Contract</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Manage employment contract details and terms</p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {formData.status && (
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(formData.status)}`}>
+                  {formData.status}
+                </span>
+              )}
+              {formData.contractType && (
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getContractTypeColor(formData.contractType)}`}>
+                  {formData.contractType}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Contract Summary Card */}
-        <div className="bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/20 rounded-full blur-2xl -ml-24 -mb-24"></div>
+        <div className="bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 rounded-xl px-4 py-3 text-white shadow-md relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-400/20 rounded-full blur-2xl -ml-16 -mb-16 pointer-events-none" />
           <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
-                <FileText className="h-5 w-5" />
+            <div className="flex items-center gap-2 mb-2.5">
+              <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg">
+                <FileText className="h-3.5 w-3.5" />
               </div>
-              <span className="text-sm font-semibold opacity-95">Contract Summary</span>
+              <span className="text-xs font-semibold opacity-90 uppercase tracking-wide">Contract Summary</span>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <p className="text-xs text-white/70 mb-1">Contract Code</p>
-                <p className="text-lg font-bold">{formData.contractCode || '—'}</p>
+                <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Contract Code</p>
+                <p className="text-sm font-bold">{formData.contractCode || '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-white/70 mb-1">Duration</p>
-                <p className="text-lg font-bold">{formData.contractPeriodMonths ? `${formData.contractPeriodMonths} months` : '—'}</p>
+                <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Duration</p>
+                <p className="text-sm font-bold">{formData.contractPeriodMonths ? `${formData.contractPeriodMonths} months` : '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-white/70 mb-1">Start Date</p>
-                <p className="text-lg font-bold">{formData.effectiveDate || '—'}</p>
+                <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Start Date</p>
+                <p className="text-sm font-bold">{formData.effectiveDate || '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-white/70 mb-1">Notice Period</p>
-                <p className="text-lg font-bold">{formData.noticePeriodDays ? `${formData.noticePeriodDays} days` : '—'}</p>
+                <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">Notice Period</p>
+                <p className="text-sm font-bold">{formData.noticePeriodDays ? `${formData.noticePeriodDays} days` : '—'}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Form Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 space-y-8">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-6">
 
           {/* General Information Section */}
           <section>
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-                <User className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                <User className="h-3.5 w-3.5 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800">General Information</h2>
+              <h3 className="text-sm font-semibold text-slate-700">General Information</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
@@ -514,17 +509,17 @@ export default function EmployeeContractForm() {
 
           {/* Salary & Allowances Section */}
           <section>
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
-                <DollarSign className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+              <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
+                <DollarSign className="h-3.5 w-3.5 text-white" />
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-bold text-slate-800">Salary & Allowances</h2>
-                <p className="text-sm text-slate-500 mt-1">Define salary structure and additional allowances</p>
+                <h3 className="text-sm font-semibold text-slate-700">Salary & Allowances</h3>
+                <p className="text-xs text-slate-400">Define salary structure and additional allowances</p>
               </div>
               {validRows.length > 0 && (
-                <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl border border-emerald-200">
-                  <span className="font-semibold">Total:</span> ${totalSalary.toLocaleString()}
+                <div className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg border border-emerald-200 text-xs font-semibold">
+                  Total: ${totalSalary.toLocaleString()}
                 </div>
               )}
             </div>
@@ -623,11 +618,11 @@ export default function EmployeeContractForm() {
 
           {/* Signing Information Section */}
           <section>
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-              <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl">
-                <PenTool className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+              <div className="p-1.5 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
+                <PenTool className="h-3.5 w-3.5 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800">Signing Information</h2>
+              <h3 className="text-sm font-semibold text-slate-700">Signing Information</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -723,7 +718,6 @@ export default function EmployeeContractForm() {
           </section>
 
         </div>
-      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ import type { Employee } from "@/types/hr";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { EmployeeFilters } from "@/modules/hr/components/employee-filters";
 import { EmployeeStats } from "@/modules/hr/components/employee-stats";
@@ -32,109 +32,6 @@ const EmployeeTable = ({ data, onSelect }: EmployeeTableProps) => (
   />
 );
 
-// ── Department distribution widget ────────────────────────────────────────────
-const DepartmentBreakdown = ({ employees }: { employees: Employee[] }) => {
-  const depts = useMemo(() => {
-    const map = new Map<string, number>();
-    employees.forEach((e) => {
-      const d = e.department?.trim();
-      if (d) map.set(d, (map.get(d) ?? 0) + 1);
-    });
-    return Array.from(map.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6);
-  }, [employees]);
-
-  if (depts.length === 0) return null;
-  const max = depts[0][1];
-
-  return (
-    <Card className="shadow-sm h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-100">
-            <LayoutGrid className="h-3.5 w-3.5 text-violet-600" />
-          </div>
-          Department Headcount
-        </CardTitle>
-      </CardHeader>
-      <Separator />
-      <CardContent className="pt-4 space-y-2.5">
-        {depts.map(([dept, count]) => (
-          <div key={dept}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-foreground truncate max-w-[65%]">{dept}</span>
-              <span className="text-xs font-semibold text-muted-foreground tabular-nums">{count}</span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-all duration-500"
-                style={{ width: `${Math.round((count / max) * 100)}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-};
-
-// ── Workforce breakdown widget ─────────────────────────────────────────────────
-const WorkforceBreakdown = ({ employees }: { employees: Employee[] }) => {
-  const breakdown = useMemo(() => {
-    const normalize = (s?: string | null) =>
-      String(s ?? "").trim().toUpperCase();
-
-    const total  = employees.length;
-    const male   = employees.filter((e) => normalize(e.gender) === "MALE").length;
-    const female = employees.filter((e) => normalize(e.gender) === "FEMALE").length;
-    const other  = total - male - female;
-
-    const depts  = new Set(employees.map((e) => e.department).filter(Boolean)).size;
-    const joined = employees.filter((e) => {
-      if (!e.joinDate) return false;
-      const y = new Date(e.joinDate).getFullYear();
-      return y === new Date().getFullYear();
-    }).length;
-
-    return { total, male, female, other, depts, joined };
-  }, [employees]);
-
-  const rows = [
-    { label: "Male",              value: breakdown.male,   color: "bg-blue-500",    of: breakdown.total },
-    { label: "Female",            value: breakdown.female, color: "bg-pink-500",    of: breakdown.total },
-    { label: "Departments",       value: breakdown.depts,  color: "bg-violet-500",  of: null },
-    { label: "Joined this year",  value: breakdown.joined, color: "bg-emerald-500", of: null },
-  ];
-
-  return (
-    <Card className="shadow-sm h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100">
-            <Users2 className="h-3.5 w-3.5 text-blue-600" />
-          </div>
-          Workforce Breakdown
-        </CardTitle>
-      </CardHeader>
-      <Separator />
-      <CardContent className="pt-4 space-y-3">
-        {rows.map((r) => (
-          <div key={r.label} className="flex items-center gap-3">
-            <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full", r.color)} />
-            <span className="flex-1 text-xs text-muted-foreground">{r.label}</span>
-            <span className="text-sm font-bold tabular-nums">{r.value}</span>
-            {r.of !== null && r.of > 0 && (
-              <span className="text-xs text-muted-foreground w-10 text-right">
-                {Math.round((r.value / r.of) * 100)}%
-              </span>
-            )}
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-};
 
 export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -473,14 +370,6 @@ export default function EmployeesPage() {
         onFilter={setStatusFilter}
         activeFilter={statusFilter}
       />
-
-      {/* ── Insight widgets ──────────────────────────────────────────────── */}
-      {employees.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <DepartmentBreakdown employees={employees} />
-          <WorkforceBreakdown  employees={employees} />
-        </div>
-      )}
 
       {/* ── Employee table ───────────────────────────────────────────────── */}
       <Card className="shadow-sm">

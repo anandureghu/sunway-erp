@@ -76,6 +76,9 @@ export function CompanyBankAccounts() {
                     </p>
                     <p>{acc.accountHolderName}</p>
                     <p className="text-muted-foreground">{acc.accountNumber}</p>
+                    {acc.iban && (
+                      <p className="text-xs text-muted-foreground font-mono">IBAN: {acc.iban}</p>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
