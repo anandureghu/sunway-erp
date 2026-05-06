@@ -47,11 +47,11 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
 const getModuleDescription = (title: string): string => {
   const descriptions: Record<string, string> = {
     "Employee Overview":
-      "Complete employee profiles, organizational structure, and staff directory.",
+      "Employee Life-Cycle Management.",
     "HR Reports":
-      "Generate detailed reports on attendance, performance, and compliance.",
+      "Detail HR Reports.",
     "HR Settings":
-      "Configure departments, positions, benefits, and HR policies.",
+      "Configure HR setting - Job code, leave policies, system permissions, and appraisal, Public Holidays.",
     "Inventory Report":
       "Real-time stock reports, valuation analysis, and movement tracking.",
     "Inventory (Stocks)":
@@ -75,7 +75,7 @@ const getModuleDescription = (title: string): string => {
     "Finance Settings":
       "Configure fiscal periods, currencies, tax rates, and accounting rules.",
   };
-  return descriptions[title] || "Access module features and settings.";
+  return descriptions[title] || "Employee Compensations – Generate Payroll.";
 };
 
 // System theme configuration
@@ -192,11 +192,11 @@ const Dashboard = () => {
     <div className="p-6">
       {/* Main Title Section */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
-          Sunway ERP Modules
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Sunway ERP 
         </h1>
         <p className="text-lg text-gray-600">
-          Comprehensive business management solutions
+          Comprehensive business management solution
         </p>
       </div>
 

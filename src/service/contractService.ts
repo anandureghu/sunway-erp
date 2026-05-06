@@ -6,7 +6,6 @@ import type { EmployeeContract, ContractType, ContractStatus } from "@/types/hr"
 ======================= */
 
 export interface AllowancePayload {
-  allowanceType?: string;
   allowanceTypeId?: number;
   customName?: string;
   amount: number;
@@ -53,10 +52,16 @@ export interface ContractResponse {
   salaryRateType?: string;
   signatureDate?: string;
   signedBy?: string;
-  allowances: AllowancePayload[];
+  allowances: Array<{
+    allowanceTypeId?: number;
+    allowanceType?: string;
+    customName?: string;
+    amount: number;
+    effectiveDate: string;
+    note?: string;
+  }>;
   termsAndConditions?: string;
   attachmentUrl?: string;
-  // Staff name fields - may vary across API responses
   staffName?: string;
   employeeName?: string;
   staff?: {
@@ -73,7 +78,7 @@ export interface AllowanceType {
 /* =======================
    API CALLS
 ======================= */
-// GET contract by employee
+
 async function get(employeeId: number) {
   try {
     const res = await apiClient.get<ContractResponse>(
@@ -81,33 +86,34 @@ async function get(employeeId: number) {
     );
     return res.data ?? null;
   } catch (err: any) {
-    // 404 means contract does not exist yet → not an error
     if (err.response?.status === 404) {
       return null;
     }
-    throw err; // real error
+    throw err;
   }
 }
 
-// CREATE contract
 async function create(employeeId: number, payload: ContractApiPayload) {
-  const res = await apiClient.post<ContractResponse>(`/hr/contracts/employee/${employeeId}`, payload);
+  const res = await apiClient.post<ContractResponse>(
+    `/hr/contracts/employee/${employeeId}`,
+    payload
+  );
   return res.data;
 }
 
-// UPDATE contract
 async function update(contractId: number, payload: ContractApiPayload) {
-  const res = await apiClient.put<ContractResponse>(`/hr/contracts/${contractId}`, payload);
+  const res = await apiClient.put<ContractResponse>(
+    `/hr/contracts/${contractId}`,
+    payload
+  );
   return res.data;
 }
 
-// DELETE contract (soft delete)
 async function remove(contractId: number) {
   const res = await apiClient.delete(`/hr/contracts/${contractId}`);
   return res.data;
 }
 
-// GET allowance types (for dropdown)
 async function getAllowanceTypes() {
   const res = await apiClient.get<AllowanceType[]>(`/hr/allowance-types`);
   return res.data ?? [];
