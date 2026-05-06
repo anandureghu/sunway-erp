@@ -184,6 +184,12 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
+              {
+                title: "Payroll",
+                url: "/hr/payroll",
+                icon: Wallet,
+              },
+
               // HR Reports — gated by HR_REPORTS
               ...(canView(permissions, "HR_REPORTS")
                 ? [
@@ -194,12 +200,6 @@ export const getSidebarItems = async (
                     },
                   ]
                 : []),
-
-              {
-                title: "Payroll",
-                url: "/hr/payroll",
-                icon: Wallet,
-              },
 
               // HR Settings — gated by HR_SETTINGS
               ...(canView(permissions, "HR_SETTINGS")
@@ -216,38 +216,6 @@ export const getSidebarItems = async (
         ]
       : []),
 
-    // ── Inventory ─────────────────────────────────────────────────────────────
-    ...(company.inventoryEnabled
-      ? [
-          {
-            title: "Inventory",
-            icon: Package,
-            color: "text-amber-700",
-            image: "/assets/images/inventory.svg",
-            url: "/inventory/dashboard",
-            items: [
-              {
-                title: "Inventory Report",
-                url: "/inventory/reports",
-                icon: FileText,
-              },
-              {
-                title: "Inventory (Stocks)",
-                url: "/inventory/stocks",
-                icon: Package,
-              },
-              { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-              { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
-              {
-                title: "Inventory Settings",
-                url: "/inventory/settings",
-                icon: Settings,
-              },
-            ],
-          },
-        ]
-      : []),
-
     // ── Finance ───────────────────────────────────────────────────────────────
     ...(company.financeEnabled
       ? [
@@ -259,11 +227,6 @@ export const getSidebarItems = async (
             url: "/finance/dashboard",
             items: [
               {
-                title: "Finance Reports",
-                url: "/finance/reports",
-                icon: PieChart,
-              },
-              {
                 title: "Accounts Receivable",
                 url: "/finance/receivable",
                 icon: Wallet,
@@ -274,18 +237,55 @@ export const getSidebarItems = async (
                 icon: Receipt,
               },
               {
+                title: "Employee Payroll",
+                url: "/finance/payroll",
+                icon: Users,
+              },
+              {
                 title: "General Ledger",
                 url: "/finance/ledger",
                 icon: Landmark,
               },
               {
-                title: "Payroll",
-                url: "/finance/payroll",
-                icon: Users,
+                title: "Finance Report",
+                url: "/finance/reports",
+                icon: PieChart,
               },
               {
                 title: "Finance Settings",
                 url: "/finance/settings",
+                icon: Settings,
+              },
+            ],
+          },
+        ]
+      : []),
+
+    // ── Inventory ─────────────────────────────────────────────────────────────
+    ...(company.inventoryEnabled
+      ? [
+          {
+            title: "Inventory",
+            icon: Package,
+            color: "text-amber-700",
+            image: "/assets/images/inventory.svg",
+            url: "/inventory/dashboard",
+            items: [
+              {
+                title: "Inventory (Stocks)",
+                url: "/inventory/stocks",
+                icon: Package,
+              },
+              { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
+              { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
+              {
+                title: "Inventory Reports",
+                url: "/inventory/reports",
+                icon: FileText,
+              },
+              {
+                title: "Inventory Settings",
+                url: "/inventory/settings",
                 icon: Settings,
               },
             ],

@@ -1,12 +1,30 @@
 import { Input } from "@/components/ui/input";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
 import { useParams } from "react-router-dom";
-import { contractService, type ContractApiPayload, type AllowancePayload } from "@/service/contractService";
+import {
+  contractService,
+  type ContractApiPayload,
+  type AllowancePayload,
+} from "@/service/contractService";
+import { salaryService } from "@/service/salaryService";
+import { downloadContractPdf } from "@/service/contractPdfService";
 import { toast } from "sonner";
 import type { ContractType, ContractStatus } from "@/types/hr";
 import { FormField } from "@/modules/hr/components/form-components";
-import { Plus, Trash2, FileText, Calendar, DollarSign, PenTool, Upload, Clock, User, Hash } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  FileText,
+  Calendar,
+  DollarSign,
+  PenTool,
+  Upload,
+  Clock,
+  User,
+  Hash,
+  Download,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,10 +37,16 @@ import {
 
 interface SalaryAllowanceRow {
   id: string;
-  customName: string;   // ✅ only text input — no allowanceTypeId
+  customName: string;
   amount: string;
   effectiveDate: string;
   note: string;
+}
+
+interface SalaryOption {
+  name: string;
+  amount: string;
+  effectiveDate: string;
 }
 
 interface ContractFormData {
@@ -46,11 +70,9 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
-/* ================= HELPERS ================= */
-
 const createEmptyRow = (): SalaryAllowanceRow => ({
   id: crypto.randomUUID(),
-  customName: "",       // ✅ only field needed
+  customName: "",
   amount: "",
   effectiveDate: "",
   note: "",
@@ -60,26 +82,60 @@ const createEmptyRow = (): SalaryAllowanceRow => ({
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'ACTIVE': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'DRAFT': return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'EXPIRED': return 'bg-red-50 text-red-700 border-red-200';
-    case 'TERMINATED': return 'bg-slate-50 text-slate-700 border-slate-200';
-    default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    case "ACTIVE":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    case "DRAFT":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "EXPIRED":
+      return "bg-red-50 text-red-700 border-red-200";
+    case "TERMINATED":
+      return "bg-slate-50 text-slate-700 border-slate-200";
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200";
   }
 };
 
 const getContractTypeColor = (type: string) => {
   switch (type) {
-    case 'PERMANENT': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-    case 'TEMPORARY': return 'bg-teal-50 text-teal-700 border-teal-200';
-    case 'CONTRACT': return 'bg-violet-50 text-violet-700 border-violet-200';
-    case 'PART_TIME': return 'bg-cyan-50 text-cyan-700 border-cyan-200';
-    case 'INTERN': return 'bg-orange-50 text-orange-700 border-orange-200';
-    case 'CONSULTANT': return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'PROBATION': return 'bg-rose-50 text-rose-700 border-rose-200';
-    default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    case "PERMANENT":
+      return "bg-indigo-50 text-indigo-700 border-indigo-200";
+    case "TEMPORARY":
+      return "bg-teal-50 text-teal-700 border-teal-200";
+    case "CONTRACT":
+      return "bg-violet-50 text-violet-700 border-violet-200";
+    case "PART_TIME":
+      return "bg-cyan-50 text-cyan-700 border-cyan-200";
+    case "INTERN":
+      return "bg-orange-50 text-orange-700 border-orange-200";
+    case "CONSULTANT":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "PROBATION":
+      return "bg-rose-50 text-rose-700 border-rose-200";
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200";
   }
 };
+
+/* ================= HELPERS ================= */
+
+function buildSalaryOptions(s: any): SalaryOption[] {
+  if (!s) return [];
+  const effectiveDate = s.effectiveFrom ?? "";
+  const opts: SalaryOption[] = [];
+
+  if (Number(s.basicSalary) > 0)
+    opts.push({ name: "Basic Salary", amount: String(s.basicSalary), effectiveDate });
+  if (s.transportationType === "ALLOWANCE" && Number(s.transportationAllowance) > 0)
+    opts.push({ name: "Transportation Allowance", amount: String(s.transportationAllowance), effectiveDate });
+  if (s.travelType === "ALLOWANCE" && Number(s.travelAllowance) > 0)
+    opts.push({ name: "Travel Allowance", amount: String(s.travelAllowance), effectiveDate });
+  if (s.housingType === "ALLOWANCE" && Number(s.housingAllowance) > 0)
+    opts.push({ name: "Housing Allowance", amount: String(s.housingAllowance), effectiveDate });
+  if (Number(s.otherAllowance) > 0)
+    opts.push({ name: "Other Allowance", amount: String(s.otherAllowance), effectiveDate });
+
+  return opts;
+}
 
 /* ================= COMPONENT ================= */
 
@@ -89,33 +145,40 @@ export default function EmployeeContractForm() {
   const employeeId = (() => {
     if (!id || id.trim() === "") return undefined;
     const parsed = Number(id);
-    if (isNaN(parsed) || parsed <= 0) return undefined;
+    if (Number.isNaN(parsed) || parsed <= 0) return undefined;
     return parsed;
   })();
 
   const [exists, setExists] = useState(false);
   const [contractId, setContractId] = useState<number | null>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [, setSalaryOptions] = useState<SalaryOption[]>([]);
+  // Silently fetched for save matching — not used for UI
+  const allowanceTypeMapRef = useRef<Map<string, number>>(new Map());
+
   const loadingContractRef = useRef(false);
   const savingRef = useRef(false);
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const contractLoadedRef = useRef(false);
 
-  const initialFormData = useMemo(() => ({
-    contractCode: "",
-    staffName: "",
-    contractType: "PERMANENT" as ContractType,
-    status: "DRAFT" as ContractStatus,
-    effectiveDate: new Date().toISOString().slice(0, 10),
-    expirationDate: "",
-    contractPeriodMonths: 0,
-    noticePeriodDays: 30,
-    salaryRateType: "MONTHLY",
-    salaryRows: [createEmptyRow()],
-    signatureDate: new Date().toISOString().slice(0, 10),
-    signedBy: "",
-    termsAndConditions: "",
-    attachmentUrl: "",
-  }), []);
+  const initialFormData = useMemo<ContractFormData>(
+    () => ({
+      contractCode: "",
+      staffName: "",
+      contractType: "PERMANENT",
+      status: "DRAFT",
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      expirationDate: "",
+      contractPeriodMonths: 0,
+      noticePeriodDays: 30,
+      salaryRateType: "MONTHLY",
+      salaryRows: [createEmptyRow()],
+      signatureDate: new Date().toISOString().slice(0, 10),
+      signedBy: "",
+      termsAndConditions: "",
+      attachmentUrl: "",
+    }),
+    []
+  );
 
   const {
     editing,
@@ -131,47 +194,64 @@ export default function EmployeeContractForm() {
       if (savingRef.current) return;
       savingRef.current = true;
 
-      const validEmployeeId = employeeId as number;
-      if (!validEmployeeId) {
-        savingRef.current = false;
-        throw new Error("Invalid employee ID");
-      }
-
-      // ✅ filter by customName + amount only
-      const allowances: AllowancePayload[] = data.salaryRows
-        .filter((r) => r.customName.trim() && r.amount && Number(r.amount) > 0)
-        .map((r) => ({
-          allowanceTypeId: undefined,       // ✅ always null — no type selection
-          customName: r.customName.trim(),  // ✅ always from text input
-          amount: Number(r.amount),
-          effectiveDate: r.effectiveDate,
-          note: r.note || undefined,
-        }));
-
-      if (allowances.length === 0) {
-        savingRef.current = false;
-        toast.error("Please add at least one allowance with a name and amount");
-        return;
-      }
-
-      const payload: ContractApiPayload = {
-        contractType: data.contractType,
-        status: data.status,
-        effectiveDate: data.effectiveDate,
-        expirationDate: data.expirationDate || undefined,
-        noticePeriodDays: data.noticePeriodDays || undefined,
-        salaryRateType: data.salaryRateType || undefined,
-        signatureDate: data.signatureDate || undefined,
-        signedBy: data.signedBy || undefined,
-        allowances,
-      };
-
       try {
+        const validEmployeeId = employeeId as number;
+        if (!validEmployeeId) throw new Error("Invalid employee ID");
+
+        const today = new Date().toISOString().slice(0, 10);
+        const allowances: AllowancePayload[] = data.salaryRows
+          .filter(
+            (r) =>
+              r.customName.trim() !== "" &&
+              String(r.amount).trim() !== "" &&
+              Number(r.amount) > 0
+          )
+          .map((r) => {
+            const name = r.customName.trim();
+            // Try to find matching allowanceTypeId by name (case-insensitive fuzzy)
+            const map = allowanceTypeMapRef.current;
+            let allowanceTypeId: number | undefined;
+            for (const [key, val] of map.entries()) {
+              if (
+                key.toLowerCase() === name.toLowerCase() ||
+                key.toLowerCase().includes(name.toLowerCase()) ||
+                name.toLowerCase().includes(key.toLowerCase())
+              ) {
+                allowanceTypeId = val;
+                break;
+              }
+            }
+            return {
+              allowanceTypeId,
+              customName: name,
+              amount: Number(r.amount),
+              effectiveDate: r.effectiveDate || today,
+              note: r.note?.trim() || undefined,
+            };
+          });
+
+        if (allowances.length === 0) {
+          toast.error("Please add at least one allowance with a type and amount");
+          return;
+        }
+
+        const payload: ContractApiPayload = {
+          contractType: data.contractType,
+          status: data.status,
+          effectiveDate: data.effectiveDate,
+          expirationDate: data.expirationDate || undefined,
+          noticePeriodDays: data.noticePeriodDays || undefined,
+          salaryRateType: data.salaryRateType || undefined,
+          signatureDate: data.signatureDate || undefined,
+          signedBy: data.signedBy || undefined,
+          allowances,
+        };
+
         if (exists && contractId) {
           await contractService.update(contractId, payload);
         } else {
           const result = await contractService.create(validEmployeeId, payload);
-          if (result) {
+          if (result?.id) {
             setContractId(result.id);
             setExists(true);
           }
@@ -181,75 +261,118 @@ export default function EmployeeContractForm() {
         toast.success("Contract saved successfully");
       } catch (err: any) {
         toast.error(contractService.extractErrorMessage(err));
-        savingRef.current = false;
         throw err;
+      } finally {
+        savingRef.current = false;
       }
-
-      savingRef.current = false;
     },
   });
 
   /* ================= LOAD CONTRACT ================= */
 
-  const loadContract = async (empId: number) => {
-    if (loadingContractRef.current) return;
-    loadingContractRef.current = true;
+  const loadContract = useCallback(
+    async (empId: number) => {
+      if (loadingContractRef.current) return;
+      if (!empId) return;
 
-    try {
-      const fresh = await contractService.get(empId);
-      if (!fresh) {
+      loadingContractRef.current = true;
+
+      try {
+        // Silently fetch allowance types for ID matching on save (not shown in UI)
+        try {
+          const types = await contractService.getAllowanceTypes();
+          const map = new Map<string, number>();
+          for (const t of types) map.set(t.name, t.id);
+          allowanceTypeMapRef.current = map;
+        } catch {
+          // allowance-types API unavailable — will save with customName only
+        }
+
+        // Always fetch salary first — for dropdown options and pre-population
+        let opts: SalaryOption[] = [];
+        try {
+          const salaryRes = await salaryService.get(empId);
+          opts = buildSalaryOptions(salaryRes?.data);
+          setSalaryOptions(opts);
+        } catch {
+          // Salary not configured yet — options stay empty
+        }
+
+        const fresh = await contractService.get(empId);
+
+        if (!fresh) {
+          setExists(false);
+          setContractId(null);
+
+          // Pre-populate rows from salary data when no contract exists
+          if (opts.length > 0) {
+            setFields({
+              ...initialFormData,
+              salaryRows: opts.map((opt) => ({
+                id: crypto.randomUUID(),
+                customName: opt.name,
+                amount: opt.amount,
+                effectiveDate: opt.effectiveDate,
+                note: "",
+              })),
+            });
+          } else {
+            setFields(initialFormData);
+          }
+          return;
+        }
+
+        setExists(true);
+        setContractId(fresh.id ?? null);
+
+        const mappedSalaryRows: SalaryAllowanceRow[] =
+          fresh.allowances?.length > 0
+            ? fresh.allowances.map((a: AllowancePayload & { customName?: string; allowanceType?: string }) => ({
+                id: crypto.randomUUID(),
+                customName: a.customName ?? a.allowanceType ?? "",
+                amount: a.amount != null ? String(a.amount) : "",
+                effectiveDate: a.effectiveDate ?? "",
+                note: a.note ?? "",
+              }))
+            : [createEmptyRow()];
+
+        setFields({
+          contractCode: fresh.contractCode ?? "",
+          staffName: fresh.staffName ?? fresh.employeeName ?? fresh.staff?.name ?? "",
+          contractType: fresh.contractType ?? "PERMANENT",
+          status: fresh.status ?? "DRAFT",
+          effectiveDate: fresh.effectiveDate ?? "",
+          expirationDate: fresh.expirationDate ?? "",
+          contractPeriodMonths: fresh.contractPeriodMonths ?? 0,
+          noticePeriodDays: fresh.noticePeriodDays ?? 30,
+          salaryRateType: fresh.salaryRateType ?? "MONTHLY",
+          signatureDate: fresh.signatureDate ?? "",
+          signedBy: fresh.signedBy ?? "",
+          termsAndConditions: fresh.termsAndConditions ?? "",
+          attachmentUrl: fresh.attachmentUrl ?? "",
+          salaryRows: mappedSalaryRows,
+        });
+
+        contractLoadedRef.current = true;
+      } catch (error) {
+        console.error("Error loading contract:", error);
+      } finally {
         loadingContractRef.current = false;
-        return;
       }
-
-      setExists(true);
-      setContractId(fresh.id);
-
-      // ✅ map allowances using customName only
-      const mappedSalaryRows = fresh.allowances?.map((a: AllowancePayload) => ({
-        id: crypto.randomUUID(),
-        customName: a.customName ?? String(a.allowanceType ?? ""),
-        amount: String(a.amount ?? ""),
-        effectiveDate: a.effectiveDate ?? "",
-        note: a.note ?? "",
-      })) ?? [createEmptyRow()];
-
-      setFields({
-        contractCode: fresh.contractCode ?? "",
-        staffName: fresh.staffName ?? fresh.employeeName ?? fresh.staff?.name ?? "",
-        contractType: fresh.contractType,
-        status: fresh.status,
-        effectiveDate: fresh.effectiveDate ?? "",
-        expirationDate: fresh.expirationDate ?? "",
-        contractPeriodMonths: fresh.contractPeriodMonths ?? 0,
-        noticePeriodDays: fresh.noticePeriodDays ?? 30,
-        salaryRateType: fresh.salaryRateType ?? "MONTHLY",
-        signatureDate: fresh.signatureDate ?? "",
-        signedBy: fresh.signedBy ?? "",
-        termsAndConditions: fresh.termsAndConditions ?? "",
-        attachmentUrl: fresh.attachmentUrl ?? "",
-        salaryRows: mappedSalaryRows,
-      });
-
-      contractLoadedRef.current = true;
-    } catch (error) {
-      console.error("Error loading contract:", error);
-    } finally {
-      loadingContractRef.current = false;
-    }
-  };
+    },
+    [initialFormData, setFields]
+  );
 
   useEffect(() => {
     if (!employeeId) return;
-    loadContract(employeeId);   // ✅ no more allowanceTypesReady dependency
-  }, [employeeId]);
-
-  /* ================= EVENT BRIDGE ================= */
+    loadContract(employeeId);
+  }, [employeeId, loadContract]);
 
   useEffect(() => {
     document.addEventListener("contract:start-edit", handleEdit as EventListener);
     document.addEventListener("contract:save", handleSave as EventListener);
     document.addEventListener("contract:cancel", handleCancel as EventListener);
+
     return () => {
       document.removeEventListener("contract:start-edit", handleEdit as EventListener);
       document.removeEventListener("contract:save", handleSave as EventListener);
@@ -270,7 +393,7 @@ export default function EmployeeContractForm() {
 
   const errors = validateForm(formData);
 
-  /* ================= SALARY ROW HELPERS ================= */
+  /* ================= ROW HELPERS ================= */
 
   const updateRow = (rowId: string, field: keyof SalaryAllowanceRow, value: string) => {
     updateField("salaryRows")(
@@ -280,8 +403,7 @@ export default function EmployeeContractForm() {
     );
   };
 
-  const addRow = () =>
-    updateField("salaryRows")([...formData.salaryRows, createEmptyRow()]);
+  const addRow = () => updateField("salaryRows")([...formData.salaryRows, createEmptyRow()]);
 
   const removeRow = (rowId: string) => {
     if (formData.salaryRows.length <= 1) return;
@@ -290,20 +412,53 @@ export default function EmployeeContractForm() {
 
   /* ================= CALCULATED VALUES ================= */
 
-  const totalSalary = formData.salaryRows.reduce((sum: number, row: SalaryAllowanceRow) => {
-    const amount = parseFloat(row.amount.replace(/[^0-9.]/g, '')) || 0;
-    return sum + amount;
+  const totalSalary = formData.salaryRows.reduce((sum, row) => {
+    return sum + (parseFloat(String(row.amount).replace(/[^0-9.]/g, "")) || 0);
   }, 0);
 
-  const validRows = formData.salaryRows.filter(r => r.customName || r.amount);
+  const validRows = formData.salaryRows.filter(
+    (r) => r.customName || r.amount || r.effectiveDate || r.note
+  );
+
+  /* ================= PDF ================= */
+
+  const buildPdfData = useCallback(() => ({
+    contractCode: formData.contractCode,
+    staffName: formData.staffName,
+    contractType: formData.contractType,
+    status: formData.status,
+    effectiveDate: formData.effectiveDate,
+    expirationDate: formData.expirationDate,
+    contractPeriodMonths: formData.contractPeriodMonths,
+    noticePeriodDays: formData.noticePeriodDays,
+    salaryRateType: formData.salaryRateType,
+    signatureDate: formData.signatureDate,
+    signedBy: formData.signedBy,
+    termsAndConditions: formData.termsAndConditions,
+    salaryRows: formData.salaryRows.map((row) => ({ ...row, customName: row.customName })),
+  }), [formData]);
+
+  const handleDownloadPdf = () => {
+    if (!exists || !contractId) {
+      toast.error("Save the contract before downloading the PDF");
+      return;
+    }
+    try {
+      downloadContractPdf(buildPdfData());
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to open PDF window");
+    }
+  };
 
   /* ================= RENDER ================= */
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4"> 
 
-        {/* Header Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-4 py-3">
+
+      
+      {/* Header Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="bg-violet-100 p-1.5 rounded-lg">
               <FileText className="h-4 w-4 text-violet-600" />
@@ -324,6 +479,16 @@ export default function EmployeeContractForm() {
                 </span>
               )}
             </div>
+            {exists && (
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download PDF
+              </button>
+            )}
           </div>
         </div>
 
@@ -538,10 +703,13 @@ export default function EmployeeContractForm() {
                 </thead>
                 <tbody>
                   {formData.salaryRows.map((row, idx) => (
-                    <tr key={row.id} className={`border-t border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-blue-50/50 transition-colors`}>
+                    <tr
+                      key={row.id}
+                      className={`border-t border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-blue-50/50 transition-colors`}
+                    >
                       <td className="px-4 py-3 text-center text-slate-500 border-r border-slate-200 font-medium">{idx + 1}</td>
 
-                      {/* ✅ pure text input — no dropdown at all */}
+                      {/* pure text input — no dropdown at all */}
                       <td className="px-2 py-2 border-r border-slate-200">
                         <Input
                           className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg text-sm"
@@ -568,6 +736,7 @@ export default function EmployeeContractForm() {
                           />
                         </div>
                       </td>
+
                       <td className="px-2 py-2 border-r border-slate-200">
                         <Input
                           type="date"
@@ -577,6 +746,7 @@ export default function EmployeeContractForm() {
                           onChange={(e) => updateRow(row.id, "effectiveDate", e.target.value)}
                         />
                       </td>
+
                       <td className="px-2 py-2 border-r border-slate-200">
                         <Input
                           className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
@@ -586,6 +756,7 @@ export default function EmployeeContractForm() {
                           placeholder={editing ? "Add note..." : ""}
                         />
                       </td>
+
                       {editing && (
                         <td className="px-2 py-2 text-center">
                           <button
@@ -601,6 +772,7 @@ export default function EmployeeContractForm() {
                   ))}
                 </tbody>
               </table>
+
               {editing && (
                 <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50">
                   <button
@@ -616,7 +788,7 @@ export default function EmployeeContractForm() {
             </div>
           </section>
 
-          {/* Signing Information Section */}
+          {/* Signing Information */}
           <section>
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
               <div className="p-1.5 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
@@ -662,7 +834,7 @@ export default function EmployeeContractForm() {
                       {attachmentFile ? (
                         <div className="flex items-center gap-2">
                           <FileText className="h-5 w-5 text-indigo-600" />
-                          <span className="font-medium text-slate-700">{attachmentFile?.name}</span>
+                          <span className="font-medium text-slate-700">{attachmentFile.name}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -683,18 +855,18 @@ export default function EmployeeContractForm() {
                         </div>
                       )}
                     </div>
+
                     {editing && (
                       <label className="cursor-pointer px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors shadow-sm hover:shadow-md">
                         Browse Files
                         <input
                           type="file"
                           className="hidden"
-                          disabled={!editing}
                           accept=".pdf,.doc,.docx"
                           onChange={(e) => {
                             const file = e.target.files?.[0] ?? null;
                             setAttachmentFile(file);
-                            if (file) updateField("attachmentUrl")(file.name);
+                            updateField("attachmentUrl")(file ? file.name : "");
                           }}
                         />
                       </label>
@@ -702,22 +874,11 @@ export default function EmployeeContractForm() {
                   </div>
                 </FormField>
               </div>
-
-              <div className="md:col-span-2">
-                <FormField label="Terms and Conditions">
-                  <textarea
-                    className="w-full min-h-[100px] p-3 border border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:bg-slate-50 disabled:text-slate-700 transition-all resize-none"
-                    disabled={!editing}
-                    value={formData.termsAndConditions}
-                    onChange={(e) => updateField("termsAndConditions")(e.target.value)}
-                    placeholder="Enter any additional terms and conditions..."
-                  />
-                </FormField>
-              </div>
             </div>
           </section>
-
         </div>
     </div>
   );
 }
+
+
