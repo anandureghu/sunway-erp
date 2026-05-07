@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -86,35 +85,24 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
     <div className="p-0 space-y-6">
       {/* <h1 className="text-2xl font-semibold">Budgets</h1> */}
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input placeholder="Search..." className="pl-10" />
-            </div>
+      <div className="flex justify-between items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Input placeholder="Search..." className="pl-10" />
+        </div>
 
-            {hasAnyRole(user?.role, ["FINANCE_MANAGER", "SUPER_ADMIN"]) && (
-              <Button
-                onClick={() => {
-                  setSelected(null);
-                  setOpen(true);
-                }}
-              >
-                Add Budget
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <DataTable
-            data={list}
-            columns={columns}
-            onRowClick={handleRowClick}
-          />
-        </CardContent>
-      </Card>
+        {hasAnyRole(user?.role, ["FINANCE_MANAGER", "SUPER_ADMIN"]) && (
+          <Button
+            onClick={() => {
+              setSelected(null);
+              setOpen(true);
+            }}
+          >
+            Add Budget
+          </Button>
+        )}
+      </div>
+      <DataTable data={list} columns={columns} onRowClick={handleRowClick} />
 
       <BudgetDialog
         companyId={companyId || 0}

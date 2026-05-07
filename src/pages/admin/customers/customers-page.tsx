@@ -4,7 +4,7 @@ import type { Customer } from "@/types/customer";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getCustomerColumns } from "@/lib/columns/customer-listing-admin";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -214,7 +214,7 @@ export default function CustomersPage() {
     );
 
   return (
-    <div className="p-6 space-y-6 w-full">
+    <div className="space-y-6 w-full">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Customers</h1>
         <Button
@@ -269,138 +269,130 @@ export default function CustomersPage() {
       </div>
 
       {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex-1 relative min-w-[300px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by name, email, phone, or city..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={countryFilter} onValueChange={setCountryFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Countries" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {countries.map((country) => (
-                    <SelectItem key={country} value={country}>
-                      {country}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="retail">Retail</SelectItem>
-                  <SelectItem value="wholesale">Wholesale</SelectItem>
-                  <SelectItem value="corporate">Corporate</SelectItem>
-                  <SelectItem value="individual">Individual</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Cities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
 
-        <CardContent>
-          {paginatedCustomers.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No customers found
-            </div>
-          ) : (
-            <>
-              <DataTable columns={columns} data={paginatedCustomers} />
-              {/* Pagination */}
-              {totalPages > 0 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    {Math.min(
-                      (currentPage - 1) * itemsPerPage + 1,
-                      filteredCustomers.length,
-                    )}
-                    -
-                    {Math.min(
-                      currentPage * itemsPerPage,
-                      filteredCustomers.length,
-                    )}{" "}
-                    of {filteredCustomers.length} customers
-                  </div>
-                  <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex-1 relative min-w-[300px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search by name, email, phone, or city..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={countryFilter} onValueChange={setCountryFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Countries" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Countries</SelectItem>
+              {countries.map((country) => (
+                <SelectItem key={country} value={country}>
+                  {country}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="retail">Retail</SelectItem>
+              <SelectItem value="wholesale">Wholesale</SelectItem>
+              <SelectItem value="corporate">Corporate</SelectItem>
+              <SelectItem value="individual">Individual</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={cityFilter} onValueChange={setCityFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Cities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Cities</SelectItem>
+              {cities.map((city) => (
+                <SelectItem key={city} value={city}>
+                  {city}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {paginatedCustomers.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No customers found
+        </div>
+      ) : (
+        <>
+          <DataTable columns={columns} data={paginatedCustomers} />
+          {/* Pagination */}
+          {totalPages > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing{" "}
+                {Math.min(
+                  (currentPage - 1) * itemsPerPage + 1,
+                  filteredCustomers.length,
+                )}
+                -
+                {Math.min(currentPage * itemsPerPage, filteredCustomers.length)}{" "}
+                of {filteredCustomers.length} customers
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Previous
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
                     <Button
-                      variant="outline"
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      ← Previous
-                    </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className={
-                            currentPage === page
-                              ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                              : "min-w-[40px]"
-                          }
-                        >
-                          {page}
-                        </Button>
-                      ),
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      onClick={() => setCurrentPage(page)}
+                      className={
+                        currentPage === page
+                          ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                          : "min-w-[40px]"
                       }
-                      disabled={currentPage === totalPages}
                     >
-                      Next →
+                      {page}
                     </Button>
-                  </div>
-                </div>
-              )}
-            </>
+                  ),
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </Button>
+              </div>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </>
+      )}
 
       <CustomerDialog
         open={open}

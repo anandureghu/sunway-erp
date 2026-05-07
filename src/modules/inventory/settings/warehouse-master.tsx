@@ -289,291 +289,277 @@ const WarehouseMaster = () => {
       </div>
 
       {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex-1 relative min-w-[300px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search warehouses..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex-1 relative min-w-[300px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search warehouses..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        {/* Warehouse Form */}
-        {showWarehouseForm && (
-          <Card className="mb-5">
-            <CardHeader>
-              <CardTitle>
-                {editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={handleWarehouseSubmit(onWarehouseSubmit)}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Warehouse Name <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      placeholder="Warehouse name"
-                      {...registerWarehouse("name")}
-                    />
-                    {warehouseErrors.name && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.name.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Status <span className="text-red-500">*</span>
-                    </label>
-                    <Select
-                      onValueChange={(value) =>
-                        resetWarehouse({
-                          ...watchWarehouse(),
-                          status: value as "active" | "inactive",
-                        })
-                      }
-                      value={watchWarehouse("status")}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {warehouseErrors.status && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.status.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      City
-                    </label>
-                    <Input placeholder="City" {...registerWarehouse("city")} />
-                    {warehouseErrors.city && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.city.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Street
-                    </label>
-                    <Input
-                      placeholder="Street"
-                      {...registerWarehouse("street")}
-                    />
-                    {warehouseErrors.street && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.street.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Country
-                    </label>
-                    <Input
-                      placeholder="Country"
-                      {...registerWarehouse("country")}
-                    />
-                    {warehouseErrors.country && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.country.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Phone
-                    </label>
-                    <Input
-                      placeholder="Phone"
-                      {...registerWarehouse("phone")}
-                    />
-                    {warehouseErrors.phone && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.phone.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Pin Code
-                    </label>
-                    <Input
-                      placeholder="Pin Code"
-                      {...registerWarehouse("pin")}
-                    />
-                    {warehouseErrors.pin && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.pin.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Contact Person Name
-                    </label>
-                    <Input
-                      placeholder="Contact Person Name"
-                      {...registerWarehouse("contactPersonName")}
-                    />
-                    {warehouseErrors.contactPersonName && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.contactPersonName.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <SelectEmployees
-                      value={watchWarehouse("manager")?.toString()}
-                      onChange={(v) =>
-                        resetWarehouse({
-                          ...watchWarehouse(),
-                          manager: Number(v),
-                        })
-                      }
-                      label="Manager"
-                      placeholder="Select Manager"
-                    />
-                    {warehouseErrors.manager && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {warehouseErrors.manager.message}
-                      </p>
-                    )}
-                  </div>
+      {/* Warehouse Form */}
+      {showWarehouseForm && (
+        <Card className="mb-5">
+          <CardHeader>
+            <CardTitle>
+              {editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={handleWarehouseSubmit(onWarehouseSubmit)}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Warehouse Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="Warehouse name"
+                    {...registerWarehouse("name")}
+                  />
+                  {warehouseErrors.name && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.name.message}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowWarehouseForm(false);
-                      setEditingWarehouse(null);
-                      resetWarehouse();
-                    }}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    onValueChange={(value) =>
+                      resetWarehouse({
+                        ...watchWarehouse(),
+                        status: value as "active" | "inactive",
+                      })
+                    }
+                    value={watchWarehouse("status")}
                   >
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {editingWarehouse ? "Update" : "Create"} Warehouse
-                  </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {warehouseErrors.status && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.status.message}
+                    </p>
+                  )}
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
 
-        <CardContent>
-          {paginatedWarehouses.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No warehouses found
-            </div>
-          ) : (
-            <>
-              <DataTable
-                columns={createWarehouseColumns(
-                  handleEditWarehouse,
-                  handleDeleteWarehouse,
-                )}
-                data={paginatedWarehouses}
-              />
-              {/* Pagination */}
-              {totalPages > 0 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    {Math.min(
-                      (currentPage - 1) * itemsPerPage + 1,
-                      filteredWarehouses.length,
-                    )}
-                    -
-                    {Math.min(
-                      currentPage * itemsPerPage,
-                      filteredWarehouses.length,
-                    )}{" "}
-                    of {filteredWarehouses.length} warehouses
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      ← Previous
-                    </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className={
-                            currentPage === page
-                              ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                              : "min-w-[40px]"
-                          }
-                        >
-                          {page}
-                        </Button>
-                      ),
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      disabled={currentPage === totalPages}
-                    >
-                      Next →
-                    </Button>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">City</label>
+                  <Input placeholder="City" {...registerWarehouse("city")} />
+                  {warehouseErrors.city && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.city.message}
+                    </p>
+                  )}
                 </div>
-              )}
-            </>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Street
+                  </label>
+                  <Input
+                    placeholder="Street"
+                    {...registerWarehouse("street")}
+                  />
+                  {warehouseErrors.street && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.street.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Country
+                  </label>
+                  <Input
+                    placeholder="Country"
+                    {...registerWarehouse("country")}
+                  />
+                  {warehouseErrors.country && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.country.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Phone
+                  </label>
+                  <Input placeholder="Phone" {...registerWarehouse("phone")} />
+                  {warehouseErrors.phone && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Pin Code
+                  </label>
+                  <Input placeholder="Pin Code" {...registerWarehouse("pin")} />
+                  {warehouseErrors.pin && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.pin.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Contact Person Name
+                  </label>
+                  <Input
+                    placeholder="Contact Person Name"
+                    {...registerWarehouse("contactPersonName")}
+                  />
+                  {warehouseErrors.contactPersonName && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.contactPersonName.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <SelectEmployees
+                    value={watchWarehouse("manager")?.toString()}
+                    onChange={(v) =>
+                      resetWarehouse({
+                        ...watchWarehouse(),
+                        manager: Number(v),
+                      })
+                    }
+                    label="Manager"
+                    placeholder="Select Manager"
+                  />
+                  {warehouseErrors.manager && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {warehouseErrors.manager.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowWarehouseForm(false);
+                    setEditingWarehouse(null);
+                    resetWarehouse();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingWarehouse ? "Update" : "Create"} Warehouse
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {paginatedWarehouses.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No warehouses found
+        </div>
+      ) : (
+        <>
+          <DataTable
+            columns={createWarehouseColumns(
+              handleEditWarehouse,
+              handleDeleteWarehouse,
+            )}
+            data={paginatedWarehouses}
+          />
+          {/* Pagination */}
+          {totalPages > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing{" "}
+                {Math.min(
+                  (currentPage - 1) * itemsPerPage + 1,
+                  filteredWarehouses.length,
+                )}
+                -
+                {Math.min(
+                  currentPage * itemsPerPage,
+                  filteredWarehouses.length,
+                )}{" "}
+                of {filteredWarehouses.length} warehouses
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Previous
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={
+                        currentPage === page
+                          ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                          : "min-w-[40px]"
+                      }
+                    >
+                      {page}
+                    </Button>
+                  ),
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </Button>
+              </div>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </>
+      )}
     </div>
   );
 };

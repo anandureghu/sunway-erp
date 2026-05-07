@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 
@@ -54,30 +53,26 @@ export const AppTab = <TProps extends Record<string, unknown>>({
         </div>
       )}
 
-      <Card>
-        <CardContent>
-          <Tabs
-            defaultValue={defaultValue ?? tabs[0]?.value}
-            className="w-full"
-          >
-            <TabsList>
-              {tabs.map((tab) => (
-                <StyledTabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </StyledTabsTrigger>
-              ))}
-            </TabsList>
+      <Tabs
+        defaultValue={defaultValue ?? tabs[0]?.value}
+        className="w-full pt-4"
+      >
+        <TabsList className="max-w-full overflow-x-auto">
+          {tabs.map((tab) => (
+            <StyledTabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </StyledTabsTrigger>
+          ))}
+        </TabsList>
 
-            {tabs.map((tab) => (
-              <TabsContent key={tab.value} value={tab.value} className="pt-6">
-                {typeof tab.element === "function"
-                  ? tab.element(props as TProps)
-                  : tab.element || <div>{tab.label} Content</div>}
-              </TabsContent>
-            ))}
-          </Tabs>
-        </CardContent>
-      </Card>
+        {tabs.map((tab) => (
+          <TabsContent key={tab.value} value={tab.value} className="pt-6">
+            {typeof tab.element === "function"
+              ? tab.element(props as TProps)
+              : tab.element || <div>{tab.label} Content</div>}
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };

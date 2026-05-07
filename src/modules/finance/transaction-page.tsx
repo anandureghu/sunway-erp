@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
@@ -77,18 +76,11 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
         </p>
       </div> */}
 
-      <Card>
-        <CardHeader>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input placeholder="Search…" className="pl-10" />
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <DataTable data={txList} columns={columns} />
-        </CardContent>
-      </Card>
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Input placeholder="Search…" className="pl-10" />
+      </div>
+      <DataTable data={txList} columns={columns} />
     </div>
   );
 }

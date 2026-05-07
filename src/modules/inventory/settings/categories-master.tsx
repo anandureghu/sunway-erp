@@ -1,6 +1,6 @@
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -390,112 +390,105 @@ const CategoriesMaster = () => {
       </div>
 
       {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex-1 relative min-w-[300px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search categories..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {paginatedCategories.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No categories found
-            </div>
-          ) : (
-            <>
-              <DataTable
-                columns={createCategoryColumns(
-                  handleViewCategoryDetails,
-                  handleEditCategory,
-                  handleDeleteCategory,
-                  // handleNewSubcategory,
-                  categories,
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex-1 relative min-w-[300px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search categories..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      {paginatedCategories.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No categories found
+        </div>
+      ) : (
+        <>
+          <DataTable
+            columns={createCategoryColumns(
+              handleViewCategoryDetails,
+              handleEditCategory,
+              handleDeleteCategory,
+              // handleNewSubcategory,
+              categories,
+            )}
+            data={paginatedCategories}
+            getSubRows={(row) => {
+              return row.subCategories;
+            }}
+          />
+          {/* Pagination */}
+          {totalPages > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing{" "}
+                {Math.min(
+                  (currentPage - 1) * itemsPerPage + 1,
+                  filteredCategories.length,
                 )}
-                data={paginatedCategories}
-                getSubRows={(row) => {
-                  return row.subCategories;
-                }}
-              />
-              {/* Pagination */}
-              {totalPages > 0 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    {Math.min(
-                      (currentPage - 1) * itemsPerPage + 1,
-                      filteredCategories.length,
-                    )}
-                    -
-                    {Math.min(
-                      currentPage * itemsPerPage,
-                      filteredCategories.length,
-                    )}{" "}
-                    of {filteredCategories.length} categories
-                  </div>
-                  <div className="flex items-center gap-2">
+                -
+                {Math.min(
+                  currentPage * itemsPerPage,
+                  filteredCategories.length,
+                )}{" "}
+                of {filteredCategories.length} categories
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Previous
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
                     <Button
-                      variant="outline"
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      ← Previous
-                    </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className={
-                            currentPage === page
-                              ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                              : "min-w-[40px]"
-                          }
-                        >
-                          {page}
-                        </Button>
-                      ),
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      onClick={() => setCurrentPage(page)}
+                      className={
+                        currentPage === page
+                          ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                          : "min-w-[40px]"
                       }
-                      disabled={currentPage === totalPages}
                     >
-                      Next →
+                      {page}
                     </Button>
-                  </div>
-                </div>
-              )}
-            </>
+                  ),
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </Button>
+              </div>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </>
+      )}
 
       <Dialog
         open={showCategoryForm}

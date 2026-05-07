@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -196,30 +195,23 @@ export default function GlAccountBalancesPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search account…"
-                className="pl-10"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground pt-2">
-            View each account&apos;s balance. If opening balance was not set
-            when the account was created, enter it here once—after that,
-            balances follow from transactions and journals.
-          </p>
-        </CardHeader>
-
-        <CardContent>
-          <DataTable columns={columns} data={filtered} />
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search account…"
+            className="pl-10"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground pt-2">
+        View each account&apos;s balance. If opening balance was not set when
+        the account was created, enter it here once—after that, balances follow
+        from transactions and journals.
+      </p>
+      <DataTable columns={columns} data={filtered} />
     </div>
   );
 }
