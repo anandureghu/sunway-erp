@@ -145,6 +145,13 @@ export default function CompanyDetailPage() {
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
           )}
+          {company.logoUrl ? (
+            <img
+              src={company.logoUrl}
+              alt={`${company.companyName} logo`}
+              className="h-10 w-10 rounded-md border bg-muted/30 object-contain"
+            />
+          ) : null}
           <h1 className="text-2xl font-semibold">{company.companyName}</h1>
         </div>
 

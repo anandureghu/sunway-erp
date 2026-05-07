@@ -151,7 +151,7 @@ export default function SuppliersPage() {
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
         title="Suppliers"
-        description="Maintain vendor records used on purchase orders and supplier invoices."
+        description="Manage Vendors and suppliers - Supplier have to approved by the finance manager"
         backHref="/inventory/purchase"
         actions={
           <Button

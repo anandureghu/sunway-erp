@@ -71,12 +71,26 @@ export const CompanyDialog = ({
   const [submitting, setSubmitting] = useState(false);
   const isEditMode = !!company;
 
-  const handleSubmit = async (data: CompanyFormData) => {
+  const handleSubmit = async (
+    data: CompanyFormData,
+    logoFile: File | null,
+  ) => {
     try {
       setSubmitting(true);
+
+      const formData = new FormData();
+      formData.append(
+        "data",
+        new Blob([JSON.stringify(data)], { type: "application/json" }),
+      );
+      if (logoFile) formData.append("logo", logoFile);
+
+      const config = {
+        headers: { "Content-Type": "multipart/form-data" },
+      };
       const res = isEditMode
-        ? await apiClient.put(`/companies/${company!.id}`, data)
-        : await apiClient.post("/companies", data);
+        ? await apiClient.put(`/companies/${company!.id}`, formData, config)
+        : await apiClient.post("/companies", formData, config);
 
       toast.success(
         isEditMode

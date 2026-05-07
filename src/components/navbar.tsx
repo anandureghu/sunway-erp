@@ -29,7 +29,7 @@ function initialsFromName(name: string | undefined): string {
 }
 
 const Navbar = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, company } = useAuth();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -89,13 +89,21 @@ const Navbar = () => {
             </div>
           </div>
         ) : (
-          <div className="hidden max-w-[min(100%,200px)] min-w-0 items-center gap-2 md:flex">
-            <Building2
-              className="h-4 w-4 shrink-0 text-muted-foreground"
-              aria-hidden
-            />
+          <div className="hidden max-w-[min(100%,280px)] min-w-0 items-center gap-2 md:flex">
+            {company?.logoUrl ? (
+              <img
+                src={company.logoUrl}
+                alt={`${company.companyName ?? "Company"} logo`}
+                className="h-6 w-6 shrink-0 rounded border border-border/60 bg-muted/30 object-contain"
+              />
+            ) : (
+              <Building2
+                className="h-4 w-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            )}
             <p className="truncate text-xs font-medium text-muted-foreground">
-              {user?.companyName ?? "Your company"}
+              Welcome to {company?.companyName ?? user?.companyName ?? "Your company"}
             </p>
           </div>
         )}

@@ -101,7 +101,7 @@ export function PurchaseOrdersListView({
     <div className="p-4 sm:p-6 space-y-6">
       <PurchasePageHeader
         title="Purchase Orders"
-        description="Orders are created when a requisition is approved. Use tabs for open POs versus received or cancelled."
+        description="Orders are created when a requisition is approved"
         backHref="/inventory/purchase"
       />
 
