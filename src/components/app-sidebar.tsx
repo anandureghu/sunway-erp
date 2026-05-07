@@ -137,7 +137,7 @@ export function AppSidebar() {
 
   const { adminView, globalSettingsView } = useAppSelector((s) => s.ui);
 
-  const { setOpen, isMobile } = useSidebar();
+  const { setOpen, setOpenMobile, isMobile } = useSidebar();
   const [isPinned, setIsPinned] = useState<boolean>(() => {
     return localStorage.getItem("sidebarPinned") === "1";
   });
@@ -281,6 +281,13 @@ useEffect(() => {
       );
     }
   }, [user, isPrivileged, authPermissions]);
+
+  // Close the mobile sidebar sheet after route navigation.
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [path, isMobile, setOpenMobile]);
 
   const employeeSubModules = getVisibleEmployeeSubModules(
     isPrivileged ? null : permissions,

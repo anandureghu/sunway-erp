@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useSidebar } from "@/components/ui/sidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -40,7 +40,7 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/50 bg-background/80 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/75 sm:gap-4 sm:px-5">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-        {/* <SidebarTrigger className="-ml-1 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground" /> */}
+        <SidebarTrigger className="-ml-1 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground" />
         <Separator orientation="vertical" className="hidden h-6 sm:block" />
         {(!open || isMobile) && (
           <div className="flex min-w-0 items-center gap-2">
