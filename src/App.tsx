@@ -95,6 +95,7 @@ import TimesheetTab from "@/modules/hr/leaves/tabs/TimesheetTab";
 import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalsForm from "@/modules/hr/appraisal/AppraisalsForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
+import FinanceReportsPage from "./pages/finance/finance-reports-page";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
@@ -155,6 +156,7 @@ export default function App() {
             <Route path="receivable" element={<AccountsReceivablePage />} />
             <Route path="payable" element={<AccountsPayablePage />} />
             <Route path="ledger" element={<GeneralLedgerPage />} />
+            <Route path="reports" element={<FinanceReportsPage />} />
             <Route path="journals">
               <Route path=":id" element={<JournalDetailPage />} />
             </Route>
