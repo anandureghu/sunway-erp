@@ -52,7 +52,7 @@ const InventorySettingsPage = () => {
     <div className="space-y-6">
       <Card className="m-6 mb-0 border-0 shadow-md bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white">
         <CardContent className="p-6 sm:p-8 !py-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">
             Inventory Settings
           </h1>
           <p className="mt-2 text-white/80 max-w-2xl">

@@ -43,14 +43,23 @@ export const AppTab = <TProps extends Record<string, unknown>>({
         >
           <div className="flex items-start gap-3">
             {backTo && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg mt-1" asChild>
-                <Link to={backTo} aria-label="Go back"><ArrowLeft className="h-4 w-4" /></Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg mt-1"
+                asChild
+              >
+                <Link to={backTo} aria-label="Go back">
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
               </Button>
             )}
             <div>
-              <h1 className="text-4xl font-display font-light">{title}</h1>
+              <h1 className="text-4xl font-bold">{title}</h1>
               {subtitle && (
-                <h2 className="text-sm text-white/70 font-light mt-1">{subtitle}</h2>
+                <h2 className="text-sm text-white/70 font-light mt-1">
+                  {subtitle}
+                </h2>
               )}
             </div>
           </div>

@@ -216,6 +216,38 @@ export const getSidebarItems = async (
         ]
       : []),
 
+    // ── Inventory ─────────────────────────────────────────────────────────────
+    ...(company.inventoryEnabled
+      ? [
+          {
+            title: "Inventory",
+            icon: Package,
+            color: "text-amber-700",
+            image: "/assets/images/inventory.svg",
+            url: "/inventory/dashboard",
+            items: [
+              {
+                title: "Inventory (Stocks)",
+                url: "/inventory/stocks",
+                icon: Package,
+              },
+              { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
+              { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
+              {
+                title: "Inventory Reports",
+                url: "/inventory/reports",
+                icon: FileText,
+              },
+              {
+                title: "Inventory Settings",
+                url: "/inventory/settings",
+                icon: Settings,
+              },
+            ],
+          },
+        ]
+      : []),
+
     // ── Finance ───────────────────────────────────────────────────────────────
     ...(company.financeEnabled
       ? [
@@ -254,38 +286,6 @@ export const getSidebarItems = async (
               {
                 title: "Finance Settings",
                 url: "/finance/settings",
-                icon: Settings,
-              },
-            ],
-          },
-        ]
-      : []),
-
-    // ── Inventory ─────────────────────────────────────────────────────────────
-    ...(company.inventoryEnabled
-      ? [
-          {
-            title: "Inventory",
-            icon: Package,
-            color: "text-amber-700",
-            image: "/assets/images/inventory.svg",
-            url: "/inventory/dashboard",
-            items: [
-              {
-                title: "Inventory (Stocks)",
-                url: "/inventory/stocks",
-                icon: Package,
-              },
-              { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-              { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
-              {
-                title: "Inventory Reports",
-                url: "/inventory/reports",
-                icon: FileText,
-              },
-              {
-                title: "Inventory Settings",
-                url: "/inventory/settings",
                 icon: Settings,
               },
             ],

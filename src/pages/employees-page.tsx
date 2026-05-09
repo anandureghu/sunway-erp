@@ -32,7 +32,6 @@ const EmployeeTable = ({ data, onSelect }: EmployeeTableProps) => (
   />
 );
 
-
 export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -75,7 +74,7 @@ export default function EmployeesPage() {
       const matchesStatus =
         !statusFilter || normalize(employee.status) === desired;
 
-        return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
   }, [searchQuery, statusFilter, employees]);
 
@@ -216,7 +215,8 @@ export default function EmployeesPage() {
       );
     };
 
-    const has = hasPermission("EMPLOYEE_PROFILE") || hasPermission("CURRENT_JOB");
+    const has =
+      hasPermission("EMPLOYEE_PROFILE") || hasPermission("CURRENT_JOB");
     setCanViewEmployees(!!has);
   }, [permissions, permissionsLoading]);
 
@@ -226,7 +226,8 @@ export default function EmployeesPage() {
 
     const load = async () => {
       try {
-        const isAdmin = (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+        const isAdmin =
+          (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
           (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
 
         if (!isAdmin && !canViewEmployees) {
@@ -243,7 +244,9 @@ export default function EmployeesPage() {
             list.map(async (emp) => {
               try {
                 if (emp.id) {
-                  const currentJob = await currentJobService.get(Number(emp.id));
+                  const currentJob = await currentJobService.get(
+                    Number(emp.id),
+                  );
                   if (currentJob) {
                     const deptName =
                       (currentJob as any).departmentName ||
@@ -264,9 +267,15 @@ export default function EmployeesPage() {
           setEmployees(list);
         }
       } catch (err: any) {
-        console.error("EmployeesPage -> failed to load employees:", err?.response?.data ?? err);
+        console.error(
+          "EmployeesPage -> failed to load employees:",
+          err?.response?.data ?? err,
+        );
         setEmployees([]);
-        const msg = err?.response?.data?.message || err?.message || "Failed to load employees";
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load employees";
         toast.error(String(msg));
       }
     };
@@ -332,7 +341,6 @@ export default function EmployeesPage() {
 
   return (
     <div className="p-6 space-y-4">
-
       {showAddEmployee && (
         <AddEmployeeModal
           isOpen={showAddEmployee}
@@ -348,7 +356,7 @@ export default function EmployeesPage() {
       <div className="bg-primary-gradient text-white rounded-lg p-6 px-10">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-display font-light">Employee Overview</h1>
+            <h1 className="text-4xl font-bold">Employee Overview</h1>
             <p className="text-sm text-white/70 font-light mt-1">
               Manage and monitor your organisation's workforce
             </p>
@@ -414,17 +422,35 @@ export default function EmployeesPage() {
           />
         </div>
 
-        <div className={cn("px-5 pb-5", filteredEmployees.length === 0 && "min-h-[200px] flex items-center justify-center")}>
+        <div
+          className={cn(
+            "px-5 pb-5",
+            filteredEmployees.length === 0 &&
+              "min-h-[200px] flex items-center justify-center",
+          )}
+        >
           {filteredEmployees.length === 0 ? (
             <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
               <Users2 className="h-10 w-10 opacity-30" />
-              <p className="text-sm">No employees match your current filters.</p>
-              <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setStatusFilter(null); }}>
+              <p className="text-sm">
+                No employees match your current filters.
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter(null);
+                }}
+              >
                 Clear filters
               </Button>
             </div>
           ) : (
-            <EmployeeTable data={filteredEmployees} onSelect={handleEmployeeSelect} />
+            <EmployeeTable
+              data={filteredEmployees}
+              onSelect={handleEmployeeSelect}
+            />
           )}
         </div>
       </Card>

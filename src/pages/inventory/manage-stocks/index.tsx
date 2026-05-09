@@ -29,7 +29,7 @@ export default function ManageStocks() {
 
   return (
     <div className="min-h-full bg-gradient-to-b from-slate-50/90 via-background to-background dark:from-muted/15">
-      <div className="mx-auto max-w-[1400px] space-y-8 px-4 py-6 sm:px-6 lg:py-8">
+      <div className="mx-auto space-y-8 px-4 py-6 sm:px-6 lg:py-8">
         {/* Page hero */}
         <header className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 px-6 py-4 shadow-sm sm:px-8 sm:py-4">
           <div
@@ -41,9 +41,9 @@ export default function ManageStocks() {
             aria-hidden
           />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2">
+            <div className="space-y-2 py-4">
               <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                Manage Inventory & Stock Movements
+                Manage Inventory and Stock Movements
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
                 Catalog Items, Receive Stock and Manage Variance
