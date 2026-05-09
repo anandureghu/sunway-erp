@@ -1,5 +1,6 @@
-import { NavLink, Outlet, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { CalendarDays, BarChart2, Clock } from "lucide-react";
+import { NavLink, Outlet, useParams, useSearchParams, useLocation, Link } from "react-router-dom";
+import { CalendarDays, BarChart2, Clock, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
@@ -41,11 +42,14 @@ export default function LeavesShell() {
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
-      {/* Blue title bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
-        <div className="flex items-center gap-2">
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/hr/employees" aria-label="Back to employees"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
           <CalendarDays className="w-5 h-5" />
-          <span className="font-semibold">Employee Leaves – {employeeTitle}</span>
+          <span className="text-lg font-semibold">Employee Leaves – {employeeTitle}</span>
         </div>
       </div>
 

@@ -30,13 +30,16 @@ export interface ContractApiPayload {
   status: ContractStatus;
   effectiveDate: string;
   expirationDate?: string;
+  contractPeriodMonths?: number;
   noticePeriodDays?: number;
   salaryRateType?: string;
   signatureDate?: string;
   signedBy?: string;
-  allowances: AllowancePayload[];
   termsAndConditions?: string;
   attachmentUrl?: string;
+  allowances: AllowancePayload[];
+  // Used for multipart upload. Do NOT send `attachmentUrl` for file upload.
+  attachment?: File | null;
 }
 
 export interface ContractResponse {
@@ -76,6 +79,46 @@ export interface AllowanceType {
 }
 
 /* =======================
+   HELPERS
+======================= */
+
+function cleanObject<T extends Record<string, any>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(
+      ([, value]) => value !== "" && value !== null && value !== undefined
+    )
+  ) as T;
+}
+
+function normalizeAllowance(allowance: AllowancePayload) {
+  return cleanObject({
+    allowanceTypeId: allowance.allowanceTypeId,
+    customName: allowance.customName,
+    amount: allowance.amount,
+    effectiveDate: allowance.effectiveDate,
+    note: allowance.note,
+  });
+}
+
+function normalizePayload(payload: ContractApiPayload) {
+  // Always produce a complete object — backend validates required fields.
+  return {
+    contractType: payload.contractType,
+    status: payload.status,
+    effectiveDate: payload.effectiveDate,
+    expirationDate: payload.expirationDate,
+    contractPeriodMonths: payload.contractPeriodMonths,
+    noticePeriodDays: payload.noticePeriodDays,
+    salaryRateType: payload.salaryRateType,
+    signatureDate: payload.signatureDate,
+    signedBy: payload.signedBy,
+    termsAndConditions: payload.termsAndConditions,
+    attachmentUrl: payload.attachmentUrl,
+    allowances: (payload.allowances ?? []).map(normalizeAllowance),
+  };
+}
+
+/* =======================
    API CALLS
 ======================= */
 
@@ -93,19 +136,59 @@ async function get(employeeId: number) {
   }
 }
 
+// JSON-only — attachment is uploaded separately via uploadAttachment
 async function create(employeeId: number, payload: ContractApiPayload) {
+  const normalized = normalizePayload(payload);
+
   const res = await apiClient.post<ContractResponse>(
     `/hr/contracts/employee/${employeeId}`,
-    payload
+    normalized
   );
+
   return res.data;
 }
 
+// JSON-only — attachment is uploaded separately via uploadAttachment
 async function update(contractId: number, payload: ContractApiPayload) {
+  const normalized = normalizePayload(payload);
+
   const res = await apiClient.put<ContractResponse>(
     `/hr/contracts/${contractId}`,
-    payload
+    normalized
   );
+
+  return res.data;
+}
+
+// Upload attachment for an existing contract (multipart)
+async function uploadAttachment(contractId: number, file: File) {
+  const formData = new FormData();
+  formData.append("attachment", file, file.name);
+
+  const res = await apiClient.put<ContractResponse>(
+    `/hr/contracts/${contractId}/attachment`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      transformRequest: [(data) => data],
+    }
+  );
+
+  return res.data;
+}
+
+// Legacy: upload attachment by employeeId (used elsewhere if needed)
+async function uploadAttachmentByEmployee(employeeId: number, file: File) {
+  const formData = new FormData();
+  formData.append("attachment", file);
+
+  const res = await apiClient.put<ContractResponse>(
+    `/hr/contracts/employee/${employeeId}/attachment`,
+    formData
+  );
+
   return res.data;
 }
 
@@ -120,6 +203,11 @@ async function getAllowanceTypes() {
 }
 
 function extractErrorMessage(err: any): string {
+  if (err?.response?.data?.errors && typeof err.response.data.errors === "object") {
+    const fieldErrors = err.response.data.errors as Record<string, string>;
+    return Object.values(fieldErrors).join("\n");
+  }
+
   return (
     err?.response?.data?.message ||
     err?.response?.data?.error ||
@@ -134,6 +222,8 @@ export const contractService = {
   update,
   delete: remove,
   getAllowanceTypes,
+  uploadAttachment,
+  uploadAttachmentByEmployee,
   extractErrorMessage,
 };
 

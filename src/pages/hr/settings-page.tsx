@@ -1508,10 +1508,9 @@ export default function HRSettingsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [] = useState([]);
 
-  const isAuthorized =
-    user?.role === "ADMIN" ||
-    user?.role === "SUPER_ADMIN" ||
-    /hr\s*manager/i.test(user?.companyRole ?? "");
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+  const isHRManager = /hr\s*manager/i.test(user?.companyRole ?? "");
+  const isAuthorized = isAdmin || isHRManager;
 
   if (!isAuthorized) {
     return (
@@ -1541,21 +1540,20 @@ export default function HRSettingsPage() {
 
   const tabsList = [
     { value: "leaves", label: "Leave Types", element: () => <LeaveCustomizationForm /> },
-    { value: "leave-approvals", label: "Leave Approvals", element: () => <LeaveApprovalPanel /> },
+    ...(isHRManager ? [{ value: "leave-approvals", label: "Leave Approvals", element: () => <LeaveApprovalPanel /> }] : []),
     { value: "jobs", label: "Job Codes", element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} /> },
     { value: "permissions", label: "Permissions", element: () => <PermissionsTab roles={roles} setRoles={setRoles} /> },
     { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
   ];
 
   return (
-    <div className="p-5">
-      <AppTab
-        title="HR Settings"
-        variant="primary"
-        subtitle="Manage leave policies, job codes, permissions, and appraisal"
-        tabs={tabsList}
-        defaultValue="leaves"
-      />
-    </div>
+    <AppTab
+      title="HR Settings"
+      variant="primary"
+      subtitle="Manage leave policies, job codes, permissions, and appraisal"
+      tabs={tabsList}
+      defaultValue="leaves"
+      backTo="/dashboard"
+    />
   );
 }

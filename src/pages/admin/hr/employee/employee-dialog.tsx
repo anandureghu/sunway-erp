@@ -1,8 +1,8 @@
 "use client";
+
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 
@@ -28,13 +28,10 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
 import { createEmployeeSchema } from "@/schema/employee";
 import { type Employee } from "@/types/hr";
 import type { z } from "zod";
-import { cn } from "@/lib/utils";
 import {
   User,
   Mail,
@@ -43,43 +40,28 @@ import {
   Hash,
   UserPlus,
   UserCog,
+  Lock,
+  X,
+  Sparkles,
 } from "lucide-react";
-
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const getInitials = (first?: string, last?: string) => {
   const f = (first ?? "").trim()[0] ?? "";
-  const l = (last  ?? "").trim()[0] ?? "";
+  const l = (last ?? "").trim()[0] ?? "";
   return (f + l).toUpperCase() || "?";
 };
 
-// ✅ Fixed: hardcoded Spring Security roles only
 const SECURITY_ROLES = [
-  { label: "Admin",           value: "ADMIN"           },
-  { label: "HR",              value: "HR"              },
-  { label: "User",            value: "USER"            },
-  { label: "Finance Manager", value: "FINANCE_MANAGER" },
-  { label: "Accountant",      value: "ACCOUNTANT"      },
-  { label: "Cashier",         value: "CASHIER"         },
-  { label: "Super Admin",     value: "SUPER_ADMIN"     },
+  { label: "Admin", value: "ADMIN", description: "Full system access" },
+  { label: "HR", value: "HR", description: "People & hiring" },
+  { label: "User", value: "USER", description: "Standard access" },
+  { label: "Finance Manager", value: "FINANCE_MANAGER", description: "Finance oversight" },
+  { label: "Accountant", value: "ACCOUNTANT", description: "Accounting tools" },
+  { label: "Cashier", value: "CASHIER", description: "Point of sale" },
+  { label: "Super Admin", value: "SUPER_ADMIN", description: "Unrestricted access" },
 ];
-
-// ── sub-components ────────────────────────────────────────────────────────────
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex items-center gap-2 pt-1">
-    <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-      {children}
-    </span>
-    <div className="flex-1 h-px bg-border" />
-  </div>
-);
-
-const FieldIcon = ({ children }: { children: React.ReactNode }) => (
-  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-    {children}
-  </span>
-);
 
 // ── types ─────────────────────────────────────────────────────────────────────
 type EmployeeDialogProps = {
@@ -94,6 +76,67 @@ type EmployeeDialogProps = {
 };
 
 type FormValues = z.infer<typeof createEmployeeSchema>;
+
+// ── Field wrapper ─────────────────────────────────────────────────────────────
+function Field({
+  label,
+  required,
+  hint,
+  badge,
+  icon,
+  children,
+  error,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  badge?: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  error?: string;
+}) {
+  return (
+    <div className="group space-y-1.5">
+      <div className="flex items-center gap-2">
+        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          {label}
+          {required && <span className="ml-0.5 text-rose-400">*</span>}
+        </label>
+        {badge && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+            <Sparkles className="h-2.5 w-2.5" />
+            {badge}
+          </span>
+        )}
+      </div>
+      <div className="relative">
+        {icon && (
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 transition-colors group-focus-within:text-slate-500">
+            {icon}
+          </span>
+        )}
+        {children}
+      </div>
+      {hint && !error && (
+        <p className="text-[11px] text-slate-400">{hint}</p>
+      )}
+      {error && (
+        <p className="text-[11px] text-rose-400">{error}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Styled input ──────────────────────────────────────────────────────────────
+const fieldClass = (hasIcon = true, disabled = false) =>
+  cn(
+    "h-10 w-full rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300",
+    "outline-none ring-0 transition-all duration-150",
+    "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
+    hasIcon && "pl-9",
+    !hasIcon && "px-3",
+    disabled && "cursor-not-allowed opacity-50"
+  );
 
 // ── main component ────────────────────────────────────────────────────────────
 export function EmployeeDialog({
@@ -111,63 +154,84 @@ export function EmployeeDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(createEmployeeSchema),
     defaultValues: {
-      firstName:    "",
-      lastName:     "",
-      email:        "",
-      username:     "",
-      password:     "",
-      role:         presetRole,
+      firstName: "",
+      lastName: "",
+      email: "",
+      username: "",
+      password: "",
+      role: presetRole,
     },
   });
 
   const { watch } = form;
   const firstName = watch("firstName");
-  const lastName  = watch("lastName");
-  const initials  = getInitials(firstName, lastName);
-  const fullName  = [firstName, lastName].filter(Boolean).join(" ") || (mode === "edit" ? "Employee" : "New Employee");
+  const lastName = watch("lastName");
+  const initials = getInitials(firstName, lastName);
 
-// Pre-fill on edit
+  const avatarColors: Record<string, string> = {
+    A: "bg-rose-100 text-rose-600",
+    B: "bg-orange-100 text-orange-600",
+    C: "bg-amber-100 text-amber-600",
+    D: "bg-lime-100 text-lime-700",
+    E: "bg-emerald-100 text-emerald-700",
+    F: "bg-teal-100 text-teal-700",
+    G: "bg-cyan-100 text-cyan-700",
+    H: "bg-sky-100 text-sky-700",
+    I: "bg-blue-100 text-blue-700",
+    J: "bg-indigo-100 text-indigo-700",
+    K: "bg-violet-100 text-violet-700",
+    L: "bg-purple-100 text-purple-700",
+    M: "bg-fuchsia-100 text-fuchsia-700",
+    N: "bg-pink-100 text-pink-700",
+    "?": "bg-slate-100 text-slate-400",
+  };
+  const avatarColor =
+    avatarColors[initials[0]] ?? "bg-slate-100 text-slate-500";
+
   useEffect(() => {
     if (open && mode === "edit" && employee) {
       form.reset({
-        firstName:    employee.firstName,
-        lastName:     employee.lastName,
-        email:        employee.email,
-        username:     employee.username,
-        password:     "",
-        role:         (employee.role as string) ?? presetRole,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        username: employee.username,
+        password: "",
+        role: (employee.role as string) ?? presetRole,
       });
     }
     if (open && mode === "create") {
       form.reset({
-        firstName:    "",
-        lastName:     "",
-        email:        "",
-        username:     "",
-        password:     "",
-        role:         presetRole,
+        firstName: "",
+        lastName: "",
+        email: "",
+        username: "",
+        password: "",
+        role: presetRole,
       });
     }
   }, [open, employee, mode]);
 
-  // Auto-generate username in create mode
   useEffect(() => {
     if (mode === "edit") return;
     if (firstName && lastName) {
-// Username format: firstName[0].lastName (e.g., "j.doe")
-      form.setValue("username", `${firstName.toLowerCase().charAt(0)}.${lastName.toLowerCase()}`);
+      form.setValue(
+        "username",
+        `${firstName.toLowerCase().charAt(0)}.${lastName.toLowerCase()}`
+      );
+    } else {
+      form.setValue("username", "");
     }
-  }, [firstName, lastName]);
+  }, [firstName, lastName, mode]);
 
-const onSubmit = async (values: FormValues): Promise<void> => {
+  const onSubmit = async (values: FormValues): Promise<void> => {
     setLoading(true);
     const payload = {
-      firstName:    values.firstName,
-      lastName:     values.lastName,
-      email:        values.email,
-      username:     values.username,
+      firstName: values.firstName,
+      lastName: values.lastName,
+      email: values.email,
+      username: values.username,
       companyId,
-      role:         values.role || presetRole,
+      role: values.role || presetRole,
     };
 
     try {
@@ -182,13 +246,13 @@ const onSubmit = async (values: FormValues): Promise<void> => {
     } catch (err: unknown) {
       type ErrWithResponse = { response?: unknown };
       type ResponseWithData = { data?: unknown };
-      type DataWithMessage  = { message?: string };
+      type DataWithMessage = { message?: string };
 
-      const isErrWithResponse  = (e: unknown): e is ErrWithResponse  =>
+      const isErrWithResponse = (e: unknown): e is ErrWithResponse =>
         typeof e === "object" && e !== null && "response" in e;
       const isResponseWithData = (r: unknown): r is ResponseWithData =>
         typeof r === "object" && r !== null && "data" in (r as object);
-      const isDataWithMessage  = (d: unknown): d is DataWithMessage  =>
+      const isDataWithMessage = (d: unknown): d is DataWithMessage =>
         typeof d === "object" && d !== null && "message" in (d as object);
 
       let message: string | undefined;
@@ -207,207 +271,336 @@ const onSubmit = async (values: FormValues): Promise<void> => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[520px] gap-0 overflow-hidden rounded-2xl p-0">
-        {/* ── gradient header ── */}
-        <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 px-7 py-6">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="flex items-center gap-2 text-white text-lg font-bold">
-              {mode === "create"
-                ? <><UserPlus className="h-5 w-5" /> Add New Employee</>
-                : <><UserCog  className="h-5 w-5" /> Edit Employee</>}
-            </DialogTitle>
-            <p className="text-sm text-white/75 mt-0.5">
-              {mode === "create"
-                ? "Fill in the details below to onboard a new team member."
-                : "Update the employee's information and save changes."}
-            </p>
-          </DialogHeader>
-
-          {/* Live avatar preview */}
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/20 ring-2 ring-white/40 text-white font-bold text-xl select-none backdrop-blur-sm">
+      <DialogContent
+        className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
+        style={{ maxWidth: 780, maxHeight: "92vh", width: "calc(100vw - 32px)" }}
+      >
+        {/* ── Top bar ── */}
+        <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3.5">
+            {/* Avatar */}
+            <div
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold tracking-wide transition-all duration-300 border-2 border-white/20",
+                avatarColor
+              )}
+            >
               {initials}
             </div>
-            <div className="min-w-0">
-              <p className="truncate font-semibold text-white text-base leading-tight">
-                {fullName}
-              </p>
-              <p className="text-xs text-white/65 mt-0.5">
-                username and password are auto-generated
+
+            <div>
+              <DialogTitle className="text-[15px] font-semibold leading-tight text-white">
+                {mode === "create" ? "Add new employee" : "Edit employee"}
+              </DialogTitle>
+              <p className="mt-0.5 text-[12px] text-slate-300">
+                {mode === "create"
+                  ? "Fill in the details to onboard a new team member"
+                  : "Update this employee's profile and permissions"}
               </p>
             </div>
           </div>
+
+          <button
+            onClick={() => onOpenChange(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* ── form body ── */}
-        <div className="max-h-[60vh] overflow-y-auto px-7 py-6">
+        {/* ── Body ── */}
+        <div className="overflow-y-auto bg-white" style={{ maxHeight: "calc(92vh - 132px)" }}>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              {/* Two column grid */}
+              <div className="grid grid-cols-2 divide-x divide-slate-200 border-y border-slate-200">
 
-              {/* Section: Basic Info */}
-              <SectionLabel>Basic Information</SectionLabel>
+                {/* ── Left column ── */}
+                <div className="space-y-5 px-6 py-6">
+                  {/* Section heading */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900">
+                      <User className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                      Personal info
+                    </span>
+                  </div>
 
-              {/* First + Last name (2-col) */}
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required className="text-xs font-semibold text-gray-700">First Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <FieldIcon><User className="h-4 w-4" /></FieldIcon>
-                          <Input
-                            placeholder="John"
-                            {...field}
-                            className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel required className="text-xs font-semibold text-gray-700">Last Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <FieldIcon><User className="h-4 w-4" /></FieldIcon>
-                          <Input
-                            placeholder="Doe"
-                            {...field}
-                            className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field, fieldState }) => (
+                      <FormItem className="space-y-0">
+                        <Field
+                          label="First name"
+                          required
+                          icon={<User className="h-[15px] w-[15px]" />}
+                          error={fieldState.error?.message}
+                        >
+                          <FormControl>
+                            <Input
+                              placeholder="John"
+                              {...field}
+                              className={fieldClass()}
+                            />
+                          </FormControl>
+                        </Field>
+                      </FormItem>
+                    )}
+                  />
 
-{/* Employee No - using standard Input since employeeNo is not in the form schema */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-700">
-                  Employee Number <span className="text-muted-foreground font-normal">(optional)</span>
-                </Label>
-                <div className="relative">
-                  <FieldIcon><Hash className="h-4 w-4" /></FieldIcon>
-                  <Input
-                    placeholder="e.g. EMP-001"
-                    className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 font-mono"
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field, fieldState }) => (
+                      <FormItem className="space-y-0">
+                        <Field
+                          label="Last name"
+                          required
+                          icon={<User className="h-[15px] w-[15px]" />}
+                          error={fieldState.error?.message}
+                        >
+                          <FormControl>
+                            <Input
+                              placeholder="Doe"
+                              {...field}
+                              className={fieldClass()}
+                            />
+                          </FormControl>
+                        </Field>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Field
+                    label="Employee number"
+                    hint="Optional identifier for your records"
+                    icon={<Hash className="h-[15px] w-[15px]" />}
+                  >
+                    <Input
+                      placeholder="EMP-001"
+                      className={cn(fieldClass(), "font-mono")}
+                    />
+                  </Field>
+
+                  {/* Divider */}
+                  <div className="!mt-7 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500">
+                      <ShieldCheck className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                      Access & permissions
+                    </span>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field, fieldState }) => (
+                      <FormItem className="space-y-0">
+                        <Field
+                          label="System role"
+                          required
+                          hint="Determines what this employee can access"
+                          error={fieldState.error?.message}
+                        >
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger
+                                className={cn(
+                                  "h-10 w-full rounded-xl border border-slate-200 bg-white pl-3 pr-3 text-[13px] text-slate-800",
+                                  "outline-none ring-0 transition-all duration-150",
+                                  "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
+                                  "data-[-placeholder]:text-slate-300"
+                                )}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <ShieldCheck className="h-[15px] w-[15px] shrink-0 text-slate-300" />
+                                  <SelectValue placeholder="Select a role" />
+                                </div>
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                              {SECURITY_ROLES.map((r) => (
+                                <SelectItem
+                                  key={r.value}
+                                  value={r.value}
+                                  className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
+                                >
+                                  <div>
+                                    <p className="font-medium text-slate-800">{r.label}</p>
+                                    <p className="text-[11px] text-slate-400">{r.description}</p>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      </FormItem>
+                    )}
                   />
                 </div>
+
+                {/* ── Right column ── */}
+                <div className="space-y-5 px-6 py-6">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-600">
+                      <Lock className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                      Account credentials
+                    </span>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field, fieldState }) => (
+                      <FormItem className="space-y-0">
+                        <Field
+                          label="Email address"
+                          required
+                          icon={<Mail className="h-[15px] w-[15px]" />}
+                          error={fieldState.error?.message}
+                        >
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="john.doe@company.com"
+                              {...field}
+                              className={fieldClass()}
+                            />
+                          </FormControl>
+                        </Field>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field, fieldState }) => (
+                      <FormItem className="space-y-0">
+                        <Field
+                          label="Username"
+                          badge="auto-generated"
+                          hint="Generated from name — you can edit this"
+                          icon={<AtSign className="h-[15px] w-[15px]" />}
+                          error={fieldState.error?.message}
+                        >
+                          <FormControl>
+                            <Input
+                              placeholder="j.doe"
+                              {...field}
+                              className={fieldClass()}
+                            />
+                          </FormControl>
+                        </Field>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Field
+                    label="Password"
+                    badge="auto-generated"
+                    hint="A secure password is sent to the employee's email"
+                    icon={<Lock className="h-[15px] w-[15px]" />}
+                  >
+                    <Input
+                      value="Auto-generated"
+                      disabled
+                      className={fieldClass()}
+                    />
+                  </Field>
+
+                  {/* Info card */}
+                  <div className="!mt-8 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <div className="flex gap-3">
+                      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200">
+                        <span className="text-[10px] font-bold text-slate-500">i</span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[12px] font-medium text-slate-600">
+                          What happens after creation?
+                        </p>
+                        <p className="text-[11px] leading-relaxed text-slate-400">
+                          The employee will receive a welcome email with their login credentials. They can change their password on first login.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preview card — shows filled data */}
+                  {(firstName || lastName) && (
+                    <div className="!mt-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-300">
+                        Preview
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
+                            avatarColor
+                          )}
+                        >
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-semibold text-slate-800">
+                            {[firstName, lastName].filter(Boolean).join(" ") || "—"}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {watch("username") ? `@${watch("username")}` : "username pending"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Section: Account */}
-              <SectionLabel>Account Details</SectionLabel>
-
-              {/* Email */}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-semibold text-gray-700">Email Address</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <FieldIcon><Mail className="h-4 w-4" /></FieldIcon>
-                        <Input
-                          type="email"
-                          placeholder="john.doe@company.com"
-                          {...field}
-                          className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-{/* Username (auto-generated) */}
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-semibold text-gray-700">Username</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <FieldIcon><AtSign className="h-4 w-4" /></FieldIcon>
-                        <Input
-placeholder="j.doe"
-                          {...field}
-                          className="pl-9 h-9 rounded-lg border-violet-200/80 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              {/* Password info - auto-generated on backend */}
-              {mode === "create" && (
-                <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                  Password will be auto-generated and sent to the employee's email.
+              {/* ── Footer ── */}
+              <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+                <p className="text-[11px] text-slate-500">
+                  Fields marked <span className="text-rose-400">*</span> are required
+                </p>
+                <div className="flex items-center gap-2.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => onOpenChange(false)}
+                    className="h-9 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="h-9 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        {mode === "create" ? "Creating…" : "Saving…"}
+                      </span>
+                    ) : mode === "create" ? (
+                      <span className="flex items-center gap-2">
+                        <UserPlus className="h-3.5 w-3.5" />
+                        Create employee
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <UserCog className="h-3.5 w-3.5" />
+                        Save changes
+                      </span>
+                    )}
+                  </Button>
                 </div>
-              )}
-
-{/* Section: Role */}
-              <SectionLabel>System Role</SectionLabel>
-
-{/* System role - default is ADMIN */}
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel required className="text-xs font-semibold text-gray-700">System Role</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue="ADMIN">
-                      <FormControl>
-                        <SelectTrigger className={cn(
-                          "h-9 rounded-lg border-violet-200/80 pl-3",
-                          "focus:border-violet-400 focus:ring-violet-400/30"
-                        )}>
-                          <ShieldCheck className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                          <SelectValue placeholder="Select system role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {SECURITY_ROLES.map((r) => (
-                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              {/* Submit */}
-              <Button
-                type="submit"
-                disabled={loading}
-                className="mt-2 h-10 w-full rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-sm font-semibold text-white shadow-md transition hover:from-violet-700 hover:to-blue-700 hover:shadow-lg"
-              >
-                {loading ? (
-                  <>
-                    <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                    {mode === "create" ? "Creating…" : "Saving…"}
-                  </>
-                ) : mode === "create" ? (
-                  <><UserPlus className="mr-1.5 h-4 w-4" /> Create Employee</>
-                ) : (
-                  <><UserCog className="mr-1.5 h-4 w-4" /> Save Changes</>
-                )}
-              </Button>
+              </div>
             </form>
           </Form>
         </div>

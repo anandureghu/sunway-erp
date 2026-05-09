@@ -30,6 +30,16 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // ── multipart/form-data detection ──────────────────────────────────────────
+  // When sending FormData, let the browser set the correct Content-Type
+  // (with the auto-generated boundary). Delete the hardcoded JSON header.
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  } else {
+    config.headers["Content-Type"] = "application/json";
+  }
+
   return config;
 });
 

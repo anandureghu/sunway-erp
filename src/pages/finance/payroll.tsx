@@ -39,6 +39,7 @@ import {
   Square,
   XCircle,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
 import PayrollBankFileSettingsCard from "@/modules/hr/payroll/PayrollBankFileSettingsCard";
 
@@ -1448,14 +1449,35 @@ const Payroll = () => {
       element: () => <BankPayrollCsvTab />,
     },
   ];
+
   return (
-    <AppTab
-      title="Payroll"
-      subtitle="Employee payroll management and bank file export"
-      tabs={tabsList}
-      defaultValue="employee-payroll"
-      props={{}}
-    />
+    <div className="p-6 space-y-4">
+      {/* Header — matches HR Reports style */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 px-6 py-6 shadow-lg">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-8 left-1/4 h-32 w-32 rounded-full bg-blue-400/20 blur-2xl" />
+        <div className="relative flex items-center gap-4">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner">
+            <Wallet className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-white">Payroll</h1>
+            <p className="text-sm text-blue-100/90 mt-0.5">Employee payroll management and bank file export</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs — AppTab without its own header or padding */}
+      <AppTab
+        tabs={tabsList}
+        defaultValue="employee-payroll"
+        props={{}}
+        className="p-0"
+      />
+    </div>
   );
 };
 

@@ -202,7 +202,7 @@ const canApprove = useMemo(() => {
         return;
       }
 
-      const res = await leaveService.fetchPendingApprovals(managerEmployeeId);
+      const res = await leaveService.fetchPendingApprovals();
 
       if (!res.success) {
         setPending([]);
@@ -246,7 +246,7 @@ useEffect(() => {
     setApprovingId(leave.id);
 
     try {
-      const res = await leaveService.approveLeave(employeeId, leaveId);
+      const res = await leaveService.approveLeave(leaveId);
 
       if (!res.success) {
         toast.error(res.message || "Failed to approve leave");

@@ -1,4 +1,5 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useState, useCallback, useEffect } from "react";
 import type { ReactElement, Dispatch, SetStateAction } from "react";
 import type { AppraisalPayload } from "@/service/appraisalService";
@@ -6,6 +7,7 @@ import AppraisalsForm from "./AppraisalsForm";
 import EditUpdateButton from "@/components/EditUpdateButton";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
+import { ArrowLeft } from "lucide-react";
 
 export type AppraisalModel = AppraisalPayload & { id?: number; month?: string; year?: number };
 
@@ -58,9 +60,12 @@ export default function AppraisalShell(): ReactElement {
   return (
     <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden shadow-xl">
       {/* Title bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
-        <div className="flex items-center gap-2 text-lg font-semibold">
-          <span>Employee Appraisal – {title}</span>
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/hr/employees" aria-label="Back to employees"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <span className="text-lg font-semibold">Employee Appraisal – {title}</span>
         </div>
       </div>
 

@@ -189,12 +189,10 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
-      {/* Main Title Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Sunway ERP</h1>
-        <p className="text-lg text-gray-600 capitalize">
-          Comprehensive business management solution
-        </p>
+      {/* Header banner */}
+      <div className="bg-primary-gradient text-white rounded-lg p-6 px-10 mb-6">
+        <h1 className="text-4xl font-display font-light">Sunway ERP</h1>
+        <p className="text-sm text-white/70 font-light mt-1">Comprehensive Business Management Solution</p>
       </div>
 
       {/* Fallback when no modules are available */}

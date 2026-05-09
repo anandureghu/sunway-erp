@@ -2,9 +2,15 @@ import { apiClient } from "@/service/apiClient";
 
 const BASE = "/employees";
 
+export type AccountTypeOption = { value: string; label: string };
+
 export const bankService = {
   get(employeeId: number) {
     return apiClient.get(`${BASE}/${employeeId}/salary/bank`);
+  },
+
+  getAccountTypes(employeeId: number) {
+    return apiClient.get<AccountTypeOption[]>(`${BASE}/${employeeId}/salary/bank/account-types`);
   },
 
   create(employeeId: number, payload: any) {

@@ -331,7 +331,7 @@ export default function EmployeesPage() {
     );
 
   return (
-    <div className="space-y-5 px-6 py-6 max-w-[1400px] mx-auto">
+    <div className="p-6 space-y-4">
 
       {showAddEmployee && (
         <AddEmployeeModal
@@ -344,24 +344,25 @@ export default function EmployeesPage() {
         />
       )}
 
-      {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Employee Overview</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Manage and monitor your organisation's workforce
-          </p>
+      {/* ── Page header banner ──────────────────────────────────────────── */}
+      <div className="bg-primary-gradient text-white rounded-lg p-6 px-10">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-display font-light">Employee Overview</h1>
+            <p className="text-sm text-white/70 font-light mt-1">
+              Manage and monitor your organisation's workforce
+            </p>
+          </div>
+          {showAdd && (
+            <Button
+              onClick={() => setShowAddEmployee(true)}
+              className="gap-2 shrink-0 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm shadow-sm transition-all"
+            >
+              <UserPlus className="h-4 w-4" />
+              Add Employee
+            </Button>
+          )}
         </div>
-        {showAdd && (
-          <Button
-            onClick={() => setShowAddEmployee(true)}
-            className="gap-2 bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-sm
-                       hover:from-violet-700 hover:to-blue-700 hover:shadow-md transition-all self-start sm:self-auto"
-          >
-            <UserPlus className="h-4 w-4" />
-            Add Employee
-          </Button>
-        )}
       </div>
 
       {/* ── KPI stat cards ───────────────────────────────────────────────── */}

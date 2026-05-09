@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   Tooltip, ResponsiveContainer,
@@ -6,8 +7,9 @@ import {
 import {
   Users, UserCheck, UserX, Clock, TrendingUp,
   Globe, Building2, Award, Loader2, RefreshCw, BarChart3,
-  ArrowUpRight, Briefcase,
+  ArrowUpRight, Briefcase, ArrowLeft,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { hrService } from "@/service/hr.service";
 import { appraisalService } from "@/service/appraisalService";
 import { useAuth } from "@/context/AuthContext";
@@ -190,6 +192,9 @@ export default function HRReports() {
         <div className="pointer-events-none absolute -bottom-8 left-1/4 h-32 w-32 rounded-full bg-blue-400/20 blur-2xl" />
         <div className="relative flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+              <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
+            </Button>
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner">
               <BarChart3 className="h-6 w-6 text-white" />
             </div>
