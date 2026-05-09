@@ -49,12 +49,9 @@ const InventorySettingsPage = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <Card className="border-0 shadow-md bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white">
+    <div className="space-y-6">
+      <Card className="m-6 mb-0 border-0 shadow-md bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white">
         <CardContent className="p-6 sm:p-8 !py-2">
-          {/* <Badge className="mb-3 bg-white/20 text-white hover:bg-white/20">
-            Inventory Configuration
-          </Badge> */}
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Inventory Settings
           </h1>
@@ -65,30 +62,9 @@ const InventorySettingsPage = () => {
         </CardContent>
       </Card>
 
-      {/* <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {settingHighlights.map((item) => (
-          <Card key={item.title} className="shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">{item.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {item.description}
-                  </p>
-                </div>
-                <div className={`rounded-lg p-2 ${item.bgClass}`}>
-                  {item.icon}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div> */}
-
       <AppTab
         title=""
         variant="warning"
-        // subtitle="Manage inventory masters and supplier data"
         tabs={tabsList}
         defaultValue={tabsList[0].value}
       />

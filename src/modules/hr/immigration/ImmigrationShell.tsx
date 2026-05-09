@@ -1,6 +1,7 @@
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { NavLink, Outlet, useParams, Link } from "react-router-dom";
 import { useState, useCallback, useEffect } from "react";
-import { Contact2, Landmark } from "lucide-react";
+import { Contact2, Landmark, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
 import type { ReactElement } from "react";
@@ -39,8 +40,13 @@ export default function ImmigrationShell(): ReactElement {
   return (
     <div className="rounded-xl border bg-white overflow-hidden" role="region" aria-label="Immigration information section">
       {/* Title bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
-        <div className="text-lg font-semibold" role="heading" aria-level={1}>{title}</div>
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/hr/employees" aria-label="Back to employees"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <span className="text-lg font-semibold" role="heading" aria-level={1}>{title}</span>
+        </div>
       </div>
 
       {/* Tabs + Edit button */}

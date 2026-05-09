@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Eye, Users, User, Calendar, Globe } from "lucide-react";
 import { FormRow } from "@/modules/hr/components/form-components";
+import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import type { Dependent, Gender, MaritalStatus } from "@/types/hr";
 import { useParams, useNavigate } from "react-router-dom";
@@ -440,11 +441,10 @@ export function DependentsForm() {
 
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">Nationality</Label>
-                          <Input
+                          <CountryAutocomplete
                             value={dependent.nationality}
-                            onChange={e => updateDependent(dependent.id, { nationality: e.target.value })}
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter nationality"
+                            onChange={(v) => updateDependent(dependent.id, { nationality: v })}
+                            placeholder="Select country..."
                           />
                         </div>
                       </FormRow>

@@ -46,10 +46,8 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
 // Description mapping for modules
 const getModuleDescription = (title: string): string => {
   const descriptions: Record<string, string> = {
-    "Employee Overview":
-      "Employee Life-Cycle Management.",
-    "HR Reports":
-      "Detail HR Reports.",
+    "Employee Overview": "Employee Life-Cycle Management.",
+    "HR Reports": "Detail HR Reports.",
     "HR Settings":
       "Configure HR setting - Job code, leave policies, system permissions, and appraisal, Public Holidays.",
     "Inventory Report":
@@ -154,7 +152,8 @@ const Dashboard = () => {
       return;
     }
 
-    const isAdmin = (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+    const isAdmin =
+      (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
       (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
 
     console.debug("Dashboard: Fetching sidebar items", {
@@ -190,14 +189,10 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
-      {/* Main Title Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Sunway ERP 
-        </h1>
-        <p className="text-lg text-gray-600">
-          Comprehensive business management solution
-        </p>
+      {/* Header banner */}
+      <div className="bg-primary-gradient text-white rounded-lg p-6 px-10 mb-6">
+        <h1 className="text-4xl font-display font-light">Sunway ERP</h1>
+        <p className="text-sm text-white/70 font-light mt-1">Comprehensive Business Management Solution</p>
       </div>
 
       {/* Fallback when no modules are available */}
@@ -223,13 +218,13 @@ const Dashboard = () => {
               <div
                 className={cn(
                   "flex items-center gap-4 p-4 rounded-lg",
-                  theme.bgColor
+                  theme.bgColor,
                 )}
               >
                 <div
                   className={cn(
                     "w-12 h-12 rounded-lg flex items-center justify-center",
-                    theme.iconBg
+                    theme.iconBg,
                   )}
                 >
                   <item.icon className="w-6 h-6 text-white" />
@@ -238,7 +233,9 @@ const Dashboard = () => {
                   <h2 className={cn("text-2xl font-semibold", theme.textColor)}>
                     Sunway {item.title} System
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">{systemSubtitle}</p>
+                  <p className="text-sm text-gray-600 mt-1 capitalize">
+                    {systemSubtitle}
+                  </p>
                 </div>
               </div>
 
@@ -257,7 +254,7 @@ const Dashboard = () => {
                         "hover:scale-[1.02] active:scale-[0.98]",
                         "border-2",
                         theme.borderColor,
-                        theme.hoverBorderColor
+                        theme.hoverBorderColor,
                       )}
                     >
                       <CardHeader className="flex-1">
@@ -282,7 +279,7 @@ const Dashboard = () => {
                           className={cn(
                             "w-full rounded-md font-medium text-center py-2 px-4",
                             theme.buttonBg,
-                            theme.buttonText
+                            theme.buttonText,
                           )}
                         >
                           {item.title.toUpperCase()} MODULE

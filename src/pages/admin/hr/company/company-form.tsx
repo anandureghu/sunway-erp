@@ -9,14 +9,17 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type CompanyFormData, COMPANY_SCHEMA } from "@/schema/company";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import SelectCurrency from "@/components/select-currency";
 import type { Company } from "@/types/company";
 
 interface CompanyFormProps {
-  onSubmit: (data: CompanyFormData) => Promise<void> | void;
+  onSubmit: (
+    data: CompanyFormData,
+    logoFile: File | null,
+  ) => Promise<void> | void;
   loading?: boolean;
   defaultValues?: Partial<CompanyFormData> | Partial<Company> | null;
   isEditMode?: boolean;
@@ -63,6 +66,16 @@ const normalizeCompanyDefaults = (
   };
 };
 
+const getExistingLogoUrl = (
+  values?: Partial<CompanyFormData> | Partial<Company> | null,
+): string | null => {
+  if (!values) return null;
+  if ("logoUrl" in values && typeof values.logoUrl === "string") {
+    return values.logoUrl || null;
+  }
+  return null;
+};
+
 export const CompanyForm = ({
   onSubmit,
   loading,
@@ -73,8 +86,29 @@ export const CompanyForm = ({
     () => normalizeCompanyDefaults(defaultValues),
     [defaultValues],
   );
+  const existingLogoUrl = useMemo(
+    () => getExistingLogoUrl(defaultValues),
+    [defaultValues],
+  );
   const disableCurrencySelection =
     isEditMode && !!normalizedDefaults.currencyId;
+
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(logoFile);
+    setLogoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [logoFile]);
+
+  useEffect(() => {
+    setLogoFile(null);
+  }, [defaultValues]);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(COMPANY_SCHEMA),
@@ -114,8 +148,10 @@ export const CompanyForm = ({
   }, [normalizedDefaults, form]);
 
   const handleSubmit: SubmitHandler<CompanyFormData> = async (values) => {
-    await onSubmit(values);
+    await onSubmit(values, logoFile);
   };
+
+  const previewSrc = logoPreview ?? existingLogoUrl;
 
   return (
     // ✅ Pass the *typed* form instance directly
@@ -305,6 +341,39 @@ export const CompanyForm = ({
             </FormItem>
           )}
         />
+
+        <div className="space-y-2 border p-4 rounded-md">
+          <p className="font-medium text-sm">Company Logo</p>
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 rounded-md border bg-muted/30 overflow-hidden flex items-center justify-center text-xs text-muted-foreground">
+              {previewSrc ? (
+                <img
+                  src={previewSrc}
+                  alt="Company logo"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <span>No logo</span>
+              )}
+            </div>
+            <div className="flex-1 space-y-2">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  setLogoFile(f ?? null);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                JPG, PNG, or WebP. Max 5MB.
+                {isEditMode && existingLogoUrl && !logoFile
+                  ? " Leave empty to keep the current logo."
+                  : ""}
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-2 border p-4 rounded-md">
           <p className="font-medium text-sm">Subscribed Modules</p>

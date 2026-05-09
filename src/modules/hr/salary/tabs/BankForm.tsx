@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   StickyNote,
 } from "lucide-react";
-import { bankService } from "@/service/bankService";
+import { bankService, type AccountTypeOption } from "@/service/bankService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -202,6 +202,15 @@ export default function BankForm() {
   const [saved,  setSaved]  = useState<BankModel>(SEED);
   const [draft,  setDraft]  = useState<BankModel>(SEED);
   const [exists, setExists] = useState(false);
+  // Account types: fetched from API, falls back to hardcoded list if endpoint not available
+  const [accountTypeOptions, setAccountTypeOptions] = useState<AccountTypeOption[]>([
+    { value: "SAVINGS_ACCOUNT",  label: "Savings Account"  },
+    { value: "CURRENT_ACCOUNT",  label: "Current Account"  },
+    { value: "SALARY_ACCOUNT",   label: "Salary Account"   },
+    { value: "FIXED_DEPOSIT",    label: "Fixed Deposit"     },
+    { value: "JOINT_ACCOUNT",    label: "Joint Account"     },
+    { value: "OTHER",            label: "Other"              },
+  ]);
 
   const patch = <K extends keyof BankModel>(k: K, v: BankModel[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
@@ -260,6 +269,14 @@ export default function BankForm() {
     }).catch((err) => {
       toast.error(err?.response?.data?.message || "Failed to load bank details");
     });
+
+    bankService.getAccountTypes(employeeId).then((res) => {
+      if (!mounted) return;
+      setAccountTypeOptions(res.data ?? []);
+    }).catch((err) => {
+      console.error("Failed to load account types:", err);
+    });
+
     return () => { mounted = false; };
   }, [employeeId]);
 
@@ -362,13 +379,19 @@ export default function BankForm() {
               <Field label="Account Type" required error={errors.accountType}>
                 <div className="relative">
                   <CreditCard className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50"
+                  <select
+                    className="h-9 w-full rounded-lg border-slate-200 border pl-9 pr-3 text-sm focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed"
                     disabled={!editing}
                     value={draft.accountType}
                     onChange={(e) => patch("accountType", e.target.value)}
-                    placeholder="Savings / Current"
-                  />
+                  >
+                    <option value="">Select account type…</option>
+                    {accountTypeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </Field>
 

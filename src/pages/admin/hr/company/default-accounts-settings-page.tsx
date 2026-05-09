@@ -83,7 +83,9 @@ export default function DefaultAccountsSettingsPage() {
         form.reset({
           defaultSalesDebitAccountId: toStr(co?.defaultSalesDebitAccountId),
           defaultSalesCreditAccountId: toStr(co?.defaultSalesCreditAccountId),
-          defaultPurchaseDebitAccountId: toStr(co?.defaultPurchaseDebitAccountId),
+          defaultPurchaseDebitAccountId: toStr(
+            co?.defaultPurchaseDebitAccountId,
+          ),
           defaultPurchaseCreditAccountId: toStr(
             co?.defaultPurchaseCreditAccountId,
           ),
@@ -149,7 +151,8 @@ export default function DefaultAccountsSettingsPage() {
         <h1 className="text-2xl font-semibold">Default accounts</h1>
         <p className="text-sm text-muted-foreground mt-1">
           These values pre-fill sales orders, purchase requisitions, and sales
-          invoices. Orders may be blocked until required defaults are set.
+          invoices. Customer and Supplier Payments may be blocked until required
+          defaults are set.
         </p>
       </div>
 
@@ -159,10 +162,7 @@ export default function DefaultAccountsSettingsPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -171,7 +171,7 @@ export default function DefaultAccountsSettingsPage() {
                     <FormItem>
                       <FormControl>
                         <SelectAccount
-                          label="Default sales debit account"
+                          label="Sales debit account"
                           useId
                           showNoneOption
                           value={field.value || ""}
@@ -189,7 +189,7 @@ export default function DefaultAccountsSettingsPage() {
                     <FormItem>
                       <FormControl>
                         <SelectAccount
-                          label="Default sales credit account"
+                          label="Sales credit account"
                           useId
                           showNoneOption
                           value={field.value || ""}
@@ -207,7 +207,7 @@ export default function DefaultAccountsSettingsPage() {
                     <FormItem>
                       <FormControl>
                         <SelectAccount
-                          label="Default purchase debit account"
+                          label="Purchase debit account"
                           useId
                           showNoneOption
                           value={field.value || ""}
@@ -225,7 +225,7 @@ export default function DefaultAccountsSettingsPage() {
                     <FormItem>
                       <FormControl>
                         <SelectAccount
-                          label="Default purchase credit account"
+                          label="Purchase credit account"
                           useId
                           showNoneOption
                           value={field.value || ""}
@@ -241,9 +241,7 @@ export default function DefaultAccountsSettingsPage() {
                   name="defaultBankAccountId"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>
-                        Default bank (sales orders and invoices)
-                      </FormLabel>
+                      <FormLabel>Bank (sales orders and invoices)</FormLabel>
                       <Select
                         value={field.value || "__none__"}
                         onValueChange={(v) =>

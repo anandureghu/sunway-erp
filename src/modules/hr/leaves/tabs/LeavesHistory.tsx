@@ -296,13 +296,12 @@ export default function LeavesHistory() {
                 <Th>Date Reported</Th>
                 <Th center>Days</Th>
                 <Th>Status</Th>
-                <Th center>Balance</Th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={7} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-3 text-slate-400">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
                       <span className="text-xs font-medium">Loading leave history…</span>
@@ -313,7 +312,7 @@ export default function LeavesHistory() {
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={7} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-rose-500">
                       <AlertCircle className="h-8 w-8" />
                       <span className="text-sm font-medium">{error}</span>
@@ -325,7 +324,7 @@ export default function LeavesHistory() {
 
               {!loading && !error && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={7} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-slate-400">
                       <Calendar className="h-8 w-8" />
                       <span className="text-sm font-medium">
@@ -376,13 +375,6 @@ export default function LeavesHistory() {
                       )}>
                         {statusMeta.icon}
                         {statusMeta.label}
-                      </span>
-                    </Td>
-                    <Td center>
-                      <span className="text-sm font-semibold text-slate-700">
-                        {r.leaveBalance !== undefined && r.leaveBalance !== "" && r.leaveBalance !== null
-                          ? r.leaveBalance
-                          : "—"}
                       </span>
                     </Td>
                   </tr>

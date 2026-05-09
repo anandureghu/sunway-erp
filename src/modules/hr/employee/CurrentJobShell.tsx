@@ -1,5 +1,6 @@
-import { NavLink, Outlet, useParams, useSearchParams } from "react-router-dom";
-import { BriefcaseBusiness, GraduationCap, Hourglass, FileText } from "lucide-react";
+import { NavLink, Outlet, useParams, useSearchParams, Link } from "react-router-dom";
+import { BriefcaseBusiness, GraduationCap, Hourglass, FileText, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
@@ -31,10 +32,13 @@ export default function CurrentJobShell() {
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
       {/* Title bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg text-lg font-semibold">
-        <div className="flex items-center gap-2 text-lg font-semibold">
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/hr/employees" aria-label="Back to employees"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
           <BriefcaseBusiness className="w-5 h-5" />
-          <span>Current Job Info – {employeeTitle}</span>
+          <span className="text-lg font-semibold">Current Job Info – {employeeTitle}</span>
         </div>
       </div>
 

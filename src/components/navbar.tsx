@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useSidebar } from "@/components/ui/sidebar";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -29,7 +29,7 @@ function initialsFromName(name: string | undefined): string {
 }
 
 const Navbar = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, company } = useAuth();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const adminView = useAppSelector((s) => s.ui.adminView);
@@ -40,7 +40,7 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/50 bg-background/80 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/75 sm:gap-4 sm:px-5">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-        {/* <SidebarTrigger className="-ml-1 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground" /> */}
+        <SidebarTrigger className="-ml-1 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground" />
         <Separator orientation="vertical" className="hidden h-6 sm:block" />
         {(!open || isMobile) && (
           <div className="flex min-w-0 items-center gap-2">
@@ -89,13 +89,21 @@ const Navbar = () => {
             </div>
           </div>
         ) : (
-          <div className="hidden max-w-[min(100%,200px)] min-w-0 items-center gap-2 md:flex">
-            <Building2
-              className="h-4 w-4 shrink-0 text-muted-foreground"
-              aria-hidden
-            />
+          <div className="hidden max-w-[min(100%,280px)] min-w-0 items-center gap-2 md:flex">
+            {company?.logoUrl ? (
+              <img
+                src={company.logoUrl}
+                alt={`${company.companyName ?? "Company"} logo`}
+                className="h-6 w-6 shrink-0 rounded border border-border/60 bg-muted/30 object-contain"
+              />
+            ) : (
+              <Building2
+                className="h-4 w-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            )}
             <p className="truncate text-xs font-medium text-muted-foreground">
-              {user?.companyName ?? "Your company"}
+              Welcome to {company?.companyName ?? user?.companyName ?? "Your company"}
             </p>
           </div>
         )}

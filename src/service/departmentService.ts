@@ -20,7 +20,11 @@ export const fetchDepartments = async (companyId: number) => {
  */
 export const createDepartment = async (companyId: number, data: any) => {
   try {
-    const res = await apiClient.post(`/companies/${companyId}/departments`, data);
+    // Strip undefined fields so optional values don't get sent as null/missing
+    const payload = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== undefined)
+    );
+    const res = await apiClient.post(`/companies/${companyId}/departments`, payload);
     return res.data;
   } catch (error) {
     console.error("Error creating Department:", error);
@@ -34,7 +38,10 @@ export const createDepartment = async (companyId: number, data: any) => {
  */
 export const updateDepartment = async (companyId: number, departmentId: number, data: any) => {
   try {
-    const res = await apiClient.put(`/companies/${companyId}/departments/${departmentId}`, data);
+    const payload = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== undefined)
+    );
+    const res = await apiClient.put(`/companies/${companyId}/departments/${departmentId}`, payload);
     return res.data;
   } catch (error) {
     console.error("Error updating Department:", error);

@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef, type ChangeEvent } from "reac
 interface UseEditableFormProps<T> {
   initialData: T;
   onSave?: (data: T) => Promise<void> | void;
-  externalEditing?: boolean; // ← pass this from parent layout to control editing externally
+  externalEditing?: boolean;
 }
 
 export function useEditableForm<T>({
@@ -16,11 +16,18 @@ export function useEditableForm<T>({
   const [formData, setFormData] = useState<T>(initialData);
   const initialDataRef = useRef(initialData);
 
+  // ← FIX: always hold the latest formData in a ref
+  const formDataRef = useRef<T>(formData);
+
   useEffect(() => {
     initialDataRef.current = initialData;
   }, [initialData]);
 
-  // If externalEditing is provided, use it — otherwise use internal state
+  // ← FIX: keep ref in sync after every state update
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
   const editing = externalEditing !== undefined ? externalEditing : internalEditing;
 
   const handleEdit = useCallback(() => {
@@ -34,13 +41,15 @@ export function useEditableForm<T>({
 
   const handleSave = useCallback(async () => {
     try {
-      if (onSave) await onSave(formData);
+      // ← FIX: read from ref, never from the stale closure
+      if (onSave) await onSave(formDataRef.current);
       setInternalEditing(false);
     } catch (error) {
       console.error("Error saving form:", error);
       throw error;
     }
-  }, [onSave, formData]);
+  // ← FIX: remove formData from deps — ref handles freshness
+  }, [onSave]);
 
   const updateField = useCallback(
     (field: keyof T) =>

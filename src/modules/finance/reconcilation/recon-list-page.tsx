@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -74,7 +73,7 @@ export default function ReconciliationListPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className=" space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Reconciliations</h1>
 
@@ -89,23 +88,13 @@ export default function ReconciliationListPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search reconciliations..."
-                className="pl-10"
-              />
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <DataTable columns={columns} data={data} />
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input placeholder="Search reconciliations..." className="pl-10" />
+        </div>
+      </div>
+      <DataTable columns={columns} data={data} />
 
       <ReconciliationDialog
         open={open}

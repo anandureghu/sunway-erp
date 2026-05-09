@@ -43,11 +43,10 @@ export default function ManageStocks() {
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-2">
               <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                Stock & movements
+                Manage Inventory & Stock Movements
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Manage Inventory and Stock Movements – Catalog Items, Receive
-                Stock and Manage Variance
+                Catalog Items, Receive Stock and Manage Variance
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">

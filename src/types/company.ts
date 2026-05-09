@@ -12,6 +12,7 @@ export interface Company {
   companyEmail?: string | null;
   billingEmail?: string | null;
   websiteUrl?: string | null;
+  logoUrl?: string | null;
   createdAt: string;
   createdBy: string;
   hrEnabled: boolean;

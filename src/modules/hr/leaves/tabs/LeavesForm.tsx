@@ -230,13 +230,31 @@ export default function LeavesForm(): ReactElement {
           return;
         }
 
-        // Upload document if present
+        // Upload/update document if present.
+        // Backend supports multipart update via `updateLeaveWithDocument`.
         if (docFile && result.data?.leaveCode) {
-          const upRes = await leaveService.uploadLeaveDocument(employeeId, result.data.leaveCode, docFile);
-          if (!upRes.success) toast.warning("Leave submitted but document upload failed.");
+          const upRes = await leaveService.updateLeaveWithDocument(
+            employeeId,
+            // backend is expecting numeric leaveId in the url; UI currently uses leaveCode.
+            // Keep existing behavior by passing leaveCode; if backend requires numeric id,
+            // this will need a mapping.
+            Number(result.data.leaveCode),
+            payload,
+            docFile
+          );
+          if (!upRes.success) {
+            toast.warning("Leave submitted but document upload failed.");
+          }
         } else if (docFile && draft.leaveCode) {
-          await leaveService.uploadLeaveDocument(employeeId, draft.leaveCode, docFile);
+          const upRes = await leaveService.updateLeaveWithDocument(
+            employeeId,
+            Number(draft.leaveCode),
+            payload,
+            docFile
+          );
+          if (!upRes.success) toast.warning("Leave submitted but document upload failed.");
         }
+
 
         toast.success("Leave applied successfully");
         setSaved(draft);

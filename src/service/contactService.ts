@@ -18,9 +18,7 @@ export function saveContactInfo(employeeId: number, payload: ContactInfoPayload)
   if (!payload || !payload.email) {
     return Promise.reject(new Error("email is required"));
   }
-  if (!payload.notes) {
-    return Promise.reject(new Error("notes is required"));
-  }
+  // notes is optional — allow saving contact info without notes
   return apiClient.put<ContactInfoPayload>(`${BASE}/${employeeId}/contact-info`, payload);
 }
 

@@ -34,14 +34,13 @@ export default function HRSettingsPage() {
   ];
 
   return (
-    <div className="p-5">
-      <AppTab
-        title="HR Settings"
-        variant="primary"
-        subtitle="Manage leave policies, permissions, and departments"
-        tabs={tabsList}
-        defaultValue="leaves"
-      />
-    </div>
+    <AppTab
+      title="HR Settings"
+      variant="primary"
+      subtitle="Manage leave policies, permissions, and departments"
+      tabs={tabsList}
+      defaultValue="leaves"
+      backTo="/dashboard"
+    />
   );
 }

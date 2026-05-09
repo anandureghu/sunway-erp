@@ -26,18 +26,6 @@ export default function EmployeeShell() {
 
   return (
     <div className="p-6">
-
-      {/* Only Back to Search button (header removed) */}
-      <div className="mb-4 flex items-center justify-end">
-        <Link
-          to="/hr/employees"
-          className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-muted"
-        >
-          Back to Search
-        </Link>
-      </div>
-
-      {/* Render page content */}
       <Outlet />
     </div>
   );

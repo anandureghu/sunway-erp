@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -78,29 +77,23 @@ export default function ChartOfAccountsListPage() {
         <h1 className="text-2xl font-semibold">Chart Of Accounts</h1>
       </div> */}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input placeholder="Search division..." className="pl-10" />
-            </div>
-            <Button
-              onClick={() => {
-                setSelected(null);
-                setOpen(true);
-              }}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              Add Chart of Account
-            </Button>
-          </div>
-        </CardHeader>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input placeholder="Search division..." className="pl-10" />
+        </div>
+        <Button
+          onClick={() => {
+            setSelected(null);
+            setOpen(true);
+          }}
+          className="bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          Add Chart of Account
+        </Button>
+      </div>
 
-        <CardContent>
-          <DataTable columns={columns} data={chartOfAccounts} />
-        </CardContent>
-      </Card>
+      <DataTable columns={columns} data={chartOfAccounts} />
 
       <ChartOfAccountsDialog
         open={open}

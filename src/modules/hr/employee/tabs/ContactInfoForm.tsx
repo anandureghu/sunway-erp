@@ -73,8 +73,7 @@ function isAddressValid(address: Address) {
   return (
     Boolean(address.line1?.trim()) &&
     Boolean(address.city?.trim()) &&
-    Boolean(address.country?.trim()) &&
-    Boolean(address.zipcode?.trim())
+    Boolean(address.country?.trim())
   );
 }
 
@@ -616,7 +615,7 @@ export default function ContactInfoForm() {
                     : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm",
                 )}
               >
-                {/* ── Editing mode ── */}
+                {/* ── Inline edit mode — no global edit mode required ── */}
                 {editingAddressId === address.id ? (
                   <div className="p-5 space-y-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -628,7 +627,6 @@ export default function ContactInfoForm() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label="Address Line 1" required>
                         <Input
-                          disabled={!editing}
                           value={address.line1}
                           onChange={(e) => handleSaveAddress({ ...address, line1: e.target.value })}
                           placeholder="Street address"
@@ -637,7 +635,6 @@ export default function ContactInfoForm() {
                       </Field>
                       <Field label="Address Line 2">
                         <Input
-                          disabled={!editing}
                           value={address.line2}
                           onChange={(e) => handleSaveAddress({ ...address, line2: e.target.value })}
                           placeholder="Apartment, suite, etc."
@@ -646,7 +643,6 @@ export default function ContactInfoForm() {
                       </Field>
                       <Field label="City" required>
                         <Input
-                          disabled={!editing}
                           value={address.city}
                           onChange={(e) => handleSaveAddress({ ...address, city: e.target.value })}
                           placeholder="City"
@@ -655,16 +651,14 @@ export default function ContactInfoForm() {
                       </Field>
                       <Field label="State / Province">
                         <Input
-                          disabled={!editing}
                           value={address.state}
                           onChange={(e) => handleSaveAddress({ ...address, state: e.target.value })}
                           placeholder="State / Province"
                           className={cn(iCls)}
                         />
                       </Field>
-                      <Field label="Postal Code" required>
+                      <Field label="Postal Code">
                         <Input
-                          disabled={!editing}
                           value={address.zipcode}
                           onChange={(e) => handleSaveAddress({ ...address, zipcode: e.target.value })}
                           placeholder="Postal code"
@@ -673,7 +667,6 @@ export default function ContactInfoForm() {
                       </Field>
                       <Field label="Country" required>
                         <Input
-                          disabled={!editing}
                           value={address.country}
                           onChange={(e) => handleSaveAddress({ ...address, country: e.target.value })}
                           placeholder="Country"
@@ -688,7 +681,7 @@ export default function ContactInfoForm() {
                       <Button
                         size="sm"
                         disabled={!isAddressValid(address)}
-                        onClick={() => setEditingAddressId(null)}
+                        onClick={() => { handleSaveAddress(address); setEditingAddressId(null); }}
                         className="h-8 rounded-lg text-xs bg-gradient-to-r from-violet-600 to-blue-600 text-white disabled:opacity-50"
                       >
                         Done
