@@ -35,7 +35,7 @@ const FinanceSettingsPage = () => {
   ];
 
   return (
-    <div className="p-5">
+    <div className="p-6">
       <PageHeader
         title="Finance Settings"
         description="Manage your finance settings and suppliers"
