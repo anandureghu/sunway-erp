@@ -15,18 +15,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { purchaseOrders } from "@/lib/purchase-data";
 import {
   RECEIVE_ITEM_SCHEMA,
   type ReceiveItemFormData,
 } from "@/schema/inventory";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { receiveItemStock } from "@/service/inventoryService";
+import { listPurchaseOrders } from "@/service/purchaseFlowService";
+import type { PurchaseOrder } from "@/types/purchase";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import CreateItemForm from "../../item-form";
@@ -81,7 +82,22 @@ export function ReceiveItemTab({
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [showCreateItemDialog, setShowCreateItemDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const selectedWarehouseId = watch("warehouseId");
+
+  useEffect(() => {
+    let cancelled = false;
+    listPurchaseOrders()
+      .then((data) => {
+        if (!cancelled) setPurchaseOrders(data);
+      })
+      .catch(() => {
+        if (!cancelled) setPurchaseOrders([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const searchResults = useMemo(
     () => filterItemsByQuery(items, itemSearchQuery),

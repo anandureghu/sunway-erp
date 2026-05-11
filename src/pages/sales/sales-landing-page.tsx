@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -18,7 +19,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { salesOrders, invoices, dispatches } from "@/lib/sales-data";
+import {
+  listSalesOrders,
+  listShipmentsAsDispatches,
+} from "@/service/salesFlowService";
+import { apiClient } from "@/service/apiClient";
+import type { Dispatch, Invoice, SalesOrder } from "@/types/sales";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
@@ -37,20 +43,90 @@ type ActionCard = {
   tone: string;
 };
 
+const normalizeStatus = (status?: string | null) =>
+  (status || "").toString().toLowerCase();
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
 export default function SalesLandingPage() {
   const { currencySymbol } = useCompanyCurrency();
-  const totalSales = invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-  const pendingOrders = salesOrders.filter(
-    (o) => o.status === "draft" || o.status === "confirmed",
-  ).length;
-  const dispatchesToday = dispatches.filter((d) => {
-    const today = new Date().toDateString();
-    const dispatchDate = new Date(d.createdAt).toDateString();
-    return dispatchDate === today;
-  }).length;
-  const unpaidInvoices = invoices.filter(
-    (inv) => inv.status === "Unpaid" || inv.status === "Overdue",
-  ).length;
+  const [orders, setOrders] = useState<SalesOrder[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [dispatches, setDispatches] = useState<Dispatch[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [ordersData, invoicesRes, dispatchesData] = await Promise.all([
+          listSalesOrders().catch(() => [] as SalesOrder[]),
+          apiClient
+            .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
+            .then((res) => res.data ?? [])
+            .catch(() => [] as Invoice[]),
+          listShipmentsAsDispatches().catch(() => [] as Dispatch[]),
+        ]);
+        if (cancelled) return;
+        setOrders(ordersData);
+        setInvoices(invoicesRes);
+        setDispatches(dispatchesData);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalSales = useMemo(
+    () =>
+      invoices
+        .filter((inv) => !inv.archived)
+        .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0),
+    [invoices],
+  );
+
+  const pendingOrders = useMemo(
+    () =>
+      orders.filter((o) => {
+        const status = normalizeStatus(o.status);
+        return status === "draft" || status === "confirmed";
+      }).length,
+    [orders],
+  );
+
+  const dispatchesToday = useMemo(() => {
+    const today = new Date();
+    return dispatches.filter((d) => {
+      const created = d.createdAt ? new Date(d.createdAt) : null;
+      return (
+        created && !Number.isNaN(created.getTime()) && isSameDay(created, today)
+      );
+    }).length;
+  }, [dispatches]);
+
+  const unpaidInvoices = useMemo(
+    () =>
+      invoices.filter((inv) => {
+        if (inv.archived) return false;
+        const status = normalizeStatus(inv.status);
+        return (
+          status === "unpaid" ||
+          status === "pending" ||
+          status === "overdue" ||
+          status === "partially_paid"
+        );
+      }).length,
+    [invoices],
+  );
 
   const grossSalesIcon = createCurrencySymbolIcon(currencySymbol);
 
@@ -164,28 +240,7 @@ export default function SalesLandingPage() {
         }
       />
 
-      <KpiSummaryStrip items={salesHubKpis} />
-
-      {/* <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Quick Search</CardTitle>
-          <CardDescription>
-            Search by order number, customer name, or code.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search orders, customers, invoices..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch(searchQuery)}
-            />
-          </div>
-        </CardContent>
-      </Card> */}
+      {!loading ? <KpiSummaryStrip items={salesHubKpis} /> : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {quickActions.map((action) => {

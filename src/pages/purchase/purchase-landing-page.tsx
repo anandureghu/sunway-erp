@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -19,10 +20,12 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  purchaseOrders,
-  purchaseInvoices,
-  goodsReceipts,
-} from "@/lib/purchase-data";
+  getGoodsReceiptsByPurchaseOrder,
+  listPurchaseOrders,
+} from "@/service/purchaseFlowService";
+import { listPurchaseInvoices } from "@/service/invoiceService";
+import type { PurchaseOrder, GoodsReceipt } from "@/types/purchase";
+import type { FinanceInvoice } from "@/types/finance-invoice";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
 import {
@@ -41,24 +44,103 @@ type ActionCard = {
   tone: string;
 };
 
+const normalizeStatus = (status?: string | null) =>
+  (status || "").toString().toLowerCase();
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
 export default function PurchaseLandingPage() {
   const { currencySymbol } = useCompanyCurrency();
-  const totalPurchases = purchaseInvoices.reduce(
-    (sum, inv) => sum + inv.total,
-    0,
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [invoices, setInvoices] = useState<FinanceInvoice[]>([]);
+  const [receipts, setReceipts] = useState<GoodsReceipt[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [ordersData, invoicesData] = await Promise.all([
+          listPurchaseOrders().catch(() => [] as PurchaseOrder[]),
+          listPurchaseInvoices().catch(() => [] as FinanceInvoice[]),
+        ]);
+        if (cancelled) return;
+        setOrders(ordersData);
+        setInvoices(invoicesData);
+
+        const today = new Date();
+        const todaysReceipts: GoodsReceipt[] = [];
+        await Promise.all(
+          ordersData.map(async (order) => {
+            try {
+              const orderReceipts = await getGoodsReceiptsByPurchaseOrder(
+                order.id,
+              );
+              for (const r of orderReceipts) {
+                const d = r.receiptDate ? new Date(r.receiptDate) : null;
+                if (d && !Number.isNaN(d.getTime()) && isSameDay(d, today)) {
+                  todaysReceipts.push(r);
+                }
+              }
+            } catch {
+              // Ignore orders without receipts
+            }
+          }),
+        );
+        if (!cancelled) {
+          setReceipts(todaysReceipts);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalPurchases = useMemo(
+    () =>
+      invoices
+        .filter((inv) => !inv.archived)
+        .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0),
+    [invoices],
   );
-  const pendingOrders = purchaseOrders.filter(
-    (o) =>
-      o.status === "draft" || o.status === "pending" || o.status === "approved",
-  ).length;
-  const receiptsToday = goodsReceipts.filter((gr) => {
-    const today = new Date().toDateString();
-    const receiptDate = new Date(gr.receiptDate).toDateString();
-    return receiptDate === today;
-  }).length;
-  const unpaidInvoices = purchaseInvoices.filter(
-    (inv) => inv.status === "pending" || inv.status === "overdue",
-  ).length;
+
+  const pendingOrders = useMemo(
+    () =>
+      orders.filter((o) => {
+        const status = normalizeStatus(o.status);
+        return (
+          status === "draft" || status === "pending" || status === "approved"
+        );
+      }).length,
+    [orders],
+  );
+
+  const receiptsToday = receipts.length;
+
+  const unpaidInvoices = useMemo(
+    () =>
+      invoices.filter((inv) => {
+        if (inv.archived) return false;
+        const status = normalizeStatus(inv.status);
+        return (
+          status === "unpaid" ||
+          status === "pending" ||
+          status === "overdue" ||
+          status === "partially_paid"
+        );
+      }).length,
+    [invoices],
+  );
+
   const totalPurchasesIcon = createCurrencySymbolIcon(currencySymbol);
 
   const quickActions: ActionCard[] = [
@@ -118,7 +200,7 @@ export default function PurchaseLandingPage() {
     {
       label: "Total purchases",
       value: <CurrencyAmount amount={totalPurchases} />,
-      hint: "From sample invoice data",
+      hint: "Across active supplier invoices",
       accent: "emerald",
       icon: totalPurchasesIcon,
     },
@@ -175,9 +257,7 @@ export default function PurchaseLandingPage() {
         }
       />
 
-      <KpiSummaryStrip items={purchaseHubKpis} />
-
-      {/* Search */}
+      {!loading ? <KpiSummaryStrip items={purchaseHubKpis} /> : null}
 
       {/* Actions */}
       <div>
