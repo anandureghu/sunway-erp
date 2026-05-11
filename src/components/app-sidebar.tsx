@@ -47,7 +47,6 @@ import {
 } from "@/service/companyService";
 import { toggleGlobalSettingsView } from "@/store/uiSlice";
 
-
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
 /* ── Per-module color palette ─────────────────────────────── */
@@ -228,7 +227,11 @@ export function AppSidebar() {
             url: "/admin/accounting-period",
             icon: Banknote,
           },
-          { title: "Bank Accounts", url: "/admin/bank-accounts", icon: Banknote },
+          {
+            title: "Bank Accounts",
+            url: "/admin/bank-accounts",
+            icon: Banknote,
+          },
           {
             title: "Default Accounts",
             url: "/admin/default-accounts",
@@ -263,7 +266,7 @@ export function AppSidebar() {
     prevAdminView.current = adminView;
   }, [adminView, navigate]);
 
-useEffect(() => {
+  useEffect(() => {
     if (!user?.companyId) return;
 
     if (isPrivileged) {
@@ -273,12 +276,12 @@ useEffect(() => {
       setPermissions(null as any);
     } else {
       // Use permissions from AuthContext directly
-      getSidebarItems(String(user.companyId), { permissions: authPermissions }).then(
-        (items) => {
-          setSidebarItems(items);
-          setPermissions(authPermissions as any);
-        },
-      );
+      getSidebarItems(String(user.companyId), {
+        permissions: authPermissions,
+      }).then((items) => {
+        setSidebarItems(items);
+        setPermissions(authPermissions as any);
+      });
     }
   }, [user, isPrivileged, authPermissions]);
 
@@ -303,16 +306,15 @@ useEffect(() => {
         {/* ── Header ──────────────────────────────────────── */}
         <SidebarHeader className="border-b border-slate-100 bg-white p-0">
           {/* Gradient accent strip */}
-          <div className="h-1 w-full bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600" />
+          <div className="h-1 w-full" />
           <div className="flex items-center gap-3 px-4 py-3">
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md shadow-violet-500/30">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-brand shadow-md shadow-violet-500/30">
                 <img
                   src="/assets/logo-dark.svg"
                   alt=""
                   width={20}
                   height={20}
-                  className="invert"
                 />
               </div>
               <div className="min-w-0">
@@ -436,29 +438,34 @@ useEffect(() => {
                                   <span className="truncate">{item.title}</span>
                                 </div>
                               ) : (
-                              <SidebarMenuButton asChild className="h-auto p-0">
-                                <Link
-                                  to={item.url}
-                                  className={cn(
-                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                                    active
-                                      ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
-                                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                                  )}
+                                <SidebarMenuButton
+                                  asChild
+                                  className="h-auto p-0"
                                 >
-                                  <span
+                                  <Link
+                                    to={item.url}
                                     className={cn(
-                                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
                                       active
-                                        ? "bg-white/20"
-                                        : "bg-slate-200 group-hover:bg-slate-300",
+                                        ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
+                                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                                     )}
                                   >
-                                    <item.icon className="h-3.5 w-3.5" />
-                                  </span>
-                                  <span className="truncate">{item.title}</span>
-                                </Link>
-                              </SidebarMenuButton>
+                                    <span
+                                      className={cn(
+                                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                        active
+                                          ? "bg-white/20"
+                                          : "bg-slate-200 group-hover:bg-slate-300",
+                                      )}
+                                    >
+                                      <item.icon className="h-3.5 w-3.5" />
+                                    </span>
+                                    <span className="truncate">
+                                      {item.title}
+                                    </span>
+                                  </Link>
+                                </SidebarMenuButton>
                               )}
 
                               {/* ── Employee submodules ─────────────────── */}
@@ -496,7 +503,11 @@ useEffect(() => {
                                         MODULE_COLORS[sm.title] ?? defaultColor;
 
                                       return (
-                                        <SidebarMenuButton asChild key={sm.title} className="h-auto p-0">
+                                        <SidebarMenuButton
+                                          asChild
+                                          key={sm.title}
+                                          className="h-auto p-0"
+                                        >
                                           {disabled ? (
                                             <div
                                               className="flex cursor-not-allowed items-center gap-2 rounded-md px-2.5 py-1.5 opacity-40"
