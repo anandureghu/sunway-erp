@@ -14,6 +14,8 @@ import { type CompanyFormData, COMPANY_SCHEMA } from "@/schema/company";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import SelectCurrency from "@/components/select-currency";
 import type { Company } from "@/types/company";
+import { hasAnyRole } from "@/lib/utils";
+import { useAppSelector } from "@/store/store";
 
 interface CompanyFormProps {
   onSubmit: (
@@ -92,6 +94,8 @@ export const CompanyForm = ({
   );
   const disableCurrencySelection =
     isEditMode && !!normalizedDefaults.currencyId;
+
+  const { user } = useAppSelector((state) => state);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -375,68 +379,70 @@ export const CompanyForm = ({
           </div>
         </div>
 
-        <div className="space-y-2 border p-4 rounded-md">
-          <p className="font-medium text-sm">Subscribed Modules</p>
+        {hasAnyRole(user?.role, ["SUPER_ADMIN"]) && (
+          <div className="space-y-2 border p-4 rounded-md">
+            <p className="font-medium text-sm">Subscribed Modules</p>
 
-          <div className="grid grid-cols-3 gap-4">
-            {/* HR */}
-            <FormField
-              control={form.control}
-              name="hrEnabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                  </FormControl>
-                  <FormLabel className="m-0">HR</FormLabel>
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-3 gap-4">
+              {/* HR */}
+              <FormField
+                control={form.control}
+                name="hrEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                    <FormLabel className="m-0">HR</FormLabel>
+                  </FormItem>
+                )}
+              />
 
-            {/* Finance */}
-            <FormField
-              control={form.control}
-              name="financeEnabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                  </FormControl>
-                  <FormLabel className="m-0">Finance</FormLabel>
-                </FormItem>
-              )}
-            />
+              {/* Finance */}
+              <FormField
+                control={form.control}
+                name="financeEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                    <FormLabel className="m-0">Finance</FormLabel>
+                  </FormItem>
+                )}
+              />
 
-            {/* Inventory */}
-            <FormField
-              control={form.control}
-              name="inventoryEnabled"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                  </FormControl>
-                  <FormLabel className="m-0">Inventory</FormLabel>
-                </FormItem>
-              )}
-            />
+              {/* Inventory */}
+              <FormField
+                control={form.control}
+                name="inventoryEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                    <FormLabel className="m-0">Inventory</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Saving..." : "Save Company"}

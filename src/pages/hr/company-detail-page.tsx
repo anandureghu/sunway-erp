@@ -37,7 +37,11 @@ export default function CompanyDetailPage() {
   };
 
   useEffect(() => {
-    console.log("CompanyDetailPage render:", { id, companyId: company?.id, openCreateAdmin });
+    console.log("CompanyDetailPage render:", {
+      id,
+      companyId: company?.id,
+      openCreateAdmin,
+    });
   }, [id, company, openCreateAdmin]);
 
   const fetchCompany = async () => {
@@ -261,7 +265,6 @@ export default function CompanyDetailPage() {
 
       {/* Admin Card / Create Admin */}
       <div>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Company Admin</CardTitle>
@@ -321,7 +324,6 @@ export default function CompanyDetailPage() {
         </Card>
       </div>
 
-
       {/* Edit Dialog */}
       <CompanyDialog
         open={open}
@@ -359,7 +361,6 @@ export default function CompanyDetailPage() {
           }}
         />
       )}
-
     </div>
   );
 }
