@@ -115,7 +115,7 @@ export function PurchaseRequisitionsListView({
                     Active ({activeReqs.length})
                   </TabsTrigger>
                   <TabsTrigger value="converted">
-                    Converted To PO ({convertedReqs.length})
+                    Converted To Purchase Order ({convertedReqs.length})
                   </TabsTrigger>
                 </TabsList>
                 <div className="flex flex-wrap gap-2">

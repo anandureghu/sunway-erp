@@ -51,8 +51,8 @@ export function RegisterSupplierInvoiceDialog({
   const [toParty, setToParty] = useState("");
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState("");
   const [orderId, setOrderId] = useState<string>("");
-  const [invoiceDate, setInvoiceDate] = useState(
-    () => new Date().toISOString().slice(0, 10),
+  const [invoiceDate, setInvoiceDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
   );
   const [dueDate, setDueDate] = useState("");
   const [amount, setAmount] = useState("");
@@ -202,9 +202,9 @@ export function RegisterSupplierInvoiceDialog({
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("already exists for this purchase order")) {
-        toast.error("This PO already has an invoice", {
+        toast.error("This Purchase Order already has an invoice", {
           description:
-            "Open Purchase Invoices, find the invoice for this PO, and attach your supplier PDF there.",
+            "Open Purchase Invoices, find the invoice for this Purchase Order, and attach your supplier PDF there.",
         });
       } else {
         toast.error("Failed to create invoice", {
@@ -242,7 +242,9 @@ export function RegisterSupplierInvoiceDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="SUPPLIER_UPLOAD">Upload supplier PDF</SelectItem>
+                <SelectItem value="SUPPLIER_UPLOAD">
+                  Upload supplier PDF
+                </SelectItem>
                 <SelectItem value="EXTERNAL_LINK">External link</SelectItem>
                 <SelectItem value="GENERATED">
                   Generated from purchase order
@@ -268,15 +270,18 @@ export function RegisterSupplierInvoiceDialog({
               id="supInv"
               value={supplierInvoiceNumber}
               onChange={(e) => setSupplierInvoiceNumber(e.target.value)}
-              placeholder="Their reference — avoids duplicates per PO"
+              placeholder="Their reference — avoids duplicates per Purchase Order"
             />
           </div>
 
           <div className="space-y-2">
             <Label>Purchase order (optional)</Label>
-            <Select value={orderId || "__none__"} onValueChange={(v) => setOrderId(v === "__none__" ? "" : v)}>
+            <Select
+              value={orderId || "__none__"}
+              onValueChange={(v) => setOrderId(v === "__none__" ? "" : v)}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Link to PO" />
+                <SelectValue placeholder="Link to Purchase Order" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">None</SelectItem>
@@ -402,8 +407,8 @@ export function RegisterSupplierInvoiceDialog({
                 placeholder="https://…"
               />
               <p className="text-xs text-muted-foreground">
-                Portal pages open in a new tab; direct .pdf links can be embedded
-                on the detail page.
+                Portal pages open in a new tab; direct .pdf links can be
+                embedded on the detail page.
               </p>
             </div>
           )}

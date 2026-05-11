@@ -118,7 +118,7 @@ export default function SuppliersPage() {
       {
         label: "Active",
         value: active,
-        hint: "Available on POs",
+        hint: "Available on Purchase Orders",
         accent: "emerald",
         icon: Users,
       },

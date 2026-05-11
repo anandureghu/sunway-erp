@@ -446,7 +446,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
                     label="Preferred supplier *"
                     value={preferredSupplierId || undefined}
                     onChange={(v) => setPreferredSupplierId(v)}
-                    placeholder="Select supplier for the PO"
+                    placeholder="Select supplier for the Purchase Order"
                   />
                 </div>
               </div>

@@ -89,9 +89,9 @@ export default function PurchaseRequisitionsPage() {
         icon: Send,
       },
       {
-        label: "Converted to PO",
+        label: "Converted to Purchase Order",
         value: converted,
-        hint: "Approved & PO generated",
+        hint: "Approved & Purchase Order generated",
         accent: "violet",
         icon: CheckCircle2,
       },
@@ -105,9 +105,7 @@ export default function PurchaseRequisitionsPage() {
         req.requestedByName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
-        req.departmentName
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
+        req.departmentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         req.preferredSupplierName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase());
@@ -128,7 +126,7 @@ export default function PurchaseRequisitionsPage() {
     async (id: string) => {
       if (
         !confirm(
-          "Approve this requisition? A draft purchase order will be created for the preferred supplier.",
+          "Approve this requisition? A draft Purchase Order will be created for the preferred supplier.",
         )
       ) {
         return;
@@ -136,15 +134,18 @@ export default function PurchaseRequisitionsPage() {
       try {
         const updated = await approvePurchaseRequisition(id);
         if (updated.createdPurchaseOrderId != null) {
-          toast.success("Requisition approved — draft purchase order created.", {
-            action: {
-              label: "Open PO",
-              onClick: () =>
-                navigate(
-                  `/inventory/purchase/orders/${updated.createdPurchaseOrderId}`,
-                ),
+          toast.success(
+            "Requisition approved — draft purchase order created.",
+            {
+              action: {
+                label: "Open Purchase Order",
+                onClick: () =>
+                  navigate(
+                    `/inventory/purchase/orders/${updated.createdPurchaseOrderId}`,
+                  ),
+              },
             },
-          });
+          );
         } else {
           toast.success("Requisition approved — draft purchase order created.");
         }

@@ -178,7 +178,7 @@ export default function PurchaseRequisitionDetailPage() {
     <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
         title={requisition.requisitionNo}
-        description="Draft → submit for approval → approve to generate a PO."
+        description="Draft → submit for approval → approve to generate a Purchase Order."
         backHref="/inventory/purchase/requisitions"
         actions={
           <>
@@ -229,7 +229,7 @@ export default function PurchaseRequisitionDetailPage() {
               className="bg-green-600 hover:bg-green-700"
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              Approve &amp; create PO
+              Approve &amp; create Purchase Order
             </Button>
           )}
           {showOpenPo && (
@@ -353,7 +353,7 @@ export default function PurchaseRequisitionDetailPage() {
                   to={`/inventory/purchase/orders/${requisition.createdPurchaseOrderId}`}
                   className="font-medium text-primary underline"
                 >
-                  Open PO #{requisition.createdPurchaseOrderId}
+                  Open Purchase Order #{requisition.createdPurchaseOrderId}
                 </Link>
               </div>
             )}
