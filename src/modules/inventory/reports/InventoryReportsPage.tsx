@@ -61,7 +61,7 @@ import type { SalesOrder } from "@/types/sales";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
@@ -304,9 +304,11 @@ export default function InventoryReportsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50/90 to-background p-6 pb-10 ">
       {/* Header */}
-      <PurchasePageHeader
-        title=" Inventory reports"
+      <PageHeader
+        title="Inventory Reports"
         description={`${company?.companyName ?? "Company"} · live stock snapshot and analytics`}
+        variant="darkGreen"
+        icon={<BarChart3 className="w-6 h-6" />}
         actions={
           <>
             <Button

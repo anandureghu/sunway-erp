@@ -23,12 +23,9 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 import type { FinanceInvoice } from "@/types/finance-invoice";
-import {
-  archiveInvoice,
-  listPurchaseInvoices,
-} from "@/service/invoiceService";
+import { archiveInvoice, listPurchaseInvoices } from "@/service/invoiceService";
 import { RegisterSupplierInvoiceDialog } from "@/pages/purchase/components/register-supplier-invoice-dialog";
-import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import {
   KpiSummaryStrip,
@@ -85,9 +82,8 @@ export default function PurchaseInvoicesPage() {
   );
   const completedTabCount = useMemo(
     () =>
-      rows.filter(
-        (i) => isInvoiceArchivedStatus(i.status) && !i.archived,
-      ).length,
+      rows.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
+        .length,
     [rows],
   );
 
@@ -156,9 +152,13 @@ export default function PurchaseInvoicesPage() {
   const purchaseInvoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase().replace(/\s+/g, "_");
     const visible = rows.filter(notArchived);
-    const unpaid = visible.filter((inv) => norm(inv.status) === "UNPAID").length;
+    const unpaid = visible.filter(
+      (inv) => norm(inv.status) === "UNPAID",
+    ).length;
     const paid = visible.filter((inv) => norm(inv.status) === "PAID").length;
-    const overdue = visible.filter((inv) => norm(inv.status) === "OVERDUE").length;
+    const overdue = visible.filter(
+      (inv) => norm(inv.status) === "OVERDUE",
+    ).length;
     const draft = visible.filter((inv) => norm(inv.status) === "DRAFT").length;
     return [
       {
@@ -201,10 +201,11 @@ export default function PurchaseInvoicesPage() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PurchasePageHeader
+      <PageHeader
         title="Purchase invoices"
         description="Supplier invoices for posting and payment tracking (accounts payable)."
         backHref="/inventory/purchase"
+        variant="darkGreen"
         actions={
           <Button
             type="button"

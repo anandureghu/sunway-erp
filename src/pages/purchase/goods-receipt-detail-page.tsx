@@ -369,7 +369,8 @@ export default function GoodsReceiptDetailPage() {
                     className="font-medium text-primary hover:underline"
                     to={`/inventory/purchase/orders/${receipt.orderId}`}
                   >
-                    {receipt.order?.orderNo || `PO #${receipt.orderId}`}
+                    {receipt.order?.orderNo ||
+                      `Purchase Order #${receipt.orderId}`}
                   </Link>
                 </div>
               )}

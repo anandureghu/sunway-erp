@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { PurchasePageHeader } from "./purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -99,10 +99,11 @@ export function PurchaseOrdersListView({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <PurchasePageHeader
+      <PageHeader
         title="Purchase Orders"
         description="Orders are created when a requisition is approved"
         backHref="/inventory/purchase"
+        variant="darkGreen"
       />
 
       {kpiItems && kpiItems.length > 0 ? (

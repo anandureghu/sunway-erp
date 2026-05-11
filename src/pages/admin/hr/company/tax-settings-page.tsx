@@ -17,6 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { Company } from "@/types/company";
+import { PageHeader } from "@/components/PageHeader";
+import { FileText } from "lucide-react";
 
 const SCHEMA = z.object({
   taxRate: z.string().optional(),
@@ -76,7 +78,9 @@ export default function TaxSettingsPage() {
       setSaving(true);
       const payload = {
         companyName: company.companyName,
-        noOfEmployees: company.noOfEmployees ? Number(company.noOfEmployees) : undefined,
+        noOfEmployees: company.noOfEmployees
+          ? Number(company.noOfEmployees)
+          : undefined,
         currencyId: company.currency.id,
         crNo: company.crNo ? Number(company.crNo) : undefined,
         computerCard: company.computerCard || "",
@@ -105,7 +109,10 @@ export default function TaxSettingsPage() {
         invoiceFooterBillingEmail: company.invoiceFooterBillingEmail || "",
         invoiceQrEnabled: !!company.invoiceQrEnabled,
       };
-      const res = await apiClient.put<Company>(`/companies/${companyId}`, payload);
+      const res = await apiClient.put<Company>(
+        `/companies/${companyId}`,
+        payload,
+      );
       setCompany(res.data);
       toast.success("Tax settings updated");
     } catch (e: unknown) {
@@ -118,16 +125,19 @@ export default function TaxSettingsPage() {
     }
   };
 
-  if (loading) return <div className="p-6 text-muted-foreground">Loading tax settings...</div>;
+  if (loading)
+    return (
+      <div className="p-6 text-muted-foreground">Loading tax settings...</div>
+    );
 
   return (
-    <div className="p-6 max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Tax Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure company tax behavior and tax footer line for invoices.
-        </p>
-      </div>
+    <div className="p-6 space-y-6">
+      <PageHeader
+        title="Tax Settings"
+        description="Configure company tax behavior and tax footer line for invoices."
+        variant="darkBlue"
+        icon={<FileText className="w-6 h-6" />}
+      />
 
       <Card>
         <CardHeader>

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import { Edit, Trash, Plus, Star } from "lucide-react";
+import { Edit, Trash, Star, Plus } from "lucide-react";
 import { BankAccountDialog } from "./bank-account-dialog";
 import type { BankAccount } from "@/types/bank-account";
 import { useAuth } from "@/context/AuthContext";
+import { PageHeader } from "@/components/PageHeader";
+import { Banknote } from "lucide-react";
 
 export function CompanyBankAccounts() {
   const { user } = useAuth();
@@ -44,15 +46,19 @@ export function CompanyBankAccounts() {
   }, [companyId]);
 
   return (
-    <div className="p-5">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Bank Accounts</CardTitle>
+    <div className="p-6">
+      <PageHeader
+        title="Bank Accounts"
+        description="Manage your bank accounts"
+        variant="darkBlue"
+        icon={<Banknote className="w-6 h-6" />}
+        actions={
           <Button size="sm" onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4 mr-1" /> Add
           </Button>
-        </CardHeader>
-
+        }
+      />
+      <Card>
         <CardContent>
           {loading ? (
             <p className="text-muted-foreground text-sm">Loading...</p>
@@ -77,7 +83,9 @@ export function CompanyBankAccounts() {
                     <p>{acc.accountHolderName}</p>
                     <p className="text-muted-foreground">{acc.accountNumber}</p>
                     {acc.iban && (
-                      <p className="text-xs text-muted-foreground font-mono">IBAN: {acc.iban}</p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        IBAN: {acc.iban}
+                      </p>
                     )}
                   </div>
 

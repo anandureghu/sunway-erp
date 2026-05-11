@@ -1,8 +1,5 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import type {
-  PaymentResponseDTO,
-  PaymentsPageVariant,
-} from "@/types/payment";
+import type { PaymentResponseDTO, PaymentsPageVariant } from "@/types/payment";
 import { Badge } from "@/components/ui/badge";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
 import { Button } from "@/components/ui/button";
@@ -70,7 +67,8 @@ export const PAYMENT_COLUMNS = ({
     header: variant === "vendor" ? "Purchase order" : "Sales invoice",
     cell: ({ row }) => {
       const item = row.original;
-      const dir = item.paymentDirection || (variant === "vendor" ? "VENDOR" : "CUSTOMER");
+      const dir =
+        item.paymentDirection || (variant === "vendor" ? "VENDOR" : "CUSTOMER");
       if (dir === "VENDOR" && item.purchaseOrderId != null) {
         return (
           <button
@@ -78,7 +76,7 @@ export const PAYMENT_COLUMNS = ({
             className="text-blue-600 underline underline-offset-2"
             onClick={() => onOpenPurchaseOrder(item.purchaseOrderId!)}
           >
-            PO #{item.purchaseOrderId}
+            Purchase Order #{item.purchaseOrderId}
           </button>
         );
       }
@@ -130,8 +128,7 @@ export const PAYMENT_COLUMNS = ({
           ? method === "PENDING_VENDOR_PAYMENT"
           : method === "PENDING_REQUEST";
       const settled = isPaymentArchivedTab(item, variant);
-      const canArchive =
-        settled && !item.archived && onArchive != null;
+      const canArchive = settled && !item.archived && onArchive != null;
       const isArchiving = archivingPaymentId === item.id;
 
       if (isPending) {
@@ -142,9 +139,7 @@ export const PAYMENT_COLUMNS = ({
         );
       }
       if (item.archived) {
-        return (
-          <span className="text-muted-foreground text-xs">Archived</span>
-        );
+        return <span className="text-muted-foreground text-xs">Archived</span>;
       }
       if (canArchive) {
         return (
@@ -170,9 +165,7 @@ export const PAYMENT_COLUMNS = ({
           </div>
         );
       }
-      return (
-        <span className="text-muted-foreground text-xs">Confirmed</span>
-      );
+      return <span className="text-muted-foreground text-xs">Confirmed</span>;
     },
   },
 ];

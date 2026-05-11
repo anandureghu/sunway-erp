@@ -5,6 +5,8 @@ import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
 import InvoicesPage from "../sales/invoices-page";
+import { FileText, Wallet } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 interface AccountsReceivableProps {
   invoices: Invoice[];
@@ -29,6 +31,7 @@ const AccountsReceivablePage = () => {
     {
       value: "invoices",
       label: "Sales Invoices",
+      icon: <FileText className="w-6 h-6" />,
       element: () => {
         return (
           <>
@@ -41,6 +44,7 @@ const AccountsReceivablePage = () => {
     {
       value: "payments",
       label: "Customer Payments",
+      icon: <Wallet className="w-6 h-6" />,
       element: ({ companyId }: AccountsReceivableProps) => (
         <PaymentsPage companyId={companyId || 0} variant="customer" />
       ),
@@ -51,17 +55,22 @@ const AccountsReceivablePage = () => {
   ];
 
   return (
-    <AppTab
-      title="Accounts Receivable"
-      subtitle="Manage your accounts receivable and customer payments"
-      variant="success"
-      tabs={tabsList}
-      defaultValue="invoices"
-      props={{
-        invoices,
-        companyId: user?.companyId ? Number(user.companyId) : 0,
-      }}
-    />
+    <div className="p-6 bg-slate-50/60 min-h-screen">
+      <PageHeader
+        title="Accounts Receivable"
+        description="Manage your accounts receivable and customer payments"
+        variant="lightGreen"
+        icon={<Wallet className="w-6 h-6" />}
+      />
+      <AppTab
+        tabs={tabsList}
+        defaultValue="invoices"
+        props={{
+          invoices,
+          companyId: user?.companyId ? Number(user.companyId) : 0,
+        }}
+      />
+    </div>
   );
 };
 

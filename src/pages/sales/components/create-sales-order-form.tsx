@@ -35,7 +35,7 @@ import type { SalesOrder, SalesOrderItem } from "@/types/sales";
 import type { Company } from "@/types/company";
 import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
-import { SalesPageHeader } from "./sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 
 type Props = {
   onCancel: () => void;
@@ -506,25 +506,15 @@ export function CreateSalesOrderForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader
         title={isEditMode ? "Edit Sales Order" : "Create Sales Order"}
         description={
           isEditMode
             ? "Update draft lines, pricing, and delivery details before confirming."
             : "Add customer, lines, warehouses, and accounting defaults for a new draft order."
         }
-        backHref="/inventory/sales/orders"
-        actions={
-          <Button
-            size="lg"
-            variant="secondary"
-            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
-            type="button"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-        }
+        backHref="/inventory/sales"
+        variant="darkBlue"
       />
 
       <form

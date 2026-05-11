@@ -22,13 +22,13 @@ import SelectUser, { type SelectUserOption } from "@/components/select-user";
 import SelectDepartment from "@/components/select-department";
 import SelectVendor from "@/components/select-vendor";
 import { useAuth } from "@/context/AuthContext";
-import { PurchasePageHeader } from "./purchase-page-header";
 import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
 import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
 import { Link } from "react-router-dom";
 import { Info } from "lucide-react";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { PageHeader } from "@/components/PageHeader";
 
 type Props = {
   onCancel: () => void;
@@ -365,7 +365,8 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <PurchasePageHeader
+      <PageHeader
+        variant="darkGreen"
         title="Create purchase requisition"
         description="When the Purchase Requisition is approved, a draft Purchase Order will be created."
         backHref="/inventory/purchase"

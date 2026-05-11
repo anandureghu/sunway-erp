@@ -5,13 +5,13 @@ import { apiClient } from "@/service/apiClient";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Calendar } from "lucide-react";
 import type { AccountingPeriod } from "@/types/accounting-period";
 import { getAccountingPeriodColumns } from "@/lib/columns/accounting-period-columns";
 import { toast } from "sonner";
 import { AccountPeriodDialog } from "./accounting-period-dialog";
 import { useAuth } from "@/context/AuthContext";
-
+import { PageHeader } from "@/components/PageHeader";
 export default function AccountingPeriodPage() {
   const [accountingPeriods, setAccountingPeriods] = useState<
     AccountingPeriod[]
@@ -74,9 +74,12 @@ export default function AccountingPeriodPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Accounting Periods</h1>
-      </div>
+      <PageHeader
+        title="Accounting Periods"
+        description="Manage your accounting periods"
+        variant="darkBlue"
+        icon={<Calendar className="w-6 h-6" />}
+      />
 
       <Card>
         <CardHeader>

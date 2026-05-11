@@ -25,12 +25,12 @@ import {
 } from "@/lib/purchase-data";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
-import { PurchasePageHeader } from "./components/purchase-page-header";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import { PageHeader } from "@/components/PageHeader";
 
 type ActionCard = {
   title: string;
@@ -72,7 +72,8 @@ export default function PurchaseLandingPage() {
     },
     {
       title: "Create New requisition",
-      description: "Create a requisition; approval generates a draft PO.",
+      description:
+        "Create a requisition; approval generates a draft Purchase Order.",
       to: "/inventory/purchase/requisitions/new",
       cta: "Create requisition",
       icon: ClipboardCheck,
@@ -80,7 +81,7 @@ export default function PurchaseLandingPage() {
     },
     {
       title: "Manage Purchase Orders",
-      description: "Track POs, statuses, and supplier commitments.",
+      description: "Track Purchase Orders, statuses, and supplier commitments.",
       to: "/inventory/purchase/orders",
       cta: "Open orders",
       icon: ShoppingCart,
@@ -146,9 +147,11 @@ export default function PurchaseLandingPage() {
 
   return (
     <div className="mx-auto w-full space-y-6 p-4 sm:p-6 py-2">
-      <PurchasePageHeader
-        title="Purchase & supplier"
+      <PageHeader
+        title="Purchase & Suppliers"
         description="Requisition, Orders, Payables, Receipts - Procurement workflow"
+        icon={<ShoppingCart className="w-6 h-6" />}
+        variant="darkGreen"
         actions={
           <>
             <Button

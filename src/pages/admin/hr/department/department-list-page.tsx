@@ -4,12 +4,15 @@ import { getDepartmentColumns } from "@/lib/columns/department-listing-admin";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Department } from "@/types/department";
 import { DepartmentDialog } from "./department-dialog";
 import { useAuth } from "@/context/AuthContext";
-import { fetchDepartments, deleteDepartment as deleteDept } from "@/service/departmentService";
+import {
+  fetchDepartments,
+  deleteDepartment as deleteDept,
+} from "@/service/departmentService";
 import {
   Select,
   SelectTrigger,
@@ -19,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import type { Company } from "@/types/company";
 import { getAllCompanies } from "@/service/companyService";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function DepartmentListPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -26,7 +30,9 @@ export default function DepartmentListPage() {
   const [selected, setSelected] = useState<Department | null>(null);
   const [open, setOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(
+    null,
+  );
 
   const { user, company } = useAuth();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
@@ -55,7 +61,7 @@ export default function DepartmentListPage() {
       setLoading(false);
       return;
     }
-    
+
     try {
       const data = await fetchDepartments(selectedCompanyId);
       if (data) setDepartments(data);
@@ -76,7 +82,7 @@ export default function DepartmentListPage() {
       setDepartments((prev) => [...prev, updated]);
     } else {
       setDepartments((prev) =>
-        prev.map((d) => (d.id === updated.id ? updated : d))
+        prev.map((d) => (d.id === updated.id ? updated : d)),
       );
     }
   };
@@ -91,7 +97,7 @@ export default function DepartmentListPage() {
       toast.error("Company not selected");
       return;
     }
-    
+
     try {
       await deleteDept(selectedCompanyId, dept.id);
       toast.success(`Deleted ${dept.departmentName}`);
@@ -121,9 +127,12 @@ export default function DepartmentListPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Departments</h1>
-      </div>
+      <PageHeader
+        title="Departments"
+        description="Manage your departments"
+        variant="darkBlue"
+        icon={<Users className="w-6 h-6" />}
+      />
 
       <Card>
         <CardHeader>

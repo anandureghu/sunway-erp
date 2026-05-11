@@ -13,11 +13,11 @@ import type { Vendor } from "@/types/vendor";
 import type { Row } from "@tanstack/react-table";
 import { VendorDialog } from "@/pages/admin/vendors/vendor-dialog";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
-import { PurchasePageHeader } from "./components/purchase-page-header";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function SuppliersPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -149,10 +149,11 @@ export default function SuppliersPage() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PurchasePageHeader
+      <PageHeader
         title="Suppliers"
         description="Manage Vendors and suppliers - Supplier have to approved by the finance manager"
         backHref="/inventory/purchase"
+        variant="darkGreen"
         actions={
           <Button
             size="lg"

@@ -29,7 +29,7 @@ import {
 import { listItems } from "@/service/inventoryService";
 import { CreateDispatchForm } from "./components/create-dispatch-form";
 import { CreatePicklistForm } from "./components/create-picklist-form";
-import { SalesPageHeader } from "./components/sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -252,10 +252,11 @@ export default function PicklistDispatchPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader
         title="Picklist & Dispatch"
         description="Generate warehouse picklists from paid orders and create shipments when lines are picked."
         backHref="/inventory/sales"
+        variant="darkBlue"
         actions={
           activeTab === "picklists" ? (
             <Button

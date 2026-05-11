@@ -298,7 +298,7 @@ export function ReceiveItemTab({
                     onValueChange={(value) => setValue("referenceNo", value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select PO number" />
+                      <SelectValue placeholder="Select Purchase Order number" />
                     </SelectTrigger>
                     <SelectContent>
                       {purchaseOrders

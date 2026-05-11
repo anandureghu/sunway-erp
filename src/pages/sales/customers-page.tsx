@@ -11,7 +11,7 @@ import { getCustomerColumns } from "@/lib/columns/customer-listing-admin";
 import type { Customer } from "@/types/customer";
 import type { Row } from "@tanstack/react-table";
 import { CustomerDialog } from "@/pages/admin/customers/customer-dialog";
-import { SalesPageHeader } from "./components/sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -144,10 +144,11 @@ export default function CustomersPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader
         title="Sales Customers"
         description="Maintain buyers used on sales orders: contacts, billing details, and account notes."
         backHref="/inventory/sales"
+        variant="darkBlue"
         actions={
           <Button
             size="lg"

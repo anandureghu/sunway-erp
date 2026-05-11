@@ -2,6 +2,8 @@ import { AppTab } from "@/components/app-tab";
 import VendorsPage from "../admin/vendors/vendors-page";
 
 import PermissionsTab from "@/components/permissions-tab";
+import { PageHeader } from "@/components/PageHeader";
+import { Settings, Shield, Users } from "lucide-react";
 
 const FINANCE_MODULES = [
   { id: "coa", label: "Chart of Accounts" },
@@ -19,24 +21,28 @@ const FinanceSettingsPage = () => {
     {
       value: "vendors",
       label: "Suppliers",
+      icon: <Users className="w-6 h-6" />,
       element: () => <VendorsPage financeSettings />,
     },
     {
       value: "permissions",
       label: "Permissions",
-      element: () => <PermissionsTab moduleType="FINANCE" modules={FINANCE_MODULES} />,
+      icon: <Shield className="w-6 h-6" />,
+      element: () => (
+        <PermissionsTab moduleType="FINANCE" modules={FINANCE_MODULES} />
+      ),
     },
   ];
 
   return (
     <div className="p-5">
-      <AppTab
+      <PageHeader
         title="Finance Settings"
-        variant="warning"
-        subtitle="Manage your finance settings and suppliers"
-        tabs={tabsList}
-        defaultValue="vendors"
+        description="Manage your finance settings and suppliers"
+        variant="darkBlue"
+        icon={<Settings className="w-6 h-6" />}
       />
+      <AppTab tabs={tabsList} defaultValue="vendors" />
     </div>
   );
 };

@@ -19,8 +19,10 @@ import {
   Wallet,
   DollarSign,
   Loader2,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/PageHeader";
 
 // Icon mapping for modules
 const getModuleIcon = (title: string, defaultIcon: any) => {
@@ -190,10 +192,13 @@ const Dashboard = () => {
   return (
     <div className="p-6">
       {/* Header banner */}
-      <div className="bg-primary-gradient text-white rounded-lg p-6 px-10 mb-6">
-        <h1 className="text-4xl font-display font-light">Sunway ERP</h1>
-        <p className="text-sm text-white/70 font-light mt-1">Comprehensive Business Management Solution</p>
-      </div>
+
+      <PageHeader
+        title="Sunway ERP"
+        description="Comprehensive Business Management Solution"
+        variant="default"
+        icon={<Building className="w-6 h-6" />}
+      />
 
       {/* Fallback when no modules are available */}
       {sidebarItems.length === 0 && (

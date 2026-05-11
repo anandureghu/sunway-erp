@@ -3,10 +3,7 @@ import { DataTable } from "@/components/datatable";
 import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
-import {
-  archiveInvoice,
-  listPurchaseInvoices,
-} from "@/service/invoiceService";
+import { archiveInvoice, listPurchaseInvoices } from "@/service/invoiceService";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { FileText, Search, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -29,6 +26,7 @@ import {
   invoiceMatchesStatusFilter,
   isInvoiceArchivedStatus,
 } from "@/lib/invoice-status-filter";
+import { PageHeader } from "@/components/PageHeader";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -68,9 +66,8 @@ function PayableInvoicesTab() {
   );
   const completedTabCount = useMemo(
     () =>
-      rows.filter(
-        (i) => isInvoiceArchivedStatus(i.status) && !i.archived,
-      ).length,
+      rows.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
+        .length,
     [rows],
   );
 
@@ -246,11 +243,13 @@ const AccountsPayablePage = () => {
     {
       value: "invoices",
       label: "Invoices",
+      icon: <FileText className="w-6 h-6" />,
       element: () => <PayableInvoicesTab />,
     },
     {
       value: "payments",
       label: "Vendor Payments",
+      icon: <Wallet className="w-6 h-6" />,
       element: ({ companyId }: AccountsPayableProps) => (
         <PaymentsPage companyId={companyId || 0} variant="vendor" />
       ),
@@ -258,16 +257,19 @@ const AccountsPayablePage = () => {
   ];
 
   return (
-    <AppTab
-      title="Accounts Payable"
-      subtitle="Manage your accounts payable and vendor payments"
-      variant="danger"
-      tabs={tabsList}
-      defaultValue="invoices"
-      props={{
-        companyId: user?.companyId ? Number(user.companyId) : 0,
-      }}
-    />
+    <div className="p-6 bg-slate-50/60 min-h-screen">
+      <PageHeader
+        title="Accounts Payable"
+        description="Manage your accounts payable and vendor payments"
+        variant="red"
+        icon={<Wallet className="w-6 h-6" />}
+      />
+      <AppTab
+        tabs={tabsList}
+        defaultValue="invoices"
+        props={{ companyId: user?.companyId ? Number(user.companyId) : 0 }}
+      />
+    </div>
   );
 };
 

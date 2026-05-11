@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -228,26 +229,15 @@ export default function FinanceReportsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-background p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
-              Finance Reports
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Profit & loss, receivables, payables, cash flow and payroll cost
-              in one place.
-            </p>
-            {data?.generatedAt && !loading ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Generated {new Date(data.generatedAt).toLocaleString()}
-              </p>
-            ) : null}
-          </div>
+      <PageHeader
+        title="Finance Reports"
+        description="Profit & loss, receivables, payables, cash flow and payroll cost in one place."
+        variant="darkBlue"
+        icon={<PieChartIcon className="w-6 h-6" />}
+        actions={
           <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => fetchSummary(appliedFrom, appliedTo)}
               disabled={loading}
@@ -267,8 +257,8 @@ export default function FinanceReportsPage() {
               Export CSV
             </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <Card>

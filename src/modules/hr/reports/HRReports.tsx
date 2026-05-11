@@ -1,44 +1,63 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
 import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
-  Tooltip, ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 import {
-  Users, UserCheck, UserX, Clock, TrendingUp,
-  Globe, Building2, Award, Loader2, RefreshCw, BarChart3,
-  ArrowUpRight, Briefcase, ArrowLeft,
+  Users,
+  UserCheck,
+  UserX,
+  Clock,
+  TrendingUp,
+  Globe,
+  Building2,
+  Award,
+  Loader2,
+  RefreshCw,
+  BarChart3,
+  ArrowUpRight,
+  Briefcase,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { hrService } from "@/service/hr.service";
 import { appraisalService } from "@/service/appraisalService";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import type { Employee } from "@/types/hr";
+import { PageHeader } from "@/components/PageHeader";
 
 // ── colour palette ────────────────────────────────────────────────────────────
 const COLORS = {
-  blue:    "#3b82f6",
-  indigo:  "#6366f1",
-  violet:  "#8b5cf6",
+  blue: "#3b82f6",
+  indigo: "#6366f1",
+  violet: "#8b5cf6",
   emerald: "#10b981",
-  amber:   "#f59e0b",
-  rose:    "#f43f5e",
-  slate:   "#64748b",
-  sky:     "#0ea5e9",
-  teal:    "#14b8a6",
-  pink:    "#ec4899",
+  amber: "#f59e0b",
+  rose: "#f43f5e",
+  slate: "#64748b",
+  sky: "#0ea5e9",
+  teal: "#14b8a6",
+  pink: "#ec4899",
 };
 const PALETTE = Object.values(COLORS);
 
 const STATUS_COLOR: Record<string, string> = {
-  Active:    COLORS.emerald,
-  Inactive:  COLORS.slate,
+  Active: COLORS.emerald,
+  Inactive: COLORS.slate,
   "On Leave": COLORS.amber,
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function countBy<T>(arr: T[], key: (item: T) => string): { name: string; value: number }[] {
+function countBy<T>(
+  arr: T[],
+  key: (item: T) => string,
+): { name: string; value: number }[] {
   const map: Record<string, number> = {};
   arr.forEach((item) => {
     const k = key(item) || "Unknown";
@@ -58,23 +77,40 @@ function isWithinDays(dateStr: string | undefined, days: number): boolean {
 
 // ── sub-components ────────────────────────────────────────────────────────────
 function StatCard({
-  label, value, sub, icon: Icon, color, trend,
+  label,
+  value,
+  sub,
+  icon: Icon,
+  color,
+  trend,
 }: {
-  label: string; value: number | string; sub?: string;
-  icon: React.ElementType; color: string; trend?: string;
+  label: string;
+  value: number | string;
+  sub?: string;
+  icon: React.ElementType;
+  color: string;
+  trend?: string;
 }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm flex items-start gap-4">
-      <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", color)}>
+      <div
+        className={cn(
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+          color,
+        )}
+      >
         <Icon className="h-5 w-5 text-white" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          {label}
+        </p>
         <p className="text-2xl font-bold text-slate-900 mt-0.5">{value}</p>
         {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
         {trend && (
           <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 mt-1">
-            <ArrowUpRight className="h-3 w-3" />{trend}
+            <ArrowUpRight className="h-3 w-3" />
+            {trend}
           </span>
         )}
       </div>
@@ -82,26 +118,53 @@ function StatCard({
   );
 }
 
-function SectionTitle({ icon: Icon, label, color = "text-blue-600" }: { icon: React.ElementType; label: string; color?: string }) {
+function SectionTitle({
+  icon: Icon,
+  label,
+  color = "text-blue-600",
+}: {
+  icon: React.ElementType;
+  label: string;
+  color?: string;
+}) {
   return (
     <div className="flex items-center gap-2 mb-4">
       <Icon className={cn("h-4 w-4", color)} />
-      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">{label}</h3>
+      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+        {label}
+      </h3>
       <div className="flex-1 h-px bg-slate-100" />
     </div>
   );
 }
 
-function HBar({ label, value, total, color = "#6366f1" }: { label: string; value: number; total: number; color?: string }) {
+function HBar({
+  label,
+  value,
+  total,
+  color = "#6366f1",
+}: {
+  label: string;
+  value: number;
+  total: number;
+  color?: string;
+}) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-slate-700 font-medium truncate max-w-[160px]">{label}</span>
-        <span className="text-slate-500 tabular-nums text-xs">{value} <span className="text-slate-400">({pct}%)</span></span>
+        <span className="text-slate-700 font-medium truncate max-w-[160px]">
+          {label}
+        </span>
+        <span className="text-slate-500 tabular-nums text-xs">
+          {value} <span className="text-slate-400">({pct}%)</span>
+        </span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
       </div>
     </div>
   );
@@ -119,10 +182,10 @@ const CUSTOM_TOOLTIP = ({ active, payload }: any) => {
 
 // ── tabs ──────────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: "workforce",  label: "Workforce Overview",   icon: Users },
+  { id: "workforce", label: "Workforce Overview", icon: Users },
   { id: "department", label: "Department Headcount", icon: Building2 },
-  { id: "breakdown",  label: "Workforce Breakdown",  icon: Globe },
-  { id: "appraisal",  label: "Performance",          icon: Award },
+  { id: "breakdown", label: "Workforce Breakdown", icon: Globe },
+  { id: "appraisal", label: "Performance", icon: Award },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -136,15 +199,19 @@ export default function HRReports() {
   const [appraisals, setAppraisals] = useState<any[]>([]);
   const [appraisalYear, setAppraisalYear] = useState(new Date().getFullYear());
 
-  const [loadingEmp,  setLoadingEmp]  = useState(true);
+  const [loadingEmp, setLoadingEmp] = useState(true);
   const [loadingAppr, setLoadingAppr] = useState(false);
 
   // ── fetch employees ─────────────────────────────────────────────────────────
   const fetchEmployees = async () => {
     setLoadingEmp(true);
-    try { setEmployees(await hrService.listEmployees()); }
-    catch { setEmployees([]); }
-    finally { setLoadingEmp(false); }
+    try {
+      setEmployees(await hrService.listEmployees());
+    } catch {
+      setEmployees([]);
+    } finally {
+      setLoadingEmp(false);
+    }
   };
 
   // ── fetch appraisals ────────────────────────────────────────────────────────
@@ -153,67 +220,89 @@ export default function HRReports() {
     try {
       const res = await appraisalService.listByYear(appraisalYear, 0, 200);
       setAppraisals(res?.content || []);
-    } catch { setAppraisals([]); }
-    finally { setLoadingAppr(false); }
+    } catch {
+      setAppraisals([]);
+    } finally {
+      setLoadingAppr(false);
+    }
   };
 
-  useEffect(() => { fetchEmployees(); }, []);
-  useEffect(() => { if (tab === "appraisal") fetchAppraisals(); }, [tab, appraisalYear]);
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+  useEffect(() => {
+    if (tab === "appraisal") fetchAppraisals();
+  }, [tab, appraisalYear]);
 
   // ── workforce analytics ─────────────────────────────────────────────────────
-  const statusData    = useMemo(() => countBy(employees, (e) => e.status || "Unknown"),           [employees]);
-  const genderData    = useMemo(() => countBy(employees, (e) => e.gender || "Unknown"),            [employees]);
-  const deptData      = useMemo(() => countBy(employees, (e) => e.department || "Unassigned").slice(0, 8), [employees]);
-  const nationalityData = useMemo(() => countBy(employees, (e) => e.nationality || "Unknown").slice(0, 6), [employees]);
-  const roleData      = useMemo(() => countBy(employees, (e) => e.companyRole || e.designation || "Unknown").slice(0, 6), [employees]);
-  const newHires      = useMemo(() => employees.filter((e) => isWithinDays(e.joinDate, 30)),       [employees]);
+  const statusData = useMemo(
+    () => countBy(employees, (e) => e.status || "Unknown"),
+    [employees],
+  );
+  const genderData = useMemo(
+    () => countBy(employees, (e) => e.gender || "Unknown"),
+    [employees],
+  );
+  const deptData = useMemo(
+    () => countBy(employees, (e) => e.department || "Unassigned").slice(0, 8),
+    [employees],
+  );
+  const nationalityData = useMemo(
+    () => countBy(employees, (e) => e.nationality || "Unknown").slice(0, 6),
+    [employees],
+  );
+  const roleData = useMemo(
+    () =>
+      countBy(
+        employees,
+        (e) => e.companyRole || e.designation || "Unknown",
+      ).slice(0, 6),
+    [employees],
+  );
+  const newHires = useMemo(
+    () => employees.filter((e) => isWithinDays(e.joinDate, 30)),
+    [employees],
+  );
 
-  const activeCount   = employees.filter((e) => e.status === "Active").length;
+  const activeCount = employees.filter((e) => e.status === "Active").length;
   const inactiveCount = employees.filter((e) => e.status === "Inactive").length;
-  const onLeaveCount  = employees.filter((e) => e.status === "On Leave").length;
+  const onLeaveCount = employees.filter((e) => e.status === "On Leave").length;
 
   // ── appraisal analytics ─────────────────────────────────────────────────────
-  const appraisalStatusData = useMemo(() => countBy(appraisals, (a) => a.status || "Unknown"), [appraisals]);
+  const appraisalStatusData = useMemo(
+    () => countBy(appraisals, (a) => a.status || "Unknown"),
+    [appraisals],
+  );
 
   const APPR_STATUS_COLOR: Record<string, string> = {
-    LOCKED:           COLORS.emerald,
+    LOCKED: COLORS.emerald,
     MANAGER_REVIEWED: COLORS.blue,
-    SELF_SUBMITTED:   COLORS.amber,
-    draft:            COLORS.slate,
+    SELF_SUBMITTED: COLORS.amber,
+    draft: COLORS.slate,
   };
 
   // ── render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-5 p-5 bg-slate-50/60 min-h-screen">
-
+    <div className="space-y-5 p-6 bg-slate-50/60 min-h-screen">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 px-6 py-6 shadow-lg">
-        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-8 left-1/4 h-32 w-32 rounded-full bg-blue-400/20 blur-2xl" />
-        <div className="relative flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
-              <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
-            </Button>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner">
-              <BarChart3 className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white leading-tight">HR Reports & Analytics</h1>
-              <p className="text-xs text-blue-100 mt-0.5">
-                {company?.companyName} · {employees.length} employees
-              </p>
-            </div>
-          </div>
+
+      <PageHeader
+        title="HR Reports & Analytics"
+        description={`${company?.companyName} · ${employees.length} employees`}
+        variant="default"
+        icon={<BarChart3 className="w-6 h-6" />}
+        actions={
           <button
-            onClick={() => { fetchEmployees(); }}
+            onClick={() => {
+              fetchEmployees();
+            }}
             className="inline-flex items-center gap-2 rounded-lg bg-white/15 border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tab bar */}
       <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm w-fit">
@@ -235,35 +324,79 @@ export default function HRReports() {
       </div>
 
       {/* ── WORKFORCE TAB ── */}
-      {tab === "workforce" && (
-        loadingEmp ? (
+      {tab === "workforce" &&
+        (loadingEmp ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
           </div>
         ) : (
           <div className="space-y-5">
-
             {/* KPI cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <StatCard label="Total Employees"  value={employees.length} icon={Users}     color="bg-gradient-to-br from-violet-500 to-indigo-600" />
-              <StatCard label="Active"           value={activeCount}      icon={UserCheck}  color="bg-gradient-to-br from-emerald-500 to-teal-600"  sub={`${employees.length ? Math.round((activeCount/employees.length)*100) : 0}% of total`} />
-              <StatCard label="Inactive"         value={inactiveCount}    icon={UserX}      color="bg-gradient-to-br from-slate-400 to-slate-600"    />
-              <StatCard label="On Leave"         value={onLeaveCount}     icon={Clock}      color="bg-gradient-to-br from-amber-500 to-orange-600"   />
-              <StatCard label="New Hires (30d)"  value={newHires.length}  icon={TrendingUp} color="bg-gradient-to-br from-blue-500 to-sky-600"       trend={newHires.length > 0 ? `+${newHires.length} this month` : undefined} />
+              <StatCard
+                label="Total Employees"
+                value={employees.length}
+                icon={Users}
+                color="bg-gradient-to-br from-violet-500 to-indigo-600"
+              />
+              <StatCard
+                label="Active"
+                value={activeCount}
+                icon={UserCheck}
+                color="bg-gradient-to-br from-emerald-500 to-teal-600"
+                sub={`${employees.length ? Math.round((activeCount / employees.length) * 100) : 0}% of total`}
+              />
+              <StatCard
+                label="Inactive"
+                value={inactiveCount}
+                icon={UserX}
+                color="bg-gradient-to-br from-slate-400 to-slate-600"
+              />
+              <StatCard
+                label="On Leave"
+                value={onLeaveCount}
+                icon={Clock}
+                color="bg-gradient-to-br from-amber-500 to-orange-600"
+              />
+              <StatCard
+                label="New Hires (30d)"
+                value={newHires.length}
+                icon={TrendingUp}
+                color="bg-gradient-to-br from-blue-500 to-sky-600"
+                trend={
+                  newHires.length > 0
+                    ? `+${newHires.length} this month`
+                    : undefined
+                }
+              />
             </div>
 
             {/* Row 1: Status pie + Gender bars */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
               {/* Status distribution */}
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Users} label="Employee Status" color="text-violet-600" />
+                <SectionTitle
+                  icon={Users}
+                  label="Employee Status"
+                  color="text-violet-600"
+                />
                 <div className="flex items-center gap-6">
                   <ResponsiveContainer width="50%" height={180}>
                     <PieChart>
-                      <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+                      <Pie
+                        data={statusData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={70}
+                        innerRadius={40}
+                      >
                         {statusData.map((entry) => (
-                          <Cell key={entry.name} fill={STATUS_COLOR[entry.name] || COLORS.slate} />
+                          <Cell
+                            key={entry.name}
+                            fill={STATUS_COLOR[entry.name] || COLORS.slate}
+                          />
                         ))}
                       </Pie>
                       <Tooltip content={<CUSTOM_TOOLTIP />} />
@@ -272,9 +405,19 @@ export default function HRReports() {
                   <div className="flex-1 space-y-2.5">
                     {statusData.map((s) => (
                       <div key={s.name} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[s.name] || COLORS.slate }} />
-                        <span className="text-sm text-slate-700 flex-1">{s.name}</span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">{s.value}</span>
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{
+                            backgroundColor:
+                              STATUS_COLOR[s.name] || COLORS.slate,
+                          }}
+                        />
+                        <span className="text-sm text-slate-700 flex-1">
+                          {s.name}
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 tabular-nums">
+                          {s.value}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -283,13 +426,28 @@ export default function HRReports() {
 
               {/* Gender distribution */}
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Users} label="Gender Distribution" color="text-blue-600" />
+                <SectionTitle
+                  icon={Users}
+                  label="Gender Distribution"
+                  color="text-blue-600"
+                />
                 <div className="flex items-center gap-4">
                   <ResponsiveContainer width="50%" height={180}>
                     <PieChart>
-                      <Pie data={genderData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+                      <Pie
+                        data={genderData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={70}
+                        innerRadius={40}
+                      >
                         {genderData.map((entry, i) => (
-                          <Cell key={entry.name} fill={PALETTE[i % PALETTE.length]} />
+                          <Cell
+                            key={entry.name}
+                            fill={PALETTE[i % PALETTE.length]}
+                          />
                         ))}
                       </Pie>
                       <Tooltip content={<CUSTOM_TOOLTIP />} />
@@ -298,9 +456,18 @@ export default function HRReports() {
                   <div className="flex-1 space-y-2.5">
                     {genderData.map((g, i) => (
                       <div key={g.name} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PALETTE[i % PALETTE.length] }} />
-                        <span className="text-sm text-slate-700 flex-1">{g.name}</span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">{g.value}</span>
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{
+                            backgroundColor: PALETTE[i % PALETTE.length],
+                          }}
+                        />
+                        <span className="text-sm text-slate-700 flex-1">
+                          {g.name}
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 tabular-nums">
+                          {g.value}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -311,16 +478,30 @@ export default function HRReports() {
             {/* New hires table */}
             {newHires.length > 0 && (
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={TrendingUp} label="Recent Hires (Last 30 Days)" color="text-emerald-600" />
+                <SectionTitle
+                  icon={TrendingUp}
+                  label="Recent Hires (Last 30 Days)"
+                  color="text-emerald-600"
+                />
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100">
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Name</th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Department</th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Role</th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Join Date</th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Name
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Department
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Role
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Join Date
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Status
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -329,18 +510,28 @@ export default function HRReports() {
                           <td className="py-2.5 font-medium text-slate-800">
                             {e.firstName} {e.lastName}
                           </td>
-                          <td className="py-2.5 text-slate-500">{e.department || "—"}</td>
-                          <td className="py-2.5 text-slate-500">{e.companyRole || e.designation || "—"}</td>
+                          <td className="py-2.5 text-slate-500">
+                            {e.department || "—"}
+                          </td>
+                          <td className="py-2.5 text-slate-500">
+                            {e.companyRole || e.designation || "—"}
+                          </td>
                           <td className="py-2.5 text-slate-500 tabular-nums">
-                            {e.joinDate ? new Date(e.joinDate).toLocaleDateString() : "—"}
+                            {e.joinDate
+                              ? new Date(e.joinDate).toLocaleDateString()
+                              : "—"}
                           </td>
                           <td className="py-2.5">
-                            <span className={cn(
-                              "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                              e.status === "Active"   ? "bg-emerald-50 text-emerald-700"
-                              : e.status === "On Leave" ? "bg-amber-50 text-amber-700"
-                              : "bg-slate-100 text-slate-600"
-                            )}>
+                            <span
+                              className={cn(
+                                "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                e.status === "Active"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : e.status === "On Leave"
+                                    ? "bg-amber-50 text-amber-700"
+                                    : "bg-slate-100 text-slate-600",
+                              )}
+                            >
                               {e.status}
                             </span>
                           </td>
@@ -352,33 +543,74 @@ export default function HRReports() {
               </div>
             )}
           </div>
-        )
-      )}
+        ))}
 
       {/* ── DEPARTMENT HEADCOUNT TAB ── */}
-      {tab === "department" && (
-        loadingEmp ? (
+      {tab === "department" &&
+        (loadingEmp ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
           </div>
         ) : (
           <div className="space-y-5">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Employees" value={employees.length} icon={Users}     color="bg-gradient-to-br from-violet-500 to-indigo-600" />
-              <StatCard label="Departments"     value={deptData.length} icon={Building2} color="bg-gradient-to-br from-blue-500 to-sky-600" />
-              <StatCard label="Active"          value={employees.filter((e) => e.status === "Active").length} icon={UserCheck} color="bg-gradient-to-br from-emerald-500 to-teal-600" />
-              <StatCard label="On Leave"        value={employees.filter((e) => e.status === "On Leave").length} icon={Clock} color="bg-gradient-to-br from-amber-500 to-orange-600" />
+              <StatCard
+                label="Total Employees"
+                value={employees.length}
+                icon={Users}
+                color="bg-gradient-to-br from-violet-500 to-indigo-600"
+              />
+              <StatCard
+                label="Departments"
+                value={deptData.length}
+                icon={Building2}
+                color="bg-gradient-to-br from-blue-500 to-sky-600"
+              />
+              <StatCard
+                label="Active"
+                value={employees.filter((e) => e.status === "Active").length}
+                icon={UserCheck}
+                color="bg-gradient-to-br from-emerald-500 to-teal-600"
+              />
+              <StatCard
+                label="On Leave"
+                value={employees.filter((e) => e.status === "On Leave").length}
+                icon={Clock}
+                color="bg-gradient-to-br from-amber-500 to-orange-600"
+              />
             </div>
 
             <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <SectionTitle icon={Building2} label="Headcount by Department" color="text-indigo-600" />
+              <SectionTitle
+                icon={Building2}
+                label="Headcount by Department"
+                color="text-indigo-600"
+              />
               {deptData.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-12">No department data available</p>
+                <p className="text-sm text-slate-400 text-center py-12">
+                  No department data available
+                </p>
               ) : (
-                <ResponsiveContainer width="100%" height={Math.max(260, deptData.length * 42)}>
-                  <BarChart data={deptData} layout="vertical" margin={{ left: 16, right: 40, top: 4, bottom: 4 }}>
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} width={130} />
+                <ResponsiveContainer
+                  width="100%"
+                  height={Math.max(260, deptData.length * 42)}
+                >
+                  <BarChart
+                    data={deptData}
+                    layout="vertical"
+                    margin={{ left: 16, right: 40, top: 4, bottom: 4 }}
+                  >
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 12, fill: "#64748b" }}
+                      width={130}
+                    />
                     <Tooltip content={<CUSTOM_TOOLTIP />} />
                     <Bar dataKey="value" name="Employees" radius={[0, 8, 8, 0]}>
                       {deptData.map((_, i) => (
@@ -392,21 +624,30 @@ export default function HRReports() {
 
             {deptData.length > 0 && (
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Building2} label="Department Breakdown" color="text-violet-600" />
+                <SectionTitle
+                  icon={Building2}
+                  label="Department Breakdown"
+                  color="text-violet-600"
+                />
                 <div className="space-y-3">
                   {deptData.map((d, i) => (
-                    <HBar key={d.name} label={d.name} value={d.value} total={employees.length} color={PALETTE[i % PALETTE.length]} />
+                    <HBar
+                      key={d.name}
+                      label={d.name}
+                      value={d.value}
+                      total={employees.length}
+                      color={PALETTE[i % PALETTE.length]}
+                    />
                   ))}
                 </div>
               </div>
             )}
           </div>
-        )
-      )}
+        ))}
 
       {/* ── WORKFORCE BREAKDOWN TAB ── */}
-      {tab === "breakdown" && (
-        loadingEmp ? (
+      {tab === "breakdown" &&
+        (loadingEmp ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
           </div>
@@ -414,13 +655,28 @@ export default function HRReports() {
           <div className="space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Users} label="Employee Status" color="text-violet-600" />
+                <SectionTitle
+                  icon={Users}
+                  label="Employee Status"
+                  color="text-violet-600"
+                />
                 <div className="flex items-center gap-6">
                   <ResponsiveContainer width="50%" height={180}>
                     <PieChart>
-                      <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+                      <Pie
+                        data={statusData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={70}
+                        innerRadius={40}
+                      >
                         {statusData.map((entry) => (
-                          <Cell key={entry.name} fill={STATUS_COLOR[entry.name] || COLORS.slate} />
+                          <Cell
+                            key={entry.name}
+                            fill={STATUS_COLOR[entry.name] || COLORS.slate}
+                          />
                         ))}
                       </Pie>
                       <Tooltip content={<CUSTOM_TOOLTIP />} />
@@ -429,9 +685,19 @@ export default function HRReports() {
                   <div className="flex-1 space-y-2.5">
                     {statusData.map((s) => (
                       <div key={s.name} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOR[s.name] || COLORS.slate }} />
-                        <span className="text-sm text-slate-700 flex-1">{s.name}</span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">{s.value}</span>
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{
+                            backgroundColor:
+                              STATUS_COLOR[s.name] || COLORS.slate,
+                          }}
+                        />
+                        <span className="text-sm text-slate-700 flex-1">
+                          {s.name}
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 tabular-nums">
+                          {s.value}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -439,13 +705,28 @@ export default function HRReports() {
               </div>
 
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Users} label="Gender Distribution" color="text-blue-600" />
+                <SectionTitle
+                  icon={Users}
+                  label="Gender Distribution"
+                  color="text-blue-600"
+                />
                 <div className="flex items-center gap-4">
                   <ResponsiveContainer width="50%" height={180}>
                     <PieChart>
-                      <Pie data={genderData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={40}>
+                      <Pie
+                        data={genderData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={70}
+                        innerRadius={40}
+                      >
                         {genderData.map((entry, i) => (
-                          <Cell key={entry.name} fill={PALETTE[i % PALETTE.length]} />
+                          <Cell
+                            key={entry.name}
+                            fill={PALETTE[i % PALETTE.length]}
+                          />
                         ))}
                       </Pie>
                       <Tooltip content={<CUSTOM_TOOLTIP />} />
@@ -454,9 +735,18 @@ export default function HRReports() {
                   <div className="flex-1 space-y-2.5">
                     {genderData.map((g, i) => (
                       <div key={g.name} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: PALETTE[i % PALETTE.length] }} />
-                        <span className="text-sm text-slate-700 flex-1">{g.name}</span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">{g.value}</span>
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{
+                            backgroundColor: PALETTE[i % PALETTE.length],
+                          }}
+                        />
+                        <span className="text-sm text-slate-700 flex-1">
+                          {g.name}
+                        </span>
+                        <span className="text-sm font-bold text-slate-800 tabular-nums">
+                          {g.value}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -466,43 +756,69 @@ export default function HRReports() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Globe} label="Top Nationalities" color="text-sky-600" />
+                <SectionTitle
+                  icon={Globe}
+                  label="Top Nationalities"
+                  color="text-sky-600"
+                />
                 {nationalityData.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">No nationality data</p>
+                  <p className="text-sm text-slate-400 text-center py-8">
+                    No nationality data
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {nationalityData.map((n, i) => (
-                      <HBar key={n.name} label={n.name} value={n.value} total={employees.length} color={PALETTE[i % PALETTE.length]} />
+                      <HBar
+                        key={n.name}
+                        label={n.name}
+                        value={n.value}
+                        total={employees.length}
+                        color={PALETTE[i % PALETTE.length]}
+                      />
                     ))}
                   </div>
                 )}
               </div>
 
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle icon={Briefcase} label="Role Distribution" color="text-violet-600" />
+                <SectionTitle
+                  icon={Briefcase}
+                  label="Role Distribution"
+                  color="text-violet-600"
+                />
                 {roleData.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">No role data</p>
+                  <p className="text-sm text-slate-400 text-center py-8">
+                    No role data
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {roleData.map((r, i) => (
-                      <HBar key={r.name} label={r.name} value={r.value} total={employees.length} color={PALETTE[(i + 4) % PALETTE.length]} />
+                      <HBar
+                        key={r.name}
+                        label={r.name}
+                        value={r.value}
+                        total={employees.length}
+                        color={PALETTE[(i + 4) % PALETTE.length]}
+                      />
                     ))}
                   </div>
                 )}
               </div>
             </div>
           </div>
-        )
-      )}
+        ))}
 
       {/* ── APPRAISAL / PERFORMANCE TAB ── */}
       {tab === "appraisal" && (
         <div className="space-y-5">
-
           {/* Year selector */}
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-600">Year:</span>
-            {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map((y) => (
+            {[
+              new Date().getFullYear(),
+              new Date().getFullYear() - 1,
+              new Date().getFullYear() - 2,
+            ].map((y) => (
               <button
                 key={y}
                 onClick={() => setAppraisalYear(y)}
@@ -510,7 +826,7 @@ export default function HRReports() {
                   "rounded-lg px-4 py-1.5 text-sm font-semibold transition-all",
                   appraisalYear === y
                     ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md"
-                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
                 )}
               >
                 {y}
@@ -526,29 +842,71 @@ export default function HRReports() {
             <>
               {/* KPI row */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label="Total Appraisals"   value={appraisals.length}  icon={Award}    color="bg-gradient-to-br from-violet-500 to-indigo-600" />
-                <StatCard label="Completed"          value={appraisals.filter((a) => a.status === "LOCKED").length} icon={UserCheck} color="bg-gradient-to-br from-emerald-500 to-teal-600" />
-                <StatCard label="In Progress"        value={appraisals.filter((a) => ["SELF_SUBMITTED","MANAGER_REVIEWED"].includes(a.status)).length} icon={Clock} color="bg-gradient-to-br from-blue-500 to-sky-600" />
-                <StatCard label="Draft"              value={appraisals.filter((a) => a.status === "draft").length} icon={UserX} color="bg-gradient-to-br from-slate-400 to-slate-500" />
+                <StatCard
+                  label="Total Appraisals"
+                  value={appraisals.length}
+                  icon={Award}
+                  color="bg-gradient-to-br from-violet-500 to-indigo-600"
+                />
+                <StatCard
+                  label="Completed"
+                  value={appraisals.filter((a) => a.status === "LOCKED").length}
+                  icon={UserCheck}
+                  color="bg-gradient-to-br from-emerald-500 to-teal-600"
+                />
+                <StatCard
+                  label="In Progress"
+                  value={
+                    appraisals.filter((a) =>
+                      ["SELF_SUBMITTED", "MANAGER_REVIEWED"].includes(a.status),
+                    ).length
+                  }
+                  icon={Clock}
+                  color="bg-gradient-to-br from-blue-500 to-sky-600"
+                />
+                <StatCard
+                  label="Draft"
+                  value={appraisals.filter((a) => a.status === "draft").length}
+                  icon={UserX}
+                  color="bg-gradient-to-br from-slate-400 to-slate-500"
+                />
               </div>
 
               {appraisals.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 rounded-2xl border border-slate-100 bg-white shadow-sm gap-3">
                   <Award className="h-12 w-12 text-slate-200" />
-                  <p className="text-slate-400 font-medium">No appraisals found for {appraisalYear}</p>
+                  <p className="text-slate-400 font-medium">
+                    No appraisals found for {appraisalYear}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
                   {/* Status pie */}
                   <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                    <SectionTitle icon={Award} label="Appraisal Status Breakdown" color="text-violet-600" />
+                    <SectionTitle
+                      icon={Award}
+                      label="Appraisal Status Breakdown"
+                      color="text-violet-600"
+                    />
                     <div className="flex items-center gap-6">
                       <ResponsiveContainer width="50%" height={200}>
                         <PieChart>
-                          <Pie data={appraisalStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={48}>
+                          <Pie
+                            data={appraisalStatusData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            innerRadius={48}
+                          >
                             {appraisalStatusData.map((entry) => (
-                              <Cell key={entry.name} fill={APPR_STATUS_COLOR[entry.name] || COLORS.slate} />
+                              <Cell
+                                key={entry.name}
+                                fill={
+                                  APPR_STATUS_COLOR[entry.name] || COLORS.slate
+                                }
+                              />
                             ))}
                           </Pie>
                           <Tooltip content={<CUSTOM_TOOLTIP />} />
@@ -557,9 +915,19 @@ export default function HRReports() {
                       <div className="flex-1 space-y-3">
                         {appraisalStatusData.map((s) => (
                           <div key={s.name} className="flex items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: APPR_STATUS_COLOR[s.name] || COLORS.slate }} />
-                            <span className="text-xs text-slate-600 flex-1 capitalize">{s.name.replace(/_/g, " ").toLowerCase()}</span>
-                            <span className="text-sm font-bold text-slate-800 tabular-nums">{s.value}</span>
+                            <span
+                              className="h-2.5 w-2.5 rounded-full shrink-0"
+                              style={{
+                                backgroundColor:
+                                  APPR_STATUS_COLOR[s.name] || COLORS.slate,
+                              }}
+                            />
+                            <span className="text-xs text-slate-600 flex-1 capitalize">
+                              {s.name.replace(/_/g, " ").toLowerCase()}
+                            </span>
+                            <span className="text-sm font-bold text-slate-800 tabular-nums">
+                              {s.value}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -568,27 +936,62 @@ export default function HRReports() {
 
                   {/* Completion rate */}
                   <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                    <SectionTitle icon={TrendingUp} label="Completion Rate" color="text-emerald-600" />
+                    <SectionTitle
+                      icon={TrendingUp}
+                      label="Completion Rate"
+                      color="text-emerald-600"
+                    />
                     <div className="flex flex-col items-center justify-center h-40 gap-3">
                       {(() => {
-                        const completed = appraisals.filter((a) => a.status === "LOCKED").length;
-                        const pct = appraisals.length > 0 ? Math.round((completed / appraisals.length) * 100) : 0;
+                        const completed = appraisals.filter(
+                          (a) => a.status === "LOCKED",
+                        ).length;
+                        const pct =
+                          appraisals.length > 0
+                            ? Math.round((completed / appraisals.length) * 100)
+                            : 0;
                         return (
                           <>
                             <div className="relative h-28 w-28">
-                              <svg viewBox="0 0 36 36" className="h-28 w-28 -rotate-90">
-                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f1f5f9" strokeWidth="2.5" />
-                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" strokeWidth="2.5"
-                                  strokeDasharray={`${pct} ${100 - pct}`} strokeLinecap="round"
-                                  style={{ transition: "stroke-dasharray 0.6s ease" }}
+                              <svg
+                                viewBox="0 0 36 36"
+                                className="h-28 w-28 -rotate-90"
+                              >
+                                <circle
+                                  cx="18"
+                                  cy="18"
+                                  r="15.9"
+                                  fill="none"
+                                  stroke="#f1f5f9"
+                                  strokeWidth="2.5"
+                                />
+                                <circle
+                                  cx="18"
+                                  cy="18"
+                                  r="15.9"
+                                  fill="none"
+                                  stroke="#10b981"
+                                  strokeWidth="2.5"
+                                  strokeDasharray={`${pct} ${100 - pct}`}
+                                  strokeLinecap="round"
+                                  style={{
+                                    transition: "stroke-dasharray 0.6s ease",
+                                  }}
                                 />
                               </svg>
                               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-2xl font-bold text-slate-800">{pct}%</span>
-                                <span className="text-[10px] text-slate-400 font-medium">complete</span>
+                                <span className="text-2xl font-bold text-slate-800">
+                                  {pct}%
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  complete
+                                </span>
                               </div>
                             </div>
-                            <p className="text-xs text-slate-500">{completed} of {appraisals.length} appraisals finalised</p>
+                            <p className="text-xs text-slate-500">
+                              {completed} of {appraisals.length} appraisals
+                              finalised
+                            </p>
                           </>
                         );
                       })()}

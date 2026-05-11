@@ -3,12 +3,14 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
+import type { ReactNode } from "react";
 
 export interface TabItem<
   TProps extends Record<string, unknown> = Record<string, unknown>,
 > {
   value: string;
   label: string;
+  icon?: ReactNode;
   element?: React.ReactNode | ((props: TProps) => React.ReactNode);
 }
 
@@ -36,7 +38,7 @@ export const AppTab = <TProps extends Record<string, unknown>>({
   backTo,
 }: AppTabProps<TProps>) => {
   return (
-    <div className={className ?? "p-6"}>
+    <div className={className ?? "p-2"}>
       {title && (
         <div
           className={`mb-2 text-white rounded-lg p-6 px-10 ${variant === "primary" ? "bg-primary-gradient" : variant === "success" ? "bg-success-gradient" : variant === "warning" ? "bg-warning-gradient" : "bg-danger-gradient"}`}
@@ -68,7 +70,7 @@ export const AppTab = <TProps extends Record<string, unknown>>({
 
       <Tabs
         defaultValue={defaultValue ?? tabs[0]?.value}
-        className="w-full pt-4"
+        className="w-full pt-2"
       >
         <div className="w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
           <TabsList className="inline-flex min-w-max w-max flex-nowrap">
@@ -76,8 +78,13 @@ export const AppTab = <TProps extends Record<string, unknown>>({
               <StyledTabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="flex-none shrink-0 whitespace-nowrap"
+                className="flex items-center gap-2 shrink-0 whitespace-nowrap"
               >
+                {tab.icon && (
+                  <div className="size-4 rounded-full flex items-center justify-center">
+                    {tab.icon}
+                  </div>
+                )}
                 {tab.label}
               </StyledTabsTrigger>
             ))}

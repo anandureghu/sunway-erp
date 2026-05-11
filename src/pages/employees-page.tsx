@@ -18,6 +18,7 @@ import { AddEmployeeModal } from "@/context/employee-selection";
 import { useAuth } from "@/context/AuthContext";
 import { UserPlus, Users2, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/PageHeader";
 
 interface EmployeeTableProps {
   data: Employee[];
@@ -353,15 +354,13 @@ export default function EmployeesPage() {
       )}
 
       {/* ── Page header banner ──────────────────────────────────────────── */}
-      <div className="bg-primary-gradient text-white rounded-lg p-6 px-10">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-bold">Employee Overview</h1>
-            <p className="text-sm text-white/70 font-light mt-1">
-              Manage and monitor your organisation's workforce
-            </p>
-          </div>
-          {showAdd && (
+      <PageHeader
+        title="Employee Overview"
+        description="Manage and monitor your organisation's workforce"
+        variant="default"
+        icon={<Users2 className="w-6 h-6" />}
+        actions={
+          showAdd && (
             <Button
               onClick={() => setShowAddEmployee(true)}
               className="gap-2 shrink-0 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm shadow-sm transition-all"
@@ -369,9 +368,9 @@ export default function EmployeesPage() {
               <UserPlus className="h-4 w-4" />
               Add Employee
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* ── KPI stat cards ───────────────────────────────────────────────── */}
       <EmployeeStats

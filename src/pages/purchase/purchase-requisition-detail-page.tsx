@@ -117,7 +117,7 @@ export default function PurchaseRequisitionDetailPage() {
         action:
           updated.createdPurchaseOrderId != null
             ? {
-                label: "Open PO",
+                label: "Open Purchase Order",
                 onClick: () =>
                   navigate(
                     `/inventory/purchase/orders/${updated.createdPurchaseOrderId}`,

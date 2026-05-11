@@ -22,11 +22,11 @@ import { salesOrders, invoices, dispatches } from "@/lib/sales-data";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
-import { SalesPageHeader } from "./components/sales-page-header";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { PageHeader } from "@/components/PageHeader";
 
 type ActionCard = {
   title: string;
@@ -138,9 +138,11 @@ export default function SalesLandingPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader
         title="Modern Sales Operations"
         description="Create, Manage and Track Sales Orders"
+        variant="darkBlue"
+        icon={<ShoppingCart className="w-6 h-6" />}
         actions={
           <>
             <Button
