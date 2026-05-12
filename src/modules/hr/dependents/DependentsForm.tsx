@@ -158,10 +158,6 @@ export function DependentsForm() {
     setEditingId("");
   }, []);
 
-  const handleEdit = useCallback((dependent: Dependent) => {
-    setEditingId(dependent.id);
-  }, []);
-
   const navigate = useNavigate();
 
   const handleSave = useCallback(
@@ -631,12 +627,12 @@ export function DependentsForm() {
                             )}
                           </div>
                         </div>
-                        <div className="absolute top-0 right-0 flex gap-2 w-48">
+                        <div className="absolute top-0 right-0 flex gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingId(dependent.id)}
-                            className="flex items-center gap-1 rounded-lg flex-1"
+                            className="flex items-center gap-1 rounded-lg"
                           >
                             <Eye className="h-4 w-4" />
                             View
@@ -644,16 +640,8 @@ export function DependentsForm() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEdit(dependent)}
-                            className="rounded-lg flex-1"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => handleDelete(dependent.id)}
-                            className="text-red-600 rounded-lg flex-1"
+                            className="text-red-600 rounded-lg"
                           >
                             <Trash2 className="h-4 w-4" />
                             Delete
@@ -752,16 +740,6 @@ export function DependentsForm() {
                             className="rounded-lg border-slate-300"
                           >
                             Close
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setViewingId(null);
-                              handleEdit(dependent);
-                            }}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg"
-                          >
-                            Edit Dependent
                           </Button>
                         </div>
                       </div>

@@ -225,28 +225,33 @@ export default function PreviousExperiencesForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-blue-600" />
-              Work Experience
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">Manage previous employment history</p>
+    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
+      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
+        <div className="flex items-center justify-between gap-4 px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
+              <Briefcase className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight">Previous Experiences</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Manage previous employment history
+              </p>
+            </div>
           </div>
           <Button
             onClick={handleAdd}
-            className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 px-6 py-3 rounded-xl"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             Add Experience
           </Button>
         </div>
       </div>
 
       {/* Employment Details Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
           <Building className="h-4 w-4 text-blue-600" />
           Employment Details

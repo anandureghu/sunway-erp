@@ -4,8 +4,6 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -15,18 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { purchaseOrders } from "@/lib/purchase-data";
 import {
   RECEIVE_ITEM_SCHEMA,
   type ReceiveItemFormData,
 } from "@/schema/inventory";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { receiveItemStock } from "@/service/inventoryService";
+import { listPurchaseOrders } from "@/service/purchaseFlowService";
+import type { PurchaseOrder } from "@/types/purchase";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { PackageCheck, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import CreateItemForm from "../../item-form";
@@ -81,7 +80,22 @@ export function ReceiveItemTab({
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [showCreateItemDialog, setShowCreateItemDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const selectedWarehouseId = watch("warehouseId");
+
+  useEffect(() => {
+    let cancelled = false;
+    listPurchaseOrders()
+      .then((data) => {
+        if (!cancelled) setPurchaseOrders(data);
+      })
+      .catch(() => {
+        if (!cancelled) setPurchaseOrders([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const searchResults = useMemo(
     () => filterItemsByQuery(items, itemSearchQuery),
@@ -298,7 +312,7 @@ export function ReceiveItemTab({
                     onValueChange={(value) => setValue("referenceNo", value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select PO number" />
+                      <SelectValue placeholder="Select Purchase Order number" />
                     </SelectTrigger>
                     <SelectContent>
                       {purchaseOrders
@@ -405,21 +419,48 @@ export function ReceiveItemTab({
         open={showCreateItemDialog}
         onOpenChange={setShowCreateItemDialog}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Item</DialogTitle>
-            <DialogDescription>
-              Add a new inventory item with all required details.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateItemForm
-            onSuccess={(newItem) => {
-              handleItemSelect(newItem);
-              setShowCreateItemDialog(false);
-              setItemSearchQuery("");
-            }}
-            onCancel={() => setShowCreateItemDialog(false)}
-          />
+        <DialogContent
+          className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
+          style={{ maxWidth: 760, maxHeight: "92vh", width: "calc(100vw - 32px)" }}
+        >
+          {/* ── Top bar ── */}
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold tracking-wide transition-all duration-300 border-2 border-white/20 bg-blue-100 text-blue-600">
+                <PackageCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-[15px] font-semibold leading-tight text-white">
+                  Create New Item
+                </DialogTitle>
+                <p className="mt-0.5 text-[12px] text-slate-300">
+                  Add a new inventory item with all required details
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowCreateItemDialog(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* ── Body ── */}
+          <div
+            className="overflow-y-auto bg-white px-6 py-5"
+            style={{ maxHeight: "calc(92vh - 132px)" }}
+          >
+            <CreateItemForm
+              onSuccess={(newItem) => {
+                handleItemSelect(newItem);
+                setShowCreateItemDialog(false);
+                setItemSearchQuery("");
+              }}
+              onCancel={() => setShowCreateItemDialog(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

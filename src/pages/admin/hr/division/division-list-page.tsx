@@ -5,11 +5,12 @@ import { apiClient } from "@/service/apiClient";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Grid2x2, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { DivisionResponseDTO } from "@/types/division";
 import { DivisionDialog } from "./division-dialog";
 import { getDivisionColumns } from "@/lib/columns/division-listing-admin";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function DivisionListPage() {
   const [divisions, setDivisions] = useState<DivisionResponseDTO[]>([]);
@@ -71,9 +72,12 @@ export default function DivisionListPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Divisions</h1>
-      </div>
+      <PageHeader
+        title="Divisions"
+        description="Manage your divisions"
+        variant="darkBlue"
+        icon={<Grid2x2 className="w-6 h-6" />}
+      />
 
       <Card>
         <CardHeader>

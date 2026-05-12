@@ -1,7 +1,7 @@
 import { DataTable } from "@/components/ui/data-table";
 import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -32,13 +32,50 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+// Section card
+function SectionCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
+          {icon}
+        </div>
+        <span className="text-[13px] font-semibold text-slate-700">{title}</span>
+      </div>
+      <div className="p-5 space-y-5">{children}</div>
+    </div>
+  );
+}
+
+// Field wrapper
+function F({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+        {label}
+        {required && <span className="ml-0.5 text-rose-400">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const icls =
+  "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
+
 const WarehouseMaster = () => {
   // Warehouses management state
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
-    null,
-  );
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
   // TODO: set loading and error states properly
   const [, setLoading] = useState(true);
@@ -294,17 +331,17 @@ const WarehouseMaster = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search warehouses..."
-            className="pl-10"
+            className="pl-10 rounded-xl border-slate-200 text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <div className="flex gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] rounded-xl border-slate-200 text-[13px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl border-slate-200 shadow-lg">
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
@@ -315,179 +352,167 @@ const WarehouseMaster = () => {
 
       {/* Warehouse Form */}
       {showWarehouseForm && (
-        <Card className="mb-5">
-          <CardHeader>
-            <CardTitle>
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+          {/* ── Form Header ── */}
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-orange-500">
+              <WarehouseIcon className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-[13px] font-semibold text-slate-700">
               {editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </span>
+          </div>
+
+          <div className="p-5">
             <form
               onSubmit={handleWarehouseSubmit(onWarehouseSubmit)}
-              className="space-y-4"
+              className="space-y-6"
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Warehouse Name <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    placeholder="Warehouse name"
-                    {...registerWarehouse("name")}
-                  />
-                  {warehouseErrors.name && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.name.message}
-                    </p>
-                  )}
-                </div>
+              {/* ── Section: Basic Information ── */}
+              <SectionCard
+                icon={<WarehouseIcon className="h-3.5 w-3.5 text-white" />}
+                title="Basic information"
+              >
+                <div className="grid grid-cols-2 gap-5">
+                  <F label="Warehouse Name" required>
+                    <Input
+                      placeholder="Warehouse name"
+                      {...registerWarehouse("name")}
+                      className={icls}
+                    />
+                    {warehouseErrors.name && (
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.name.message}
+                      </p>
+                    )}
+                  </F>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Status <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    onValueChange={(value) =>
-                      resetWarehouse({
-                        ...watchWarehouse(),
-                        status: value as "active" | "inactive",
-                      })
-                    }
-                    value={watchWarehouse("status")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {warehouseErrors.status && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.status.message}
-                    </p>
-                  )}
-                </div>
+                  <F label="Status" required>
+                    <Select
+                      onValueChange={(value) =>
+                        resetWarehouse({
+                          ...watchWarehouse(),
+                          status: value as "active" | "inactive",
+                        })
+                      }
+                      value={watchWarehouse("status")}
+                    >
+                      <SelectTrigger className={icls}>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {warehouseErrors.status && (
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.status.message}
+                      </p>
+                    )}
+                  </F>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">City</label>
-                  <Input placeholder="City" {...registerWarehouse("city")} />
-                  {warehouseErrors.city && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.city.message}
-                    </p>
-                  )}
-                </div>
+                  <F label="Phone">
+                    <Input placeholder="Phone" {...registerWarehouse("phone")} className={icls} />
+                    {warehouseErrors.phone && (
+                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.phone.message}</p>
+                    )}
+                  </F>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Street
-                  </label>
-                  <Input
-                    placeholder="Street"
-                    {...registerWarehouse("street")}
-                  />
-                  {warehouseErrors.street && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.street.message}
-                    </p>
-                  )}
+                  <F label="Contact Person Name">
+                    <Input
+                      placeholder="Contact Person Name"
+                      {...registerWarehouse("contactPersonName")}
+                      className={icls}
+                    />
+                    {warehouseErrors.contactPersonName && (
+                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.contactPersonName.message}</p>
+                    )}
+                  </F>
                 </div>
+              </SectionCard>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Country
-                  </label>
-                  <Input
-                    placeholder="Country"
-                    {...registerWarehouse("country")}
-                  />
-                  {warehouseErrors.country && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.country.message}
-                    </p>
-                  )}
+              {/* ── Section: Address ── */}
+              <SectionCard
+                icon={<WarehouseIcon className="h-3.5 w-3.5 text-white" />}
+                title="Address"
+              >
+                <div className="grid grid-cols-2 gap-5">
+                  <F label="Street">
+                    <Input placeholder="Street" {...registerWarehouse("street")} className={icls} />
+                    {warehouseErrors.street && (
+                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.street.message}</p>
+                    )}
+                  </F>
+
+                  <F label="City">
+                    <Input placeholder="City" {...registerWarehouse("city")} className={icls} />
+                    {warehouseErrors.city && (
+                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.city.message}</p>
+                    )}
+                  </F>
+
+                  <F label="Country">
+                    <Input placeholder="Country" {...registerWarehouse("country")} className={icls} />
+                    {warehouseErrors.country && (
+                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.country.message}</p>
+                    )}
+                  </F>
+
+                  <F label="Pin Code">
+                    <Input placeholder="Pin Code" {...registerWarehouse("pin")} className={icls} />
+                    {warehouseErrors.pin && (
+                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.pin.message}</p>
+                    )}
+                  </F>
                 </div>
+              </SectionCard>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Phone
-                  </label>
-                  <Input placeholder="Phone" {...registerWarehouse("phone")} />
-                  {warehouseErrors.phone && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.phone.message}
-                    </p>
-                  )}
-                </div>
+              {/* ── Section: Manager Assignment ── */}
+              <SectionCard
+                icon={<WarehouseIcon className="h-3.5 w-3.5 text-white" />}
+                title="Manager assignment"
+              >
+                <SelectEmployees
+                  value={watchWarehouse("manager")?.toString()}
+                  onChange={(v) =>
+                    resetWarehouse({
+                      ...watchWarehouse(),
+                      manager: Number(v),
+                    })
+                  }
+                  label=""
+                  placeholder="Select Manager"
+                />
+                {warehouseErrors.manager && (
+                  <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.manager.message}</p>
+                )}
+              </SectionCard>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Pin Code
-                  </label>
-                  <Input placeholder="Pin Code" {...registerWarehouse("pin")} />
-                  {warehouseErrors.pin && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.pin.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Contact Person Name
-                  </label>
-                  <Input
-                    placeholder="Contact Person Name"
-                    {...registerWarehouse("contactPersonName")}
-                  />
-                  {warehouseErrors.contactPersonName && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.contactPersonName.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <SelectEmployees
-                    value={watchWarehouse("manager")?.toString()}
-                    onChange={(v) =>
-                      resetWarehouse({
-                        ...watchWarehouse(),
-                        manager: Number(v),
-                      })
-                    }
-                    label="Manager"
-                    placeholder="Select Manager"
-                  />
-                  {warehouseErrors.manager && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {warehouseErrors.manager.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2">
+              {/* ── Footer ── */}
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => {
                     setShowWarehouseForm(false);
                     setEditingWarehouse(null);
                     resetWarehouse();
                   }}
+                  className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800"
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button
+                  type="submit"
+                  className="h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700"
+                >
                   {editingWarehouse ? "Update" : "Create"} Warehouse
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {paginatedWarehouses.length === 0 ? (

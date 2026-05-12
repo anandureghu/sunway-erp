@@ -25,6 +25,8 @@ import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
 import type { BankAccount } from "@/types/bank-account";
 import { toast } from "sonner";
+import { Banknote } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 const SCHEMA = z.object({
   defaultSalesDebitAccountId: z.string().optional(),
@@ -146,15 +148,18 @@ export default function DefaultAccountsSettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Default accounts</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          These values pre-fill sales orders, purchase requisitions, and sales
-          invoices. Customer and Supplier Payments may be blocked until required
-          defaults are set.
-        </p>
-      </div>
+    <div className="p-6 space-y-6">
+      <PageHeader
+        title="Default accounts"
+        description="These values pre-fill sales orders, purchase requisitions, and sales invoices. Customer and Supplier Payments may be blocked until required defaults are set."
+        variant="darkBlue"
+        icon={<Banknote className="w-6 h-6" />}
+        actions={
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>

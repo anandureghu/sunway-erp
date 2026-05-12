@@ -113,7 +113,7 @@ export default function PurchaseOrdersPage() {
       {
         label: "Open commitment",
         value: <CurrencyAmount amount={openCommitment} />,
-        hint: "Sum of open PO totals",
+        hint: "Sum of open Purchase Order totals",
         accent: "violet",
         icon: CircleDollarSign,
       },

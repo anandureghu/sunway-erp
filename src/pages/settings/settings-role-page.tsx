@@ -1,18 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  ArrowLeft,
-  Shield,
-  Plus,
-  Edit2,
-  Trash2,
-  Save,
-  Check,
-} from "lucide-react";
+import { Shield, Plus, Edit2, Trash2, Save, Check } from "lucide-react";
 import { roleService } from "@/service/roleService";
 import { useAuth } from "@/context/AuthContext";
+import { PageHeader } from "@/components/PageHeader";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -229,8 +221,6 @@ function RolesTab({ companyId }: { companyId: string }) {
   });
   const [saving, setSaving] = useState(false);
 
-  const navigate = useNavigate();
-
   // Fetch roles from API using roleService
   const fetchRoles = async () => {
     try {
@@ -317,33 +307,19 @@ function RolesTab({ companyId }: { companyId: string }) {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 m-0">
-              Company Roles
-            </h2>
-            <p className="text-sm text-slate-500 m-0 mt-1">
-              Create and manage roles for your company
-            </p>
-          </div>
-        </div>
-
-        <PrimaryBtn onClick={openAdd}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Create Role
-        </PrimaryBtn>
-      </div>
+    <div className="space-y-6 w-full">
+      <PageHeader
+        title="Company Roles"
+        description="Create and manage roles for your company"
+        variant="darkBlue"
+        icon={<Shield className="w-6 h-6" />}
+        actions={
+          <PrimaryBtn onClick={openAdd}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Create Role
+          </PrimaryBtn>
+        }
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -492,18 +468,9 @@ export default function SettingsRolesPage() {
   const companyId = id || company?.id?.toString() || "";
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Page Header */}
-      <div className="bg-white border-b border-slate-200 px-6 md:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="py-5 flex items-center gap-3 mb-4"></div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-slate-50 font-sans p-6">
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-6 md:px-8 py-7">
-        <RolesTab companyId={companyId} />
-      </div>
+      <RolesTab companyId={companyId} />
     </div>
   );
 }

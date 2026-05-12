@@ -51,7 +51,7 @@ import {
   getStatusDisplay,
   getTrackingHistory,
 } from "./components/delivery-tracking-utils";
-import { SalesPageHeader } from "./components/sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -380,10 +380,11 @@ export default function DeliveryTrackingPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader
         title="Delivery Tracking"
         description="Monitor shipment movement, update milestones, and confirm customer delivery."
         backHref="/inventory/sales"
+        variant="darkBlue"
       />
 
       {!loading && !loadError ? <KpiSummaryStrip items={trackingKpis} /> : null}

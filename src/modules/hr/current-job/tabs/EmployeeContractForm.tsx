@@ -547,51 +547,56 @@ export default function EmployeeContractForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="space-y-4">
+    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
       {/* Header Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="bg-violet-100 p-1.5 rounded-lg">
-            <FileText className="h-4 w-4 text-violet-600" />
+      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
+        <div className="flex items-center justify-between gap-4 px-6 py-5">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
+              <FileText className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-slate-900 leading-tight">
+                Employee Contract
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Manage employment contract details and terms
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-semibold text-slate-800 leading-tight">
-              Employee Contract
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Manage employment contract details and terms
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {formData.status && (
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(
-                  formData.status
-                )}`}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5">
+              {formData.status && (
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(
+                    formData.status
+                  )}`}
+                >
+                  {formData.status}
+                </span>
+              )}
+              {formData.contractType && (
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getContractTypeColor(
+                    formData.contractType
+                  )}`}
+                >
+                  {formData.contractType}
+                </span>
+              )}
+            </div>
+            {exists && (
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
               >
-                {formData.status}
-              </span>
-            )}
-            {formData.contractType && (
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getContractTypeColor(
-                  formData.contractType
-                )}`}
-              >
-                {formData.contractType}
-              </span>
+                <Download className="h-3.5 w-3.5" />
+                Download PDF
+              </button>
             )}
           </div>
-          {exists && (
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Download PDF
-            </button>
-          )}
         </div>
       </div>
 

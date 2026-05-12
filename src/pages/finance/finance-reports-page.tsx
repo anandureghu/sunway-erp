@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -139,7 +140,6 @@ export default function FinanceReportsPage() {
 
   useEffect(() => {
     void fetchSummary(appliedFrom, appliedTo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedFrom, appliedTo]);
 
   const applyFilters = () => {
@@ -182,7 +182,10 @@ export default function FinanceReportsPage() {
     rows.push(["Revenue", String(data.totals.revenue)]);
     rows.push(["Expenses", String(data.totals.expenses)]);
     rows.push(["Net profit", String(data.totals.netProfit)]);
-    rows.push(["Outstanding receivables", String(data.totals.totalReceivables)]);
+    rows.push([
+      "Outstanding receivables",
+      String(data.totals.totalReceivables),
+    ]);
     rows.push(["Outstanding payables", String(data.totals.totalPayables)]);
     rows.push(["Cash inflow", String(data.totals.cashInflow)]);
     rows.push(["Cash outflow", String(data.totals.cashOutflow)]);
@@ -226,31 +229,19 @@ export default function FinanceReportsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-background p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Finance
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
-              Finance Reports
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Profit & loss, receivables, payables, cash flow and payroll cost in one place.
-            </p>
-            {data?.generatedAt && !loading ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Generated {new Date(data.generatedAt).toLocaleString()}
-              </p>
-            ) : null}
-          </div>
+      <PageHeader
+        title="Finance Reports"
+        description="Profit & loss, receivables, payables, cash flow and payroll cost in one place."
+        variant="darkBlue"
+        icon={<PieChartIcon className="w-6 h-6" />}
+        actions={
           <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => fetchSummary(appliedFrom, appliedTo)}
               disabled={loading}
+              className="border border-white/25 bg-white/15 text-white hover:bg-white/25 hover:text-white"
             >
               <RefreshCw
                 className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
@@ -258,17 +249,17 @@ export default function FinanceReportsPage() {
               Refresh
             </Button>
             <Button
-              variant="default"
               size="sm"
               onClick={exportCsv}
               disabled={!data}
+              className="bg-white text-blue-700 hover:bg-blue-50"
             >
               <Download className="h-4 w-4" />
               Export CSV
             </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <Card>
@@ -294,9 +285,15 @@ export default function FinanceReportsPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <QuickChip onClick={() => setQuickRange("30")}>Last 30 days</QuickChip>
-            <QuickChip onClick={() => setQuickRange("90")}>Last 90 days</QuickChip>
-            <QuickChip onClick={() => setQuickRange("365")}>Last 365 days</QuickChip>
+            <QuickChip onClick={() => setQuickRange("30")}>
+              Last 30 days
+            </QuickChip>
+            <QuickChip onClick={() => setQuickRange("90")}>
+              Last 90 days
+            </QuickChip>
+            <QuickChip onClick={() => setQuickRange("365")}>
+              Last 365 days
+            </QuickChip>
             <QuickChip onClick={() => setQuickRange("ytd")}>YTD</QuickChip>
           </div>
           <div className="flex gap-2">
@@ -571,12 +568,28 @@ function OverviewTab({
               <AreaChart data={series} margin={{ left: 8, right: 8 }}>
                 <defs>
                   <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(142 76% 45%)" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="hsl(142 76% 45%)" stopOpacity={0.02} />
+                    <stop
+                      offset="0%"
+                      stopColor="hsl(142 76% 45%)"
+                      stopOpacity={0.4}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="hsl(142 76% 45%)"
+                      stopOpacity={0.02}
+                    />
                   </linearGradient>
                   <linearGradient id="expFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(0 78% 60%)" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="hsl(0 78% 60%)" stopOpacity={0.02} />
+                    <stop
+                      offset="0%"
+                      stopColor="hsl(0 78% 60%)"
+                      stopOpacity={0.4}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="hsl(0 78% 60%)"
+                      stopOpacity={0.02}
+                    />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />

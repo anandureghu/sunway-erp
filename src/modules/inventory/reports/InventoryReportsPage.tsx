@@ -26,13 +26,11 @@ import {
   AlertTriangle,
   BarChart3,
   Clock,
-  ArrowLeft,
   RefreshCw,
   Loader2,
   Warehouse as WarehouseIcon,
   Layers,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { format, endOfMonth, parseISO, startOfMonth } from "date-fns";
 import { ChartContainer } from "@/components/ui/chart";
 import {
@@ -63,6 +61,7 @@ import type { SalesOrder } from "@/types/sales";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/PageHeader";
 
 const CHART_COLORS = [
   "hsl(var(--chart-1))",
@@ -226,8 +225,7 @@ export default function InventoryReportsPage() {
       }
     }
 
-    const turnoverRatio =
-      avgInventory > 0 ? totalCOGS / avgInventory : 0;
+    const turnoverRatio = avgInventory > 0 ? totalCOGS / avgInventory : 0;
     const daysToSell = turnoverRatio > 0 ? 365 / turnoverRatio : 0;
 
     const turnoverByCategory = (summary?.byCategory ?? []).map((row) => {
@@ -304,52 +302,37 @@ export default function InventoryReportsPage() {
   }, [summary]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50/90 to-background pb-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50/90 to-background p-6 pb-10 ">
       {/* Header */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 px-6 py-7 shadow-lg">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-10 left-1/3 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <Button variant="secondary" size="icon" className="shrink-0" asChild>
-              <Link to="/inventory/stocks" aria-label="Back to stock">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
+      <PageHeader
+        title="Inventory Reports"
+        description={`${company?.companyName ?? "Company"} · live stock snapshot and analytics`}
+        variant="darkGreen"
+        icon={<BarChart3 className="w-6 h-6" />}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              className="gap-2 bg-white/15 text-white hover:bg-white/25 border border-white/30"
+              disabled={summaryLoading}
+              onClick={() => void loadSummary()}
+            >
+              {summaryLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Refresh
             </Button>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner">
-              <BarChart3 className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">
-                Inventory reports
-              </h1>
-              <p className="text-sm text-emerald-50/90">
-                {company?.companyName ?? "Company"} · live stock snapshot and
-                analytics
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            className="gap-2 bg-white/15 text-white hover:bg-white/25 border border-white/30"
-            disabled={summaryLoading}
-            onClick={() => void loadSummary()}
-          >
-            {summaryLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Refresh
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Filters */}
       <Card
         className={cn(
-          "mb-6 border-border/60 shadow-sm transition-shadow duration-300 hover:shadow-md",
+          "my-6 border-border/60 shadow-sm transition-shadow duration-300 hover:shadow-md",
           "animate-in fade-in slide-in-from-bottom-2 duration-500",
         )}
       >
@@ -486,7 +469,9 @@ export default function InventoryReportsPage() {
                     )}
                   </p>
                 </div>
-                <k.icon className={cn("h-8 w-8 shrink-0 opacity-90", k.accent)} />
+                <k.icon
+                  className={cn("h-8 w-8 shrink-0 opacity-90", k.accent)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -537,7 +522,10 @@ export default function InventoryReportsPage() {
                         data={valuationByWarehouse}
                         margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-muted"
+                        />
                         <XAxis dataKey="warehouse" tick={{ fontSize: 11 }} />
                         <YAxis tick={{ fontSize: 11 }} />
                         <Tooltip
@@ -655,7 +643,9 @@ export default function InventoryReportsPage() {
                         <th className="p-2 font-medium">Item</th>
                         <th className="p-2 font-medium">SKU</th>
                         <th className="p-2 text-right font-medium">Qty</th>
-                        <th className="p-2 text-right font-medium">Unit cost</th>
+                        <th className="p-2 text-right font-medium">
+                          Unit cost
+                        </th>
                         <th className="p-2 text-right font-medium">Value</th>
                         <th className="p-2 font-medium">Warehouse</th>
                       </tr>
@@ -667,7 +657,9 @@ export default function InventoryReportsPage() {
                           className="border-b transition-colors hover:bg-muted/40"
                         >
                           <td className="p-2 font-medium">{item.name}</td>
-                          <td className="p-2 text-muted-foreground">{item.sku}</td>
+                          <td className="p-2 text-muted-foreground">
+                            {item.sku}
+                          </td>
                           <td className="p-2 text-right tabular-nums">
                             {item.quantity.toLocaleString()}
                           </td>
@@ -696,7 +688,8 @@ export default function InventoryReportsPage() {
               <CardTitle>Inventory turnover</CardTitle>
               <CardDescription>
                 COGS from sales order lines (excluding draft/cancelled) × item
-                cost, compared to current inventory value from the summary above.
+                cost, compared to current inventory value from the summary
+                above.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -723,7 +716,9 @@ export default function InventoryReportsPage() {
                       </p>
                     </div>
                     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                      <span className="text-sm font-medium">Turnover ratio</span>
+                      <span className="text-sm font-medium">
+                        Turnover ratio
+                      </span>
                       <p className="text-3xl font-bold text-primary tabular-nums">
                         {turnover.turnoverRatio.toFixed(2)}×
                       </p>
@@ -772,7 +767,10 @@ export default function InventoryReportsPage() {
                       data={turnover.turnoverByCategory}
                       margin={{ top: 8, right: 8, left: 8, bottom: 40 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="stroke-muted"
+                      />
                       <XAxis
                         dataKey="category"
                         interval={0}
@@ -785,12 +783,15 @@ export default function InventoryReportsPage() {
                       <Tooltip
                         content={({ active, payload }) => {
                           if (!active || !payload?.length) return null;
-                          const row = payload[0].payload as (typeof turnover.turnoverByCategory)[0];
+                          const row = payload[0]
+                            .payload as (typeof turnover.turnoverByCategory)[0];
                           return (
                             <div className="max-w-xs rounded-lg border bg-background/95 p-3 text-xs shadow-md">
                               <p className="font-semibold">{row.category}</p>
                               <p>COGS: {formatMoney(row.cogs)}</p>
-                              <p>Inv value: {formatMoney(row.inventoryValue)}</p>
+                              <p>
+                                Inv value: {formatMoney(row.inventoryValue)}
+                              </p>
                               <p>Turnover: {row.turnoverRatio.toFixed(2)}×</p>
                             </div>
                           );
@@ -826,7 +827,8 @@ export default function InventoryReportsPage() {
               <Package className="h-14 w-14 text-muted-foreground/40" />
               <p className="max-w-md text-sm text-muted-foreground">
                 When lot/batch metadata and expiry are captured per warehouse
-                stock line, this section can show value by age and expiry status.
+                stock line, this section can show value by age and expiry
+                status.
               </p>
             </CardContent>
           </Card>
@@ -837,7 +839,9 @@ export default function InventoryReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Warehouse mix (value)</CardTitle>
-                <CardDescription>Share of inventory value by site</CardDescription>
+                <CardDescription>
+                  Share of inventory value by site
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {summaryLoading ? (
@@ -855,7 +859,10 @@ export default function InventoryReportsPage() {
                         layout="vertical"
                         margin={{ left: 24, right: 16 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          horizontal={false}
+                        />
                         <XAxis type="number" tick={{ fontSize: 11 }} />
                         <YAxis
                           type="category"
@@ -905,8 +912,12 @@ export default function InventoryReportsPage() {
                         className="flex items-center justify-between gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm transition-colors hover:bg-amber-500/10"
                       >
                         <div>
-                          <p className="font-medium leading-tight">{row.name}</p>
-                          <p className="text-xs text-muted-foreground">{row.sku}</p>
+                          <p className="font-medium leading-tight">
+                            {row.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {row.sku}
+                          </p>
                         </div>
                         <div className="text-right tabular-nums">
                           <Badge variant="outline" className="font-normal">

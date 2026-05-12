@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";  
-import { Plus, Trash2, Eye, Package, Calendar, FileText } from "lucide-react";
+import { Plus, Trash2, Eye, Package, Calendar, FileText, CheckCircle2, AlertTriangle } from "lucide-react";
 import { FormRow, FormField } from "@/modules/hr/components/form-components";
 import { useParams } from "react-router-dom";
 import { propertyService } from "@/service/propertyService";
@@ -68,6 +68,9 @@ export default function CompanyPropertiesForm() {
   const [viewingId, setViewingId] = useState<string | null>(null);
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
+  const assignedCount = items.filter((item) => item.itemStatus === "ASSIGNED").length;
+  const returnedCount = items.filter((item) => item.itemStatus === "RETURNED").length;
+  const issueCount = items.filter((item) => item.itemStatus === "LOST" || item.itemStatus === "DAMAGED").length;
 
   const reloadFromBackend = useCallback(async () => {
     if (!empId) return;
@@ -96,10 +99,6 @@ export default function CompanyPropertiesForm() {
     const newItem = { ...INITIAL_ITEM, id: "" };
     setItems(current => [...current, newItem]);
     setEditingId("");
-  }, []);
-
-  const handleEdit = useCallback((item: CompanyItem) => {
-    setEditingId(item.id);
   }, []);
 
   const handleSave = useCallback(
@@ -173,37 +172,81 @@ export default function CompanyPropertiesForm() {
   }, []);
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
-              Company Properties
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">Manage company assets and equipment</p>
+    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
+      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
+        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
+        <div className="flex items-center justify-between gap-4 px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
+              <Package className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight">Company Properties</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Manage company assets, equipment, assignments, and returns
+              </p>
+            </div>
           </div>
           <Button
             onClick={handleAdd}
-            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             Add Property
           </Button>
         </div>
       </div>
 
-      {/* Properties Details Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-blue-600" />
-          Properties Details
-        </h3>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <SummaryCard
+          label="Total Properties"
+          value={items.length}
+          description="Assets loaded"
+          icon={<FileText className="h-5 w-5" />}
+          accent="border-t-blue-500"
+          iconClassName="bg-blue-50 text-blue-600"
+        />
+        <SummaryCard
+          label="Assigned"
+          value={assignedCount}
+          description="Currently issued"
+          icon={<Package className="h-5 w-5" />}
+          accent="border-t-violet-500"
+          iconClassName="bg-violet-50 text-violet-600"
+        />
+        <SummaryCard
+          label="Returned"
+          value={returnedCount}
+          description="Received back"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          accent="border-t-emerald-500"
+          iconClassName="bg-emerald-50 text-emerald-600"
+        />
+        <SummaryCard
+          label="Lost/Damaged"
+          value={issueCount}
+          description="Needs attention"
+          icon={<AlertTriangle className="h-5 w-5" />}
+          accent="border-t-rose-500"
+          iconClassName="bg-rose-50 text-rose-600"
+        />
+      </div>
+
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
+        <div className="flex justify-between items-center mb-5">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Package className="h-5 w-5 text-blue-600" />
+              Properties Details
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">Track each company property assigned to this employee</p>
+          </div>
+        </div>
 
         {/* Properties Grid */}
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {items.map(item => (
-            <div key={item.id} className="border border-slate-200 rounded-lg p-6 mb-6">
+            <div key={item.id} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
               {editingId === item.id ? (
                   <div className="p-6 bg-gradient-to-br from-white to-slate-50">
                     {/* Info Banner */}
@@ -374,12 +417,12 @@ export default function CompanyPropertiesForm() {
                             </div>
                           </div>
                         </div>
-                        <div className="absolute top-0 right-0 flex gap-2 w-48">
+                        <div className="absolute top-0 right-0 flex gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingId(item.id)}
-                            className="flex items-center gap-1 rounded-lg flex-1"
+                            className="flex items-center gap-1 rounded-lg"
                           >
                             <Eye className="h-4 w-4" />
                             View
@@ -387,16 +430,8 @@ export default function CompanyPropertiesForm() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEdit(item)}
-                            className="rounded-lg flex-1"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => handleDelete(item.id)}
-                            className="text-red-600 rounded-lg flex-1"
+                            className="text-red-600 rounded-lg"
                           >
                             <Trash2 className="h-4 w-4" />
                             Delete
@@ -475,16 +510,6 @@ export default function CompanyPropertiesForm() {
                           >
                             Close
                           </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setViewingId(null);
-                              handleEdit(item);
-                            }}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg"
-                          >
-                            Edit Property
-                          </Button>
                         </div>
                       </div>
                     )}
@@ -495,19 +520,12 @@ export default function CompanyPropertiesForm() {
         </div>
 
         {items.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-dashed border-slate-200 p-16 text-center">
             <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
               <Package className="h-12 w-12 text-blue-600" />
             </div>
             <h3 className="text-xl font-semibold text-slate-800 mb-2">No properties added yet</h3>
-            <p className="text-slate-600 mb-6">Click "Add Property" to create your first company property</p>
-            <Button
-              onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Property
-            </Button>
+            <p className="text-slate-600">Use the Add Property button in the header to create your first company property</p>
           </div>
         )}
       </div>
@@ -521,6 +539,37 @@ function DetailItem({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-xs font-semibold text-slate-600 uppercase mb-1">{label}</p>
       <p className="text-base text-slate-800 font-medium">{value}</p>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  description,
+  icon,
+  accent,
+  iconClassName,
+}: {
+  label: string;
+  value: number;
+  description: string;
+  icon: React.ReactNode;
+  accent: string;
+  iconClassName: string;
+}) {
+  return (
+    <div className={`rounded-xl border border-slate-200 ${accent} border-t-4 bg-white p-4 shadow-sm`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
+        </div>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconClassName}`}>
+          {icon}
+        </div>
+      </div>
     </div>
   );
 }

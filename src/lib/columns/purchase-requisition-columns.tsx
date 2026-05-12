@@ -135,7 +135,7 @@ export function createPurchaseRequisitionColumns(
                 {canApprove && onApprove && (
                   <DropdownMenuItem onClick={() => onApprove(req.id)}>
                     <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Approve &amp; create PO
+                    Approve &amp; create Purchase Order
                   </DropdownMenuItem>
                 )}
 

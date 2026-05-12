@@ -14,7 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseRequisition } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
-import { PurchasePageHeader } from "./purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -74,10 +74,11 @@ export function PurchaseRequisitionsListView({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <PurchasePageHeader
+      <PageHeader
         title="Purchase requisitions"
         description="Submit for approval; approving creates a draft purchase order tied to your preferred supplier."
         backHref="/inventory/purchase"
+        variant="darkGreen"
         actions={
           <Button
             size="lg"
@@ -114,7 +115,7 @@ export function PurchaseRequisitionsListView({
                     Active ({activeReqs.length})
                   </TabsTrigger>
                   <TabsTrigger value="converted">
-                    Converted To PO ({convertedReqs.length})
+                    Converted To Purchase Order ({convertedReqs.length})
                   </TabsTrigger>
                 </TabsList>
                 <div className="flex flex-wrap gap-2">

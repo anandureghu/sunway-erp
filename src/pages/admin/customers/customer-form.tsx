@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import { Users } from "lucide-react";
 
 interface CustomerFormProps {
   onSubmit: (data: CustomerFormData) => Promise<void> | void;
@@ -65,271 +66,380 @@ export const CustomerForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="customerName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Customer Name <span className="text-red-500">*</span>
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="Customer Name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
 
-          <FormField
-            control={form.control}
-            name="contactPersonName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact Person Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Contact Person" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* ── Section: Contact Details ── */}
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
+              <Users className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-[13px] font-semibold text-slate-700">
+              Contact details
+            </span>
+          </div>
+          <div className="p-5 space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="customerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Customer Name <span className="text-rose-400">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Customer Name"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="email@example.com"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="contactPersonName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Contact Person
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Contact Person"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="phoneNo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone</FormLabel>
-                <FormControl>
-                  <Input placeholder="+1234567890" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Email
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="taxId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tax ID</FormLabel>
-                <FormControl>
-                  <Input placeholder="Tax ID" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="customerType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Customer Type</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="retail">Retail</SelectItem>
-                    <SelectItem value="wholesale">Wholesale</SelectItem>
-                    <SelectItem value="corporate">Corporate</SelectItem>
-                    <SelectItem value="individual">Individual</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="paymentTerms"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Terms</FormLabel>
-                <FormControl>
-                  <Input placeholder="Net 30" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="currencyCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Currency Code</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || companyCurrencyCode || ""}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="QAR">QAR</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="creditLimit"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Credit Limit</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value ? Number(e.target.value) : 0,
-                      )
-                    }
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="websiteUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Website URL</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="street"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Street</FormLabel>
-                <FormControl>
-                  <Input placeholder="Street Address" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>City</FormLabel>
-                <FormControl>
-                  <Input placeholder="City" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="state"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>State</FormLabel>
-                <FormControl>
-                  <Input placeholder="State" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Country</FormLabel>
-                <FormControl>
-                  <Input placeholder="Country" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Status <span className="text-red-500">*</span>
-            </label>
-            <Select
-              // onValueChange={(value) =>
-              //   resetWarehouse({
-              //     ...watchWarehouse(),
-              //     status: value as "active" | "inactive",
-              //   })
-              // }
-              // value={watchWarehouse("status")}
-              value={form.watch("isActive") ? "active" : "inactive"}
-              onValueChange={(val) => {
-                form.setValue("isActive", val === "active" ? true : false);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
+              <FormField
+                control={form.control}
+                name="phoneNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Phone
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="+1234567890"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        {/* ── Section: Business Information ── */}
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600">
+              <Users className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-[13px] font-semibold text-slate-700">
+              Business information
+            </span>
+          </div>
+          <div className="p-5 space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="customerType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Customer Type
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                        <SelectItem value="retail">Retail</SelectItem>
+                        <SelectItem value="wholesale">Wholesale</SelectItem>
+                        <SelectItem value="corporate">Corporate</SelectItem>
+                        <SelectItem value="individual">Individual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="taxId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Tax ID
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Tax ID"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="paymentTerms"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Payment Terms
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Net 30"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="websiteUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Website
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://example.com"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="currencyCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Currency
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || companyCurrencyCode || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]">
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="EUR">EUR</SelectItem>
+                        <SelectItem value="GBP">GBP</SelectItem>
+                        <SelectItem value="QAR">QAR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="creditLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Credit Limit
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0,
+                          )
+                        }
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                Status
+              </label>
+              <Select
+                value={form.watch("isActive") ? "active" : "inactive"}
+                onValueChange={(val) => {
+                  form.setValue("isActive", val === "active" ? true : false);
+                }}
+              >
+                <SelectTrigger className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Section: Address ── */}
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
+              <Users className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-[13px] font-semibold text-slate-700">
+              Address
+            </span>
+          </div>
+          <div className="p-5 space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="street"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Street
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Street Address"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      City
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="City"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      State
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="State"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                      Country
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Country"
+                        {...field}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold text-[13px] shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+          disabled={loading}
+        >
           {loading ? "Saving..." : "Save Customer"}
         </Button>
       </form>

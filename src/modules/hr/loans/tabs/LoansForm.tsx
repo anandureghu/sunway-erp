@@ -219,10 +219,6 @@ export default function LoansForm(): ReactElement {
     }
   }, [user?.companyId]);
 
-  const handleEdit = useCallback((loan: LoansModel) => {
-    setEditingId(loan.id);
-  }, []);
-
   const handleSave = useCallback((loan: LoansModel, changedField?: string) => {
     const loanAmount = Number(loan.loanAmount || 0);
     const loanPeriod = Number(loan.loanPeriod || 0);
@@ -320,7 +316,7 @@ export default function LoansForm(): ReactElement {
             className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
           >
             <Plus className="h-5 w-5" />
-            Add Loan
+            Request Loan
           </Button>
         </div>
       </div>
@@ -632,11 +628,9 @@ export default function LoansForm(): ReactElement {
                           <Eye className="h-4 w-4" />
                           View
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(loan)} className="rounded-lg">
-                          Edit
-                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDelete(loan.id)} className="text-red-600 rounded-lg">
                           <Trash2 className="h-4 w-4" />
+                          Delete
                         </Button>
                       </div>
                     </div>
@@ -690,9 +684,6 @@ export default function LoansForm(): ReactElement {
                         <Button variant="outline" size="sm" onClick={() => setViewingId(null)} className="rounded-lg border-slate-300">
                           Close
                         </Button>
-                        <Button size="sm" onClick={() => { setViewingId(null); handleEdit(loan); }} className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg">
-                          Edit Loan
-                        </Button>
                       </div>
                     </div>
                   )}
@@ -708,10 +699,10 @@ export default function LoansForm(): ReactElement {
               <FileText className="h-12 w-12 text-blue-600" />
             </div>
             <h3 className="text-xl font-semibold text-slate-800 mb-2">No loans added yet</h3>
-            <p className="text-slate-600 mb-6">Click "Add Loan" to create your first employee loan</p>
+            <p className="text-slate-600 mb-6">Click "Request Loan" to create your first employee loan</p>
             <Button onClick={handleAdd} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg rounded-xl px-6">
               <Plus className="h-5 w-5 mr-2" />
-              Add Your First Loan
+              Request Your First Loan
             </Button>
           </div>
         )}

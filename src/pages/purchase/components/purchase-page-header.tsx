@@ -1,13 +1,12 @@
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-/** Deep forest green hero strip for Inventory → Purchase workspace */
+/** Inventory purchase workspace header. */
 export const PURCHASE_HEADER_CARD_CLASS =
-  "border-0 shadow-lg rounded-2xl bg-gradient-to-br from-zinc-950 via-emerald-950 to-zinc-950 text-white overflow-hidden";
+  "relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 px-6 py-6 shadow-lg";
 
 export type PurchasePageHeaderProps = {
   title: string;
@@ -27,51 +26,43 @@ export function PurchasePageHeader({
   className,
 }: PurchasePageHeaderProps) {
   return (
-    <Card className={cn(PURCHASE_HEADER_CARD_CLASS, className)}>
-      <CardContent className="relative p-8 sm:p-10 lg:px-12 lg:py-2">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.08]"
-          aria-hidden
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 45%, white 0%, transparent 52%), radial-gradient(circle at 82% 78%, white 0%, transparent 46%)",
-          }}
-        />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-4 flex gap-3">
-            {backHref && (
-              <Button
-                size="sm"
-                className="-ml-2 h-9 w-9 rounded-full px-2 bg-white text-black flex items-center justify-center hover:bg-white/90"
-                asChild
-              >
-                <Link to={backHref}>
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-            )}
-            {/* <Badge className="rounded-full border-0 bg-white/90 px-3 py-1 text-xs font-medium text-slate-900 shadow-sm hover:bg-white/90 sm:text-sm">
-              {badge}
-            </Badge> */}
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
-                {title}
-              </h1>
-              {description ? (
-                <p className="max-w-2xl text-sm leading-relaxed text-white/80 sm:text-base">
-                  {description}
-                </p>
-              ) : null}
-            </div>
-            {children}
-          </div>
-          {actions ? (
-            <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
-              {actions}
-            </div>
+    <div className={cn(PURCHASE_HEADER_CARD_CLASS, className)}>
+      <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-8 left-1/4 h-32 w-32 rounded-full bg-amber-300/20 blur-2xl" />
+
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-4">
+          {backHref ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 rounded-lg text-white hover:bg-white/20 hover:text-white"
+              asChild
+            >
+              <Link to={backHref} aria-label="Go back">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
           ) : null}
+
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow-inner">
+            {children ?? <ClipboardList className="h-6 w-6 text-white" />}
+          </div>
+
+          <div>
+            <h1 className="text-xl font-bold text-white">{title}</h1>
+            {description ? (
+              <p className="mt-0.5 text-xs text-white/80">{description}</p>
+            ) : null}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {actions ? (
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
+            {actions}
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }

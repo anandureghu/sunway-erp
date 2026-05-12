@@ -376,7 +376,7 @@ export function createPurchaseInvoiceColumns(
     },
     {
       id: "po",
-      header: "PO",
+      header: "Purchase Order",
       cell: ({ row }) => (
         <span>{row.original.purchaseOrder?.orderNumber || "—"}</span>
       ),
@@ -442,7 +442,8 @@ export function createPurchaseInvoiceColumns(
         const src = row.original.documentSource;
         if (src === "SUPPLIER_UPLOAD")
           return <span className="text-xs">PDF</span>;
-        if (src === "EXTERNAL_LINK") return <span className="text-xs">Link</span>;
+        if (src === "EXTERNAL_LINK")
+          return <span className="text-xs">Link</span>;
         return <span className="text-xs text-muted-foreground">Generated</span>;
       },
     },

@@ -17,6 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { Company } from "@/types/company";
+import { PageHeader } from "@/components/PageHeader";
+import { Mail } from "lucide-react";
 
 const SCHEMA = z.object({
   companyEmail: z.string().email().or(z.literal("")),
@@ -74,7 +76,9 @@ export default function SocialSettingsPage() {
       setSaving(true);
       const payload = {
         companyName: company.companyName,
-        noOfEmployees: company.noOfEmployees ? Number(company.noOfEmployees) : undefined,
+        noOfEmployees: company.noOfEmployees
+          ? Number(company.noOfEmployees)
+          : undefined,
         currencyId: company.currency.id,
         crNo: company.crNo ? Number(company.crNo) : undefined,
         computerCard: company.computerCard || "",
@@ -103,7 +107,10 @@ export default function SocialSettingsPage() {
         invoiceFooterBillingEmail: company.invoiceFooterBillingEmail || "",
         invoiceQrEnabled: !!company.invoiceQrEnabled,
       };
-      const res = await apiClient.put<Company>(`/companies/${companyId}`, payload);
+      const res = await apiClient.put<Company>(
+        `/companies/${companyId}`,
+        payload,
+      );
       setCompany(res.data);
       toast.success("Social settings updated");
     } catch (e: unknown) {
@@ -116,20 +123,28 @@ export default function SocialSettingsPage() {
     }
   };
 
-  if (loading) return <div className="p-6 text-muted-foreground">Loading social settings...</div>;
+  if (loading)
+    return (
+      <div className="p-6 text-muted-foreground">
+        Loading social settings...
+      </div>
+    );
   if (!["ADMIN", "SUPER_ADMIN"].includes(role)) {
-    return <div className="p-6 text-muted-foreground">You do not have access to this page.</div>;
+    return (
+      <div className="p-6 text-muted-foreground">
+        You do not have access to this page.
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Social</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage company social and email details used across invoices.
-        </p>
-      </div>
-
+    <div className="p-6 space-y-6">
+      <PageHeader
+        title="Social Settings"
+        description="Manage company social and email details used across invoices"
+        variant="darkBlue"
+        icon={<Mail className="w-6 h-6" />}
+      />
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Email and website details</CardTitle>

@@ -3,9 +3,10 @@ import CategoriesMaster from "@/modules/inventory/settings/categories-master";
 import WarehouseMaster from "@/modules/inventory/settings/warehouse-master";
 import VendorsPage from "../admin/vendors/vendors-page";
 import CustomersPage from "../admin/customers/customers-page";
-import { Card, CardContent } from "@/components/ui/card";
 
 import PermissionsTab from "@/components/permissions-tab";
+import { PageHeader } from "@/components/PageHeader";
+import { Building, List, Settings, Shield, Users } from "lucide-react";
 
 const INVENTORY_MODULES = [
   { id: "category", label: "Categories" },
@@ -23,21 +24,25 @@ const InventorySettingsPage = () => {
       value: "categories",
       label: "Categories",
       element: () => <CategoriesMaster />,
+      icon: <List className="w-6 h-6" />,
     },
     {
       value: "warehouse",
       label: "Warehouse",
       element: () => <WarehouseMaster />,
+      icon: <Building className="w-6 h-6" />,
     },
     {
       value: "customers",
       label: "Customers",
       element: () => <CustomersPage />,
+      icon: <Users className="w-6 h-6" />,
     },
     {
       value: "vendors",
       label: "Suppliers",
       element: () => <VendorsPage />,
+      icon: <Users className="w-6 h-6" />,
     },
     {
       value: "permissions",
@@ -45,22 +50,18 @@ const InventorySettingsPage = () => {
       element: () => (
         <PermissionsTab moduleType="INVENTORY" modules={INVENTORY_MODULES} />
       ),
+      icon: <Shield className="w-6 h-6" />,
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <Card className="m-6 mb-0 border-0 shadow-md bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-white">
-        <CardContent className="p-6 sm:p-8 !py-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Inventory Settings
-          </h1>
-          <p className="mt-2 text-white/80 max-w-2xl">
-            Configure master data for categories, warehouses, customers, and
-            suppliers.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="space-y-6 p-6">
+      <PageHeader
+        title="Inventory Settings"
+        description="Configure master data for categories, warehouses, customers, and suppliers."
+        variant="darkBlue"
+        icon={<Settings className="w-6 h-6" />}
+      />
 
       <AppTab
         title=""

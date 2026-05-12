@@ -14,7 +14,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { PurchasePageHeader } from "./components/purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import {
   listPurchaseOrders,
   getGoodsReceiptsByPurchaseOrder,
@@ -167,26 +167,26 @@ export default function ReceivingPage() {
       {
         label: "Goods receipts",
         value: receiptsTotal,
-        hint: "Recorded against POs",
+        hint: "Recorded against Purchase Orders",
         accent: "sky",
         icon: ClipboardList,
       },
       {
-        label: "POs ready",
+        label: "Purchase Orders ready",
         value: readyPo,
         hint: "Eligible to receive now",
         accent: "orange",
         icon: Package,
       },
       {
-        label: "Completed GRNs",
+        label: "Completed Goods Receipts",
         value: completedGrn,
         hint: "Inspection closed",
         accent: "emerald",
         icon: CheckCircle2,
       },
       {
-        label: "Open receipts",
+        label: "Open Goods Receipts",
         value: openGrn,
         hint: "Pending or in progress",
         accent: "violet",
@@ -211,10 +211,11 @@ export default function ReceivingPage() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PurchasePageHeader
+      <PageHeader
         title="Receiving & quality inspection"
-        description="Receive goods against released POs and record inspection outcomes."
+        description="Receive goods against released Purchase Orders and record inspection outcomes."
         backHref="/inventory/purchase"
+        variant="darkGreen"
         actions={
           <Button
             size="lg"
@@ -489,7 +490,8 @@ function CreateReceiptForm({
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PurchasePageHeader
+      <PageHeader
+        variant="darkGreen"
         title="Create goods receipt"
         description="Select a released purchase order and enter quantities accepted or rejected per line."
         backHref="/inventory/purchase"

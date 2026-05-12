@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Calculator, ArrowLeft, Plus } from "lucide-react";
 
 import { DataTable } from "@/components/datatable";
 
 import type { Row } from "@tanstack/react-table";
-import { useNavigate } from "react-router-dom";
 import type { BudgetResponseDTO } from "@/types/budget";
 import { BUDGET_COLUMNS } from "@/lib/columns/finance/budget-columns";
 import { BudgetDialog } from "./budget-dialog";
@@ -82,13 +82,23 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
   if (loading) return <div className="p-6 text-center">Loading...</div>;
 
   return (
-    <div className="p-0 space-y-6">
-      {/* <h1 className="text-2xl font-semibold">Budgets</h1> */}
+    <div className="rounded-xl border bg-white overflow-hidden">
+      {/* Header bar - HR Style */}
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <Calculator className="h-5 w-5" />
+          <span className="text-lg font-semibold">Budgets</span>
+        </div>
+      </div>
 
-      <div className="flex justify-between items-center gap-3">
-        <div className="relative flex-1">
+      {/* Search and Actions bar */}
+      <div className="px-4 pt-4 pb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b bg-white">
+        <div className="relative flex-1 w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Search..." className="pl-10" />
+          <Input placeholder="Search budgets..." className="pl-10" />
         </div>
 
         {hasAnyRole(user?.role, ["FINANCE_MANAGER", "SUPER_ADMIN"]) && (
@@ -97,12 +107,18 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
               setSelected(null);
               setOpen(true);
             }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
+            <Plus className="h-4 w-4 mr-2" />
             Add Budget
           </Button>
         )}
       </div>
-      <DataTable data={list} columns={columns} onRowClick={handleRowClick} />
+
+      {/* Table Content */}
+      <div className="p-4">
+        <DataTable data={list} columns={columns} onRowClick={handleRowClick} />
+      </div>
 
       <BudgetDialog
         companyId={companyId || 0}

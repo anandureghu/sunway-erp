@@ -68,12 +68,35 @@ const getRoleColor = (roleName: string): { bg: string; text: string } => {
   return ROLE_COLOR_PALETTE[index];
 };
 
-const LEAVE_TYPE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
-  "Annual Leave": { bg: "bg-blue-50 border-blue-200", text: "text-blue-700", icon: "text-blue-500" },
-  "Sick Leave": { bg: "bg-red-50 border-red-200", text: "text-red-700", icon: "text-red-500" },
-  "Emergency Leave": { bg: "bg-orange-50 border-orange-200", text: "text-orange-700", icon: "text-orange-500" },
-  "Unpaid Leave": { bg: "bg-gray-50 border-gray-200", text: "text-gray-700", icon: "text-gray-500" },
-  "Maternity Leave": { bg: "bg-pink-50 border-pink-200", text: "text-pink-700", icon: "text-pink-500" },
+const LEAVE_TYPE_COLORS: Record<
+  string,
+  { bg: string; text: string; icon: string }
+> = {
+  "Annual Leave": {
+    bg: "bg-blue-50 border-blue-200",
+    text: "text-blue-700",
+    icon: "text-blue-500",
+  },
+  "Sick Leave": {
+    bg: "bg-red-50 border-red-200",
+    text: "text-red-700",
+    icon: "text-red-500",
+  },
+  "Emergency Leave": {
+    bg: "bg-orange-50 border-orange-200",
+    text: "text-orange-700",
+    icon: "text-orange-500",
+  },
+  "Unpaid Leave": {
+    bg: "bg-gray-50 border-gray-200",
+    text: "text-gray-700",
+    icon: "text-gray-500",
+  },
+  "Maternity Leave": {
+    bg: "bg-pink-50 border-pink-200",
+    text: "text-pink-700",
+    icon: "text-pink-500",
+  },
 };
 
 type Gender = "MALE" | "FEMALE" | "OTHER";
@@ -85,18 +108,40 @@ interface LeaveTypeGenderConfig {
 }
 
 const LEAVE_TYPE_GENDER_CONFIG: LeaveTypeGenderConfig[] = [
-  { type: "Annual Leave", applicableGenders: ["MALE", "FEMALE", "OTHER"], isGenderRestricted: false },
-  { type: "Sick Leave", applicableGenders: ["MALE", "FEMALE", "OTHER"], isGenderRestricted: false },
-  { type: "Emergency Leave", applicableGenders: ["MALE", "FEMALE", "OTHER"], isGenderRestricted: false },
-  { type: "Unpaid Leave", applicableGenders: ["MALE", "FEMALE", "OTHER"], isGenderRestricted: false },
-  { type: "Maternity Leave", applicableGenders: ["FEMALE"], isGenderRestricted: true },
+  {
+    type: "Annual Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Sick Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Emergency Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Unpaid Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Maternity Leave",
+    applicableGenders: ["FEMALE"],
+    isGenderRestricted: true,
+  },
 ];
 
 // Convert RoleResponse to our format with dynamic colors
 const convertRolesFromApi = (roles: RoleResponse[]): RoleOption[] => {
-  return roles.map(role => ({
+  return roles.map((role) => ({
     key: role.name,
-    label: role.name.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+    label: role.name
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l: string) => l.toUpperCase()),
     color: getRoleColor(role.name),
   }));
 };
@@ -108,17 +153,17 @@ export default function LeaveCustomizationForm() {
   const [loading, setLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [savedPolicies, setSavedPolicies] = useState<LeavePolicy[]>([]);
-  
+
   const [roles, setRoles] = useState<RoleOption[]>(DEFAULT_ROLES);
   const [rolesLoading, setRolesLoading] = useState(true);
-  
+
   const [leaveTypes, setLeaveTypes] = useState<string[]>(DEFAULT_LEAVE_TYPES);
   const [leaveTypesLoading, setLeaveTypesLoading] = useState(true);
 
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedGender, setSelectedGender] = useState<Gender>("FEMALE");
 
-useEffect(() => {
+  useEffect(() => {
     const fetchRoles = async () => {
       try {
         if (!company?.id) {
@@ -128,7 +173,7 @@ useEffect(() => {
         }
 
         const response = await roleService.getRoles(company.id);
-        
+
         // Log the response for debugging
         console.log("Roles API response:", response);
         console.log("Roles data length:", response?.length);
@@ -139,7 +184,10 @@ useEffect(() => {
           console.warn("No roles returned from API, using defaults");
         }
       } catch (error: any) {
-        console.error("Failed to fetch roles:", error?.response?.data ?? error.message);
+        console.error(
+          "Failed to fetch roles:",
+          error?.response?.data ?? error.message,
+        );
       } finally {
         setRolesLoading(false);
       }
@@ -157,7 +205,7 @@ useEffect(() => {
         }
 
         const response = await leavePolicyService.getLeaveTypes(company.id);
-        
+
         // Log the response for debugging
         console.log("Leave types API response:", response);
         console.log("Leave types data:", response.data);
@@ -165,7 +213,9 @@ useEffect(() => {
         if (response.data && Array.isArray(response.data)) {
           const normalizedLeaveTypes = response.data
             .map((lt: any) => (typeof lt === "string" ? lt : lt?.name))
-            .filter((lt: string | undefined): lt is string => typeof lt === "string");
+            .filter(
+              (lt: string | undefined): lt is string => typeof lt === "string",
+            );
 
           if (normalizedLeaveTypes.length > 0) {
             setLeaveTypes(normalizedLeaveTypes);
@@ -176,7 +226,10 @@ useEffect(() => {
           console.warn("No leave types returned from API, using defaults");
         }
       } catch (error: any) {
-        console.error("Failed to fetch leave types:", error?.response?.data ?? error.message);
+        console.error(
+          "Failed to fetch leave types:",
+          error?.response?.data ?? error.message,
+        );
       } finally {
         setLeaveTypesLoading(false);
       }
@@ -198,7 +251,8 @@ useEffect(() => {
         roles.forEach((role) => {
           leaveTypes.forEach((leaveType) => {
             const existing = saved.find(
-              (p: LeavePolicy) => p.role === role.key && p.leaveType === leaveType,
+              (p: LeavePolicy) =>
+                p.role === role.key && p.leaveType === leaveType,
             );
 
             fullMatrix.push({
@@ -220,7 +274,11 @@ useEffect(() => {
         const initialPolicies: LeavePolicy[] = [];
         roles.forEach((role) => {
           leaveTypes.forEach((leaveType) => {
-            initialPolicies.push({ role: role.key, leaveType: leaveType as LeaveType, daysAllowed: 0 });
+            initialPolicies.push({
+              role: role.key,
+              leaveType: leaveType as LeaveType,
+              daysAllowed: 0,
+            });
           });
         });
         setPolicies(initialPolicies);
@@ -234,8 +292,10 @@ useEffect(() => {
     setSelectedRole(null);
   }, [company?.id, rolesLoading, leaveTypesLoading, roles, leaveTypes]);
 
-
-  const isLeaveTypeApplicable = (leaveType: string, gender: Gender): boolean => {
+  const isLeaveTypeApplicable = (
+    leaveType: string,
+    gender: Gender,
+  ): boolean => {
     const config = LEAVE_TYPE_GENDER_CONFIG.find((c) => c.type === leaveType);
     return config ? config.applicableGenders.includes(gender) : true;
   };
@@ -257,14 +317,18 @@ useEffect(() => {
   };
 
   const incrementPolicy = (role: string, leaveType: string) => {
-    const policy = policies.find((p) => p.role === role && p.leaveType === leaveType);
+    const policy = policies.find(
+      (p) => p.role === role && p.leaveType === leaveType,
+    );
     if (policy) {
       updatePolicy(role, leaveType, policy.daysAllowed + 1);
     }
   };
 
   const decrementPolicy = (role: string, leaveType: string) => {
-    const policy = policies.find((p) => p.role === role && p.leaveType === leaveType);
+    const policy = policies.find(
+      (p) => p.role === role && p.leaveType === leaveType,
+    );
     if (policy && policy.daysAllowed > 0) {
       updatePolicy(role, leaveType, policy.daysAllowed - 1);
     }
@@ -275,8 +339,8 @@ useEffect(() => {
       prev.map((p) =>
         p.role === role && p.leaveType === leaveType
           ? { ...p, includeWeekends: !p.includeWeekends }
-          : p
-      )
+          : p,
+      ),
     );
     setHasChanges(true);
   };
@@ -319,7 +383,9 @@ useEffect(() => {
 
   const getTotalDays = (role: string, gender: Gender) => {
     return policies
-      .filter((p) => p.role === role && isLeaveTypeApplicable(p.leaveType, gender))
+      .filter(
+        (p) => p.role === role && isLeaveTypeApplicable(p.leaveType, gender),
+      )
       .reduce((sum, p) => sum + p.daysAllowed, 0);
   };
 
@@ -345,11 +411,12 @@ useEffect(() => {
     );
   }
 
-  const visibleRoles = selectedRole ? roles.filter((r) => r.key === selectedRole) : roles;
+  const visibleRoles = selectedRole
+    ? roles.filter((r) => r.key === selectedRole)
+    : roles;
 
   return (
-    <div className="space-y-5 p-5 bg-slate-50/60 min-h-screen">
-
+    <div className="space-y-5 p-0 bg-slate-50/60 min-h-screen">
       {/* ── Header ── */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 shadow-lg">
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
@@ -360,8 +427,12 @@ useEffect(() => {
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white leading-tight">Leave Policy Configuration</h1>
-              <p className="text-xs text-blue-100 mt-0.5">{company.companyName}</p>
+              <h1 className="text-lg font-bold text-white leading-tight">
+                Leave Policy Configuration
+              </h1>
+              <p className="text-xs text-blue-100 mt-0.5">
+                {company.companyName}
+              </p>
             </div>
           </div>
           {hasChanges && (
@@ -375,14 +446,15 @@ useEffect(() => {
 
       {/* ── Controls row: gender + role filter ── */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 space-y-4">
-
         {/* Gender */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50">
               <Users className="h-4 w-4 text-indigo-600" />
             </div>
-            <span className="text-sm font-semibold text-slate-700">View by Gender</span>
+            <span className="text-sm font-semibold text-slate-700">
+              View by Gender
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -396,9 +468,9 @@ useEffect(() => {
                     : "border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                {g === "MALE"   && <span>♂</span>}
+                {g === "MALE" && <span>♂</span>}
                 {g === "FEMALE" && <span>♀</span>}
-                {g === "OTHER"  && <span>⊕</span>}
+                {g === "OTHER" && <span>⊕</span>}
                 {g.charAt(0) + g.slice(1).toLowerCase()}
               </button>
             ))}
@@ -409,7 +481,8 @@ useEffect(() => {
           <div className="flex items-center gap-2 rounded-lg bg-orange-50 border border-orange-200 px-3 py-2">
             <Lock className="h-3.5 w-3.5 shrink-0 text-orange-500" />
             <p className="text-xs text-orange-700">
-              <span className="font-semibold">Maternity Leave</span> is hidden for {selectedGender === "MALE" ? "male" : "other"} employees.
+              <span className="font-semibold">Maternity Leave</span> is hidden
+              for {selectedGender === "MALE" ? "male" : "other"} employees.
             </p>
           </div>
         )}
@@ -420,7 +493,9 @@ useEffect(() => {
         {/* Role pills */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 mr-1">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Role</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              Role
+            </span>
           </div>
           <button
             onClick={() => setSelectedRole(null)}
@@ -452,7 +527,8 @@ useEffect(() => {
       <div className="flex items-center gap-2.5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
         <Info className="h-4 w-4 shrink-0 text-blue-500" />
         <p className="text-xs text-blue-700">
-          Set the number of leave days allowed per role. Changes apply across all employees with that role.
+          Set the number of leave days allowed per role. Changes apply across
+          all employees with that role.
         </p>
       </div>
 
@@ -461,8 +537,10 @@ useEffect(() => {
         {visibleRoles.map((role) => {
           const total = getTotalDays(role.key, selectedGender);
           return (
-            <div key={role.key} className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-
+            <div
+              key={role.key}
+              className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+            >
               {/* Role header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
                 <div className="flex items-center gap-3">
@@ -470,14 +548,21 @@ useEffect(() => {
                     <Users className="h-4 w-4 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-800">{role.label}</p>
-                    <p className="text-[11px] text-slate-400 font-mono">{role.key}</p>
+                    <p className="text-sm font-bold text-slate-800">
+                      {role.label}
+                    </p>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      {role.key}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 font-medium">Total entitlement</span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    Total entitlement
+                  </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-sm font-bold text-emerald-700">
-                    {total} <span className="font-normal text-emerald-600">days</span>
+                    {total}{" "}
+                    <span className="font-normal text-emerald-600">days</span>
                   </span>
                 </div>
               </div>
@@ -485,10 +570,17 @@ useEffect(() => {
               {/* Leave type tiles */}
               <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {leaveTypes.map((leaveType) => {
-                  if (!isLeaveTypeApplicable(leaveType, selectedGender)) return null;
+                  if (!isLeaveTypeApplicable(leaveType, selectedGender))
+                    return null;
 
-                  const policy = policies.find((p) => p.role === role.key && p.leaveType === leaveType);
-                  const colors = LEAVE_TYPE_COLORS[leaveType] || { bg: "bg-slate-50 border-slate-200", text: "text-slate-700", icon: "text-slate-500" };
+                  const policy = policies.find(
+                    (p) => p.role === role.key && p.leaveType === leaveType,
+                  );
+                  const colors = LEAVE_TYPE_COLORS[leaveType] || {
+                    bg: "bg-slate-50 border-slate-200",
+                    text: "text-slate-700",
+                    icon: "text-slate-500",
+                  };
                   const isRestricted = isLeaveTypeGenderRestricted(leaveType);
                   const days = policy?.daysAllowed ?? 0;
 
@@ -499,11 +591,16 @@ useEffect(() => {
                     >
                       {/* Type label + lock */}
                       <div className="flex items-start justify-between gap-1">
-                        <p className={`text-[11px] font-bold uppercase tracking-wide leading-tight ${colors.text}`}>
+                        <p
+                          className={`text-[11px] font-bold uppercase tracking-wide leading-tight ${colors.text}`}
+                        >
                           {leaveType}
                         </p>
                         {isRestricted && (
-                          <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white" title="Female only">
+                          <span
+                            className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white"
+                            title="Female only"
+                          >
                             <Lock className="h-2.5 w-2.5" />
                           </span>
                         )}
@@ -524,7 +621,13 @@ useEffect(() => {
                           min="0"
                           max="365"
                           value={days}
-                          onChange={(e) => updatePolicy(role.key, leaveType, parseInt(e.target.value) || 0)}
+                          onChange={(e) =>
+                            updatePolicy(
+                              role.key,
+                              leaveType,
+                              parseInt(e.target.value) || 0,
+                            )
+                          }
                           className="h-9 flex-1 border-0 bg-white/70 text-center text-xl font-bold shadow-sm ring-1 ring-slate-200 focus-visible:ring-blue-400 rounded-lg p-0"
                         />
 
@@ -552,13 +655,19 @@ useEffect(() => {
                         }`}
                       >
                         <span>Incl. Weekends</span>
-                        <span className={`inline-flex h-3.5 w-6 rounded-full relative transition-colors ${policy?.includeWeekends ? "bg-violet-500" : "bg-slate-200"}`}>
-                          <span className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${policy?.includeWeekends ? "translate-x-2.5" : "translate-x-0.5"}`} />
+                        <span
+                          className={`inline-flex h-3.5 w-6 rounded-full relative transition-colors ${policy?.includeWeekends ? "bg-violet-500" : "bg-slate-200"}`}
+                        >
+                          <span
+                            className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow transition-transform ${policy?.includeWeekends ? "translate-x-2.5" : "translate-x-0.5"}`}
+                          />
                         </span>
                       </button>
 
                       {isRestricted && (
-                        <p className="text-center text-[10px] text-pink-500 font-medium">Female only</p>
+                        <p className="text-center text-[10px] text-pink-500 font-medium">
+                          Female only
+                        </p>
                       )}
                     </div>
                   );
@@ -576,7 +685,9 @@ useEffect(() => {
             {hasChanges ? (
               <div className="flex items-center gap-2 text-amber-700">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span className="text-sm font-medium">You have unsaved changes — click Save to apply.</span>
+                <span className="text-sm font-medium">
+                  You have unsaved changes — click Save to apply.
+                </span>
               </div>
             ) : (
               <p className="text-xs text-slate-400">All changes are saved.</p>
@@ -611,4 +722,3 @@ useEffect(() => {
     </div>
   );
 }
-

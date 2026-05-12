@@ -21,7 +21,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { type Invoice } from "@/types/sales";
 import { apiClient } from "@/service/apiClient";
 import type { Row } from "@tanstack/react-table";
-import { SalesPageHeader } from "./components/sales-page-header";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -34,6 +33,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/PageHeader";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -178,13 +179,18 @@ export default function InvoicesPage({
     ];
   }, [invoices]);
 
+  const isFinancePage = useMemo(() => {
+    return location.pathname.includes("/finance/receivable");
+  }, [location.pathname]);
+
   return (
-    <div className="sm:p-0 space-y-6">
+    <div className={cn("p-6 space-y-6", isFinancePage && "p-0")}>
       {!disableHeader && (
-        <SalesPageHeader
+        <PageHeader
           title="Sales Invoices"
           description="Manage AR invoices issued from confirmed orders: payment status, due dates, and collections."
           backHref="/inventory/sales"
+          variant="darkBlue"
         />
       )}
 

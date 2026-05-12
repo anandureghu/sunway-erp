@@ -23,7 +23,7 @@ import {
 import { listVendors } from "@/service/vendorService";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { PurchasePageHeader } from "./purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 
 type EditableLine = {
   id: string;
@@ -236,11 +236,12 @@ export function PurchaseOrderForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <PurchasePageHeader
+      <PageHeader
+        variant="darkGreen"
         title={isEditMode ? "Edit purchase order" : "Create purchase order"}
         description={
           isEditMode
-            ? "Update draft lines and supplier details before releasing the PO."
+            ? "Update draft lines and supplier details before releasing the Purchase Order."
             : "Define supplier, dates, and lines for a new draft purchase order."
         }
         backHref="/inventory/purchase"

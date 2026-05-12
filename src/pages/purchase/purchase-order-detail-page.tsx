@@ -27,7 +27,7 @@ import {
   RelatedPurchaseDocumentsCard,
   type RelatedGrRef,
 } from "./components/related-purchase-documents";
-import { PurchasePageHeader } from "./components/purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function PurchaseOrderDetailPage() {
@@ -99,7 +99,9 @@ export default function PurchaseOrderDetailPage() {
       await load();
     } catch (e: any) {
       toast.error(
-        e?.response?.data?.message || e?.message || "Failed to release PO",
+        e?.response?.data?.message ||
+          e?.message ||
+          "Failed to release Purchase Order",
       );
     } finally {
       setActionLoading(false);
@@ -186,9 +188,10 @@ export default function PurchaseOrderDetailPage() {
 
   return (
     <div className="mx-auto space-y-6 p-4 sm:p-6">
-      <PurchasePageHeader
+      <PageHeader
+        variant="darkGreen"
         title={order.orderNo}
-        description="Release when ready, then record receipts against this PO."
+        description="Release when ready, then record receipts against this Purchase Order."
         backHref="/inventory/purchase/orders"
         actions={
           <>
@@ -221,9 +224,9 @@ export default function PurchaseOrderDetailPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Actions</CardTitle>
           <p className="text-sm text-muted-foreground font-normal">
-            Release sends the PO to the supplier (confirms it). Receiving posts
-            goods against this order. Vendor payment must be confirmed under
-            Finance → Accounts payable → Vendor payments first.
+            Release sends the Purchase Order to the supplier (confirms it).
+            Receiving posts goods against this order. Vendor payment must be
+            confirmed under Finance → Accounts payable → Vendor payments first.
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -231,8 +234,8 @@ export default function PurchaseOrderDetailPage() {
             <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-950 px-3 py-2">
               Confirm the vendor payable in{" "}
               <strong>Finance → Accounts payable → Vendor payments</strong> (use{" "}
-              <em>Confirm vendor payment</em>) before you can release this PO to
-              the supplier.
+              <em>Confirm vendor payment</em>) before you can release this
+              Purchase Order to the supplier.
             </p>
           )}
           <div className="flex flex-wrap gap-2">

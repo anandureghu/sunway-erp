@@ -9,6 +9,7 @@ import { StockListTab } from "./components/stock-list-tab";
 import { StockStatsCards } from "./components/stock-stats-cards";
 import { VarianceTab } from "./components/variance-tab";
 import { useManageStocks } from "./use-manage-stocks";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function ManageStocks() {
   const navigate = useNavigate();
@@ -29,37 +30,14 @@ export default function ManageStocks() {
 
   return (
     <div className="min-h-full bg-gradient-to-b from-slate-50/90 via-background to-background dark:from-muted/15">
-      <div className="mx-auto max-w-[1400px] space-y-8 px-4 py-6 sm:px-6 lg:py-8">
+      <div className="mx-auto space-y-8 p-6">
         {/* Page hero */}
-        <header className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/80 px-6 py-4 shadow-sm sm:px-8 sm:py-4">
-          <div
-            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-3xl"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl"
-            aria-hidden
-          />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2">
-              <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                Manage Inventory & Stock Movements
-              </h1>
-              <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Catalog Items, Receive Stock and Manage Variance
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-              <Package className="h-5 w-5 text-primary" />
-              <span>
-                <span className="font-semibold text-foreground">
-                  {stats.totalItems}
-                </span>{" "}
-                lines tracked
-              </span>
-            </div>
-          </div>
-        </header>
+        <PageHeader
+          title="Manage Stocks"
+          description="View and manage your stock inventory"
+          variant="darkBlue"
+          icon={<Package className="w-6 h-6" />}
+        />
 
         <StockStatsCards
           totalItems={stats.totalItems}

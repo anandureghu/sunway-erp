@@ -16,11 +16,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import type { SalesOrder } from "@/types/sales";
 import type { ColumnDef } from "@tanstack/react-table";
-import { SalesPageHeader } from "./sales-page-header";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { PageHeader } from "@/components/PageHeader";
 
 type ListTab = "active" | "closed";
 
@@ -70,11 +70,11 @@ export function SalesOrdersListView({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
-        titleClassName="!text-2xl"
+      <PageHeader
         title="Manage Sales Orders"
         description="Review order pipeline, tabs for open vs completed work, and drill into any order."
         backHref="/inventory/sales"
+        variant="darkBlue"
         actions={
           <Button
             size="lg"
