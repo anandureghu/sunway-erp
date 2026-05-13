@@ -8,6 +8,9 @@ import {
   type AllowancePayload,
 } from "@/service/contractService";
 import { salaryService } from "@/service/salaryService";
+import { hrService } from "@/service/hr.service";
+import { currentJobService, type CurrentJobResponse } from "@/service/currentJobService";
+import type { Employee } from "@/types/hr";
 import { downloadContractPdf } from "@/service/contractPdfService";
 import { toast } from "sonner";
 import type { ContractType, ContractStatus } from "@/types/hr";
@@ -24,6 +27,9 @@ import {
   User,
   Hash,
   Download,
+  Briefcase,
+  Building2,
+  MapPin,
 } from "lucide-react";
 import {
   Select,
@@ -166,6 +172,8 @@ export default function EmployeeContractForm() {
   const [contractId, setContractId] = useState<number | null>(null);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [, setSalaryOptions] = useState<SalaryOption[]>([]);
+  const [employeeInfo, setEmployeeInfo] = useState<Employee | null>(null);
+  const [currentJob, setCurrentJob] = useState<CurrentJobResponse | null>(null);
 
   const allowanceTypeMapRef = useRef<Map<string, number>>(new Map());
   const loadingContractRef = useRef(false);
@@ -365,6 +373,23 @@ export default function EmployeeContractForm() {
           // Salary not configured yet
         }
 
+        // Fetch employee info + current job for read-only auto-filled contract fields
+        let empInfo: Employee | null = null;
+        let job: CurrentJobResponse | null = null;
+        try {
+          [empInfo, job] = await Promise.all([
+            hrService.getEmployee(empId).catch(() => null),
+            currentJobService.get(empId).catch(() => null),
+          ]);
+          setEmployeeInfo(empInfo);
+          setCurrentJob(job);
+        } catch {
+          // Employee/current-job not available yet
+        }
+        const derivedStaffName = empInfo
+          ? `${empInfo.firstName ?? ""} ${empInfo.lastName ?? ""}`.trim()
+          : "";
+
         const fresh = await contractService.get(empId);
 
         if (!fresh) {
@@ -374,6 +399,8 @@ export default function EmployeeContractForm() {
           // ─── FIX: build the full data object and sync the ref BEFORE setFields ───
           const prePopulated: ContractFormData = {
             ...initialFormData,
+            staffName: derivedStaffName,
+            effectiveDate: job?.startDate || initialFormData.effectiveDate,
             salaryRows:
               opts.length > 0
                 ? opts.map((opt) => ({
@@ -419,7 +446,8 @@ export default function EmployeeContractForm() {
         const loadedData: ContractFormData = {
           contractCode: fresh.contractCode ?? "",
           staffName:
-            fresh.staffName ?? fresh.employeeName ?? fresh.staff?.name ?? "",
+            derivedStaffName ||
+            (fresh.staffName ?? fresh.employeeName ?? fresh.staff?.name ?? ""),
           contractType: fresh.contractType ?? "PERMANENT",
           status: fresh.status ?? "DRAFT",
           effectiveDate: fresh.effectiveDate ?? "",
@@ -653,6 +681,118 @@ export default function EmployeeContractForm() {
       {/* Main Form Card */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-6">
 
+        {/* Linked Employee Info + Current Job — read-only auto-fill */}
+        <section>
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div className="p-1.5 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-lg">
+              <Briefcase className="h-3.5 w-3.5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-slate-700">
+                Linked Employee Info & Current Job
+              </h3>
+              <p className="text-xs text-slate-400">
+                Auto-filled from the Employee Info and Current Job tabs. Edit them there.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+            <FormField label="Employee No">
+              <div className="relative">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
+                  disabled
+                  readOnly
+                  value={employeeInfo?.employeeNo ?? ""}
+                  placeholder="—"
+                />
+              </div>
+            </FormField>
+
+            <FormField label="Staff Name">
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
+                  disabled
+                  readOnly
+                  value={formData.staffName}
+                  placeholder="—"
+                />
+              </div>
+            </FormField>
+
+            <FormField label="Join Date">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
+                  disabled
+                  readOnly
+                  value={employeeInfo?.joinDate ?? ""}
+                  placeholder="—"
+                />
+              </div>
+            </FormField>
+
+            <FormField label="Job Code">
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
+                  disabled
+                  readOnly
+                  value={currentJob?.jobCode ?? ""}
+                  placeholder="—"
+                />
+              </div>
+            </FormField>
+
+            <FormField label="Department">
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
+                  disabled
+                  readOnly
+                  value={currentJob?.departmentName ?? ""}
+                  placeholder="—"
+                />
+              </div>
+            </FormField>
+
+            <FormField label="Job Start Date">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
+                  disabled
+                  readOnly
+                  value={currentJob?.startDate ?? ""}
+                  placeholder="—"
+                />
+              </div>
+            </FormField>
+
+            <FormField label="Work Location">
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
+                  disabled
+                  readOnly
+                  value={[currentJob?.workLocation, currentJob?.workCity, currentJob?.workCountry]
+                    .filter(Boolean)
+                    .join(", ")}
+                  placeholder="—"
+                />
+              </div>
+            </FormField>
+          </div>
+        </section>
+
         {/* General Information Section */}
         <section>
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
@@ -673,19 +813,6 @@ export default function EmployeeContractForm() {
                   disabled={!editing}
                   value={formData.contractCode}
                   onChange={(e) => updateField("contractCode")(e.target.value)}
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Staff Name" required error={errors.staffName}>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
-                  disabled={!editing}
-                  placeholder="Enter staff name"
-                  value={formData.staffName}
-                  onChange={(e) => updateField("staffName")(e.target.value)}
                 />
               </div>
             </FormField>

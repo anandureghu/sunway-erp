@@ -213,15 +213,27 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
 
 // ── NEW: MonthStats ────────────────────────────────────────────────────────────
 
+const MIN_WORKED_MINUTES_FOR_DAY = 360;
+
+function workedDayCount(entries: TimesheetEntry[]): number {
+  return entries.reduce((n, e) => {
+    if (!e.checkInTime || !e.checkOutTime) return n;
+    const mins =
+      e.workedMinutes ?? Math.floor(diffMs(e.checkInTime, e.checkOutTime) / 60000);
+    return mins >= MIN_WORKED_MINUTES_FOR_DAY ? n + 1 : n;
+  }, 0);
+}
+
 function MonthStats({ entries, monthLabel }: { entries: TimesheetEntry[]; monthLabel: string }) {
   const completed = entries.filter((e) => e.checkInTime && e.checkOutTime);
   const totalH = totalHoursInMonth(entries);
   const avgH = completed.length ? totalH / completed.length : 0;
+  const workedDays = workedDayCount(entries);
 
   const stats = [
     {
-      label: "Days Present",
-      value: completed.length,
+      label: "Total Days Worked",
+      value: workedDays,
       unit: "days",
       icon: CheckCircle2,
       gradient: "from-emerald-500 to-teal-600",

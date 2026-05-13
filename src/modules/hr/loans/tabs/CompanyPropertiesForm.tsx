@@ -2,8 +2,10 @@ import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";  
-import { Plus, Trash2, Eye, Package, Calendar, FileText, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Eye, Package, Calendar, FileText, CheckCircle2, AlertTriangle, PencilLine } from "lucide-react";
 import { FormRow, FormField } from "@/modules/hr/components/form-components";
+import { PageHeader } from "@/modules/hr/components/page-header";
+import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { useParams } from "react-router-dom";
 import { propertyService } from "@/service/propertyService";
 import { toast } from "sonner";
@@ -173,20 +175,11 @@ export default function CompanyPropertiesForm() {
 
   return (
     <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
-        <div className="flex items-center justify-between gap-4 px-6 py-5">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
-              <Package className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 leading-tight">Company Properties</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Manage company assets, equipment, assignments, and returns
-              </p>
-            </div>
-          </div>
+      <PageHeader
+        icon={<Package className="h-5 w-5" />}
+        title="Company Properties"
+        description="Manage company assets, equipment, assignments, and returns"
+        right={
           <Button
             onClick={handleAdd}
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
@@ -194,8 +187,8 @@ export default function CompanyPropertiesForm() {
             <Plus className="h-4 w-4" />
             Add Property
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <SummaryCard
@@ -203,32 +196,28 @@ export default function CompanyPropertiesForm() {
           value={items.length}
           description="Assets loaded"
           icon={<FileText className="h-5 w-5" />}
-          accent="border-t-blue-500"
-          iconClassName="bg-blue-50 text-blue-600"
+          color="blue"
         />
         <SummaryCard
           label="Assigned"
           value={assignedCount}
           description="Currently issued"
           icon={<Package className="h-5 w-5" />}
-          accent="border-t-violet-500"
-          iconClassName="bg-violet-50 text-violet-600"
+          color="violet"
         />
         <SummaryCard
           label="Returned"
           value={returnedCount}
           description="Received back"
           icon={<CheckCircle2 className="h-5 w-5" />}
-          accent="border-t-emerald-500"
-          iconClassName="bg-emerald-50 text-emerald-600"
+          color="emerald"
         />
         <SummaryCard
           label="Lost/Damaged"
           value={issueCount}
           description="Needs attention"
           icon={<AlertTriangle className="h-5 w-5" />}
-          accent="border-t-rose-500"
-          iconClassName="bg-rose-50 text-rose-600"
+          color="rose"
         />
       </div>
 
@@ -430,6 +419,15 @@ export default function CompanyPropertiesForm() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => setEditingId(item.id)}
+                            className="flex items-center gap-1 rounded-lg"
+                          >
+                            <PencilLine className="h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDelete(item.id)}
                             className="text-red-600 rounded-lg"
                           >
@@ -510,6 +508,13 @@ export default function CompanyPropertiesForm() {
                           >
                             Close
                           </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => { setViewingId(null); setEditingId(item.id); }}
+                            className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                          >
+                            <PencilLine className="mr-1 h-3.5 w-3.5" /> Edit
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -543,33 +548,3 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  description,
-  icon,
-  accent,
-  iconClassName,
-}: {
-  label: string;
-  value: number;
-  description: string;
-  icon: React.ReactNode;
-  accent: string;
-  iconClassName: string;
-}) {
-  return (
-    <div className={`rounded-xl border border-slate-200 ${accent} border-t-4 bg-white p-4 shadow-sm`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
-        </div>
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconClassName}`}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}

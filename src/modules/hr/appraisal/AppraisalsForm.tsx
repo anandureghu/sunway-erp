@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Eye, FileText, TrendingUp, MessageSquare, Calendar, Unlock } from "lucide-react";
+import { Plus, Trash2, Eye, FileText, TrendingUp, MessageSquare, Calendar, Unlock, Lock, ClipboardCheck, FileEdit } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { appraisalService } from "@/service/appraisalService";
 import { hrService } from "@/service/hr.service";
@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import AppraisalEditor from "./AppraisalEditor";
 import { appraisalConfigService } from "@/service/appraisalConfigService";
 import { displayRole } from "@/types/role";
+import { PageHeader } from "@/modules/hr/components/page-header";
+import { SummaryCard } from "@/modules/hr/components/summary-card";
 
 export type AppModel = {
   id?: number | string;
@@ -288,27 +290,66 @@ export default function AppraisalsForm() {
       )}
 
       {/* Header */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              Employee Performance Review
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">Monthly performance evaluations · {appraisalYear}</p>
-            {employee && (
-              <p className="text-sm text-slate-600 mt-1">
-                {`${employee.firstName || ""} ${employee.middleName || ""} ${employee.lastName || ""}`.trim()}
-                {employee.role && <span className="text-slate-400"> · {displayRole(employee.companyRole, employee.role)}</span>}
-              </p>
-            )}
-          </div>
-          <Button onClick={handleAddClick}
-            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl">
-            <Plus className="h-5 w-5" /> Add Appraisal
+      <PageHeader
+        icon={<FileText className="h-5 w-5" />}
+        title="Employee Performance Review"
+        description={
+          employee
+            ? `${`${employee.firstName || ""} ${employee.middleName || ""} ${employee.lastName || ""}`.trim()}${employee.role ? ` · ${displayRole(employee.companyRole, employee.role)}` : ""} · ${appraisalYear}`
+            : `Monthly performance evaluations · ${appraisalYear}`
+        }
+        right={
+          <Button
+            onClick={handleAddClick}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+          >
+            <Plus className="h-4 w-4" /> Add Appraisal
           </Button>
-        </div>
-      </div>
+        }
+      />
+
+      {(() => {
+        const yearItems = items.filter((it) => String(it.year) === String(appraisalYear));
+        const draftCount = yearItems.filter((it) => it.status === "DRAFT" || it.status === "SELF_SUBMITTED").length;
+        const reviewedCount = yearItems.filter((it) => it.status === "MANAGER_REVIEWED").length;
+        const lockedCount = yearItems.filter((it) => it.status === "LOCKED").length;
+        const scored = yearItems.filter((it) => it.overallScore != null);
+        const avgScore = scored.length
+          ? (scored.reduce((sum, it) => sum + (it.overallScore || 0), 0) / scored.length).toFixed(2)
+          : "—";
+        return (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <SummaryCard
+              label="Total Appraisals"
+              value={yearItems.length}
+              description={`Recorded in ${appraisalYear}`}
+              icon={<FileText className="h-5 w-5" />}
+              color="blue"
+            />
+            <SummaryCard
+              label="In Progress"
+              value={draftCount}
+              description="Draft & self-submitted"
+              icon={<FileEdit className="h-5 w-5" />}
+              color="amber"
+            />
+            <SummaryCard
+              label="Manager Reviewed"
+              value={reviewedCount}
+              description="Awaiting lock"
+              icon={<ClipboardCheck className="h-5 w-5" />}
+              color="emerald"
+            />
+            <SummaryCard
+              label="Locked"
+              value={lockedCount}
+              description={`Avg score: ${avgScore}`}
+              icon={<Lock className="h-5 w-5" />}
+              color="violet"
+            />
+          </div>
+        );
+      })()}
 
       {/* List */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">

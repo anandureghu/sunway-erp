@@ -11,7 +11,15 @@ import {
   Calendar,
   TrendingUp,
   FileText,
+  CheckCircle2,
+  AlertTriangle,
+  Wallet,
+  PencilLine,
+  Check,
+  X,
 } from "lucide-react";
+import { PageHeader } from "@/modules/hr/components/page-header";
+import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { useState, useCallback, useEffect } from "react";
 import { salaryService } from "@/service/salaryService";
 import { formatMoney, generateId } from "@/lib/utils";
@@ -68,7 +76,7 @@ function validateLoan(loan: LoansModel): boolean {
   startDate: "",
   endDate: "",
   monthlyDeductions: "",
-  loanStatus: "ACTIVE",
+  loanStatus: "PENDING_APPROVAL",
   balance: "",
   grossPay: "0",
   deductionAmount: "0",
@@ -78,17 +86,36 @@ function validateLoan(loan: LoansModel): boolean {
 export default function LoansForm(): ReactElement {
   const params = useParams<{ id: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
-  const { user } = useAuth();
+  const { user, permissions } = useAuth();
+  // ADMIN/SUPER_ADMIN get permissions=null and bypass; otherwise check the
+  // explicit LOANS.approve grant. HR Manager / Finance Manager get this via
+  // their company-role permission config.
+  const canApproveLoans =
+    permissions === null ||
+    !!(permissions?.LOANS?.approve);
 
   const [loans, setLoans] = useState<LoansModel[]>([]);
   const [loanTypeOptions, setLoanTypeOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
   const [grossSalary, setGrossSalary] = useState<number>(0);
+  const [basicSalary, setBasicSalary] = useState<number>(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [, setLoading] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
+
+  const MAX_DEDUCTION_PCT = 0.30;
+  const maxMonthlyDeduction = basicSalary * MAX_DEDUCTION_PCT;
+  const computeMonthly = (amount: string | number, period: string | number) => {
+    const a = Number(amount || 0);
+    const p = Number(period || 0);
+    return p > 0 ? a / p : 0;
+  };
+  const exceedsLimit = (loan: LoansModel) => {
+    if (basicSalary <= 0) return false;
+    return computeMonthly(loan.loanAmount, loan.loanPeriod) > maxMonthlyDeduction;
+  };
 
   const handleAdd = useCallback(() => {
     const gross = grossSalary || 0;
@@ -194,7 +221,10 @@ export default function LoansForm(): ReactElement {
               data.grossPay ??
               0,
           ) || 0;
+        const basic =
+          Number(data.basicSalary ?? data.basic_salary ?? 0) || 0;
         setGrossSalary(gross);
+        setBasicSalary(basic);
       })
       .catch((err) => {
         console.error("Failed to load salary", err);
@@ -291,34 +321,114 @@ export default function LoansForm(): ReactElement {
         return "bg-emerald-50 text-emerald-700 border-emerald-200";
       case "CLOSED":
         return "bg-gray-50 text-gray-700 border-gray-200";
+      case "PENDING_APPROVAL":
       case "PENDING":
         return "bg-amber-50 text-amber-700 border-amber-200";
+      case "REJECTED":
+        return "bg-rose-50 text-rose-700 border-rose-200";
       default:
         return "bg-blue-50 text-blue-700 border-blue-200";
     }
   };
 
+  const formatStatus = (status: string) => {
+    switch (status.toUpperCase()) {
+      case "PENDING_APPROVAL":
+        return "Pending Approval";
+      case "ACTIVE":
+        return "Active";
+      case "REJECTED":
+        return "Rejected";
+      case "CLOSED":
+        return "Closed";
+      default:
+        return status;
+    }
+  };
+
+  const handleDecision = useCallback(
+    async (loanDbId: number, approve: boolean) => {
+      if (!employeeId) return;
+      try {
+        await loanService.decideLoan(employeeId, loanDbId, approve);
+        toast.success(approve ? "Loan approved" : "Loan rejected");
+        await loadLoans();
+      } catch (err: any) {
+        console.error("LoansForm -> decision failed", err);
+        const status = err?.response?.status;
+        if (status === 403) {
+          toast.error("You don't have permission to approve loans");
+        } else {
+          toast.error(err?.response?.data?.message || "Failed to update loan");
+        }
+      }
+    },
+    [employeeId, loadLoans],
+  );
+
+  const totalLoans = loans.length;
+  const pendingLoans = loans.filter(
+    (l) => l.loanStatus?.toUpperCase() === "PENDING_APPROVAL",
+  ).length;
+  const activeLoans = loans.filter((l) => l.loanStatus?.toUpperCase() === "ACTIVE").length;
+  const closedLoans = loans.filter((l) => l.loanStatus?.toUpperCase() === "CLOSED").length;
+  const totalOutstanding = loans
+    .filter((l) => l.loanStatus?.toUpperCase() === "ACTIVE")
+    .reduce((sum, l) => sum + Number(l.balance || 0), 0);
+
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-blue-600" />
-              Employee Loans
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Manage loan details and repayment schedules
-            </p>
-          </div>
+      <PageHeader
+        icon={<DollarSign className="h-5 w-5" />}
+        title="Employee Loans"
+        description="Manage loan details and repayment schedules"
+        right={
           <Button
             onClick={handleAdd}
-            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             Request Loan
           </Button>
-        </div>
+        }
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <SummaryCard
+          label="Total Loans"
+          value={totalLoans}
+          description="Loans on record"
+          icon={<FileText className="h-5 w-5" />}
+          color="blue"
+        />
+        <SummaryCard
+          label="Pending"
+          value={pendingLoans}
+          description="Awaiting approval"
+          icon={<AlertTriangle className="h-5 w-5" />}
+          color="amber"
+        />
+        <SummaryCard
+          label="Active"
+          value={activeLoans}
+          description="Currently being deducted"
+          icon={<Wallet className="h-5 w-5" />}
+          color="blue"
+        />
+        <SummaryCard
+          label="Closed"
+          value={closedLoans}
+          description="Fully repaid"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          color="emerald"
+        />
+        <SummaryCard
+          label="Outstanding"
+          value={formatMoney(String(totalOutstanding), currencySymbol)}
+          description="Across active loans"
+          icon={<AlertTriangle className="h-5 w-5" />}
+          color="rose"
+        />
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
@@ -434,23 +544,30 @@ export default function LoansForm(): ReactElement {
                             {currencySymbol}
                           </span>
                         </div>
+                        {exceedsLimit(loan) && (
+                          <p className="text-xs text-rose-600 font-medium">
+                            You don't qualify for this loan amount. Monthly deduction
+                            cannot exceed 30% of basic salary (max{" "}
+                            {formatMoney(String(maxMonthlyDeduction), currencySymbol)}).
+                          </p>
+                        )}
                       </div>
 
                       <div>
                         <Label className="text-sm font-medium text-slate-700">
                           Loan Status
                         </Label>
-                        <SelectField
-                          value={loan.loanStatus}
-                          onChange={(e) =>
-                            handleSave({ ...loan, loanStatus: e.target.value })
-                          }
-                          options={[
-                            { value: "ACTIVE", label: "ACTIVE" },
-                            { value: "CLOSED", label: "CLOSED" },
-                          ]}
-                          placeholder="Select Status"
-                        />
+                        <div className="mt-1 flex h-9 items-center">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(loan.loanStatus || "PENDING_APPROVAL")}`}
+                          >
+                            {formatStatus(loan.loanStatus || "PENDING_APPROVAL")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                          New requests start as Pending Approval and become
+                          Active after an authorized approver decides.
+                        </p>
                       </div>
                     </div>
 
@@ -579,7 +696,7 @@ export default function LoansForm(): ReactElement {
                       Cancel
                     </Button>
                     <Button
-                      disabled={!validateLoan(loan)}
+                      disabled={!validateLoan(loan) || exceedsLimit(loan)}
                       onClick={async () => {
                         handleSave(loan);
                         await persistLoan(loan);
@@ -602,7 +719,7 @@ export default function LoansForm(): ReactElement {
                           </h3>
                           {loan.loanStatus && (
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(loan.loanStatus)}`}>
-                              {loan.loanStatus}
+                              {formatStatus(loan.loanStatus)}
                             </span>
                           )}
                         </div>
@@ -624,9 +741,36 @@ export default function LoansForm(): ReactElement {
                         </div>
                       </div>
                       <div className="flex gap-2 ml-4">
+                        {canApproveLoans &&
+                          loan.loanStatus?.toUpperCase() === "PENDING_APPROVAL" &&
+                          /^\d+$/.test(loan.id) && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleDecision(Number(loan.id), true)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1"
+                              >
+                                <Check className="h-4 w-4" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDecision(Number(loan.id), false)}
+                                className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
+                              >
+                                <X className="h-4 w-4" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
                         <Button variant="ghost" size="sm" onClick={() => setViewingId(loan.id)} className="flex items-center gap-1 rounded-lg">
                           <Eye className="h-4 w-4" />
                           View
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(loan.id)} className="flex items-center gap-1 rounded-lg">
+                          <PencilLine className="h-4 w-4" />
+                          Edit
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDelete(loan.id)} className="text-red-600 rounded-lg">
                           <Trash2 className="h-4 w-4" />
@@ -644,7 +788,7 @@ export default function LoansForm(): ReactElement {
                         </h3>
                         {loan.loanStatus && (
                           <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(loan.loanStatus)}`}>
-                            {loan.loanStatus}
+                            {formatStatus(loan.loanStatus)}
                           </span>
                         )}
                       </div>
@@ -683,6 +827,13 @@ export default function LoansForm(): ReactElement {
                       <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
                         <Button variant="outline" size="sm" onClick={() => setViewingId(null)} className="rounded-lg border-slate-300">
                           Close
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => { setViewingId(null); setEditingId(loan.id); }}
+                          className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                        >
+                          <PencilLine className="mr-1 h-3.5 w-3.5" /> Edit
                         </Button>
                       </div>
                     </div>

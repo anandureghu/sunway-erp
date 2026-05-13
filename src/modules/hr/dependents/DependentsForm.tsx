@@ -2,8 +2,10 @@ import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Eye, Users, User, Calendar, Globe } from "lucide-react";
+import { Plus, Trash2, Eye, Users, User, Calendar, Globe, Heart, Baby, UserCog, PencilLine } from "lucide-react";
 import { FormRow } from "@/modules/hr/components/form-components";
+import { PageHeader } from "@/modules/hr/components/page-header";
+import { SummaryCard } from "@/modules/hr/components/summary-card";
 import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import type { Dependent, Gender, MaritalStatus } from "@/types/hr";
@@ -259,25 +261,61 @@ export function DependentsForm() {
     return age >= 0 ? age : null;
   };
 
+  const totalDependents = dependents.length;
+  const spouseCount = dependents.filter((d) => d.relationship === "Spouse").length;
+  const childrenCount = dependents.filter(
+    (d) => d.relationship === "Son" || d.relationship === "Daughter",
+  ).length;
+  const parentsCount = dependents.filter(
+    (d) => d.relationship === "Father" || d.relationship === "Mother",
+  ).length;
+
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              Employee Dependents
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">Manage dependent information</p>
-          </div>
+      <PageHeader
+        icon={<Users className="h-5 w-5" />}
+        title="Employee Dependents"
+        description="Manage dependent information"
+        right={
           <Button
             onClick={handleAdd}
-            className="bg-blue-600 text-white shadow-lg flex items-center gap-2 px-6 py-3 rounded-xl"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             Add Dependent
           </Button>
-        </div>
+        }
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <SummaryCard
+          label="Total Dependents"
+          value={totalDependents}
+          description="Dependents on record"
+          icon={<Users className="h-5 w-5" />}
+          color="blue"
+        />
+        <SummaryCard
+          label="Spouse"
+          value={spouseCount}
+          description="Married partner"
+          icon={<Heart className="h-5 w-5" />}
+          color="rose"
+        />
+        <SummaryCard
+          label="Children"
+          value={childrenCount}
+          description="Sons & daughters"
+          icon={<Baby className="h-5 w-5" />}
+          color="emerald"
+        />
+        <SummaryCard
+          label="Parents"
+          value={parentsCount}
+          description="Father & mother"
+          icon={<UserCog className="h-5 w-5" />}
+          color="violet"
+        />
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
@@ -555,12 +593,10 @@ export function DependentsForm() {
                           <Label className="text-sm font-medium text-slate-700">
                             Country <span className="text-red-500">*</span>
                           </Label>
-                          <Input
+                          <CountryAutocomplete
                             value={dependent.country}
-                            onChange={e => updateDependent(dependent.id, { country: e.target.value })}
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter country"
-                            required
+                            onChange={(v) => updateDependent(dependent.id, { country: v })}
+                            placeholder="Select country..."
                           />
                         </div>
                       </FormRow>
@@ -640,6 +676,15 @@ export function DependentsForm() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => setEditingId(dependent.id)}
+                            className="flex items-center gap-1 rounded-lg"
+                          >
+                            <PencilLine className="h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDelete(dependent.id)}
                             className="text-red-600 rounded-lg"
                           >
@@ -713,13 +758,15 @@ export function DependentsForm() {
                         {(dependent.phoneNo || dependent.address || dependent.city || dependent.state || dependent.postalCode || dependent.country) && (
                           <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 border border-cyan-100">
                             <h4 className="text-lg font-semibold text-slate-800 mb-4">Contact Information</h4>
-                            {dependent.phoneNo && <DetailItem label="Phone Number" value={dependent.phoneNo} />}
-                            {dependent.address && <DetailItem label="Address Line 1" value={dependent.address} />}
-                            {dependent.address2 && <DetailItem label="Address Line 2" value={dependent.address2} />}
-                            {dependent.city && <DetailItem label="City" value={dependent.city} />}
-                            {dependent.state && <DetailItem label="State/Province" value={dependent.state} />}
-                            {dependent.postalCode && <DetailItem label="Postal Code" value={dependent.postalCode} />}
-                            {dependent.country && <DetailItem label="Country" value={dependent.country} />}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                              {dependent.phoneNo && <DetailItem label="Phone Number" value={dependent.phoneNo} />}
+                              {dependent.address && <DetailItem label="Address Line 1" value={dependent.address} />}
+                              {dependent.address2 && <DetailItem label="Address Line 2" value={dependent.address2} />}
+                              {dependent.city && <DetailItem label="City" value={dependent.city} />}
+                              {dependent.state && <DetailItem label="State/Province" value={dependent.state} />}
+                              {dependent.postalCode && <DetailItem label="Postal Code" value={dependent.postalCode} />}
+                              {dependent.country && <DetailItem label="Country" value={dependent.country} />}
+                            </div>
                           </div>
                         )}
 
@@ -733,13 +780,20 @@ export function DependentsForm() {
                         )}
 
                         <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => setViewingId(null)}
                             className="rounded-lg border-slate-300"
                           >
                             Close
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => { setViewingId(null); setEditingId(dependent.id); }}
+                            className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                          >
+                            <PencilLine className="mr-1 h-3.5 w-3.5" /> Edit
                           </Button>
                         </div>
                       </div>
