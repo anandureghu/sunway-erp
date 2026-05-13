@@ -11,6 +11,13 @@ export interface TimesheetEntry {
   notes?: string;
 }
 
+export interface MonthlySummary {
+  daysRecorded: number;
+  daysPresent: number; // "Total Days Worked" — days with >= 6 hours
+  totalHours: number;
+  avgHoursPerDay: number;
+}
+
 const BASE = (id: number) => `/employees/${id}/timesheet`;
 
 export const timesheetService = {
@@ -37,5 +44,16 @@ export const timesheetService = {
       .get(BASE(employeeId), { params })
       .then((r) => (Array.isArray(r.data) ? r.data : []))
       .catch(() => []);
+  },
+
+  getMonthlySummary(
+    employeeId: number,
+    year: number,
+    month: number,
+  ): Promise<MonthlySummary | null> {
+    return apiClient
+      .get(`${BASE(employeeId)}/month-summary`, { params: { year, month } })
+      .then((r) => (r.data as MonthlySummary) ?? null)
+      .catch(() => null);
   },
 };

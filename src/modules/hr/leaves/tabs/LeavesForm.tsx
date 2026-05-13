@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import type { LeavePreview } from "@/service/leaveService";
 import { Calendar, Clock, CheckCircle, FileText, TrendingUp, CalendarDays, Layers, Upload, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SummaryCard } from "@/modules/hr/components/summary-card";
 
 type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
@@ -341,29 +342,27 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Balance KPI strip ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <BalanceCard
-          icon={<Clock className="h-4 w-4" />}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <SummaryCard
           label="Available Balance"
           value={availBal}
-          accent="text-blue-600 bg-blue-50 border-blue-100"
-          iconBg="bg-blue-100 text-blue-600"
+          description="Current balance"
+          icon={<Clock className="h-5 w-5" />}
+          color="blue"
         />
-        <BalanceCard
-          icon={<Calendar className="h-4 w-4" />}
+        <SummaryCard
           label="Days Requested"
           value={daysReq}
-          accent="text-emerald-600 bg-emerald-50 border-emerald-100"
-          iconBg="bg-emerald-100 text-emerald-600"
+          description="For this request"
+          icon={<Calendar className="h-5 w-5" />}
+          color="emerald"
         />
-        <BalanceCard
-          icon={<TrendingUp className="h-4 w-4" />}
+        <SummaryCard
           label="Balance After"
           value={balAfter}
-          accent={balAfter < 0
-            ? "text-rose-600 bg-rose-50 border-rose-100"
-            : "text-violet-600 bg-violet-50 border-violet-100"}
-          iconBg={balAfter < 0 ? "bg-rose-100 text-rose-600" : "bg-violet-100 text-violet-600"}
+          description={balAfter < 0 ? "Exceeds balance" : "After this request"}
+          icon={<TrendingUp className="h-5 w-5" />}
+          color={balAfter < 0 ? "rose" : "violet"}
         />
       </div>
 
@@ -680,28 +679,6 @@ function SectionHead({ icon, label, accent = "from-violet-600 to-blue-600" }: { 
       </div>
       <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{label}</span>
       <div className="flex-1 h-px bg-slate-100" />
-    </div>
-  );
-}
-
-function BalanceCard({
-  icon, label, value, accent, iconBg,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  accent: string;
-  iconBg: string;
-}) {
-  return (
-    <div className={cn("flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm", accent)}>
-      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", iconBg)}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="text-2xl font-bold tabular-nums leading-tight">{value}</p>
-      </div>
     </div>
   );
 }

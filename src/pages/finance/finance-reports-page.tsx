@@ -241,6 +241,7 @@ export default function FinanceReportsPage() {
               size="sm"
               onClick={() => fetchSummary(appliedFrom, appliedTo)}
               disabled={loading}
+              className="border border-white/25 bg-white/15 text-white hover:bg-white/25 hover:text-white"
             >
               <RefreshCw
                 className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
@@ -248,10 +249,10 @@ export default function FinanceReportsPage() {
               Refresh
             </Button>
             <Button
-              variant="default"
               size="sm"
               onClick={exportCsv}
               disabled={!data}
+              className="bg-white text-blue-700 hover:bg-blue-50"
             >
               <Download className="h-4 w-4" />
               Export CSV

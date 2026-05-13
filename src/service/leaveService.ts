@@ -196,6 +196,18 @@ export const leaveService = {
     }
   },
 
+  async fetchCanApprove(): Promise<boolean> {
+    try {
+      const response = await apiClient.get<{ canApprove: boolean }>(
+        `/leaves/approvals/can-approve`,
+      );
+      return !!response.data?.canApprove;
+    } catch (error: unknown) {
+      console.error("fetchCanApprove error:", error);
+      return false;
+    }
+  },
+
   async fetchPendingApprovals(): Promise<LeaveServiceResponse> {
     try {
       const response = await apiClient.get(`/leaves/approvals/pending`);

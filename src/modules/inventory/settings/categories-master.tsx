@@ -36,6 +36,7 @@ import {
   Layers3,
   CircleCheckBig,
   CircleSlash2,
+  X,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -500,21 +501,41 @@ const CategoriesMaster = () => {
           }
         }}
       >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCategory
-                ? editingCategory.parentId
-                  ? "Edit Subcategory"
-                  : "Edit Category"
-                : "Add Category / Subcategory"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingCategory
-                ? "Update the category information below."
-                : "Create a new category or subcategory. Leave parent category as 'None' for a main category."}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent
+          className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
+          style={{ maxWidth: 640, width: "calc(100vw - 32px)" }}
+        >
+          {/* ── Top bar ── */}
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold tracking-wide transition-all duration-300 border-2 border-white/20 bg-orange-100 text-orange-600">
+                <Layers3 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-[15px] font-semibold leading-tight text-white">
+                  {editingCategory
+                    ? editingCategory.parentId
+                      ? "Edit Subcategory"
+                      : "Edit Category"
+                    : "Add Category / Subcategory"}
+                </DialogTitle>
+                <p className="mt-0.5 text-[12px] text-slate-300">
+                  {editingCategory
+                    ? "Update the category information below"
+                    : "Create a new category or subcategory"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setShowCategoryForm(false); setEditingCategory(null); resetCategory(); }}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* ── Body ── */}
+          <div className="overflow-y-auto bg-white px-6 py-5">
           <form
             onSubmit={handleCategorySubmit(onCategorySubmit)}
             className="space-y-4 mt-4"
@@ -601,23 +622,26 @@ const CategoriesMaster = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={() => {
                   setShowCategoryForm(false);
                   setEditingCategory(null);
                   resetCategory();
                 }}
+                className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800"
               >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit"
+                className="h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700">
                 {editingCategory ? "Update" : "Create"} Category
               </Button>
             </div>
           </form>
+        </div>
         </DialogContent>
       </Dialog>
 

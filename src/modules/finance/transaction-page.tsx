@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ReceiptText, Search } from "lucide-react";
 import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
 import type { TransactionResponseDTO } from "@/types/transactions";
 
@@ -66,21 +68,27 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
     );
 
   return (
-    <div className="p-0 space-y-6">
-      {/* <div>
-        <h1 className="text-2xl font-semibold">Transactions</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Records are created automatically from finance activity (opening balances,
-          approved journals, payments, etc.). Use Source to classify unknown entries
-          once.
-        </p>
-      </div> */}
-
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <Input placeholder="Search…" className="pl-10" />
+    <div className="rounded-xl border bg-white overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <ReceiptText className="h-5 w-5" />
+          <span className="text-lg font-semibold">Transactions</span>
+        </div>
       </div>
-      <DataTable data={txList} columns={columns} />
+
+      <div className="px-4 pt-4 pb-2 border-b bg-white">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Input placeholder="Search transactions..." className="pl-10" />
+        </div>
+      </div>
+
+      <div className="p-4">
+        <DataTable data={txList} columns={columns} />
+      </div>
     </div>
   );
 }

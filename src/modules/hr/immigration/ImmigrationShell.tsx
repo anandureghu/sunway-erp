@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useParams, Link } from "react-router-dom";
 import { useState, useCallback, useEffect } from "react";
-import { Contact2, Landmark, ArrowLeft } from "lucide-react";
+import { Contact2, Globe, Landmark, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
@@ -45,6 +45,7 @@ export default function ImmigrationShell(): ReactElement {
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
             <Link to="/hr/employees" aria-label="Back to employees"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
+          <Globe className="w-5 h-5" />
           <span className="text-lg font-semibold" role="heading" aria-level={1}>{title}</span>
         </div>
       </div>

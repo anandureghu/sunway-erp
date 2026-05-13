@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Box,
-  ChevronRight,
   ImageIcon,
   Loader2,
   MapPin,
@@ -31,6 +30,7 @@ import CreateItemForm from "../item-form";
 import { ChangeItemImageDialog } from "./change-item-image-dialog";
 import { safeLocaleQty, toFiniteNumber } from "./formatters";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { InventoryPageHeader } from "@/components/inventory-page-header";
 
 function apiErrorMessage(e: unknown): string {
   const ax = e as {
@@ -142,22 +142,16 @@ export default function InventoryItemDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50/90 via-background to-background dark:from-muted/20">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10">
-        {/* Breadcrumb */}
-        <nav className="mb-6 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-          <button
-            type="button"
-            onClick={() => navigate("/inventory/stocks")}
-            className="inline-flex items-center transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Inventory
-          </button>
-          <ChevronRight className="h-4 w-4 shrink-0 opacity-50" />
-          <span className="font-medium text-foreground line-clamp-1">
-            {item.name}
-          </span>
-        </nav>
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10 space-y-6">
+        {/* Hero header */}
+        <InventoryPageHeader
+          title={item.name}
+          description={`${item.category ?? "Uncategorized"} · SKU ${item.sku ?? item.id}`}
+          variant="item"
+          backHref="/inventory/stocks"
+        >
+          <Package className="h-6 w-6 text-white" />
+        </InventoryPageHeader>
 
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
           {/* Gallery — e-commerce style */}

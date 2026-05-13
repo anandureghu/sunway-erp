@@ -25,6 +25,7 @@ interface CompanyFormProps {
   loading?: boolean;
   defaultValues?: Partial<CompanyFormData> | Partial<Company> | null;
   isEditMode?: boolean;
+  hideSubmitButton?: boolean;
 }
 
 const toOptionalNumber = (value: unknown): number | undefined => {
@@ -83,6 +84,7 @@ export const CompanyForm = ({
   loading,
   defaultValues,
   isEditMode = false,
+  hideSubmitButton = false,
 }: CompanyFormProps) => {
   const normalizedDefaults = useMemo(
     () => normalizeCompanyDefaults(defaultValues),
@@ -444,7 +446,13 @@ export const CompanyForm = ({
           </div>
         )}
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          id="company-form-submit-btn"
+          className="w-full"
+          disabled={loading}
+          style={{ display: hideSubmitButton ? "none" : undefined }}
+        >
           {loading ? "Saving..." : "Save Company"}
         </Button>
       </form>

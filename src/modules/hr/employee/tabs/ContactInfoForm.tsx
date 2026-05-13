@@ -15,6 +15,7 @@ import { generateId } from "@/lib/utils";
 import { addressService } from "@/service/addressService";
 import { contactService } from "@/service/contactService";
 import { hrService } from "@/service/hr.service";
+import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 import { toast } from "sonner";
 
 type Ctx = { editing: boolean; setEditing?: (v: boolean) => void; isAdmin?: boolean };
@@ -666,11 +667,10 @@ export default function ContactInfoForm() {
                         />
                       </Field>
                       <Field label="Country" required>
-                        <Input
+                        <CountryAutocomplete
                           value={address.country}
-                          onChange={(e) => handleSaveAddress({ ...address, country: e.target.value })}
-                          placeholder="Country"
-                          className={cn(iCls)}
+                          onChange={(v) => handleSaveAddress({ ...address, country: v })}
+                          placeholder="Select country..."
                         />
                       </Field>
                     </div>

@@ -5,11 +5,10 @@ import {
   Phone,
   User,
   MapPin,
-  BadgeCheck,
-  BadgeX,
 } from "lucide-react";
 import type { WarehouseResponseDTO } from "@/service/erpApiTypes";
 import { getWarehouseById } from "@/service/warehouseService";
+import { InventoryPageHeader } from "@/components/inventory-page-header";
 
 const WarehouseDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,35 +37,14 @@ const WarehouseDetail = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-            <Warehouse className="h-5 w-5 text-indigo-600" />
-          </div>
-
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              {data.name}
-            </h1>
-            <p className="text-sm text-gray-500">Code: {data.code}</p>
-          </div>
-        </div>
-
-        <div
-          className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium uppercase ${
-            data.status === "active"
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-red-100 text-red-700"
-          }`}
-        >
-          {data.status === "active" ? (
-            <BadgeCheck className="h-4 w-4" />
-          ) : (
-            <BadgeX className="h-4 w-4" />
-          )}
-          {data.status}
-        </div>
-      </div>
+      <InventoryPageHeader
+        title={data.name}
+        description={`Warehouse · Code: ${data.code}`}
+        variant="warehouse"
+        backHref="/inventory/settings"
+      >
+        <Warehouse className="h-6 w-6 text-white" />
+      </InventoryPageHeader>
 
       {/* Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

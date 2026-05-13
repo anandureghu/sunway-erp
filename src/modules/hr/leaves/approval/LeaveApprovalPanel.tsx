@@ -158,7 +158,7 @@ const normalizeLeaves = (payload: any): PendingLeave[] => {
 };
 
 export default function LeaveApprovalPanel() {
-  const { user, permissions, permissionsLoading } = useAuth();
+  const { user, permissionsLoading } = useAuth();
 
   const [pending, setPending] = useState<PendingLeave[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,13 +167,24 @@ export default function LeaveApprovalPanel() {
   const [typeFilter, setTypeFilter] = useState("All");
   const [justApproved, setJustApproved] = useState<Set<number>>(new Set());
 
-const canApprove = useMemo(() => {
-    if (!user) return false;
+  // Ask the backend the same question it asks itself in canActAsApprover —
+  // either LEAVES.APPROVE permission OR being the dept manager of your own
+  // department. Avoids the old regex shortcut that broke Finance Managers
+  // and Dept Managers whose role string didn't match /hr manager/.
+  const [canApprove, setCanApprove] = useState<boolean | null>(null);
 
-    // Only HR Manager and Department Manager can approve leave requests
-    // ADMIN and SUPER_ADMIN are excluded from leave approvals
-    const companyRole = String(user.companyRole ?? "").toLowerCase();
-    return /hr\s*manager|department\s*manager/.test(companyRole);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setCanApprove(false);
+      return;
+    }
+    leaveService.fetchCanApprove().then((ok) => {
+      if (!cancelled) setCanApprove(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
 // Get the manager's employee ID from the logged-in user
@@ -191,7 +202,7 @@ const canApprove = useMemo(() => {
     setLoading(true);
 
     try {
-      if (!user || !canApprove) {
+      if (!user || canApprove !== true) {
         setPending([]);
         return;
       }
@@ -330,7 +341,7 @@ useEffect(() => {
     [pending]
   );
 
-  if (permissionsLoading || permissions === null) {
+  if (permissionsLoading || canApprove === null) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
@@ -346,7 +357,7 @@ useEffect(() => {
     );
   }
 
-if (!canApprove) {
+  if (canApprove === false) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50">
@@ -354,8 +365,9 @@ if (!canApprove) {
         </div>
         <div className="text-center">
           <p className="text-base font-semibold text-slate-700">Access Restricted</p>
-<p className="text-sm text-slate-400 mt-1">
-            Only HR Managers and Department Managers can approve leave requests.
+          <p className="text-sm text-slate-400 mt-1">
+            You need the LEAVES Approve permission or to be a department
+            manager to view leave approvals.
           </p>
         </div>
       </div>

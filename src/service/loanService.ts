@@ -44,6 +44,38 @@ export const loanService = {
   deleteLoan(employeeId: number, loanId: number) {
     return apiClient.delete(`${BASE}/${employeeId}/loans/${loanId}`);
   },
+
+  // Approve / reject a pending loan (requires LOANS.APPROVE permission on the BE)
+  decideLoan(employeeId: number, loanId: number, approve: boolean) {
+    return apiClient.post<Loan>(
+      `${BASE}/${employeeId}/loans/${loanId}/decision`,
+      { approve },
+    );
+  },
+
+  // Company-wide list of PENDING_APPROVAL loans for the caller's tenant.
+  // Backend gates this on LOANS.APPROVE.
+  fetchPendingApprovals() {
+    return apiClient.get<PendingLoanApproval[]>("/loans/pending-approvals");
+  },
 };
+
+export interface PendingLoanApproval {
+  id: number;
+  loanCode: string;
+  loanType: string;
+  loanAmount: number;
+  loanPeriod: number;
+  monthlyDeduction: number;
+  balance: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+  employeeId: number;
+  employeeName: string;
+  notes?: string;
+  currencyCode?: string;
+  currencySymbol?: string;
+}
 
 export default loanService;

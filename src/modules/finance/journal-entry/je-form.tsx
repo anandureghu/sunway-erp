@@ -21,12 +21,14 @@ interface Props {
   onSubmit: (data: JEFormData) => Promise<void> | void;
   loading?: boolean;
   defaultValues?: Partial<JEFormData> | null;
+  hideSubmitButton?: boolean;
 }
 
 export const JournalEntryForm = ({
   onSubmit,
   loading,
   defaultValues,
+  hideSubmitButton = false,
 }: Props) => {
   const form = useForm<JEFormData>({
     resolver: zodResolver(JE_SCHEMA),
@@ -51,13 +53,15 @@ export const JournalEntryForm = ({
       <form
         onSubmit={form.handleSubmit((data) => {
           onSubmit(data);
-          form.reset({
-            creditAccountId: 0,
-            debitAccountId: 0,
-            amount: "",
-            source: "",
-            description: "",
-          });
+          if (!hideSubmitButton) {
+            form.reset({
+              creditAccountId: 0,
+              debitAccountId: 0,
+              amount: "",
+              source: "",
+              description: "",
+            });
+          }
         })}
         className="space-y-6"
       >
@@ -117,7 +121,13 @@ export const JournalEntryForm = ({
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          id="journal-entry-form-submit-btn"
+          className="w-full"
+          disabled={loading}
+          style={{ display: hideSubmitButton ? "none" : undefined }}
+        >
           {loading ? "Saving..." : "Create Journal Entry"}
         </Button>
       </form>

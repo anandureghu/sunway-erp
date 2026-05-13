@@ -174,8 +174,12 @@ export function AppSidebar() {
   const [permissions, setPermissions] = useState<ModulePermission[]>([]);
 
   const isAdmin = ADMIN_ROLES.includes(user?.role ?? "");
-  const isHrManager = /hr\s*manager/i.test(user?.companyRole ?? "");
-  const isPrivileged = isAdmin || isHrManager;
+  // Only the actual ADMIN/SUPER_ADMIN roles get the permission bypass.
+  // A user with the "HR Manager" company-role name is just a regular USER
+  // whose grants live in `permissions` — the menu must filter on those, not
+  // on a name match, otherwise an HR Manager whose access has been narrowed
+  // would still see every HR sub-module.
+  const isPrivileged = isAdmin;
 
   const adminSections = [
     {

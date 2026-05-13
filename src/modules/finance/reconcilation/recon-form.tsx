@@ -25,12 +25,14 @@ interface Props {
   onSubmit: (data: ReconciliationFormData) => Promise<void> | void;
   loading?: boolean;
   defaultValues?: Partial<ReconciliationFormData> | null;
+  hideSubmitButton?: boolean;
 }
 
 export const ReconciliationForm = ({
   onSubmit,
   loading,
   defaultValues,
+  hideSubmitButton = false,
 }: Props) => {
   const form = useForm<ReconciliationFormData>({
     resolver: zodResolver(RECON_SCHEMA),
@@ -101,7 +103,13 @@ export const ReconciliationForm = ({
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          id="recon-form-submit-btn"
+          className="w-full"
+          disabled={loading}
+          style={{ display: hideSubmitButton ? "none" : undefined }}
+        >
           {loading ? "Saving..." : "Save Reconciliation"}
         </Button>
       </form>

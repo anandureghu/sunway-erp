@@ -1,3 +1,9 @@
+export type LoanStatus =
+  | "PENDING_APPROVAL"
+  | "ACTIVE"
+  | "REJECTED"
+  | "CLOSED";
+
 export interface Loan {
   id: number;
   loanCode: string;
@@ -5,7 +11,7 @@ export interface Loan {
   loanPeriod: number;
   monthlyDeduction: number;
   balance: number;
-  status: "ACTIVE" | "CLOSED";
+  status: LoanStatus;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
 }

@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useParams, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useCallback, useEffect } from "react";
-import { IdCard, Contact, ArrowLeft } from "lucide-react";
+import { IdCard, Contact, UserCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EditUpdateButton from "@/components/EditUpdateButton";
 import { hrService } from "@/service/hr.service";
@@ -47,6 +47,7 @@ export default function ProfileShell(): ReactElement {
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
             <Link to="/hr/employees" aria-label="Back to employees"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
+          <UserCircle className="w-5 h-5" />
           <span className="text-lg font-semibold" role="heading" aria-level={1}>{title}</span>
         </div>
       </div>

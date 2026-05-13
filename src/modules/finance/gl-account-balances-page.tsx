@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { ArrowLeft, Scale, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
 import { useAuth } from "@/context/AuthContext";
@@ -23,7 +24,7 @@ function InitialBalanceActionCell({
   const [value, setValue] = useState("");
 
   if (done) {
-    return <span className="text-muted-foreground text-sm">—</span>;
+    return <span className="text-muted-foreground text-sm">-</span>;
   }
 
   const submit = () => {
@@ -52,11 +53,11 @@ function InitialBalanceActionCell({
       />
       <Button
         size="sm"
-        className="bg-orange-500 hover:bg-orange-600"
+        className="bg-blue-600 hover:bg-blue-700"
         disabled={saving}
         onClick={submit}
       >
-        {saving ? "Saving…" : "Set once"}
+        {saving ? "Saving..." : "Set once"}
       </Button>
     </div>
   );
@@ -194,24 +195,37 @@ export default function GlAccountBalancesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+    <div className="rounded-xl border bg-white overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
+            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <Scale className="h-5 w-5" />
+          <span className="text-lg font-semibold">GL Account Balances</span>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4 pb-2 border-b bg-white space-y-3">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search account…"
+            placeholder="Search account..."
             className="pl-10"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        <p className="text-sm text-muted-foreground">
+          View each account&apos;s balance. If opening balance was not set when
+          the account was created, enter it here once. After that, balances
+          follow from transactions and journals.
+        </p>
       </div>
-      <p className="text-sm text-muted-foreground pt-2">
-        View each account&apos;s balance. If opening balance was not set when
-        the account was created, enter it here once—after that, balances follow
-        from transactions and journals.
-      </p>
-      <DataTable columns={columns} data={filtered} />
+
+      <div className="p-4">
+        <DataTable columns={columns} data={filtered} />
+      </div>
     </div>
   );
 }

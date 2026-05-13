@@ -9,6 +9,7 @@ import { formatMoney } from "@/lib/utils";
 import { salaryService } from "@/service/salaryService";
 import { payrollService } from "@/service/payrollService";
 import { downloadPayslipPdf } from "@/service/payslipService";
+import { timesheetService } from "@/service/timesheetService";
 import { Button } from "@/components/ui/button";
 import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ import {
   Download,
   Loader2,
   ScrollText,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
@@ -263,6 +265,15 @@ export default function SalaryForm() {
   const [loadingPayrollHistory, setLoadingPayrollHistory] = useState(false);
   const [pdfLoadingCode, setPdfLoadingCode] = useState<string | null>(null);
 
+  // Salary month (yyyy-MM, defaults to current month) + days worked from timesheet
+  const currentMonthIso = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+  const [salaryMonth, setSalaryMonth] = useState<string>(currentMonthIso);
+  const [totalDaysWorked, setTotalDaysWorked] = useState<number | null>(null);
+  const [loadingDaysWorked, setLoadingDaysWorked] = useState(false);
+
   // ── validation ──────────────────────────────────────────────────────────────
   const validateForm = useCallback((data: SalaryFormState): ValidationErrors => {
     const errors: ValidationErrors = {};
@@ -355,6 +366,35 @@ export default function SalaryForm() {
     });
     return () => { mounted = false; };
   }, [employeeId]);
+
+  // ── total days worked from timesheet for the selected salary month ──────────
+  useEffect(() => {
+    if (!employeeId || !salaryMonth) {
+      setTotalDaysWorked(null);
+      return;
+    }
+    const [yStr, mStr] = salaryMonth.split("-");
+    const year = Number(yStr);
+    const month = Number(mStr);
+    if (!Number.isFinite(year) || !Number.isFinite(month)) {
+      setTotalDaysWorked(null);
+      return;
+    }
+    let mounted = true;
+    setLoadingDaysWorked(true);
+    timesheetService
+      .getMonthlySummary(employeeId, year, month)
+      .then((summary) => {
+        if (!mounted) return;
+        setTotalDaysWorked(summary ? summary.daysPresent : 0);
+      })
+      .finally(() => {
+        if (mounted) setLoadingDaysWorked(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId, salaryMonth]);
 
   // ── currency ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -649,6 +689,57 @@ export default function SalaryForm() {
                 {errors.effectiveTo && (
                   <p className="text-xs text-rose-500">{errors.effectiveTo}</p>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Salary Month & Total Days Worked card */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+            <SectionHeading
+              icon={<CalendarDays className="h-4 w-4" />}
+              label="Salary Month"
+              accent="from-sky-500 to-indigo-600"
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5 text-sky-600" />
+                  Salary Month
+                </Label>
+                <Input
+                  type="month"
+                  value={salaryMonth}
+                  onChange={(e) => setSalaryMonth(e.target.value)}
+                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Defaults to the current month. Drives the days-worked figure below.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                  Total Days Worked
+                </Label>
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3">
+                  {loadingDaysWorked ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                      <span className="text-xs text-slate-500">Loading…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm font-bold tabular-nums text-slate-800">
+                        {totalDaysWorked ?? 0}
+                      </span>
+                      <span className="text-xs text-muted-foreground">days</span>
+                    </>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Pulled from the timesheet. Days with less than 6 hours are not counted.
+                </p>
               </div>
             </div>
           </div>

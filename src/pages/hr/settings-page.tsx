@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { canView } from "@/service/companyService";
+import { leaveService } from "@/service/leaveService";
 import { toast } from "sonner";
 import {
   Lock,
@@ -43,6 +45,7 @@ import {
 } from "@/components/ui/table";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
 import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel";
+import LoanApprovalPanel from "@/modules/hr/loans/approval/LoanApprovalPanel";
 import { jobCodeService } from "@/service/jobCodeService";
 import { hrService } from "@/service/hr.service";
 import { permissionService } from "@/service/permissionService";
@@ -1736,13 +1739,50 @@ export type TabId = (typeof TABS)[number]["id"];
 
 export default function HRSettingsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, permissions, permissionsLoading } = useAuth();
   const [jobs, setJobs] = useState<JobCode[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
-  const isHRManager = /hr\s*manager/i.test(user?.companyRole ?? "");
-  const isAuthorized = isAdmin || isHRManager;
+  // Gate the page on the HR_SETTINGS module permission instead of matching
+  // the company-role name. ADMIN/SUPER_ADMIN keep their bypass via canView's
+  // null-permissions branch (AuthContext sets permissions=null for admins).
+  const isAuthorized =
+    isAdmin || canView(permissions, "HR_SETTINGS");
+
+  // Whether to show the "Leave Approvals" tab — mirrors the backend's
+  // canActAsApprover (LEAVES.APPROVE permission OR department-manager). We
+  // can't tell from the JWT/permissions alone whether the user is a dept
+  // manager, so ask the BE.
+  const [canApproveLeaves, setCanApproveLeaves] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) return;
+    leaveService.fetchCanApprove().then((ok) => {
+      if (!cancelled) setCanApproveLeaves(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // Whether to show the "Loan Approvals" tab — purely permission-driven
+  // (no department-manager fallback for loans today).
+  const canApproveLoans =
+    isAdmin ||
+    !!(permissions?.LOANS?.approve || permissions?.LOANS?.APPROVE);
+
+  if (permissionsLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Loading permissions…
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!isAuthorized) {
     return (
@@ -1761,9 +1801,6 @@ export default function HRSettingsPage() {
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
             <p className="text-muted-foreground text-center">
               You do not have permission to access HR Settings.
-              <br />
-              This feature is only available to users with the{" "}
-              <strong>ADMIN</strong> or <strong>SUPER_ADMIN</strong> role.
             </p>
           </CardContent>
         </Card>
@@ -1777,7 +1814,7 @@ export default function HRSettingsPage() {
       label: "Leave Types",
       element: () => <LeaveCustomizationForm />,
     },
-    ...(isHRManager
+    ...(canApproveLeaves
       ? [
           {
             value: "leave-approvals",
@@ -1786,16 +1823,34 @@ export default function HRSettingsPage() {
           },
         ]
       : []),
+    ...(canApproveLoans
+      ? [
+          {
+            value: "loan-approvals",
+            label: "Loan Approvals",
+            element: () => <LoanApprovalPanel />,
+          },
+        ]
+      : []),
     {
       value: "jobs",
       label: "Job Codes",
       element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} />,
     },
-    {
-      value: "permissions",
-      label: "Permissions",
-      element: () => <PermissionsTab roles={roles} setRoles={setRoles} />,
-    },
+    // Permissions is system-security config — restrict to ADMIN/SUPER_ADMIN.
+    // HR Manager keeps HR_SETTINGS for operational tabs but should not be
+    // able to escalate by editing permission grants.
+    ...(isAdmin
+      ? [
+          {
+            value: "permissions",
+            label: "Permissions",
+            element: () => (
+              <PermissionsTab roles={roles} setRoles={setRoles} />
+            ),
+          },
+        ]
+      : []),
     { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
   ];
 
