@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 import { useAuth } from "@/context/AuthContext";
 import type { CurrentJobCtx } from "../CurrentJobLayout";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 /* ================= INITIAL DATA ================= */
 
@@ -400,23 +401,14 @@ export default function CurrentJobForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
-
+    <div className="bg-slate-50/60 min-h-screen space-y-5">
       {/* ── Page header ── */}
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
-        <div className="flex items-center gap-4 px-6 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
-            <Briefcase className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-tight">Current Job</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Manage employment position, department, and work location details
-            </p>
-          </div>
-        </div>
-      </div>
+
+      <SecondaryPageHeader
+        title="Current Job"
+        description="Manage employment position, department, and work location details"
+        icon={<Briefcase className="h-5 w-5 text-white" />}
+      />
 
       {/* ── KPI summary strip ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -437,7 +429,11 @@ export default function CurrentJobForm() {
           label="Start Date"
           value={
             formData.startDate
-              ? new Date(formData.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              ? new Date(formData.startDate).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
               : "—"
           }
           accent="text-amber-600 bg-amber-50 border-amber-100"
@@ -461,12 +457,22 @@ export default function CurrentJobForm() {
           {/* Job Code */}
           <Field label="Job Code" required error={errors.jobCode}>
             {loadingJobCodes ? (
-              <Input className={fieldCls} disabled placeholder="Loading job codes…" />
+              <Input
+                className={fieldCls}
+                disabled
+                placeholder="Loading job codes…"
+              />
             ) : jobCodes.length > 0 ? (
               <div className="relative">
                 <Briefcase className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Select value={formData.jobCode} onValueChange={handleJobCodeChange}>
-                  <SelectTrigger className={cn(fieldCls, "pl-9")} disabled={!editing}>
+                <Select
+                  value={formData.jobCode}
+                  onValueChange={handleJobCodeChange}
+                >
+                  <SelectTrigger
+                    className={cn(fieldCls, "pl-9")}
+                    disabled={!editing}
+                  >
                     <SelectValue placeholder="Select job code" />
                   </SelectTrigger>
                   <SelectContent>
@@ -490,7 +496,9 @@ export default function CurrentJobForm() {
                     placeholder="e.g., JD001"
                   />
                 </div>
-                <p className="text-[11px] text-amber-600 mt-1">No job codes configured — enter manually.</p>
+                <p className="text-[11px] text-amber-600 mt-1">
+                  No job codes configured — enter manually.
+                </p>
               </>
             )}
           </Field>
@@ -536,12 +544,22 @@ export default function CurrentJobForm() {
           {/* Department Code */}
           <Field label="Department" required error={errors.departmentCode}>
             {loadingDepartments ? (
-              <Input className={fieldCls} disabled placeholder="Loading departments…" />
+              <Input
+                className={fieldCls}
+                disabled
+                placeholder="Loading departments…"
+              />
             ) : (
               <div className="relative">
                 <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Select value={formData.departmentCode} onValueChange={handleDepartmentChange}>
-                  <SelectTrigger className={cn(fieldCls, "pl-9")} disabled={!editing}>
+                <Select
+                  value={formData.departmentCode}
+                  onValueChange={handleDepartmentChange}
+                >
+                  <SelectTrigger
+                    className={cn(fieldCls, "pl-9")}
+                    disabled={!editing}
+                  >
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
@@ -632,7 +650,9 @@ export default function CurrentJobForm() {
               />
             </div>
             {!errors.expectedEndDate && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">Optional — leave blank for open-ended contracts</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Optional — leave blank for open-ended contracts
+              </p>
             )}
           </Field>
         </div>
@@ -707,10 +727,17 @@ function SectionHeading({
 }) {
   return (
     <div className="flex items-center gap-2.5 mb-5">
-      <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white", accent)}>
+      <div
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white",
+          accent,
+        )}
+      >
         {icon}
       </div>
-      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{label}</span>
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+        {label}
+      </span>
       <div className="flex-1 h-px bg-slate-100" />
     </div>
   );
@@ -728,10 +755,17 @@ function KpiCard({
   accent: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-3 rounded-xl border p-3.5 bg-white shadow-sm", accent)}>
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-xl border p-3.5 bg-white shadow-sm",
+        accent,
+      )}
+    >
       <div className={cn("shrink-0", accent.split(" ")[0])}>{icon}</div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
         <p className="truncate text-sm font-bold text-slate-800">{value}</p>
       </div>
     </div>

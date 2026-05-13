@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";  
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Eye, Briefcase, Building, FileText } from "lucide-react";
 import { apiClient } from "@/service/apiClient";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { generateId } from "@/lib/utils";
 import { toInputDate, toIsoDate } from "@/lib/date";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 /* ================= TYPES ================= */
 
@@ -33,7 +34,8 @@ function validateExperience(exp: Experience): ValidationErrors {
 
   if (!exp.companyName?.trim()) errors.companyName = "Company name is required";
   if (!exp.jobTitle?.trim()) errors.jobTitle = "Job title is required";
-  if (!exp.lastDateWorked) errors.lastDateWorked = "Last date worked is required";
+  if (!exp.lastDateWorked)
+    errors.lastDateWorked = "Last date worked is required";
 
   return errors;
 }
@@ -81,7 +83,9 @@ function Field({
 function Detail({ label, value }: { label: string; value?: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">{label}</p>
+      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
+        {label}
+      </p>
       <p className="text-base text-slate-800 font-medium">{value || "—"}</p>
     </div>
   );
@@ -146,7 +150,7 @@ export default function PreviousExperiencesForm() {
       try {
         const data = await listExperiences(employeeId);
         setExperiences((data || []).map(mapApiToForm));
-      } catch (err: any) {
+      } catch {
         toast.error("Failed to load experiences");
       }
     })();
@@ -163,9 +167,7 @@ export default function PreviousExperiencesForm() {
   const handleEdit = (exp: Experience) => setEditingId(exp.id);
 
   const handleLocalChange = (id: string, patch: Partial<Experience>) => {
-    setExperiences((c) =>
-      c.map((e) => (e.id === id ? { ...e, ...patch } : e))
-    );
+    setExperiences((c) => c.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   };
 
   const handleSave = async (exp: Experience) => {
@@ -198,13 +200,14 @@ export default function PreviousExperiencesForm() {
 
   const handleCancel = () => {
     setExperiences((c) =>
-      c.filter((e) =>
-        e.id !== editingId ||
-        Number(e.id) ||
-        e.companyName ||
-        e.jobTitle ||
-        e.lastDateWorked
-      )
+      c.filter(
+        (e) =>
+          e.id !== editingId ||
+          Number(e.id) ||
+          e.companyName ||
+          e.jobTitle ||
+          e.lastDateWorked,
+      ),
     );
     setEditingId(null);
   };
@@ -225,21 +228,12 @@ export default function PreviousExperiencesForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
-        <div className="flex items-center justify-between gap-4 px-6 py-5">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
-              <Briefcase className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 leading-tight">Previous Experiences</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Manage previous employment history
-              </p>
-            </div>
-          </div>
+    <div className="space-y-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+      <SecondaryPageHeader
+        title="Previous Experiences"
+        description="Manage previous employment history"
+        icon={<Briefcase className="h-5 w-5 text-white" />}
+        actions={
           <Button
             onClick={handleAdd}
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
@@ -247,8 +241,8 @@ export default function PreviousExperiencesForm() {
             <Plus className="h-4 w-4" />
             Add Experience
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Employment Details Section */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
@@ -264,7 +258,10 @@ export default function PreviousExperiencesForm() {
           const viewing = viewingId === exp.id;
 
           return (
-            <div key={exp.id} className="border border-slate-200 rounded-lg p-6 mb-6">
+            <div
+              key={exp.id}
+              className="border border-slate-200 rounded-lg p-6 mb-6"
+            >
               {/* EDIT MODE */}
               {editing ? (
                 <div className="space-y-6">
@@ -276,7 +273,11 @@ export default function PreviousExperiencesForm() {
                     </h3>
 
                     <div className="grid md:grid-cols-2 gap-6">
-                      <Field label="Company Name" error={errors.companyName} required>
+                      <Field
+                        label="Company Name"
+                        error={errors.companyName}
+                        required
+                      >
                         <Input
                           value={exp.companyName}
                           onChange={(e) =>
@@ -302,7 +303,11 @@ export default function PreviousExperiencesForm() {
                         />
                       </Field>
 
-                      <Field label="Last Date Worked" error={errors.lastDateWorked} required>
+                      <Field
+                        label="Last Date Worked"
+                        error={errors.lastDateWorked}
+                        required
+                      >
                         <Input
                           type="date"
                           value={exp.lastDateWorked}
@@ -314,7 +319,8 @@ export default function PreviousExperiencesForm() {
                           className="rounded-lg border-slate-300"
                         />
                         <p className="text-xs text-slate-500 mt-1">
-                          Date when employment ended (or current date if still employed)
+                          Date when employment ended (or current date if still
+                          employed)
                         </p>
                       </Field>
 
@@ -337,7 +343,10 @@ export default function PreviousExperiencesForm() {
                         </p>
                       </Field>
 
-                      <Field label="Company Address" containerClassName="md:col-span-2">
+                      <Field
+                        label="Company Address"
+                        containerClassName="md:col-span-2"
+                      >
                         <Input
                           value={exp.companyAddress}
                           onChange={(e) =>
@@ -354,7 +363,10 @@ export default function PreviousExperiencesForm() {
 
                   {/* Notes Section */}
                   <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg border border-slate-200 p-6">
-                    <Field label="Notes / Remarks" icon={<FileText className="h-4 w-4" />}>
+                    <Field
+                      label="Notes / Remarks"
+                      icon={<FileText className="h-4 w-4" />}
+                    >
                       <Textarea
                         value={exp.notes}
                         onChange={(e) =>
@@ -398,21 +410,33 @@ export default function PreviousExperiencesForm() {
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                         <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-lg border border-orange-100">
-                          <p className="text-xs text-slate-600 mb-1">Job Title</p>
-                          <p className="text-sm font-semibold text-orange-700">{exp.jobTitle || "No title"}</p>
+                          <p className="text-xs text-slate-600 mb-1">
+                            Job Title
+                          </p>
+                          <p className="text-sm font-semibold text-orange-700">
+                            {exp.jobTitle || "No title"}
+                          </p>
                         </div>
                         {exp.lastDateWorked && (
                           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                            <p className="text-xs text-slate-600 mb-1">Last Date</p>
+                            <p className="text-xs text-slate-600 mb-1">
+                              Last Date
+                            </p>
                             <p className="text-sm font-semibold text-blue-700">
-                              {new Date(exp.lastDateWorked).toLocaleDateString()}
+                              {new Date(
+                                exp.lastDateWorked,
+                              ).toLocaleDateString()}
                             </p>
                           </div>
                         )}
                         {exp.numberOfYears && (
                           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
-                            <p className="text-xs text-slate-600 mb-1">Duration</p>
-                            <p className="text-sm font-semibold text-emerald-700">{exp.numberOfYears} yrs</p>
+                            <p className="text-xs text-slate-600 mb-1">
+                              Duration
+                            </p>
+                            <p className="text-sm font-semibold text-emerald-700">
+                              {exp.numberOfYears} yrs
+                            </p>
                           </div>
                         )}
                       </div>
@@ -450,17 +474,35 @@ export default function PreviousExperiencesForm() {
                   {viewing && (
                     <div className="space-y-6">
                       <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg p-6 border border-blue-100">
-                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Employment Information</h4>
+                        <h4 className="text-lg font-semibold text-slate-800 mb-4">
+                          Employment Information
+                        </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Detail label="Last Date Worked" value={exp.lastDateWorked ? new Date(exp.lastDateWorked).toLocaleDateString() : "—"} />
-                          <Detail label="Company Address" value={exp.companyAddress || "—"} />
+                          <Detail
+                            label="Last Date Worked"
+                            value={
+                              exp.lastDateWorked
+                                ? new Date(
+                                    exp.lastDateWorked,
+                                  ).toLocaleDateString()
+                                : "—"
+                            }
+                          />
+                          <Detail
+                            label="Company Address"
+                            value={exp.companyAddress || "—"}
+                          />
                         </div>
                       </div>
 
                       {exp.notes && (
                         <div className="bg-amber-50 rounded-lg p-6 border border-amber-100">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-2">Notes / Remarks</h4>
-                          <p className="text-slate-700 whitespace-pre-wrap">{exp.notes}</p>
+                          <h4 className="text-lg font-semibold text-slate-800 mb-2">
+                            Notes / Remarks
+                          </h4>
+                          <p className="text-slate-700 whitespace-pre-wrap">
+                            {exp.notes}
+                          </p>
                         </div>
                       )}
 
@@ -497,8 +539,12 @@ export default function PreviousExperiencesForm() {
             <div className="inline-block p-4 bg-gradient-to-br from-orange-100 to-amber-100 rounded-full mb-4">
               <Briefcase className="h-12 w-12 text-orange-600" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">No work experience added yet</h3>
-            <p className="text-slate-600 mb-6">Click "Add Experience" to create your first work experience entry</p>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+              No work experience added yet
+            </h3>
+            <p className="text-slate-600 mb-6">
+              Click "Add Experience" to create your first work experience entry
+            </p>
             <Button
               onClick={handleAdd}
               className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg px-6"

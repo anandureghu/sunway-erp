@@ -17,30 +17,42 @@ import {
 import { bankService, type AccountTypeOption } from "@/service/bankService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 type SalaryCtx = { editing: boolean };
 
 type BankModel = {
-  location:    string;
-  city:        string;
-  bankName:    string;
+  location: string;
+  city: string;
+  bankName: string;
   /** Bank code for SIF / bank payroll CSV (e.g. QIB, CBQ) */
   bankShortName: string;
-  state:       string;
-  bankBranch:  string;
-  country:     string;
+  state: string;
+  bankBranch: string;
+  country: string;
   accountType: string;
-  remarks:     string;
-  accountNo:   string;
-  iban:        string;
+  remarks: string;
+  accountNo: string;
+  iban: string;
 };
 
 const SEED: BankModel = {
-  location: "", city: "", bankName: "", bankShortName: "", state: "", bankBranch: "",
-  country: "", accountType: "", remarks: "", accountNo: "", iban: "",
+  location: "",
+  city: "",
+  bankName: "",
+  bankShortName: "",
+  state: "",
+  bankBranch: "",
+  country: "",
+  accountType: "",
+  remarks: "",
+  accountNo: "",
+  iban: "",
 };
 
-interface ValidationErrors { [key: string]: string }
+interface ValidationErrors {
+  [key: string]: string;
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,7 +60,7 @@ interface ValidationErrors { [key: string]: string }
 const maskAccount = (val: string) => {
   if (!val || val.length < 5) return val || "•••• •••• ••••";
   const visible = val.slice(-4);
-  const hidden  = val.slice(0, -4).replace(/./g, "•");
+  const hidden = val.slice(0, -4).replace(/./g, "•");
   // group into blocks of 4
   const full = hidden + visible;
   return full.match(/.{1,4}/g)?.join(" ") ?? full;
@@ -66,10 +78,17 @@ const SectionHeading = ({
   accent?: string;
 }) => (
   <div className="flex items-center gap-2.5 mb-4">
-    <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white", accent)}>
+    <div
+      className={cn(
+        "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white",
+        accent,
+      )}
+    >
       {icon}
     </div>
-    <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{label}</span>
+    <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+      {label}
+    </span>
     <div className="flex-1 h-px bg-slate-100" />
   </div>
 );
@@ -104,12 +123,14 @@ const BankCard = ({ data }: { data: BankModel }) => {
   const hasData = !!(data.bankName || data.accountNo || data.accountType);
 
   return (
-    <div className={cn(
-      "relative overflow-hidden rounded-2xl p-6 text-white shadow-xl select-none transition-all duration-500",
-      hasData
-        ? "bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900"
-        : "bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300",
-    )}>
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-2xl p-6 text-white shadow-xl select-none transition-all duration-500",
+        hasData
+          ? "bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900"
+          : "bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300",
+      )}
+    >
       {/* Decorative circles */}
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
       <div className="pointer-events-none absolute -bottom-12 -left-12 h-48 w-48 rounded-full bg-white/5" />
@@ -118,54 +139,104 @@ const BankCard = ({ data }: { data: BankModel }) => {
       {/* Card top row */}
       <div className="relative flex items-start justify-between mb-8">
         <div>
-          <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-0.5", hasData ? "text-white/50" : "text-slate-400")}>
+          <p
+            className={cn(
+              "text-[10px] font-bold uppercase tracking-widest mb-0.5",
+              hasData ? "text-white/50" : "text-slate-400",
+            )}
+          >
             Bank
           </p>
-          <p className={cn("text-base font-bold leading-tight", hasData ? "text-white" : "text-slate-400")}>
+          <p
+            className={cn(
+              "text-base font-bold leading-tight",
+              hasData ? "text-white" : "text-slate-400",
+            )}
+          >
             {data.bankName || "Bank Name"}
           </p>
           {data.bankBranch && (
-            <p className="text-[11px] text-white/50 mt-0.5">{data.bankBranch}</p>
+            <p className="text-[11px] text-white/50 mt-0.5">
+              {data.bankBranch}
+            </p>
           )}
         </div>
         {/* Chip */}
-        <div className={cn(
-          "h-9 w-12 rounded-md border-2",
-          hasData ? "border-amber-400/60 bg-gradient-to-br from-amber-300/30 to-amber-500/20" : "border-slate-300/40 bg-slate-200/20",
-        )}>
-          <div className={cn("mt-1.5 mx-1.5 h-2.5 w-9 rounded-sm", hasData ? "bg-amber-400/40" : "bg-slate-300/30")} />
-          <div className={cn("mt-1 ml-2.5 h-1.5 w-4 rounded-sm", hasData ? "bg-amber-400/30" : "bg-slate-300/20")} />
+        <div
+          className={cn(
+            "h-9 w-12 rounded-md border-2",
+            hasData
+              ? "border-amber-400/60 bg-gradient-to-br from-amber-300/30 to-amber-500/20"
+              : "border-slate-300/40 bg-slate-200/20",
+          )}
+        >
+          <div
+            className={cn(
+              "mt-1.5 mx-1.5 h-2.5 w-9 rounded-sm",
+              hasData ? "bg-amber-400/40" : "bg-slate-300/30",
+            )}
+          />
+          <div
+            className={cn(
+              "mt-1 ml-2.5 h-1.5 w-4 rounded-sm",
+              hasData ? "bg-amber-400/30" : "bg-slate-300/20",
+            )}
+          />
         </div>
       </div>
 
       {/* Account number */}
-      <p className={cn(
-        "relative font-mono text-lg font-semibold tracking-[0.2em] mb-5",
-        hasData ? "text-white" : "text-slate-400",
-      )}>
+      <p
+        className={cn(
+          "relative font-mono text-lg font-semibold tracking-[0.2em] mb-5",
+          hasData ? "text-white" : "text-slate-400",
+        )}
+      >
         {maskAccount(data.accountNo)}
       </p>
 
       {/* Bottom row */}
       <div className="relative flex items-end justify-between">
         <div>
-          <p className={cn("text-[9px] uppercase tracking-widest mb-0.5", hasData ? "text-white/40" : "text-slate-400")}>
+          <p
+            className={cn(
+              "text-[9px] uppercase tracking-widest mb-0.5",
+              hasData ? "text-white/40" : "text-slate-400",
+            )}
+          >
             Account Type
           </p>
-          <p className={cn("text-sm font-semibold", hasData ? "text-white" : "text-slate-400")}>
+          <p
+            className={cn(
+              "text-sm font-semibold",
+              hasData ? "text-white" : "text-slate-400",
+            )}
+          >
             {data.accountType || "—"}
           </p>
         </div>
         {data.iban && (
           <div className="text-right">
-            <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5">IBAN</p>
+            <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5">
+              IBAN
+            </p>
             <p className="text-xs font-mono text-white/70">{data.iban}</p>
           </div>
         )}
         {/* Network logo placeholder */}
         <div className="flex gap-1">
-          <div className={cn("h-7 w-7 rounded-full opacity-70", hasData ? "bg-amber-400" : "bg-slate-300")} />
-          <div className={cn("h-7 w-7 rounded-full -ml-3 opacity-50", hasData ? "bg-orange-500" : "bg-slate-400")} />
+          <div
+            className={cn(
+              "h-7 w-7 rounded-full opacity-70",
+              hasData ? "bg-amber-400" : "bg-slate-300",
+            )}
+          />
+          <div
+            className={cn(
+              "h-7 w-7 rounded-full -ml-3 opacity-50",
+              hasData ? "bg-orange-500" : "bg-slate-400",
+            )}
+          />
         </div>
       </div>
     </div>
@@ -184,11 +255,17 @@ const StatPill = ({
   value: string;
   accent: string;
 }) => (
-  <div className={cn("flex items-center gap-3 rounded-xl border p-3.5", accent)}>
+  <div
+    className={cn("flex items-center gap-3 rounded-xl border p-3.5", accent)}
+  >
     <div className="shrink-0">{icon}</div>
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="truncate text-sm font-bold text-slate-800">{value || "—"}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
+      <p className="truncate text-sm font-bold text-slate-800">
+        {value || "—"}
+      </p>
     </div>
   </div>
 );
@@ -196,20 +273,22 @@ const StatPill = ({
 // ── main form ─────────────────────────────────────────────────────────────────
 export default function BankForm() {
   const { editing } = useOutletContext<SalaryCtx>();
-  const { id }      = useParams<{ id: string }>();
-  const employeeId  = id ? Number(id) : undefined;
+  const { id } = useParams<{ id: string }>();
+  const employeeId = id ? Number(id) : undefined;
 
-  const [saved,  setSaved]  = useState<BankModel>(SEED);
-  const [draft,  setDraft]  = useState<BankModel>(SEED);
+  const [saved, setSaved] = useState<BankModel>(SEED);
+  const [draft, setDraft] = useState<BankModel>(SEED);
   const [exists, setExists] = useState(false);
   // Account types: fetched from API, falls back to hardcoded list if endpoint not available
-  const [accountTypeOptions, setAccountTypeOptions] = useState<AccountTypeOption[]>([
-    { value: "SAVINGS_ACCOUNT",  label: "Savings Account"  },
-    { value: "CURRENT_ACCOUNT",  label: "Current Account"  },
-    { value: "SALARY_ACCOUNT",   label: "Salary Account"   },
-    { value: "FIXED_DEPOSIT",    label: "Fixed Deposit"     },
-    { value: "JOINT_ACCOUNT",    label: "Joint Account"     },
-    { value: "OTHER",            label: "Other"              },
+  const [accountTypeOptions, setAccountTypeOptions] = useState<
+    AccountTypeOption[]
+  >([
+    { value: "SAVINGS_ACCOUNT", label: "Savings Account" },
+    { value: "CURRENT_ACCOUNT", label: "Current Account" },
+    { value: "SALARY_ACCOUNT", label: "Salary Account" },
+    { value: "FIXED_DEPOSIT", label: "Fixed Deposit" },
+    { value: "JOINT_ACCOUNT", label: "Joint Account" },
+    { value: "OTHER", label: "Other" },
   ]);
 
   const patch = <K extends keyof BankModel>(k: K, v: BankModel[K]) =>
@@ -217,11 +296,11 @@ export default function BankForm() {
 
   const validateForm = (data: BankModel): ValidationErrors => {
     const errors: ValidationErrors = {};
-    if (!data.bankName)    errors.bankName    = "Bank name is required";
-    if (!data.bankBranch)  errors.bankBranch  = "Bank branch is required";
+    if (!data.bankName) errors.bankName = "Bank name is required";
+    if (!data.bankBranch) errors.bankBranch = "Bank branch is required";
     if (!data.accountType) errors.accountType = "Account type is required";
-    if (!data.accountNo)   errors.accountNo   = "Account number is required";
-    if (!data.country)     errors.country     = "Country is required";
+    if (!data.accountNo) errors.accountNo = "Account number is required";
+    if (!data.country) errors.country = "Country is required";
     return errors;
   };
 
@@ -232,14 +311,16 @@ export default function BankForm() {
     if (!employeeId) return;
 
     const requiredFields = [
-      { field: "bankName",    label: "Bank Name"    },
-      { field: "bankBranch",  label: "Bank Branch"  },
+      { field: "bankName", label: "Bank Name" },
+      { field: "bankBranch", label: "Bank Branch" },
       { field: "accountType", label: "Account Type" },
-      { field: "accountNo",   label: "Account No"   },
-      { field: "country",     label: "Country"      },
+      { field: "accountNo", label: "Account No" },
+      { field: "country", label: "Country" },
     ];
 
-    const missing = requiredFields.filter(({ field }) => !draft[field as keyof BankModel]?.toString().trim());
+    const missing = requiredFields.filter(
+      ({ field }) => !draft[field as keyof BankModel]?.toString().trim(),
+    );
     if (missing.length > 0) {
       toast.error(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
       throw new Error("Missing required fields");
@@ -252,7 +333,9 @@ export default function BankForm() {
       setSaved(draft);
       setExists(true);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to save bank details");
+      toast.error(
+        err?.response?.data?.message || "Failed to save bank details",
+      );
       throw err;
     }
   }, [employeeId, exists, draft]);
@@ -261,60 +344,63 @@ export default function BankForm() {
   useEffect(() => {
     if (!employeeId) return;
     let mounted = true;
-    bankService.get(employeeId).then((res) => {
-      if (!mounted || !res.data) return;
-      setDraft(res.data);
-      setSaved(res.data);
-      setExists(true);
-    }).catch((err) => {
-      toast.error(err?.response?.data?.message || "Failed to load bank details");
-    });
+    bankService
+      .get(employeeId)
+      .then((res) => {
+        if (!mounted || !res.data) return;
+        setDraft(res.data);
+        setSaved(res.data);
+        setExists(true);
+      })
+      .catch((err) => {
+        toast.error(
+          err?.response?.data?.message || "Failed to load bank details",
+        );
+      });
 
-    bankService.getAccountTypes(employeeId).then((res) => {
-      if (!mounted) return;
-      setAccountTypeOptions(res.data ?? []);
-    }).catch((err) => {
-      console.error("Failed to load account types:", err);
-    });
+    bankService
+      .getAccountTypes(employeeId)
+      .then((res) => {
+        if (!mounted) return;
+        setAccountTypeOptions(res.data ?? []);
+      })
+      .catch((err) => {
+        console.error("Failed to load account types:", err);
+      });
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [employeeId]);
 
   // ── events ────────────────────────────────────────────────────────────────
   useEffect(() => {
     const onCancel = () => setDraft(saved);
-    document.addEventListener("salary:save",   handleSaveBank as EventListener);
+    document.addEventListener("salary:save", handleSaveBank as EventListener);
     document.addEventListener("salary:cancel", onCancel as EventListener);
     return () => {
-      document.removeEventListener("salary:save",   handleSaveBank as EventListener);
+      document.removeEventListener(
+        "salary:save",
+        handleSaveBank as EventListener,
+      );
       document.removeEventListener("salary:cancel", onCancel as EventListener);
     };
   }, [draft, saved, employeeId, exists, handleSaveBank]);
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
-
+    <div className="bg-slate-50/60 min-h-screen space-y-5">
       {/* ── Page header ── */}
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
-        <div className="flex items-center gap-4 px-6 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
-            <Landmark className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-tight">Bank Details</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Provide banking information for salary disbursement</p>
-          </div>
-        </div>
-      </div>
+      <SecondaryPageHeader
+        title="Bank Details"
+        description="Provide banking information for salary disbursement"
+        icon={<Landmark className="h-5 w-5 text-white" />}
+      />
 
       {/* ── Two-column layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5 items-start">
-
         {/* ── LEFT: form ── */}
         <div className="space-y-4">
-
           {/* Bank Information */}
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
             <SectionHeading
@@ -336,21 +422,22 @@ export default function BankForm() {
                 </div>
               </Field>
 
-              <Field
-                label="Bank short name"
-                error={undefined}
-              >
+              <Field label="Bank short name" error={undefined}>
                 <div className="relative">
                   <Landmark className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 uppercase"
                     disabled={!editing}
                     value={draft.bankShortName}
-                    onChange={(e) => patch("bankShortName", e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      patch("bankShortName", e.target.value.toUpperCase())
+                    }
                     placeholder="e.g. QIB, CBQ (required for bank payroll CSV)"
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">Used in the bank payroll file export.</p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Used in the bank payroll file export.
+                </p>
               </Field>
 
               <Field label="Bank Branch" required error={errors.bankBranch}>
@@ -415,7 +502,9 @@ export default function BankForm() {
                     className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 font-mono uppercase"
                     disabled={!editing}
                     value={draft.iban}
-                    onChange={(e) => patch("iban", e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      patch("iban", e.target.value.toUpperCase())
+                    }
                     placeholder="e.g. QA58DOHB000012345678901234567"
                   />
                 </div>
@@ -496,7 +585,6 @@ export default function BankForm() {
 
         {/* ── RIGHT: live preview ── */}
         <div className="xl:sticky xl:top-5 space-y-4">
-
           {/* Virtual bank card */}
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">
@@ -556,18 +644,32 @@ export default function BankForm() {
             </p>
             <div className="space-y-1.5">
               {[
-                { label: "Bank Name",    ok: !!draft.bankName    },
-                { label: "Bank Branch",  ok: !!draft.bankBranch  },
+                { label: "Bank Name", ok: !!draft.bankName },
+                { label: "Bank Branch", ok: !!draft.bankBranch },
                 { label: "Account Type", ok: !!draft.accountType },
-                { label: "Account No",   ok: !!draft.accountNo   },
-                { label: "Country",      ok: !!draft.country     },
+                { label: "Account No", ok: !!draft.accountNo },
+                { label: "Country", ok: !!draft.country },
               ].map(({ label, ok }) => (
                 <div key={label} className="flex items-center gap-2">
-                  <ShieldCheck className={cn("h-3.5 w-3.5 shrink-0 transition-colors", ok ? "text-emerald-500" : "text-slate-300")} />
-                  <span className={cn("text-xs transition-colors", ok ? "text-slate-700" : "text-slate-400")}>
+                  <ShieldCheck
+                    className={cn(
+                      "h-3.5 w-3.5 shrink-0 transition-colors",
+                      ok ? "text-emerald-500" : "text-slate-300",
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "text-xs transition-colors",
+                      ok ? "text-slate-700" : "text-slate-400",
+                    )}
+                  >
                     {label}
                   </span>
-                  {ok && <span className="ml-auto text-[10px] font-semibold text-emerald-600">✓</span>}
+                  {ok && (
+                    <span className="ml-auto text-[10px] font-semibold text-emerald-600">
+                      ✓
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -578,12 +680,21 @@ export default function BankForm() {
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-500 transition-all duration-500"
                   style={{
-                    width: `${([draft.bankName, draft.bankBranch, draft.accountType, draft.accountNo, draft.country].filter(Boolean).length / 5) * 100}%`
+                    width: `${([draft.bankName, draft.bankBranch, draft.accountType, draft.accountNo, draft.country].filter(Boolean).length / 5) * 100}%`,
                   }}
                 />
               </div>
               <p className="mt-1 text-[10px] text-muted-foreground text-right">
-                {[draft.bankName, draft.bankBranch, draft.accountType, draft.accountNo, draft.country].filter(Boolean).length}/5 completed
+                {
+                  [
+                    draft.bankName,
+                    draft.bankBranch,
+                    draft.accountType,
+                    draft.accountNo,
+                    draft.country,
+                  ].filter(Boolean).length
+                }
+                /5 completed
               </p>
             </div>
           </div>

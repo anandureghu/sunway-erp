@@ -24,47 +24,71 @@ import { cn } from "@/lib/utils";
 type Prefix = "" | "Mr." | "Mrs." | "Ms." | "Miss" | "Dr.";
 
 type EmpProfile = {
-  employeeNo:     string;
-  prefix:         Prefix;
-  firstName:      string;
-  lastName:       string;
-  photoUrl?:      string;
-  joinDate:       string;
-  dateOfBirth:    string;
-  gender:         "Male" | "Female" | "Other" | "";
+  employeeNo: string;
+  prefix: Prefix;
+  firstName: string;
+  lastName: string;
+  photoUrl?: string;
+  joinDate: string;
+  dateOfBirth: string;
+  gender: "Male" | "Female" | "Other" | "";
   maritalStatus?: "Single" | "Married" | "Divorced" | "Widowed" | "";
-  status?:        string;
-  birthplace?:    string;
-  hometown?:      string;
-  nationality?:   string;
-  religion?:      string;
+  status?: string;
+  birthplace?: string;
+  hometown?: string;
+  nationality?: string;
+  religion?: string;
   identification?: string;
-  companyRole?:   string;       // Role name (for display)
+  companyRole?: string; // Role name (for display)
   companyRoleId?: number | null; // Role ID (FK to CompanyRole table)
 };
 
 const NEW_EMP: EmpProfile = {
-  employeeNo: "", prefix: "", firstName: "", lastName: "",
-  joinDate: "", dateOfBirth: "", gender: "", maritalStatus: "",
-  status: "Active", birthplace: "", hometown: "", nationality: "",
-  religion: "", identification: "", companyRole: "", companyRoleId: null,
+  employeeNo: "",
+  prefix: "",
+  firstName: "",
+  lastName: "",
+  joinDate: "",
+  dateOfBirth: "",
+  gender: "",
+  maritalStatus: "",
+  status: "Active",
+  birthplace: "",
+  hometown: "",
+  nationality: "",
+  religion: "",
+  identification: "",
+  companyRole: "",
+  companyRoleId: null,
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const getInitials = (first?: string, last?: string) => {
   const f = (first ?? "").trim()[0] ?? "";
-  const l = (last  ?? "").trim()[0] ?? "";
+  const l = (last ?? "").trim()[0] ?? "";
   return (f + l).toUpperCase() || "?";
 };
 
 const getStatusMeta = (status?: string) => {
   switch (status) {
     case "Active":
-      return { dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100" };
+      return {
+        dot: "bg-emerald-500",
+        badge:
+          "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100",
+      };
     case "On Leave":
-      return { dot: "bg-amber-400",   badge: "bg-amber-50   text-amber-700   border-amber-200   ring-amber-100"   };
+      return {
+        dot: "bg-amber-400",
+        badge:
+          "bg-amber-50   text-amber-700   border-amber-200   ring-amber-100",
+      };
     default:
-      return { dot: "bg-slate-400",   badge: "bg-slate-50   text-slate-600   border-slate-200   ring-slate-100"   };
+      return {
+        dot: "bg-slate-400",
+        badge:
+          "bg-slate-50   text-slate-600   border-slate-200   ring-slate-100",
+      };
   }
 };
 
@@ -128,12 +152,19 @@ const SectionHeading = ({
   accent?: string;
 }) => (
   <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
-    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm", accent)}>
+    <div
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
+        accent,
+      )}
+    >
       {icon}
     </div>
     <div>
       <h3 className="text-sm font-bold text-slate-800">{label}</h3>
-      {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+      {description && (
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      )}
     </div>
   </div>
 );
@@ -143,15 +174,19 @@ export default function EmployeeProfileForm() {
   const { id } = useParams<{ id: string }>();
   const isNew = !id;
   const { user: currentUser } = useAuth();
-  const isAdmin = ["ADMIN", "SUPER_ADMIN", "HR"].includes((currentUser?.role ?? "").toUpperCase());
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "HR"].includes(
+    (currentUser?.role ?? "").toUpperCase(),
+  );
 
   const [editing, setEditing] = useState<boolean>(isNew);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [saved,  setSaved]  = useState<EmpProfile>(NEW_EMP);
-  const [draft,  setDraft]  = useState<EmpProfile>(NEW_EMP);
+  const [saved, setSaved] = useState<EmpProfile>(NEW_EMP);
+  const [draft, setDraft] = useState<EmpProfile>(NEW_EMP);
   const [imageHover, setImageHover] = useState(false);
   const [, setPendingFile] = useState<File | null>(null);
-  const [companyRoleOptions, setCompanyRoleOptions] = useState<{ label: string; value: number; id: number }[]>([]);
+  const [companyRoleOptions, setCompanyRoleOptions] = useState<
+    { label: string; value: number; id: number }[]
+  >([]);
 
   const set = useCallback(
     <K extends keyof EmpProfile>(k: K, v: EmpProfile[K]) =>
@@ -163,7 +198,8 @@ export default function EmployeeProfileForm() {
   useEffect(() => {
     const companyId = currentUser?.companyId;
     if (!companyId) return;
-    roleService.getRoles(Number(companyId))
+    roleService
+      .getRoles(Number(companyId))
       .then((roles) => {
         const options = roles
           .filter((r) => r.active !== false)
@@ -179,23 +215,27 @@ export default function EmployeeProfileForm() {
     (async () => {
       if (!id) return;
       try {
-        const emp = await import("@/service/hr.service").then((m) => m.hrService.getEmployee(id));
+        const emp = await import("@/service/hr.service").then((m) =>
+          m.hrService.getEmployee(id),
+        );
         if (!mounted) return;
         if (emp) {
           const fromBackendStatus = (s?: string | null) => {
             if (!s) return NEW_EMP.status;
             const up = String(s).toUpperCase();
-            if (up === "ACTIVE")   return "Active";
+            if (up === "ACTIVE") return "Active";
             if (up === "INACTIVE") return "Inactive";
             if (up === "ON_LEAVE") return "On Leave";
             return String(s);
           };
           const merged: EmpProfile = {
-            ...NEW_EMP, ...(emp as any),
-            photoUrl:      (emp as any).imageUrl ?? "",
-            status:        fromBackendStatus((emp as any).status),
-            prefix:        ((emp as any).prefix ?? "") as Prefix,
-            companyRole:   (emp as any).companyRole ?? (emp as any).CompanyRole ?? "",
+            ...NEW_EMP,
+            ...(emp as any),
+            photoUrl: (emp as any).imageUrl ?? "",
+            status: fromBackendStatus((emp as any).status),
+            prefix: ((emp as any).prefix ?? "") as Prefix,
+            companyRole:
+              (emp as any).companyRole ?? (emp as any).CompanyRole ?? "",
             companyRoleId: (emp as any).companyRoleId ?? null,
           };
           setSaved(merged);
@@ -206,62 +246,69 @@ export default function EmployeeProfileForm() {
         console.error("Failed to load employee:", err);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
-  const persistChanges = useCallback(async (updated: EmpProfile) => {
-    const toBackendStatus = (s?: string | null) => {
-      if (!s) return null;
-      const low = String(s).toLowerCase();
-      if (low === "active")                           return "ACTIVE";
-      if (low === "inactive")                         return "INACTIVE";
-      if (low === "on leave" || low === "on_leave")  return "ON_LEAVE";
-      return String(s).toUpperCase();
-    };
-    const statusVal = toBackendStatus(updated.status ?? null);
-    const payload: any = {
-      employeeNo:     updated.employeeNo,
-      firstName:      updated.firstName,
-      lastName:       updated.lastName,
-      gender:         updated.gender         || null,
-      prefix:         updated.prefix         || null,
-      maritalStatus:  updated.maritalStatus  || null,
-      dateOfBirth:    updated.dateOfBirth    || null,
-      joinDate:       updated.joinDate       || null,
-      imageUrl:       updated.photoUrl       || null,
-      birthplace:     updated.birthplace     || null,
-      hometown:       updated.hometown       || null,
-      nationality:    updated.nationality    || null,
-      religion:       updated.religion       || null,
-      identification: updated.identification || null,
-      companyRole:    updated.companyRole    || null,
-      companyRoleId:  updated.companyRoleId  || null,
-    };
-    if (statusVal != null) payload.status = statusVal;
-    try {
-      const { hrService } = await import("@/service/hr.service");
-      let createdResult: any = null;
-      if (id) {
-        await hrService.updateEmployee(Number(id), payload);
-        toast.success("Employee profile updated successfully!");
-      } else {
-        createdResult = await hrService.createEmployee(payload);
-        toast.success("Employee created successfully!");
+  const persistChanges = useCallback(
+    async (updated: EmpProfile) => {
+      const toBackendStatus = (s?: string | null) => {
+        if (!s) return null;
+        const low = String(s).toLowerCase();
+        if (low === "active") return "ACTIVE";
+        if (low === "inactive") return "INACTIVE";
+        if (low === "on leave" || low === "on_leave") return "ON_LEAVE";
+        return String(s).toUpperCase();
+      };
+      const statusVal = toBackendStatus(updated.status ?? null);
+      const payload: any = {
+        employeeNo: updated.employeeNo,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        gender: updated.gender || null,
+        prefix: updated.prefix || null,
+        maritalStatus: updated.maritalStatus || null,
+        dateOfBirth: updated.dateOfBirth || null,
+        joinDate: updated.joinDate || null,
+        imageUrl: updated.photoUrl || null,
+        birthplace: updated.birthplace || null,
+        hometown: updated.hometown || null,
+        nationality: updated.nationality || null,
+        religion: updated.religion || null,
+        identification: updated.identification || null,
+        companyRole: updated.companyRole || null,
+        companyRoleId: updated.companyRoleId || null,
+      };
+      if (statusVal != null) payload.status = statusVal;
+      try {
+        const { hrService } = await import("@/service/hr.service");
+        let createdResult: any = null;
+        if (id) {
+          await hrService.updateEmployee(Number(id), payload);
+          toast.success("Employee profile updated successfully!");
+        } else {
+          createdResult = await hrService.createEmployee(payload);
+          toast.success("Employee created successfully!");
+        }
+        return createdResult;
+      } catch (err) {
+        console.error("Failed to persist employee changes to server:", err);
+        toast.error("Failed to save employee profile. Please try again.");
+        throw err;
       }
-      return createdResult;
-    } catch (err) {
-      console.error("Failed to persist employee changes to server:", err);
-      toast.error("Failed to save employee profile. Please try again.");
-      throw err;
-    }
-  }, [id]);
+    },
+    [id],
+  );
 
   const handleSave = useCallback(async () => {
     try {
       await persistChanges(draft);
       setSaved(draft);
       setEditing(false);
-    } catch { /* handled inside */ }
+    } catch {
+      /* handled inside */
+    }
   }, [draft, persistChanges]);
 
   const handleCancel = useCallback(() => {
@@ -270,24 +317,36 @@ export default function EmployeeProfileForm() {
   }, [saved]);
 
   useEffect(() => {
-    const onEdit   = () => { setDraft(saved); setEditing(true); };
-    const onSave   = () => { void handleSave(); };
-    const onCancel = () => { handleCancel(); };
-    document.addEventListener("profile:edit",   onEdit);
-    document.addEventListener("profile:save",   onSave);
+    const onEdit = () => {
+      setDraft(saved);
+      setEditing(true);
+    };
+    const onSave = () => {
+      void handleSave();
+    };
+    const onCancel = () => {
+      handleCancel();
+    };
+    document.addEventListener("profile:edit", onEdit);
+    document.addEventListener("profile:save", onSave);
     document.addEventListener("profile:cancel", onCancel);
     return () => {
-      document.removeEventListener("profile:edit",   onEdit);
-      document.removeEventListener("profile:save",   onSave);
+      document.removeEventListener("profile:edit", onEdit);
+      document.removeEventListener("profile:save", onSave);
       document.removeEventListener("profile:cancel", onCancel);
     };
   }, [saved, handleSave, handleCancel]);
 
-  const uploadImage = async (file: File, employeeId?: number): Promise<string> => {
+  const uploadImage = async (
+    file: File,
+    employeeId?: number,
+  ): Promise<string> => {
     try {
       const { hrService } = await import("@/service/hr.service");
       if (employeeId) return hrService.uploadImage(employeeId, file);
-    } catch {}
+    } catch {
+      toast.error("Failed to upload image. Please try again.");
+    }
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
@@ -296,32 +355,21 @@ export default function EmployeeProfileForm() {
   };
 
   const statusMeta = getStatusMeta(draft.status);
-  const initials   = getInitials(draft.firstName, draft.lastName);
-  const fullName   = [draft.prefix, draft.firstName, draft.lastName].filter(Boolean).join(" ");
+  const initials = getInitials(draft.firstName, draft.lastName);
+  const fullName = [draft.prefix, draft.firstName, draft.lastName]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
-
+    <div className="bg-slate-50/60 min-h-screen space-y-5">
       {/* ── Hero header card ── */}
       <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
         {/* Gradient banner */}
-        <div className="relative h-28 bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 overflow-hidden">
-          {/* Dot pattern overlay */}
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-            }}
-          />
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-          <div className="pointer-events-none absolute -left-8 bottom-0  h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-        </div>
 
         {/* Profile row — avatar overlaps banner, name sits safely below */}
-        <div className="px-6 pb-5">
+        <div className="px-6 py-3 flex items-center gap-4 bg-linear-to-br from-violet-500 to-blue-600">
           {/* Avatar — pulled up to overlap the banner */}
-          <div className="relative shrink-0 -mt-12 mb-3 w-fit">
+          <div className="relative shrink-0 mb-3 w-fit">
             <div
               className="relative h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-lg cursor-pointer"
               onMouseEnter={() => setImageHover(true)}
@@ -329,16 +377,22 @@ export default function EmployeeProfileForm() {
               onClick={() => fileInputRef.current?.click()}
             >
               {draft.photoUrl ? (
-                <img src={draft.photoUrl} alt="Profile" className="h-full w-full object-cover" />
+                <img
+                  src={draft.photoUrl}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-white text-2xl font-bold select-none">
                   {initials}
                 </div>
               )}
-              <div className={cn(
-                "absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200",
-                imageHover ? "opacity-100" : "opacity-0",
-              )}>
+              <div
+                className={cn(
+                  "absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200",
+                  imageHover ? "opacity-100" : "opacity-0",
+                )}
+              >
                 <Camera className="h-5 w-5 text-white" />
               </div>
             </div>
@@ -354,31 +408,39 @@ export default function EmployeeProfileForm() {
           {/* Name + meta — always below the banner */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-slate-900 leading-tight truncate">
+              <h2 className="text-xl font-bold text-slate-50 leading-tight truncate">
                 {fullName || "New Employee"}
               </h2>
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                 {draft.employeeNo ? (
                   <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-mono font-medium text-slate-600">
-                    <Hash className="h-3 w-3" />{draft.employeeNo}
+                    <Hash className="h-3 w-3" />
+                    {draft.employeeNo}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">No employee number</span>
+                  <span className="text-xs text-muted-foreground">
+                    No employee number
+                  </span>
                 )}
                 {draft.companyRole && (
                   <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 border border-violet-100">
-                    <Briefcase className="h-3 w-3" />{draft.companyRole}
+                    <Briefcase className="h-3 w-3" />
+                    {draft.companyRole}
                   </span>
                 )}
               </div>
             </div>
 
             {/* Status badge */}
-            <span className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
-              statusMeta.badge,
-            )}>
-              <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
+                statusMeta.badge,
+              )}
+            >
+              <span
+                className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)}
+              />
               {draft.status || "Active"}
             </span>
           </div>
@@ -453,7 +515,9 @@ export default function EmployeeProfileForm() {
             <StyledSelect
               disabled={!editing}
               value={draft.gender}
-              onChange={(e) => set("gender", e.target.value as EmpProfile["gender"])}
+              onChange={(e) =>
+                set("gender", e.target.value as EmpProfile["gender"])
+              }
             >
               <option value="">Select gender</option>
               <option value="Male">Male</option>
@@ -466,7 +530,12 @@ export default function EmployeeProfileForm() {
             <StyledSelect
               disabled={!editing}
               value={draft.maritalStatus ?? ""}
-              onChange={(e) => set("maritalStatus", e.target.value as EmpProfile["maritalStatus"])}
+              onChange={(e) =>
+                set(
+                  "maritalStatus",
+                  e.target.value as EmpProfile["maritalStatus"],
+                )
+              }
             >
               <option value="">Select status</option>
               <option value="Single">Single</option>
@@ -536,14 +605,18 @@ export default function EmployeeProfileForm() {
                 value={draft.companyRoleId ? String(draft.companyRoleId) : ""}
                 onChange={(e) => {
                   const selectedId = Number(e.target.value) || null;
-                  const selectedOption = companyRoleOptions.find((r) => r.id === selectedId);
+                  const selectedOption = companyRoleOptions.find(
+                    (r) => r.id === selectedId,
+                  );
                   set("companyRoleId", selectedId);
                   set("companyRole", selectedOption?.label ?? "");
                 }}
               >
                 <option value="">Select role</option>
                 {companyRoleOptions.map((r) => (
-                  <option key={r.id} value={r.id}>{r.label}</option>
+                  <option key={r.id} value={r.id}>
+                    {r.label}
+                  </option>
                 ))}
               </StyledSelect>
             ) : (

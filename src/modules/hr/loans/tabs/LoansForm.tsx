@@ -17,8 +17,8 @@ import {
   PencilLine,
   Check,
   X,
+  Building2,
 } from "lucide-react";
-import { PageHeader } from "@/modules/hr/components/page-header";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { useState, useCallback, useEffect } from "react";
 import { salaryService } from "@/service/salaryService";
@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { fetchCompany } from "@/service/companyService";
 import type { Company } from "@/types/company";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 type LoansModel = {
   id: string;
@@ -66,7 +67,7 @@ function validateLoan(loan: LoansModel): boolean {
   return amountOk && typeOk && periodOk && dateOk && endDateOk;
 }
 
-  const INITIAL_LOAN: LoansModel = {
+const INITIAL_LOAN: LoansModel = {
   id: "",
   loanCode: "",
   loanAmount: "",
@@ -90,9 +91,7 @@ export default function LoansForm(): ReactElement {
   // ADMIN/SUPER_ADMIN get permissions=null and bypass; otherwise check the
   // explicit LOANS.approve grant. HR Manager / Finance Manager get this via
   // their company-role permission config.
-  const canApproveLoans =
-    permissions === null ||
-    !!(permissions?.LOANS?.approve);
+  const canApproveLoans = permissions === null || !!permissions?.LOANS?.approve;
 
   const [loans, setLoans] = useState<LoansModel[]>([]);
   const [loanTypeOptions, setLoanTypeOptions] = useState<
@@ -105,7 +104,7 @@ export default function LoansForm(): ReactElement {
   const [, setLoading] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
 
-  const MAX_DEDUCTION_PCT = 0.30;
+  const MAX_DEDUCTION_PCT = 0.3;
   const maxMonthlyDeduction = basicSalary * MAX_DEDUCTION_PCT;
   const computeMonthly = (amount: string | number, period: string | number) => {
     const a = Number(amount || 0);
@@ -114,7 +113,9 @@ export default function LoansForm(): ReactElement {
   };
   const exceedsLimit = (loan: LoansModel) => {
     if (basicSalary <= 0) return false;
-    return computeMonthly(loan.loanAmount, loan.loanPeriod) > maxMonthlyDeduction;
+    return (
+      computeMonthly(loan.loanAmount, loan.loanPeriod) > maxMonthlyDeduction
+    );
   };
 
   const handleAdd = useCallback(() => {
@@ -139,7 +140,8 @@ export default function LoansForm(): ReactElement {
     loanPeriod: api.loanPeriod != null ? String(api.loanPeriod) : "",
     startDate: api.startDate ?? "",
     endDate: api.endDate ?? "",
-    monthlyDeductions: api.monthlyDeduction != null ? String(api.monthlyDeduction) : "",
+    monthlyDeductions:
+      api.monthlyDeduction != null ? String(api.monthlyDeduction) : "",
     loanStatus: api.status ?? "",
     balance: api.balance != null ? String(api.balance) : "",
     grossPay: api.grossPay != null ? String(api.grossPay) : "0",
@@ -221,8 +223,7 @@ export default function LoansForm(): ReactElement {
               data.grossPay ??
               0,
           ) || 0;
-        const basic =
-          Number(data.basicSalary ?? data.basic_salary ?? 0) || 0;
+        const basic = Number(data.basicSalary ?? data.basic_salary ?? 0) || 0;
         setGrossSalary(gross);
         setBasicSalary(basic);
       })
@@ -249,30 +250,39 @@ export default function LoansForm(): ReactElement {
     }
   }, [user?.companyId]);
 
-  const handleSave = useCallback((loan: LoansModel, changedField?: string) => {
-    const loanAmount = Number(loan.loanAmount || 0);
-    const loanPeriod = Number(loan.loanPeriod || 0);
-    const monthly = loanPeriod > 0 ? loanAmount / loanPeriod : 0;
-    const gross = grossSalary || Number(loan.grossPay || 0);
-    const deduction = monthly;
-    const net = gross - deduction;
+  const handleSave = useCallback(
+    (loan: LoansModel, changedField?: string) => {
+      const loanAmount = Number(loan.loanAmount || 0);
+      const loanPeriod = Number(loan.loanPeriod || 0);
+      const monthly = loanPeriod > 0 ? loanAmount / loanPeriod : 0;
+      const gross = grossSalary || Number(loan.grossPay || 0);
+      const deduction = monthly;
+      const net = gross - deduction;
 
-    let updated = { 
-      ...loan, 
-      monthlyDeductions: String(monthly),
-      grossPay: String(gross), 
-      deductionAmount: String(deduction), 
-      netPay: String(net) 
-    } as LoansModel;
+      let updated = {
+        ...loan,
+        monthlyDeductions: String(monthly),
+        grossPay: String(gross),
+        deductionAmount: String(deduction),
+        netPay: String(net),
+      } as LoansModel;
 
-    // Auto-calculate endDate only when loanPeriod or startDate changes
-    if ((changedField === 'loanPeriod' || changedField === 'startDate') && loan.startDate && loanPeriod > 0) {
-      const autoEndDate = addMonths(loan.startDate, loanPeriod);
-      updated = { ...updated, endDate: autoEndDate };
-    }
+      // Auto-calculate endDate only when loanPeriod or startDate changes
+      if (
+        (changedField === "loanPeriod" || changedField === "startDate") &&
+        loan.startDate &&
+        loanPeriod > 0
+      ) {
+        const autoEndDate = addMonths(loan.startDate, loanPeriod);
+        updated = { ...updated, endDate: autoEndDate };
+      }
 
-    setLoans(current => current.map(l => l.id === loan.id ? updated : l));
-  }, [grossSalary]);
+      setLoans((current) =>
+        current.map((l) => (l.id === loan.id ? updated : l)),
+      );
+    },
+    [grossSalary],
+  );
 
   const persistLoan = useCallback(
     async (loan: LoansModel) => {
@@ -370,19 +380,23 @@ export default function LoansForm(): ReactElement {
   const pendingLoans = loans.filter(
     (l) => l.loanStatus?.toUpperCase() === "PENDING_APPROVAL",
   ).length;
-  const activeLoans = loans.filter((l) => l.loanStatus?.toUpperCase() === "ACTIVE").length;
-  const closedLoans = loans.filter((l) => l.loanStatus?.toUpperCase() === "CLOSED").length;
+  const activeLoans = loans.filter(
+    (l) => l.loanStatus?.toUpperCase() === "ACTIVE",
+  ).length;
+  const closedLoans = loans.filter(
+    (l) => l.loanStatus?.toUpperCase() === "CLOSED",
+  ).length;
   const totalOutstanding = loans
     .filter((l) => l.loanStatus?.toUpperCase() === "ACTIVE")
     .reduce((sum, l) => sum + Number(l.balance || 0), 0);
 
   return (
-    <div className="space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
-      <PageHeader
-        icon={<DollarSign className="h-5 w-5" />}
+    <div className="space-y-6 rounded-xl">
+      <SecondaryPageHeader
         title="Employee Loans"
         description="Manage loan details and repayment schedules"
-        right={
+        icon={<Building2 className="h-5 w-5 text-white" />}
+        actions={
           <Button
             onClick={handleAdd}
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
@@ -433,7 +447,6 @@ export default function LoansForm(): ReactElement {
 
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-blue-600" />
           Loans Details
         </h3>
 
@@ -483,7 +496,7 @@ export default function LoansForm(): ReactElement {
                         </div>
                         <span className="text-sm font-medium opacity-90">
                           Current Balance
-                        </span> 
+                        </span>
                       </div>
                       <p className="text-2xl font-bold">
                         {formatMoney(loan.balance, currencySymbol) ||
@@ -496,7 +509,7 @@ export default function LoansForm(): ReactElement {
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
                       Loan Details
                     </h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label className="text-sm font-medium text-slate-700">
@@ -512,10 +525,22 @@ export default function LoansForm(): ReactElement {
                               ? loanTypeOptions
                               : [
                                   { value: "CAR_LOAN", label: "Car Loan" },
-                                  { value: "PERSONAL_LOAN", label: "Personal Loan" },
-                                  { value: "HOUSING_LOAN", label: "Housing Loan" },
-                                  { value: "EDUCATION_LOAN", label: "Education Loan" },
-                                  { value: "MEDICAL_LOAN", label: "Medical Loan" },
+                                  {
+                                    value: "PERSONAL_LOAN",
+                                    label: "Personal Loan",
+                                  },
+                                  {
+                                    value: "HOUSING_LOAN",
+                                    label: "Housing Loan",
+                                  },
+                                  {
+                                    value: "EDUCATION_LOAN",
+                                    label: "Education Loan",
+                                  },
+                                  {
+                                    value: "MEDICAL_LOAN",
+                                    label: "Medical Loan",
+                                  },
                                 ]
                           }
                           placeholder="Select Loan Type"
@@ -532,7 +557,10 @@ export default function LoansForm(): ReactElement {
                             type="number"
                             value={loan.loanAmount || ""}
                             onChange={(e) =>
-                              handleSave({ ...loan, loanAmount: e.target.value })
+                              handleSave({
+                                ...loan,
+                                loanAmount: e.target.value,
+                              })
                             }
                             placeholder="Enter loan amount"
                             disabled={false}
@@ -546,9 +574,13 @@ export default function LoansForm(): ReactElement {
                         </div>
                         {exceedsLimit(loan) && (
                           <p className="text-xs text-rose-600 font-medium">
-                            You don't qualify for this loan amount. Monthly deduction
-                            cannot exceed 30% of basic salary (max{" "}
-                            {formatMoney(String(maxMonthlyDeduction), currencySymbol)}).
+                            You don't qualify for this loan amount. Monthly
+                            deduction cannot exceed 30% of basic salary (max{" "}
+                            {formatMoney(
+                              String(maxMonthlyDeduction),
+                              currencySymbol,
+                            )}
+                            ).
                           </p>
                         )}
                       </div>
@@ -561,7 +593,9 @@ export default function LoansForm(): ReactElement {
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(loan.loanStatus || "PENDING_APPROVAL")}`}
                           >
-                            {formatStatus(loan.loanStatus || "PENDING_APPROVAL")}
+                            {formatStatus(
+                              loan.loanStatus || "PENDING_APPROVAL",
+                            )}
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
@@ -577,9 +611,11 @@ export default function LoansForm(): ReactElement {
                         type="date"
                         disabled={false}
                         value={loan.startDate}
-                        onChange={(v) => handleSave({ ...loan, startDate: v }, 'startDate')}
+                        onChange={(v) =>
+                          handleSave({ ...loan, startDate: v }, "startDate")
+                        }
                         required
-                      /> 
+                      />
 
                       <div>
                         <Label className="text-sm font-medium text-slate-700">
@@ -597,14 +633,22 @@ export default function LoansForm(): ReactElement {
                                   min={0}
                                   value={String(years)}
                                   onChange={(e) => {
-                                    const y = Math.max(0, Number(e.target.value) || 0);
+                                    const y = Math.max(
+                                      0,
+                                      Number(e.target.value) || 0,
+                                    );
                                     const newTotal = y * 12 + months;
-                                    handleSave({ ...loan, loanPeriod: String(newTotal) }, 'loanPeriod');
-                                  }} 
+                                    handleSave(
+                                      { ...loan, loanPeriod: String(newTotal) },
+                                      "loanPeriod",
+                                    );
+                                  }}
                                   aria-label="years"
                                   className="w-24 rounded-lg border-slate-300"
                                 />
-                                <span className="text-sm text-slate-600">years</span>
+                                <span className="text-sm text-slate-600">
+                                  years
+                                </span>
                                 <Input
                                   type="number"
                                   min={0}
@@ -615,12 +659,17 @@ export default function LoansForm(): ReactElement {
                                     if (m < 0) m = 0;
                                     if (m > 11) m = 11;
                                     const newTotal = years * 12 + m;
-                                    handleSave({ ...loan, loanPeriod: String(newTotal) }, 'loanPeriod');
-                                  }} 
+                                    handleSave(
+                                      { ...loan, loanPeriod: String(newTotal) },
+                                      "loanPeriod",
+                                    );
+                                  }}
                                   aria-label="months"
                                   className="w-24 rounded-lg border-slate-300"
                                 />
-                                <span className="text-sm text-slate-600">months</span>
+                                <span className="text-sm text-slate-600">
+                                  months
+                                </span>
                               </>
                             );
                           })()}
@@ -640,7 +689,9 @@ export default function LoansForm(): ReactElement {
                         type="date"
                         disabled={false}
                         value={loan.endDate}
-                        onChange={(v) => handleSave({ ...loan, endDate: v }, 'endDate')} 
+                        onChange={(v) =>
+                          handleSave({ ...loan, endDate: v }, "endDate")
+                        }
                         required
                       />
                     </div>
@@ -652,7 +703,9 @@ export default function LoansForm(): ReactElement {
                       <Textarea
                         value={loan.notes}
                         disabled={false}
-                        onChange={(e) => handleSave({ ...loan, notes: e.target.value })}
+                        onChange={(e) =>
+                          handleSave({ ...loan, notes: e.target.value })
+                        }
                         className="min-h-[100px] mt-2 rounded-lg border-slate-300"
                         placeholder="Enter any additional notes or remarks..."
                       />
@@ -668,15 +721,28 @@ export default function LoansForm(): ReactElement {
                         label="Gross Pay"
                         disabled={false}
                         value={formatMoney(loan.grossPay, currencySymbol)}
-                        onChange={(v) => handleSave({ ...loan, grossPay: v.replace(/[^0-9.]/g, "") })}
+                        onChange={(v) =>
+                          handleSave({
+                            ...loan,
+                            grossPay: v.replace(/[^0-9.]/g, ""),
+                          })
+                        }
                         ariaLabel="Gross Pay"
                         required
                       />
                       <Field
                         label="Deduction Amount"
                         disabled={false}
-                        value={formatMoney(loan.deductionAmount, currencySymbol)}
-                        onChange={(v) => handleSave({ ...loan, deductionAmount: v.replace(/[^0-9.]/g, "") })}
+                        value={formatMoney(
+                          loan.deductionAmount,
+                          currencySymbol,
+                        )}
+                        onChange={(v) =>
+                          handleSave({
+                            ...loan,
+                            deductionAmount: v.replace(/[^0-9.]/g, ""),
+                          })
+                        }
                         ariaLabel="Deduction Amount"
                         required
                       />
@@ -684,7 +750,12 @@ export default function LoansForm(): ReactElement {
                         label="Net Pay"
                         disabled={false}
                         value={formatMoney(loan.netPay, currencySymbol)}
-                        onChange={(v) => handleSave({ ...loan, netPay: v.replace(/[^0-9.]/g, "") })}
+                        onChange={(v) =>
+                          handleSave({
+                            ...loan,
+                            netPay: v.replace(/[^0-9.]/g, ""),
+                          })
+                        }
                         ariaLabel="Net Pay"
                         required
                       />
@@ -692,7 +763,11 @@ export default function LoansForm(): ReactElement {
                   </div>
 
                   <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                    <Button variant="outline" onClick={handleCancel} className="px-6 rounded-lg border-slate-300">
+                    <Button
+                      variant="outline"
+                      onClick={handleCancel}
+                      className="px-6 rounded-lg border-slate-300"
+                    >
                       Cancel
                     </Button>
                     <Button
@@ -718,36 +793,87 @@ export default function LoansForm(): ReactElement {
                             {loan.loanCode || "Loan"}
                           </h3>
                           {loan.loanStatus && (
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(loan.loanStatus)}`}>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(loan.loanStatus)}`}
+                            >
                               {formatStatus(loan.loanStatus)}
                             </span>
                           )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
-                          <InfoCard icon={DollarSign} label="Loan Amount" value={formatMoney(loan.loanAmount, currencySymbol)} color="blue" />
-                          <InfoCard icon={Calendar} label="Start Date" value={loan.startDate ? new Date(loan.startDate).toLocaleDateString() : "—"} color="emerald" />
-                          <InfoCard icon={Calendar} label="End Date" value={loan.endDate ? new Date(loan.endDate).toLocaleDateString() : "—"} color="amber" />
-                          <InfoCard icon={TrendingUp} label="Monthly Deduction" value={formatMoney(loan.monthlyDeductions, currencySymbol)} color="violet" />
+                          <InfoCard
+                            icon={DollarSign}
+                            label="Loan Amount"
+                            value={formatMoney(loan.loanAmount, currencySymbol)}
+                            color="blue"
+                          />
+                          <InfoCard
+                            icon={Calendar}
+                            label="Start Date"
+                            value={
+                              loan.startDate
+                                ? new Date(loan.startDate).toLocaleDateString()
+                                : "—"
+                            }
+                            color="emerald"
+                          />
+                          <InfoCard
+                            icon={Calendar}
+                            label="End Date"
+                            value={
+                              loan.endDate
+                                ? new Date(loan.endDate).toLocaleDateString()
+                                : "—"
+                            }
+                            color="amber"
+                          />
+                          <InfoCard
+                            icon={TrendingUp}
+                            label="Monthly Deduction"
+                            value={formatMoney(
+                              loan.monthlyDeductions,
+                              currencySymbol,
+                            )}
+                            color="violet"
+                          />
                         </div>
 
                         <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100 mt-6">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-4">Loan Information</h4>
+                          <h4 className="text-lg font-semibold text-slate-800 mb-4">
+                            Loan Information
+                          </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DetailItem label="Loan Type" value={loan.loanType || "—"} />
-                            <DetailItem label="Loan Period" value={loan.loanPeriod ? `${loan.loanPeriod} months` : "—"} />
-                            <DetailItem label="Current Balance" value={formatMoney(loan.balance, currencySymbol)} />
+                            <DetailItem
+                              label="Loan Type"
+                              value={loan.loanType || "—"}
+                            />
+                            <DetailItem
+                              label="Loan Period"
+                              value={
+                                loan.loanPeriod
+                                  ? `${loan.loanPeriod} months`
+                                  : "—"
+                              }
+                            />
+                            <DetailItem
+                              label="Current Balance"
+                              value={formatMoney(loan.balance, currencySymbol)}
+                            />
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-2 ml-4">
                         {canApproveLoans &&
-                          loan.loanStatus?.toUpperCase() === "PENDING_APPROVAL" &&
+                          loan.loanStatus?.toUpperCase() ===
+                            "PENDING_APPROVAL" &&
                           /^\d+$/.test(loan.id) && (
                             <>
                               <Button
                                 size="sm"
-                                onClick={() => handleDecision(Number(loan.id), true)}
+                                onClick={() =>
+                                  handleDecision(Number(loan.id), true)
+                                }
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1"
                               >
                                 <Check className="h-4 w-4" />
@@ -756,7 +882,9 @@ export default function LoansForm(): ReactElement {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleDecision(Number(loan.id), false)}
+                                onClick={() =>
+                                  handleDecision(Number(loan.id), false)
+                                }
                                 className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
                               >
                                 <X className="h-4 w-4" />
@@ -764,15 +892,30 @@ export default function LoansForm(): ReactElement {
                               </Button>
                             </>
                           )}
-                        <Button variant="ghost" size="sm" onClick={() => setViewingId(loan.id)} className="flex items-center gap-1 rounded-lg">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setViewingId(loan.id)}
+                          className="flex items-center gap-1 rounded-lg"
+                        >
                           <Eye className="h-4 w-4" />
                           View
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingId(loan.id)} className="flex items-center gap-1 rounded-lg">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingId(loan.id)}
+                          className="flex items-center gap-1 rounded-lg"
+                        >
                           <PencilLine className="h-4 w-4" />
                           Edit
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(loan.id)} className="text-red-600 rounded-lg">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(loan.id)}
+                          className="text-red-600 rounded-lg"
+                        >
                           <Trash2 className="h-4 w-4" />
                           Delete
                         </Button>
@@ -787,50 +930,115 @@ export default function LoansForm(): ReactElement {
                           {loan.loanCode || "Loan Details"}
                         </h3>
                         {loan.loanStatus && (
-                          <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(loan.loanStatus)}`}>
+                          <span
+                            className={`px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(loan.loanStatus)}`}
+                          >
                             {formatStatus(loan.loanStatus)}
                           </span>
                         )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <InfoCard icon={DollarSign} label="Loan Amount" value={formatMoney(loan.loanAmount, currencySymbol)} color="blue" />
-                        <InfoCard icon={Calendar} label="Start Date" value={loan.startDate ? new Date(loan.startDate).toLocaleDateString() : "—"} color="emerald" />
-                        <InfoCard icon={TrendingUp} label="Monthly Deduction" value={formatMoney(loan.monthlyDeductions, currencySymbol)} color="violet" />
+                        <InfoCard
+                          icon={DollarSign}
+                          label="Loan Amount"
+                          value={formatMoney(loan.loanAmount, currencySymbol)}
+                          color="blue"
+                        />
+                        <InfoCard
+                          icon={Calendar}
+                          label="Start Date"
+                          value={
+                            loan.startDate
+                              ? new Date(loan.startDate).toLocaleDateString()
+                              : "—"
+                          }
+                          color="emerald"
+                        />
+                        <InfoCard
+                          icon={TrendingUp}
+                          label="Monthly Deduction"
+                          value={formatMoney(
+                            loan.monthlyDeductions,
+                            currencySymbol,
+                          )}
+                          color="violet"
+                        />
                       </div>
 
                       <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
-                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Loan Information</h4>
+                        <h4 className="text-lg font-semibold text-slate-800 mb-4">
+                          Loan Information
+                        </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <DetailItem label="Loan Type" value={loan.loanType || "—"} />
-                          <DetailItem label="Loan Period" value={loan.loanPeriod ? `${loan.loanPeriod} months` : "—"} />
-                          <DetailItem label="Current Balance" value={formatMoney(loan.balance, currencySymbol)} /> 
+                          <DetailItem
+                            label="Loan Type"
+                            value={loan.loanType || "—"}
+                          />
+                          <DetailItem
+                            label="Loan Period"
+                            value={
+                              loan.loanPeriod
+                                ? `${loan.loanPeriod} months`
+                                : "—"
+                            }
+                          />
+                          <DetailItem
+                            label="Current Balance"
+                            value={formatMoney(loan.balance, currencySymbol)}
+                          />
                         </div>
                       </div>
 
                       <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
-                        <h4 className="text-lg font-semibold text-slate-800 mb-4">Salary Breakdown</h4>
+                        <h4 className="text-lg font-semibold text-slate-800 mb-4">
+                          Salary Breakdown
+                        </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <DetailItem label="Gross Pay" value={formatMoney(loan.grossPay, currencySymbol)} />
-                          <DetailItem label="Deduction Amount" value={formatMoney(loan.deductionAmount, currencySymbol)} />
-                          <DetailItem label="Net Pay" value={formatMoney(loan.netPay, currencySymbol)} />
+                          <DetailItem
+                            label="Gross Pay"
+                            value={formatMoney(loan.grossPay, currencySymbol)}
+                          />
+                          <DetailItem
+                            label="Deduction Amount"
+                            value={formatMoney(
+                              loan.deductionAmount,
+                              currencySymbol,
+                            )}
+                          />
+                          <DetailItem
+                            label="Net Pay"
+                            value={formatMoney(loan.netPay, currencySymbol)}
+                          />
                         </div>
                       </div>
 
                       {loan.notes && (
                         <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-2">Notes/Remarks</h4>
-                          <p className="text-slate-700 whitespace-pre-wrap">{loan.notes}</p>
+                          <h4 className="text-lg font-semibold text-slate-800 mb-2">
+                            Notes/Remarks
+                          </h4>
+                          <p className="text-slate-700 whitespace-pre-wrap">
+                            {loan.notes}
+                          </p>
                         </div>
                       )}
 
                       <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-                        <Button variant="outline" size="sm" onClick={() => setViewingId(null)} className="rounded-lg border-slate-300">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewingId(null)}
+                          className="rounded-lg border-slate-300"
+                        >
                           Close
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => { setViewingId(null); setEditingId(loan.id); }}
+                          onClick={() => {
+                            setViewingId(null);
+                            setEditingId(loan.id);
+                          }}
                           className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
                         >
                           <PencilLine className="mr-1 h-3.5 w-3.5" /> Edit
@@ -849,9 +1057,16 @@ export default function LoansForm(): ReactElement {
             <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
               <FileText className="h-12 w-12 text-blue-600" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">No loans added yet</h3>
-            <p className="text-slate-600 mb-6">Click "Request Loan" to create your first employee loan</p>
-            <Button onClick={handleAdd} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg rounded-xl px-6">
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+              No loans added yet
+            </h3>
+            <p className="text-slate-600 mb-6">
+              Click "Request Loan" to create your first employee loan
+            </p>
+            <Button
+              onClick={handleAdd}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg rounded-xl px-6"
+            >
               <Plus className="h-5 w-5 mr-2" />
               Request Your First Loan
             </Button>
@@ -871,7 +1086,15 @@ function Field(props: {
   ariaLabel?: string;
   required?: boolean;
 }) {
-  const { label, value, onChange, type = "text", disabled, ariaLabel, required } = props;
+  const {
+    label,
+    value,
+    onChange,
+    type = "text",
+    disabled,
+    ariaLabel,
+    required,
+  } = props;
   return (
     <div className="space-y-2">
       <Label className="text-sm font-medium text-slate-700">
@@ -891,16 +1114,28 @@ function Field(props: {
   );
 }
 
-function InfoCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
+function InfoCard({
+  icon: Icon,
+  label,
+  value,
+  color,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  color: string;
+}) {
   const colorClasses: Record<string, string> = {
-    blue: 'from-blue-500 to-indigo-600',
-    emerald: 'from-emerald-500 to-teal-600',
-    violet: 'from-violet-500 to-purple-600',
-    amber: 'from-amber-500 to-orange-600',
+    blue: "from-blue-500 to-indigo-600",
+    emerald: "from-emerald-500 to-teal-600",
+    violet: "from-violet-500 to-purple-600",
+    amber: "from-amber-500 to-orange-600",
   };
   const gradient = colorClasses[color] ?? colorClasses.blue;
   return (
-    <div className={`bg-gradient-to-br ${gradient} rounded-xl p-5 text-white shadow-lg`}>
+    <div
+      className={`bg-gradient-to-br ${gradient} rounded-xl p-5 text-white shadow-lg`}
+    >
       <div className="flex items-center gap-3 mb-2">
         <div className="p-2 bg-white/20 rounded-lg">
           <Icon className="h-5 w-5" />
@@ -915,7 +1150,9 @@ function InfoCard({ icon: Icon, label, value, color }: { icon: any; label: strin
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">{label}</p>
+      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
+        {label}
+      </p>
       <p className="text-base text-slate-800 font-medium">{value}</p>
     </div>
   );

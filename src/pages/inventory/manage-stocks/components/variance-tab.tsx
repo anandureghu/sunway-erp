@@ -43,6 +43,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { filterItemsByQuery } from "../use-manage-stocks";
 import { ItemSearchCombobox } from "./item-search-combobox";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 function getRequestErrorMessage(e: unknown): string {
   if (
@@ -199,23 +200,11 @@ export function VarianceTab({
 
   return (
     <div className="mt-6 space-y-6">
-      <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-violet-500/[0.06] via-background to-background p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Inventory adjustment
-            </div>
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              Correct on-hand stock
-            </h2>
-            <p className="max-w-xl text-sm text-muted-foreground">
-              Search a product, choose how to adjust counts, and record the
-              reason—like updating inventory in a storefront back office.
-            </p>
-          </div>
-        </div>
-      </div>
+      <SecondaryPageHeader
+        title="Inventory Adjustment"
+        description="Correct on-hand stock"
+        icon={<Sparkles className="h-5 w-5 text-white" />}
+      />
 
       <form
         onSubmit={handleVarianceSubmit(onAdjustStock)}

@@ -33,6 +33,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
 import { cn } from "@/lib/utils";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 interface SalaryCtx {
   editing: boolean;
@@ -44,54 +45,56 @@ interface SalaryCtx {
 type BenefitType = "ALLOWANCE" | "COMPANY_PROVIDED";
 
 const BENEFIT_OPTIONS = [
-  { value: "ALLOWANCE",        label: "Company Pays Allowance" },
-  { value: "COMPANY_PROVIDED", label: "Company Provides"       },
+  { value: "ALLOWANCE", label: "Company Pays Allowance" },
+  { value: "COMPANY_PROVIDED", label: "Company Provides" },
 ];
 
 const COMPENSATION_STATUS_OPTIONS = [
-  { value: "Active",   label: "Active"   },
+  { value: "Active", label: "Active" },
   { value: "Inactive", label: "Inactive" },
 ];
 
 type SalaryFormState = {
-  basicSalary:              number;
-  transportationType:       BenefitType;
-  transportationAllowance:  number;
-  travelType:               BenefitType;
-  travelAllowance:          number;
-  housingType:              BenefitType;
-  housingAllowance:         number;
-  otherAllowance:           number;
-  compensationStatus:       string;
-  effectiveFrom:            string;
-  effectiveTo:              string;
-  payPeriodStart:           string;
-  payPeriodEnd:             string;
-  numberOfDaysWorked:       string;
-  payPerDay:                string;
-  overtime:                 string;
+  basicSalary: number;
+  transportationType: BenefitType;
+  transportationAllowance: number;
+  travelType: BenefitType;
+  travelAllowance: number;
+  housingType: BenefitType;
+  housingAllowance: number;
+  otherAllowance: number;
+  compensationStatus: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  payPeriodStart: string;
+  payPeriodEnd: string;
+  numberOfDaysWorked: string;
+  payPerDay: string;
+  overtime: string;
 };
 
 const INITIAL_STATE: SalaryFormState = {
-  basicSalary:             0,
-  transportationType:      "COMPANY_PROVIDED",
+  basicSalary: 0,
+  transportationType: "COMPANY_PROVIDED",
   transportationAllowance: 0,
-  travelType:              "COMPANY_PROVIDED",
-  travelAllowance:         0,
-  housingType:             "COMPANY_PROVIDED",
-  housingAllowance:        0,
-  otherAllowance:          0,
-  compensationStatus:      "Active",
-  effectiveFrom:           "",
-  effectiveTo:             "",
-  payPeriodStart:          "",
-  payPeriodEnd:            "",
-  numberOfDaysWorked:      "",
-  payPerDay:               "",
-  overtime:                "",
+  travelType: "COMPANY_PROVIDED",
+  travelAllowance: 0,
+  housingType: "COMPANY_PROVIDED",
+  housingAllowance: 0,
+  otherAllowance: 0,
+  compensationStatus: "Active",
+  effectiveFrom: "",
+  effectiveTo: "",
+  payPeriodStart: "",
+  payPeriodEnd: "",
+  numberOfDaysWorked: "",
+  payPerDay: "",
+  overtime: "",
 };
 
-interface ValidationErrors { [key: string]: string }
+interface ValidationErrors {
+  [key: string]: string;
+}
 
 interface PayrollHistoryRow {
   payDate: string;
@@ -107,11 +110,23 @@ interface PayrollHistoryRow {
 const getStatusMeta = (status: string) => {
   switch (status) {
     case "Active":
-      return { dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100" };
+      return {
+        dot: "bg-emerald-500",
+        badge:
+          "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100",
+      };
     case "Inactive":
-      return { dot: "bg-slate-400",   badge: "bg-slate-50   text-slate-700   border-slate-200   ring-slate-100"   };
+      return {
+        dot: "bg-slate-400",
+        badge:
+          "bg-slate-50   text-slate-700   border-slate-200   ring-slate-100",
+      };
     default:
-      return { dot: "bg-blue-500",    badge: "bg-blue-50    text-blue-700    border-blue-200    ring-blue-100"    };
+      return {
+        dot: "bg-blue-500",
+        badge:
+          "bg-blue-50    text-blue-700    border-blue-200    ring-blue-100",
+      };
   }
 };
 
@@ -128,10 +143,17 @@ const SectionHeading = ({
   accent?: string;
 }) => (
   <div className="flex items-center gap-2.5 mb-5">
-    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white", accent)}>
+    <div
+      className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white",
+        accent,
+      )}
+    >
       {icon}
     </div>
-    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">{label}</h3>
+    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+      {label}
+    </h3>
     <div className="flex-1 h-px bg-slate-100" />
   </div>
 );
@@ -160,12 +182,21 @@ const BenefitRow = ({
   disabled: boolean;
   amountError?: string;
 }) => (
-  <div className={cn(
-    "rounded-xl border bg-white p-4 transition-all",
-    typeValue === "ALLOWANCE" ? "border-violet-200 shadow-sm" : "border-slate-100",
-  )}>
+  <div
+    className={cn(
+      "rounded-xl border bg-white p-4 transition-all",
+      typeValue === "ALLOWANCE"
+        ? "border-violet-200 shadow-sm"
+        : "border-slate-100",
+    )}
+  >
     <div className="flex items-center gap-3 mb-3">
-      <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white", color)}>
+      <div
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white",
+          color,
+        )}
+      >
         {icon}
       </div>
       <span className="text-sm font-semibold text-slate-800">{label}</span>
@@ -181,7 +212,12 @@ const BenefitRow = ({
       )}
     </div>
 
-    <div className={cn("grid gap-3", typeValue === "ALLOWANCE" ? "grid-cols-2" : "grid-cols-1")}>
+    <div
+      className={cn(
+        "grid gap-3",
+        typeValue === "ALLOWANCE" ? "grid-cols-2" : "grid-cols-1",
+      )}
+    >
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Benefit Type</Label>
         <SelectField
@@ -194,7 +230,9 @@ const BenefitRow = ({
 
       {typeValue === "ALLOWANCE" && (
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Allowance Amount</Label>
+          <Label className="text-xs text-muted-foreground">
+            Allowance Amount
+          </Label>
           <div className="flex h-9 overflow-hidden rounded-lg border border-violet-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
             <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-2.5 text-xs font-semibold text-violet-700">
               {currencySymbol}
@@ -210,7 +248,9 @@ const BenefitRow = ({
               step="0.01"
             />
           </div>
-          {amountError && <p className="text-xs text-rose-500">{amountError}</p>}
+          {amountError && (
+            <p className="text-xs text-rose-500">{amountError}</p>
+          )}
         </div>
       )}
     </div>
@@ -235,15 +275,30 @@ const BreakdownLine = ({
 }) => (
   <div className="space-y-1">
     <div className="flex items-center justify-between text-sm">
-      <span className={cn("text-slate-600", isBold && "font-semibold text-slate-800")}>{label}</span>
-      <span className={cn("font-mono tabular-nums", isBold ? "font-bold text-slate-900" : "text-slate-700")}>
+      <span
+        className={cn(
+          "text-slate-600",
+          isBold && "font-semibold text-slate-800",
+        )}
+      >
+        {label}
+      </span>
+      <span
+        className={cn(
+          "font-mono tabular-nums",
+          isBold ? "font-bold text-slate-900" : "text-slate-700",
+        )}
+      >
         {formatMoney(String(amount), currency)}
       </span>
     </div>
     {pct > 0 && (
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
         <div
-          className={cn("h-full rounded-full transition-all duration-500", color)}
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
+            color,
+          )}
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
@@ -258,8 +313,8 @@ export default function SalaryForm() {
   const employeeId = id ? Number(id) : undefined;
   const { user } = useAuth();
 
-  const [formData,       setFormData]       = useState<SalaryFormState>(INITIAL_STATE);
-  const [exists,         setExists]         = useState(false);
+  const [formData, setFormData] = useState<SalaryFormState>(INITIAL_STATE);
+  const [exists, setExists] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
   const [payrollHistory, setPayrollHistory] = useState<PayrollHistoryRow[]>([]);
   const [loadingPayrollHistory, setLoadingPayrollHistory] = useState(false);
@@ -275,26 +330,42 @@ export default function SalaryForm() {
   const [loadingDaysWorked, setLoadingDaysWorked] = useState(false);
 
   // ── validation ──────────────────────────────────────────────────────────────
-  const validateForm = useCallback((data: SalaryFormState): ValidationErrors => {
-    const errors: ValidationErrors = {};
-    if (!isValidAmount(String(data.basicSalary)))
-      errors.basicSalary = "Valid basic salary amount is required";
-    if (data.transportationType === "ALLOWANCE" && !isValidAmount(String(data.transportationAllowance)))
-      errors.transportationAllowance = "Valid transportation allowance amount is required";
-    if (data.travelType === "ALLOWANCE" && !isValidAmount(String(data.travelAllowance)))
-      errors.travelAllowance = "Valid travel allowance amount is required";
-    if (data.housingType === "ALLOWANCE" && !isValidAmount(String(data.housingAllowance)))
-      errors.housingAllowance = "Valid housing allowance amount is required";
-    if (!isValidAmount(String(data.otherAllowance)))
-      errors.otherAllowance = "Valid other allowance amount is required";
-    if (!isValidDate(data.effectiveFrom))
-      errors.effectiveFrom = "Valid effective from date is required";
-    if (data.effectiveTo && !isValidDate(data.effectiveTo))
-      errors.effectiveTo = "Invalid effective to date";
-    return errors;
-  }, []);
+  const validateForm = useCallback(
+    (data: SalaryFormState): ValidationErrors => {
+      const errors: ValidationErrors = {};
+      if (!isValidAmount(String(data.basicSalary)))
+        errors.basicSalary = "Valid basic salary amount is required";
+      if (
+        data.transportationType === "ALLOWANCE" &&
+        !isValidAmount(String(data.transportationAllowance))
+      )
+        errors.transportationAllowance =
+          "Valid transportation allowance amount is required";
+      if (
+        data.travelType === "ALLOWANCE" &&
+        !isValidAmount(String(data.travelAllowance))
+      )
+        errors.travelAllowance = "Valid travel allowance amount is required";
+      if (
+        data.housingType === "ALLOWANCE" &&
+        !isValidAmount(String(data.housingAllowance))
+      )
+        errors.housingAllowance = "Valid housing allowance amount is required";
+      if (!isValidAmount(String(data.otherAllowance)))
+        errors.otherAllowance = "Valid other allowance amount is required";
+      if (!isValidDate(data.effectiveFrom))
+        errors.effectiveFrom = "Valid effective from date is required";
+      if (data.effectiveTo && !isValidDate(data.effectiveTo))
+        errors.effectiveTo = "Invalid effective to date";
+      return errors;
+    },
+    [],
+  );
 
-  const errors = useMemo(() => validateForm(formData), [formData, validateForm]);
+  const errors = useMemo(
+    () => validateForm(formData),
+    [formData, validateForm],
+  );
 
   // ── save handler ────────────────────────────────────────────────────────────
   const handleSaveSalary = useCallback(async () => {
@@ -303,17 +374,26 @@ export default function SalaryForm() {
       throw new Error("Please fix the validation errors");
 
     const payload = {
-      basicSalary:             Number(formData.basicSalary) || 0,
-      transportationType:      formData.transportationType,
-      transportationAllowance: formData.transportationType === "ALLOWANCE" ? Number(formData.transportationAllowance || 0) : 0,
-      travelType:              formData.travelType,
-      travelAllowance:         formData.travelType === "ALLOWANCE" ? Number(formData.travelAllowance || 0) : 0,
-      housingType:             formData.housingType,
-      housingAllowance:        formData.housingType === "ALLOWANCE" ? Number(formData.housingAllowance || 0) : 0,
-      otherAllowance:          Number(formData.otherAllowance || 0),
-      status:                  formData.compensationStatus,
-      effectiveFrom:           formData.effectiveFrom,
-      effectiveTo:             formData.effectiveTo,
+      basicSalary: Number(formData.basicSalary) || 0,
+      transportationType: formData.transportationType,
+      transportationAllowance:
+        formData.transportationType === "ALLOWANCE"
+          ? Number(formData.transportationAllowance || 0)
+          : 0,
+      travelType: formData.travelType,
+      travelAllowance:
+        formData.travelType === "ALLOWANCE"
+          ? Number(formData.travelAllowance || 0)
+          : 0,
+      housingType: formData.housingType,
+      housingAllowance:
+        formData.housingType === "ALLOWANCE"
+          ? Number(formData.housingAllowance || 0)
+          : 0,
+      otherAllowance: Number(formData.otherAllowance || 0),
+      status: formData.compensationStatus,
+      effectiveFrom: formData.effectiveFrom,
+      effectiveTo: formData.effectiveTo,
     };
 
     const api = exists ? salaryService.update : salaryService.create;
@@ -329,11 +409,17 @@ export default function SalaryForm() {
 
   // ── event listeners ─────────────────────────────────────────────────────────
   useEffect(() => {
-    const handleCancel = () => { setFormData(INITIAL_STATE); cancelEdit(); };
-    document.addEventListener("salary:save",   handleSaveSalary as EventListener);
+    const handleCancel = () => {
+      setFormData(INITIAL_STATE);
+      cancelEdit();
+    };
+    document.addEventListener("salary:save", handleSaveSalary as EventListener);
     document.addEventListener("salary:cancel", handleCancel);
     return () => {
-      document.removeEventListener("salary:save",   handleSaveSalary as EventListener);
+      document.removeEventListener(
+        "salary:save",
+        handleSaveSalary as EventListener,
+      );
       document.removeEventListener("salary:cancel", handleCancel);
     };
   }, [formData, saveEdit, cancelEdit, employeeId, exists, handleSaveSalary]);
@@ -342,29 +428,54 @@ export default function SalaryForm() {
   useEffect(() => {
     if (!employeeId) return;
     let mounted = true;
-    salaryService.get(employeeId).then((res) => {
-      if (!mounted || !res.data) return;
-      const api = res.data;
-      setFormData((prev) => ({
-        ...prev,
-        basicSalary:             Number(api.basicSalary ?? 0),
-        transportationType:      (api.transportationType as BenefitType) || (Number(api.transportationAllowance ?? 0) > 0 ? "ALLOWANCE" : "COMPANY_PROVIDED"),
-        transportationAllowance: Number(api.transportationAllowance ?? 0),
-        travelType:              (api.travelType as BenefitType) || (Number(api.travelAllowance ?? 0) > 0 ? "ALLOWANCE" : "COMPANY_PROVIDED"),
-        travelAllowance:         Number(api.travelAllowance ?? 0),
-        housingType:             (api.housingType as BenefitType) || (Number(api.housingAllowance ?? 0) > 0 ? "ALLOWANCE" : "COMPANY_PROVIDED"),
-        housingAllowance:        Number(api.housingAllowance ?? 0),
-        otherAllowance:          Number(api.otherAllowance ?? 0),
-        compensationStatus:      api.status ?? api.compensationStatus ?? "Active",
-        effectiveFrom:           api.effectiveFrom ?? "",
-        effectiveTo:             api.effectiveTo ?? "",
-        payPeriodStart: "", payPeriodEnd: "", numberOfDaysWorked: "", payPerDay: "", overtime: "",
-      }) as SalaryFormState);
-      setExists(true);
-    }).catch((err) => {
-      toast.error(err?.response?.data?.message || "Failed to load salary");
-    });
-    return () => { mounted = false; };
+    salaryService
+      .get(employeeId)
+      .then((res) => {
+        if (!mounted || !res.data) return;
+        const api = res.data;
+        setFormData(
+          (prev) =>
+            ({
+              ...prev,
+              basicSalary: Number(api.basicSalary ?? 0),
+              transportationType:
+                (api.transportationType as BenefitType) ||
+                (Number(api.transportationAllowance ?? 0) > 0
+                  ? "ALLOWANCE"
+                  : "COMPANY_PROVIDED"),
+              transportationAllowance: Number(api.transportationAllowance ?? 0),
+              travelType:
+                (api.travelType as BenefitType) ||
+                (Number(api.travelAllowance ?? 0) > 0
+                  ? "ALLOWANCE"
+                  : "COMPANY_PROVIDED"),
+              travelAllowance: Number(api.travelAllowance ?? 0),
+              housingType:
+                (api.housingType as BenefitType) ||
+                (Number(api.housingAllowance ?? 0) > 0
+                  ? "ALLOWANCE"
+                  : "COMPANY_PROVIDED"),
+              housingAllowance: Number(api.housingAllowance ?? 0),
+              otherAllowance: Number(api.otherAllowance ?? 0),
+              compensationStatus:
+                api.status ?? api.compensationStatus ?? "Active",
+              effectiveFrom: api.effectiveFrom ?? "",
+              effectiveTo: api.effectiveTo ?? "",
+              payPeriodStart: "",
+              payPeriodEnd: "",
+              numberOfDaysWorked: "",
+              payPerDay: "",
+              overtime: "",
+            }) as SalaryFormState,
+        );
+        setExists(true);
+      })
+      .catch((err) => {
+        toast.error(err?.response?.data?.message || "Failed to load salary");
+      });
+    return () => {
+      mounted = false;
+    };
   }, [employeeId]);
 
   // ── total days worked from timesheet for the selected salary month ──────────
@@ -399,41 +510,67 @@ export default function SalaryForm() {
   // ── currency ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.companyId) return;
-    fetchCompany(user.companyId.toString()).then((company: Company) => {
-      if (company?.currency?.currencyCode) setCurrencySymbol(company.currency.currencyCode);
-    }).catch(() => {});
+    fetchCompany(user.companyId.toString())
+      .then((company: Company) => {
+        if (company?.currency?.currencyCode)
+          setCurrencySymbol(company.currency.currencyCode);
+      })
+      .catch(() => {});
   }, [user?.companyId]);
 
   // ── field updater ────────────────────────────────────────────────────────────
   const updateField = (field: keyof SalaryFormState) => (value: string) => {
-    if (["basicSalary","transportationAllowance","travelAllowance","otherAllowance","housingAllowance"].includes(field)) {
+    if (
+      [
+        "basicSalary",
+        "transportationAllowance",
+        "travelAllowance",
+        "otherAllowance",
+        "housingAllowance",
+      ].includes(field)
+    ) {
       const num = Number(value.replace(/[^0-9.]/g, "")) || 0;
       setFormData((prev) => ({ ...prev, [field]: num }) as SalaryFormState);
       return;
     }
-    if (["transportationType","travelType","housingType"].includes(field)) {
+    if (["transportationType", "travelType", "housingType"].includes(field)) {
       const val = value as BenefitType;
       const reset =
-        field === "housingType"        && val !== "ALLOWANCE" ? { housingAllowance: 0 } :
-        field === "transportationType" && val !== "ALLOWANCE" ? { transportationAllowance: 0 } :
-        field === "travelType"         && val !== "ALLOWANCE" ? { travelAllowance: 0 } : {};
-      setFormData((prev) => ({ ...prev, [field]: val, ...reset }) as SalaryFormState);
+        field === "housingType" && val !== "ALLOWANCE"
+          ? { housingAllowance: 0 }
+          : field === "transportationType" && val !== "ALLOWANCE"
+            ? { transportationAllowance: 0 }
+            : field === "travelType" && val !== "ALLOWANCE"
+              ? { travelAllowance: 0 }
+              : {};
+      setFormData(
+        (prev) => ({ ...prev, [field]: val, ...reset }) as SalaryFormState,
+      );
       return;
     }
     setFormData((prev) => ({ ...prev, [field]: value }) as SalaryFormState);
   };
 
   // ── derived values ───────────────────────────────────────────────────────────
-  const transAmt  = formData.transportationType === "ALLOWANCE" ? (formData.transportationAllowance || 0) : 0;
-  const travelAmt = formData.travelType          === "ALLOWANCE" ? (formData.travelAllowance          || 0) : 0;
-  const housingAmt= formData.housingType         === "ALLOWANCE" ? (formData.housingAllowance         || 0) : 0;
-  const otherAmt  = formData.otherAllowance || 0;
+  const transAmt =
+    formData.transportationType === "ALLOWANCE"
+      ? formData.transportationAllowance || 0
+      : 0;
+  const travelAmt =
+    formData.travelType === "ALLOWANCE" ? formData.travelAllowance || 0 : 0;
+  const housingAmt =
+    formData.housingType === "ALLOWANCE" ? formData.housingAllowance || 0 : 0;
+  const otherAmt = formData.otherAllowance || 0;
 
-  const totalAllowance = useMemo(() => transAmt + travelAmt + housingAmt + otherAmt,
-    [transAmt, travelAmt, housingAmt, otherAmt]);
+  const totalAllowance = useMemo(
+    () => transAmt + travelAmt + housingAmt + otherAmt,
+    [transAmt, travelAmt, housingAmt, otherAmt],
+  );
 
-  const grossPay = useMemo(() => (formData.basicSalary || 0) + totalAllowance,
-    [formData.basicSalary, totalAllowance]);
+  const grossPay = useMemo(
+    () => (formData.basicSalary || 0) + totalAllowance,
+    [formData.basicSalary, totalAllowance],
+  );
 
   const statusMeta = getStatusMeta(formData.compensationStatus);
 
@@ -442,7 +579,11 @@ export default function SalaryForm() {
     const d = new Date(iso);
     return Number.isNaN(d.getTime())
       ? iso
-      : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      : d.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
   };
 
   useEffect(() => {
@@ -452,7 +593,8 @@ export default function SalaryForm() {
     payrollService
       .getPayrollHistory(employeeId)
       .then((res) => {
-        if (mounted) setPayrollHistory((res?.data as PayrollHistoryRow[]) ?? []);
+        if (mounted)
+          setPayrollHistory((res?.data as PayrollHistoryRow[]) ?? []);
       })
       .catch(() => {
         if (mounted) setPayrollHistory([]);
@@ -479,46 +621,40 @@ export default function SalaryForm() {
   };
 
   // pct of gross for breakdown bars
-  const pct = (v: number) => grossPay > 0 ? Math.round((v / grossPay) * 100) : 0;
+  const pct = (v: number) =>
+    grossPay > 0 ? Math.round((v / grossPay) * 100) : 0;
 
   // ── render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
-
+    <div className="bg-slate-50/60 min-h-screen space-y-5">
       {/* ── Page header ── */}
-      <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
-        {/* Top gradient strip */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
-        <div className="flex items-center justify-between px-6 py-5">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
-              <ReceiptText className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 leading-tight">Salary & Compensation</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Manage the employee's compensation package and benefits</p>
-            </div>
-          </div>
-
-          {/* Status badge */}
-          {formData.compensationStatus && (
-            <span className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
-              statusMeta.badge,
-            )}>
-              <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
-              {formData.compensationStatus}
-            </span>
-          )}
-        </div>
-      </div>
+      <SecondaryPageHeader
+        title="Salary & Compensation"
+        description="Manage the employee's compensation package and benefits"
+        icon={<ReceiptText className="h-5 w-5 text-white" />}
+        actions={
+          <>
+            {formData.compensationStatus && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
+                  statusMeta.badge,
+                )}
+              >
+                <span
+                  className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)}
+                />
+                {formData.compensationStatus}
+              </span>
+            )}
+          </>
+        }
+      />
 
       {/* ── Two-column layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
-
         {/* ── LEFT: form ── */}
         <div className="space-y-4">
-
           {/* Basic Salary card */}
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
             <SectionHeading
@@ -564,7 +700,7 @@ export default function SalaryForm() {
             />
             <div className="space-y-3">
               <BenefitRow
-                icon={<Car   className="h-4 w-4" />}
+                icon={<Car className="h-4 w-4" />}
                 label="Transportation"
                 color="bg-blue-500"
                 typeValue={formData.transportationType}
@@ -576,7 +712,7 @@ export default function SalaryForm() {
                 amountError={errors.transportationAllowance}
               />
               <BenefitRow
-                icon={<Plane  className="h-4 w-4" />}
+                icon={<Plane className="h-4 w-4" />}
                 label="Travel"
                 color="bg-violet-500"
                 typeValue={formData.travelType}
@@ -588,7 +724,7 @@ export default function SalaryForm() {
                 amountError={errors.travelAllowance}
               />
               <BenefitRow
-                icon={<Home     className="h-4 w-4" />}
+                icon={<Home className="h-4 w-4" />}
                 label="Housing"
                 color="bg-amber-500"
                 typeValue={formData.housingType}
@@ -606,10 +742,14 @@ export default function SalaryForm() {
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white bg-slate-500">
                     <Sparkles className="h-4 w-4" />
                   </div>
-                  <span className="text-sm font-semibold text-slate-800">Other Allowance</span>
+                  <span className="text-sm font-semibold text-slate-800">
+                    Other Allowance
+                  </span>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Allowance Amount</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Allowance Amount
+                  </Label>
                   <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
                     <span className="flex shrink-0 items-center border-r border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-500">
                       {currencySymbol}
@@ -617,7 +757,9 @@ export default function SalaryForm() {
                     <Input
                       type="number"
                       value={formData.otherAllowance || ""}
-                      onChange={(e) => updateField("otherAllowance")(e.target.value)}
+                      onChange={(e) =>
+                        updateField("otherAllowance")(e.target.value)
+                      }
                       placeholder="0.00"
                       disabled={!editing}
                       className="h-full flex-1 rounded-none border-0 pl-2.5 shadow-none focus-visible:ring-0"
@@ -626,7 +768,9 @@ export default function SalaryForm() {
                     />
                   </div>
                   {errors.otherAllowance && (
-                    <p className="text-xs text-rose-500">{errors.otherAllowance}</p>
+                    <p className="text-xs text-rose-500">
+                      {errors.otherAllowance}
+                    </p>
                   )}
                 </div>
               </div>
@@ -649,7 +793,9 @@ export default function SalaryForm() {
                 <SelectField
                   options={COMPENSATION_STATUS_OPTIONS}
                   value={formData.compensationStatus}
-                  onChange={(e) => updateField("compensationStatus")(e.target.value)}
+                  onChange={(e) =>
+                    updateField("compensationStatus")(e.target.value)
+                  }
                   disabled={!editing}
                 />
               </div>
@@ -668,7 +814,9 @@ export default function SalaryForm() {
                   className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
                 />
                 {errors.effectiveFrom && (
-                  <p className="text-xs text-rose-500">{errors.effectiveFrom}</p>
+                  <p className="text-xs text-rose-500">
+                    {errors.effectiveFrom}
+                  </p>
                 )}
               </div>
 
@@ -677,7 +825,9 @@ export default function SalaryForm() {
                 <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-slate-500" />
                   Effective To
-                  <span className="text-[10px] font-normal text-muted-foreground">(optional)</span>
+                  <span className="text-[10px] font-normal text-muted-foreground">
+                    (optional)
+                  </span>
                 </Label>
                 <Input
                   type="date"
@@ -747,7 +897,6 @@ export default function SalaryForm() {
 
         {/* ── RIGHT: live compensation summary ── */}
         <div className="xl:sticky xl:top-5 space-y-4">
-
           {/* Gross pay hero */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-6 text-white shadow-xl">
             {/* decorative blobs */}
@@ -759,24 +908,35 @@ export default function SalaryForm() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm">
                   <TrendingUp className="h-4 w-4" />
                 </div>
-                <span className="text-sm font-semibold text-white/90">Total Gross Pay</span>
+                <span className="text-sm font-semibold text-white/90">
+                  Total Gross Pay
+                </span>
               </div>
 
               <p className="text-4xl font-bold tabular-nums leading-none mb-1">
                 {formatMoney(String(grossPay), currencySymbol)}
               </p>
-              <p className="text-xs text-white/65 mt-2">Per month · includes all allowances</p>
+              <p className="text-xs text-white/65 mt-2">
+                Per month · includes all allowances
+              </p>
 
               <div className="mt-5 h-px w-full bg-white/20" />
 
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-white/60 text-xs">Basic Salary</p>
-                  <p className="font-bold tabular-nums">{formatMoney(String(formData.basicSalary || 0), currencySymbol)}</p>
+                  <p className="font-bold tabular-nums">
+                    {formatMoney(
+                      String(formData.basicSalary || 0),
+                      currencySymbol,
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-white/60 text-xs">Total Allowances</p>
-                  <p className="font-bold tabular-nums">{formatMoney(String(totalAllowance), currencySymbol)}</p>
+                  <p className="font-bold tabular-nums">
+                    {formatMoney(String(totalAllowance), currencySymbol)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -786,7 +946,9 @@ export default function SalaryForm() {
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-2 mb-4">
               <Wallet className="h-4 w-4 text-violet-600" />
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Pay Breakdown</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Pay Breakdown
+              </h4>
             </div>
 
             <div className="space-y-3.5">
@@ -854,16 +1016,45 @@ export default function SalaryForm() {
                   Salary Split
                 </p>
                 <div className="flex h-2 w-full overflow-hidden rounded-full gap-0.5">
-                  <div className="bg-violet-500 transition-all duration-500 rounded-l-full" style={{ width: `${pct(formData.basicSalary || 0)}%` }} />
-                  {transAmt  > 0 && <div className="bg-blue-400   transition-all duration-500" style={{ width: `${pct(transAmt)}%`  }} />}
-                  {travelAmt > 0 && <div className="bg-purple-400 transition-all duration-500" style={{ width: `${pct(travelAmt)}%` }} />}
-                  {housingAmt> 0 && <div className="bg-amber-400  transition-all duration-500" style={{ width: `${pct(housingAmt)}%`}} />}
-                  {otherAmt  > 0 && <div className="bg-slate-400  transition-all duration-500 rounded-r-full" style={{ width: `${pct(otherAmt)}%` }} />}
+                  <div
+                    className="bg-violet-500 transition-all duration-500 rounded-l-full"
+                    style={{ width: `${pct(formData.basicSalary || 0)}%` }}
+                  />
+                  {transAmt > 0 && (
+                    <div
+                      className="bg-blue-400   transition-all duration-500"
+                      style={{ width: `${pct(transAmt)}%` }}
+                    />
+                  )}
+                  {travelAmt > 0 && (
+                    <div
+                      className="bg-purple-400 transition-all duration-500"
+                      style={{ width: `${pct(travelAmt)}%` }}
+                    />
+                  )}
+                  {housingAmt > 0 && (
+                    <div
+                      className="bg-amber-400  transition-all duration-500"
+                      style={{ width: `${pct(housingAmt)}%` }}
+                    />
+                  )}
+                  {otherAmt > 0 && (
+                    <div
+                      className="bg-slate-400  transition-all duration-500 rounded-r-full"
+                      style={{ width: `${pct(otherAmt)}%` }}
+                    />
+                  )}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                  <span className="text-[10px] text-slate-500 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-violet-500 inline-block"/>Basic {pct(formData.basicSalary||0)}%</span>
+                  <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-violet-500 inline-block" />
+                    Basic {pct(formData.basicSalary || 0)}%
+                  </span>
                   {totalAllowance > 0 && (
-                    <span className="text-[10px] text-slate-500 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block"/>Allowances {pct(totalAllowance)}%</span>
+                    <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
+                      Allowances {pct(totalAllowance)}%
+                    </span>
                   )}
                 </div>
               </div>
@@ -879,9 +1070,12 @@ export default function SalaryForm() {
               <ScrollText className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-slate-900">Payroll history</h2>
+              <h2 className="text-sm font-bold text-slate-900">
+                Payroll history
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Processed runs for this employee (full table on the Payroll history tab).
+                Processed runs for this employee (full table on the Payroll
+                history tab).
               </p>
             </div>
           </div>
@@ -914,24 +1108,41 @@ export default function SalaryForm() {
               <tbody>
                 {payrollHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground text-sm">
-                      No payroll records yet. Runs appear here after payroll is generated from HR Settings → Payroll.
+                    <td
+                      colSpan={7}
+                      className="px-4 py-10 text-center text-muted-foreground text-sm"
+                    >
+                      No payroll records yet. Runs appear here after payroll is
+                      generated from HR Settings → Payroll.
                     </td>
                   </tr>
                 ) : (
                   payrollHistory.map((row) => (
-                    <tr key={row.payrollCode} className="border-t border-slate-100 hover:bg-slate-50/60">
-                      <td className="px-4 py-2.5 font-mono text-xs text-blue-800">{row.payrollCode}</td>
+                    <tr
+                      key={row.payrollCode}
+                      className="border-t border-slate-100 hover:bg-slate-50/60"
+                    >
+                      <td className="px-4 py-2.5 font-mono text-xs text-blue-800">
+                        {row.payrollCode}
+                      </td>
                       <td className="px-4 py-2.5 text-slate-600 text-xs">
                         {fmtPayrollDate(row.payPeriodStart)}
-                        {row.payPeriodEnd ? ` → ${fmtPayrollDate(row.payPeriodEnd)}` : ""}
+                        {row.payPeriodEnd
+                          ? ` → ${fmtPayrollDate(row.payPeriodEnd)}`
+                          : ""}
                       </td>
-                      <td className="px-4 py-2.5 text-slate-600 text-xs">{fmtPayrollDate(row.payDate)}</td>
+                      <td className="px-4 py-2.5 text-slate-600 text-xs">
+                        {fmtPayrollDate(row.payDate)}
+                      </td>
                       <td className="px-4 py-2.5 text-right tabular-nums font-medium text-slate-800">
                         {formatMoney(row.grossPay, currencySymbol)}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-rose-600">
-                        -{formatMoney(String(row.totalDeductions ?? 0), currencySymbol)}
+                        -
+                        {formatMoney(
+                          String(row.totalDeductions ?? 0),
+                          currencySymbol,
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-emerald-700">
                         {formatMoney(row.netPayable, currencySymbol)}
