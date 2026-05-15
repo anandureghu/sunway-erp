@@ -14,7 +14,7 @@ function normalizeStatus(status?: string) {
 export interface PurchaseRequisitionCreateDTO {
   debitAccountId: number;
   creditAccountId: number;
-  preferredSupplierId: number;
+  preferredSupplierId?: number;
   departmentId?: number;
   requestedByUserId?: number;
   items: Array<{
@@ -45,8 +45,9 @@ export interface PurchaseRequisitionResponseDTO {
   createdAt: string;
   approvedAt?: string | null;
   convertedAt?: string | null;
-  preferredSupplierId?: number;
-  preferredSupplierName?: string;
+  preferredSupplierId?: number | null;
+  preferredSupplierName?: string | null;
+  supplierAddress?: string | null;
   departmentId?: number;
   departmentName?: string;
   requestedById?: number;
@@ -57,6 +58,7 @@ export interface PurchaseRequisitionResponseDTO {
   creditAccountId?: number | null;
   creditAccountName?: string | null;
   financeTransactionId?: number | null;
+  archived?: boolean;
   items: PurchaseRequisitionItemDTO[];
 }
 
@@ -152,11 +154,13 @@ function toPurchaseRequisition(
         ? String(dto.preferredSupplierId)
         : undefined,
     preferredSupplierName: dto.preferredSupplierName,
+    supplierAddress: dto.supplierAddress || undefined,
     requestedDate: dto.createdAt || "",
     status: st || "draft",
     items,
     approvedDate: dto.approvedAt || undefined,
     convertedAt: dto.convertedAt || undefined,
+    archived: Boolean(dto.archived),
     createdPurchaseOrderId:
       dto.createdPurchaseOrderId != null
         ? String(dto.createdPurchaseOrderId)
@@ -235,6 +239,15 @@ export async function listPurchaseRequisitions(): Promise<
     "/purchase/requisitions",
   );
   return (res.data || []).map(toPurchaseRequisition);
+}
+
+export async function archivePurchaseRequisition(
+  id: string,
+): Promise<PurchaseRequisition> {
+  const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}/archive`,
+  );
+  return toPurchaseRequisition(res.data);
 }
 
 export async function getPurchaseRequisition(

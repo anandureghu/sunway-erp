@@ -121,6 +121,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   >(user?.userId != null ? String(user.userId) : undefined);
   const [departmentId, setDepartmentId] = useState<string>("");
   const [preferredSupplierId, setPreferredSupplierId] = useState<string>("");
+  const [supplierAddress, setSupplierAddress] = useState<string>("");
   const [debitAccountId, setDebitAccountId] = useState<string>("");
   const [creditAccountId, setCreditAccountId] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -288,10 +289,11 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!preferredSupplierId) {
-      toast.error("Please select a preferred supplier.");
-      return;
-    }
+    // Supplier is optional at creation
+    // if (!preferredSupplierId) {
+    //   toast.error("Please select a preferred supplier.");
+    //   return;
+    // }
     if (!debitAccountId || !creditAccountId) {
       toast.error(
         "Purchase default accounts are not loaded. Configure them under Global Settings → Default Accounts.",
@@ -312,7 +314,8 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     const payload = {
       debitAccountId: Number(debitAccountId),
       creditAccountId: Number(creditAccountId),
-      preferredSupplierId: Number(preferredSupplierId),
+      preferredSupplierId: preferredSupplierId ? Number(preferredSupplierId) : undefined,
+      supplierAddress: supplierAddress || undefined,
       departmentId: departmentId ? Number(departmentId) : undefined,
       requestedByUserId: requestedByUserId
         ? Number(requestedByUserId)
@@ -368,7 +371,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       <PageHeader
         variant="darkGreen"
         title="Create purchase requisition"
-        description="When the Purchase Requisition is approved, a draft Purchase Order will be created."
+        description="Identify the required items and create a purchase requestion."
         backHref="/inventory/purchase"
         actions={
           <Button
@@ -416,7 +419,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
         <form onSubmit={onSubmit} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Request details</CardTitle>
+              <CardTitle>Supplier Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -425,28 +428,20 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <SelectUser
-                    label="Requested by"
-                    value={requestedByUserId}
-                    onChange={handleRequesterSelection}
-                    placeholder="Select user"
-                  />
-                </div>
-                {companyId > 0 && (
-                  <div className="space-y-2">
-                    <SelectDepartment
-                      value={departmentId || undefined}
-                      onChange={(v) => setDepartmentId(v)}
-                      companyId={companyId}
-                    />
-                  </div>
-                )}
-                <div className="space-y-2 sm:col-span-2">
                   <SelectVendor
-                    label="Preferred supplier *"
+                    label="Preferred supplier"
                     value={preferredSupplierId || undefined}
                     onChange={(v) => setPreferredSupplierId(v)}
                     placeholder="Select supplier for the Purchase Order"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Supplier Address</Label>
+                  <Textarea
+                    placeholder="Enter supplier address (optional)"
+                    value={supplierAddress}
+                    onChange={(e) => setSupplierAddress(e.target.value)}
+                    className="min-h-[80px]"
                   />
                 </div>
               </div>

@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Wallet,
+  ListTodo,
+  FileCheck,
 } from "lucide-react";
 import {
   Select,
@@ -208,12 +210,14 @@ export default function InvoicesPage({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
             <TabsTrigger value="outstanding" className="gap-2">
+              <ListTodo className="h-4 w-4" />
               Current Invoices
               <Badge variant="secondary" className="font-normal">
                 {outstandingCount}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="archived" className="gap-2">
+              <FileCheck className="h-4 w-4" />
               Completed
               <Badge variant="secondary" className="font-normal">
                 {archivedCount}

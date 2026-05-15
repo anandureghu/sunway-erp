@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   ShoppingCart,
   FileText,
+  Archive,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/lib/status-badge";
@@ -28,12 +30,15 @@ export type PurchaseRequisitionColumnActions = {
   onApprove?: (id: string) => void;
   /** When PR was converted, open the generated PO */
   onOpenPurchaseOrder?: (poId: string) => void;
+  onArchive?: (id: string) => void;
+  processingRequisitionId?: string | null;
+  processingAction?: "archive" | null;
 };
 
 export function createPurchaseRequisitionColumns(
   actions: PurchaseRequisitionColumnActions,
 ): ColumnDef<PurchaseRequisition>[] {
-  const { onOpenDetail, onSubmit, onApprove, onOpenPurchaseOrder } = actions;
+  const { onOpenDetail, onSubmit, onApprove, onOpenPurchaseOrder, onArchive, processingRequisitionId, processingAction } = actions;
 
   return [
     {
@@ -104,7 +109,10 @@ export function createPurchaseRequisitionColumns(
         const canSubmit = req.status === "draft";
         const canApprove = req.status === "submitted";
         const isConverted = req.status === "converted";
+        const isRejected = req.status === "rejected";
+        const canArchive = !req.archived && (isConverted || isRejected);
         const poId = req.createdPurchaseOrderId;
+        const isProcessing = processingRequisitionId === req.id;
 
         return (
           <div onClick={(e) => e.stopPropagation()}>
@@ -146,6 +154,25 @@ export function createPurchaseRequisitionColumns(
                     <DropdownMenuItem onClick={() => onOpenPurchaseOrder(poId)}>
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       Open purchase order
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {canArchive && onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={isProcessing}
+                      onClick={() => onArchive(req.id)}
+                    >
+                      {isProcessing && processingAction === "archive" ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="mr-2 h-4 w-4" />
+                      )}
+                      {isProcessing && processingAction === "archive"
+                        ? "Archiving..."
+                        : "Archive"}
                     </DropdownMenuItem>
                   </>
                 )}

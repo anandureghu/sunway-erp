@@ -67,6 +67,7 @@ export type PurchaseRequisition = {
   departmentName?: string;
   preferredSupplierId?: string;
   preferredSupplierName?: string;
+  supplierAddress?: string;
   requestedDate: string;
   requiredDate?: string;
   status: PurchaseRequisitionStatus;
@@ -77,6 +78,7 @@ export type PurchaseRequisition = {
   approvedByName?: string;
   approvedDate?: string;
   convertedAt?: string;
+  archived?: boolean;
   /** Set when approval creates a purchase order in the same request. */
   createdPurchaseOrderId?: string;
   debitAccountId?: string;
