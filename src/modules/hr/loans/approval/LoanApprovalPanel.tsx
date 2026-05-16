@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  loanService,
-  type PendingLoanApproval,
-} from "@/service/loanService";
+import { loanService, type PendingLoanApproval } from "@/service/loanService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import {
   AlertCircle,
+  Building2,
   Check,
   DollarSign,
   Loader2,
@@ -15,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 export default function LoanApprovalPanel() {
   const { permissions, permissionsLoading } = useAuth();
@@ -77,9 +76,7 @@ export default function LoanApprovalPanel() {
       if (status === 403) {
         toast.error("You don't have permission to approve loans");
       } else {
-        toast.error(
-          err?.response?.data?.message ?? "Failed to update loan",
-        );
+        toast.error(err?.response?.data?.message ?? "Failed to update loan");
       }
     } finally {
       setDecidingId(null);
@@ -113,28 +110,25 @@ export default function LoanApprovalPanel() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800">
-            Loan Approvals
-          </h2>
-          <p className="text-sm text-slate-500">
-            Review and approve employee loan requests across the company.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void loadPending()}
-          disabled={loading}
-          className="rounded-lg"
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
-      </div>
+      <SecondaryPageHeader
+        title="Loan Approvals"
+        description="Review and approve employee loan requests"
+        icon={<Building2 className="h-5 w-5" />}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void loadPending()}
+            disabled={loading}
+            className="rounded-lg"
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+        }
+      />
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12 gap-3">

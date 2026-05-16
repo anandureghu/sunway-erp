@@ -20,6 +20,7 @@ import {
   Users,
   Star,
   Building,
+  Shield,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ import type { Employee } from "@/types/hr";
 import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 import { AppTab } from "@/components/app-tab";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 interface Role {
   id: number;
@@ -393,32 +395,31 @@ function JobCodesTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">Job Codes</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Admin defines job codes with title, level and grade.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search..."
-              className="pl-9 w-48"
-            />
-          </div>
-          <Button
-            onClick={openAdd}
-            className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Job Code
-          </Button>
-        </div>
-      </div>
+      <SecondaryPageHeader
+        title="Job Codes"
+        description="Manage job codes"
+        icon={<Briefcase className="h-5 w-5" />}
+        actions={
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search..."
+                className="pl-9 w-48"
+              />
+            </div>
+            <Button
+              onClick={openAdd}
+              className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Job Code
+            </Button>
+          </>
+        }
+      />
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <Table>
@@ -1012,38 +1013,37 @@ function PermissionsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">Permissions</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Grant employees or roles access to HR modules.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              setView((v) => (v === "permissions" ? "roles" : "permissions"))
-            }
-          >
-            {view === "permissions" ? (
-              <Settings className="h-4 w-4 mr-2" />
-            ) : (
-              <ArrowLeft className="h-4 w-4 mr-2" />
-            )}
-            {view === "permissions" ? "Manage Roles" : "Back to Permissions"}
-          </Button>
-          {view === "permissions" && (
+      <SecondaryPageHeader
+        title="HR Permissions"
+        description="Manage permissions for employees and roles"
+        icon={<Shield className="h-5 w-5" />}
+        actions={
+          <div className="flex items-center gap-2">
             <Button
-              onClick={openAddPerm}
-              className="bg-gradient-to-r from-indigo-600 to-blue-600"
+              variant="outline"
+              onClick={() =>
+                setView((v) => (v === "permissions" ? "roles" : "permissions"))
+              }
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Permission
+              {view === "permissions" ? (
+                <Settings className="h-4 w-4 mr-2" />
+              ) : (
+                <ArrowLeft className="h-4 w-4 mr-2" />
+              )}
+              {view === "permissions" ? "Manage Roles" : "Back to Permissions"}
             </Button>
-          )}
-        </div>
-      </div>
+            {view === "permissions" && (
+              <Button
+                onClick={openAddPerm}
+                className="bg-gradient-to-r from-indigo-600 to-blue-600"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Permission
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {view === "roles" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -1747,8 +1747,7 @@ export default function HRSettingsPage() {
   // Gate the page on the HR_SETTINGS module permission instead of matching
   // the company-role name. ADMIN/SUPER_ADMIN keep their bypass via canView's
   // null-permissions branch (AuthContext sets permissions=null for admins).
-  const isAuthorized =
-    isAdmin || canView(permissions, "HR_SETTINGS");
+  const isAuthorized = isAdmin || canView(permissions, "HR_SETTINGS");
 
   // Whether to show the "Leave Approvals" tab — mirrors the backend's
   // canActAsApprover (LEAVES.APPROVE permission OR department-manager). We
@@ -1769,8 +1768,7 @@ export default function HRSettingsPage() {
   // Whether to show the "Loan Approvals" tab — purely permission-driven
   // (no department-manager fallback for loans today).
   const canApproveLoans =
-    isAdmin ||
-    !!(permissions?.LOANS?.approve || permissions?.LOANS?.APPROVE);
+    isAdmin || !!(permissions?.LOANS?.approve || permissions?.LOANS?.APPROVE);
 
   if (permissionsLoading) {
     return (
@@ -1845,9 +1843,7 @@ export default function HRSettingsPage() {
           {
             value: "permissions",
             label: "Permissions",
-            element: () => (
-              <PermissionsTab roles={roles} setRoles={setRoles} />
-            ),
+            element: () => <PermissionsTab roles={roles} setRoles={setRoles} />,
           },
         ]
       : []),

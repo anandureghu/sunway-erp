@@ -31,6 +31,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 // Section card
 function SectionCard({
@@ -48,7 +49,9 @@ function SectionCard({
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
           {icon}
         </div>
-        <span className="text-[13px] font-semibold text-slate-700">{title}</span>
+        <span className="text-[13px] font-semibold text-slate-700">
+          {title}
+        </span>
       </div>
       <div className="p-5 space-y-5">{children}</div>
     </div>
@@ -56,7 +59,15 @@ function SectionCard({
 }
 
 // Field wrapper
-function F({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function F({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
@@ -75,7 +86,9 @@ const WarehouseMaster = () => {
   // Warehouses management state
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
+    null,
+  );
 
   // TODO: set loading and error states properly
   const [, setLoading] = useState(true);
@@ -266,16 +279,19 @@ const WarehouseMaster = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Warehouses</h1>
-        <Button
-          onClick={handleNewWarehouse}
-          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
-        >
-          <Plus className="h-4 w-4 mr-2" /> New Warehouse
-        </Button>
-      </div>
-
+      <SecondaryPageHeader
+        title="Warehouses"
+        description="Manage warehouses"
+        icon={<WarehouseIcon className="h-5 w-5" />}
+        actions={
+          <Button
+            onClick={handleNewWarehouse}
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" /> New Warehouse
+          </Button>
+        }
+      />
       {/* Summary Cards */}
       <div className="mb-6">
         <KpiSummaryStrip
@@ -393,9 +409,15 @@ const WarehouseMaster = () => {
                   </F>
 
                   <F label="Phone">
-                    <Input placeholder="Phone" {...registerWarehouse("phone")} className={icls} />
+                    <Input
+                      placeholder="Phone"
+                      {...registerWarehouse("phone")}
+                      className={icls}
+                    />
                     {warehouseErrors.phone && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.phone.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.phone.message}
+                      </p>
                     )}
                   </F>
 
@@ -406,7 +428,9 @@ const WarehouseMaster = () => {
                       className={icls}
                     />
                     {warehouseErrors.contactPersonName && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.contactPersonName.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.contactPersonName.message}
+                      </p>
                     )}
                   </F>
                 </div>
@@ -419,30 +443,54 @@ const WarehouseMaster = () => {
               >
                 <div className="grid grid-cols-2 gap-5">
                   <F label="Street">
-                    <Input placeholder="Street" {...registerWarehouse("street")} className={icls} />
+                    <Input
+                      placeholder="Street"
+                      {...registerWarehouse("street")}
+                      className={icls}
+                    />
                     {warehouseErrors.street && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.street.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.street.message}
+                      </p>
                     )}
                   </F>
 
                   <F label="City">
-                    <Input placeholder="City" {...registerWarehouse("city")} className={icls} />
+                    <Input
+                      placeholder="City"
+                      {...registerWarehouse("city")}
+                      className={icls}
+                    />
                     {warehouseErrors.city && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.city.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.city.message}
+                      </p>
                     )}
                   </F>
 
                   <F label="Country">
-                    <Input placeholder="Country" {...registerWarehouse("country")} className={icls} />
+                    <Input
+                      placeholder="Country"
+                      {...registerWarehouse("country")}
+                      className={icls}
+                    />
                     {warehouseErrors.country && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.country.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.country.message}
+                      </p>
                     )}
                   </F>
 
                   <F label="Pin Code">
-                    <Input placeholder="Pin Code" {...registerWarehouse("pin")} className={icls} />
+                    <Input
+                      placeholder="Pin Code"
+                      {...registerWarehouse("pin")}
+                      className={icls}
+                    />
                     {warehouseErrors.pin && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.pin.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.pin.message}
+                      </p>
                     )}
                   </F>
                 </div>
@@ -465,7 +513,9 @@ const WarehouseMaster = () => {
                   placeholder="Select Manager"
                 />
                 {warehouseErrors.manager && (
-                  <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.manager.message}</p>
+                  <p className="text-[11px] text-rose-400 mt-1">
+                    {warehouseErrors.manager.message}
+                  </p>
                 )}
               </SectionCard>
 

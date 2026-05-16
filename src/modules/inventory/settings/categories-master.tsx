@@ -41,6 +41,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 const CategoriesMaster = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -331,15 +332,19 @@ const CategoriesMaster = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Categories</h1>
-        <Button
-          onClick={handleNewCategory}
-          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
-        >
-          <Plus className="h-4 w-4 mr-2" /> New Category
-        </Button>
-      </div>
+      <SecondaryPageHeader
+        title="Categories"
+        description="Manage categories"
+        icon={<Layers3 className="h-5 w-5" />}
+        actions={
+          <Button
+            onClick={handleNewCategory}
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" /> New Category
+          </Button>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="mb-6">
@@ -507,7 +512,11 @@ const CategoriesMaster = () => {
               </div>
             </div>
             <button
-              onClick={() => { setShowCategoryForm(false); setEditingCategory(null); resetCategory(); }}
+              onClick={() => {
+                setShowCategoryForm(false);
+                setEditingCategory(null);
+                resetCategory();
+              }}
               className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               <X className="h-4 w-4" />
@@ -516,112 +525,115 @@ const CategoriesMaster = () => {
 
           {/* ── Body ── */}
           <div className="overflow-y-auto bg-white px-6 py-5">
-          <form
-            onSubmit={handleCategorySubmit(onCategorySubmit)}
-            className="space-y-4 mt-4"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Category Name <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  placeholder="Category name"
-                  {...registerCategory("name")}
-                />
-                {categoryErrors.name && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {categoryErrors.name.message}
-                  </p>
-                )}
-                {!editingCategory && watchCategoryName && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Code will be:{" "}
-                    <span className="font-mono font-semibold">
-                      {generateCategoryCode(watchCategoryName)}
-                    </span>
-                  </p>
-                )}
+            <form
+              onSubmit={handleCategorySubmit(onCategorySubmit)}
+              className="space-y-4 mt-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Category Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="Category name"
+                    {...registerCategory("name")}
+                  />
+                  {categoryErrors.name && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {categoryErrors.name.message}
+                    </p>
+                  )}
+                  {!editingCategory && watchCategoryName && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Code will be:{" "}
+                      <span className="font-mono font-semibold">
+                        {generateCategoryCode(watchCategoryName)}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    {editingCategory && editingCategory.parentId
+                      ? "Parent Category (Cannot change for existing subcategory)"
+                      : "Parent Category (for subcategory)"}
+                  </label>
+                  <Select
+                    onValueChange={(value) =>
+                      setCategoryValue(
+                        "parentId",
+                        value === "none" ? undefined : value,
+                      )
+                    }
+                    value={categoryParentId || "none"}
+                    disabled={!!(editingCategory && editingCategory.parentId)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select parent category (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (Main Category)</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {editingCategory && editingCategory.parentId && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Current parent:{" "}
+                      {categories.find(
+                        (p) => p.id === editingCategory?.parentId,
+                      )?.name || "Unknown"}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    onValueChange={(value) =>
+                      setCategoryValue("status", value as "active" | "inactive")
+                    }
+                    value={watchCategoryStatus}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  {editingCategory && editingCategory.parentId
-                    ? "Parent Category (Cannot change for existing subcategory)"
-                    : "Parent Category (for subcategory)"}
-                </label>
-                <Select
-                  onValueChange={(value) =>
-                    setCategoryValue(
-                      "parentId",
-                      value === "none" ? undefined : value,
-                    )
-                  }
-                  value={categoryParentId || "none"}
-                  disabled={!!(editingCategory && editingCategory.parentId)}
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowCategoryForm(false);
+                    setEditingCategory(null);
+                    resetCategory();
+                  }}
+                  className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select parent category (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None (Main Category)</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {editingCategory && editingCategory.parentId && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Current parent:{" "}
-                    {categories.find((p) => p.id === editingCategory?.parentId)
-                      ?.name || "Unknown"}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Status <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  onValueChange={(value) =>
-                    setCategoryValue("status", value as "active" | "inactive")
-                  }
-                  value={watchCategoryStatus}
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {editingCategory ? "Update" : "Create"} Category
+                </Button>
               </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setShowCategoryForm(false);
-                  setEditingCategory(null);
-                  resetCategory();
-                }}
-                className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800"
-              >
-                Cancel
-              </Button>
-              <Button type="submit"
-                className="h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700">
-                {editingCategory ? "Update" : "Create"} Category
-              </Button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
 

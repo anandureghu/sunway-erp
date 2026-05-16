@@ -21,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { Users } from "lucide-react";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 export default function VendorsPage({
   financeSettings,
@@ -176,21 +177,24 @@ export default function VendorsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Suppliers</h1>
-        {!financeSettings && (
-          <Button
-            onClick={() => {
-              setSelected(null);
-              setOpen(true);
-            }}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            + New Supplier
-          </Button>
-        )}
-      </div>
-
+      <SecondaryPageHeader
+        title="Suppliers"
+        description="Manage suppliers"
+        icon={<Users className="h-5 w-5" />}
+        actions={
+          <>
+            <Button
+              onClick={() => {
+                setSelected(null);
+                setOpen(true);
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              + New Supplier
+            </Button>
+          </>
+        }
+      />
       {/* Summary Cards */}
       <div className="mb-6">
         <KpiSummaryStrip
