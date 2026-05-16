@@ -42,7 +42,6 @@ export type PurchaseOrderColumnActions = {
   /** Link to originating PR */
   onViewRequisition?: (requisitionId: string) => void;
   onArchive?: (id: string) => void;
-  onArchive?: (id: string) => void;
   processingOrderId?: string | null;
   processingAction?: "archive" | null;
 };

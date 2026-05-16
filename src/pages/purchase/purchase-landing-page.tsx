@@ -155,7 +155,7 @@ export default function PurchaseLandingPage() {
     {
       title: "Create New requisition",
       description:
-        "Create a requisition; approval generates a draft Purchase Order.",
+        "Create a requisition",
       to: "/inventory/purchase/requisitions/new",
       cta: "Create requisition",
       icon: ClipboardCheck,

@@ -22,7 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
-import { formatMoney } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 import { getFinanceSummary } from "@/service/financeReportService";
 import type {
   FinanceAgingBuckets,
@@ -57,6 +57,7 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 
 // =====================================================
 // Helpers
@@ -311,55 +312,53 @@ export default function FinanceReportsPage() {
       {loading ? (
         <KpiSkeleton />
       ) : data ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <KpiCard
-            label="Revenue"
-            value={fmt(data.totals.revenue)}
-            icon={<TrendingUp className="h-4 w-4" />}
-            accent="text-emerald-500"
-            subtitle={`${data.totals.invoiceCount} invoices`}
-          />
-          <KpiCard
-            label="Expenses"
-            value={fmt(data.totals.expenses)}
-            icon={<TrendingDown className="h-4 w-4" />}
-            accent="text-rose-500"
-          />
-          <KpiCard
-            label="Net Profit"
-            value={fmt(data.totals.netProfit)}
-            icon={
-              data.totals.netProfit >= 0 ? (
-                <ArrowUpRight className="h-4 w-4" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4" />
-              )
-            }
-            accent={
-              data.totals.netProfit >= 0 ? "text-emerald-500" : "text-rose-500"
-            }
-          />
-          <KpiCard
-            label="Outstanding AR"
-            value={fmt(data.totals.totalReceivables)}
-            icon={<Users className="h-4 w-4" />}
-            accent="text-blue-500"
-            subtitle={`${data.arAging.currentCount + data.arAging.d1To30Count + data.arAging.d31To60Count + data.arAging.d61To90Count + data.arAging.d90PlusCount} open`}
-          />
-          <KpiCard
-            label="Outstanding AP"
-            value={fmt(data.totals.totalPayables)}
-            icon={<Building2 className="h-4 w-4" />}
-            accent="text-amber-500"
-            subtitle={`${data.apAging.currentCount + data.apAging.d1To30Count + data.apAging.d31To60Count + data.apAging.d61To90Count + data.apAging.d90PlusCount} open`}
-          />
-          <KpiCard
-            label="Payroll Cost"
-            value={fmt(data.totals.payrollCost)}
-            icon={<Wallet className="h-4 w-4" />}
-            accent="text-purple-500"
-          />
-        </div>
+        <KpiSummaryStrip
+          className="md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
+          items={[
+            {
+              label: "Revenue",
+              value: fmt(data.totals.revenue),
+              hint: `${data.totals.invoiceCount} invoices`,
+              accent: "emerald",
+              icon: TrendingUp,
+            },
+            {
+              label: "Expenses",
+              value: fmt(data.totals.expenses),
+              hint: "Total expenses",
+              accent: "rose",
+              icon: TrendingDown,
+            },
+            {
+              label: "Net Profit",
+              value: fmt(data.totals.netProfit),
+              hint: "Overall profit",
+              accent: data.totals.netProfit >= 0 ? "emerald" : "rose",
+              icon: data.totals.netProfit >= 0 ? ArrowUpRight : ArrowDownRight,
+            },
+            {
+              label: "Outstanding AR",
+              value: fmt(data.totals.totalReceivables),
+              hint: `${data.arAging.currentCount + data.arAging.d1To30Count + data.arAging.d31To60Count + data.arAging.d61To90Count + data.arAging.d90PlusCount} open`,
+              accent: "sky",
+              icon: Users,
+            },
+            {
+              label: "Outstanding AP",
+              value: fmt(data.totals.totalPayables),
+              hint: `${data.apAging.currentCount + data.apAging.d1To30Count + data.apAging.d31To60Count + data.apAging.d61To90Count + data.apAging.d90PlusCount} open`,
+              accent: "amber",
+              icon: Building2,
+            },
+            {
+              label: "Payroll Cost",
+              value: fmt(data.totals.payrollCost),
+              hint: "Employee salaries",
+              accent: "violet",
+              icon: Wallet,
+            },
+          ]}
+        />
       ) : null}
 
       {error && !loading ? (
@@ -442,46 +441,9 @@ function QuickChip({
   );
 }
 
-function KpiCard({
-  label,
-  value,
-  icon,
-  accent,
-  subtitle,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  accent: string;
-  subtitle?: string;
-}) {
-  return (
-    <Card className="overflow-hidden border-border/60 transition-shadow hover:shadow-md">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
-          <span
-            className={`flex h-7 w-7 items-center justify-center rounded-full bg-muted/60 ${accent}`}
-          >
-            {icon}
-          </span>
-        </div>
-        <p className="mt-3 text-xl font-semibold tabular-nums sm:text-2xl">
-          {value}
-        </p>
-        {subtitle ? (
-          <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}
-
 function KpiSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
         <Card key={i}>
           <CardContent className="p-4">
@@ -985,6 +947,30 @@ function LedgerTab({
         bar="bg-rose-500"
       />
     </div>
+  );
+}
+
+function KpiCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className={cn("shrink-0", accent)}>{icon}</div>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <p className="truncate text-lg font-semibold tabular-nums">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

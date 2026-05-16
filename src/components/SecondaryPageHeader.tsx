@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const SECONDARY_PAGE_HEADER_CARD_CLASS =
   "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm";
@@ -23,6 +26,7 @@ const iconVariants = {
 export type SecondaryPageHeaderProps = {
   title: string;
   description?: string;
+  backHref?: string;
   icon?: ReactNode;
   actions?: ReactNode;
   children?: ReactNode;
@@ -34,6 +38,7 @@ export type SecondaryPageHeaderProps = {
 export function SecondaryPageHeader({
   title,
   description,
+  backHref,
   icon,
   actions,
   children,
@@ -51,6 +56,18 @@ export function SecondaryPageHeader({
         )}
       >
         <div className="flex items-center gap-4">
+          {backHref && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="-ml-2 h-9 w-9 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              asChild
+            >
+              <Link to={backHref}>
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           {icon ? (
             <div
               className={cn(

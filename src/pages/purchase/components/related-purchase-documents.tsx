@@ -50,7 +50,7 @@ export function RelatedPurchaseDocumentsCard({
   return (
     <Card className="border-dashed">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Related documents</CardTitle>
+        <CardTitle className="text-base">Related Purchase Requisition</CardTitle>
         <p className="text-sm text-muted-foreground font-normal">{subtitle}</p>
       </CardHeader>
       <CardContent className="flex flex-col sm:flex-row flex-wrap gap-2">

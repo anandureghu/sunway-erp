@@ -31,6 +31,7 @@ import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 
 // ── colour palette ────────────────────────────────────────────────────────────
 const COLORS = {
@@ -332,42 +333,46 @@ export default function HRReports() {
         ) : (
           <div className="space-y-5">
             {/* KPI cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <StatCard
-                label="Total Employees"
-                value={employees.length}
-                icon={Users}
-                color="bg-gradient-to-br from-violet-500 to-indigo-600"
-              />
-              <StatCard
-                label="Active"
-                value={activeCount}
-                icon={UserCheck}
-                color="bg-gradient-to-br from-emerald-500 to-teal-600"
-                sub={`${employees.length ? Math.round((activeCount / employees.length) * 100) : 0}% of total`}
-              />
-              <StatCard
-                label="Inactive"
-                value={inactiveCount}
-                icon={UserX}
-                color="bg-gradient-to-br from-slate-400 to-slate-600"
-              />
-              <StatCard
-                label="On Leave"
-                value={onLeaveCount}
-                icon={Clock}
-                color="bg-gradient-to-br from-amber-500 to-orange-600"
-              />
-              <StatCard
-                label="New Hires (30d)"
-                value={newHires.length}
-                icon={TrendingUp}
-                color="bg-gradient-to-br from-blue-500 to-sky-600"
-                trend={
-                  newHires.length > 0
-                    ? `+${newHires.length} this month`
-                    : undefined
-                }
+            <div className="mb-6">
+              <KpiSummaryStrip
+                className="lg:grid-cols-5"
+                items={[
+                  {
+                    label: "Total Employees",
+                    value: employees.length,
+                    hint: "Total workforce",
+                    accent: "violet",
+                    icon: Users,
+                  },
+                  {
+                    label: "Active",
+                    value: activeCount,
+                    hint: `${employees.length ? Math.round((activeCount / employees.length) * 100) : 0}% of total`,
+                    accent: "emerald",
+                    icon: UserCheck,
+                  },
+                  {
+                    label: "Inactive",
+                    value: inactiveCount,
+                    hint: "Former employees",
+                    accent: "slate",
+                    icon: UserX,
+                  },
+                  {
+                    label: "On Leave",
+                    value: onLeaveCount,
+                    hint: "Currently away",
+                    accent: "amber",
+                    icon: Clock,
+                  },
+                  {
+                    label: "New Hires (30d)",
+                    value: newHires.length,
+                    hint: newHires.length > 0 ? `+${newHires.length} this month` : "No recent hires",
+                    accent: "sky",
+                    icon: TrendingUp,
+                  },
+                ]}
               />
             </div>
 
@@ -553,30 +558,38 @@ export default function HRReports() {
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                label="Total Employees"
-                value={employees.length}
-                icon={Users}
-                color="bg-gradient-to-br from-violet-500 to-indigo-600"
-              />
-              <StatCard
-                label="Departments"
-                value={deptData.length}
-                icon={Building2}
-                color="bg-gradient-to-br from-blue-500 to-sky-600"
-              />
-              <StatCard
-                label="Active"
-                value={employees.filter((e) => e.status === "Active").length}
-                icon={UserCheck}
-                color="bg-gradient-to-br from-emerald-500 to-teal-600"
-              />
-              <StatCard
-                label="On Leave"
-                value={employees.filter((e) => e.status === "On Leave").length}
-                icon={Clock}
-                color="bg-gradient-to-br from-amber-500 to-orange-600"
+            <div className="mb-6">
+              <KpiSummaryStrip
+                items={[
+                  {
+                    label: "Total Employees",
+                    value: employees.length,
+                    hint: "Total workforce",
+                    accent: "violet",
+                    icon: Users,
+                  },
+                  {
+                    label: "Departments",
+                    value: deptData.length,
+                    hint: "Active departments",
+                    accent: "sky",
+                    icon: Building2,
+                  },
+                  {
+                    label: "Active",
+                    value: employees.filter((e) => e.status === "Active").length,
+                    hint: "Currently active",
+                    accent: "emerald",
+                    icon: UserCheck,
+                  },
+                  {
+                    label: "On Leave",
+                    value: employees.filter((e) => e.status === "On Leave").length,
+                    hint: "Currently away",
+                    accent: "amber",
+                    icon: Clock,
+                  },
+                ]}
               />
             </div>
 

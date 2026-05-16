@@ -1,7 +1,6 @@
 import { DataTable } from "@/components/ui/data-table";
 import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -31,6 +30,7 @@ import {
 import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 
 // Section card
 function SectionCard({
@@ -277,52 +277,32 @@ const WarehouseMaster = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="shadow-sm border-muted/70">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
-                  TOTAL WAREHOUSES
-                </p>
-                <h2 className="text-3xl font-bold mt-2">{stats.total}</h2>
-              </div>
-              <div className="rounded-xl bg-indigo-100 p-2.5">
-                <WarehouseIcon className="h-5 w-5 text-indigo-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-emerald-200 bg-emerald-50/70">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
-                  ACTIVE
-                </p>
-                <h2 className="text-3xl font-bold mt-2">{stats.active}</h2>
-              </div>
-              <div className="rounded-xl bg-emerald-100 p-2.5">
-                <CircleCheckBig className="h-5 w-5 text-emerald-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-rose-200 bg-rose-50/70">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
-                  INACTIVE
-                </p>
-                <h2 className="text-3xl font-bold mt-2">{stats.inactive}</h2>
-              </div>
-              <div className="rounded-xl bg-rose-100 p-2.5">
-                <CircleSlash2 className="h-5 w-5 text-rose-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
+        <KpiSummaryStrip
+          items={[
+            {
+              label: "Total Warehouses",
+              value: stats.total,
+              hint: "Total active locations",
+              accent: "sky",
+              icon: WarehouseIcon,
+            },
+            {
+              label: "Active",
+              value: stats.active,
+              hint: "Currently in use",
+              accent: "emerald",
+              icon: CircleCheckBig,
+            },
+            {
+              label: "Inactive",
+              value: stats.inactive,
+              hint: "Disabled locations",
+              accent: "rose",
+              icon: CircleSlash2,
+            },
+          ]}
+        />
       </div>
 
       {/* Search and Filters */}

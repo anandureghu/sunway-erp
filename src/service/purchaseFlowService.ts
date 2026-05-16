@@ -153,7 +153,7 @@ function toPurchaseRequisition(
       dto.preferredSupplierId != null
         ? String(dto.preferredSupplierId)
         : undefined,
-    preferredSupplierName: dto.preferredSupplierName,
+    preferredSupplierName: dto.preferredSupplierName ?? undefined,
     supplierAddress: dto.supplierAddress || undefined,
     requestedDate: dto.createdAt || "",
     status: st || "draft",

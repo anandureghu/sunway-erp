@@ -142,17 +142,18 @@ export default function InvoicesPage({
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase();
-    const unpaid = invoices.filter(
+    const visibleInvoices = invoices.filter((inv) => !inv.archived);
+    const unpaid = visibleInvoices.filter(
       (inv) => norm(inv.status) === "UNPAID",
     ).length;
-    const paid = invoices.filter((inv) => norm(inv.status) === "PAID").length;
-    const overdue = invoices.filter(
+    const paid = visibleInvoices.filter((inv) => norm(inv.status) === "PAID").length;
+    const overdue = visibleInvoices.filter(
       (inv) => norm(inv.status) === "OVERDUE",
     ).length;
     return [
       {
         label: "Total invoices",
-        value: invoices.length,
+        value: visibleInvoices.length,
         hint: "Sales invoices loaded",
         accent: "sky",
         icon: FileText,

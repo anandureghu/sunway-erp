@@ -18,8 +18,7 @@ import { createPurchaseRequisition } from "@/service/purchaseFlowService";
 import type { PurchaseRequisitionItem } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { toast } from "sonner";
-import SelectUser, { type SelectUserOption } from "@/components/select-user";
-import SelectDepartment from "@/components/select-department";
+import type { SelectUserOption } from "@/components/select-user";
 import SelectVendor from "@/components/select-vendor";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/service/apiClient";
@@ -116,9 +115,8 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] = useState(false);
 
-  const [requestedByUserId, setRequestedByUserId] = useState<
-    string | undefined
-  >(user?.userId != null ? String(user.userId) : undefined);
+  const requestedByUserId =
+    user?.userId != null ? String(user.userId) : undefined;
   const [departmentId, setDepartmentId] = useState<string>("");
   const [preferredSupplierId, setPreferredSupplierId] = useState<string>("");
   const [supplierAddress, setSupplierAddress] = useState<string>("");
@@ -188,18 +186,6 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     const requesterDepartmentId = await resolveRequesterDepartmentId(userId);
     if (seq !== requesterSyncSeqRef.current) return;
     setDepartmentId(requesterDepartmentId);
-  };
-
-  const handleRequesterSelection = (
-    nextUserId: string | undefined,
-    selectedUser?: SelectUserOption | null,
-  ) => {
-    setRequestedByUserId(nextUserId);
-    if (!nextUserId) {
-      setDepartmentId("");
-      return;
-    }
-    void syncDepartmentForRequester(nextUserId, selectedUser ?? null);
   };
 
   useEffect(() => {

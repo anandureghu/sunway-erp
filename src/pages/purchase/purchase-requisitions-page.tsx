@@ -15,7 +15,6 @@ import { CreatePurchaseRequisitionForm } from "./components/create-purchase-requ
 import { createPurchaseRequisitionColumns } from "@/lib/columns/purchase-requisition-columns";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
 import {
-  ClipboardCheck,
   ClipboardList,
   Send,
   CheckCircle2,
