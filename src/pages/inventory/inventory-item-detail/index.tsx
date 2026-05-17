@@ -142,7 +142,7 @@ export default function InventoryItemDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50/90 via-background to-background dark:from-muted/20">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10 space-y-6">
+      <div className="mx-auto px-4 py-6 sm:px-6 lg:py-10 space-y-6">
         {/* Hero header */}
         <InventoryPageHeader
           title={item.name}
@@ -155,7 +155,7 @@ export default function InventoryItemDetail() {
 
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
           {/* Gallery — e-commerce style */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-3">
             <div className="sticky top-6 space-y-4">
               <div className="group relative overflow-hidden rounded-2xl bg-muted/40 shadow-lg ring-1 ring-black/5 dark:ring-white/10">
                 <div className="aspect-square w-full">
@@ -202,7 +202,7 @@ export default function InventoryItemDetail() {
           </div>
 
           {/* Product info */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-9">
             <div className="space-y-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-2 min-w-0">
