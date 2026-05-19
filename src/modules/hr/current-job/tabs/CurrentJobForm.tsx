@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
 import { useParams } from "react-router-dom";
 import {
@@ -17,8 +17,15 @@ import {
 } from "@/service/currentJobService";
 import { hrService } from "@/service/hr.service";
 import { fetchDepartments } from "@/service/departmentService";
+import { fetchEmployees } from "@/service/employeeService";
 import { toast } from "sonner";
-import type { CurrentJob } from "@/types/hr";
+import {
+  EMPLOYMENT_CATEGORY_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
+  type CurrentJob,
+  type EmploymentCategory,
+  type EmploymentType,
+} from "@/types/hr";
 import type { Department } from "@/types/department";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import {
@@ -30,11 +37,15 @@ import {
   TrendingUp,
   Globe,
   LayoutGrid,
+  Users,
+  ShieldCheck,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 import { useAuth } from "@/context/AuthContext";
 import type { CurrentJobCtx } from "../CurrentJobLayout";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 /* ================= INITIAL DATA ================= */
 
@@ -42,27 +53,46 @@ const INITIAL_DATA: CurrentJob = {
   jobCode: "",
   departmentCode: "",
   departmentName: "",
+  divisionId: null,
+  divisionCode: "",
+  divisionName: "",
   jobTitle: "",
   jobLevel: "",
-  grade: "",
+  salaryGrade: "",
+  minSalary: null,
+  maxSalary: null,
   startDate: "",
   effectiveFrom: "",
   expectedEndDate: "",
   workLocation: "",
   workCity: "",
   workCountry: "",
+  employmentCategory: "",
+  employmentType: "",
+  reportingManagerId: null,
+  reportingManagerName: "",
+  reportingManagerEmployeeNo: "",
+  contractStartDate: "",
+  contractEndDate: "",
 };
 
 interface ValidationErrors {
   [key: string]: string;
 }
 
+type EmployeeOption = {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  employeeNo?: string;
+  fullName?: string;
+};
+
 /* ================= COMPONENT ================= */
 
 export default function CurrentJobForm() {
   const { id } = useParams<{ id: string }>();
 
-  // Better validation for employeeId - ensure it's a valid number
   const employeeId = (() => {
     if (!id || id.trim() === "") return undefined;
     const parsed = Number(id);
@@ -78,13 +108,14 @@ export default function CurrentJobForm() {
   const [loadingJobCodes, setLoadingJobCodes] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [managerCandidates, setManagerCandidates] = useState<EmployeeOption[]>(
+    [],
+  );
   const savingRef = useRef(false);
 
-  // Get companyId from AuthContext
   const { company } = useAuth();
   const companyId = company?.id ? Number(company.id) : null;
 
-  // Get editing state from layout via Outlet context
   const { editing: externalEditing } = useOutletContext<CurrentJobCtx>();
 
   const {
@@ -107,7 +138,6 @@ export default function CurrentJobForm() {
         throw new Error("Please fix validation errors");
       }
 
-      // Create a local variable with proper type for TypeScript
       const validEmployeeId: number = employeeId as number;
       if (!validEmployeeId || !Number.isFinite(validEmployeeId)) {
         savingRef.current = false;
@@ -117,10 +147,7 @@ export default function CurrentJobForm() {
         );
       }
 
-      // Find selected job code object
       const selectedJob = jobCodes.find((j) => j.code === data.jobCode);
-
-      // Find selected department object
       const selectedDept = departments.find(
         (d) => d.departmentCode === data.departmentCode,
       );
@@ -135,6 +162,11 @@ export default function CurrentJobForm() {
         throw new Error(" Invalid department selected");
       }
 
+      const category = (data.employmentCategory || undefined) as
+        | EmploymentCategory
+        | undefined;
+      const isContractual = category && category !== "PERMANENT";
+
       const payload: CurrentJobApiPayload = {
         jobCodeId: selectedJob.id,
         departmentId: selectedDept.id,
@@ -144,6 +176,17 @@ export default function CurrentJobForm() {
         startDate: data.startDate,
         effectiveFrom: data.effectiveFrom,
         expectedEndDate: data.expectedEndDate || undefined,
+        employmentCategory: category,
+        employmentType: (data.employmentType || undefined) as
+          | EmploymentType
+          | undefined,
+        reportingManagerId: data.reportingManagerId ?? null,
+        contractStartDate: isContractual
+          ? data.contractStartDate || undefined
+          : undefined,
+        contractEndDate: isContractual
+          ? data.contractEndDate || undefined
+          : undefined,
       };
 
       try {
@@ -177,14 +220,11 @@ export default function CurrentJobForm() {
               toast.success(
                 "Employee profile updated with join date and department",
               );
-
-              // Dispatch event to update employee overview in employees-page (listen on window)
               window.dispatchEvent(new CustomEvent("employee:updated"));
             }
           }
         } catch (updateErr: any) {
           console.error("Error updating employee profile:", updateErr);
-          // Don't throw here - the current job was saved successfully
           toast.warning(
             "Current job saved but failed to update employee profile",
           );
@@ -192,26 +232,9 @@ export default function CurrentJobForm() {
 
         const fresh = await currentJobService.get(validEmployeeId);
         if (fresh) {
-          const resData = fresh as any;
-          // 🔥 Properly map nested API response to flat form fields (same as initial load)
-          updateField("jobCode")(resData.job?.code ?? "");
-          updateField("jobTitle")(resData.job?.title ?? "");
-          updateField("jobLevel")(resData.job?.level ?? "");
-          updateField("grade")(resData.job?.grade ?? "");
-
-          updateField("departmentCode")(resData.department?.code ?? "");
-          updateField("departmentName")(resData.department?.name ?? "");
-
-          updateField("startDate")(fresh.startDate ?? "");
-          updateField("effectiveFrom")(fresh.effectiveFrom ?? "");
-          updateField("expectedEndDate")(fresh.expectedEndDate ?? "");
-
-          updateField("workLocation")(fresh.workLocation ?? "");
-          updateField("workCity")(fresh.workCity ?? "");
-          updateField("workCountry")(fresh.workCountry ?? "");
+          applyServerResponse(fresh);
         }
 
-        // Notify listeners that current job was saved
         window.dispatchEvent(new CustomEvent("current-job:saved"));
       } catch (err: any) {
         toast.error(currentJobService.extractErrorMessage(err));
@@ -223,22 +246,53 @@ export default function CurrentJobForm() {
     },
   });
 
+  /* ================= HELPERS ================= */
+
+  const applyServerResponse = (res: any) => {
+    const resData = res as any;
+    updateField("jobCode")(resData.job?.code ?? "");
+    updateField("jobTitle")(resData.job?.title ?? "");
+    updateField("jobLevel")(resData.job?.level ?? "");
+    updateField("salaryGrade")(resData.job?.salaryGrade ?? "");
+    updateField("minSalary")(resData.job?.minSalary ?? null);
+    updateField("maxSalary")(resData.job?.maxSalary ?? null);
+
+    updateField("departmentCode")(resData.department?.code ?? "");
+    updateField("departmentName")(resData.department?.name ?? "");
+    updateField("divisionId")(resData.department?.divisionId ?? null);
+    updateField("divisionCode")(resData.department?.divisionCode ?? "");
+    updateField("divisionName")(resData.department?.divisionName ?? "");
+
+    updateField("startDate")(res.startDate ?? "");
+    updateField("effectiveFrom")(res.effectiveFrom ?? "");
+    updateField("expectedEndDate")(res.expectedEndDate ?? "");
+
+    updateField("workLocation")(res.workLocation ?? "");
+    updateField("workCity")(res.workCity ?? "");
+    updateField("workCountry")(res.workCountry ?? "");
+
+    updateField("employmentCategory")(res.employmentCategory ?? "");
+    updateField("employmentType")(res.employmentType ?? "");
+    updateField("reportingManagerId")(res.reportingManagerId ?? null);
+    updateField("reportingManagerName")(res.reportingManagerName ?? "");
+    updateField("reportingManagerEmployeeNo")(
+      res.reportingManagerEmployeeNo ?? "",
+    );
+    updateField("contractStartDate")(res.contractStartDate ?? "");
+    updateField("contractEndDate")(res.contractEndDate ?? "");
+  };
+
   /* ================= LOAD JOB CODES ================= */
 
   useEffect(() => {
     let mounted = true;
 
-    const fetchJobCodes = async () => {
+    (async () => {
       try {
-        // Use getAll to fetch all job codes (both active and inactive)
-        // This ensures users can select from all available job codes
         const codes = await jobCodeService.getAll();
-        if (mounted) {
-          setJobCodes(codes || []);
-        }
+        if (mounted) setJobCodes(codes || []);
       } catch (error: any) {
         console.error("Error loading job codes:", error);
-        // Show error toast for debugging
         if (mounted) {
           toast.error(
             error?.response?.data?.message ||
@@ -246,13 +300,9 @@ export default function CurrentJobForm() {
           );
         }
       } finally {
-        if (mounted) {
-          setLoadingJobCodes(false);
-        }
+        if (mounted) setLoadingJobCodes(false);
       }
-    };
-
-    fetchJobCodes();
+    })();
 
     return () => {
       mounted = false;
@@ -264,20 +314,34 @@ export default function CurrentJobForm() {
   useEffect(() => {
     if (!companyId) return;
 
-    const fetchDepartmentsData = async () => {
+    (async () => {
       try {
         const depts = await fetchDepartments(companyId);
-        if (depts) {
-          setDepartments(depts);
-        }
+        if (depts) setDepartments(depts);
       } catch (error) {
         console.error("Error loading departments:", error);
       } finally {
         setLoadingDepartments(false);
       }
-    };
-    fetchDepartmentsData();
+    })();
   }, [company, companyId]);
+
+  /* ================= LOAD EMPLOYEES (manager candidates) ================= */
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await fetchEmployees();
+        if (mounted && Array.isArray(data)) setManagerCandidates(data);
+      } catch (error) {
+        console.error("Error loading manager candidates:", error);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   /* ================= LOAD CURRENT JOB ================= */
 
@@ -291,24 +355,7 @@ export default function CurrentJobForm() {
         if (!mounted || !res) return;
 
         setExists(true);
-
-        // 🔥 Correct mapping from nested API response
-        const resData = res as any;
-        updateField("jobCode")(resData.job?.code ?? "");
-        updateField("jobTitle")(resData.job?.title ?? "");
-        updateField("jobLevel")(resData.job?.level ?? "");
-        updateField("grade")(resData.job?.grade ?? "");
-
-        updateField("departmentCode")(resData.department?.code ?? "");
-        updateField("departmentName")(resData.department?.name ?? "");
-
-        updateField("startDate")(res.startDate ?? "");
-        updateField("effectiveFrom")(res.effectiveFrom ?? "");
-        updateField("expectedEndDate")(res.expectedEndDate ?? "");
-
-        updateField("workLocation")(res.workLocation ?? "");
-        updateField("workCity")(res.workCity ?? "");
-        updateField("workCountry")(res.workCountry ?? "");
+        applyServerResponse(res);
       } catch (err) {
         console.error("Error loading current job:", err);
       }
@@ -366,6 +413,36 @@ export default function CurrentJobForm() {
       errors.expectedEndDate = "Invalid end date";
     }
 
+    const isContractual =
+      data.employmentCategory && data.employmentCategory !== "PERMANENT";
+    if (isContractual) {
+      if (!isValidDate(data.contractStartDate ?? "")) {
+        errors.contractStartDate =
+          "Contract start date is required for non-permanent employment";
+      }
+      if (!isValidDate(data.contractEndDate ?? "")) {
+        errors.contractEndDate =
+          "Contract end date is required for non-permanent employment";
+      }
+      if (
+        isValidDate(data.contractStartDate ?? "") &&
+        isValidDate(data.contractEndDate ?? "") &&
+        (data.contractStartDate ?? "") > (data.contractEndDate ?? "")
+      ) {
+        errors.contractEndDate =
+          "Contract end date must be on or after the start date";
+      }
+    }
+
+    if (
+      data.reportingManagerId != null &&
+      employeeId != null &&
+      data.reportingManagerId === employeeId
+    ) {
+      errors.reportingManagerId =
+        "Reporting manager cannot be the employee themselves";
+    }
+
     return errors;
   };
 
@@ -375,48 +452,63 @@ export default function CurrentJobForm() {
 
   const handleJobCodeChange = (value: string) => {
     updateField("jobCode")(value);
-    // Auto-populate jobTitle and jobLevel from selected job code
     if (value) {
       const selectedJob = jobCodes.find((j) => j.code === value);
       if (selectedJob) {
         updateField("jobTitle")(selectedJob.title);
         updateField("jobLevel")(selectedJob.level);
-        updateField("grade")(selectedJob.grade);
+        updateField("salaryGrade")(selectedJob.salaryGrade);
+        updateField("minSalary")(selectedJob.minSalary ?? null);
+        updateField("maxSalary")(selectedJob.maxSalary ?? null);
       }
     }
   };
 
   const handleDepartmentChange = (value: string) => {
     updateField("departmentCode")(value);
-    // Auto-populate departmentName from selected department
     if (value) {
       const selectedDept = departments.find((d) => d.departmentCode === value);
       if (selectedDept) {
         updateField("departmentName")(selectedDept.departmentName);
+        updateField("divisionId")(selectedDept.divisionId ?? null);
+        updateField("divisionCode")(selectedDept.divisionCode ?? "");
+        updateField("divisionName")(selectedDept.divisionName ?? "");
+      } else {
+        updateField("divisionId")(null);
+        updateField("divisionCode")("");
+        updateField("divisionName")("");
       }
     }
   };
 
+  const isContractual =
+    !!formData.employmentCategory && formData.employmentCategory !== "PERMANENT";
+
+  const managerLabel = useMemo(() => {
+    if (formData.reportingManagerId == null) return "";
+    const m = managerCandidates.find(
+      (e) => e.id === formData.reportingManagerId,
+    );
+    if (!m) {
+      return formData.reportingManagerName || "";
+    }
+    const name = [m.firstName, m.lastName].filter(Boolean).join(" ");
+    return name || (m.fullName ?? "");
+  }, [
+    managerCandidates,
+    formData.reportingManagerId,
+    formData.reportingManagerName,
+  ]);
+
   /* ================= RENDER ================= */
 
   return (
-    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
-
-      {/* ── Page header ── */}
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
-        <div className="flex items-center gap-4 px-6 py-5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
-            <Briefcase className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-tight">Current Job</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Manage employment position, department, and work location details
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="bg-slate-50/60 min-h-screen space-y-5">
+      <SecondaryPageHeader
+        title="Current Job"
+        description="Manage employment position, department, and work location details"
+        icon={<Briefcase className="h-5 w-5 text-white" />}
+      />
 
       {/* ── KPI summary strip ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -437,7 +529,11 @@ export default function CurrentJobForm() {
           label="Start Date"
           value={
             formData.startDate
-              ? new Date(formData.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              ? new Date(formData.startDate).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
               : "—"
           }
           accent="text-amber-600 bg-amber-50 border-amber-100"
@@ -458,15 +554,24 @@ export default function CurrentJobForm() {
           accent="from-violet-600 to-blue-600"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Job Code */}
           <Field label="Job Code" required error={errors.jobCode}>
             {loadingJobCodes ? (
-              <Input className={fieldCls} disabled placeholder="Loading job codes…" />
+              <Input
+                className={fieldCls}
+                disabled
+                placeholder="Loading job codes…"
+              />
             ) : jobCodes.length > 0 ? (
               <div className="relative">
                 <Briefcase className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Select value={formData.jobCode} onValueChange={handleJobCodeChange}>
-                  <SelectTrigger className={cn(fieldCls, "pl-9")} disabled={!editing}>
+                <Select
+                  value={formData.jobCode}
+                  onValueChange={handleJobCodeChange}
+                >
+                  <SelectTrigger
+                    className={cn(fieldCls, "pl-9")}
+                    disabled={!editing}
+                  >
                     <SelectValue placeholder="Select job code" />
                   </SelectTrigger>
                   <SelectContent>
@@ -490,12 +595,13 @@ export default function CurrentJobForm() {
                     placeholder="e.g., JD001"
                   />
                 </div>
-                <p className="text-[11px] text-amber-600 mt-1">No job codes configured — enter manually.</p>
+                <p className="text-[11px] text-amber-600 mt-1">
+                  No job codes configured — enter manually.
+                </p>
               </>
             )}
           </Field>
 
-          {/* Job Title */}
           <Field label="Job Title" required error={errors.jobTitle}>
             <div className="relative">
               <Award className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -509,7 +615,6 @@ export default function CurrentJobForm() {
             </div>
           </Field>
 
-          {/* Job Level */}
           <Field label="Job Level">
             <div className="relative">
               <TrendingUp className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -522,26 +627,68 @@ export default function CurrentJobForm() {
               />
             </div>
           </Field>
+
+          <Field label="Salary Grade">
+            <div className="relative">
+              <Award className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled={!editing}
+                value={formData.salaryGrade}
+                onChange={(e) => updateField("salaryGrade")(e.target.value)}
+                placeholder="e.g., G3"
+              />
+            </div>
+          </Field>
+
+          <Field label="Min Salary">
+            <Input
+              type="number"
+              className={fieldCls}
+              disabled
+              value={formData.minSalary ?? ""}
+              placeholder="From job code"
+            />
+          </Field>
+
+          <Field label="Max Salary">
+            <Input
+              type="number"
+              className={fieldCls}
+              disabled
+              value={formData.maxSalary ?? ""}
+              placeholder="From job code"
+            />
+          </Field>
         </div>
       </div>
 
-      {/* ── Department ── */}
+      {/* ── Department & Division ── */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
         <SectionHeading
           icon={<Building2 className="h-3.5 w-3.5" />}
-          label="Department"
+          label="Department & Division"
           accent="from-emerald-500 to-teal-600"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Department Code */}
           <Field label="Department" required error={errors.departmentCode}>
             {loadingDepartments ? (
-              <Input className={fieldCls} disabled placeholder="Loading departments…" />
+              <Input
+                className={fieldCls}
+                disabled
+                placeholder="Loading departments…"
+              />
             ) : (
               <div className="relative">
                 <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Select value={formData.departmentCode} onValueChange={handleDepartmentChange}>
-                  <SelectTrigger className={cn(fieldCls, "pl-9")} disabled={!editing}>
+                <Select
+                  value={formData.departmentCode}
+                  onValueChange={handleDepartmentChange}
+                >
+                  <SelectTrigger
+                    className={cn(fieldCls, "pl-9")}
+                    disabled={!editing}
+                  >
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
@@ -556,37 +703,221 @@ export default function CurrentJobForm() {
             )}
           </Field>
 
-          {/* Department Name (auto-filled, editable) */}
           <Field label="Department Name">
             <div className="relative">
               <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
+                disabled
                 value={formData.departmentName}
-                onChange={(e) => updateField("departmentName")(e.target.value)}
                 placeholder="Auto-filled from selection"
               />
             </div>
           </Field>
 
-          {/* Grade */}
-          <Field label="Grade">
+          <Field label="Division Code">
             <div className="relative">
-              <Award className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Network className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.grade}
-                onChange={(e) => updateField("grade")(e.target.value)}
-                placeholder="e.g., Grade 5"
+                disabled
+                value={formData.divisionCode ?? ""}
+                placeholder={
+                  formData.departmentCode
+                    ? "No division assigned"
+                    : "Pick a department first"
+                }
               />
+            </div>
+          </Field>
+
+          <Field label="Division Name">
+            <div className="relative">
+              <Network className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className={cn(fieldCls, "pl-9")}
+                disabled
+                value={formData.divisionName ?? ""}
+                placeholder={
+                  formData.departmentCode
+                    ? "No division assigned"
+                    : "Pick a department first"
+                }
+              />
+            </div>
+          </Field>
+        </div>
+        {!formData.divisionName && formData.departmentCode && (
+          <p className="text-[11px] text-amber-600 mt-3 flex items-center gap-1">
+            <Network className="h-3 w-3" /> This department has no division
+            assigned. Set one in Department Master.
+          </p>
+        )}
+      </div>
+
+      {/* ── Employment Classification ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHeading
+          icon={<ShieldCheck className="h-3.5 w-3.5" />}
+          label="Employment Classification"
+          accent="from-indigo-500 to-purple-600"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Field label="Employment Category">
+            <Select
+              value={formData.employmentCategory || ""}
+              onValueChange={(v) =>
+                updateField("employmentCategory")(v as EmploymentCategory)
+              }
+            >
+              <SelectTrigger className={fieldCls} disabled={!editing}>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {EMPLOYMENT_CATEGORY_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Employment Type">
+            <Select
+              value={formData.employmentType || ""}
+              onValueChange={(v) =>
+                updateField("employmentType")(v as EmploymentType)
+              }
+            >
+              <SelectTrigger className={fieldCls} disabled={!editing}>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {EMPLOYMENT_TYPE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field
+            label="Reporting Manager"
+            error={errors.reportingManagerId}
+          >
+            <div className="relative">
+              <Users className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+              <Select
+                value={
+                  formData.reportingManagerId != null
+                    ? String(formData.reportingManagerId)
+                    : "none"
+                }
+                onValueChange={(v) =>
+                  updateField("reportingManagerId")(
+                    v === "none" ? null : Number(v),
+                  )
+                }
+              >
+                <SelectTrigger
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                >
+                  <SelectValue placeholder="Select reporting manager">
+                    {managerLabel || (
+                      <span className="text-muted-foreground">
+                        Select reporting manager
+                      </span>
+                    )}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No reporting manager —</SelectItem>
+                  {managerCandidates
+                    .filter((e) => e.id !== employeeId)
+                    .map((m) => {
+                      const name =
+                        [m.firstName, m.lastName].filter(Boolean).join(" ") ||
+                        m.fullName ||
+                        `Employee #${m.id}`;
+                      return (
+                        <SelectItem key={m.id} value={String(m.id)}>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-800">
+                              {name}
+                            </span>
+                            {m.employeeNo && (
+                              <span className="text-[11px] text-slate-400">
+                                #{m.employeeNo}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                </SelectContent>
+              </Select>
             </div>
           </Field>
         </div>
       </div>
 
-      {/* ── Dates ── */}
+      {/* ── Contract Dates (only when non-permanent) ── */}
+      {isContractual && (
+        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <SectionHeading
+            icon={<Calendar className="h-3.5 w-3.5" />}
+            label="Contract Dates"
+            accent="from-rose-500 to-orange-500"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field
+              label="Contract Start Date"
+              required
+              error={errors.contractStartDate}
+            >
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                  value={formData.contractStartDate ?? ""}
+                  onChange={(e) =>
+                    updateField("contractStartDate")(e.target.value)
+                  }
+                />
+              </div>
+            </Field>
+
+            <Field
+              label="Contract End Date"
+              required
+              error={errors.contractEndDate}
+            >
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                  value={formData.contractEndDate ?? ""}
+                  onChange={(e) =>
+                    updateField("contractEndDate")(e.target.value)
+                  }
+                />
+              </div>
+            </Field>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3">
+            Shown because employment category is not "Permanent".
+          </p>
+        </div>
+      )}
+
+      {/* ── Employment Dates ── */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
         <SectionHeading
           icon={<Calendar className="h-3.5 w-3.5" />}
@@ -632,7 +963,9 @@ export default function CurrentJobForm() {
               />
             </div>
             {!errors.expectedEndDate && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">Optional — leave blank for open-ended contracts</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Optional — leave blank for open-ended contracts
+              </p>
             )}
           </Field>
         </div>
@@ -692,7 +1025,6 @@ export default function CurrentJobForm() {
 
 /* ================= UI HELPERS ================= */
 
-/** Shared input class — consistent across all fields */
 const fieldCls =
   "h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
 
@@ -707,10 +1039,17 @@ function SectionHeading({
 }) {
   return (
     <div className="flex items-center gap-2.5 mb-5">
-      <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white", accent)}>
+      <div
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white",
+          accent,
+        )}
+      >
         {icon}
       </div>
-      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{label}</span>
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+        {label}
+      </span>
       <div className="flex-1 h-px bg-slate-100" />
     </div>
   );
@@ -728,10 +1067,17 @@ function KpiCard({
   accent: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-3 rounded-xl border p-3.5 bg-white shadow-sm", accent)}>
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-xl border p-3.5 bg-white shadow-sm",
+        accent,
+      )}
+    >
       <div className={cn("shrink-0", accent.split(" ")[0])}>{icon}</div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
         <p className="truncate text-sm font-bold text-slate-800">{value}</p>
       </div>
     </div>

@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Employee } from "@/types/hr";
 import PayrollBankFileSettingsCard from "@/modules/hr/payroll/PayrollBankFileSettingsCard";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 
 interface PayrollRow {
   payDate: string;
@@ -284,62 +285,39 @@ export default function PayrollSettings() {
   return (
     <div className="space-y-6">
       {/* ── KPI strip ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          {
-            label: "Total Employees",
-            value: employees.length,
-            icon: <Users className="h-4 w-4" />,
-            color: "text-blue-600 bg-blue-50 border-blue-100",
-            iconBg: "bg-blue-100 text-blue-600",
-          },
-          {
-            label: "Payroll Processed",
-            value: processedCount,
-            icon: <CheckCircle2 className="h-4 w-4" />,
-            color: "text-emerald-600 bg-emerald-50 border-emerald-100",
-            iconBg: "bg-emerald-100 text-emerald-600",
-          },
-          {
-            label: "Total Gross Pay",
-            value: formatMoney(String(totalGross), currencySymbol),
-            icon: <TrendingUp className="h-4 w-4" />,
-            color: "text-violet-600 bg-violet-50 border-violet-100",
-            iconBg: "bg-violet-100 text-violet-600",
-          },
-          {
-            label: "Total Net Pay",
-            value: formatMoney(String(totalNet), currencySymbol),
-            icon: <Banknote className="h-4 w-4" />,
-            color: "text-amber-600 bg-amber-50 border-amber-100",
-            iconBg: "bg-amber-100 text-amber-600",
-          },
-        ].map((kpi) => (
-          <div
-            key={kpi.label}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm",
-              kpi.color,
-            )}
-          >
-            <div
-              className={cn(
-                "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                kpi.iconBg,
-              )}
-            >
-              {kpi.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
-                {kpi.label}
-              </p>
-              <p className="text-xl font-bold tabular-nums leading-tight truncate">
-                {kpi.value}
-              </p>
-            </div>
-          </div>
-        ))}
+      <div className="mb-6">
+        <KpiSummaryStrip
+          items={[
+            {
+              label: "Total Employees",
+              value: employees.length,
+              hint: "Total workforce",
+              accent: "violet",
+              icon: Users,
+            },
+            {
+              label: "Payroll Processed",
+              value: processedCount,
+              hint: "Payrolls this period",
+              accent: "emerald",
+              icon: CheckCircle2,
+            },
+            {
+              label: "Total Gross Pay",
+              value: formatMoney(String(totalGross), currencySymbol),
+              hint: "Total before deductions",
+              accent: "sky",
+              icon: TrendingUp,
+            },
+            {
+              label: "Total Net Pay",
+              value: formatMoney(String(totalNet), currencySymbol),
+              hint: "Total disbursed amount",
+              accent: "amber",
+              icon: Banknote,
+            },
+          ]}
+        />
       </div>
       {payrollErrorBanner ? (
         <div

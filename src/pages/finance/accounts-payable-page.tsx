@@ -17,7 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Search, Wallet } from "lucide-react";
+import {
+  FileText,
+  Search,
+  Wallet,
+  ListTodo,
+  FileCheck,
+  AlertTriangle,
+  CheckCircle2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -27,6 +35,10 @@ import {
   isInvoiceArchivedStatus,
 } from "@/lib/invoice-status-filter";
 import { PageHeader } from "@/components/PageHeader";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -140,12 +152,52 @@ function PayableInvoicesTab() {
     [navigate],
   );
 
+  const invoiceKpis = useMemo((): KpiSummaryStat[] => {
+    const norm = (s?: string) => (s || "").toUpperCase();
+    const unpaid = rows.filter(
+      (inv) => norm(inv.status) === "UNPAID",
+    ).length;
+    const paid = rows.filter((inv) => norm(inv.status) === "PAID").length;
+    const overdue = rows.filter(
+      (inv) => norm(inv.status) === "OVERDUE",
+    ).length;
+    return [
+      {
+        label: "Total invoices",
+        value: rows.length,
+        hint: "Purchase invoices loaded",
+        accent: "sky",
+        icon: FileText,
+      },
+      {
+        label: "Unpaid",
+        value: unpaid,
+        hint: "Awaiting payment",
+        accent: "orange",
+        icon: Wallet,
+      },
+      {
+        label: "Paid",
+        value: paid,
+        hint: "Fully settled",
+        accent: "emerald",
+        icon: CheckCircle2,
+      },
+      {
+        label: "Overdue",
+        value: overdue,
+        hint: "Past due — needs payment",
+        accent: "rose",
+        icon: AlertTriangle,
+      },
+    ];
+  }, [rows]);
+
   return (
     <div className="space-y-4">
-      {/* <h2 className="text-2xl font-semibold">Purchase invoices</h2>
-      <p className="text-sm text-muted-foreground">
-        Accounts payable bills (PURCHASE type only).
-      </p> */}
+      {invoiceKpis && invoiceKpis.length > 0 ? (
+        <KpiSummaryStrip items={invoiceKpis} />
+      ) : null}
       <Tabs
         value={listTab}
         onValueChange={(v) => {
@@ -158,12 +210,14 @@ function PayableInvoicesTab() {
         <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
             <TabsTrigger value="outstanding" className="gap-2">
+              <ListTodo className="h-4 w-4" />
               Current Invoices
               <Badge variant="secondary" className="font-normal">
                 {outstandingCount}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="archived" className="gap-2">
+              <FileCheck className="h-4 w-4" />
               Completed
               <Badge variant="secondary" className="font-normal">
                 {completedTabCount}

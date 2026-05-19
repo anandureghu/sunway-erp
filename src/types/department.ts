@@ -12,4 +12,7 @@ export interface Department {
   companyName: string;
   company?: Company;
   createdAt: string;
+  divisionId?: number | null;
+  divisionCode?: string;
+  divisionName?: string;
 }

@@ -15,7 +15,6 @@ import { useEffect } from "react";
 import SelectUser from "@/components/select-user";
 import { Textarea } from "@/components/ui/textarea";
 import { DIVISION_SCHEMA, type DivisionFormData } from "@/schema/division";
-import SelectDepartment from "@/components/select-department";
 import { useAuth } from "@/context/AuthContext";
 
 interface DivisionFormProps {
@@ -38,7 +37,6 @@ export const DivisionForm = ({
       name: "",
       managerId: undefined,
       companyId: Number(user?.companyId),
-      departmentId: undefined,
       ...defaultValues,
     },
   });
@@ -83,20 +81,12 @@ export const DivisionForm = ({
             )}
           />
 
-          <div>
+          <div className="col-span-2">
             <SelectUser
               value={form.getValues("managerId")?.toString()}
               onChange={(val) => form.setValue("managerId", Number(val))}
               label="Manager"
               placeholder="Select Manager"
-            />
-          </div>
-
-          <div>
-            <SelectDepartment
-              value={form.getValues("departmentId")?.toString() || undefined}
-              onChange={(val) => form.setValue("departmentId", Number(val))}
-              companyId={Number(user?.companyId) || 0}
             />
           </div>
         </div>

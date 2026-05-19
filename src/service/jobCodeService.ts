@@ -5,7 +5,9 @@ export interface JobCode {
   code: string;
   title: string;
   level: string;
-  grade: string;
+  salaryGrade: string;
+  minSalary?: number | null;
+  maxSalary?: number | null;
   active: boolean;
 }
 
@@ -13,7 +15,9 @@ export interface JobCodePayload {
   code: string;
   title: string;
   level: string;
-  grade: string;
+  salaryGrade: string;
+  minSalary?: number | null;
+  maxSalary?: number | null;
   active: boolean;
 }
 

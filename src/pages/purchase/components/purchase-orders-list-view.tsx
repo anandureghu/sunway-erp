@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, ListTodo, FileCheck } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -136,11 +136,13 @@ export function PurchaseOrdersListView({
               <Tabs value={tab} onValueChange={handleTabChange}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <TabsList>
-                    <TabsTrigger value="open">
-                      Current Orders ({openOrders.length})
+                    <TabsTrigger value="open" className="flex items-center gap-2">
+                      <ListTodo className="h-4 w-4" />
+                      Current Orders {openOrders.length}
                     </TabsTrigger>
-                    <TabsTrigger value="terminal">
-                      Completed ({terminalUnarchivedCount})
+                    <TabsTrigger value="terminal" className="flex items-center gap-2">
+                      <FileCheck className="h-4 w-4" />
+                      Completed {terminalUnarchivedCount}
                     </TabsTrigger>
                   </TabsList>
                   <div className="flex flex-wrap gap-2">

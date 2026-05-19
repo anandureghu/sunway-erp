@@ -39,7 +39,7 @@ const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border/50 bg-background/80 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/75 sm:gap-4 sm:px-5">
-      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         <SidebarTrigger className="-ml-1 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground" />
         <Separator orientation="vertical" className="hidden h-6 sm:block" />
         {(!open || isMobile) && (
@@ -60,8 +60,9 @@ const Navbar = () => {
         )}
       </div>
 
-      <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
-        {user?.role === "SUPER_ADMIN" ? (
+      <div className="flex-1 flex min-w-0 shrink-0 flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <div className="w-full flex-1 flex items-center justify-center">
+          {user?.role === "SUPER_ADMIN" ? (
           <div className="flex min-w-0 items-center gap-2">
             <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-muted/50 px-3 py-1 sm:flex">
               <Shield className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -107,6 +108,7 @@ const Navbar = () => {
             </p>
           </div>
         )}
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

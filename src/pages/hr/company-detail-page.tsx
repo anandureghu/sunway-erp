@@ -138,24 +138,26 @@ export default function CompanyDetailPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Top Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-linear-to-br from-violet-500 to-blue-600 text-white py-6 px-10 rounded-2xl">
         <div className="flex gap-3 items-center">
           {!globalSettingsView && (
             <Button
               variant="ghost"
               onClick={() => navigate("/admin/company")}
-              className="flex gap-1"
+              className="flex gap-1 h-[50px] w-[50px] rounded-full bg-white text-black flex items-center justify-center hover:bg-white/90"
             >
-              <ArrowLeft className="h-4 w-4" /> Back
+              <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
-          {company.logoUrl ? (
-            <img
-              src={company.logoUrl}
-              alt={`${company.companyName} logo`}
-              className="h-10 w-10 rounded-md border bg-muted/30 object-contain"
-            />
-          ) : null}
+          <div className="bg-white rounded-full p-2">
+            {company.logoUrl ? (
+              <img
+                src={company.logoUrl}
+                alt={`${company.companyName} logo`}
+                className="h-10 w-10 rounded-md border bg-muted/30 object-contain"
+              />
+            ) : null}
+          </div>
           <h1 className="text-2xl font-semibold">{company.companyName}</h1>
         </div>
 

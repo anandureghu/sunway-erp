@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import type { EmploymentCategory, EmploymentType } from "@/types/hr";
 
 /* =======================
    TYPES
@@ -9,14 +10,26 @@ export interface CurrentJobPayload {
   jobTitle?: string;
   departmentCode?: string;
   departmentName?: string;
+  divisionId?: number | null;
+  divisionCode?: string;
+  divisionName?: string;
   jobLevel?: string;
-  grade?: string;
+  salaryGrade?: string;
+  minSalary?: number | null;
+  maxSalary?: number | null;
   startDate?: string;
   effectiveFrom?: string;
   expectedEndDate?: string;
   workLocation?: string;
   workCity?: string;
   workCountry?: string;
+  employmentCategory?: EmploymentCategory | "";
+  employmentType?: EmploymentType | "";
+  reportingManagerId?: number | null;
+  reportingManagerName?: string;
+  reportingManagerEmployeeNo?: string;
+  contractStartDate?: string;
+  contractEndDate?: string;
 }
 
 export interface CurrentJobApiPayload {
@@ -27,7 +40,12 @@ export interface CurrentJobApiPayload {
   workCountry?: string;
   startDate?: string;
   effectiveFrom?: string;
-  expectedEndDate?: string | undefined;
+  expectedEndDate?: string;
+  employmentCategory?: EmploymentCategory;
+  employmentType?: EmploymentType;
+  reportingManagerId?: number | null;
+  contractStartDate?: string;
+  contractEndDate?: string;
 }
 
 export interface CurrentJobResponse extends CurrentJobPayload {
@@ -77,7 +95,7 @@ export type CurrentJobModel = {
   departmentCode?: string;
   departmentName?: string;
   jobLevel?: string;
-  grade?: string;
+  salaryGrade?: string;
   startDate?: string;
   effectiveFrom?: string;
   expectedEndDate?: string;

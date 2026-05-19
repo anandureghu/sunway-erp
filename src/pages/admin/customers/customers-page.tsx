@@ -4,13 +4,13 @@ import type { Customer } from "@/types/customer";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getCustomerColumns } from "@/lib/columns/customer-listing-admin";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomerDialog } from "./customer-dialog";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getParentPath } from "@/lib/utils";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import {
   Select,
   SelectContent,
@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -215,57 +216,50 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Customers</h1>
-        <Button
-          onClick={() => {
-            setSelected(null);
-            setOpen(true);
-          }}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          + New Customer
-        </Button>
-      </div>
+      <SecondaryPageHeader
+        title="Customers"
+        description="Manage customers"
+        icon={<Users className="h-5 w-5" />}
+        actions={
+          <Button
+            onClick={() => {
+              setSelected(null);
+              setOpen(true);
+            }}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            + New Customer
+          </Button>
+        }
+      />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  TOTAL CUSTOMERS
-                </p>
-                <h2 className="text-2xl font-bold">{stats.total}</h2>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  ACTIVE
-                </p>
-                <h2 className="text-2xl font-bold">{stats.active}</h2>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  INACTIVE
-                </p>
-                <h2 className="text-2xl font-bold">{stats.inactive}</h2>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
+        <KpiSummaryStrip
+          items={[
+            {
+              label: "Total Customers",
+              value: stats.total,
+              hint: "Customer master rows",
+              accent: "sky",
+              icon: Users,
+            },
+            {
+              label: "Active",
+              value: stats.active,
+              hint: "Currently active",
+              accent: "emerald",
+              icon: Users,
+            },
+            {
+              label: "Inactive",
+              value: stats.inactive,
+              hint: "Disabled accounts",
+              accent: "rose",
+              icon: Users,
+            },
+          ]}
+        />
       </div>
 
       {/* Search and Filters */}

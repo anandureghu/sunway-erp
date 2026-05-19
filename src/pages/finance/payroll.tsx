@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import PayrollBankFileSettingsCard from "@/modules/hr/payroll/PayrollBankFileSettingsCard";
 import { PageHeader } from "@/components/PageHeader";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 
 // ── types ──────────────────────────────────────────────────────────────────────
 
@@ -105,39 +106,7 @@ function validateDates(input: {
   return null;
 }
 
-function StatCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: React.ElementType;
-  accent: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm flex items-center gap-4">
-      <div
-        className={cn(
-          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-          accent,
-        )}
-      >
-        <Icon className="h-5 w-5 text-white" />
-      </div>
-      <div>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          {label}
-        </p>
-        <p className="text-xl font-bold text-slate-900 mt-0.5">{value}</p>
-        {sub && <p className="text-xs text-slate-400">{sub}</p>}
-      </div>
-    </div>
-  );
-}
+
 
 // ── Bulk status pill ───────────────────────────────────────────────────────────
 
@@ -605,34 +574,41 @@ function EmployeePayrollTab() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Employees"
-            value={employees.length}
-            icon={Users}
-            accent="bg-gradient-to-br from-violet-500 to-indigo-600"
-          />
-          <StatCard
-            label="Payroll Processed"
-            value={processedThisMonth}
-            icon={CheckCircle2}
-            accent="bg-gradient-to-br from-emerald-500 to-teal-600"
-            sub={new Date().toLocaleDateString("en-US", {
-              month: "long",
-              year: "numeric",
-            })}
-          />
-          <StatCard
-            label="Total Gross Pay"
-            value={formatMoney(totalGross, currencySymbol)}
-            icon={TrendingUp}
-            accent="bg-gradient-to-br from-blue-500 to-sky-600"
-          />
-          <StatCard
-            label="Total Net Pay"
-            value={formatMoney(totalNet, currencySymbol)}
-            icon={Wallet}
-            accent="bg-gradient-to-br from-amber-500 to-orange-600"
+        <div className="mb-6">
+          <KpiSummaryStrip
+            items={[
+              {
+                label: "Total Employees",
+                value: employees.length,
+                hint: "Total workforce",
+                accent: "violet",
+                icon: Users,
+              },
+              {
+                label: "Payroll Processed",
+                value: processedThisMonth,
+                hint: new Date().toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                }),
+                accent: "emerald",
+                icon: CheckCircle2,
+              },
+              {
+                label: "Total Gross Pay",
+                value: formatMoney(totalGross, currencySymbol),
+                hint: "Total before deductions",
+                accent: "sky",
+                icon: TrendingUp,
+              },
+              {
+                label: "Total Net Pay",
+                value: formatMoney(totalNet, currencySymbol),
+                hint: "Total disbursed amount",
+                accent: "amber",
+                icon: Wallet,
+              },
+            ]}
           />
         </div>
       )}

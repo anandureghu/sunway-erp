@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, ListTodo, FileCheck } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import type { PurchaseRequisition } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { PageHeader } from "@/components/PageHeader";
@@ -52,19 +54,40 @@ export function PurchaseRequisitionsListView({
   kpiItems,
 }: Props) {
   const [tab, setTab] = useState<RequisitionTab>("active");
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
 
   const activeReqs = useMemo(
-    () => requisitions.filter((r) => r.status !== "converted"),
-    [requisitions],
+    () =>
+      requisitions.filter((r) => {
+        if (r.status === "converted") return false;
+        const archived = Boolean(r.archived);
+        return showArchivedOnly ? archived : !archived;
+      }),
+    [requisitions, showArchivedOnly],
   );
   const convertedReqs = useMemo(
-    () => requisitions.filter((r) => r.status === "converted"),
+    () =>
+      requisitions.filter((r) => {
+        if (r.status !== "converted") return false;
+        const archived = Boolean(r.archived);
+        return showArchivedOnly ? archived : !archived;
+      }),
+    [requisitions, showArchivedOnly],
+  );
+  
+  const activeUnarchivedCount = useMemo(
+    () => requisitions.filter((r) => r.status !== "converted" && !r.archived).length,
+    [requisitions],
+  );
+  const convertedUnarchivedCount = useMemo(
+    () => requisitions.filter((r) => r.status === "converted" && !r.archived).length,
     [requisitions],
   );
 
   const handleTabChange = (next: string) => {
     const value = next as RequisitionTab;
     setTab(value);
+    setShowArchivedOnly(false);
     if (value === "converted" && statusFilter !== "all") {
       onStatusChange("all");
     } else if (value === "active" && statusFilter === "converted") {
@@ -76,7 +99,7 @@ export function PurchaseRequisitionsListView({
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
         title="Purchase requisitions"
-        description="Submit for approval; approving creates a draft purchase order tied to your preferred supplier."
+        description="Approving creates a draft purchase order"
         backHref="/inventory/purchase"
         variant="darkGreen"
         actions={
@@ -111,11 +134,13 @@ export function PurchaseRequisitionsListView({
             <Tabs value={tab} onValueChange={handleTabChange}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <TabsList>
-                  <TabsTrigger value="active">
-                    Active ({activeReqs.length})
+                  <TabsTrigger value="active" className="flex items-center gap-2">
+                    <ListTodo className="h-4 w-4" />
+                    Active {activeUnarchivedCount}
                   </TabsTrigger>
-                  <TabsTrigger value="converted">
-                    Converted To Purchase Order ({convertedReqs.length})
+                  <TabsTrigger value="converted" className="flex items-center gap-2">
+                    <FileCheck className="h-4 w-4" />
+                    Converted To Purchase Order {convertedUnarchivedCount}
                   </TabsTrigger>
                 </TabsList>
                 <div className="flex flex-wrap gap-2">
@@ -142,6 +167,16 @@ export function PurchaseRequisitionsListView({
                       </SelectContent>
                     </Select>
                   ) : null}
+                  <div className="flex items-center gap-2 ml-4">
+                    <Switch
+                      id="show-archived"
+                      checked={showArchivedOnly}
+                      onCheckedChange={setShowArchivedOnly}
+                    />
+                    <Label htmlFor="show-archived" className="cursor-pointer">
+                      Archived only
+                    </Label>
+                  </div>
                 </div>
               </div>
 

@@ -1,7 +1,6 @@
 import { DataTable } from "@/components/ui/data-table";
 import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -31,6 +30,8 @@ import {
 import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 // Section card
 function SectionCard({
@@ -48,7 +49,9 @@ function SectionCard({
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
           {icon}
         </div>
-        <span className="text-[13px] font-semibold text-slate-700">{title}</span>
+        <span className="text-[13px] font-semibold text-slate-700">
+          {title}
+        </span>
       </div>
       <div className="p-5 space-y-5">{children}</div>
     </div>
@@ -56,7 +59,15 @@ function SectionCard({
 }
 
 // Field wrapper
-function F({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function F({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
@@ -266,63 +277,46 @@ const WarehouseMaster = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Warehouses</h1>
-        <Button
-          onClick={handleNewWarehouse}
-          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
-        >
-          <Plus className="h-4 w-4 mr-2" /> New Warehouse
-        </Button>
-      </div>
-
+      <SecondaryPageHeader
+        title="Warehouses"
+        description="Manage warehouses"
+        icon={<WarehouseIcon className="h-5 w-5" />}
+        actions={
+          <Button
+            onClick={handleNewWarehouse}
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" /> New Warehouse
+          </Button>
+        }
+      />
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="shadow-sm border-muted/70">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
-                  TOTAL WAREHOUSES
-                </p>
-                <h2 className="text-3xl font-bold mt-2">{stats.total}</h2>
-              </div>
-              <div className="rounded-xl bg-indigo-100 p-2.5">
-                <WarehouseIcon className="h-5 w-5 text-indigo-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-emerald-200 bg-emerald-50/70">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
-                  ACTIVE
-                </p>
-                <h2 className="text-3xl font-bold mt-2">{stats.active}</h2>
-              </div>
-              <div className="rounded-xl bg-emerald-100 p-2.5">
-                <CircleCheckBig className="h-5 w-5 text-emerald-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-rose-200 bg-rose-50/70">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground">
-                  INACTIVE
-                </p>
-                <h2 className="text-3xl font-bold mt-2">{stats.inactive}</h2>
-              </div>
-              <div className="rounded-xl bg-rose-100 p-2.5">
-                <CircleSlash2 className="h-5 w-5 text-rose-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
+        <KpiSummaryStrip
+          items={[
+            {
+              label: "Total Warehouses",
+              value: stats.total,
+              hint: "Total active locations",
+              accent: "sky",
+              icon: WarehouseIcon,
+            },
+            {
+              label: "Active",
+              value: stats.active,
+              hint: "Currently in use",
+              accent: "emerald",
+              icon: CircleCheckBig,
+            },
+            {
+              label: "Inactive",
+              value: stats.inactive,
+              hint: "Disabled locations",
+              accent: "rose",
+              icon: CircleSlash2,
+            },
+          ]}
+        />
       </div>
 
       {/* Search and Filters */}
@@ -413,9 +407,15 @@ const WarehouseMaster = () => {
                   </F>
 
                   <F label="Phone">
-                    <Input placeholder="Phone" {...registerWarehouse("phone")} className={icls} />
+                    <Input
+                      placeholder="Phone"
+                      {...registerWarehouse("phone")}
+                      className={icls}
+                    />
                     {warehouseErrors.phone && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.phone.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.phone.message}
+                      </p>
                     )}
                   </F>
 
@@ -426,7 +426,9 @@ const WarehouseMaster = () => {
                       className={icls}
                     />
                     {warehouseErrors.contactPersonName && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.contactPersonName.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.contactPersonName.message}
+                      </p>
                     )}
                   </F>
                 </div>
@@ -439,30 +441,54 @@ const WarehouseMaster = () => {
               >
                 <div className="grid grid-cols-2 gap-5">
                   <F label="Street">
-                    <Input placeholder="Street" {...registerWarehouse("street")} className={icls} />
+                    <Input
+                      placeholder="Street"
+                      {...registerWarehouse("street")}
+                      className={icls}
+                    />
                     {warehouseErrors.street && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.street.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.street.message}
+                      </p>
                     )}
                   </F>
 
                   <F label="City">
-                    <Input placeholder="City" {...registerWarehouse("city")} className={icls} />
+                    <Input
+                      placeholder="City"
+                      {...registerWarehouse("city")}
+                      className={icls}
+                    />
                     {warehouseErrors.city && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.city.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.city.message}
+                      </p>
                     )}
                   </F>
 
                   <F label="Country">
-                    <Input placeholder="Country" {...registerWarehouse("country")} className={icls} />
+                    <Input
+                      placeholder="Country"
+                      {...registerWarehouse("country")}
+                      className={icls}
+                    />
                     {warehouseErrors.country && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.country.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.country.message}
+                      </p>
                     )}
                   </F>
 
                   <F label="Pin Code">
-                    <Input placeholder="Pin Code" {...registerWarehouse("pin")} className={icls} />
+                    <Input
+                      placeholder="Pin Code"
+                      {...registerWarehouse("pin")}
+                      className={icls}
+                    />
                     {warehouseErrors.pin && (
-                      <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.pin.message}</p>
+                      <p className="text-[11px] text-rose-400 mt-1">
+                        {warehouseErrors.pin.message}
+                      </p>
                     )}
                   </F>
                 </div>
@@ -485,7 +511,9 @@ const WarehouseMaster = () => {
                   placeholder="Select Manager"
                 />
                 {warehouseErrors.manager && (
-                  <p className="text-[11px] text-rose-400 mt-1">{warehouseErrors.manager.message}</p>
+                  <p className="text-[11px] text-rose-400 mt-1">
+                    {warehouseErrors.manager.message}
+                  </p>
                 )}
               </SectionCard>
 

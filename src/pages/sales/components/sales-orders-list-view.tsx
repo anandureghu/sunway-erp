@@ -1,4 +1,4 @@
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, ListTodo, FileCheck } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -101,12 +101,14 @@ export function SalesOrdersListView({
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="active" className="gap-2">
+                  <ListTodo className="h-4 w-4" />
                   Current orders
                   <Badge variant="secondary" className="font-normal">
                     {activeCount}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="closed" className="gap-2">
+                  <FileCheck className="h-4 w-4" />
                   Completed
                   <Badge variant="secondary" className="font-normal">
                     {closedCount}

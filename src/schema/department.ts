@@ -6,6 +6,7 @@ export const DEPARTMENT_SCHEMA = z.object({
     .length(4, { message: "Department code must be exactly 4 characters" }),
   departmentName: z.string().min(2, "Department name is required"),
   managerId: z.number().optional(),
+  divisionId: z.number().optional(),
   companyId: z.number({ message: "Company is required" }),
   description: z.string().optional(),
 });

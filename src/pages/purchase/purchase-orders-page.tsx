@@ -96,19 +96,20 @@ export default function PurchaseOrdersPage() {
         accent: "sky",
         icon: ShoppingCart,
       },
-      {
-        label: "Open Purchase Orders",
-        value: openCount,
-        hint: "Not fully received or cancelled",
-        accent: "emerald",
-        icon: Package,
-      },
+      
       {
         label: "Draft Purchase Orders",
         value: draftCount,
         hint: "Awaiting release to supplier",
         accent: "amber",
         icon: ClipboardList,
+      },
+      {
+        label: "Completed or cancelled POs",
+        value: openCount,
+        hint: "Not fully received or cancelled",
+        accent: "emerald",
+        icon: Package,
       },
       {
         label: "Open commitment",

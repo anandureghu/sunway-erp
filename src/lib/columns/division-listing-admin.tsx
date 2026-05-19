@@ -22,12 +22,18 @@ export const getDivisionColumns = ({
   },
   {
     accessorKey: "managerId",
-    header: "Manager ID",
+    header: "Manager",
     cell: ({ row }) => {
       const division = row.original;
+      if (division.managerId == null) {
+        return <span className="text-slate-400">—</span>;
+      }
+      const name = [division.managerFirstName, division.managerLastName]
+        .filter(Boolean)
+        .join(" ");
       return (
         <Info
-          title={`${division.managerFirstName} ${division.managerLastName}`}
+          title={name || "—"}
           subtitle={division.managerId.toString()}
         />
       );
@@ -38,18 +44,8 @@ export const getDivisionColumns = ({
     header: "Company",
     cell: ({ row }) => (
       <Info
-        title={row.original.companyName}
-        subtitle={row.original.companyCode}
-      />
-    ),
-  },
-  {
-    id: "departmentName",
-    header: "Department",
-    cell: ({ row }) => (
-      <Info
-        title={row.original.departmentName}
-        subtitle={row.original.departmentCode}
+        title={row.original.companyName ?? "—"}
+        subtitle={row.original.companyCode ?? ""}
       />
     ),
   },

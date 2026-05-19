@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Wallet,
+  ListTodo,
+  FileCheck,
 } from "lucide-react";
 import {
   Select,
@@ -140,17 +142,18 @@ export default function InvoicesPage({
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase();
-    const unpaid = invoices.filter(
+    const visibleInvoices = invoices.filter((inv) => !inv.archived);
+    const unpaid = visibleInvoices.filter(
       (inv) => norm(inv.status) === "UNPAID",
     ).length;
-    const paid = invoices.filter((inv) => norm(inv.status) === "PAID").length;
-    const overdue = invoices.filter(
+    const paid = visibleInvoices.filter((inv) => norm(inv.status) === "PAID").length;
+    const overdue = visibleInvoices.filter(
       (inv) => norm(inv.status) === "OVERDUE",
     ).length;
     return [
       {
         label: "Total invoices",
-        value: invoices.length,
+        value: visibleInvoices.length,
         hint: "Sales invoices loaded",
         accent: "sky",
         icon: FileText,
@@ -208,12 +211,14 @@ export default function InvoicesPage({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
             <TabsTrigger value="outstanding" className="gap-2">
+              <ListTodo className="h-4 w-4" />
               Current Invoices
               <Badge variant="secondary" className="font-normal">
                 {outstandingCount}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="archived" className="gap-2">
+              <FileCheck className="h-4 w-4" />
               Completed
               <Badge variant="secondary" className="font-normal">
                 {archivedCount}

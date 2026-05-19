@@ -12,7 +12,7 @@ const EMPTY_FORM = {
   jobLevel: "",
   departmentCode: "",
   departmentName: "",
-  grade: "",
+  salaryGrade: "",
   startDate: "",
   expectedEndDate: "",
   effectiveFrom: "",
@@ -49,7 +49,7 @@ export default function CurrentJobTab() {
             jobLevel: jobData.job?.level ?? "",
             departmentCode: jobData.department?.code ?? "",
             departmentName: jobData.department?.name ?? "",
-            grade: jobData.job?.grade ?? "",
+            salaryGrade: jobData.job?.salaryGrade ?? "",
             startDate: jobData.startDate ?? "",
             expectedEndDate: jobData.expectedEndDate ?? "",
             effectiveFrom: jobData.effectiveFrom ?? "",
@@ -102,8 +102,8 @@ export default function CurrentJobTab() {
           <Input value={form.departmentName} onChange={onChange("departmentName")} disabled={!editing} />
         </Field>
 
-        <Field label="Grade">
-          <Input value={form.grade} onChange={onChange("grade")} disabled={!editing} />
+        <Field label="Salary Grade">
+          <Input value={form.salaryGrade} onChange={onChange("salaryGrade")} disabled={!editing} />
         </Field>
       </Row>
 

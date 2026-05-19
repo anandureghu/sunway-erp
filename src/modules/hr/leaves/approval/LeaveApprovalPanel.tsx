@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   AlertCircle,
+  Building2,
   Calendar,
   CheckCircle,
   Clock,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Employee } from "@/types/hr";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 interface PendingLeave {
   id: number;
@@ -73,7 +75,7 @@ const buildEmployee = (row: any): Employee => {
       row.employee?.id ??
       row.employee?.employeeId ??
       row.employee?.employee_id ??
-      0
+      0,
   );
 
   const employeeName =
@@ -87,10 +89,7 @@ const buildEmployee = (row: any): Employee => {
   const parts = String(employeeName).trim().split(/\s+/).filter(Boolean);
 
   const firstName =
-    row.employee?.firstName ??
-    row.employee?.first_name ??
-    parts[0] ??
-    "";
+    row.employee?.firstName ?? row.employee?.first_name ?? parts[0] ?? "";
 
   const lastName =
     row.employee?.lastName ??
@@ -109,24 +108,21 @@ const normalizeLeaves = (payload: any): PendingLeave[] => {
   const rows: any[] = Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.approvals)
-    ? payload.approvals
-    : Array.isArray(payload?.leaves)
-    ? payload.leaves
-    : Array.isArray(payload?.history)
-    ? payload.history
-    : Array.isArray(payload?.data)
-    ? payload.data
-    : [];
+      ? payload.approvals
+      : Array.isArray(payload?.leaves)
+        ? payload.leaves
+        : Array.isArray(payload?.history)
+          ? payload.history
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
 
   return rows
     .map((row) => {
       const employee = buildEmployee(row);
 
       const employeeId = Number(
-        row.employeeId ??
-          row.employee_id ??
-          employee.id ??
-          0
+        row.employeeId ?? row.employee_id ?? employee.id ?? 0,
       );
 
       const leaveId = Number(row.leaveId ?? row.id ?? row.leave_id ?? 0);
@@ -187,7 +183,7 @@ export default function LeaveApprovalPanel() {
     };
   }, [user]);
 
-// Get the manager's employee ID from the logged-in user
+  // Get the manager's employee ID from the logged-in user
   const managerEmployeeId = useMemo(() => {
     if (!user) return 0;
     // Try to get employeeId from user object (set from JWT token)
@@ -209,7 +205,9 @@ export default function LeaveApprovalPanel() {
 
       if (!managerEmployeeId || managerEmployeeId <= 0) {
         setPending([]);
-        toast.error("Cannot load approvals: missing manager employee ID. Please ensure your account is linked to an employee record.");
+        toast.error(
+          "Cannot load approvals: missing manager employee ID. Please ensure your account is linked to an employee record.",
+        );
         return;
       }
 
@@ -223,7 +221,8 @@ export default function LeaveApprovalPanel() {
 
       const leaves = normalizeLeaves(res.data).sort(
         (a, b) =>
-          new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime()
+          new Date(b.dateReported).getTime() -
+          new Date(a.dateReported).getTime(),
       );
 
       setPending(leaves);
@@ -236,7 +235,7 @@ export default function LeaveApprovalPanel() {
     }
   }, [user, canApprove, managerEmployeeId]);
 
-useEffect(() => {
+  useEffect(() => {
     loadPendingLeaves();
   }, [loadPendingLeaves]);
 
@@ -282,13 +281,18 @@ useEffect(() => {
 
   const employees = useMemo(() => {
     return Array.from(
-      new Map(pending.map((leave) => [String(leave.employeeId), leave.employee])).values()
+      new Map(
+        pending.map((leave) => [String(leave.employeeId), leave.employee]),
+      ).values(),
     );
   }, [pending]);
 
   const allTypes = useMemo(
-    () => ["All", ...Array.from(new Set(pending.map((leave) => leave.leaveType)))],
-    [pending]
+    () => [
+      "All",
+      ...Array.from(new Set(pending.map((leave) => leave.leaveType))),
+    ],
+    [pending],
   );
 
   const displayed = useMemo(() => {
@@ -338,7 +342,7 @@ useEffect(() => {
         iconBg: "bg-emerald-100 text-emerald-600",
       },
     ],
-    [pending]
+    [pending],
   );
 
   if (permissionsLoading || canApprove === null) {
@@ -348,7 +352,9 @@ useEffect(() => {
           <Loader2 className="h-7 w-7 text-amber-400 animate-spin" />
         </div>
         <div className="text-center">
-          <p className="text-base font-semibold text-slate-700">Checking permissions...</p>
+          <p className="text-base font-semibold text-slate-700">
+            Checking permissions...
+          </p>
           <p className="text-sm text-slate-400 mt-1">
             Please wait while we verify your access rights.
           </p>
@@ -364,10 +370,12 @@ useEffect(() => {
           <AlertCircle className="h-7 w-7 text-rose-400" />
         </div>
         <div className="text-center">
-          <p className="text-base font-semibold text-slate-700">Access Restricted</p>
+          <p className="text-base font-semibold text-slate-700">
+            Access Restricted
+          </p>
           <p className="text-sm text-slate-400 mt-1">
-            You need the LEAVES Approve permission or to be a department
-            manager to view leave approvals.
+            You need the LEAVES Approve permission or to be a department manager
+            to view leave approvals.
           </p>
         </div>
       </div>
@@ -376,46 +384,48 @@ useEffect(() => {
 
   return (
     <div className="space-y-5">
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500" />
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-md">
-              <CheckCircle className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-slate-900 leading-tight">Leave Approvals</h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Review and approve employee leave requests
-              </p>
-            </div>
-          </div>
-
+      <SecondaryPageHeader
+        title="Leave Approvals"
+        description="Review and approve employee leave requests"
+        icon={<Building2 className="h-5 w-5" />}
+        actions={
           <button
             onClick={loadPendingLeaves}
             disabled={loading}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            <RefreshCw
+              className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+            />
             Refresh
           </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className={cn("flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm", stat.color)}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border bg-white p-4 shadow-sm",
+              stat.color,
+            )}
           >
-            <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", stat.iconBg)}>
+            <div
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                stat.iconBg,
+              )}
+            >
               {stat.icon}
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
                 {stat.label}
               </p>
-              <p className="text-2xl font-bold tabular-nums leading-tight">{stat.value}</p>
+              <p className="text-2xl font-bold tabular-nums leading-tight">
+                {stat.value}
+              </p>
             </div>
           </div>
         ))}
@@ -441,7 +451,7 @@ useEffect(() => {
                 "rounded-full px-3 py-1.5 text-xs font-semibold transition-all border",
                 typeFilter === type
                   ? "bg-amber-500 border-amber-500 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:text-amber-700"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:text-amber-700",
               )}
             >
               {type}
@@ -453,7 +463,9 @@ useEffect(() => {
       {loading ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-20 gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
-          <p className="text-sm font-medium text-slate-500">Loading pending leave approvals...</p>
+          <p className="text-sm font-medium text-slate-500">
+            Loading pending leave approvals...
+          </p>
         </div>
       ) : displayed.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-20 gap-4">
@@ -462,7 +474,9 @@ useEffect(() => {
           </div>
           <div className="text-center">
             <p className="text-base font-semibold text-slate-700">
-              {search || typeFilter !== "All" ? "No results match your filters" : "All caught up!"}
+              {search || typeFilter !== "All"
+                ? "No results match your filters"
+                : "All caught up!"}
             </p>
             <p className="text-sm text-slate-400 mt-1">
               {search || typeFilter !== "All"
@@ -475,7 +489,8 @@ useEffect(() => {
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {displayed.length} pending request{displayed.length !== 1 ? "s" : ""}
+              {displayed.length} pending request
+              {displayed.length !== 1 ? "s" : ""}
               {typeFilter !== "All" && ` · ${typeFilter}`}
             </p>
           </div>
@@ -484,14 +499,24 @@ useEffect(() => {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100">
-                  {["Employee", "Leave Type", "Period", "Days", "Reported", "Document", "Action"].map((header) => (
+                  {[
+                    "Employee",
+                    "Leave Type",
+                    "Period",
+                    "Days",
+                    "Reported",
+                    "Document",
+                    "Action",
+                  ].map((header) => (
                     <th
                       key={header}
                       className={cn(
                         "px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500",
-                        header === "Days" || header === "Document" || header === "Action"
+                        header === "Days" ||
+                          header === "Document" ||
+                          header === "Action"
                           ? "text-center"
-                          : "text-left"
+                          : "text-left",
                       )}
                     >
                       {header}
@@ -510,21 +535,31 @@ useEffect(() => {
                       key={leave.id}
                       className={cn(
                         "border-b border-slate-100 transition-all duration-500",
-                        wasApproved ? "bg-emerald-50" : index % 2 === 0 ? "bg-white" : "bg-slate-50/30",
-                        "hover:bg-slate-50/60"
+                        wasApproved
+                          ? "bg-emerald-50"
+                          : index % 2 === 0
+                            ? "bg-white"
+                            : "bg-slate-50/30",
+                        "hover:bg-slate-50/60",
                       )}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
-                            {(leave.employee.firstName?.[0] ?? leave.employeeName?.[0] ?? "?").toUpperCase()}
+                            {(
+                              leave.employee.firstName?.[0] ??
+                              leave.employeeName?.[0] ??
+                              "?"
+                            ).toUpperCase()}
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-slate-800 truncate">
-                              {leave.employeeName || `${leave.employee.firstName} ${leave.employee.lastName}`}
+                              {leave.employeeName ||
+                                `${leave.employee.firstName} ${leave.employee.lastName}`}
                             </p>
                             <p className="text-[10px] font-mono text-slate-400 truncate">
-                              {leave.employee.employeeNo ?? `EMP-${leave.employeeId}`}
+                              {leave.employee.employeeNo ??
+                                `EMP-${leave.employeeId}`}
                             </p>
                           </div>
                         </div>
@@ -534,7 +569,7 @@ useEffect(() => {
                         <span
                           className={cn(
                             "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-                            typeColor(leave.leaveType)
+                            typeColor(leave.leaveType),
                           )}
                         >
                           {leave.leaveType}
@@ -594,7 +629,7 @@ useEffect(() => {
                             className={cn(
                               "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
                               "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 shadow-sm",
-                              isApproving && "opacity-60 cursor-wait"
+                              isApproving && "opacity-60 cursor-wait",
                             )}
                           >
                             {isApproving ? (
@@ -615,9 +650,19 @@ useEffect(() => {
 
           <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 flex items-center justify-between">
             <p className="text-xs text-slate-400">
-              Showing <span className="font-semibold text-slate-600">{displayed.length}</span> of{" "}
-              <span className="font-semibold text-slate-600">{pending.length}</span> pending requests across{" "}
-              <span className="font-semibold text-slate-600">{employees.length}</span> employees
+              Showing{" "}
+              <span className="font-semibold text-slate-600">
+                {displayed.length}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-slate-600">
+                {pending.length}
+              </span>{" "}
+              pending requests across{" "}
+              <span className="font-semibold text-slate-600">
+                {employees.length}
+              </span>{" "}
+              employees
             </p>
             <p className="text-[10px] text-slate-300 italic">
               Only HR Managers and Department Managers can approve

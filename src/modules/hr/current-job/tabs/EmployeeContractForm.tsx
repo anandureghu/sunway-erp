@@ -9,7 +9,10 @@ import {
 } from "@/service/contractService";
 import { salaryService } from "@/service/salaryService";
 import { hrService } from "@/service/hr.service";
-import { currentJobService, type CurrentJobResponse } from "@/service/currentJobService";
+import {
+  currentJobService,
+  type CurrentJobResponse,
+} from "@/service/currentJobService";
 import type { Employee } from "@/types/hr";
 import { downloadContractPdf } from "@/service/contractPdfService";
 import { toast } from "sonner";
@@ -38,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 /* ================= TYPES ================= */
 
@@ -130,19 +134,42 @@ function buildSalaryOptions(s: any): SalaryOption[] {
   const opts: SalaryOption[] = [];
 
   if (Number(s.basicSalary) > 0) {
-    opts.push({ name: "Basic Salary", amount: String(s.basicSalary), effectiveDate });
+    opts.push({
+      name: "Basic Salary",
+      amount: String(s.basicSalary),
+      effectiveDate,
+    });
   }
-  if (s.transportationType === "ALLOWANCE" && Number(s.transportationAllowance) > 0) {
-    opts.push({ name: "Transportation Allowance", amount: String(s.transportationAllowance), effectiveDate });
+  if (
+    s.transportationType === "ALLOWANCE" &&
+    Number(s.transportationAllowance) > 0
+  ) {
+    opts.push({
+      name: "Transportation Allowance",
+      amount: String(s.transportationAllowance),
+      effectiveDate,
+    });
   }
   if (s.travelType === "ALLOWANCE" && Number(s.travelAllowance) > 0) {
-    opts.push({ name: "Travel Allowance", amount: String(s.travelAllowance), effectiveDate });
+    opts.push({
+      name: "Travel Allowance",
+      amount: String(s.travelAllowance),
+      effectiveDate,
+    });
   }
   if (s.housingType === "ALLOWANCE" && Number(s.housingAllowance) > 0) {
-    opts.push({ name: "Housing Allowance", amount: String(s.housingAllowance), effectiveDate });
+    opts.push({
+      name: "Housing Allowance",
+      amount: String(s.housingAllowance),
+      effectiveDate,
+    });
   }
   if (Number(s.otherAllowance) > 0) {
-    opts.push({ name: "Other Allowance", amount: String(s.otherAllowance), effectiveDate });
+    opts.push({
+      name: "Other Allowance",
+      amount: String(s.otherAllowance),
+      effectiveDate,
+    });
   }
 
   return opts;
@@ -151,8 +178,8 @@ function buildSalaryOptions(s: any): SalaryOption[] {
 function cleanObject<T extends Record<string, any>>(obj: T): T {
   return Object.fromEntries(
     Object.entries(obj).filter(
-      ([, value]) => value !== "" && value !== undefined && value !== null
-    )
+      ([, value]) => value !== "" && value !== undefined && value !== null,
+    ),
   ) as T;
 }
 
@@ -204,8 +231,8 @@ export default function EmployeeContractForm() {
       termsAndConditions: "",
       attachmentUrl: "",
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+
+    [],
   );
 
   const {
@@ -258,7 +285,7 @@ export default function EmployeeContractForm() {
             (r) =>
               r.customName.trim() !== "" &&
               String(r.amount).trim() !== "" &&
-              Number(r.amount) > 0
+              Number(r.amount) > 0,
           )
           .map((r) => {
             const name = r.customName.trim();
@@ -287,7 +314,7 @@ export default function EmployeeContractForm() {
 
         if (allowances.length === 0) {
           toast.error(
-            "Please add at least one allowance with a name and amount greater than 0"
+            "Please add at least one allowance with a name and amount greater than 0",
           );
           return;
         }
@@ -314,7 +341,10 @@ export default function EmployeeContractForm() {
         if (exists && contractId) {
           savedContract = await contractService.update(contractId, payload);
         } else {
-          savedContract = await contractService.create(validEmployeeId, payload);
+          savedContract = await contractService.create(
+            validEmployeeId,
+            payload,
+          );
           if (savedContract?.id) {
             setContractId(savedContract.id);
             setExists(true);
@@ -323,7 +353,10 @@ export default function EmployeeContractForm() {
 
         // Step 2: Upload attachment as separate multipart request
         if (attachmentFile && savedContract?.id) {
-          await contractService.uploadAttachment(savedContract.id, attachmentFile);
+          await contractService.uploadAttachment(
+            savedContract.id,
+            attachmentFile,
+          );
           setAttachmentFile(null);
         }
 
@@ -424,24 +457,29 @@ export default function EmployeeContractForm() {
         const mappedSalaryRows: SalaryAllowanceRow[] =
           fresh.allowances?.length > 0
             ? fresh.allowances.map(
-                (a: AllowancePayload & { customName?: string; allowanceType?: string }) => ({
+                (
+                  a: AllowancePayload & {
+                    customName?: string;
+                    allowanceType?: string;
+                  },
+                ) => ({
                   id: crypto.randomUUID(),
                   customName: a.customName ?? a.allowanceType ?? "",
                   amount: a.amount != null ? String(a.amount) : "",
                   effectiveDate: a.effectiveDate ?? "",
                   note: a.note ?? "",
-                })
+                }),
               )
             : // ─── FIX: if contract has no allowances, fall back to salary opts ───
               opts.length > 0
-            ? opts.map((opt) => ({
-                id: crypto.randomUUID(),
-                customName: opt.name,
-                amount: opt.amount,
-                effectiveDate: opt.effectiveDate,
-                note: "",
-              }))
-            : [createEmptyRow()];
+              ? opts.map((opt) => ({
+                  id: crypto.randomUUID(),
+                  customName: opt.name,
+                  amount: opt.amount,
+                  effectiveDate: opt.effectiveDate,
+                  note: "",
+                }))
+              : [createEmptyRow()];
 
         const loadedData: ContractFormData = {
           contractCode: fresh.contractCode ?? "",
@@ -471,7 +509,7 @@ export default function EmployeeContractForm() {
         loadingContractRef.current = false;
       }
     },
-    [initialFormData, setFields]
+    [initialFormData, setFields],
   );
 
   useEffect(() => {
@@ -480,14 +518,26 @@ export default function EmployeeContractForm() {
   }, [employeeId, loadContract]);
 
   useEffect(() => {
-    document.addEventListener("contract:start-edit", handleEdit as EventListener);
+    document.addEventListener(
+      "contract:start-edit",
+      handleEdit as EventListener,
+    );
     document.addEventListener("contract:save", handleSave as EventListener);
     document.addEventListener("contract:cancel", handleCancel as EventListener);
 
     return () => {
-      document.removeEventListener("contract:start-edit", handleEdit as EventListener);
-      document.removeEventListener("contract:save", handleSave as EventListener);
-      document.removeEventListener("contract:cancel", handleCancel as EventListener);
+      document.removeEventListener(
+        "contract:start-edit",
+        handleEdit as EventListener,
+      );
+      document.removeEventListener(
+        "contract:save",
+        handleSave as EventListener,
+      );
+      document.removeEventListener(
+        "contract:cancel",
+        handleCancel as EventListener,
+      );
     };
   }, [handleEdit, handleSave, handleCancel]);
 
@@ -497,7 +547,8 @@ export default function EmployeeContractForm() {
     const errors: ValidationErrors = {};
     if (!data.staffName?.trim()) errors.staffName = "Staff name is required";
     if (!data.contractType) errors.contractType = "Contract type is required";
-    if (!data.effectiveDate) errors.effectiveDate = "Effective date is required";
+    if (!data.effectiveDate)
+      errors.effectiveDate = "Effective date is required";
     if (!data.status) errors.status = "Status is required";
     return errors;
   };
@@ -509,12 +560,12 @@ export default function EmployeeContractForm() {
   const updateRow = (
     rowId: string,
     field: keyof SalaryAllowanceRow,
-    value: string
+    value: string,
   ) => {
     updateField("salaryRows")(
       formData.salaryRows.map((row) =>
-        row.id === rowId ? { ...row, [field]: value } : row
-      )
+        row.id === rowId ? { ...row, [field]: value } : row,
+      ),
     );
   };
 
@@ -523,7 +574,9 @@ export default function EmployeeContractForm() {
 
   const removeRow = (rowId: string) => {
     if (formData.salaryRows.length <= 1) return;
-    updateField("salaryRows")(formData.salaryRows.filter((r) => r.id !== rowId));
+    updateField("salaryRows")(
+      formData.salaryRows.filter((r) => r.id !== rowId),
+    );
   };
 
   /* ================= CALCULATED VALUES ================= */
@@ -533,7 +586,7 @@ export default function EmployeeContractForm() {
   }, 0);
 
   const validRows = formData.salaryRows.filter(
-    (r) => r.customName || r.amount || r.effectiveDate || r.note
+    (r) => r.customName || r.amount || r.effectiveDate || r.note,
   );
 
   /* ================= PDF ================= */
@@ -557,7 +610,7 @@ export default function EmployeeContractForm() {
         customName: row.customName,
       })),
     }),
-    [formData]
+    [formData],
   );
 
   const handleDownloadPdf = () => {
@@ -575,30 +628,20 @@ export default function EmployeeContractForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="bg-slate-50/60 min-h-screen p-5 space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-5">
       {/* Header Section */}
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
-        <div className="flex items-center justify-between gap-4 px-6 py-5">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-md">
-              <FileText className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-lg font-bold text-slate-900 leading-tight">
-                Employee Contract
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Manage employment contract details and terms
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5">
+
+      <SecondaryPageHeader
+        title="Employee Contract"
+        description="Manage employment contract details and terms"
+        icon={<FileText className="h-5 w-5 text-white" />}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               {formData.status && (
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(
-                    formData.status
+                    formData.status,
                   )}`}
                 >
                   {formData.status}
@@ -607,7 +650,7 @@ export default function EmployeeContractForm() {
               {formData.contractType && (
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getContractTypeColor(
-                    formData.contractType
+                    formData.contractType,
                   )}`}
                 >
                   {formData.contractType}
@@ -625,8 +668,8 @@ export default function EmployeeContractForm() {
               </button>
             )}
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Contract Summary Card */}
       <div className="bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 rounded-xl px-4 py-3 text-white shadow-md relative overflow-hidden">
@@ -646,7 +689,9 @@ export default function EmployeeContractForm() {
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">
                 Contract Code
               </p>
-              <p className="text-sm font-bold">{formData.contractCode || "—"}</p>
+              <p className="text-sm font-bold">
+                {formData.contractCode || "—"}
+              </p>
             </div>
             <div>
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">
@@ -662,7 +707,9 @@ export default function EmployeeContractForm() {
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">
                 Start Date
               </p>
-              <p className="text-sm font-bold">{formData.effectiveDate || "—"}</p>
+              <p className="text-sm font-bold">
+                {formData.effectiveDate || "—"}
+              </p>
             </div>
             <div>
               <p className="text-[10px] text-white/60 uppercase tracking-wide mb-0.5">
@@ -680,7 +727,6 @@ export default function EmployeeContractForm() {
 
       {/* Main Form Card */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-6">
-
         {/* Linked Employee Info + Current Job — read-only auto-fill */}
         <section>
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
@@ -689,10 +735,11 @@ export default function EmployeeContractForm() {
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-slate-700">
-                Linked Employee Info & Current Job
+                Linked Employee and Current Job
               </h3>
               <p className="text-xs text-slate-400">
-                Auto-filled from the Employee Info and Current Job tabs. Edit them there.
+                Auto-filled from the Employee Info and Current Job tabs. Edit
+                them there.
               </p>
             </div>
           </div>
@@ -783,7 +830,11 @@ export default function EmployeeContractForm() {
                   className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
                   disabled
                   readOnly
-                  value={[currentJob?.workLocation, currentJob?.workCity, currentJob?.workCountry]
+                  value={[
+                    currentJob?.workLocation,
+                    currentJob?.workCity,
+                    currentJob?.workCountry,
+                  ]
                     .filter(Boolean)
                     .join(", ")}
                   placeholder="—"
@@ -817,7 +868,24 @@ export default function EmployeeContractForm() {
               </div>
             </FormField>
 
-            <FormField label="Contract Type" required error={errors.contractType}>
+            <FormField label="Staff Name" required error={errors.staffName}>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  disabled={!editing}
+                  placeholder="Enter staff name"
+                  value={formData.staffName}
+                  onChange={(e) => updateField("staffName")(e.target.value)}
+                />
+              </div>
+            </FormField>
+
+            <FormField
+              label="Contract Type"
+              required
+              error={errors.contractType}
+            >
               <Select
                 value={formData.contractType}
                 onValueChange={(v) =>
@@ -840,7 +908,9 @@ export default function EmployeeContractForm() {
             <FormField label="Status" required error={errors.status}>
               <Select
                 value={formData.status}
-                onValueChange={(v) => updateField("status")(v as ContractStatus)}
+                onValueChange={(v) =>
+                  updateField("status")(v as ContractStatus)
+                }
                 disabled={!editing}
               >
                 <SelectTrigger className="h-11 border-slate-300 rounded-xl">
@@ -855,7 +925,11 @@ export default function EmployeeContractForm() {
               </Select>
             </FormField>
 
-            <FormField label="Effective Date" required error={errors.effectiveDate}>
+            <FormField
+              label="Effective Date"
+              required
+              error={errors.effectiveDate}
+            >
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
@@ -876,7 +950,9 @@ export default function EmployeeContractForm() {
                   className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.expirationDate}
-                  onChange={(e) => updateField("expirationDate")(e.target.value)}
+                  onChange={(e) =>
+                    updateField("expirationDate")(e.target.value)
+                  }
                 />
               </div>
             </FormField>
@@ -996,7 +1072,9 @@ export default function EmployeeContractForm() {
                         onChange={(e) =>
                           updateRow(row.id, "customName", e.target.value)
                         }
-                        placeholder={editing ? "e.g. Housing, Transport..." : "—"}
+                        placeholder={
+                          editing ? "e.g. Housing, Transport..." : "—"
+                        }
                       />
                     </td>
 
@@ -1011,7 +1089,10 @@ export default function EmployeeContractForm() {
                           disabled={!editing}
                           value={row.amount}
                           onChange={(e) => {
-                            const clean = e.target.value.replace(/[^0-9.]/g, "");
+                            const clean = e.target.value.replace(
+                              /[^0-9.]/g,
+                              "",
+                            );
                             updateRow(row.id, "amount", clean);
                           }}
                           placeholder="0.00"

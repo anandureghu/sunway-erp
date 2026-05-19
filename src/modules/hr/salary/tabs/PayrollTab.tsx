@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
 import { downloadPayslipPdf } from "@/service/payslipService";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 interface PayrollRow {
   payDate: string;
@@ -79,16 +80,13 @@ export default function PayrollTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
-        <ScrollText className="h-5 w-5 shrink-0 text-slate-500 mt-0.5" />
-        <p>
-          This is a read-only list of payroll runs for this employee. Monthly payroll generation is done from{" "}
-          <span className="font-medium text-slate-900">HR Settings → Payroll</span>.
-        </p>
-      </div>
+      <SecondaryPageHeader
+        title="Payroll History"
+        description="View the employee's payroll history"
+        icon={<ScrollText className="h-5 w-5 text-white" />}
+      />
 
       <div>
-        <h3 className="text-lg font-semibold">Payroll history</h3>
         <div className="mt-2 overflow-x-auto rounded-md border">
           <table className="min-w-full text-sm">
             <thead className="bg-muted">
@@ -99,7 +97,9 @@ export default function PayrollTab() {
                 <th className="px-3 py-2 font-medium">Deductions</th>
                 <th className="px-3 py-2 font-medium">Pay Date</th>
                 <th className="px-3 py-2 font-medium">Net Payable</th>
-                <th className="w-24 px-3 py-2 text-center font-medium">Actions</th>
+                <th className="w-24 px-3 py-2 text-center font-medium">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>

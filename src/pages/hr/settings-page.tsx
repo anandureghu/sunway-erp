@@ -20,6 +20,11 @@ import {
   Users,
   Star,
   Building,
+  Shield,
+  X,
+  ChevronDown,
+  DollarSign,
+  TrendingUp,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +60,69 @@ import type { Employee } from "@/types/hr";
 import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 import { AppTab } from "@/components/app-tab";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Shared styles + helpers for the Job Code modal.
+   Mirror the look/feel of the Add Employee modal in
+   src/context/employee-selection.tsx.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+const jcInputCls =
+  "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-150 focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
+
+const jcSelectCls =
+  "h-10 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-3 pr-8 text-[13px] text-slate-800 outline-none transition-all duration-150 focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
+
+const jcLabelCls =
+  "block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5";
+
+function JcSection({
+  icon,
+  iconBg,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+        <div
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
+        >
+          {icon}
+        </div>
+        <span className="text-[13px] font-semibold text-slate-700">
+          {title}
+        </span>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+function JcSelectField({
+  value,
+  onChange,
+  children,
+}: {
+  value: string;
+  onChange: React.ChangeEventHandler<HTMLSelectElement>;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <select value={value} onChange={onChange} className={jcSelectCls}>
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+    </div>
+  );
+}
 
 interface Role {
   id: number;
@@ -69,7 +137,9 @@ interface JobCode {
   code: string;
   title: string;
   level: string;
-  grade: string;
+  salaryGrade: string;
+  minSalary?: number | null;
+  maxSalary?: number | null;
   active: boolean;
 }
 
@@ -352,7 +422,15 @@ function JobCodesTab({
   );
 
   const openAdd = () => {
-    setForm({ code: "", title: "", level: "Mid", grade: "G3", active: true });
+    setForm({
+      code: "",
+      title: "",
+      level: "Mid",
+      salaryGrade: "G3",
+      minSalary: null,
+      maxSalary: null,
+      active: true,
+    });
     setModal(true);
   };
 
@@ -363,13 +441,27 @@ function JobCodesTab({
 
   const save = async () => {
     if (!form.code || !form.title) return;
+
+    const minSalary = form.minSalary ?? null;
+    const maxSalary = form.maxSalary ?? null;
+    if (
+      minSalary != null &&
+      maxSalary != null &&
+      Number(minSalary) > Number(maxSalary)
+    ) {
+      toast.error("Min salary cannot exceed max salary");
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
         code: form.code,
         title: form.title,
         level: form.level || "Mid",
-        grade: form.grade || "G3",
+        salaryGrade: form.salaryGrade || "G3",
+        minSalary,
+        maxSalary,
         active: form.active ?? true,
       };
 
@@ -393,32 +485,31 @@ function JobCodesTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">Job Codes</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Admin defines job codes with title, level and grade.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search..."
-              className="pl-9 w-48"
-            />
-          </div>
-          <Button
-            onClick={openAdd}
-            className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Job Code
-          </Button>
-        </div>
-      </div>
+      <SecondaryPageHeader
+        title="Job Codes"
+        description="Manage job codes"
+        icon={<Briefcase className="h-5 w-5" />}
+        actions={
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search..."
+                className="pl-9 w-48"
+              />
+            </div>
+            <Button
+              onClick={openAdd}
+              className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Job Code
+            </Button>
+          </>
+        }
+      />
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <Table>
@@ -434,7 +525,10 @@ function JobCodesTab({
                 Job Level
               </TableHead>
               <TableHead className="font-semibold text-slate-600">
-                Grade
+                Salary Grade
+              </TableHead>
+              <TableHead className="font-semibold text-slate-600">
+                Salary Range
               </TableHead>
               <TableHead className="font-semibold text-slate-600">
                 Status
@@ -468,8 +562,19 @@ function JobCodesTab({
                     variant="outline"
                     className="border-yellow-300 text-yellow-700"
                   >
-                    {j.grade}
+                    {j.salaryGrade}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-slate-700">
+                  {j.minSalary != null || j.maxSalary != null ? (
+                    <>
+                      {j.minSalary != null ? Number(j.minSalary).toLocaleString() : "—"}
+                      {" – "}
+                      {j.maxSalary != null ? Number(j.maxSalary).toLocaleString() : "—"}
+                    </>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {j.active ? (
@@ -511,7 +616,7 @@ function JobCodesTab({
             ))}
             {!filtered.length && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
+                <TableCell colSpan={7} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Briefcase className="h-12 w-12 text-slate-300" />
                     <p className="text-slate-500 font-medium">
@@ -529,92 +634,201 @@ function JobCodesTab({
       </div>
 
       <Dialog open={modal} onOpenChange={setModal}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              {form.id ? "Edit Job Code" : "Add Job Code"}
-            </DialogTitle>
-            <DialogDescription>
-              Only Job Code, Title, Level and Grade are set here. Department is
-              assigned on the employee profile.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Job Code *
-                </label>
-                <Input
-                  value={form.code ?? ""}
-                  onChange={(e) => F({ code: e.target.value.toUpperCase() })}
-                  placeholder="ENG-003"
-                />
+        <DialogContent
+          className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
+          style={{
+            maxWidth: 680,
+            maxHeight: "92vh",
+            width: "calc(100vw - 32px)",
+          }}
+        >
+          {/* ── Header ── */}
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between gap-4 px-6 py-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-white/20 bg-indigo-100 text-indigo-700">
+                <Briefcase className="h-5 w-5" />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Grade *
-                </label>
-                <select
-                  value={form.grade ?? "G3"}
-                  onChange={(e) => F({ grade: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {GRADES.map((g) => (
-                    <option key={g}>{g}</option>
-                  ))}
-                </select>
+              <div>
+                <h2 className="text-[15px] font-semibold leading-tight text-white">
+                  {form.id ? "Edit job code" : "Add new job code"}
+                </h2>
+                <p className="mt-0.5 text-[12px] text-slate-300">
+                  Define identity, salary grade, and salary range. Department is
+                  assigned on the employee profile.
+                </p>
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">
-                Job Title *
-              </label>
-              <Input
-                value={form.title ?? ""}
-                onChange={(e) => F({ title: e.target.value })}
-                placeholder="Software Engineer"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Job Level *
-                </label>
-                <select
-                  value={form.level ?? "Mid"}
-                  onChange={(e) => F({ level: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {LEVELS.map((l) => (
-                    <option key={l}>{l}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Status
-                </label>
-                <div className="flex items-center gap-2 pt-2">
-                  <Switch
-                    checked={form.active ?? true}
-                    onCheckedChange={(checked: boolean) =>
-                      F({ active: checked })
+            <button
+              onClick={() => setModal(false)}
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* ── Scrollable body ── */}
+          <div
+            className="space-y-4 overflow-y-auto bg-white px-6 py-5"
+            style={{ maxHeight: "calc(92vh - 132px)" }}
+          >
+            {/* ── Identity ── */}
+            <JcSection
+              icon={<Briefcase className="h-3.5 w-3.5 text-slate-600" />}
+              iconBg="bg-slate-100"
+              title="Identity"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={jcLabelCls}>
+                    Job code <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    value={form.code ?? ""}
+                    onChange={(e) =>
+                      F({ code: e.target.value.toUpperCase() })
                     }
+                    placeholder="ENG-003"
+                    className={`${jcInputCls} font-mono uppercase tracking-wider`}
                   />
-                  <span className="text-sm text-slate-600">
-                    {form.active ? "Active" : "Inactive"}
-                  </span>
+                </div>
+
+                <div>
+                  <label className={jcLabelCls}>
+                    Job level <span className="text-rose-400">*</span>
+                  </label>
+                  <JcSelectField
+                    value={form.level ?? "Mid"}
+                    onChange={(e) => F({ level: e.target.value })}
+                  >
+                    {LEVELS.map((l) => (
+                      <option key={l}>{l}</option>
+                    ))}
+                  </JcSelectField>
+                </div>
+
+                <div className="col-span-2">
+                  <label className={jcLabelCls}>
+                    Job title <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    value={form.title ?? ""}
+                    onChange={(e) => F({ title: e.target.value })}
+                    placeholder="Software Engineer"
+                    className={jcInputCls}
+                  />
                 </div>
               </div>
+            </JcSection>
+
+            {/* ── Compensation ── */}
+            <JcSection
+              icon={<DollarSign className="h-3.5 w-3.5 text-emerald-600" />}
+              iconBg="bg-emerald-50"
+              title="Compensation"
+            >
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className={jcLabelCls}>
+                    Salary grade <span className="text-rose-400">*</span>
+                  </label>
+                  <JcSelectField
+                    value={form.salaryGrade ?? "G3"}
+                    onChange={(e) => F({ salaryGrade: e.target.value })}
+                  >
+                    {GRADES.map((g) => (
+                      <option key={g}>{g}</option>
+                    ))}
+                  </JcSelectField>
+                </div>
+
+                <div>
+                  <label className={jcLabelCls}>Min salary</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.minSalary ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      F({ minSalary: v === "" ? null : Number(v) });
+                    }}
+                    placeholder="0.00"
+                    className={jcInputCls}
+                  />
+                </div>
+
+                <div>
+                  <label className={jcLabelCls}>Max salary</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.maxSalary ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      F({ maxSalary: v === "" ? null : Number(v) });
+                    }}
+                    placeholder="0.00"
+                    className={jcInputCls}
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-slate-400">
+                Salary range is optional but recommended. Min must not exceed
+                Max.
+              </p>
+            </JcSection>
+
+            {/* ── Status ── */}
+            <JcSection
+              icon={<TrendingUp className="h-3.5 w-3.5 text-amber-600" />}
+              iconBg="bg-amber-50"
+              title="Status"
+            >
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+                <div>
+                  <p className="text-[13px] font-medium text-slate-700">
+                    {form.active ? "Active" : "Inactive"}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {form.active
+                      ? "Visible in employee assignment dropdowns"
+                      : "Hidden from new assignments"}
+                  </p>
+                </div>
+                <Switch
+                  checked={form.active ?? true}
+                  onCheckedChange={(checked: boolean) =>
+                    F({ active: checked })
+                  }
+                />
+              </div>
+            </JcSection>
+          </div>
+
+          {/* ── Footer ── */}
+          <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+            <p className="text-[11px] text-slate-500">
+              Fields marked <span className="text-rose-400">*</span> are
+              required
+            </p>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setModal(false)}
+                type="button"
+                className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={save}
+                type="button"
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-[13px] font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-indigo-700"
+              >
+                <Briefcase className="h-3.5 w-3.5" />
+                {form.id ? "Save changes" : "Save job code"}
+              </button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={save}>Save Job Code</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1012,38 +1226,37 @@ function PermissionsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">Permissions</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Grant employees or roles access to HR modules.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              setView((v) => (v === "permissions" ? "roles" : "permissions"))
-            }
-          >
-            {view === "permissions" ? (
-              <Settings className="h-4 w-4 mr-2" />
-            ) : (
-              <ArrowLeft className="h-4 w-4 mr-2" />
-            )}
-            {view === "permissions" ? "Manage Roles" : "Back to Permissions"}
-          </Button>
-          {view === "permissions" && (
+      <SecondaryPageHeader
+        title="HR Permissions"
+        description="Manage permissions for employees and roles"
+        icon={<Shield className="h-5 w-5" />}
+        actions={
+          <div className="flex items-center gap-2">
             <Button
-              onClick={openAddPerm}
-              className="bg-gradient-to-r from-indigo-600 to-blue-600"
+              variant="outline"
+              onClick={() =>
+                setView((v) => (v === "permissions" ? "roles" : "permissions"))
+              }
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Permission
+              {view === "permissions" ? (
+                <Settings className="h-4 w-4 mr-2" />
+              ) : (
+                <ArrowLeft className="h-4 w-4 mr-2" />
+              )}
+              {view === "permissions" ? "Manage Roles" : "Back to Permissions"}
             </Button>
-          )}
-        </div>
-      </div>
+            {view === "permissions" && (
+              <Button
+                onClick={openAddPerm}
+                className="bg-gradient-to-r from-indigo-600 to-blue-600"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Permission
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {view === "roles" && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -1747,8 +1960,7 @@ export default function HRSettingsPage() {
   // Gate the page on the HR_SETTINGS module permission instead of matching
   // the company-role name. ADMIN/SUPER_ADMIN keep their bypass via canView's
   // null-permissions branch (AuthContext sets permissions=null for admins).
-  const isAuthorized =
-    isAdmin || canView(permissions, "HR_SETTINGS");
+  const isAuthorized = isAdmin || canView(permissions, "HR_SETTINGS");
 
   // Whether to show the "Leave Approvals" tab — mirrors the backend's
   // canActAsApprover (LEAVES.APPROVE permission OR department-manager). We
@@ -1769,8 +1981,7 @@ export default function HRSettingsPage() {
   // Whether to show the "Loan Approvals" tab — purely permission-driven
   // (no department-manager fallback for loans today).
   const canApproveLoans =
-    isAdmin ||
-    !!(permissions?.LOANS?.approve || permissions?.LOANS?.APPROVE);
+    isAdmin || !!(permissions?.LOANS?.approve || permissions?.LOANS?.APPROVE);
 
   if (permissionsLoading) {
     return (
@@ -1845,9 +2056,7 @@ export default function HRSettingsPage() {
           {
             value: "permissions",
             label: "Permissions",
-            element: () => (
-              <PermissionsTab roles={roles} setRoles={setRoles} />
-            ),
+            element: () => <PermissionsTab roles={roles} setRoles={setRoles} />,
           },
         ]
       : []),

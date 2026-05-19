@@ -172,7 +172,7 @@ export default function InvoiceDetailPage() {
       />
 
       {/* TOGGLE */}
-      <div className="mx-auto my-6 flex max-w-5xl gap-3">
+      <div className="my-6 flex max-w-5xl gap-3">
         {(["invoice", "receipt"] as const).map((t) => (
           <button
             key={t}
@@ -190,10 +190,10 @@ export default function InvoiceDetailPage() {
       </div>
 
       {/* ACTIONS */}
-      <div className="max-w-5xl mx-auto mb-8 grid md:grid-cols-3 gap-4">
+      <div className="max-w-5xl mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
           // onClick={() => window.print()}
-          className="rounded-xl py-4 text-lg font-semibold border"
+          className="rounded-xl py-4 text-lg font-semibold border bg-white"
           style={{ borderColor: COLORS.gray200 }}
         >
           🖨️ Print
@@ -201,7 +201,7 @@ export default function InvoiceDetailPage() {
 
         <button
           onClick={handleDownloadPdf}
-          className="rounded-xl py-4 text-lg font-semibold border"
+          className="rounded-xl py-4 text-lg font-semibold border bg-white"
           style={{ borderColor: COLORS.gray200 }}
         >
           {isReceipt ? "🧾 Download Receipt" : "📥 Download Invoice"}
@@ -219,349 +219,248 @@ export default function InvoiceDetailPage() {
       {/* INVOICE */}
       <div
         id="invoice-pdf"
-        className="max-w-5xl mx-auto rounded-2xl overflow-hidden"
-        style={{ background: COLORS.white, color: COLORS.gray900 }}
+        className="max-w-[800px] rounded-lg overflow-hidden border border-gray-200 shadow-sm"
+        style={{ background: COLORS.white, color: COLORS.gray900, fontFamily: "Helvetica, Arial, sans-serif" }}
       >
         {/* HEADER */}
         <div
-          className="p-10 flex justify-between"
-          style={{
-            background: `linear-gradient(135deg, ${COLORS.gray900}, ${COLORS.gray800})`,
-            color: COLORS.white,
-          }}
+          className="p-8 flex justify-between"
+          style={{ backgroundColor: "#1a1a1a", color: "#FFFFFF" }}
         >
-          <div>
-            <h1 className="text-2xl font-bold">{safe(invoice.companyName)}</h1>
-            <p style={{ color: COLORS.gray300 }}>
-              {safe(invoice.invoiceHeaderSubtitle)}
-            </p>
+          <div className="flex flex-col justify-center">
+            <h1 className="text-[22px] font-bold m-0 mb-1.5">{safe(invoice.companyName)}</h1>
+            {invoice.invoiceHeaderSubtitle ? (
+              <p className="text-[12px] leading-4 text-[#D1D5DB] m-0">
+                {invoice.invoiceHeaderSubtitle}
+              </p>
+            ) : null}
           </div>
 
-          <div
-            className="rounded-xl px-6 py-4 text-center"
-            style={{ background: COLORS.orange500 }}
-          >
-            <div className="text-xl font-bold">
-              {isReceipt ? "RECEIPT" : "INVOICE"}
+          <div className="flex flex-col justify-center text-right items-end">
+            <div
+              className="px-4 py-2.5 rounded-md text-center"
+              style={{ backgroundColor: "#E67E22" }}
+            >
+              <div className="text-[16px] font-bold">
+                {isPaid ? (isSales ? "RECEIPT" : "PAID") : (isSales ? "INVOICE" : "PURCHASE")}
+              </div>
+              <div className="text-[12px] mt-1">
+                {safe(invoice.invoiceId)}
+              </div>
             </div>
-            <div className="text-sm">#{safe(invoice.invoiceId)}</div>
           </div>
         </div>
 
         {/* BODY */}
-        <div className="p-10 space-y-10">
-          {/* INFO */}
+        <div className="p-8">
+          {/* INFO META */}
           <div
-            className="grid md:grid-cols-3 gap-8 pb-8 border-b"
-            style={{ borderColor: COLORS.gray200 }}
+            className="grid grid-cols-3 gap-5 pb-6 mb-8 border-b-2"
+            style={{ borderColor: "#E5E7EB" }}
           >
-            <div>
-              <p
-                className="text-xs font-bold uppercase"
-                style={{ color: COLORS.gray500 }}
-              >
+            {/* BILL TO / SUPPLIER */}
+            <div className="pr-5">
+              <div className="text-[11px] font-bold uppercase text-gray-500 mb-2 tracking-wider">
                 {isSales ? "Bill To" : "Supplier"}
-              </p>
-              {isSales && (
-                <>
-                  <p className="font-semibold">
-                    {invoice?.salesOrder?.customerName}
-                  </p>
-                  <p className="">{invoice?.salesOrder?.customerEmail}</p>
-                  <p className="">{invoice?.salesOrder?.customerPhone}</p>
-                </>
-              )}
-              <p style={{ color: COLORS.gray600 }}>
-                Status: {safe(invoice.status)}
-              </p>
+              </div>
+
+              {isSales ? (
+                <div>
+                  <div className="font-semibold text-gray-900 text-[14px]">
+                    {safe(invoice?.salesOrder?.customerName)}
+                  </div>
+                  <div className="text-[13px] text-gray-500 leading-[18px] mt-1">
+                    {safe(invoice?.salesOrder?.customerEmail)}
+                  </div>
+                  <div className="text-[13px] text-gray-500 leading-[18px]">
+                    {safe(invoice?.salesOrder?.customerPhone)}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-2 text-[13px] font-semibold text-red-600">
+                <span className="text-gray-900 font-normal">Status: </span>
+                {safe(invoice.status)}
+              </div>
             </div>
 
-            <div>
-              <p
-                className="text-xs font-bold uppercase"
-                style={{ color: COLORS.gray500 }}
-              >
+            {/* INVOICE DETAILS */}
+            <div className="pr-5">
+              <div className="text-[11px] font-bold uppercase text-gray-500 mb-2 tracking-wider">
                 Invoice Details
-              </p>
-              <p>Invoice Date: {formatDate(invoice.invoiceDate)}</p>
-              <p>Due Date: {formatDate(invoice.dueDate)}</p>
-              <p>Paid Date: {formatDate(invoice.paidDate)}</p>
+              </div>
+              <div className="text-[13px] text-gray-500 mb-1">
+                Invoice Date: <span className="text-gray-900 ml-1">{formatDate(invoice.invoiceDate)}</span>
+              </div>
+              <div className="text-[13px] text-gray-500 mb-1">
+                Due Date: <span className="text-gray-900 ml-1">{formatDate(invoice.dueDate)}</span>
+              </div>
+              <div className="text-[13px] text-gray-500">
+                Paid Date: <span className="text-gray-900 ml-1">{isPaid ? formatDate(invoice.paidDate) : "N/A"}</span>
+              </div>
             </div>
 
+            {/* REFERENCE */}
             <div>
-              <p
-                className="text-xs font-bold uppercase"
-                style={{ color: COLORS.gray500 }}
-              >
+              <div className="text-[11px] font-bold uppercase text-gray-500 mb-2 tracking-wider">
                 Reference
-              </p>
-              <p>
-                <strong>{isSales ? "Sales" : "Purchase"} Order ID: </strong>{" "}
-                <br />
+              </div>
+              <div className="text-[13px] font-semibold text-gray-900 mb-1">
+                {isSales ? "Sales Order ID:" : "Purchase Order ID:"}
+              </div>
+              <div className="text-[13px] text-gray-500">
                 {isSales
-                  ? invoice.salesOrder?.orderNumber
-                  : invoice.purchaseOrder?.orderNumber}
-              </p>
-              {/* <p>Debit: {safe(invoice.debitAccountName)}</p>
-              <p>Credit: {safe(invoice.creditAccountName)}</p> */}
+                  ? safe(invoice.salesOrder?.orderNumber)
+                  : safe(invoice.purchaseOrder?.orderNumber)}
+              </div>
             </div>
           </div>
 
           {/* ITEMS */}
-          <table
-            className="w-full text-sm border rounded-lg overflow-hidden"
-            style={{ borderColor: COLORS.gray200 }}
-          >
-            <thead style={{ background: COLORS.gray50 }}>
+          <table className="w-full text-[13px] mb-8" style={{ borderCollapse: "collapse" }}>
+            <thead>
               <tr>
-                <th className="p-3 text-left">#</th>
-                <th className="p-3 text-left">Description</th>
-                <th className="p-3 text-right">Qty</th>
-                <th className="p-3 text-right">Unit</th>
-                <th className="p-3 text-right">Amount</th>
+                <th className="p-2.5 px-3 text-left bg-[#F9FAFB] border-b-2 border-[#E5E7EB] text-[11px] uppercase text-gray-500 font-medium tracking-wider">#</th>
+                <th className="p-2.5 px-3 text-left bg-[#F9FAFB] border-b-2 border-[#E5E7EB] text-[11px] uppercase text-gray-500 font-medium tracking-wider">Description</th>
+                <th className="p-2.5 px-3 text-right bg-[#F9FAFB] border-b-2 border-[#E5E7EB] text-[11px] uppercase text-gray-500 font-medium tracking-wider">Qty</th>
+                <th className="p-2.5 px-3 text-right bg-[#F9FAFB] border-b-2 border-[#E5E7EB] text-[11px] uppercase text-gray-500 font-medium tracking-wider">Unit</th>
+                <th className="p-2.5 px-3 text-right bg-[#F9FAFB] border-b-2 border-[#E5E7EB] text-[11px] uppercase text-gray-500 font-medium tracking-wider">Discount</th>
+                <th className="p-2.5 px-3 text-right bg-[#F9FAFB] border-b-2 border-[#E5E7EB] text-[11px] uppercase text-gray-500 font-medium tracking-wider">Amount</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item: any, i: number) => (
-                <tr
-                  key={i}
-                  style={{ borderTop: `1px solid ${COLORS.gray200}` }}
-                >
-                  <td className="p-3">{i + 1}</td>
-                  <td className="p-3">{safe(item.itemName)}</td>
-                  <td className="p-3 text-right">{safe(item.quantity)}</td>
-                  <td className="p-3 text-right">
-                    {money(item.unitPrice ?? item.unitCost)}
+                <tr key={i} className="border-b border-[#E5E7EB]">
+                  <td className="p-3.5 px-3">{i + 1}</td>
+                  <td className="p-3.5 px-3">
+                    <div className="font-[500] text-gray-900">{safe(item.itemName)}</div>
+                    <div className="text-gray-500 text-[12px] mt-0.5">{safe(item.itemDescription)}</div>
                   </td>
-                  <td className="p-3 text-right font-semibold">
-                    {money(item.lineTotal)}
-                  </td>
+                  <td className="p-3.5 px-3 text-right">{safe(item.quantity)}</td>
+                  <td className="p-3.5 px-3 text-right">{money(item.unitPrice ?? item.unitCost)}</td>
+                  <td className="p-3.5 px-3 text-right">0%</td>
+                  <td className="p-3.5 px-3 text-right font-bold text-gray-900">{money(item.lineTotal)}</td>
                 </tr>
               ))}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-3.5 text-center text-gray-500 border-b border-[#E5E7EB]">—</td>
+                </tr>
+              )}
             </tbody>
           </table>
 
-          {/* TOTALS */}
-          <div className="flex justify-end">
-            <div
-              className="w-full rounded-xl p-6"
-              style={{ background: COLORS.gray50 }}
-            >
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{money(invoice.subtotalAmount ?? invoice.amount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Discount</span>
-                <span>{money(invoice.discountAmount ?? 0)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tax</span>
-                <span>{money(invoice.taxAmount ?? 0)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Amount</span>
-                <span>{money(invoice.amount)}</span>
-              </div>
-              <div
-                className="flex justify-between font-bold pt-3 mt-3"
-                style={{ borderTop: `1px solid ${COLORS.gray200}` }}
-              >
-                <span>{isReceipt ? "Amount Paid" : "Outstanding"}</span>
-                <span>
-                  {isReceipt
-                    ? money(invoice.amount)
-                    : money(invoice.outstanding)}
-                </span>
-              </div>
-            </div>
+          {/* TOTAL */}
+          <div className="w-full bg-[#F9FAFB] p-5 rounded-md mb-8">
+            <table className="w-full border-collapse">
+              <tbody>
+                <tr>
+                  <td className="text-[13px] text-[#6B7280]">Total Amount</td>
+                  <td className="text-[18px] font-bold text-right text-gray-900">{money(invoice.amount)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          {!isReceipt && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-6">
-              <h3 className="mb-6 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                💳 Payment Information
-              </h3>
-
-              <div className="grid grid-cols-2 gap-y-6 gap-x-10">
-                <div>
-                  <p className="text-xs font-semibold tracking-widest text-gray-500">
-                    BANK NAME
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {safe(invoice.bankAccountName)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold tracking-widest text-gray-500">
-                    ACCOUNT NAME
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {safe(invoice.companyName)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold tracking-widest text-gray-500">
-                    ACCOUNT NUMBER
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {safe(invoice.bankAccountNumber)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold tracking-widest text-gray-500">
-                    SWIFT CODE
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {safe(invoice.bankIfscCode)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold tracking-widest text-gray-500">
-                    BRANCH
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {safe(invoice.bankBranchName)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold tracking-widest text-gray-500">
-                    REFERENCE
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {invoice.invoiceId}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isReceipt && (
-            <div
-              className="rounded-2xl border p-6"
-              style={{
-                background: isPaid ? "rgb(220 252 231)" : "rgb(254 243 199)",
-                borderColor: isPaid ? "rgb(74 222 128)" : "rgb(252 211 77)",
-              }}
-            >
-              <h3 className="mb-4 text-lg font-semibold">
-                {isPaid ? "✓ Payment Received" : "Payment Pending"}
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Invoice</p>
-                  <p className="font-semibold">{safe(invoice.invoiceId)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Paid Date</p>
-                  <p className="font-semibold">
-                    {formatDate(invoice.paidDate)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <p className="font-semibold">{safe(invoice.status)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Amount</p>
-                  <p className="font-semibold">{money(invoice.amount)}</p>
-                </div>
-              </div>
+          {/* PAYMENT INFORMATION */}
+          {isSales && invoice.bankAccountName && !isPaid && (
+            <div className="mt-6 p-5 border-2 border-[#E5E7EB] rounded-[16px] bg-white">
+              <h4 className="text-[14px] uppercase text-gray-500 font-[500] mb-4 flex items-center gap-2">Payment Information</h4>
+              <p className="text-[13px] text-gray-800 mb-3.5 leading-[1.6]"><strong>Bank Name:</strong> <span className="ml-1">{safe(invoice.bankAccountName)}</span></p>
+              <p className="text-[13px] text-gray-800 mb-3.5 leading-[1.6]"><strong>Account Holder:</strong> <span className="ml-1">{safe(invoice.companyName)}</span></p>
+              <p className="text-[13px] text-gray-800 mb-3.5 leading-[1.6]"><strong>Account Number:</strong> <span className="ml-1">{safe(invoice.bankAccountNumber)}</span></p>
+              <p className="text-[13px] text-gray-800 mb-3.5 leading-[1.6]"><strong>IFSC/SWIFT:</strong> <span className="ml-1">{safe(invoice.bankIfscCode)}</span></p>
+              <p className="text-[13px] text-gray-800 mb-3.5 leading-[1.6]"><strong>Branch:</strong> <span className="ml-1">{safe(invoice.bankBranchName)}</span></p>
+              <p className="text-[13px] text-gray-800 mb-0 leading-[1.6]"><strong>Reference:</strong> <span className="ml-1">{safe(invoice.invoiceId)}</span></p>
             </div>
           )}
 
           {/* NOTES */}
-          <div className="rounded-xl p-6" style={{ background: COLORS.gray50 }}>
-            <p
-              className="text-xs font-bold uppercase"
-              style={{ color: COLORS.gray500 }}
-            >
-              Notes
-            </p>
-            <p className="leading-7">{dynamicNote || MISSING}</p>
-          </div>
+          {isSales && (
+            <div className="mt-7 p-[15px] rounded-[15px] bg-[#F9FAFB]">
+              <h4 className="text-[14px] uppercase text-[#6C7280] font-normal mb-3 m-0">Notes</h4>
+              <p className="text-[13px] text-gray-900 mb-2 leading-relaxed m-0">{dynamicNote || MISSING}</p>
+              {addressLine && (
+                <p className="text-[13px] text-gray-900 mb-2 mt-2 leading-relaxed m-0">
+                  Company Address: <span className="ml-1">{addressLine}</span>
+                </p>
+              )}
+              {invoice.companyPhone && (
+                <p className="text-[13px] text-gray-900 mb-0 mt-2 leading-relaxed m-0">
+                  Contact: <span className="ml-1">{invoice.companyPhone}</span>
+                </p>
+              )}
+            </div>
+          )}
 
-          <div
-            className="rounded-xl p-6 border-[1.5px] border-gray-200"
-            style={{ display: termsAndConditions.length ? "block" : "none" }}
-          >
-            <p
-              className="text-xs font-bold uppercase"
-              style={{ color: COLORS.gray500 }}
-            >
-              ⚖️ Terms & Conditions
-            </p>
-            <ul>
-              {termsAndConditions.map((term, idx) => (
-                <li
-                  key={idx}
-                  className="list-decimal marker:text-orange-500 ml-5 mt-3"
-                >
-                  {term}
-                  <br />
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* TERMS AND CONDITIONS */}
+          {isSales && termsAndConditions.length > 0 && (
+            <div className="mt-6 p-5 border-2 border-[#E5E7EB] rounded-[16px] bg-white">
+              <h4 className="text-[14px] uppercase text-gray-500 font-[500] mb-4 flex items-center gap-2">⚖ Terms & Conditions</h4>
+              <ol className="pl-5 m-0 text-[13px] text-[#1F2937] leading-[1.6] marker:text-[#E67E22] marker:font-bold">
+                {termsAndConditions.map((term, idx) => (
+                  <li key={idx} className="mb-3.5">
+                    {term}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
-
-        {/* NOTES */}
 
         {/* FOOTER */}
-        <div className="flex justify-between items-start gap-10 px-10 py-8 bg-gray-50 text-sm text-gray-600">
-          {/* Left content */}
-          <div className="space-y-3">
-            <p>
-              <span className="font-semibold text-gray-900">
-                {safe(invoice.invoiceFooterCompanyLine || invoice.companyName)}
-              </span>
-            </p>
+        <table className="w-full border-t-2 border-[#E5E7EB] p-5 bg-[#F9FAFB] text-[12px] text-[#6B7280]">
+          <tbody>
+            <tr>
+              <td className="w-[70%] align-top p-5">
+                <p className="font-[600] text-[#111827] mb-1.5 m-0">
+                  {safe(invoice.invoiceFooterCompanyLine || invoice.companyName)}
+                </p>
 
-            <p>{safe(invoice.invoiceFooterTaxLine)}</p>
+                <p className="mt-1.5 m-0 text-[#9CA3AF]">
+                  {safe(invoice.invoiceFooterTaxLine)}
+                </p>
 
-            <p style={{ display: addressLine ? "block" : "none" }}>
-              Address: {safe(addressLine)}
-            </p>
+                {addressLine && (
+                  <p className="mt-1.5 m-0 text-[#9CA3AF]">
+                    Address: {safe(addressLine)}
+                  </p>
+                )}
 
-            <p>{safe(invoice.invoiceFooterSignatureNote)}</p>
+                <p className="mt-1.5 m-0 text-[#9CA3AF]">
+                  {safe(invoice.invoiceFooterSignatureNote || "This is a computer-generated document and does not require a physical signature.")}
+                </p>
 
-            <p className="text-gray-400">
-              For support:{" "}
-              {safe(invoice.companyEmail || invoice.invoiceFooterSupportEmail)}
-              <span className="mx-1">|</span>
-              For billing:{" "}
-              {safe(invoice.billingEmail || invoice.invoiceFooterBillingEmail)}
-            </p>
-            <p
-              className="text-gray-400"
-              style={{ display: invoice.companyWebsiteUrl ? "block" : "none" }}
-            >
-              Website: {safe(invoice.companyWebsiteUrl)}
-            </p>
-          </div>
+                <p className="mt-1.5 m-0 text-[#9CA3AF]">
+                  For support:{" "}
+                  {safe(invoice.companyEmail || invoice.invoiceFooterSupportEmail)}
+                  <span className="mx-1">|</span>
+                  For billing:{" "}
+                  {safe(invoice.billingEmail || invoice.invoiceFooterBillingEmail)}
+                </p>
 
-          {/* Right QR section */}
-          <div
-            className="flex flex-col items-center gap-2"
-            style={{ display: showQr ? "flex" : "none" }}
-          >
-            <div className="h-28 w-28 rounded-xl border-2 border-gray-200 bg-white overflow-hidden">
-              {qrImageUrl ? (
-                <img
-                  src={qrImageUrl}
-                  alt="Invoice QR"
-                  className="h-full w-full object-cover"
-                />
-              ) : null}
-            </div>
-            <p className="text-gray-500 font-medium">Scan to View Online</p>
-          </div>
-        </div>
+                {invoice.companyWebsiteUrl && (
+                  <p className="mt-1.5 m-0 text-[#9CA3AF]">
+                    Website: {safe(invoice.companyWebsiteUrl)}
+                  </p>
+                )}
+              </td>
+
+              {showQr && qrImageUrl && (
+                <td className="w-[30%] align-top text-center p-5">
+                  <div className="h-[120px] w-[120px] border-2 border-[#E5E7EB] rounded-[12px] bg-white mx-auto mb-2 overflow-hidden">
+                    <img
+                      src={qrImageUrl}
+                      alt="Invoice QR"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="text-[11px] text-[#6B7280]">Scan to View Online</div>
+                </td>
+              )}
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );

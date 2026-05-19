@@ -15,11 +15,12 @@ import { CreatePurchaseRequisitionForm } from "./components/create-purchase-requ
 import { createPurchaseRequisitionColumns } from "@/lib/columns/purchase-requisition-columns";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
 import {
-  ClipboardCheck,
   ClipboardList,
   Send,
   CheckCircle2,
+  XCircle,
 } from "lucide-react";
+import { archivePurchaseRequisition } from "@/service/purchaseFlowService";
 
 export default function PurchaseRequisitionsPage() {
   const location = useLocation();
@@ -32,6 +33,10 @@ export default function PurchaseRequisitionsPage() {
   const [requisitions, setRequisitions] = useState<PurchaseRequisition[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionState, setActionState] = useState<{
+    id: string;
+    type: "archive";
+  } | null>(null);
 
   useEffect(() => {
     setShowCreateForm(location.pathname.includes("/new"));
@@ -56,9 +61,11 @@ export default function PurchaseRequisitionsPage() {
   }, [showCreateForm, location.pathname, refreshRequisitions]);
 
   const requisitionKpis = useMemo((): KpiSummaryStat[] => {
-    const total = requisitions.length;
-    const inWorkflow = requisitions.filter(
-      (r) => r.status !== "converted" && r.status !== "rejected",
+    const draft = requisitions.filter(
+      (r) => r.status === "draft",
+    ).length;
+    const rejected = requisitions.filter(
+      (r) => r.status === "rejected",
     ).length;
     const awaitingApproval = requisitions.filter(
       (r) => r.status === "submitted",
@@ -68,18 +75,18 @@ export default function PurchaseRequisitionsPage() {
     ).length;
     return [
       {
-        label: "Total requisitions",
-        value: total,
-        hint: "Loaded from procurement",
+        label: "Draft requisitions",
+        value: draft,
+        hint: "Not yet submitted",
         accent: "sky",
         icon: ClipboardList,
       },
       {
-        label: "In workflow",
-        value: inWorkflow,
-        hint: "Not converted or rejected",
-        accent: "emerald",
-        icon: ClipboardCheck,
+        label: "Rejected",
+        value: rejected,
+        hint: "Declined requisitions",
+        accent: "rose",
+        icon: XCircle,
       },
       {
         label: "Awaiting approval",
@@ -192,6 +199,38 @@ export default function PurchaseRequisitionsPage() {
     [navigate],
   );
 
+  const handleArchiveRequisition = useCallback(
+    async (id: string) => {
+      const req = requisitions.find((r) => r.id === id);
+      if (!req) return toast.error("Requisition not found");
+      if (req.status !== "converted" && req.status !== "rejected") {
+        return toast.error("Only converted or rejected requisitions can be archived.");
+      }
+      if (req.archived) return toast.error("Requisition is already archived.");
+      if (!confirm(`Archive requisition ${req.requisitionNo}?`)) return;
+      setActionState({ id, type: "archive" });
+      try {
+        const updated = await archivePurchaseRequisition(id);
+        setRequisitions((prev) =>
+          prev.map((r) =>
+            r.id === id ? { ...r, archived: updated.archived ?? true } : r,
+          ),
+        );
+        toast.success("Requisition archived successfully");
+        void refreshRequisitions();
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to archive requisition",
+        );
+      } finally {
+        setActionState(null);
+      }
+    },
+    [requisitions, refreshRequisitions],
+  );
+
   const columns: ColumnDef<PurchaseRequisition>[] = useMemo(
     () =>
       createPurchaseRequisitionColumns({
@@ -199,8 +238,11 @@ export default function PurchaseRequisitionsPage() {
         onSubmit: handleSubmit,
         onApprove: handleApprove,
         onOpenPurchaseOrder: handleOpenPo,
+        onArchive: handleArchiveRequisition,
+        processingRequisitionId: actionState?.id ?? null,
+        processingAction: actionState?.type ?? null,
       }),
-    [handleOpenDetail, handleSubmit, handleApprove, handleOpenPo],
+    [handleOpenDetail, handleSubmit, handleApprove, handleOpenPo, handleArchiveRequisition, actionState],
   );
 
   if (showCreateForm) {

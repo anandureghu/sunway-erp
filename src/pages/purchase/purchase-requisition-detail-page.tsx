@@ -21,7 +21,7 @@ import {
 import type { PurchaseRequisition } from "@/types/purchase";
 import { toast } from "sonner";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
-import { PurchasePageHeader } from "./components/purchase-page-header";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
 
 export default function PurchaseRequisitionDetailPage() {
@@ -175,17 +175,18 @@ export default function PurchaseRequisitionDetailPage() {
     requisition.status === "converted" && requisition.createdPurchaseOrderId;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
-      <PurchasePageHeader
+    <div className="mx-auto space-y-6 p-6">
+      <SecondaryPageHeader
         title={requisition.requisitionNo}
         description="Draft → submit for approval → approve to generate a Purchase Order."
         backHref="/inventory/purchase/requisitions"
+        variant="emerald"
         actions={
           <>
             <Button
               variant="secondary"
               size="sm"
-              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+              className="border border-green-600 bg-green-600 text-white hover:bg-green-700"
               onClick={() => void load()}
               disabled={loading}
             >
@@ -314,18 +315,6 @@ export default function PurchaseRequisitionDetailPage() {
                 <p className="font-medium">
                   {requisition.preferredSupplierName}
                 </p>
-              </div>
-            )}
-            {requisition.debitAccountName && (
-              <div>
-                <p className="text-sm text-muted-foreground">Debit account</p>
-                <p className="font-medium">{requisition.debitAccountName}</p>
-              </div>
-            )}
-            {requisition.creditAccountName && (
-              <div>
-                <p className="text-sm text-muted-foreground">Credit account</p>
-                <p className="font-medium">{requisition.creditAccountName}</p>
               </div>
             )}
             {requisition.financeTransactionId && (

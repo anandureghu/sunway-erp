@@ -125,7 +125,6 @@ export function DivisionDialog({
       name: "",
       managerId: undefined,
       companyId,
-      departmentId: undefined,
       description: "",
     },
   });
@@ -142,7 +141,6 @@ export function DivisionDialog({
           name: division.name ?? "",
           managerId: division.managerId ?? undefined,
           companyId: division.companyId ?? companyId,
-          departmentId: (division as any).departmentId ?? undefined,
           description: (division as any).description ?? "",
         });
       } else {
@@ -151,7 +149,6 @@ export function DivisionDialog({
           name: "",
           managerId: undefined,
           companyId,
-          departmentId: undefined,
           description: "",
         });
       }
@@ -320,51 +317,6 @@ export function DivisionDialog({
                   </span>
                 </div>
                 <div className="p-5 space-y-5">
-                  <FormField
-                    control={form.control}
-                    name="departmentId"
-                    render={({ field }) => (
-                      <FormItem className="space-y-0">
-                        <Field
-                          label="Parent department"
-                          hint="Assign this division to a department"
-                          icon={<Building className="h-[15px] w-[15px]" />}
-                        >
-                          <FormControl>
-                            <Select
-                              value={
-                                field.value != null
-                                  ? String(field.value)
-                                  : "none"
-                              }
-                              onValueChange={(v) =>
-                                field.onChange(
-                                  v === "none" ? undefined : Number(v)
-                                )
-                              }
-                            >
-                              <SelectTrigger
-                                className={cn(
-                                  "h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[13px] text-slate-800",
-                                  "outline-none ring-0 transition-all duration-150",
-                                  "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
-                                  "data-[-placeholder]:text-slate-300"
-                                )}
-                              >
-                                <SelectValue placeholder="Select department (optional)" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-                                <SelectItem value="none">
-                                  — No department assigned —
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                        </Field>
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={form.control}
                     name="managerId"

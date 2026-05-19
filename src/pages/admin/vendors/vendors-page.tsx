@@ -4,7 +4,6 @@ import type { Vendor } from "@/types/vendor";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getVendorColumns } from "@/lib/columns/vendor-listing-admin";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,9 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { Users } from "lucide-react";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 export default function VendorsPage({
   financeSettings,
@@ -175,71 +177,58 @@ export default function VendorsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Suppliers</h1>
-        {!financeSettings && (
-          <Button
-            onClick={() => {
-              setSelected(null);
-              setOpen(true);
-            }}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            + New Supplier
-          </Button>
-        )}
-      </div>
-
+      <SecondaryPageHeader
+        title="Suppliers"
+        description="Manage suppliers"
+        icon={<Users className="h-5 w-5" />}
+        actions={
+          <>
+            <Button
+              onClick={() => {
+                setSelected(null);
+                setOpen(true);
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              + New Supplier
+            </Button>
+          </>
+        }
+      />
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  TOTAL SUPPLIERS
-                </p>
-                <h2 className="text-2xl font-bold">{stats.total}</h2>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-400 bg-green-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  ACTIVE
-                </p>
-                <h2 className="text-2xl font-bold">{stats.active}</h2>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-red-400 bg-red-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  INACTIVE
-                </p>
-                <h2 className="text-2xl font-bold">{stats.inactive}</h2>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  1099 VENDORS
-                </p>
-                <h2 className="text-2xl font-bold">{stats.is1099}</h2>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
+        <KpiSummaryStrip
+          items={[
+            {
+              label: "Total Suppliers",
+              value: stats.total,
+              hint: "Vendor master rows",
+              accent: "sky",
+              icon: Users,
+            },
+            {
+              label: "Active",
+              value: stats.active,
+              hint: "Available on Purchase Orders",
+              accent: "emerald",
+              icon: Users,
+            },
+            {
+              label: "Inactive",
+              value: stats.inactive,
+              hint: "Disabled vendors",
+              accent: "rose",
+              icon: Users,
+            },
+            {
+              label: "1099 Vendors",
+              value: stats.is1099,
+              hint: "Contractor accounts",
+              accent: "orange",
+              icon: Users,
+            },
+          ]}
+        />
       </div>
 
       {/* Search and Filters */}

@@ -1,13 +1,27 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { timesheetService, type TimesheetEntry } from "@/service/timesheetService";
+import {
+  timesheetService,
+  type TimesheetEntry,
+} from "@/service/timesheetService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  LogIn, LogOut, Clock, Calendar, CheckCircle2,
-  Timer, Loader2, TrendingUp, Sun, Moon, Coffee,
-  MapPin, Zap,
+  LogIn,
+  LogOut,
+  Clock,
+  Calendar,
+  CheckCircle2,
+  Timer,
+  Loader2,
+  TrendingUp,
+  Sun,
+  Moon,
+  Coffee,
+  MapPin,
+  Zap,
 } from "lucide-react";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 // ── helpers (unchanged) ───────────────────────────────────────────────────────
 
@@ -22,9 +36,12 @@ function formatClock(d: Date) {
 function formatTime(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
-  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  return d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
-
 
 function diffMs(from: string | null | undefined, to?: string | null): number {
   if (!from) return 0;
@@ -73,7 +90,9 @@ function ElapsedTimer({ checkInTime }: { checkInTime: string }) {
   }, [checkInTime]);
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-semibold">Working for</p>
+      <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-semibold">
+        Working for
+      </p>
       <p className="font-mono text-3xl font-bold text-white tabular-nums tracking-tight">
         {formatDurationFull(elapsed)}
       </p>
@@ -84,10 +103,15 @@ function ElapsedTimer({ checkInTime }: { checkInTime: string }) {
 // ── NEW: Animated action button ────────────────────────────────────────────────
 
 function ActionButton({
-  isCheckedIn, loading, onCheckIn, onCheckOut,
+  isCheckedIn,
+  loading,
+  onCheckIn,
+  onCheckOut,
 }: {
-  isCheckedIn: boolean; loading: boolean;
-  onCheckIn: () => void; onCheckOut: () => void;
+  isCheckedIn: boolean;
+  loading: boolean;
+  onCheckIn: () => void;
+  onCheckOut: () => void;
 }) {
   const isCheckOut = isCheckedIn;
   return (
@@ -95,20 +119,45 @@ function ActionButton({
       {/* Pulsing rings — only when actively checked in */}
       {isCheckOut && !loading && (
         <>
-          <span className="absolute inline-flex h-full w-full rounded-full opacity-30 bg-rose-400 animate-ping"
-            style={{ animationDuration: "2.4s", animationDelay: "0s" }} />
-          <span className="absolute inline-flex rounded-full opacity-20 bg-rose-300 animate-ping"
-            style={{ width: "130%", height: "130%", animationDuration: "2.4s", animationDelay: "0.8s" }} />
-          <span className="absolute inline-flex rounded-full opacity-10 bg-rose-200 animate-ping"
-            style={{ width: "160%", height: "160%", animationDuration: "2.4s", animationDelay: "1.6s" }} />
+          <span
+            className="absolute inline-flex h-full w-full rounded-full opacity-30 bg-rose-400 animate-ping"
+            style={{ animationDuration: "2.4s", animationDelay: "0s" }}
+          />
+          <span
+            className="absolute inline-flex rounded-full opacity-20 bg-rose-300 animate-ping"
+            style={{
+              width: "130%",
+              height: "130%",
+              animationDuration: "2.4s",
+              animationDelay: "0.8s",
+            }}
+          />
+          <span
+            className="absolute inline-flex rounded-full opacity-10 bg-rose-200 animate-ping"
+            style={{
+              width: "160%",
+              height: "160%",
+              animationDuration: "2.4s",
+              animationDelay: "1.6s",
+            }}
+          />
         </>
       )}
       {!isCheckOut && !loading && (
         <>
-          <span className="absolute inline-flex h-full w-full rounded-full opacity-30 bg-emerald-400 animate-ping"
-            style={{ animationDuration: "2.4s", animationDelay: "0s" }} />
-          <span className="absolute inline-flex rounded-full opacity-20 bg-emerald-300 animate-ping"
-            style={{ width: "130%", height: "130%", animationDuration: "2.4s", animationDelay: "0.8s" }} />
+          <span
+            className="absolute inline-flex h-full w-full rounded-full opacity-30 bg-emerald-400 animate-ping"
+            style={{ animationDuration: "2.4s", animationDelay: "0s" }}
+          />
+          <span
+            className="absolute inline-flex rounded-full opacity-20 bg-emerald-300 animate-ping"
+            style={{
+              width: "130%",
+              height: "130%",
+              animationDuration: "2.4s",
+              animationDelay: "0.8s",
+            }}
+          />
         </>
       )}
 
@@ -121,7 +170,7 @@ function ActionButton({
           isCheckOut
             ? "bg-gradient-to-br from-rose-500 via-rose-600 to-pink-700 border-rose-300/50 shadow-rose-500/40 hover:shadow-rose-500/60 hover:scale-105"
             : "bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 border-emerald-300/50 shadow-emerald-500/40 hover:shadow-emerald-500/60 hover:scale-105",
-          loading && "opacity-60 cursor-not-allowed"
+          loading && "opacity-60 cursor-not-allowed",
         )}
       >
         {loading ? (
@@ -131,14 +180,18 @@ function ActionButton({
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 mb-1">
               <LogOut className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xs font-bold text-white/90 tracking-widest uppercase">Check Out</span>
+            <span className="text-xs font-bold text-white/90 tracking-widest uppercase">
+              Check Out
+            </span>
           </>
         ) : (
           <>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 mb-1">
               <LogIn className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xs font-bold text-white/90 tracking-widest uppercase">Check In</span>
+            <span className="text-xs font-bold text-white/90 tracking-widest uppercase">
+              Check In
+            </span>
           </>
         )}
       </button>
@@ -149,9 +202,10 @@ function ActionButton({
 // ── NEW: TodayCard ─────────────────────────────────────────────────────────────
 
 function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
-  const duration = entry?.checkInTime && entry?.checkOutTime
-    ? diffMs(entry.checkInTime, entry.checkOutTime)
-    : null;
+  const duration =
+    entry?.checkInTime && entry?.checkOutTime
+      ? diffMs(entry.checkInTime, entry.checkOutTime)
+      : null;
 
   const cells = [
     {
@@ -176,7 +230,12 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
     },
     {
       label: "Duration",
-      value: duration !== null ? formatDuration(duration) : entry?.checkInTime ? "In Progress" : "—",
+      value:
+        duration !== null
+          ? formatDuration(duration)
+          : entry?.checkInTime
+            ? "In Progress"
+            : "—",
       active: duration !== null || !!entry?.checkInTime,
       icon: Timer,
       accent: "text-blue-600",
@@ -188,25 +247,41 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
 
   return (
     <div className="grid grid-cols-3 gap-3">
-      {cells.map(({ label, value, active, icon: Icon, accent, bg, ring, iconBg }) => (
-        <div
-          key={label}
-          className={cn(
-            "rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300",
-            active ? cn(bg, "ring-1", ring) : "bg-slate-50 ring-1 ring-slate-100"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</span>
-            <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", active ? iconBg : "bg-slate-200")}>
-              <Icon className="h-3.5 w-3.5 text-white" />
+      {cells.map(
+        ({ label, value, active, icon: Icon, accent, bg, ring, iconBg }) => (
+          <div
+            key={label}
+            className={cn(
+              "rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300",
+              active
+                ? cn(bg, "ring-1", ring)
+                : "bg-slate-50 ring-1 ring-slate-100",
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                {label}
+              </span>
+              <div
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-lg",
+                  active ? iconBg : "bg-slate-200",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 text-white" />
+              </div>
             </div>
+            <span
+              className={cn(
+                "text-2xl font-bold leading-none",
+                active ? accent : "text-slate-300",
+              )}
+            >
+              {value}
+            </span>
           </div>
-          <span className={cn("text-2xl font-bold leading-none", active ? accent : "text-slate-300")}>
-            {value}
-          </span>
-        </div>
-      ))}
+        ),
+      )}
     </div>
   );
 }
@@ -219,12 +294,19 @@ function workedDayCount(entries: TimesheetEntry[]): number {
   return entries.reduce((n, e) => {
     if (!e.checkInTime || !e.checkOutTime) return n;
     const mins =
-      e.workedMinutes ?? Math.floor(diffMs(e.checkInTime, e.checkOutTime) / 60000);
+      e.workedMinutes ??
+      Math.floor(diffMs(e.checkInTime, e.checkOutTime) / 60000);
     return mins >= MIN_WORKED_MINUTES_FOR_DAY ? n + 1 : n;
   }, 0);
 }
 
-function MonthStats({ entries, monthLabel }: { entries: TimesheetEntry[]; monthLabel: string }) {
+function MonthStats({
+  entries,
+  monthLabel,
+}: {
+  entries: TimesheetEntry[];
+  monthLabel: string;
+}) {
   const completed = entries.filter((e) => e.checkInTime && e.checkOutTime);
   const totalH = totalHoursInMonth(entries);
   const avgH = completed.length ? totalH / completed.length : 0;
@@ -282,20 +364,41 @@ function MonthStats({ entries, monthLabel }: { entries: TimesheetEntry[]; monthL
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map(({ label, value, unit, icon: Icon, gradient, light, text }) => (
-          <div key={label} className={cn("rounded-2xl p-4 flex flex-col gap-3", light)}>
-            <div className="flex items-center justify-between">
-              <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br", gradient)}>
-                <Icon className="h-4 w-4 text-white" />
+        {stats.map(
+          ({ label, value, unit, icon: Icon, gradient, light, text }) => (
+            <div
+              key={label}
+              className={cn("rounded-2xl p-4 flex flex-col gap-3", light)}
+            >
+              <div className="flex items-center justify-between">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br",
+                    gradient,
+                  )}
+                >
+                  <Icon className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                  {unit}
+                </span>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">{unit}</span>
+              <div>
+                <p
+                  className={cn(
+                    "text-3xl font-bold leading-none tabular-nums",
+                    text,
+                  )}
+                >
+                  {value}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  {label}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className={cn("text-3xl font-bold leading-none tabular-nums", text)}>{value}</p>
-              <p className="text-xs text-slate-500 mt-1 font-medium">{label}</p>
-            </div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
     </div>
   );
@@ -305,7 +408,7 @@ function MonthStats({ entries, monthLabel }: { entries: TimesheetEntry[]; monthL
 
 function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
   const sorted = [...entries].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -318,8 +421,12 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
             <Clock className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm">Attendance History</h3>
-            <p className="text-xs text-slate-400">{entries.length} record{entries.length !== 1 ? "s" : ""}</p>
+            <h3 className="font-bold text-slate-900 text-sm">
+              Attendance History
+            </h3>
+            <p className="text-xs text-slate-400">
+              {entries.length} record{entries.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
         {entries.length > 0 && (
@@ -337,15 +444,20 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
             <Calendar className="h-8 w-8 text-slate-300" />
           </div>
-          <p className="text-sm font-semibold text-slate-400">No attendance records yet</p>
-          <p className="text-xs text-slate-300">Records will appear here after your first check-in</p>
+          <p className="text-sm font-semibold text-slate-400">
+            No attendance records yet
+          </p>
+          <p className="text-xs text-slate-300">
+            Records will appear here after your first check-in
+          </p>
         </div>
       ) : (
         <div className="divide-y divide-slate-50">
           {sorted.map((entry) => {
-            const dur = entry.checkInTime && entry.checkOutTime
-              ? diffMs(entry.checkInTime, entry.checkOutTime)
-              : null;
+            const dur =
+              entry.checkInTime && entry.checkOutTime
+                ? diffMs(entry.checkInTime, entry.checkOutTime)
+                : null;
             const isToday = entry.date === todayStr;
             const isActive = entry.status === "CHECKED_IN";
 
@@ -354,30 +466,47 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
                 key={entry.id ?? entry.date}
                 className={cn(
                   "flex items-center gap-4 px-5 py-4 transition-colors hover:bg-slate-50/80",
-                  isToday && "bg-indigo-50/40"
+                  isToday && "bg-indigo-50/40",
                 )}
               >
                 {/* Date block */}
-                <div className={cn(
-                  "flex flex-col items-center justify-center rounded-xl px-3 py-2 min-w-[52px] shrink-0",
-                  isToday ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600"
-                )}>
+                <div
+                  className={cn(
+                    "flex flex-col items-center justify-center rounded-xl px-3 py-2 min-w-[52px] shrink-0",
+                    isToday
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-100 text-slate-600",
+                  )}
+                >
                   <span className="text-[10px] font-bold uppercase tracking-wide opacity-70">
-                    {new Date(entry.date).toLocaleDateString("en-US", { month: "short" })}
+                    {new Date(entry.date).toLocaleDateString("en-US", {
+                      month: "short",
+                    })}
                   </span>
                   <span className="text-xl font-black leading-none">
                     {new Date(entry.date).getDate()}
                   </span>
                   <span className="text-[10px] font-semibold opacity-70">
-                    {new Date(entry.date).toLocaleDateString("en-US", { weekday: "short" })}
+                    {new Date(entry.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                    })}
                   </span>
                 </div>
 
                 {/* Main info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={cn("text-sm font-semibold", isToday ? "text-indigo-700" : "text-slate-800")}>
-                      {isToday ? "Today" : new Date(entry.date).toLocaleDateString("en-US", { weekday: "long" })}
+                    <span
+                      className={cn(
+                        "text-sm font-semibold",
+                        isToday ? "text-indigo-700" : "text-slate-800",
+                      )}
+                    >
+                      {isToday
+                        ? "Today"
+                        : new Date(entry.date).toLocaleDateString("en-US", {
+                            weekday: "long",
+                          })}
                     </span>
                     {isActive && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
@@ -417,11 +546,17 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
                 <div className="shrink-0 text-right">
                   {dur !== null ? (
                     <>
-                      <p className="text-base font-bold text-slate-800 tabular-nums">{formatDuration(dur)}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">duration</p>
+                      <p className="text-base font-bold text-slate-800 tabular-nums">
+                        {formatDuration(dur)}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        duration
+                      </p>
                     </>
                   ) : isActive ? (
-                    <span className="text-xs font-semibold text-slate-400">ongoing</span>
+                    <span className="text-xs font-semibold text-slate-400">
+                      ongoing
+                    </span>
                   ) : (
                     <span className="text-xs text-slate-300">—</span>
                   )}
@@ -485,10 +620,12 @@ export default function TimesheetTab() {
     }
   }, [empId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const isCheckedIn = !!(todayEntry?.checkInTime && !todayEntry?.checkOutTime);
-  const isComplete  = !!(todayEntry?.checkInTime &&  todayEntry?.checkOutTime);
+  const isComplete = !!(todayEntry?.checkInTime && todayEntry?.checkOutTime);
 
   const handleCheckIn = async () => {
     if (!empId) return;
@@ -500,7 +637,9 @@ export default function TimesheetTab() {
         const match = (e: TimesheetEntry) =>
           entry.id != null ? e.id === entry.id : e.date === entry.date;
         const idx = prev.findIndex(match);
-        return idx >= 0 ? prev.map((e) => (match(e) ? entry : e)) : [entry, ...prev];
+        return idx >= 0
+          ? prev.map((e) => (match(e) ? entry : e))
+          : [entry, ...prev];
       });
       toast.success("Checked in successfully!");
     } catch (err: any) {
@@ -520,7 +659,9 @@ export default function TimesheetTab() {
         const match = (e: TimesheetEntry) =>
           entry.id != null ? e.id === entry.id : e.date === entry.date;
         const idx = prev.findIndex(match);
-        return idx >= 0 ? prev.map((e) => (match(e) ? entry : e)) : [entry, ...prev];
+        return idx >= 0
+          ? prev.map((e) => (match(e) ? entry : e))
+          : [entry, ...prev];
       });
       toast.success("Checked out successfully!");
     } catch (err: any) {
@@ -535,7 +676,10 @@ export default function TimesheetTab() {
     return history.filter((e) => e.date?.slice(0, 7) === ym);
   }, [history, now]);
 
-  const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const monthLabel = now.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   const greeting = getGreeting(now.getHours());
   const GreetIcon = greeting.icon;
@@ -555,19 +699,26 @@ export default function TimesheetTab() {
 
   return (
     <div className="space-y-4">
+      <SecondaryPageHeader
+        title="Timesheet"
+        description="View and manage your timesheet"
+        icon={<Clock className="h-5 w-5 text-white" />}
+      />
 
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
       <div
         className="relative overflow-hidden rounded-2xl shadow-2xl"
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
+          background:
+            "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
         }}
       >
         {/* Subtle dot grid */}
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(148,163,184,0.3) 1px, transparent 1px)",
+            backgroundImage:
+              "radial-gradient(circle, rgba(148,163,184,0.3) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
           }}
         />
@@ -584,7 +735,9 @@ export default function TimesheetTab() {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
                 <GreetIcon className="h-4 w-4 text-yellow-300" />
               </div>
-              <span className="text-sm font-semibold text-white/60 tracking-wide">{greeting.label}</span>
+              <span className="text-sm font-semibold text-white/60 tracking-wide">
+                {greeting.label}
+              </span>
             </div>
 
             {/* Clock */}
@@ -595,7 +748,10 @@ export default function TimesheetTab() {
               <div className="flex items-center gap-1.5 mt-2 text-white/40 text-sm font-medium">
                 <MapPin className="h-3.5 w-3.5" />
                 {now.toLocaleDateString("en-US", {
-                  weekday: "long", month: "long", day: "numeric", year: "numeric",
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
                 })}
               </div>
             </div>
@@ -621,15 +777,19 @@ export default function TimesheetTab() {
             </div>
 
             {/* Completion total */}
-            {isComplete && todayEntry?.checkInTime && todayEntry?.checkOutTime && (
-              <div className="flex items-center gap-2 text-white/50 text-sm">
-                <Timer className="h-4 w-4" />
-                Total today:
-                <span className="text-white font-bold">
-                  {formatDuration(diffMs(todayEntry.checkInTime, todayEntry.checkOutTime))}
-                </span>
-              </div>
-            )}
+            {isComplete &&
+              todayEntry?.checkInTime &&
+              todayEntry?.checkOutTime && (
+                <div className="flex items-center gap-2 text-white/50 text-sm">
+                  <Timer className="h-4 w-4" />
+                  Total today:
+                  <span className="text-white font-bold">
+                    {formatDuration(
+                      diffMs(todayEntry.checkInTime, todayEntry.checkOutTime),
+                    )}
+                  </span>
+                </div>
+              )}
           </div>
 
           {/* ── Right: Action button + Timer ── */}
@@ -639,7 +799,9 @@ export default function TimesheetTab() {
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/20 border-2 border-emerald-400/30">
                   <CheckCircle2 className="h-12 w-12 text-emerald-400" />
                 </div>
-                <p className="text-white/40 text-sm text-center">You have completed your shift for today.</p>
+                <p className="text-white/40 text-sm text-center">
+                  You have completed your shift for today.
+                </p>
               </div>
             ) : (
               <>
@@ -671,7 +833,6 @@ export default function TimesheetTab() {
 
       {/* ── ATTENDANCE HISTORY ───────────────────────────────────────────────── */}
       <HistoryTable entries={history} />
-
     </div>
   );
 }
