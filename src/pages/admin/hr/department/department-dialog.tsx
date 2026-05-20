@@ -32,7 +32,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { type DepartmentFormData, DEPARTMENT_SCHEMA } from "@/schema/department";
 import { type Department } from "@/types/department";
+import { type Division } from "@/types/division";
 import { createDepartment, updateDepartment } from "@/service/departmentService";
+import { fetchDivisions } from "@/service/divisionService";
 import {
   Building2,
   Hash,
@@ -40,6 +42,7 @@ import {
   X,
   Info,
   Layers,
+  Network,
 } from "lucide-react";
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -112,6 +115,7 @@ export function DepartmentDialog({
   companyId,
 }: DepartmentDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [divisions, setDivisions] = useState<Division[]>([]);
   const isEdit = !!department;
 
   const form = useForm<DepartmentFormData>({
@@ -120,10 +124,18 @@ export function DepartmentDialog({
       departmentCode: "",
       departmentName: "",
       managerId: undefined,
+      divisionId: undefined,
       companyId,
       description: "",
     },
   });
+
+  useEffect(() => {
+    if (!open || !companyId) return;
+    fetchDivisions(companyId).then((data) => {
+      if (Array.isArray(data)) setDivisions(data);
+    });
+  }, [open, companyId]);
 
   const { watch } = form;
   const deptName = watch("departmentName");
@@ -136,6 +148,7 @@ export function DepartmentDialog({
           departmentCode: department.departmentCode ?? "",
           departmentName: department.departmentName ?? "",
           managerId: department.managerId ?? undefined,
+          divisionId: department.divisionId ?? undefined,
           companyId: department.companyId ?? companyId,
           description: (department as any).description ?? "",
         });
@@ -144,6 +157,7 @@ export function DepartmentDialog({
           departmentCode: "",
           departmentName: "",
           managerId: undefined,
+          divisionId: undefined,
           companyId,
           description: "",
         });
@@ -363,6 +377,67 @@ export function DepartmentDialog({
                                     </span>
                                   </div>
                                 </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                        </Field>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="divisionId"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0 mt-4">
+                        <Field
+                          label="Division"
+                          hint="Group this department under a division"
+                          icon={<Network className="h-[15px] w-[15px]" />}
+                        >
+                          <FormControl>
+                            <Select
+                              value={
+                                field.value != null
+                                  ? String(field.value)
+                                  : "none"
+                              }
+                              onValueChange={(v) =>
+                                field.onChange(
+                                  v === "none" ? undefined : Number(v)
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                className={cn(
+                                  "h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[13px] text-slate-800",
+                                  "outline-none ring-0 transition-all duration-150",
+                                  "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
+                                  "data-[-placeholder]:text-slate-300"
+                                )}
+                              >
+                                <SelectValue placeholder="Select division (optional)" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                <SelectItem value="none">
+                                  — No division —
+                                </SelectItem>
+                                {divisions.map((d) => (
+                                  <SelectItem
+                                    key={d.id}
+                                    value={String(d.id)}
+                                    className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-slate-800">
+                                        {d.name}
+                                      </span>
+                                      <span className="text-[11px] text-slate-400">
+                                        {d.code}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </FormControl>

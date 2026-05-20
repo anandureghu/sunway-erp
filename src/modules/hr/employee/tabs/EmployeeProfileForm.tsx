@@ -39,8 +39,9 @@ type EmpProfile = {
   nationality?: string;
   religion?: string;
   identification?: string;
-  companyRole?: string; // Role name (for display)
-  companyRoleId?: number | null; // Role ID (FK to CompanyRole table)
+  companyRole?: string; // Security role from linked user
+  companyRoleId?: number | null; // FK to CompanyRole
+  designation?: string; // Derived from current job's job_codes.title
 };
 
 const NEW_EMP: EmpProfile = {
@@ -60,6 +61,7 @@ const NEW_EMP: EmpProfile = {
   identification: "",
   companyRole: "",
   companyRoleId: null,
+  designation: "",
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -82,6 +84,19 @@ const getStatusMeta = (status?: string) => {
         dot: "bg-amber-400",
         badge:
           "bg-amber-50   text-amber-700   border-amber-200   ring-amber-100",
+      };
+    case "Resigned":
+    case "Terminated":
+      return {
+        dot: "bg-rose-500",
+        badge:
+          "bg-rose-50   text-rose-700   border-rose-200   ring-rose-100",
+      };
+    case "Retired":
+      return {
+        dot: "bg-blue-400",
+        badge:
+          "bg-blue-50   text-blue-700   border-blue-200   ring-blue-100",
       };
     default:
       return {
@@ -226,6 +241,9 @@ export default function EmployeeProfileForm() {
             if (up === "ACTIVE") return "Active";
             if (up === "INACTIVE") return "Inactive";
             if (up === "ON_LEAVE") return "On Leave";
+            if (up === "RESIGNED") return "Resigned";
+            if (up === "TERMINATED") return "Terminated";
+            if (up === "RETIRED") return "Retired";
             return String(s);
           };
           const merged: EmpProfile = {
@@ -237,6 +255,7 @@ export default function EmployeeProfileForm() {
             companyRole:
               (emp as any).companyRole ?? (emp as any).CompanyRole ?? "",
             companyRoleId: (emp as any).companyRoleId ?? null,
+            designation: (emp as any).designation ?? "",
           };
           setSaved(merged);
           setDraft(merged);
@@ -259,6 +278,9 @@ export default function EmployeeProfileForm() {
         if (low === "active") return "ACTIVE";
         if (low === "inactive") return "INACTIVE";
         if (low === "on leave" || low === "on_leave") return "ON_LEAVE";
+        if (low === "resigned") return "RESIGNED";
+        if (low === "terminated") return "TERMINATED";
+        if (low === "retired") return "RETIRED";
         return String(s).toUpperCase();
       };
       const statusVal = toBackendStatus(updated.status ?? null);
@@ -422,10 +444,17 @@ export default function EmployeeProfileForm() {
                     No employee number
                   </span>
                 )}
-                {draft.companyRole && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 border border-violet-100">
+                {(draft.designation || draft.companyRole) && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 border border-violet-100"
+                    title={
+                      draft.designation
+                        ? "Designation comes from the assigned Current Job"
+                        : "Security/permission role from the linked user"
+                    }
+                  >
                     <Briefcase className="h-3 w-3" />
-                    {draft.companyRole}
+                    {draft.designation || draft.companyRole}
                   </span>
                 )}
               </div>
@@ -586,7 +615,7 @@ export default function EmployeeProfileForm() {
             />
           </FormField>
 
-          <FormField label="Employment Status">
+          <FormField label="Employee Status">
             <StyledSelect
               disabled={!editing}
               value={draft.status ?? "Active"}
@@ -595,6 +624,9 @@ export default function EmployeeProfileForm() {
               <option value="Active">Active</option>
               <option value="On Leave">On Leave</option>
               <option value="Inactive">Inactive</option>
+              <option value="Resigned">Resigned</option>
+              <option value="Terminated">Terminated</option>
+              <option value="Retired">Retired</option>
             </StyledSelect>
           </FormField>
 

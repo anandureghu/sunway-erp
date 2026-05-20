@@ -1,6 +1,43 @@
-﻿export type EmployeeStatus = "Active" | "Inactive" | "On Leave";
+﻿export type EmployeeStatus =
+  | "Active"
+  | "Inactive"
+  | "On Leave"
+  | "Resigned"
+  | "Terminated"
+  | "Retired";
 export type Gender = "Male" | "Female" | "Other";
 export type MaritalStatus = "Single" | "Married" | "Divorced" | "Widowed";
+
+export type EmploymentCategory =
+  | "PERMANENT"
+  | "CONTRACT"
+  | "INTERN"
+  | "CONSULTANT"
+  | "TEMPORARY";
+
+export type EmploymentType = "FULL_TIME" | "PART_TIME";
+
+export const EMPLOYMENT_CATEGORY_OPTIONS: { value: EmploymentCategory; label: string }[] = [
+  { value: "PERMANENT", label: "Permanent" },
+  { value: "CONTRACT", label: "Contract" },
+  { value: "INTERN", label: "Intern" },
+  { value: "CONSULTANT", label: "Consultant" },
+  { value: "TEMPORARY", label: "Temporary" },
+];
+
+export const EMPLOYMENT_TYPE_OPTIONS: { value: EmploymentType; label: string }[] = [
+  { value: "FULL_TIME", label: "Full-time" },
+  { value: "PART_TIME", label: "Part-time" },
+];
+
+export const EMPLOYEE_STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
+  { value: "Active", label: "Active" },
+  { value: "Inactive", label: "Inactive" },
+  { value: "On Leave", label: "On Leave" },
+  { value: "Resigned", label: "Resigned" },
+  { value: "Terminated", label: "Terminated" },
+  { value: "Retired", label: "Retired" },
+];
 
 export interface Employee {
   userId: any;
@@ -10,6 +47,11 @@ export interface Employee {
   lastName?: string;
   status?: EmployeeStatus;
   department?: string;
+  /**
+   * Job designation derived from the linked current-job assignment
+   * (employee_current_job → job_codes.title). Distinct from `companyRole`
+   * which is the security/permission role on the user.
+   */
   designation?: string;
   dateOfBirth?: string; // yyyy-mm-dd
   gender?: Gender;
@@ -65,15 +107,27 @@ export interface CurrentJob {
   jobCode: string;
   departmentCode: string;
   departmentName: string;
+  divisionId?: number | null;
+  divisionCode?: string;
+  divisionName?: string;
   jobTitle: string;
   jobLevel: string;
-  grade: string;
+  salaryGrade: string;
+  minSalary?: number | null;
+  maxSalary?: number | null;
   startDate: string; // yyyy-mm-dd
   effectiveFrom: string; // yyyy-mm-dd
   expectedEndDate?: string; // yyyy-mm-dd
   workLocation: string;
   workCity: string;
   workCountry: string;
+  employmentCategory?: EmploymentCategory | "";
+  employmentType?: EmploymentType | "";
+  reportingManagerId?: number | null;
+  reportingManagerName?: string;
+  reportingManagerEmployeeNo?: string;
+  contractStartDate?: string;
+  contractEndDate?: string;
 }
 
 export type ContractType = "PERMANENT" | "TEMPORARY" | "INTERN" | "CONSULTANT";

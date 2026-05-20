@@ -1,14 +1,26 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Eye, Briefcase, Building, FileText } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Eye,
+  Briefcase,
+  Building,
+  Calendar,
+  Clock,
+  FileText,
+  MapPin,
+} from "lucide-react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { generateId } from "@/lib/utils";
 import { toInputDate, toIsoDate } from "@/lib/date";
+import { FormRow } from "@/modules/hr/components/form-components";
+import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 /* ================= TYPES ================= */
@@ -31,12 +43,10 @@ interface ValidationErrors {
 
 function validateExperience(exp: Experience): ValidationErrors {
   const errors: ValidationErrors = {};
-
   if (!exp.companyName?.trim()) errors.companyName = "Company name is required";
   if (!exp.jobTitle?.trim()) errors.jobTitle = "Job title is required";
   if (!exp.lastDateWorked)
     errors.lastDateWorked = "Last date worked is required";
-
   return errors;
 }
 
@@ -50,47 +60,6 @@ const INITIAL_EXPERIENCE: Experience = {
   notes: "",
 };
 
-/* ================= HELPERS ================= */
-
-function Field({
-  label,
-  error,
-  children,
-  required,
-  containerClassName = "",
-  icon,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  required?: boolean;
-  containerClassName?: string;
-  icon?: React.ReactElement;
-}) {
-  return (
-    <div className={`space-y-2 ${containerClassName}`}>
-      <Label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-        {icon && <span className="text-slate-400">{icon}</span>}
-        {label}
-        {required && <span className="text-red-500">*</span>}
-      </Label>
-      {children}
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
-  );
-}
-
-function Detail({ label, value }: { label: string; value?: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-        {label}
-      </p>
-      <p className="text-base text-slate-800 font-medium">{value || "—"}</p>
-    </div>
-  );
-}
-
 /* ================= COMPONENT ================= */
 
 export default function PreviousExperiencesForm() {
@@ -103,10 +72,10 @@ export default function PreviousExperiencesForm() {
 
   /* ================= API ================= */
 
-  async function listExperiences(empId: number) {
+  const listExperiences = useCallback(async (empId: number) => {
     const res = await apiClient.get(`/employees/${empId}/experiences`);
     return res.data;
-  }
+  }, []);
 
   async function createExperience(empId: number, body: any) {
     return apiClient.post(`/employees/${empId}/experiences`, body);
@@ -145,16 +114,20 @@ export default function PreviousExperiencesForm() {
 
   useEffect(() => {
     if (!employeeId) return;
-
+    let mounted = true;
     (async () => {
       try {
         const data = await listExperiences(employeeId);
+        if (!mounted) return;
         setExperiences((data || []).map(mapApiToForm));
       } catch {
         toast.error("Failed to load experiences");
       }
     })();
-  }, [employeeId]);
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId, listExperiences]);
 
   /* ================= HANDLERS ================= */
 
@@ -163,8 +136,6 @@ export default function PreviousExperiencesForm() {
     setExperiences((c) => [...c, exp]);
     setEditingId(exp.id);
   };
-
-  const handleEdit = (exp: Experience) => setEditingId(exp.id);
 
   const handleLocalChange = (id: string, patch: Partial<Experience>) => {
     setExperiences((c) => c.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -200,14 +171,19 @@ export default function PreviousExperiencesForm() {
 
   const handleCancel = () => {
     setExperiences((c) =>
-      c.filter(
-        (e) =>
-          e.id !== editingId ||
-          Number(e.id) ||
-          e.companyName ||
-          e.jobTitle ||
-          e.lastDateWorked,
-      ),
+      c.filter((e) => {
+        if (e.id !== editingId) return true;
+        const isPersisted = Number(e.id);
+        if (isPersisted) return true;
+        const hasContent =
+          e.companyName?.trim() ||
+          e.jobTitle?.trim() ||
+          e.lastDateWorked ||
+          e.numberOfYears ||
+          e.companyAddress?.trim() ||
+          e.notes?.trim();
+        return !!hasContent;
+      }),
     );
     setEditingId(null);
   };
@@ -225,10 +201,29 @@ export default function PreviousExperiencesForm() {
     }
   };
 
+  /* ================= SUMMARY METRICS ================= */
+
+  const stats = useMemo(() => {
+    const total = experiences.length;
+    const totalYears = experiences.reduce(
+      (sum, e) => sum + (Number(e.numberOfYears) || 0),
+      0,
+    );
+    const uniqueCompanies = new Set(
+      experiences.map((e) => e.companyName?.trim()).filter(Boolean),
+    ).size;
+    const latestDate = experiences
+      .map((e) => e.lastDateWorked)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    return { total, totalYears, uniqueCompanies, latestDate };
+  }, [experiences]);
+
   /* ================= RENDER ================= */
 
   return (
-    <div className="space-y-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
+    <div className="space-y-6 rounded-xl">
       <SecondaryPageHeader
         title="Previous Experiences"
         description="Manage previous employment history"
@@ -244,300 +239,454 @@ export default function PreviousExperiencesForm() {
         }
       />
 
-      {/* Employment Details Section */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      {/* Summary metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <SummaryCard
+          label="Total Experiences"
+          value={stats.total}
+          description="Records on file"
+          icon={<Briefcase className="h-5 w-5" />}
+          color="blue"
+        />
+        <SummaryCard
+          label="Total Years"
+          value={
+            stats.totalYears > 0
+              ? Number.isInteger(stats.totalYears)
+                ? stats.totalYears
+                : stats.totalYears.toFixed(1)
+              : 0
+          }
+          description="Combined tenure"
+          icon={<Clock className="h-5 w-5" />}
+          color="emerald"
+        />
+        <SummaryCard
+          label="Companies"
+          value={stats.uniqueCompanies}
+          description="Distinct employers"
+          icon={<Building className="h-5 w-5" />}
+          color="violet"
+        />
+        <SummaryCard
+          label="Latest Date"
+          value={
+            stats.latestDate
+              ? new Date(stats.latestDate).toLocaleDateString()
+              : "—"
+          }
+          description="Most recent role"
+          icon={<Calendar className="h-5 w-5" />}
+          color="amber"
+        />
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Building className="h-4 w-4 text-blue-600" />
-          Employment Details
+          <Briefcase className="h-4 w-4 text-blue-600" />
+          Experience Details
         </h3>
 
-        {/* EXPERIENCES */}
-        {experiences.map((exp) => {
-          const errors = validateExperience(exp);
-          const editing = editingId === exp.id;
-          const viewing = viewingId === exp.id;
+        <div className="grid gap-6">
+          {experiences.map((exp) => {
+            const errors = validateExperience(exp);
+            const editing = editingId === exp.id;
+            const viewing = viewingId === exp.id;
 
-          return (
-            <div
-              key={exp.id}
-              className="border border-slate-200 rounded-lg p-6 mb-6"
-            >
-              {/* EDIT MODE */}
-              {editing ? (
-                <div className="space-y-6">
-                  {/* Employment Details Section */}
-                  <div className="bg-white rounded-lg p-6 shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200 flex items-center gap-2">
-                      <Building className="h-5 w-5 text-orange-600" />
-                      Employment Details
-                    </h3>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <Field
-                        label="Company Name"
-                        error={errors.companyName}
-                        required
-                      >
-                        <Input
-                          value={exp.companyName}
-                          onChange={(e) =>
-                            handleLocalChange(exp.id, {
-                              companyName: e.target.value,
-                            })
-                          }
-                          placeholder="Enter company name"
-                          className="rounded-lg border-slate-300"
-                        />
-                      </Field>
-
-                      <Field label="Job Title" error={errors.jobTitle} required>
-                        <Input
-                          value={exp.jobTitle}
-                          onChange={(e) =>
-                            handleLocalChange(exp.id, {
-                              jobTitle: e.target.value,
-                            })
-                          }
-                          placeholder="e.g., Senior Software Engineer"
-                          className="rounded-lg border-slate-300"
-                        />
-                      </Field>
-
-                      <Field
-                        label="Last Date Worked"
-                        error={errors.lastDateWorked}
-                        required
-                      >
-                        <Input
-                          type="date"
-                          value={exp.lastDateWorked}
-                          onChange={(e) =>
-                            handleLocalChange(exp.id, {
-                              lastDateWorked: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          Date when employment ended (or current date if still
-                          employed)
-                        </p>
-                      </Field>
-
-                      <Field label="Number of Years">
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          value={exp.numberOfYears}
-                          onChange={(e) =>
-                            handleLocalChange(exp.id, {
-                              numberOfYears: e.target.value,
-                            })
-                          }
-                          placeholder="Enter number of years"
-                          className="rounded-lg border-slate-300"
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          Enter the total number of years worked at this company
-                        </p>
-                      </Field>
-
-                      <Field
-                        label="Company Address"
-                        containerClassName="md:col-span-2"
-                      >
-                        <Input
-                          value={exp.companyAddress}
-                          onChange={(e) =>
-                            handleLocalChange(exp.id, {
-                              companyAddress: e.target.value,
-                            })
-                          }
-                          placeholder="Enter company address"
-                          className="rounded-lg border-slate-300"
-                        />
-                      </Field>
+            return (
+              <div
+                key={exp.id}
+                className="border border-slate-200 rounded-lg p-6 mb-6"
+              >
+                {editing ? (
+                  <div className="p-6 bg-gradient-to-br from-white to-slate-50">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Briefcase className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-800 mb-1">
+                            Experience Information
+                          </h4>
+                          <p className="text-sm text-slate-600">
+                            Capture the company, role, dates worked and any
+                            additional context for this previous engagement.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Notes Section */}
-                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg border border-slate-200 p-6">
-                    <Field
-                      label="Notes / Remarks"
-                      icon={<FileText className="h-4 w-4" />}
-                    >
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
+                        Employment Details
+                      </h3>
+
+                      <FormRow columns={2}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Company Name <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            value={exp.companyName}
+                            onChange={(e) =>
+                              handleLocalChange(exp.id, {
+                                companyName: e.target.value,
+                              })
+                            }
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter company name"
+                          />
+                          {errors.companyName && (
+                            <p className="text-xs text-red-500">
+                              {errors.companyName}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Job Title <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            value={exp.jobTitle}
+                            onChange={(e) =>
+                              handleLocalChange(exp.id, {
+                                jobTitle: e.target.value,
+                              })
+                            }
+                            className="rounded-lg border-slate-300"
+                            placeholder="e.g., Senior Software Engineer"
+                          />
+                          {errors.jobTitle && (
+                            <p className="text-xs text-red-500">
+                              {errors.jobTitle}
+                            </p>
+                          )}
+                        </div>
+                      </FormRow>
+
+                      <FormRow columns={2}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Last Date Worked{" "}
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            type="date"
+                            value={exp.lastDateWorked}
+                            onChange={(e) =>
+                              handleLocalChange(exp.id, {
+                                lastDateWorked: e.target.value,
+                              })
+                            }
+                            className="rounded-lg border-slate-300"
+                          />
+                          {errors.lastDateWorked && (
+                            <p className="text-xs text-red-500">
+                              {errors.lastDateWorked}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Number of Years
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={exp.numberOfYears}
+                            onChange={(e) =>
+                              handleLocalChange(exp.id, {
+                                numberOfYears: e.target.value,
+                              })
+                            }
+                            className="rounded-lg border-slate-300"
+                            placeholder="Total years at this company"
+                          />
+                        </div>
+                      </FormRow>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100 mb-4">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                        Company Location
+                      </h3>
+
+                      <FormRow columns={1}>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-slate-700">
+                            Company Address
+                          </Label>
+                          <Input
+                            value={exp.companyAddress}
+                            onChange={(e) =>
+                              handleLocalChange(exp.id, {
+                                companyAddress: e.target.value,
+                              })
+                            }
+                            className="rounded-lg border-slate-300"
+                            placeholder="Enter company address"
+                          />
+                        </div>
+                      </FormRow>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-cyan-600" />
+                        Notes / Remarks
+                      </h3>
                       <Textarea
                         value={exp.notes}
                         onChange={(e) =>
-                          handleLocalChange(exp.id, {
-                            notes: e.target.value,
-                          })
+                          handleLocalChange(exp.id, { notes: e.target.value })
                         }
-                        placeholder="Add any additional notes, achievements, or responsibilities"
+                        placeholder="Add achievements, responsibilities, or context about this role"
                         className="min-h-[100px] rounded-lg border-slate-300 resize-none bg-white"
                         maxLength={1000}
                       />
-                    </Field>
-                  </div>
+                      <p className="text-xs text-slate-500 mt-2 text-right">
+                        {exp.notes.length} / 1000 characters
+                      </p>
+                    </div>
 
-                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                    <Button
-                      variant="outline"
-                      onClick={handleCancel}
-                      className="px-6 rounded-lg border-slate-300 hover:bg-slate-50"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => handleSave(exp)}
-                      disabled={Object.values(errors).some(Boolean)}
-                      className="px-6 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg shadow-lg"
-                    >
-                      Save Experience
-                    </Button>
+                    <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
+                      <Button
+                        variant="outline"
+                        onClick={handleCancel}
+                        className="px-6 rounded-lg border-slate-300"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        disabled={Object.values(errors).some(Boolean)}
+                        onClick={() => handleSave(exp)}
+                        className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg"
+                      >
+                        Save Experience
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                /* VIEW MODE */
-                <div className="space-y-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-slate-800">
-                          {exp.companyName || "Unnamed Company"}
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                        <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-lg border border-orange-100">
-                          <p className="text-xs text-slate-600 mb-1">
-                            Job Title
-                          </p>
-                          <p className="text-sm font-semibold text-orange-700">
-                            {exp.jobTitle || "No title"}
-                          </p>
+                ) : (
+                  <div className="p-6">
+                    {viewing ? (
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="text-2xl font-bold text-slate-800">
+                            {exp.companyName || "Unnamed Company"}
+                          </h3>
+                          {exp.jobTitle && (
+                            <span className="px-4 py-2 rounded-full text-sm font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+                              {exp.jobTitle}
+                            </span>
+                          )}
                         </div>
-                        {exp.lastDateWorked && (
-                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                            <p className="text-xs text-slate-600 mb-1">
-                              Last Date
-                            </p>
-                            <p className="text-sm font-semibold text-blue-700">
-                              {new Date(
-                                exp.lastDateWorked,
-                              ).toLocaleDateString()}
-                            </p>
-                          </div>
-                        )}
-                        {exp.numberOfYears && (
-                          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
-                            <p className="text-xs text-slate-600 mb-1">
-                              Duration
-                            </p>
-                            <p className="text-sm font-semibold text-emerald-700">
-                              {exp.numberOfYears} yrs
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setViewingId(exp.id)}
-                        className="hover:bg-blue-50 rounded-lg"
-                      >
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEdit(exp)}
-                        className="hover:bg-indigo-50 rounded-lg"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(exp.id)}
-                        className="hover:bg-red-50 text-red-600 rounded-lg"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
 
-                  {viewing && (
-                    <div className="space-y-6">
-                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-lg p-6 border border-blue-100">
-                        <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                          Employment Information
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Detail
-                            label="Last Date Worked"
-                            value={
-                              exp.lastDateWorked
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                <Briefcase className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <span className="text-sm font-medium text-blue-700">
+                                Job Title
+                              </span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-800">
+                              {exp.jobTitle || "—"}
+                            </p>
+                          </div>
+                          <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-emerald-100 rounded-lg">
+                                <Calendar className="h-5 w-5 text-emerald-600" />
+                              </div>
+                              <span className="text-sm font-medium text-emerald-700">
+                                Last Date Worked
+                              </span>
+                            </div>
+                            <p className="text-2xl font-bold text-emerald-800">
+                              {exp.lastDateWorked
                                 ? new Date(
                                     exp.lastDateWorked,
                                   ).toLocaleDateString()
-                                : "—"
-                            }
-                          />
-                          <Detail
-                            label="Company Address"
-                            value={exp.companyAddress || "—"}
-                          />
+                                : "—"}
+                            </p>
+                          </div>
+                          <div className="bg-violet-50 p-5 rounded-lg border border-violet-200">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-violet-100 rounded-lg">
+                                <Clock className="h-5 w-5 text-violet-600" />
+                              </div>
+                              <span className="text-sm font-medium text-violet-700">
+                                Duration
+                              </span>
+                            </div>
+                            <p className="text-2xl font-bold text-violet-800">
+                              {exp.numberOfYears
+                                ? `${exp.numberOfYears} yrs`
+                                : "—"}
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      {exp.notes && (
-                        <div className="bg-amber-50 rounded-lg p-6 border border-amber-100">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-2">
-                            Notes / Remarks
+                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
+                          <h4 className="text-lg font-semibold text-slate-800 mb-4">
+                            Employment Information
                           </h4>
-                          <p className="text-slate-700 whitespace-pre-wrap">
-                            {exp.notes}
-                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DetailItem
+                              label="Company"
+                              value={exp.companyName || "—"}
+                            />
+                            <DetailItem
+                              label="Job Title"
+                              value={exp.jobTitle || "—"}
+                            />
+                            <DetailItem
+                              label="Last Date Worked"
+                              value={
+                                exp.lastDateWorked
+                                  ? new Date(
+                                      exp.lastDateWorked,
+                                    ).toLocaleDateString()
+                                  : "—"
+                              }
+                            />
+                            <DetailItem
+                              label="Years"
+                              value={exp.numberOfYears || "—"}
+                            />
+                          </div>
                         </div>
-                      )}
 
-                      <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setViewingId(null)}
-                          className="rounded-lg border-slate-300"
-                        >
-                          Close
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setViewingId(null);
-                            handleEdit(exp);
-                          }}
-                          className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg"
-                        >
-                          Edit Experience
-                        </Button>
+                        {exp.companyAddress && (
+                          <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-200">
+                            <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                              <MapPin className="h-5 w-5 text-indigo-600" />
+                              Company Address
+                            </h4>
+                            <p className="text-slate-700">
+                              {exp.companyAddress}
+                            </p>
+                          </div>
+                        )}
+
+                        {exp.notes && (
+                          <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
+                            <h4 className="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-amber-600" />
+                              Notes / Remarks
+                            </h4>
+                            <p className="text-slate-700 whitespace-pre-wrap">
+                              {exp.notes}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingId(null)}
+                            className="rounded-lg border-slate-300"
+                          >
+                            Close
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                    ) : (
+                      <div className="relative">
+                        <div className="pr-36">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-xl font-bold text-slate-800">
+                              {exp.companyName || "Unnamed Company"}
+                            </h3>
+                            {exp.jobTitle && (
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+                                {exp.jobTitle}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
+                              <p className="text-xs text-slate-600 mb-1">
+                                Job Title
+                              </p>
+                              <p className="text-sm font-semibold text-blue-700">
+                                {exp.jobTitle || "—"}
+                              </p>
+                            </div>
+                            {exp.lastDateWorked && (
+                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Last Date
+                                </p>
+                                <p className="text-sm font-semibold text-emerald-700">
+                                  {new Date(
+                                    exp.lastDateWorked,
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                            )}
+                            {exp.numberOfYears && (
+                              <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-3 rounded-lg border border-violet-100">
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Duration
+                                </p>
+                                <p className="text-sm font-semibold text-violet-700">
+                                  {exp.numberOfYears} yrs
+                                </p>
+                              </div>
+                            )}
+                            {exp.companyAddress && (
+                              <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-100">
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Location
+                                </p>
+                                <p className="text-sm font-semibold text-amber-700 truncate">
+                                  {exp.companyAddress}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="absolute top-0 right-0 flex gap-2 w-32">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewingId(exp.id)}
+                            className="flex items-center gap-1 rounded-lg flex-1"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(exp.id)}
+                            className="text-red-600 rounded-lg flex-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
         {experiences.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-16 text-center">
-            <div className="inline-block p-4 bg-gradient-to-br from-orange-100 to-amber-100 rounded-full mb-4">
-              <Briefcase className="h-12 w-12 text-orange-600" />
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center">
+            <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
+              <Briefcase className="h-12 w-12 text-blue-600" />
             </div>
             <h3 className="text-xl font-semibold text-slate-800 mb-2">
               No work experience added yet
@@ -547,7 +696,7 @@ export default function PreviousExperiencesForm() {
             </p>
             <Button
               onClick={handleAdd}
-              className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white rounded-lg px-6"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
             >
               <Plus className="h-5 w-5 mr-2" />
               Add Your First Experience
@@ -555,6 +704,17 @@ export default function PreviousExperiencesForm() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
+        {label}
+      </p>
+      <p className="text-base text-slate-800 font-medium">{value}</p>
     </div>
   );
 }

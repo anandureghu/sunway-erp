@@ -52,7 +52,7 @@ export default function JobCodeAutocomplete({
       job.code.toLowerCase().includes(q) ||
       job.title.toLowerCase().includes(q) ||
       job.level.toLowerCase().includes(q) ||
-      job.grade.toLowerCase().includes(q)
+      job.salaryGrade.toLowerCase().includes(q)
     );
   }, [jobCodes, query]);
 
@@ -227,7 +227,7 @@ export default function JobCodeAutocomplete({
                       {job.level}
                     </span>
                     <span className="text-xs text-slate-500">
-                      Grade: {job.grade}
+                      Grade: {job.salaryGrade}
                     </span>
                   </div>
                 </div>

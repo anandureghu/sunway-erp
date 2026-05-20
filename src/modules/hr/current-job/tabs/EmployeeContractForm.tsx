@@ -735,7 +735,7 @@ export default function EmployeeContractForm() {
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-slate-700">
-                Linked Employee Info & Current Job
+                Linked Employee and Current Job
               </h3>
               <p className="text-xs text-slate-400">
                 Auto-filled from the Employee Info and Current Job tabs. Edit

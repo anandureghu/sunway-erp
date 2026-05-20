@@ -86,9 +86,7 @@ const WarehouseMaster = () => {
   // Warehouses management state
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
-    null,
-  );
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
   // TODO: set loading and error states properly
   const [, setLoading] = useState(true);

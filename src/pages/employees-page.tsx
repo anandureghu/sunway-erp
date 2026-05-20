@@ -33,6 +33,38 @@ const EmployeeTable = ({ data, onSelect }: EmployeeTableProps) => (
   />
 );
 
+/**
+ * Fills in `department` and `designation` for an employee from their
+ * EmployeeCurrentJob. The backend already returns `designation` derived from
+ * the job code's title via EmployeeService.toDTO — this hydrate step is the
+ * belt-and-braces fallback that also runs while the row is on-screen, so the
+ * overview never shows an empty Designation column when a current job exists.
+ */
+async function hydrateEmployeeFromCurrentJob(emp: Employee): Promise<Employee> {
+  if (!emp.id) return emp;
+  try {
+    const currentJob = await currentJobService.get(Number(emp.id));
+    if (!currentJob) return emp;
+
+    const cj = currentJob as any;
+    const departmentName =
+      cj.departmentName ||
+      cj.department?.name ||
+      cj.department?.departmentName ||
+      "";
+    const jobTitle = cj.job?.title || cj.jobTitle || "";
+
+    const next: Employee = { ...emp };
+    if (departmentName) next.department = departmentName;
+    // Prefer backend-supplied designation; fall back to the current job's title.
+    if (!next.designation && jobTitle) next.designation = jobTitle;
+    return next;
+  } catch {
+    console.debug("No current job for employee:", emp.id);
+    return emp;
+  }
+}
+
 export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -242,26 +274,7 @@ export default function EmployeesPage() {
 
         if (list.length > 0) {
           const employeesWithDepartment = await Promise.all(
-            list.map(async (emp) => {
-              try {
-                if (emp.id) {
-                  const currentJob = await currentJobService.get(
-                    Number(emp.id),
-                  );
-                  if (currentJob) {
-                    const deptName =
-                      (currentJob as any).departmentName ||
-                      (currentJob as any).department?.name ||
-                      (currentJob as any).department?.departmentName ||
-                      "";
-                    if (deptName) return { ...emp, department: deptName };
-                  }
-                }
-              } catch {
-                console.debug("No current job for employee:", emp.id);
-              }
-              return emp;
-            }),
+            list.map((emp) => hydrateEmployeeFromCurrentJob(emp)),
           );
           setEmployees(employeesWithDepartment);
         } else {
@@ -296,29 +309,10 @@ export default function EmployeesPage() {
       try {
         const list = await hrService.listEmployees();
 
-        // Fetch current job data for each employee to get department
+        // Fetch current job data for each employee to get department + designation
         if (list.length > 0) {
           const employeesWithDepartment = await Promise.all(
-            list.map(async (emp) => {
-              try {
-                if (emp.id) {
-                  const currentJob = await currentJobService.get(
-                    Number(emp.id),
-                  );
-                  if (currentJob) {
-                    const deptName =
-                      (currentJob as any).departmentName ||
-                      (currentJob as any).department?.name ||
-                      (currentJob as any).department?.departmentName ||
-                      "";
-                    if (deptName) return { ...emp, department: deptName };
-                  }
-                }
-              } catch {
-                console.debug("No current job for employee:", emp.id);
-              }
-              return emp;
-            }),
+            list.map((emp) => hydrateEmployeeFromCurrentJob(emp)),
           );
           setEmployees(employeesWithDepartment);
         } else {
