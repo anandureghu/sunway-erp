@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, XCircle, UserCircle, ShieldCheck, Pencil } from 'lucide-react';
 import { getProfile, type ProfileResponse } from '@/service/userService';
@@ -80,6 +80,7 @@ const UserProfilePage = () => {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-end gap-4">
               <Avatar className="-mt-10 h-20 w-20 ring-4 ring-white shadow-xl">
+                <AvatarImage src={profile.imageUrl ?? undefined} alt={profile.fullName ?? profile.username} className="object-cover" />
                 <AvatarFallback className="bg-linear-to-br from-violet-500 to-blue-600 text-2xl font-bold text-white">
                   {initials}
                 </AvatarFallback>

@@ -43,6 +43,8 @@ export interface ProfileResponse {
   // department
   departmentId: number | null;
   departmentName: string | null;
+  // avatar
+  imageUrl: string | null;
 }
 
 // ── new function ──────────────────────────────────────────────────────────────
