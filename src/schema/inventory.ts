@@ -29,6 +29,14 @@ export const ITEM_SCHEMA = z
     warehouse: z.number().min(1),
 
     quantity: z.number().optional(),
+    minimum: z.preprocess(
+      (v) => (v == null || (typeof v === "number" && isNaN(v))) ? undefined : Number(v),
+      z.number().min(0).optional()
+    ),
+    maximum: z.preprocess(
+      (v) => (v == null || (typeof v === "number" && isNaN(v))) ? undefined : Number(v),
+      z.number().min(0).optional()
+    ),
     reorderLevel: z.number().optional(),
 
     costPrice: z.number().min(0),
@@ -37,6 +45,12 @@ export const ITEM_SCHEMA = z
     status: z.enum(["active", "discontinued", "out_of_stock"]),
 
     barcode: z.string().optional(),
+    serialNo: z.string().optional(),
+    location: z.string().optional(),
+    unitSale: z.preprocess(
+      (v) => (v == null || (typeof v === "number" && isNaN(v))) ? undefined : Number(v),
+      z.number().min(0).optional()
+    ),
     image: z.any().optional(),
   })
   .superRefine((data, ctx) => {

@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, X, Package, Tag, DollarSign, Layers } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ITEM_SCHEMA,
   type ItemFormData,
@@ -130,15 +131,18 @@ function CreateItemForm({
 
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset, getValues } = useForm<ItemFormValues>({
     resolver: zodResolver(ITEM_SCHEMA),
-    defaultValues: { status: "active", unit: "pcs", costPrice: 0, sellingPrice: 0, reorderLevel: 0 },
+    defaultValues: { status: "active", unit: "pcs", costPrice: 0, sellingPrice: 0, reorderLevel: 0, minimum: 0, maximum: 0, unitSale: 0 },
   });
 
   const buildPayload = (data: ItemFormData, warehouseId?: number) => ({
     sku: data.sku?.toUpperCase(), name: data.name, type: data.itemType,
     category: data.category, subCategory: data.subcategory, brand: data.brand,
-    description: data.description, warehouse: warehouseId ?? data.warehouse,
-    quantity: Number(data.quantity ?? 0), minimum: 0, maximum: 0,
+    description: data.description, location: data.location, serialNo: data.serialNo,
+    warehouse: warehouseId ?? data.warehouse,
+    quantity: Number(data.quantity ?? 0),
+    minimum: Number(data.minimum ?? 0), maximum: Number(data.maximum ?? 0),
     costPrice: Number(data.costPrice ?? 0), sellingPrice: Number(data.sellingPrice ?? 0),
+    unitSale: Number(data.unitSale ?? 0),
     unitMeasure: data.unit, reorderLevel: Number(data.reorderLevel ?? 0),
     status: data.status, barcode: data.barcode,
   });
@@ -148,10 +152,14 @@ function CreateItemForm({
     sku: item.sku ?? "", name: item.name ?? "", itemType: item.type ?? "",
     category: item.category ?? "", subcategory: item.subCategory ?? "", brand: item.brand ?? "",
     description: item.description ?? "",
+    location: item.location ?? "", serialNo: item.serialNo ?? "",
     unit: (item.unitMeasure as any) ?? undefined,
     warehouse: Number(item.warehouse_id) || 0,
-    quantity: item.quantity ?? 0, reorderLevel: item.reorderLevel ?? 0,
+    quantity: item.quantity ?? 0,
+    minimum: item.minimum ?? 0, maximum: item.maximum ?? 0,
+    reorderLevel: item.reorderLevel ?? 0,
     costPrice: Number(item.costPrice ?? 0), sellingPrice: Number(item.sellingPrice ?? 0),
+    unitSale: Number(item.unitSale ?? 0),
     status: (item.status as any) ?? "active",
     barcode: item.barcode ?? "",
   });
@@ -211,7 +219,7 @@ function CreateItemForm({
       <SectionCard icon={<Tag className="h-3.5 w-3.5 text-white" />} title="Basic information">
         <div className="grid grid-cols-2 gap-5">
           <F label="SKU" required>
-            <Input placeholder="SKU-001" {...register("sku")} disabled={editMode} className={icls} />
+            <Input placeholder="SKU-001" {...register("sku")} className={icls} />
             {errors.sku && <p className="text-[11px] text-rose-400 mt-1">{errors.sku.message}</p>}
           </F>
 
@@ -232,7 +240,12 @@ function CreateItemForm({
 
           <div className="col-span-2">
             <F label="Description">
-              <Input placeholder="Item description" {...register("description")} className={icls} />
+              <Textarea
+                placeholder="Item description"
+                rows={3}
+                {...register("description")}
+                className="rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)] resize-none"
+              />
             </F>
           </div>
         </div>
@@ -299,6 +312,10 @@ function CreateItemForm({
           <F label="Barcode">
             <Input placeholder="Optional barcode" {...register("barcode")} className={icls} />
           </F>
+
+          <F label="Serial No.">
+            <Input placeholder="Optional serial number" {...register("serialNo")} className={icls} />
+          </F>
         </div>
       </SectionCard>
 
@@ -306,7 +323,7 @@ function CreateItemForm({
       <SectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Unit &amp; warehouse">
         <div className="grid grid-cols-2 gap-5">
           <F label="Unit" required>
-            <Select onValueChange={(value) => setValue("unit", value as any)} value={watch("unit")} disabled={editMode}>
+            <Select onValueChange={(value) => setValue("unit", value as any)} value={watch("unit")}>
               <SelectTrigger className={icls}><SelectValue placeholder="Select unit" /></SelectTrigger>
               <SelectContent className="rounded-xl border-slate-200 shadow-lg">
                 <SelectItem value="pcs">Pieces (pcs)</SelectItem><SelectItem value="kg">Kilogram (kg)</SelectItem>
@@ -321,7 +338,7 @@ function CreateItemForm({
 
           <div>
             <SelectWarehouse
-              value={getValues("warehouse")?.toString() || undefined}
+              value={watch("warehouse")?.toString() || undefined}
               onChange={(value) => { setValue("warehouse", Number(value)); }}
             />
             {errors.warehouse && <p className="text-[11px] text-rose-400 mt-1">{errors.warehouse.message}</p>}
@@ -333,6 +350,12 @@ function CreateItemForm({
               {errors.quantity && <p className="text-[11px] text-rose-400 mt-1">{errors.quantity.message}</p>}
             </F>
           )}
+
+          <div className="col-span-2">
+            <F label="Bin / Location">
+              <Input placeholder="e.g., Aisle 3, Shelf B" {...register("location")} className={icls} />
+            </F>
+          </div>
         </div>
       </SectionCard>
 
@@ -349,9 +372,24 @@ function CreateItemForm({
             {errors.sellingPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.sellingPrice.message}</p>}
           </F>
 
+          <F label="Unit Sale Price">
+            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("unitSale", { setValueAs: (v) => v === "" || v == null ? 0 : Number(v) })} className={icls} />
+            {errors.unitSale && <p className="text-[11px] text-rose-400 mt-1">{errors.unitSale.message}</p>}
+          </F>
+
           <F label="Reorder Level" required>
             <Input type="number" step="1" min="0" placeholder="0" {...register("reorderLevel", { valueAsNumber: true })} className={icls} />
             {errors.reorderLevel && <p className="text-[11px] text-rose-400 mt-1">{errors.reorderLevel.message}</p>}
+          </F>
+
+          <F label="Minimum Stock">
+            <Input type="number" step="1" min="0" placeholder="0" {...register("minimum", { setValueAs: (v) => v === "" || v == null ? 0 : Number(v) })} className={icls} />
+            {errors.minimum && <p className="text-[11px] text-rose-400 mt-1">{errors.minimum.message}</p>}
+          </F>
+
+          <F label="Maximum Stock">
+            <Input type="number" step="1" min="0" placeholder="0" {...register("maximum", { setValueAs: (v) => v === "" || v == null ? 0 : Number(v) })} className={icls} />
+            {errors.maximum && <p className="text-[11px] text-rose-400 mt-1">{errors.maximum.message}</p>}
           </F>
         </div>
       </SectionCard>
@@ -363,7 +401,7 @@ function CreateItemForm({
           Cancel
         </Button>
         <Button type="submit" disabled={submitting}
-          className="h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50">
+          className="h-10 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50">
           {submitting ? (editMode ? "Updating..." : "Creating...") : (editMode ? "Update Item" : "Create Item")}
         </Button>
       </div>
@@ -374,7 +412,7 @@ function CreateItemForm({
           className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
           style={{ maxWidth: 480, width: "calc(100vw - 32px)" }}
         >
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
+          <div className="bg-linear-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
                 <Plus className="h-4 w-4 text-white" />
@@ -401,7 +439,7 @@ function CreateItemForm({
                 Cancel
               </Button>
               <Button type="button" onClick={handleCreateCategory} disabled={creatingCategory || !newCategoryName.trim()}
-                className="h-9 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-[13px] font-semibold text-white shadow-sm">
+                className="h-9 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-5 text-[13px] font-semibold text-white shadow-sm">
                 {creatingCategory ? "Creating..." : "Create Category"}
               </Button>
             </div>
