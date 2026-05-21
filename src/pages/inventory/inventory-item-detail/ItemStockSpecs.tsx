@@ -1,5 +1,5 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { safeLocaleQty, toFiniteNumber } from "./formatters";
+import { safeLocaleQty } from "./formatters";
 
 function Spec({ label, children }: { label: string; children: React.ReactNode }) {
   return (
