@@ -130,6 +130,7 @@ export type StockAdjustment = {
     | "wastage"
     | "found"
     | "theft"
+    | "transfer"
     | "other";
   date: string;
   approvedBy?: string;
