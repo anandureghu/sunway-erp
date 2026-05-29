@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +18,10 @@ const variants = {
   darkBlue: "bg-gradient-to-r from-slate-950 via-blue-950 to-indigo-900",
   green: "bg-gradient-to-br from-secondary-gradient to-secondary-gradient",
 } as const;
+
+/** Use on links/buttons placed in PageHeader `actions` (dark hero inherits white text). */
+export const PAGE_HEADER_ACTION_LINK_CLASS =
+  "inline-flex items-center justify-center gap-2 rounded-md border border-white/40 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:bg-slate-100 [&_svg]:shrink-0 [&_svg]:stroke-slate-900 [&_svg]:text-slate-900";
 
 export type PageHeaderProps = {
   title: string;
@@ -51,15 +54,18 @@ export function PageHeader({
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1 space-y-4 flex gap-3">
             {backHref && (
-              <Button
-                size="sm"
-                className="-ml-2 h-9 w-9 rounded-full px-2 bg-white text-black flex items-center justify-center hover:bg-white/90"
-                asChild
+              <Link
+                to={backHref}
+                aria-label="Go back"
+                className={cn(
+                  "-ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                  "border border-white/40 bg-white shadow-md",
+                  "text-slate-900 hover:bg-slate-100 transition-colors",
+                  "[&_svg]:stroke-slate-900 [&_svg]:text-slate-900",
+                )}
               >
-                <Link to={backHref}>
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
+                <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
+              </Link>
             )}
             {/* <Badge className="rounded-full border-0 bg-white/90 px-3 py-1 text-xs font-medium text-slate-900 shadow-sm hover:bg-white/90 sm:text-sm">
               {badge}
@@ -85,7 +91,18 @@ export function PageHeader({
             {children}
           </div>
           {actions ? (
-            <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
+            <div
+              className={cn(
+                "flex flex-shrink-0 flex-wrap items-center gap-3",
+                "[&_button]:border-white/40 [&_button]:bg-white [&_button]:text-slate-900",
+                "[&_button]:shadow-sm [&_button]:hover:bg-slate-100",
+                "[&_a]:inline-flex [&_a]:items-center [&_a]:gap-2 [&_a]:rounded-md",
+                "[&_a]:border [&_a]:border-white/40 [&_a]:bg-white [&_a]:px-3 [&_a]:py-1.5",
+                "[&_a]:text-sm [&_a]:font-medium [&_a]:text-slate-900 [&_a]:shadow-sm",
+                "[&_a]:hover:bg-slate-100",
+                "[&_svg]:stroke-slate-900 [&_svg]:text-slate-900",
+              )}
+            >
               {actions}
             </div>
           ) : null}
