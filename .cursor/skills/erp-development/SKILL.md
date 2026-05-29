@@ -66,3 +66,4 @@ npm run build
 - **Purchase orders (draft edit)** — Edit from list when `status === "draft"`; `purchase-order-form` sends `supplierId` on update; use `CurrencyAmount` for money; supplier `Select` stays enabled in edit mode.
 - **PO → AP** — Pay vendors only after **Release to supplier** (`confirmed`). `vendorPaymentSettled === true` means AP payment confirmed; cancel PO only while draft and unpaid. AP: Vendor payments + Purchase invoices tabs.
 - **PO receipts** — After AP payment confirm: download **invoice receipt** (`getInvoicePdfUrl`) and **payment receipt** (`GET /finance/payments/{id}/pdf`) from PO detail; purchase invoice detail has Invoice/Receipt tabs for GENERATED docs.
+- **PR line items** — Use `ItemSearchCombobox` + `filterItemsByQuery` from `@/lib/filter-items` (search by name/SKU/barcode); active items only.

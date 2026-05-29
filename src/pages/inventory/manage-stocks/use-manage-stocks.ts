@@ -3,19 +3,7 @@ import { listItems, listWarehouses } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export function filterItemsByQuery(
-  items: ItemResponseDTO[],
-  query: string,
-): ItemResponseDTO[] {
-  if (query.length === 0) return [];
-  const lowerQuery = query.toLowerCase();
-  return items.filter(
-    (item) =>
-      item.name.toLowerCase().includes(lowerQuery) ||
-      item.sku.toLowerCase().includes(lowerQuery) ||
-      (item.barcode?.toLowerCase().includes(lowerQuery) ?? false),
-  );
-}
+export { filterItemsByQuery } from "@/lib/filter-items";
 
 export function useManageStocks() {
   const [items, setItems] = useState<ItemResponseDTO[]>([]);

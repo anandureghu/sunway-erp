@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,9 @@ import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
 import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
 import { Link } from "react-router-dom";
-import { Info, Paperclip, X } from "lucide-react";
+import { Info, Paperclip, Search, X } from "lucide-react";
+import { ItemSearchCombobox } from "@/pages/inventory/manage-stocks/components/item-search-combobox";
+import { filterItemsByQuery } from "@/lib/filter-items";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api-error-message";
@@ -134,6 +136,7 @@ export function CreatePurchaseRequisitionForm({
     PurchaseRequisitionItem[]
   >([]);
   const [selectedItem, setSelectedItem] = useState<string>("");
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   /** Optional override; empty means use item cost price. */
   const [itemOtherCostInput, setItemOtherCostInput] = useState<string>("");
@@ -275,8 +278,40 @@ export function CreatePurchaseRequisitionForm({
     void syncDepartmentForRequester(requestedByUserId);
   }, [requestedByUserId]);
 
+  const activeItems = useMemo(
+    () => items.filter((i) => i.status === "active"),
+    [items],
+  );
+
+  const itemSearchResults = useMemo(
+    () => filterItemsByQuery(activeItems, itemSearchQuery),
+    [activeItems, itemSearchQuery],
+  );
+
+  const selectedItemRecord = useMemo(
+    () =>
+      selectedItem
+        ? items.find((i) => String(i.id) === selectedItem)
+        : undefined,
+    [items, selectedItem],
+  );
+
+  const handleItemSelectFromSearch = (item: ItemResponseDTO) => {
+    if (item.status && item.status !== "active") {
+      toast.error("Only active items can be added to a requisition.");
+      return;
+    }
+    setSelectedItem(String(item.id));
+    setItemSearchQuery("");
+  };
+
   const addItemToRequisition = () => {
-    if (!selectedItem || itemQuantity <= 0) return;
+    if (!selectedItem || itemQuantity <= 0) {
+      if (!selectedItem) {
+        toast.error("Search and select an item before adding a line.");
+      }
+      return;
+    }
 
     const inv = items.find((i) => String(i.id) === selectedItem);
     if (!inv) return;
@@ -702,25 +737,56 @@ export function CreatePurchaseRequisitionForm({
               <CardTitle>Line items</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="space-y-2">
-                  <Label>Item</Label>
-                  <Select value={selectedItem} onValueChange={setSelectedItem}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select item" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items
-                        .filter((i) => i.status === "active")
-                        .map((item) => (
-                          <SelectItem key={item.id} value={String(item.id)}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+              <div className="rounded-lg border border-dashed bg-muted/30 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  Search items
                 </div>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Find by name, SKU, or barcode, then set quantity and add the
+                  line.
+                </p>
+                <ItemSearchCombobox
+                  label=""
+                  query={itemSearchQuery}
+                  onQueryChange={setItemSearchQuery}
+                  results={
+                    itemSearchQuery.trim().length > 0 ? itemSearchResults : []
+                  }
+                  onSelect={handleItemSelectFromSearch}
+                />
+                {itemSearchQuery.trim().length > 0 &&
+                  itemSearchResults.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No active items match your search.
+                    </p>
+                  )}
+                {selectedItemRecord && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+                    <span>
+                      Selected:{" "}
+                      <span className="font-medium">
+                        {selectedItemRecord.name}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · SKU {selectedItemRecord.sku}
+                      </span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-muted-foreground"
+                      onClick={() => setSelectedItem("")}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Quantity</Label>
                   <Input
@@ -737,14 +803,7 @@ export function CreatePurchaseRequisitionForm({
                 <div className="space-y-2">
                   <Label>Item cost (from master)</Label>
                   <CurrencyAmount
-                    amount={
-                      selectedItem
-                        ? Number(
-                            items.find((i) => String(i.id) === selectedItem)
-                              ?.costPrice ?? 0,
-                          )
-                        : 0
-                    }
+                    amount={Number(selectedItemRecord?.costPrice ?? 0)}
                   />
                 </div>
 
