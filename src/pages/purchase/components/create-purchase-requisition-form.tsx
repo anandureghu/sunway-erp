@@ -13,8 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { listItems } from "@/service/inventoryService";
-import { createPurchaseRequisition } from "@/service/purchaseFlowService";
+import { listItems, listWarehouses } from "@/service/inventoryService";
+import {
+  createPurchaseRequisition,
+  uploadPurchaseRequisitionDocument,
+  type PurchaseRequisitionCreateDTO,
+} from "@/service/purchaseFlowService";
 import type { PurchaseRequisitionItem } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { toast } from "sonner";
@@ -25,9 +29,12 @@ import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
 import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
 import { Link } from "react-router-dom";
-import { Info } from "lucide-react";
+import { Info, Paperclip, X } from "lucide-react";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PageHeader } from "@/components/PageHeader";
+import { format } from "date-fns";
+import type { Warehouse } from "@/types/inventory";
+import type { PurchaseRequisitionUrgency } from "@/types/purchase";
 
 type Props = {
   onCancel: () => void;
@@ -123,6 +130,19 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   const [debitAccountId, setDebitAccountId] = useState<string>("");
   const [creditAccountId, setCreditAccountId] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [requestedDate, setRequestedDate] = useState(() =>
+    format(new Date(), "yyyy-MM-dd"),
+  );
+  const [requiredDeliveryDate, setRequiredDeliveryDate] = useState("");
+  const [projectCode, setProjectCode] = useState("");
+  const [requisitionDescription, setRequisitionDescription] = useState("");
+  const [urgency, setUrgency] = useState<PurchaseRequisitionUrgency>("normal");
+  const [requiredByDate, setRequiredByDate] = useState("");
+  const [deliveryWarehouseId, setDeliveryWarehouseId] = useState("");
+  const [justification, setJustification] = useState("");
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const pendingFilesInputRef = useRef<HTMLInputElement>(null);
   const requesterSyncSeqRef = useRef(0);
   const didInitRequesterSyncRef = useRef(false);
 
@@ -132,9 +152,10 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       try {
         setLoading(true);
         setLoadError(null);
-        const it = await listItems();
+        const [it, wh] = await Promise.all([listItems(), listWarehouses()]);
         if (cancelled) return;
         setItems(it);
+        setWarehouses(wh.filter((w) => w.status === "active" || !w.status));
         if (companyId) {
           const companyRes = await apiClient.get<Company>(
             `/companies/${companyId}`,
@@ -294,18 +315,55 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       toast.error("Please add at least one item.");
       return;
     }
+    if (!requisitionDescription.trim()) {
+      toast.error("Requisition description is required.");
+      return;
+    }
+    if (!requiredDeliveryDate) {
+      toast.error("Required delivery date is required.");
+      return;
+    }
+    if (!requiredByDate) {
+      toast.error("Required-by date is required.");
+      return;
+    }
+    if (!deliveryWarehouseId) {
+      toast.error("Delivery warehouse is required.");
+      return;
+    }
+    if (!justification.trim()) {
+      toast.error("Justification is required.");
+      return;
+    }
 
     setSubmitLoading(true);
 
-    const payload = {
+    const urgencyApi: PurchaseRequisitionCreateDTO["urgency"] =
+      urgency === "urgent"
+        ? "URGENT"
+        : urgency === "critical"
+          ? "CRITICAL"
+          : "NORMAL";
+
+    const payload: PurchaseRequisitionCreateDTO = {
       debitAccountId: Number(debitAccountId),
       creditAccountId: Number(creditAccountId),
-      preferredSupplierId: preferredSupplierId ? Number(preferredSupplierId) : undefined,
+      preferredSupplierId: preferredSupplierId
+        ? Number(preferredSupplierId)
+        : undefined,
       supplierAddress: supplierAddress || undefined,
       departmentId: departmentId ? Number(departmentId) : undefined,
       requestedByUserId: requestedByUserId
         ? Number(requestedByUserId)
         : undefined,
+      requestedDate: requestedDate || undefined,
+      requiredDeliveryDate,
+      projectCode: projectCode.trim() || undefined,
+      requisitionDescription: requisitionDescription.trim(),
+      urgency: urgencyApi,
+      requiredByDate,
+      deliveryWarehouseId: Number(deliveryWarehouseId),
+      justification: justification.trim(),
       items: requisitionItems.map((item) => {
         const applied = item.estimatedUnitCost ?? item.unitPrice ?? undefined;
         const payload: {
@@ -332,12 +390,33 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     };
 
     createPurchaseRequisition(payload)
-      .then((created) => {
+      .then(async (created) => {
+        if (pendingFiles.length > 0) {
+          try {
+            await Promise.all(
+              pendingFiles.map((file) =>
+                uploadPurchaseRequisitionDocument(created.id, file),
+              ),
+            );
+          } catch (uploadErr: unknown) {
+            const u = uploadErr as {
+              response?: { data?: { message?: string } };
+              message?: string;
+            };
+            toast.warning(
+              u?.response?.data?.message ||
+                u?.message ||
+                "Requisition created but some documents failed to upload. Add them from the detail page.",
+            );
+          }
+        }
         toast.success(
           `Purchase requisition ${created.requisitionNo} created successfully.`,
         );
         onCreated?.();
-        navigate("/inventory/purchase/requisitions", { replace: true });
+        navigate(`/inventory/purchase/requisitions/${created.id}`, {
+          replace: true,
+        });
       })
       .catch((error: any) => {
         console.error("Error creating purchase requisition:", error);
@@ -403,6 +482,118 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
         </Card>
       ) : (
         <form onSubmit={onSubmit} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Requisition details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="requestedDate">Requested date</Label>
+                  <Input
+                    id="requestedDate"
+                    type="date"
+                    value={requestedDate}
+                    onChange={(e) => setRequestedDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="requiredDeliveryDate">
+                    Required delivery date
+                  </Label>
+                  <Input
+                    id="requiredDeliveryDate"
+                    type="date"
+                    value={requiredDeliveryDate}
+                    onChange={(e) => setRequiredDeliveryDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="projectCode">Project code (optional)</Label>
+                  <Input
+                    id="projectCode"
+                    placeholder="e.g. PRJ-2026-001"
+                    value={projectCode}
+                    onChange={(e) => setProjectCode(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="urgency">Urgency</Label>
+                  <Select
+                    value={urgency}
+                    onValueChange={(v) =>
+                      setUrgency(v as PurchaseRequisitionUrgency)
+                    }
+                  >
+                    <SelectTrigger id="urgency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="requisitionDescription">
+                    Requisition description
+                  </Label>
+                  <Textarea
+                    id="requisitionDescription"
+                    placeholder="Brief summary of what is being requested"
+                    value={requisitionDescription}
+                    onChange={(e) => setRequisitionDescription(e.target.value)}
+                    required
+                    className="min-h-[80px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="requiredByDate">Required-by date</Label>
+                  <Input
+                    id="requiredByDate"
+                    type="date"
+                    value={requiredByDate}
+                    onChange={(e) => setRequiredByDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryWarehouse">Delivery location</Label>
+                  <Select
+                    value={deliveryWarehouseId}
+                    onValueChange={setDeliveryWarehouseId}
+                  >
+                    <SelectTrigger id="deliveryWarehouse">
+                      <SelectValue placeholder="Select warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((wh) => (
+                        <SelectItem key={wh.id} value={String(wh.id)}>
+                          {wh.name}
+                          {wh.code ? ` (${wh.code})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="justification">Justification</Label>
+                  <Textarea
+                    id="justification"
+                    placeholder="Business reason for this purchase"
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                    required
+                    className="min-h-[80px]"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Supplier Information</CardTitle>
@@ -486,7 +677,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Other cost price</Label>
+                  <Label>Estimated cost</Label>
                   <Input
                     type="number"
                     min="0"
@@ -624,6 +815,66 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
                 <p className="text-center text-muted-foreground py-8">
                   Add at least one item.
                 </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Supporting documents</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Optional quotes, specifications, or approvals (PDF, Word, or
+                images, max 15 MB each).
+              </p>
+              <input
+                ref={pendingFilesInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                  const picked = e.target.files
+                    ? Array.from(e.target.files)
+                    : [];
+                  if (picked.length) {
+                    setPendingFiles((prev) => [...prev, ...picked]);
+                  }
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => pendingFilesInputRef.current?.click()}
+              >
+                <Paperclip className="mr-2 h-4 w-4" />
+                Add files
+              </Button>
+              {pendingFiles.length > 0 && (
+                <ul className="space-y-2">
+                  {pendingFiles.map((file, idx) => (
+                    <li
+                      key={`${file.name}-${idx}`}
+                      className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <span className="truncate">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setPendingFiles((prev) =>
+                            prev.filter((_, i) => i !== idx),
+                          )
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>

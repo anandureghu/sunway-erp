@@ -3,6 +3,7 @@ import type {
   PurchaseOrder,
   PurchaseOrderItem,
   PurchaseRequisition,
+  PurchaseRequisitionDocument,
   PurchaseRequisitionItem,
 } from "@/types/purchase";
 
@@ -15,8 +16,17 @@ export interface PurchaseRequisitionCreateDTO {
   debitAccountId: number;
   creditAccountId: number;
   preferredSupplierId?: number;
+  supplierAddress?: string;
   departmentId?: number;
   requestedByUserId?: number;
+  requestedDate?: string;
+  requiredDeliveryDate: string;
+  projectCode?: string;
+  requisitionDescription: string;
+  urgency?: "NORMAL" | "URGENT" | "CRITICAL";
+  requiredByDate: string;
+  deliveryWarehouseId: number;
+  justification: string;
   items: Array<{
     itemId: number;
     requestedQty: number;
@@ -38,6 +48,17 @@ export interface PurchaseRequisitionItemDTO {
   estimatedUnitCost?: number;
 }
 
+export interface PurchaseRequisitionDocumentDTO {
+  id: number;
+  fileName: string;
+  contentType?: string | null;
+  fileSizeBytes?: number | null;
+  downloadUrl?: string | null;
+  uploadedAt?: string | null;
+  uploadedById?: number | null;
+  uploadedByName?: string | null;
+}
+
 export interface PurchaseRequisitionResponseDTO {
   id: number;
   requisitionNumber: string;
@@ -52,6 +73,15 @@ export interface PurchaseRequisitionResponseDTO {
   departmentName?: string;
   requestedById?: number;
   requestedByName?: string;
+  requestedDate?: string | null;
+  requiredDeliveryDate?: string | null;
+  projectCode?: string | null;
+  requisitionDescription?: string | null;
+  urgency?: string | null;
+  requiredByDate?: string | null;
+  deliveryWarehouseId?: number | null;
+  deliveryWarehouseName?: string | null;
+  justification?: string | null;
   createdPurchaseOrderId?: number | null;
   debitAccountId?: number | null;
   debitAccountName?: string | null;
@@ -60,6 +90,24 @@ export interface PurchaseRequisitionResponseDTO {
   financeTransactionId?: number | null;
   archived?: boolean;
   items: PurchaseRequisitionItemDTO[];
+  documents?: PurchaseRequisitionDocumentDTO[];
+}
+
+function toPurchaseRequisitionDocument(
+  dto: PurchaseRequisitionDocumentDTO,
+): PurchaseRequisitionDocument {
+  return {
+    id: String(dto.id),
+    fileName: dto.fileName,
+    contentType: dto.contentType ?? undefined,
+    fileSizeBytes:
+      dto.fileSizeBytes != null ? Number(dto.fileSizeBytes) : undefined,
+    downloadUrl: dto.downloadUrl ?? undefined,
+    uploadedAt: dto.uploadedAt ?? undefined,
+    uploadedById:
+      dto.uploadedById != null ? String(dto.uploadedById) : undefined,
+    uploadedByName: dto.uploadedByName ?? undefined,
+  };
 }
 
 // Purchase Order DTOs
@@ -155,7 +203,21 @@ function toPurchaseRequisition(
         : undefined,
     preferredSupplierName: dto.preferredSupplierName ?? undefined,
     supplierAddress: dto.supplierAddress || undefined,
-    requestedDate: dto.createdAt || "",
+    requestedDate: dto.requestedDate || dto.createdAt || "",
+    requiredDeliveryDate: dto.requiredDeliveryDate || undefined,
+    requiredDate: dto.requiredDeliveryDate || undefined,
+    projectCode: dto.projectCode ?? undefined,
+    requisitionDescription: dto.requisitionDescription ?? undefined,
+    urgency: dto.urgency
+      ? (dto.urgency.toLowerCase() as PurchaseRequisition["urgency"])
+      : undefined,
+    requiredByDate: dto.requiredByDate || undefined,
+    deliveryWarehouseId:
+      dto.deliveryWarehouseId != null
+        ? String(dto.deliveryWarehouseId)
+        : undefined,
+    deliveryWarehouseName: dto.deliveryWarehouseName ?? undefined,
+    justification: dto.justification ?? undefined,
     status: st || "draft",
     items,
     approvedDate: dto.approvedAt || undefined,
@@ -175,6 +237,7 @@ function toPurchaseRequisition(
       dto.financeTransactionId != null
         ? String(dto.financeTransactionId)
         : undefined,
+    documents: (dto.documents || []).map(toPurchaseRequisitionDocument),
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",
   };
@@ -302,6 +365,37 @@ export async function approvePurchaseRequisition(id: string | number) {
     `/purchase/requisitions/${id}/approve`,
   );
   return toPurchaseRequisition(res.data);
+}
+
+export async function uploadPurchaseRequisitionDocument(
+  requisitionId: string | number,
+  file: File,
+): Promise<PurchaseRequisitionDocument> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<PurchaseRequisitionDocumentDTO>(
+    `/purchase/requisitions/${requisitionId}/documents`,
+    formData,
+  );
+  return toPurchaseRequisitionDocument(res.data);
+}
+
+export async function listPurchaseRequisitionDocuments(
+  requisitionId: string | number,
+): Promise<PurchaseRequisitionDocument[]> {
+  const res = await apiClient.get<PurchaseRequisitionDocumentDTO[]>(
+    `/purchase/requisitions/${requisitionId}/documents`,
+  );
+  return (res.data || []).map(toPurchaseRequisitionDocument);
+}
+
+export async function deletePurchaseRequisitionDocument(
+  requisitionId: string | number,
+  documentId: string | number,
+): Promise<void> {
+  await apiClient.delete(
+    `/purchase/requisitions/${requisitionId}/documents/${documentId}`,
+  );
 }
 
 // --- Purchase Orders ---

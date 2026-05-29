@@ -21,8 +21,10 @@ import {
 import type { PurchaseRequisition } from "@/types/purchase";
 import { toast } from "sonner";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
+import { PurchaseRequisitionDocuments } from "./components/purchase-requisition-documents";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
+import type { PurchaseRequisitionDocument } from "@/types/purchase";
 
 export default function PurchaseRequisitionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -173,6 +175,11 @@ export default function PurchaseRequisitionDetailPage() {
   const canApprove = requisition.status === "submitted";
   const showOpenPo =
     requisition.status === "converted" && requisition.createdPurchaseOrderId;
+  const documentsReadOnly = Boolean(requisition.archived);
+
+  const handleDocumentsChange = (documents: PurchaseRequisitionDocument[]) => {
+    setRequisition((prev) => (prev ? { ...prev, documents } : prev));
+  };
 
   return (
     <div className="mx-auto space-y-6 p-6">
@@ -293,11 +300,57 @@ export default function PurchaseRequisitionDetailPage() {
                   : "N/A"}
               </p>
             </div>
-            {requisition.requiredDate && (
+            {(requisition.requiredDeliveryDate || requisition.requiredDate) && (
               <div>
-                <p className="text-sm text-muted-foreground">Required date</p>
+                <p className="text-sm text-muted-foreground">
+                  Required delivery date
+                </p>
                 <p className="font-medium">
-                  {format(new Date(requisition.requiredDate), "MMM dd, yyyy")}
+                  {format(
+                    new Date(
+                      requisition.requiredDeliveryDate ||
+                        requisition.requiredDate!,
+                    ),
+                    "MMM dd, yyyy",
+                  )}
+                </p>
+              </div>
+            )}
+            {requisition.projectCode && (
+              <div>
+                <p className="text-sm text-muted-foreground">Project code</p>
+                <p className="font-medium">{requisition.projectCode}</p>
+              </div>
+            )}
+            {requisition.convertedAt && (
+              <div>
+                <p className="text-sm text-muted-foreground">Converted date</p>
+                <p className="font-medium">
+                  {format(new Date(requisition.convertedAt), "MMM dd, yyyy")}
+                </p>
+              </div>
+            )}
+            {requisition.urgency && (
+              <div>
+                <p className="text-sm text-muted-foreground">Urgency</p>
+                <p className="font-medium capitalize">{requisition.urgency}</p>
+              </div>
+            )}
+            {requisition.requiredByDate && (
+              <div>
+                <p className="text-sm text-muted-foreground">Required-by date</p>
+                <p className="font-medium">
+                  {format(new Date(requisition.requiredByDate), "MMM dd, yyyy")}
+                </p>
+              </div>
+            )}
+            {requisition.deliveryWarehouseName && (
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Delivery location
+                </p>
+                <p className="font-medium">
+                  {requisition.deliveryWarehouseName}
                 </p>
               </div>
             )}
@@ -371,6 +424,20 @@ export default function PurchaseRequisitionDetailPage() {
               </div>
             )}
           </div>
+          {requisition.requisitionDescription && (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">
+                Requisition description
+              </p>
+              <p className="font-medium">{requisition.requisitionDescription}</p>
+            </div>
+          )}
+          {requisition.justification && (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Justification</p>
+              <p className="font-medium">{requisition.justification}</p>
+            </div>
+          )}
           {requisition.notes && (
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Notes</p>
@@ -463,6 +530,13 @@ export default function PurchaseRequisitionDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <PurchaseRequisitionDocuments
+        requisitionId={requisition.id}
+        documents={requisition.documents ?? []}
+        onDocumentsChange={handleDocumentsChange}
+        readOnly={documentsReadOnly}
+      />
     </div>
   );
 }

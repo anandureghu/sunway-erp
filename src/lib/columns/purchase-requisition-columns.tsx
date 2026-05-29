@@ -75,9 +75,35 @@ export function createPurchaseRequisitionColumns(
     },
     {
       accessorKey: "requestedDate",
-      header: "Date",
+      header: "Requested",
       cell: ({ row }) => {
         const date = row.getValue("requestedDate") as string;
+        return (
+          <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
+        );
+      },
+    },
+    {
+      id: "requiredDelivery",
+      header: "Required delivery",
+      cell: ({ row }) => {
+        const date =
+          row.original.requiredDeliveryDate || row.original.requiredDate;
+        return (
+          <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
+        );
+      },
+    },
+    {
+      id: "projectCode",
+      header: "Project",
+      cell: ({ row }) => <span>{row.original.projectCode || "—"}</span>,
+    },
+    {
+      id: "convertedAt",
+      header: "Converted",
+      cell: ({ row }) => {
+        const date = row.original.convertedAt;
         return (
           <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
         );

@@ -40,6 +40,19 @@ export type PurchaseRequisitionStatus =
   | "rejected"
   | "converted";
 
+export type PurchaseRequisitionUrgency = "normal" | "urgent" | "critical";
+
+export type PurchaseRequisitionDocument = {
+  id: string;
+  fileName: string;
+  contentType?: string;
+  fileSizeBytes?: number;
+  downloadUrl?: string;
+  uploadedAt?: string;
+  uploadedById?: string;
+  uploadedByName?: string;
+};
+
 export type PurchaseRequisitionItem = {
   id: string;
   requisitionId: string;
@@ -69,9 +82,19 @@ export type PurchaseRequisition = {
   preferredSupplierName?: string;
   supplierAddress?: string;
   requestedDate: string;
+  requiredDeliveryDate?: string;
+  /** Legacy alias; maps to required delivery date when present. */
   requiredDate?: string;
+  projectCode?: string;
+  requisitionDescription?: string;
+  urgency?: PurchaseRequisitionUrgency;
+  requiredByDate?: string;
+  deliveryWarehouseId?: string;
+  deliveryWarehouseName?: string;
+  justification?: string;
   status: PurchaseRequisitionStatus;
   items: PurchaseRequisitionItem[];
+  documents?: PurchaseRequisitionDocument[];
   totalAmount?: number;
   notes?: string;
   approvedBy?: string;
