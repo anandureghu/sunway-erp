@@ -21,8 +21,6 @@ export default function PurchaseInvoiceDetailPage() {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<FinanceInvoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"invoice" | "receipt">("invoice");
-
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -91,14 +89,12 @@ export default function PurchaseInvoiceDetailPage() {
 
   const openDocumentHref =
     invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
-  const isPaid = statusRaw === "paid";
+  const isPaid =
+    statusRaw === "paid" || statusRaw === "partially_paid";
   const isGenerated = invoice.documentSource === "GENERATED";
+  const showReceipt = isGenerated && isPaid;
 
   const handleDownloadPdf = async () => {
-    if (tab === "receipt" && !isPaid) {
-      toast.error("Receipt is available after vendor payment is confirmed.");
-      return;
-    }
     try {
       const url = await getInvoicePdfUrl(invoice.id);
       if (url && !url.includes("dummy.url")) {
@@ -144,37 +140,6 @@ export default function PurchaseInvoiceDetailPage() {
         actions={
           <>
             {isGenerated && (
-              <div className="flex gap-2 mr-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={tab === "invoice" ? "secondary" : "ghost"}
-                  className={
-                    tab === "invoice"
-                      ? "border border-white/20 bg-white/10 text-white"
-                      : "text-white/80"
-                  }
-                  onClick={() => setTab("invoice")}
-                >
-                  Invoice
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={tab === "receipt" ? "secondary" : "ghost"}
-                  className={
-                    tab === "receipt"
-                      ? "border border-white/20 bg-white/10 text-white"
-                      : "text-white/80"
-                  }
-                  onClick={() => setTab("receipt")}
-                  disabled={!isPaid}
-                >
-                  Receipt
-                </Button>
-              </div>
-            )}
-            {isGenerated && (
               <Button
                 type="button"
                 size="sm"
@@ -182,10 +147,10 @@ export default function PurchaseInvoiceDetailPage() {
                 className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
                 onClick={() => void handleDownloadPdf()}
               >
-                {tab === "receipt" ? "Download receipt" : "Download PDF"}
+                {showReceipt ? "Download receipt" : "Download invoice"}
               </Button>
             )}
-            {isGenerated && isPaid && (
+            {showReceipt && (
               <Button
                 type="button"
                 size="sm"
@@ -230,7 +195,9 @@ export default function PurchaseInvoiceDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-lg">Document</CardTitle>
+            <CardTitle className="text-lg">
+              {showReceipt ? "Receipt" : "Invoice"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
@@ -238,13 +205,14 @@ export default function PurchaseInvoiceDetailPage() {
               <span className="text-foreground font-medium">
                 {invoice.documentSource === "SUPPLIER_UPLOAD" && "Uploaded PDF"}
                 {invoice.documentSource === "EXTERNAL_LINK" && "External link"}
-                {invoice.documentSource === "GENERATED" && "Generated (ERP)"}
+                {invoice.documentSource === "GENERATED" &&
+                  (showReceipt ? "Generated receipt (ERP)" : "Generated invoice (ERP)")}
               </span>
             </div>
             {previewUrl ? (
               <div className="border rounded-md overflow-hidden bg-muted/30 h-[min(70vh,560px)]">
                 <iframe
-                  title="Invoice document"
+                  title={showReceipt ? "Receipt document" : "Invoice document"}
                   src={previewUrl}
                   className="w-full h-full min-h-[400px]"
                 />

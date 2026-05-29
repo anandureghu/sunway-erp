@@ -39,7 +39,6 @@ import { PageHeader } from "@/components/PageHeader";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
-import { apiClient } from "@/service/apiClient";
 
 type LocationPostingState = {
   openPostingDialog?: PostingDialogAction;
@@ -224,27 +223,14 @@ export default function PurchaseOrderDetailPage() {
     });
   };
 
-  const handleDownloadInvoiceReceipt = async () => {
+  const handleDownloadPurchaseInvoicePdf = async () => {
     if (!order?.purchaseInvoiceId) return;
     try {
       const url = await getInvoicePdfUrl(order.purchaseInvoiceId);
       if (url) window.open(url, "_blank", "noopener,noreferrer");
-      else toast.error("Receipt PDF is not available yet.");
+      else toast.error("Invoice PDF is not available yet.");
     } catch {
-      toast.error("Could not download invoice receipt.");
-    }
-  };
-
-  const handleDownloadPaymentReceipt = async () => {
-    if (!order?.vendorPaymentId) return;
-    try {
-      const res = await apiClient.get<string>(
-        `/finance/payments/${order.vendorPaymentId}/pdf`,
-      );
-      if (res.data) window.open(res.data, "_blank", "noopener,noreferrer");
-      else toast.error("Payment receipt PDF is not available yet.");
-    } catch {
-      toast.error("Could not download payment receipt.");
+      toast.error("Could not download invoice.");
     }
   };
 
@@ -296,6 +282,11 @@ export default function PurchaseOrderDetailPage() {
     st === "ordered" ||
     st === "partially_received" ||
     st === "approved";
+  const isReleased =
+    st === "confirmed" ||
+    st === "partially_received" ||
+    st === "received";
+  const hasPurchaseInvoice = order.purchaseInvoiceId != null;
   const reqId = order.requisitionId;
 
   return (
@@ -384,48 +375,52 @@ export default function PurchaseOrderDetailPage() {
               </div>
             </div>
           )}
-          {(st === "confirmed" ||
-            st === "partially_received" ||
-            st === "received") &&
-            !vendorPaymentConfirmed && (
+          {isReleased && !vendorPaymentConfirmed && (
+            <div className="space-y-2">
               <p className="text-sm rounded-md border border-blue-200 bg-blue-50 text-blue-950 px-3 py-2">
                 This order is released to the supplier. Process payment in{" "}
                 <strong>Finance → Accounts payable → Vendor payments</strong>.
                 Match the supplier invoice to the system-generated purchase
                 invoice under Purchase invoices before confirming payment.
               </p>
-            )}
-          {vendorPaymentConfirmed && (
-            <div className="flex flex-wrap gap-2">
-              {order.purchaseInvoiceId != null && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleDownloadInvoiceReceipt()}
-                >
-                  Download invoice receipt
-                </Button>
-              )}
-              {order.vendorPaymentId != null && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleDownloadPaymentReceipt()}
-                >
-                  Download payment receipt
-                </Button>
-              )}
-              {order.purchaseInvoiceId != null && (
-                <Button type="button" variant="secondary" size="sm" asChild>
-                  <Link
-                    to={`/inventory/purchase/invoices/${order.purchaseInvoiceId}`}
+              {hasPurchaseInvoice && (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleDownloadPurchaseInvoicePdf()}
                   >
-                    Open purchase invoice
-                  </Link>
-                </Button>
+                    Download invoice
+                  </Button>
+                  <Button type="button" variant="secondary" size="sm" asChild>
+                    <Link
+                      to={`/inventory/purchase/invoices/${order.purchaseInvoiceId}`}
+                    >
+                      Open purchase invoice
+                    </Link>
+                  </Button>
+                </div>
               )}
+            </div>
+          )}
+          {vendorPaymentConfirmed && hasPurchaseInvoice && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void handleDownloadPurchaseInvoicePdf()}
+              >
+                Download receipt
+              </Button>
+              <Button type="button" variant="secondary" size="sm" asChild>
+                <Link
+                  to={`/inventory/purchase/invoices/${order.purchaseInvoiceId}`}
+                >
+                  Open receipt
+                </Link>
+              </Button>
             </div>
           )}
           {st === "draft" && !hasSupplier && (
