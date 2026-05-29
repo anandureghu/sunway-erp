@@ -2,6 +2,7 @@ import { apiClient } from "@/service/apiClient";
 import type {
   PurchaseOrder,
   PurchaseOrderItem,
+  PurchaseOrderPostingPreview,
   PurchaseRequisition,
   PurchaseRequisitionDocument,
   PurchaseRequisitionItem,
@@ -567,6 +568,66 @@ export async function assignPurchaseOrderSupplier(
     { supplierId },
   );
   return toPurchaseOrder(res.data);
+}
+
+export interface PurchaseOrderPostingPreviewDTO {
+  action: string;
+  amount: number;
+  debitAccountId?: number | null;
+  debitAccountCode?: string | null;
+  debitAccountName?: string | null;
+  debitBalanceBefore?: number | null;
+  debitBalanceAfter?: number | null;
+  creditAccountId?: number | null;
+  creditAccountCode?: string | null;
+  creditAccountName?: string | null;
+  creditBalanceBefore?: number | null;
+  creditBalanceAfter?: number | null;
+  sufficientFunds: boolean;
+  insufficientFundsMessage?: string | null;
+  fundsAlreadyCommitted?: boolean | null;
+  willReleaseCommittedFunds?: boolean | null;
+  summary?: string | null;
+}
+
+function toPostingPreview(
+  dto: PurchaseOrderPostingPreviewDTO,
+): PurchaseOrderPostingPreview {
+  const action = dto.action === "cancel" ? "cancel" : "release";
+  return {
+    action,
+    amount: Number(dto.amount ?? 0),
+    debitAccountId: dto.debitAccountId ?? undefined,
+    debitAccountCode: dto.debitAccountCode ?? undefined,
+    debitAccountName: dto.debitAccountName ?? undefined,
+    debitBalanceBefore:
+      dto.debitBalanceBefore != null ? Number(dto.debitBalanceBefore) : undefined,
+    debitBalanceAfter:
+      dto.debitBalanceAfter != null ? Number(dto.debitBalanceAfter) : undefined,
+    creditAccountId: dto.creditAccountId ?? undefined,
+    creditAccountCode: dto.creditAccountCode ?? undefined,
+    creditAccountName: dto.creditAccountName ?? undefined,
+    creditBalanceBefore:
+      dto.creditBalanceBefore != null ? Number(dto.creditBalanceBefore) : undefined,
+    creditBalanceAfter:
+      dto.creditBalanceAfter != null ? Number(dto.creditBalanceAfter) : undefined,
+    sufficientFunds: Boolean(dto.sufficientFunds),
+    insufficientFundsMessage: dto.insufficientFundsMessage ?? undefined,
+    fundsAlreadyCommitted: dto.fundsAlreadyCommitted ?? undefined,
+    willReleaseCommittedFunds: dto.willReleaseCommittedFunds ?? undefined,
+    summary: dto.summary ?? undefined,
+  };
+}
+
+export async function getPurchaseOrderPostingPreview(
+  id: string | number,
+  action: "release" | "cancel",
+) {
+  const res = await apiClient.get<PurchaseOrderPostingPreviewDTO>(
+    `/purchase/orders/${id}/posting-preview`,
+    { params: { action } },
+  );
+  return toPostingPreview(res.data);
 }
 
 export async function confirmPurchaseOrder(id: string | number) {

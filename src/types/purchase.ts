@@ -152,6 +152,26 @@ export type PurchaseOrderItem = {
   notes?: string;
 };
 
+export type PurchaseOrderPostingPreview = {
+  action: "release" | "cancel";
+  amount: number;
+  debitAccountId?: number;
+  debitAccountCode?: string;
+  debitAccountName?: string;
+  debitBalanceBefore?: number;
+  debitBalanceAfter?: number;
+  creditAccountId?: number;
+  creditAccountCode?: string;
+  creditAccountName?: string;
+  creditBalanceBefore?: number;
+  creditBalanceAfter?: number;
+  sufficientFunds: boolean;
+  insufficientFundsMessage?: string;
+  fundsAlreadyCommitted?: boolean;
+  willReleaseCommittedFunds?: boolean;
+  summary?: string;
+};
+
 export type PurchaseOrder = {
   id: string;
   orderNo: string;
