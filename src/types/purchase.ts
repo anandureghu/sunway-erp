@@ -186,6 +186,8 @@ export type PurchaseOrder = {
   archived?: boolean;
   /** True after vendor payment is confirmed in Finance → AP → Vendor payments */
   vendorPaymentSettled?: boolean;
+  purchaseInvoiceId?: number;
+  vendorPaymentId?: number;
   items: PurchaseOrderItem[];
   subtotal: number;
   tax: number;

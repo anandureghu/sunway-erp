@@ -7,8 +7,10 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import {
   getInvoice,
+  getInvoicePdfUrl,
   invoiceDocumentPreviewUrl,
 } from "@/service/invoiceService";
+import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
@@ -19,6 +21,7 @@ export default function PurchaseInvoiceDetailPage() {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<FinanceInvoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"invoice" | "receipt">("invoice");
 
   useEffect(() => {
     if (!id) {
@@ -88,6 +91,35 @@ export default function PurchaseInvoiceDetailPage() {
 
   const openDocumentHref =
     invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
+  const isPaid = statusRaw === "paid";
+  const isGenerated = invoice.documentSource === "GENERATED";
+
+  const handleDownloadPdf = async () => {
+    if (tab === "receipt" && !isPaid) {
+      toast.error("Receipt is available after vendor payment is confirmed.");
+      return;
+    }
+    try {
+      const url = await getInvoicePdfUrl(invoice.id);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+      else toast.error("PDF is not available.");
+    } catch {
+      toast.error("Could not download PDF.");
+    }
+  };
+
+  const handleEmailReceipt = async () => {
+    if (!isPaid) {
+      toast.error("Receipt can be emailed only after payment is confirmed.");
+      return;
+    }
+    try {
+      await apiClient.post(`/invoices/${invoice.id}/receipt-email`);
+      toast.success("Receipt email sent (when mail is configured).");
+    } catch {
+      toast.error("Could not send receipt email.");
+    }
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -97,6 +129,59 @@ export default function PurchaseInvoiceDetailPage() {
         backHref="/inventory/purchase/invoices"
         actions={
           <>
+            {isGenerated && (
+              <div className="flex gap-2 mr-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={tab === "invoice" ? "secondary" : "ghost"}
+                  className={
+                    tab === "invoice"
+                      ? "border border-white/20 bg-white/10 text-white"
+                      : "text-white/80"
+                  }
+                  onClick={() => setTab("invoice")}
+                >
+                  Invoice
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={tab === "receipt" ? "secondary" : "ghost"}
+                  className={
+                    tab === "receipt"
+                      ? "border border-white/20 bg-white/10 text-white"
+                      : "text-white/80"
+                  }
+                  onClick={() => setTab("receipt")}
+                  disabled={!isPaid}
+                >
+                  Receipt
+                </Button>
+              </div>
+            )}
+            {isGenerated && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => void handleDownloadPdf()}
+              >
+                {tab === "receipt" ? "Download receipt" : "Download PDF"}
+              </Button>
+            )}
+            {isGenerated && isPaid && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => void handleEmailReceipt()}
+              >
+                Email receipt
+              </Button>
+            )}
             {openDocumentHref && (
               <Button
                 variant="secondary"

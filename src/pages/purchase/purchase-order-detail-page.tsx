@@ -37,6 +37,8 @@ import {
 } from "./components/related-purchase-documents";
 import { PageHeader } from "@/components/PageHeader";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { getInvoicePdfUrl } from "@/service/invoiceService";
+import { apiClient } from "@/service/apiClient";
 
 type LocationPostingState = {
   openPostingDialog?: PostingDialogAction;
@@ -221,6 +223,30 @@ export default function PurchaseOrderDetailPage() {
     });
   };
 
+  const handleDownloadInvoiceReceipt = async () => {
+    if (!order?.purchaseInvoiceId) return;
+    try {
+      const url = await getInvoicePdfUrl(order.purchaseInvoiceId);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+      else toast.error("Receipt PDF is not available yet.");
+    } catch {
+      toast.error("Could not download invoice receipt.");
+    }
+  };
+
+  const handleDownloadPaymentReceipt = async () => {
+    if (!order?.vendorPaymentId) return;
+    try {
+      const res = await apiClient.get<string>(
+        `/finance/payments/${order.vendorPaymentId}/pdf`,
+      );
+      if (res.data) window.open(res.data, "_blank", "noopener,noreferrer");
+      else toast.error("Payment receipt PDF is not available yet.");
+    } catch {
+      toast.error("Could not download payment receipt.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -368,6 +394,39 @@ export default function PurchaseOrderDetailPage() {
                 invoice under Purchase invoices before confirming payment.
               </p>
             )}
+          {vendorPaymentConfirmed && (
+            <div className="flex flex-wrap gap-2">
+              {order.purchaseInvoiceId != null && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleDownloadInvoiceReceipt()}
+                >
+                  Download invoice receipt
+                </Button>
+              )}
+              {order.vendorPaymentId != null && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleDownloadPaymentReceipt()}
+                >
+                  Download payment receipt
+                </Button>
+              )}
+              {order.purchaseInvoiceId != null && (
+                <Button type="button" variant="secondary" size="sm" asChild>
+                  <Link
+                    to={`/inventory/purchase/invoices/${order.purchaseInvoiceId}`}
+                  >
+                    Open purchase invoice
+                  </Link>
+                </Button>
+              )}
+            </div>
+          )}
           {st === "draft" && !hasSupplier && (
             <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-950 px-3 py-2">
               Assign a supplier above before you can release this purchase

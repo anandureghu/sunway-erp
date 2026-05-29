@@ -152,8 +152,9 @@ export interface PurchaseOrderResponseDTO {
   createdAt: string;
   createdById: number;
   createdByName: string;
-  /** From backend: false until vendor payable is confirmed in AP */
   vendorPaymentSettled?: boolean | null;
+  purchaseInvoiceId?: number | null;
+  vendorPaymentId?: number | null;
 }
 
 function toPurchaseRequisition(
@@ -298,10 +299,9 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     orderDate: dto.orderDate || "",
     status: (normalizeStatus(dto.status) as any) || "draft",
     archived: Boolean(dto.archived),
-    vendorPaymentSettled:
-      dto.vendorPaymentSettled === undefined || dto.vendorPaymentSettled === null
-        ? true
-        : Boolean(dto.vendorPaymentSettled),
+    vendorPaymentSettled: Boolean(dto.vendorPaymentSettled),
+    purchaseInvoiceId: dto.purchaseInvoiceId ?? undefined,
+    vendorPaymentId: dto.vendorPaymentId ?? undefined,
     items,
     subtotal: total,
     tax: 0,
