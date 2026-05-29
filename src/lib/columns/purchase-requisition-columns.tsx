@@ -34,6 +34,8 @@ export type PurchaseRequisitionColumnActions = {
   onSendBack?: (id: string) => void;
   onReject?: (id: string) => void;
   onRevise?: (id: string) => void;
+  /** Edit full requisition (draft only) */
+  onEdit?: (id: string) => void;
   /** When PR was converted, open the generated PO */
   onOpenPurchaseOrder?: (poId: string) => void;
   onArchive?: (id: string) => void;
@@ -51,6 +53,7 @@ export function createPurchaseRequisitionColumns(
     onSendBack,
     onReject,
     onRevise,
+    onEdit,
     onOpenPurchaseOrder,
     onArchive,
     processingRequisitionId,
@@ -142,6 +145,7 @@ export function createPurchaseRequisitionColumns(
       header: "Actions",
       cell: ({ row }) => {
         const req = row.original;
+        const canEdit = req.status === "draft";
         const canSubmit = req.status === "draft";
         const canApprove = req.status === "submitted";
         const canReview = req.status === "submitted";
@@ -167,6 +171,12 @@ export function createPurchaseRequisitionColumns(
                   <FileText className="mr-2 h-4 w-4" />
                   Open detail
                 </DropdownMenuItem>
+                {canEdit && onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(req.id)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit draft
+                  </DropdownMenuItem>
+                )}
 
                 {(canSubmit || canApprove || canReview || canRevise) && (
                   <DropdownMenuSeparator />

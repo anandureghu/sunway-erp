@@ -353,11 +353,6 @@ export function CreatePurchaseRequisitionForm({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Supplier is optional at creation
-    // if (!preferredSupplierId) {
-    //   toast.error("Please select a preferred supplier.");
-    //   return;
-    // }
     if (!debitAccountId || !creditAccountId) {
       toast.error(
         "Purchase default accounts are not loaded. Configure them under Global Settings → Default Accounts.",

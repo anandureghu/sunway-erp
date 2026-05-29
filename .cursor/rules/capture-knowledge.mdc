@@ -1,0 +1,44 @@
+---
+description: Append new conventions to rules/skills when not already documented
+alwaysApply: true
+---
+
+# Capture knowledge (agent-maintained)
+
+When you **implement or fix** something using a pattern, business rule, or workflow **not already stated** in `.cursor/rules/` or `.cursor/skills/`, **append it in the same session** before finishing. Do not wait for the user to ask.
+
+## Capture when
+
+- New or clarified **status / lifecycle** (e.g. edit only when `draft`)
+- **UI pattern** for a product area (form, list actions, currency, errors)
+- **Service / API mapping** (DTO fields, `purchaseFlowService` habits)
+- **Error UX** (toast + inline alert, `getApiErrorMessage`)
+- **Route or page** layout convention
+- A **gotcha** that would mislead the next agent on the same code
+
+## Do not capture when
+
+- One-off typo or obvious bug with no reusable lesson
+- The same fact is **already** in rules, skills, or `AGENTS.md`
+- User-only preference (belongs in user rules, not the repo)
+- Secrets, env values, or machine-specific paths
+
+## Where to write
+
+| If the learning is… | Append to… |
+|---------------------|------------|
+| Stack-wide or always true for this repo | `.cursor/rules/project.mdc` (short bullet under a fitting heading) |
+| Applies only to certain files | New or existing `.cursor/rules/<topic>.mdc` with `globs` + update `AGENTS.md` |
+| Step-by-step “how we do X here” | `.cursor/skills/erp-development/SKILL.md` → **Captured patterns** |
+| Large domain (whole product area) | New `.cursor/skills/<name>/SKILL.md` + row in `AGENTS.md` |
+
+## How to append
+
+1. **Search** existing rules/skills; merge into an existing section instead of duplicating.
+2. Add **1–5 concise bullets** (present tense, actionable). Link to a representative file when helpful.
+3. If you add a new rule or skill file, update **`AGENTS.md`** index table.
+4. In your reply to the user, add one line: what you documented and where (optional if trivial).
+
+## Skill section
+
+Use the **Captured patterns** section at the bottom of `erp-development/SKILL.md` for workflows and module-specific how-tos. Prepend newest entries under that heading (newest first).

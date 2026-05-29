@@ -36,7 +36,6 @@ export type Supplier = {
 export type PurchaseRequisitionStatus =
   | "draft"
   | "submitted"
-  | "approved"
   | "rejected"
   | "converted";
 

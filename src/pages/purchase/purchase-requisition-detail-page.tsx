@@ -220,7 +220,6 @@ export default function PurchaseRequisitionDetailPage() {
   const statusColors: Record<string, string> = {
     draft: "bg-gray-100 text-gray-800",
     submitted: "bg-amber-100 text-amber-900",
-    approved: "bg-green-100 text-green-800",
     converted: "bg-violet-100 text-violet-900",
     rejected: "bg-red-100 text-red-800",
   };
@@ -233,8 +232,7 @@ export default function PurchaseRequisitionDetailPage() {
   const showOpenPo =
     requisition.status === "converted" && requisition.createdPurchaseOrderId;
   const documentsReadOnly =
-    Boolean(requisition.archived) ||
-    (requisition.status !== "draft" && requisition.status !== "rejected");
+    Boolean(requisition.archived) || requisition.status !== "draft";
   const reviewFeedbackLabel =
     requisition.reviewAction === "send_back"
       ? "Sent back for revision"
@@ -290,8 +288,9 @@ export default function PurchaseRequisitionDetailPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Actions</CardTitle>
           <p className="text-sm text-muted-foreground font-normal">
-            Submit when ready. Once the requisition is approve it will be
-            released to the procurement as a purchase order
+            Only <strong>Draft</strong> requisitions can be edited. After
+            approval, assign the supplier on the purchase order. Submit when
+            ready for review.
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">

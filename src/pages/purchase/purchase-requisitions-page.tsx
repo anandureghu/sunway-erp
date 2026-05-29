@@ -125,10 +125,7 @@ export default function PurchaseRequisitionsPage() {
         req.requestedByName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
-        req.departmentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        req.preferredSupplierName
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase());
+        req.departmentName?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || req.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -138,6 +135,13 @@ export default function PurchaseRequisitionsPage() {
   const handleOpenDetail = useCallback(
     (id: string) => {
       navigate(`/inventory/purchase/requisitions/${id}`);
+    },
+    [navigate],
+  );
+
+  const handleEdit = useCallback(
+    (id: string) => {
+      navigate(`/inventory/purchase/requisitions/${id}/edit`);
     },
     [navigate],
   );
@@ -312,6 +316,7 @@ export default function PurchaseRequisitionsPage() {
     () =>
       createPurchaseRequisitionColumns({
         onOpenDetail: handleOpenDetail,
+        onEdit: handleEdit,
         onSubmit: handleSubmit,
         onApprove: handleApprove,
         onSendBack: handleSendBack,
@@ -324,6 +329,7 @@ export default function PurchaseRequisitionsPage() {
       }),
     [
       handleOpenDetail,
+      handleEdit,
       handleSubmit,
       handleApprove,
       handleSendBack,

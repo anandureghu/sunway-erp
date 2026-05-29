@@ -8,6 +8,10 @@ description: >-
 
 # Sunway frontend development
 
+## Maintain docs
+
+Before closing a task: if you used a pattern **not** already in `.cursor/rules/` or this skill, append it per `.cursor/rules/capture-knowledge.mdc` (usually under **Captured patterns** below or `project.mdc`).
+
 ## Locate code
 
 1. **Route** — `src/App.tsx` or page under `src/pages/<area>/`
@@ -54,3 +58,9 @@ catch (e: unknown) {
 ```bash
 npm run build
 ```
+
+## Captured patterns
+
+<!-- Agents: prepend new bullets here (newest first). Do not duplicate project.mdc. -->
+
+- **Purchase orders (draft edit)** — Edit from list when `status === "draft"`; `purchase-order-form` sends `supplierId` on update; use `CurrencyAmount` for money; supplier `Select` stays enabled in edit mode.

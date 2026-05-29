@@ -53,10 +53,14 @@ When adding UI, copy patterns from the **same product folder** (list + detail + 
 
 ## UI habits
 
-- `CurrencyAmount` for money
+- `CurrencyAmount` for money (including edit forms and line totals)
 - Confirm dialogs before irreversible or financial actions when the module already does
 - Functional components + hooks
 
 ## Git
 
 Commit only when the user asks. No Co-authored-by or agent branding.
+
+## Agent-maintained docs
+
+If you introduce a reusable pattern not already in rules/skills, append it per **`capture-knowledge.mdc`** (same session, before you finish).

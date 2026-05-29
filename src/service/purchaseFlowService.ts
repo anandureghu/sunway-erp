@@ -188,7 +188,10 @@ function toPurchaseRequisition(
     };
   });
 
-  const st = normalizeStatus(dto.status) as PurchaseRequisition["status"];
+  const rawStatus = normalizeStatus(dto.status);
+  const st = (
+    rawStatus === "approved" ? "converted" : rawStatus
+  ) as PurchaseRequisition["status"];
 
   return {
     id: String(dto.id),

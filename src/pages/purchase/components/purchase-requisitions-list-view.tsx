@@ -162,7 +162,7 @@ export function PurchaseRequisitionsListView({
                         <SelectItem value="all">All status</SelectItem>
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="submitted">Submitted</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="converted">Converted</SelectItem>
                         <SelectItem value="rejected">Rejected</SelectItem>
                       </SelectContent>
                     </Select>

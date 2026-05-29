@@ -24,6 +24,7 @@ import { listVendors } from "@/service/vendorService";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { PageHeader } from "@/components/PageHeader";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type EditableLine = {
   id: string;
@@ -171,7 +172,7 @@ export function PurchaseOrderForm({
   };
 
   const onSubmit = async () => {
-    if (!selectedSupplierId && !isEditMode) {
+    if (!selectedSupplierId) {
       toast.error("Supplier is required.");
       return;
     }
@@ -202,7 +203,10 @@ export function PurchaseOrderForm({
 
       const saved =
         isEditMode && initialOrder?.id
-          ? await updatePurchaseOrder(initialOrder.id, payload)
+          ? await updatePurchaseOrder(initialOrder.id, {
+              supplierId: Number(selectedSupplierId),
+              ...payload,
+            })
           : await createPurchaseOrder({
               supplierId: Number(selectedSupplierId),
               ...payload,
@@ -268,7 +272,6 @@ export function PurchaseOrderForm({
             <Select
               value={selectedSupplierId}
               onValueChange={setSelectedSupplierId}
-              disabled={isEditMode}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select supplier" />
@@ -443,11 +446,10 @@ export function PurchaseOrderForm({
                             }
                           />
                         </td>
-                        <td className="p-3 text-right font-medium align-middle tabular-nums">
-                          {(applied * line.quantity).toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                        <td className="p-3 text-right font-medium align-middle">
+                          <CurrencyAmount
+                            amount={applied * line.quantity}
+                          />
                         </td>
                         <td className="p-3 align-middle">
                           <Button
@@ -480,7 +482,7 @@ export function PurchaseOrderForm({
         <CardContent className="space-y-3">
           <div className="flex justify-between text-base font-semibold">
             <span>Total</span>
-            <span>{totalAmount.toLocaleString()}</span>
+            <CurrencyAmount amount={totalAmount} />
           </div>
           <Button
             type="button"
