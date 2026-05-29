@@ -64,3 +64,4 @@ npm run build
 <!-- Agents: prepend new bullets here (newest first). Do not duplicate project.mdc. -->
 
 - **Purchase orders (draft edit)** — Edit from list when `status === "draft"`; `purchase-order-form` sends `supplierId` on update; use `CurrencyAmount` for money; supplier `Select` stays enabled in edit mode.
+- **PO → AP** — Pay vendors only after **Release to supplier** (`confirmed`). `vendorPaymentSettled === true` means AP payment confirmed; cancel PO only while draft and unpaid. AP: Vendor payments + Purchase invoices tabs.

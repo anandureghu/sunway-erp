@@ -260,10 +260,10 @@ export default function PurchaseOrderDetailPage() {
 
   const st = (order.status || "").toLowerCase();
   const hasSupplier = Boolean(order.supplierId);
-  const vendorPaymentOk = order.vendorPaymentSettled !== false;
+  const vendorPaymentConfirmed = order.vendorPaymentSettled === true;
   const canAssignSupplier = st === "draft" && !hasSupplier;
   const canRelease = st === "draft" && hasSupplier;
-  const canCancel = st === "draft";
+  const canCancel = st === "draft" && !vendorPaymentConfirmed;
   const canReceive =
     st === "confirmed" ||
     st === "ordered" ||
@@ -357,13 +357,17 @@ export default function PurchaseOrderDetailPage() {
               </div>
             </div>
           )}
-          {st === "draft" && hasSupplier && !vendorPaymentOk && (
-            <p className="text-sm rounded-md border border-blue-200 bg-blue-50 text-blue-950 px-3 py-2">
-              After release, confirm the vendor payable in{" "}
-              <strong>Finance → Accounts payable → Vendor payments</strong> to
-              settle cash against the purchase credit account.
-            </p>
-          )}
+          {(st === "confirmed" ||
+            st === "partially_received" ||
+            st === "received") &&
+            !vendorPaymentConfirmed && (
+              <p className="text-sm rounded-md border border-blue-200 bg-blue-50 text-blue-950 px-3 py-2">
+                This order is released to the supplier. Process payment in{" "}
+                <strong>Finance → Accounts payable → Vendor payments</strong>.
+                Match the supplier invoice to the system-generated purchase
+                invoice under Purchase invoices before confirming payment.
+              </p>
+            )}
           {st === "draft" && !hasSupplier && (
             <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-950 px-3 py-2">
               Assign a supplier above before you can release this purchase

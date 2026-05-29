@@ -314,7 +314,7 @@ const AccountsPayablePage = () => {
     <div className="p-6 bg-slate-50/60 min-h-screen">
       <PageHeader
         title="Accounts Payable"
-        description="Manage your accounts payable and vendor payments"
+        description="Pay suppliers after purchase orders are released (confirmed). Match supplier invoices to system-generated PO invoices."
         variant="red"
         icon={<Wallet className="w-6 h-6" />}
       />
