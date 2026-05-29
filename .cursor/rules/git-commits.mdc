@@ -1,0 +1,11 @@
+---
+description: Git commit policy for this repository
+alwaysApply: true
+---
+
+# Git (frontend)
+
+- Commit only when the user explicitly asks
+- Message style: `feat(scope): why-focused summary`
+- No Co-authored-by or agent branding
+- No `--no-verify` or force-push to main unless user requests

@@ -1,0 +1,56 @@
+---
+name: erp-development
+description: >-
+  Builds and fixes Sunway ERP React UI across HR, inventory, purchase, sales,
+  finance, and admin. Use when editing pages, services, types, forms, tables, or
+  apiClient calls under src/.
+---
+
+# Sunway frontend development
+
+## Locate code
+
+1. **Route** — `src/App.tsx` or page under `src/pages/<area>/`
+2. **API** — matching `src/service/*Service.ts`
+3. **Types** — `src/types/` or `src/service/erpApiTypes.ts`
+
+## Typical change
+
+**List screen** — page + `src/lib/columns/*-columns.tsx` + service `list*` method.
+
+**Form / create-edit** — page or `components/*-form.tsx`; validate client-side; POST/PUT via service; on failure:
+
+```typescript
+import { getApiErrorMessage } from "@/lib/api-error-message";
+
+catch (e: unknown) {
+  const msg = getApiErrorMessage(e, "Save failed.");
+  setFormError(msg);
+  toast.error(msg);
+}
+```
+
+**Detail actions** — load entity in `useEffect`; action buttons call service; refresh after success.
+
+## Module entry points
+
+| Area | Service examples | Pages |
+|------|------------------|-------|
+| HR | `hr.service.ts` | `employees-page`, `modules/hr/` |
+| Inventory | `inventoryService.ts` | `pages/inventory/` |
+| Purchase | `purchaseFlowService.ts` | `pages/purchase/` |
+| Sales | `salesFlowService.ts`, `invoiceService.ts` | `pages/sales/` |
+| Finance | finance pages + dedicated services | `pages/finance/` |
+| Admin | vendor/customer services | `pages/admin/` |
+
+## Avoid
+
+- New abstractions for one-off use
+- Committing without user request
+- Hardcoding API base URL (use `apiClient`)
+
+## Verify
+
+```bash
+npm run build
+```
