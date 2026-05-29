@@ -64,34 +64,62 @@ export const PAYMENT_COLUMNS = ({
 
   {
     id: "reference",
-    header: variant === "vendor" ? "Purchase order" : "Sales invoice",
+    header: variant === "vendor" ? "Order / invoice" : "Sales invoice",
     cell: ({ row }) => {
       const item = row.original;
       const dir =
         item.paymentDirection || (variant === "vendor" ? "VENDOR" : "CUSTOMER");
-      if (dir === "VENDOR" && item.purchaseOrderId != null) {
+      if (dir === "VENDOR") {
+        const poLabel =
+          item.purchaseOrderNumber ||
+          (item.purchaseOrderId != null ? `PO #${item.purchaseOrderId}` : null);
+        const inv = item.invoiceId;
+        if (!poLabel && !inv) {
+          return <span className="text-muted-foreground">—</span>;
+        }
         return (
-          <button
-            type="button"
-            className="text-blue-600 underline underline-offset-2"
-            onClick={() => onOpenPurchaseOrder(item.purchaseOrderId!)}
-          >
-            Purchase Order #{item.purchaseOrderId}
-          </button>
+          <div className="flex flex-col gap-0.5 text-sm">
+            {poLabel && item.purchaseOrderId != null ? (
+              <button
+                type="button"
+                className="text-blue-600 underline underline-offset-2 text-left"
+                onClick={() => onOpenPurchaseOrder(item.purchaseOrderId!)}
+              >
+                {poLabel}
+              </button>
+            ) : poLabel ? (
+              <span>{poLabel}</span>
+            ) : null}
+            {inv ? (
+              <button
+                type="button"
+                className="text-blue-600 underline underline-offset-2 text-left text-muted-foreground"
+                onClick={() => onOpenInvoice(inv)}
+              >
+                {inv}
+              </button>
+            ) : null}
+          </div>
         );
       }
       const inv = item.invoiceId;
-      if (!inv) {
+      const so = item.salesOrderNumber;
+      if (!inv && !so) {
         return <span className="text-muted-foreground">—</span>;
       }
       return (
-        <button
-          type="button"
-          className="text-blue-600 underline underline-offset-2"
-          onClick={() => onOpenInvoice(inv)}
-        >
-          {inv}
-        </button>
+        <div className="flex flex-col gap-0.5 text-sm">
+          {so ? <span className="text-muted-foreground">{so}</span> : null}
+          {inv ? (
+            <button
+              type="button"
+              className="text-blue-600 underline underline-offset-2 text-left"
+              onClick={() => onOpenInvoice(inv)}
+            >
+              {inv}
+            </button>
+          ) : null}
+        </div>
       );
     },
   },

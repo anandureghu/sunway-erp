@@ -67,3 +67,4 @@ npm run build
 - **PO → AP** — Pay vendors only after **Release to supplier** (`confirmed`). `vendorPaymentSettled === true` means AP payment confirmed; cancel PO only while draft and unpaid. AP: Vendor payments + Purchase invoices tabs.
 - **PO receipts** — After AP payment confirm: download **invoice receipt** (`getInvoicePdfUrl`) and **payment receipt** (`GET /finance/payments/{id}/pdf`) from PO detail; purchase invoice detail has Invoice/Receipt tabs for GENERATED docs.
 - **PR line items** — Use `ItemSearchCombobox` + `filterItemsByQuery` from `@/lib/filter-items` (search by name/SKU/barcode); active items only.
+- **Purchase invoice actions** — `createPurchaseInvoiceColumns(..., { onViewDetails, onOpenDocument })`; wire navigate + `getInvoicePdfUrl` / `invoiceDocumentPreviewUrl`. Line names: `purchaseLineItemName` + API `itemName`. Hide PO **Edit draft** when `vendorPaymentSettled`.

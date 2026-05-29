@@ -3,7 +3,12 @@ import { DataTable } from "@/components/datatable";
 import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
-import { archiveInvoice, listPurchaseInvoices } from "@/service/invoiceService";
+import {
+  archiveInvoice,
+  getInvoicePdfUrl,
+  invoiceDocumentPreviewUrl,
+  listPurchaseInvoices,
+} from "@/service/invoiceService";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
 import { useNavigate } from "react-router-dom";
@@ -139,10 +144,40 @@ function PayableInvoicesTab() {
     [rows],
   );
 
+  const handleViewInvoice = useCallback(
+    (inv: FinanceInvoice) => {
+      navigate(`/inventory/purchase/invoices/${inv.id}`);
+    },
+    [navigate],
+  );
+
+  const handleOpenInvoiceDocument = useCallback(async (inv: FinanceInvoice) => {
+    const direct = invoiceDocumentPreviewUrl(inv);
+    if (direct) {
+      window.open(direct, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const url = await getInvoicePdfUrl(inv.id);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+      else toast.error("No document is available for this invoice.");
+    } catch {
+      toast.error("Could not open invoice document.");
+    }
+  }, []);
+
   const columns = useMemo(
     () =>
-      createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId),
-    [handleArchiveInvoice, processingInvoiceId],
+      createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId, {
+        onViewDetails: handleViewInvoice,
+        onOpenDocument: handleOpenInvoiceDocument,
+      }),
+    [
+      handleArchiveInvoice,
+      processingInvoiceId,
+      handleViewInvoice,
+      handleOpenInvoiceDocument,
+    ],
   );
 
   const handleRowClick = useCallback(

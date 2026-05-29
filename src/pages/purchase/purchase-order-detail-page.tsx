@@ -37,6 +37,7 @@ import {
 } from "./components/related-purchase-documents";
 import { PageHeader } from "@/components/PageHeader";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { apiClient } from "@/service/apiClient";
 
@@ -670,7 +671,7 @@ export default function PurchaseOrderDetailPage() {
                   className="grid grid-cols-7 gap-2 sm:gap-3 text-sm border-b pb-2 min-w-[720px]"
                 >
                   <div>
-                    <p className="font-medium">Item #{item.itemId}</p>
+                    <p className="font-medium">{purchaseLineItemName(item)}</p>
                   </div>
                   <div className="text-right">{item.quantity}</div>
                   <div className="text-right tabular-nums">

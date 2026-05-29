@@ -125,7 +125,14 @@ export default function PurchaseInvoiceDetailPage() {
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
         title={invoice.invoiceId}
-        description="Supplier document and posted amounts."
+        description={[
+          invoice.orderNumber || invoice.purchaseOrder?.orderNumber
+            ? `PO ${invoice.orderNumber || invoice.purchaseOrder?.orderNumber}`
+            : null,
+          "Supplier document and posted amounts.",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
         backHref="/inventory/purchase/invoices"
         actions={
           <>
@@ -276,7 +283,9 @@ export default function PurchaseInvoiceDetailPage() {
                     Purchase order
                   </p>
                   <p className="font-medium">
-                    {invoice.purchaseOrder?.orderNumber || "—"}
+                    {invoice.orderNumber ||
+                      invoice.purchaseOrder?.orderNumber ||
+                      "—"}
                   </p>
                 </div>
                 <div>

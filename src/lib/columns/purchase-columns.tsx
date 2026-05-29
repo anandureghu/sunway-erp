@@ -197,7 +197,7 @@ export function createPurchaseOrderColumns(
                     Release to supplier
                   </DropdownMenuItem>
                 )}
-                {order.status === "draft" && onEdit && (
+                {st === "draft" && !order.vendorPaymentSettled && onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(order.id)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit draft
@@ -347,11 +347,18 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
   },
 ];
 
+export type PurchaseInvoiceColumnActions = {
+  onViewDetails?: (inv: FinanceInvoice) => void;
+  onOpenDocument?: (inv: FinanceInvoice) => void;
+};
+
 // Purchase Invoice Columns (API FinanceInvoice)
 export function createPurchaseInvoiceColumns(
   onArchive?: (id: number) => void,
   processingInvoiceId?: number | null,
+  invoiceActions: PurchaseInvoiceColumnActions = {},
 ): ColumnDef<FinanceInvoice>[] {
+  const { onViewDetails, onOpenDocument } = invoiceActions;
   return [
     {
       accessorKey: "invoiceId",
@@ -377,7 +384,11 @@ export function createPurchaseInvoiceColumns(
       id: "po",
       header: "Purchase Order",
       cell: ({ row }) => (
-        <span>{row.original.purchaseOrder?.orderNumber || "—"}</span>
+        <span>
+          {row.original.orderNumber ||
+            row.original.purchaseOrder?.orderNumber ||
+            "—"}
+        </span>
       ),
     },
     {
@@ -468,14 +479,18 @@ export function createPurchaseInvoiceColumns(
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Open document
-                </DropdownMenuItem>
+                {onViewDetails && (
+                  <DropdownMenuItem onClick={() => onViewDetails(inv)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View details
+                  </DropdownMenuItem>
+                )}
+                {onOpenDocument && (
+                  <DropdownMenuItem onClick={() => onOpenDocument(inv)}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Open document
+                  </DropdownMenuItem>
+                )}
                 {canArchive && onArchive && (
                   <>
                     <DropdownMenuSeparator />

@@ -33,6 +33,7 @@ import { Link } from "react-router-dom";
 import { Info, Paperclip, Search, X } from "lucide-react";
 import { ItemSearchCombobox } from "@/pages/inventory/manage-stocks/components/item-search-combobox";
 import { filterItemsByQuery } from "@/lib/filter-items";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PageHeader } from "@/components/PageHeader";
 import { getApiErrorMessage } from "@/lib/api-error-message";
@@ -325,6 +326,7 @@ export function CreatePurchaseRequisitionForm({
       id: `temp-${Date.now()}`,
       requisitionId: "",
       itemId: Number(inv.id),
+      itemName: inv.name,
       item: inv as any,
       quantity: itemQuantity,
       actualItemPrice,
@@ -853,9 +855,7 @@ export function CreatePurchaseRequisitionForm({
                       {requisitionItems.map((row) => (
                         <tr key={row.id} className="border-t">
                           <td className="p-2 align-middle">
-                            {items.find(
-                              (i) => String(i.id) === String(row.itemId),
-                            )?.name ?? `Item #${row.itemId}`}
+                            {purchaseLineItemName(row)}
                           </td>
                           <td className="p-2 align-middle">
                             <Input

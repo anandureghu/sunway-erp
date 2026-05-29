@@ -17,6 +17,8 @@ export interface PaymentResponseDTO {
   /** CUSTOMER = AR; VENDOR = AP vendor payable */
   paymentDirection?: string | null;
   purchaseOrderId?: number | null;
+  purchaseOrderNumber?: string | null;
+  salesOrderNumber?: string | null;
 
   pdfUrl: string | null;
 

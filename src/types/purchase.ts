@@ -58,6 +58,7 @@ export type PurchaseRequisitionItem = {
   id: string;
   requisitionId: string;
   itemId: number;
+  itemName?: string;
   item?: PurchaseRequisitionItemDTO;
   quantity: number;
   /** Snapshot of item cost price when the line was added. */
@@ -134,6 +135,7 @@ export type PurchaseOrderItem = {
   id: string;
   orderId: string;
   itemId: number;
+  itemName?: string;
   item?: PurchaseOrderItemDTO;
   quantity: number;
   /** Snapshot of item cost price from master. */

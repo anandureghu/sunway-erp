@@ -41,6 +41,7 @@ export interface PurchaseRequisitionCreateDTO {
 
 export interface PurchaseRequisitionItemDTO {
   itemId: number;
+  itemName?: string | null;
   requestedQty: number;
   remarks?: string;
   /** Snapshot of item cost price from master. */
@@ -131,6 +132,7 @@ export interface PurchaseOrderCreateDTO {
 
 export interface PurchaseOrderItemDTO {
   itemId: number;
+  itemName?: string | null;
   quantity: number;
   actualItemPrice?: number;
   otherUnitCost?: number;
@@ -178,6 +180,7 @@ function toPurchaseRequisition(
       id: `pri-${dto.id}-${idx}`,
       requisitionId: String(dto.id),
       itemId: li.itemId,
+      itemName: li.itemName ?? undefined,
       quantity: qty,
       notes: li.remarks,
       actualItemPrice: actualSnap,
@@ -266,6 +269,7 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     id: `poi-${dto.id}-${idx}`,
     orderId: String(dto.id),
     itemId: li.itemId,
+    itemName: li.itemName ?? undefined,
     item: li,
     quantity: Number(li.quantity || 0),
     actualItemPrice:

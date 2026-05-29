@@ -222,6 +222,12 @@ export default function PurchaseOrdersPage() {
         toast.error("Only draft orders can be edited.");
         return;
       }
+      if (order.vendorPaymentSettled) {
+        toast.error(
+          "This purchase order cannot be edited after vendor payment is confirmed.",
+        );
+        return;
+      }
       setOrderToEdit(order);
     },
     [orders],

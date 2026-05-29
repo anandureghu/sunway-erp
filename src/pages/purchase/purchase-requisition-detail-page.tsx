@@ -31,6 +31,7 @@ import {
 import type { PurchaseRequisition } from "@/types/purchase";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
 import { PurchaseRequisitionDocuments } from "./components/purchase-requisition-documents";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
@@ -615,7 +616,7 @@ export default function PurchaseRequisitionDetailPage() {
                   className="grid grid-cols-6 gap-3 text-sm border-b pb-2 min-w-[560px]"
                 >
                   <div>
-                    <p className="font-medium">{`Item #${item.itemId}`}</p>
+                    <p className="font-medium">{purchaseLineItemName(item)}</p>
                     {item.notes && (
                       <p className="text-xs text-muted-foreground">
                         {item.notes}
