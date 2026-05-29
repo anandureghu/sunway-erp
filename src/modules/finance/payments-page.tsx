@@ -14,6 +14,7 @@ import { Search } from "lucide-react";
 import type { PaymentResponseDTO, PaymentsPageVariant } from "@/types/payment";
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
 import { PaymentDialog } from "./payment-dialog";
+import { ConfirmVendorPaymentDialog } from "./confirm-vendor-payment-dialog";
 import { useNavigate } from "react-router-dom";
 import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
 
@@ -37,6 +38,10 @@ export default function PaymentsPage({
   const [archivingPaymentId, setArchivingPaymentId] = useState<number | null>(
     null,
   );
+  const [vendorConfirmPayment, setVendorConfirmPayment] =
+    useState<PaymentResponseDTO | null>(null);
+  const [vendorConfirmOpen, setVendorConfirmOpen] = useState(false);
+  const [confirmingVendor, setConfirmingVendor] = useState(false);
 
   const directionParam = variant === "vendor" ? "VENDOR" : "CUSTOMER";
 
@@ -78,11 +83,14 @@ export default function PaymentsPage({
     setSelected(null);
   };
 
-  const handleConfirmPayment = useCallback(
-    async (payment: PaymentResponseDTO) => {
+  const submitConfirmPayment = useCallback(
+    async (payment: PaymentResponseDTO, paymentMethod?: string) => {
       try {
         const res = await apiClient.post<PaymentResponseDTO>(
           `/finance/payments/${payment.id}/confirm`,
+          variant === "vendor" && paymentMethod
+            ? { paymentMethod }
+            : undefined,
         );
         setPayments((prev) =>
           prev.map((p) => (p.id === payment.id ? res.data : p)),
@@ -92,15 +100,43 @@ export default function PaymentsPage({
             ? "Vendor payment confirmed"
             : "Payment confirmed",
         );
+        setVendorConfirmOpen(false);
+        setVendorConfirmPayment(null);
       } catch (err: unknown) {
         const ax = err as { response?: { data?: { message?: string } } };
         toast.error(
           ax?.response?.data?.message ||
             (err instanceof Error ? err.message : "Failed to confirm payment"),
         );
+        throw err;
       }
     },
     [variant],
+  );
+
+  const handleConfirmPayment = useCallback(
+    (payment: PaymentResponseDTO) => {
+      if (variant === "vendor") {
+        setVendorConfirmPayment(payment);
+        setVendorConfirmOpen(true);
+        return;
+      }
+      void submitConfirmPayment(payment);
+    },
+    [variant, submitConfirmPayment],
+  );
+
+  const handleVendorConfirmWithMethod = useCallback(
+    async (paymentMethod: string) => {
+      if (!vendorConfirmPayment) return;
+      setConfirmingVendor(true);
+      try {
+        await submitConfirmPayment(vendorConfirmPayment, paymentMethod);
+      } finally {
+        setConfirmingVendor(false);
+      }
+    },
+    [vendorConfirmPayment, submitConfirmPayment],
   );
 
   const handleOpenInvoice = useCallback(
@@ -134,6 +170,25 @@ export default function PaymentsPage({
     },
     [navigate],
   );
+
+  const handleViewReceipt = useCallback(async (payment: PaymentResponseDTO) => {
+    try {
+      const res = await apiClient.get<string>(
+        `/finance/payments/${payment.id}/pdf`,
+      );
+      if (res.data && !res.data.includes("dummy.url")) {
+        window.open(res.data, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("Receipt PDF is not available yet.");
+      }
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Could not open receipt PDF."),
+      );
+    }
+  }, []);
 
   const handleArchivePayment = useCallback(
     async (payment: PaymentResponseDTO) => {
@@ -173,6 +228,7 @@ export default function PaymentsPage({
         onConfirm: handleConfirmPayment,
         onOpenInvoice: handleOpenInvoice,
         onOpenPurchaseOrder: handleOpenPurchaseOrder,
+        onViewReceipt: variant === "vendor" ? handleViewReceipt : undefined,
         onArchive: handleArchivePayment,
         archivingPaymentId,
       }),
@@ -180,6 +236,7 @@ export default function PaymentsPage({
       variant,
       handleConfirmPayment,
       handleOpenInvoice,
+      handleViewReceipt,
       handleArchivePayment,
       archivingPaymentId,
     ],
@@ -307,6 +364,19 @@ export default function PaymentsPage({
         companyId={companyId}
         onSuccess={handleDialogSuccess}
       />
+
+      {variant === "vendor" && (
+        <ConfirmVendorPaymentDialog
+          open={vendorConfirmOpen}
+          onOpenChange={(o) => {
+            setVendorConfirmOpen(o);
+            if (!o) setVendorConfirmPayment(null);
+          }}
+          payment={vendorConfirmPayment}
+          confirming={confirmingVendor}
+          onConfirm={handleVendorConfirmWithMethod}
+        />
+      )}
     </div>
   );
 }

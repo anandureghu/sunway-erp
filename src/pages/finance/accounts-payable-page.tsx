@@ -159,10 +159,17 @@ function PayableInvoicesTab() {
     }
     try {
       const url = await getInvoicePdfUrl(inv.id);
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
-      else toast.error("No document is available for this invoice.");
-    } catch {
-      toast.error("Could not open invoice document.");
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("No document is available for this invoice.");
+      }
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Could not open invoice document."),
+      );
     }
   }, []);
 

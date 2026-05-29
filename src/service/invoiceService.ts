@@ -127,8 +127,12 @@ export async function getInvoicePdfUrl(invoiceId: number): Promise<string> {
   return res.data;
 }
 
+function isUsableDocumentUrl(url?: string | null): boolean {
+  return Boolean(url && url.trim() && !url.includes("dummy.url"));
+}
+
 export function invoiceDocumentPreviewUrl(inv: FinanceInvoice): string | null {
-  if (inv.pdfUrl) return inv.pdfUrl;
+  if (isUsableDocumentUrl(inv.pdfUrl)) return inv.pdfUrl!;
   if (inv.externalDocumentUrl?.toLowerCase().includes(".pdf")) {
     return inv.externalDocumentUrl;
   }

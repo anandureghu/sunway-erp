@@ -101,10 +101,17 @@ export default function PurchaseInvoiceDetailPage() {
     }
     try {
       const url = await getInvoicePdfUrl(invoice.id);
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
-      else toast.error("PDF is not available.");
-    } catch {
-      toast.error("Could not download PDF.");
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("PDF is not available.");
+      }
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Could not download PDF."),
+      );
     }
   };
 

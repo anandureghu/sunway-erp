@@ -4,6 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
 import { Button } from "@/components/ui/button";
 import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
+import {
+  formatPaymentMethodLabel,
+  isDummyDocumentUrl,
+} from "@/lib/payment-method-label";
 import { Archive, Loader2 } from "lucide-react";
 
 export const PAYMENT_COLUMNS = ({
@@ -11,6 +15,7 @@ export const PAYMENT_COLUMNS = ({
   onConfirm,
   onOpenInvoice,
   onOpenPurchaseOrder,
+  onViewReceipt,
   onArchive,
   archivingPaymentId,
 }: {
@@ -18,6 +23,7 @@ export const PAYMENT_COLUMNS = ({
   onConfirm: (payment: PaymentResponseDTO) => void;
   onOpenInvoice: (invoiceId: string) => void;
   onOpenPurchaseOrder: (purchaseOrderId: number) => void;
+  onViewReceipt?: (payment: PaymentResponseDTO) => void;
   onArchive?: (payment: PaymentResponseDTO) => void;
   archivingPaymentId?: number | null;
 }): ColumnDef<PaymentResponseDTO>[] => [
@@ -47,7 +53,7 @@ export const PAYMENT_COLUMNS = ({
       const value = row.getValue("paymentMethod") as string;
       return (
         <Badge className="bg-blue-100 text-blue-700">
-          {value?.replace(/_/g, " ")}
+          {formatPaymentMethodLabel(value)}
         </Badge>
       );
     },
@@ -125,22 +131,48 @@ export const PAYMENT_COLUMNS = ({
   },
 
   {
-    accessorKey: "pdfUrl",
+    id: "receiptPdf",
     header: "Receipt PDF",
     cell: ({ row }) => {
-      const url = row.getValue("pdfUrl") as string;
-      return url ? (
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-blue-600 underline"
-        >
-          View
-        </a>
-      ) : (
-        "-"
-      );
+      const item = row.original;
+      const method = (item.paymentMethod || "").toUpperCase();
+      const isPendingVendor =
+        variant === "vendor" && method === "PENDING_VENDOR_PAYMENT";
+      if (isPendingVendor) {
+        return <span className="text-muted-foreground text-xs">After confirm</span>;
+      }
+      const url = item.pdfUrl;
+      const canUseDirect = url && !isDummyDocumentUrl(url);
+      if (canUseDirect) {
+        return (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-600 underline"
+            data-no-row-nav
+            onClick={(e) => e.stopPropagation()}
+          >
+            View
+          </a>
+        );
+      }
+      if (variant === "vendor" && onViewReceipt && !isPendingVendor) {
+        return (
+          <button
+            type="button"
+            className="text-blue-600 underline text-sm"
+            data-no-row-nav
+            onClick={(e) => {
+              e.stopPropagation();
+              void onViewReceipt(item);
+            }}
+          >
+            View
+          </button>
+        );
+      }
+      return <span className="text-muted-foreground">—</span>;
     },
   },
 
@@ -161,9 +193,11 @@ export const PAYMENT_COLUMNS = ({
 
       if (isPending) {
         return (
-          <Button size="sm" onClick={() => onConfirm(item)}>
-            {dir === "VENDOR" ? "Confirm vendor payment" : "Confirm payment"}
-          </Button>
+          <div data-no-row-nav onClick={(e) => e.stopPropagation()}>
+            <Button size="sm" onClick={() => onConfirm(item)}>
+              {dir === "VENDOR" ? "Confirm vendor payment" : "Confirm payment"}
+            </Button>
+          </div>
         );
       }
       if (item.archived) {

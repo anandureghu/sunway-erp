@@ -469,7 +469,7 @@ export function createPurchaseInvoiceColumns(
         const isProcessing = processingInvoiceId === inv.id;
 
         return (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div data-no-row-nav onClick={(e) => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -480,13 +480,23 @@ export function createPurchaseInvoiceColumns(
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 {onViewDetails && (
-                  <DropdownMenuItem onClick={() => onViewDetails(inv)}>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      onViewDetails(inv);
+                    }}
+                  >
                     <Eye className="mr-2 h-4 w-4" />
                     View details
                   </DropdownMenuItem>
                 )}
                 {onOpenDocument && (
-                  <DropdownMenuItem onClick={() => onOpenDocument(inv)}>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void onOpenDocument(inv);
+                    }}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Open document
                   </DropdownMenuItem>
