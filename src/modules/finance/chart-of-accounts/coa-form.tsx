@@ -40,12 +40,15 @@ interface ChartOfAccountsFormProps {
   onSubmit: (data: COAFormData) => Promise<void> | void;
   loading?: boolean;
   defaultValues?: Partial<COAFormData> | null;
+  /** Override primary button label (create flow uses review step). */
+  submitLabel?: string;
 }
 
 export const ChartOfAccountsForm = ({
   onSubmit,
   loading,
   defaultValues,
+  submitLabel,
 }: ChartOfAccountsFormProps)  => {
   const isEditMode = useMemo(
     () => !!defaultValues?.accountCode,
@@ -352,9 +355,8 @@ export const ChartOfAccountsForm = ({
         >
           {loading
             ? "Saving..."
-            : isEditMode
-              ? "Update Account"
-              : "Create Account"}
+            : submitLabel ??
+              (isEditMode ? "Update Account" : "Create Account")}
         </Button>
       </form>
     </Form>
