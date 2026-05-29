@@ -33,6 +33,7 @@ import { Link } from "react-router-dom";
 import { Info, Paperclip, X } from "lucide-react";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PageHeader } from "@/components/PageHeader";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { format } from "date-fns";
 import type { Warehouse } from "@/types/inventory";
 import type { PurchaseRequisitionUrgency } from "@/types/purchase";
@@ -141,6 +142,7 @@ export function CreatePurchaseRequisitionForm({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] = useState(false);
 
   const requestedByUserId =
@@ -440,6 +442,8 @@ export function CreatePurchaseRequisitionForm({
       }),
     };
 
+    setSubmitError(null);
+
     const savePromise = isEditMode && requisitionId
       ? updatePurchaseRequisition(requisitionId, payload)
       : createPurchaseRequisition(payload);
@@ -479,18 +483,25 @@ export function CreatePurchaseRequisitionForm({
           });
         }
       })
-      .catch((error: any) => {
+      .catch((error: unknown) => {
         console.error("Error creating purchase requisition:", error);
-        toast.error(
-          error?.response?.data?.message ||
-            error?.message ||
-            "Failed to create purchase requisition.",
+        const msg = getApiErrorMessage(
+          error,
+          isEditMode
+            ? "Failed to update purchase requisition."
+            : "Failed to create purchase requisition.",
         );
+        setSubmitError(msg);
+        toast.error(msg);
       })
       .finally(() => setSubmitLoading(false));
   };
 
   const total = calculateTotal();
+
+  useEffect(() => {
+    setSubmitError(null);
+  }, [deliveryWarehouseId, requisitionItems]);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -521,6 +532,15 @@ export function CreatePurchaseRequisitionForm({
           </Button>
         }
       />
+
+      {submitError && !loading && !loadError && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {submitError}
+        </div>
+      )}
 
       {loading ? (
         <div className="py-10 text-center text-muted-foreground">Loading…</div>

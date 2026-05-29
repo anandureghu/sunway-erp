@@ -30,6 +30,7 @@ import {
 } from "./components/purchase-requisition-review-dialog";
 import type { PurchaseRequisition } from "@/types/purchase";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
 import { PurchaseRequisitionDocuments } from "./components/purchase-requisition-documents";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
@@ -49,6 +50,7 @@ export default function PurchaseRequisitionDetailPage() {
   const [reviewDialog, setReviewDialog] = useState<ReviewActionType | null>(
     null,
   );
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -102,15 +104,16 @@ export default function PurchaseRequisitionDetailPage() {
 
   const handleSubmit = async () => {
     if (!requisition) return;
+    setSubmitError(null);
     setActionLoading(true);
     try {
       await submitPurchaseRequisition(requisition.id);
       toast.success("Submitted for approval.");
       await load();
-    } catch (e: any) {
-      toast.error(
-        e?.response?.data?.message || e?.message || "Failed to submit",
-      );
+    } catch (e: unknown) {
+      const msg = getApiErrorMessage(e, "Failed to submit");
+      setSubmitError(msg);
+      toast.error(msg);
     } finally {
       setActionLoading(false);
     }
@@ -291,7 +294,16 @@ export default function PurchaseRequisitionDetailPage() {
             released to the procurement as a purchase order
           </p>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
+        <CardContent className="flex flex-col gap-3">
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              {submitError}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
           {canSubmit && (
             <Button
               onClick={() => void handleSubmit()}
@@ -370,6 +382,7 @@ export default function PurchaseRequisitionDetailPage() {
               No workflow actions available for this status.
             </p>
           )}
+          </div>
         </CardContent>
       </Card>
 
