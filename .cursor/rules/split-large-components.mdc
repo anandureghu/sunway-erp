@@ -1,0 +1,64 @@
+---
+description: Split React components that exceed 250 lines into smaller files
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# Split large components (250 lines)
+
+Keep route and feature components **under 250 lines** (excluding blank lines and comments). Split **before** merging when a file is at or above the limit, or when your change would push it past 250.
+
+## When to split
+
+- File is **≥ 250 lines** → refactor in the same PR (or split as a dedicated refactor if the user only asked for a small fix).
+- File is **220–249 lines** and you are adding non-trivial UI or logic → extract first, then implement.
+- User asks to extend a large file → prefer extraction over growing a monolith.
+
+## What to extract (in order)
+
+1. **Custom hooks** — form state, data fetching, derived state (`useReceiveItemForm.ts`, `usePurchaseOrderSelection.ts`).
+2. **Presentational subcomponents** — sections of JSX with clear names (`ReceiveItemPoSelector.tsx`, `ReceiveItemDetailsGrid.tsx`).
+3. **Pure helpers** — mapping, filters, formatters (`receive-item-utils.ts` in the same folder).
+4. **Types/constants** — only when shared across multiple new files.
+
+## File layout
+
+Prefer a **feature folder** next to the route or parent:
+
+```
+manage-stocks/components/receive-item-tab/
+  index.tsx              # thin shell: wiring + layout
+  receive-item-po-fields.tsx
+  receive-item-form-fields.tsx
+  use-receive-item-form.ts
+  receive-item-utils.ts
+```
+
+- Re-export the public entry from `index.tsx` if imports already point at the folder path.
+- Match existing naming in the parent folder (`kebab-case` files, PascalCase components).
+- Keep shared UI in `@/components/` only when used outside the feature.
+
+## Rules for the split
+
+- **No behavior change** unless the user asked for a feature fix in the same task.
+- Parent owns orchestration; children receive props (avoid duplicating `useForm` unless a dedicated hook wraps it).
+- Do not split into one-line files; each extracted unit should justify its file.
+- After splitting, run lint on touched files.
+
+## Example
+
+```tsx
+// ❌ receive-item-tab.tsx — 400+ lines (form, PO logic, dialog, helpers)
+
+// ✅ receive-item-tab/index.tsx — ~80 lines
+export function ReceiveItemTab(props: ReceiveItemTabProps) {
+  const form = useReceiveItemForm(props);
+  return (
+    <form onSubmit={form.onSubmit}>
+      <ReceiveItemPoFields {...form.po} />
+      <ReceiveItemSearch {...form.item} />
+      {form.selectedItem && <ReceiveItemDetailsGrid {...form.details} />}
+    </form>
+  );
+}
+```

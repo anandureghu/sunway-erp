@@ -1,6 +1,7 @@
 "use client";
 
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
 import { type ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle, MapPin, Warehouse } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -142,6 +143,24 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
         </span>
       );
     },
+  },
+  {
+    accessorKey: "dateReceived",
+    header: "Date Received",
+    cell: ({ row }) => (
+      <span className="text-gray-600">
+        {formatOptionalDate(row.original.dateReceived)}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "expiryDate",
+    header: "Expiry Date",
+    cell: ({ row }) => (
+      <span className="text-gray-600">
+        {formatOptionalDate(row.original.expiryDate)}
+      </span>
+    ),
   },
   // {
   //   id: "actions",

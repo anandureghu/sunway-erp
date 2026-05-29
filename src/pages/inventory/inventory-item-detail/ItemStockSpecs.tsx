@@ -1,5 +1,5 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { safeLocaleQty } from "./formatters";
+import { formatOptionalDate, safeLocaleQty } from "./formatters";
 
 function Spec({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -33,6 +33,8 @@ export function ItemStockSpecs({ item }: Props) {
         <Spec label="Maximum">{numVal(item.maximum)}</Spec>
         <Spec label="Reorder level">{safeLocaleQty(item.reorderLevel, unit, "Not set")}</Spec>
         <Spec label="Unit">{unit}</Spec>
+        <Spec label="Date received">{formatOptionalDate(item.dateReceived)}</Spec>
+        <Spec label="Expiry date">{formatOptionalDate(item.expiryDate, "Not set")}</Spec>
       </dl>
     </div>
   );

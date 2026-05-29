@@ -145,6 +145,7 @@ function CreateItemForm({
     unitSale: Number(data.unitSale ?? 0),
     unitMeasure: data.unit, reorderLevel: Number(data.reorderLevel ?? 0),
     status: data.status, barcode: data.barcode,
+    expiryDate: data.expiryDate ?? "",
   });
 
   const mapItemToForm = (item: ItemResponseDTO): ItemFormValues => ({
@@ -162,6 +163,8 @@ function CreateItemForm({
     unitSale: Number(item.unitSale ?? 0),
     status: (item.status as any) ?? "active",
     barcode: item.barcode ?? "",
+    dateReceived: item.dateReceived ?? "",
+    expiryDate: item.expiryDate ?? "",
   });
 
   useEffect(() => {
@@ -356,6 +359,17 @@ function CreateItemForm({
               <Input placeholder="e.g., Aisle 3, Shelf B" {...register("location")} className={icls} />
             </F>
           </div>
+
+          {editMode && watch("dateReceived") ? (
+            <F label="Date Received">
+              <Input type="date" {...register("dateReceived")} className={icls} disabled />
+            </F>
+          ) : null}
+
+          <F label="Expiry Date">
+            <Input type="date" {...register("expiryDate")} className={icls} />
+            <p className="text-[11px] text-slate-400 mt-1">Optional</p>
+          </F>
         </div>
       </SectionCard>
 

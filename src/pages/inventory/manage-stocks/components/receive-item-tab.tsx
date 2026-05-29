@@ -268,6 +268,7 @@ export function ReceiveItemTab({
       await receiveItemStock(data.itemId, {
         quantityReceived: data.quantityReceived,
         receivedDate: data.receivedDate,
+        expiryDate: data.expiryDate || undefined,
         batchNo: data.batchNo,
         serialNo: data.serialNo,
         referenceNo: data.referenceNo,
@@ -472,6 +473,32 @@ export function ReceiveItemTab({
                   />
                 </div>
 
+                {selectedItem.dateReceived && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Last Date Received
+                    </label>
+                    <Input
+                      value={selectedItem.dateReceived}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
+
+                {selectedItem.expiryDate && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Current Expiry Date
+                    </label>
+                    <Input
+                      value={selectedItem.expiryDate}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
+
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     Received Date
@@ -482,6 +509,16 @@ export function ReceiveItemTab({
                       {errors.receivedDate.message}
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Expiry Date
+                  </label>
+                  <Input type="date" {...register("expiryDate")} />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Optional — leave blank if the item does not expire
+                  </p>
                 </div>
 
                 <div>

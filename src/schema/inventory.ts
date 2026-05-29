@@ -41,6 +41,8 @@ export const ITEM_SCHEMA = z
     barcode: z.string().optional(),
     serialNo: z.string().optional(),
     location: z.string().optional(),
+    dateReceived: z.string().optional(),
+    expiryDate: z.string().optional(),
     unitSale: z.number().min(0).optional(),
     image: z.any().optional(),
   })
@@ -105,6 +107,7 @@ export const RECEIVE_ITEM_SCHEMA = z.object({
     .number()
     .min(0.01, "Quantity received must be greater than 0"),
   receivedDate: z.string().min(1, "Received date is required"),
+  expiryDate: z.string().optional(),
   batchNo: z.string().optional(),
   serialNo: z.string().optional(),
   referenceNo: z.string().optional(), // PO number
