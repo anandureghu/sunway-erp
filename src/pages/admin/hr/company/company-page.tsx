@@ -11,7 +11,8 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyDialog } from "./company-dialog";
 import { EmployeeDialog } from "../employee/employee-dialog";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import type { Row } from "@tanstack/react-table";
 
 export default function CompanyListPage() {
@@ -71,6 +72,7 @@ export default function CompanyListPage() {
   };
 
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleRowClick = (row: Row<Company>) => {
     const company = row.original; // row.original = the full company object
@@ -97,8 +99,13 @@ export default function CompanyListPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Companies</h1>
+        {user?.role === "SUPER_ADMIN" && (
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/system-logs">System logs</Link>
+          </Button>
+        )}
       </div>
 
       <Card>

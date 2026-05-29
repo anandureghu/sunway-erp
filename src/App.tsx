@@ -98,6 +98,7 @@ import AppraisalsForm from "@/modules/hr/appraisal/AppraisalsForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 import FinanceReportsPage from "./pages/finance/finance-reports-page";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
+import AdminSystemLogsPage from "./pages/admin/system-logs-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
@@ -201,6 +202,7 @@ export default function App() {
             <Route path="customers/:id" element={<CustomerDetailPage />} />
             <Route path="vendors" element={<VendorsPage />} />
             <Route path="vendors/:id" element={<VendorDetailPage />} />
+            <Route path="system-logs" element={<AdminSystemLogsPage />} />
           </Route>
 
           {/* Inventory */}
