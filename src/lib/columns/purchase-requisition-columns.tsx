@@ -19,6 +19,9 @@ import {
   FileText,
   Archive,
   Loader2,
+  Undo2,
+  XCircle,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/lib/status-badge";
@@ -28,6 +31,9 @@ export type PurchaseRequisitionColumnActions = {
   onOpenDetail: (id: string) => void;
   onSubmit?: (id: string) => void;
   onApprove?: (id: string) => void;
+  onSendBack?: (id: string) => void;
+  onReject?: (id: string) => void;
+  onRevise?: (id: string) => void;
   /** When PR was converted, open the generated PO */
   onOpenPurchaseOrder?: (poId: string) => void;
   onArchive?: (id: string) => void;
@@ -38,7 +44,18 @@ export type PurchaseRequisitionColumnActions = {
 export function createPurchaseRequisitionColumns(
   actions: PurchaseRequisitionColumnActions,
 ): ColumnDef<PurchaseRequisition>[] {
-  const { onOpenDetail, onSubmit, onApprove, onOpenPurchaseOrder, onArchive, processingRequisitionId, processingAction } = actions;
+  const {
+    onOpenDetail,
+    onSubmit,
+    onApprove,
+    onSendBack,
+    onReject,
+    onRevise,
+    onOpenPurchaseOrder,
+    onArchive,
+    processingRequisitionId,
+    processingAction,
+  } = actions;
 
   return [
     {
@@ -55,13 +72,6 @@ export function createPurchaseRequisitionColumns(
         <span>
           {row.getValue("requestedByName") || row.original.requestedBy || "—"}
         </span>
-      ),
-    },
-    {
-      id: "supplier",
-      header: "Preferred supplier",
-      cell: ({ row }) => (
-        <span>{row.original.preferredSupplierName || "—"}</span>
       ),
     },
     {
@@ -134,6 +144,8 @@ export function createPurchaseRequisitionColumns(
         const req = row.original;
         const canSubmit = req.status === "draft";
         const canApprove = req.status === "submitted";
+        const canReview = req.status === "submitted";
+        const canRevise = req.status === "rejected";
         const isConverted = req.status === "converted";
         const isRejected = req.status === "rejected";
         const canArchive = !req.archived && (isConverted || isRejected);
@@ -156,8 +168,10 @@ export function createPurchaseRequisitionColumns(
                   Open detail
                 </DropdownMenuItem>
 
-                {(canSubmit || canApprove) && <DropdownMenuSeparator />}
-                {(canSubmit || canApprove) && (
+                {(canSubmit || canApprove || canReview || canRevise) && (
+                  <DropdownMenuSeparator />
+                )}
+                {(canSubmit || canApprove || canReview || canRevise) && (
                   <DropdownMenuLabel>Workflow</DropdownMenuLabel>
                 )}
                 {canSubmit && onSubmit && (
@@ -170,6 +184,24 @@ export function createPurchaseRequisitionColumns(
                   <DropdownMenuItem onClick={() => onApprove(req.id)}>
                     <CheckCircle2 className="mr-2 h-4 w-4" />
                     Approve &amp; create Purchase Order
+                  </DropdownMenuItem>
+                )}
+                {canReview && onSendBack && (
+                  <DropdownMenuItem onClick={() => onSendBack(req.id)}>
+                    <Undo2 className="mr-2 h-4 w-4" />
+                    Send back
+                  </DropdownMenuItem>
+                )}
+                {canReview && onReject && (
+                  <DropdownMenuItem onClick={() => onReject(req.id)}>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Reject
+                  </DropdownMenuItem>
+                )}
+                {canRevise && onRevise && (
+                  <DropdownMenuItem onClick={() => onRevise(req.id)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Revise &amp; edit
                   </DropdownMenuItem>
                 )}
 

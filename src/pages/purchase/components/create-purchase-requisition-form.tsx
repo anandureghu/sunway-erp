@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { listItems, listWarehouses } from "@/service/inventoryService";
 import {
   createPurchaseRequisition,
+  getPurchaseRequisition,
+  updatePurchaseRequisition,
   uploadPurchaseRequisitionDocument,
   type PurchaseRequisitionCreateDTO,
 } from "@/service/purchaseFlowService";
@@ -23,7 +25,6 @@ import type { PurchaseRequisitionItem } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { toast } from "sonner";
 import type { SelectUserOption } from "@/components/select-user";
-import SelectVendor from "@/components/select-vendor";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
@@ -39,7 +40,21 @@ import type { PurchaseRequisitionUrgency } from "@/types/purchase";
 type Props = {
   onCancel: () => void;
   onCreated?: () => void;
+  onSaved?: () => void;
+  requisitionId?: string;
 };
+
+function toDateInputValue(value?: string) {
+  if (!value) return "";
+  return value.length >= 10 ? value.slice(0, 10) : value;
+}
+
+function mapUrgencyFromApi(urgency?: string): PurchaseRequisitionUrgency {
+  const u = (urgency || "NORMAL").toLowerCase();
+  if (u === "urgent") return "urgent";
+  if (u === "critical") return "critical";
+  return "normal";
+}
 
 function parseOptionalOtherCost(s: string): number | undefined {
   const t = s.trim();
@@ -98,7 +113,13 @@ async function resolveRequesterDepartmentId(userId: string): Promise<string> {
   }
 }
 
-export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
+export function CreatePurchaseRequisitionForm({
+  onCancel,
+  onCreated,
+  onSaved,
+  requisitionId,
+}: Props) {
+  const isEditMode = Boolean(requisitionId);
   const navigate = useNavigate();
   const { user, company } = useAuth();
   const companyId =
@@ -125,8 +146,6 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   const requestedByUserId =
     user?.userId != null ? String(user.userId) : undefined;
   const [departmentId, setDepartmentId] = useState<string>("");
-  const [preferredSupplierId, setPreferredSupplierId] = useState<string>("");
-  const [supplierAddress, setSupplierAddress] = useState<string>("");
   const [debitAccountId, setDebitAccountId] = useState<string>("");
   const [creditAccountId, setCreditAccountId] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -142,6 +161,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   const [justification, setJustification] = useState("");
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [reviewerFeedback, setReviewerFeedback] = useState<string | null>(null);
   const pendingFilesInputRef = useRef<HTMLInputElement>(null);
   const requesterSyncSeqRef = useRef(0);
   const didInitRequesterSyncRef = useRef(false);
@@ -156,6 +176,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
         if (cancelled) return;
         setItems(it);
         setWarehouses(wh.filter((w) => w.status === "active" || !w.status));
+
         if (companyId) {
           const companyRes = await apiClient.get<Company>(
             `/companies/${companyId}`,
@@ -166,13 +187,47 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
             setPurchaseDefaultsMissing(true);
           } else {
             setPurchaseDefaultsMissing(false);
-            if (co.defaultPurchaseDebitAccountId != null) {
-              setDebitAccountId(String(co.defaultPurchaseDebitAccountId));
-            }
-            if (co.defaultPurchaseCreditAccountId != null) {
-              setCreditAccountId(String(co.defaultPurchaseCreditAccountId));
+            if (!isEditMode) {
+              if (co.defaultPurchaseDebitAccountId != null) {
+                setDebitAccountId(String(co.defaultPurchaseDebitAccountId));
+              }
+              if (co.defaultPurchaseCreditAccountId != null) {
+                setCreditAccountId(String(co.defaultPurchaseCreditAccountId));
+              }
             }
           }
+        }
+
+        if (isEditMode && requisitionId) {
+          const pr = await getPurchaseRequisition(requisitionId);
+          if (cancelled) return;
+          if (pr.status !== "draft") {
+            setLoadError("Only draft requisitions can be edited.");
+            return;
+          }
+          setReviewerFeedback(pr.rejectionReason ?? null);
+          setDepartmentId(pr.departmentId ?? "");
+          setDebitAccountId(pr.debitAccountId ?? "");
+          setCreditAccountId(pr.creditAccountId ?? "");
+          setRequestedDate(toDateInputValue(pr.requestedDate));
+          setRequiredDeliveryDate(
+            toDateInputValue(pr.requiredDeliveryDate || pr.requiredDate),
+          );
+          setProjectCode(pr.projectCode ?? "");
+          setRequisitionDescription(pr.requisitionDescription ?? "");
+          setUrgency(mapUrgencyFromApi(pr.urgency));
+          setRequiredByDate(toDateInputValue(pr.requiredByDate));
+          setDeliveryWarehouseId(pr.deliveryWarehouseId ?? "");
+          setJustification(pr.justification ?? "");
+          setRequisitionItems(
+            pr.items.map((line, idx) => ({
+              ...line,
+              id: line.id || `edit-${idx}`,
+              requisitionId: pr.id,
+              quantity: line.quantity,
+              unitPrice: line.estimatedUnitCost ?? line.unitPrice,
+            })),
+          );
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -187,7 +242,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [reloadSeq, companyId]);
+  }, [reloadSeq, companyId, isEditMode, requisitionId]);
 
   useEffect(() => {
     setItemOtherCostInput("");
@@ -348,10 +403,6 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     const payload: PurchaseRequisitionCreateDTO = {
       debitAccountId: Number(debitAccountId),
       creditAccountId: Number(creditAccountId),
-      preferredSupplierId: preferredSupplierId
-        ? Number(preferredSupplierId)
-        : undefined,
-      supplierAddress: supplierAddress || undefined,
       departmentId: departmentId ? Number(departmentId) : undefined,
       requestedByUserId: requestedByUserId
         ? Number(requestedByUserId)
@@ -389,13 +440,17 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       }),
     };
 
-    createPurchaseRequisition(payload)
-      .then(async (created) => {
+    const savePromise = isEditMode && requisitionId
+      ? updatePurchaseRequisition(requisitionId, payload)
+      : createPurchaseRequisition(payload);
+
+    savePromise
+      .then(async (saved) => {
         if (pendingFiles.length > 0) {
           try {
             await Promise.all(
               pendingFiles.map((file) =>
-                uploadPurchaseRequisitionDocument(created.id, file),
+                uploadPurchaseRequisitionDocument(saved.id, file),
               ),
             );
           } catch (uploadErr: unknown) {
@@ -406,17 +461,23 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
             toast.warning(
               u?.response?.data?.message ||
                 u?.message ||
-                "Requisition created but some documents failed to upload. Add them from the detail page.",
+                "Requisition saved but some documents failed to upload.",
             );
           }
         }
         toast.success(
-          `Purchase requisition ${created.requisitionNo} created successfully.`,
+          isEditMode
+            ? `Purchase requisition ${saved.requisitionNo} updated.`
+            : `Purchase requisition ${saved.requisitionNo} created successfully.`,
         );
-        onCreated?.();
-        navigate(`/inventory/purchase/requisitions/${created.id}`, {
-          replace: true,
-        });
+        if (isEditMode) {
+          onSaved?.();
+        } else {
+          onCreated?.();
+          navigate(`/inventory/purchase/requisitions/${saved.id}`, {
+            replace: true,
+          });
+        }
       })
       .catch((error: any) => {
         console.error("Error creating purchase requisition:", error);
@@ -435,9 +496,19 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
         variant="darkGreen"
-        title="Create purchase requisition"
-        description="Identify the required items and create a purchase requestion."
-        backHref="/inventory/purchase"
+        title={
+          isEditMode ? "Edit purchase requisition" : "Create purchase requisition"
+        }
+        description={
+          isEditMode
+            ? "Update the requisition and submit again when ready."
+            : "Identify the required items and create a purchase requestion."
+        }
+        backHref={
+          isEditMode && requisitionId
+            ? `/inventory/purchase/requisitions/${requisitionId}`
+            : "/inventory/purchase"
+        }
         actions={
           <Button
             type="button"
@@ -482,11 +553,28 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
         </Card>
       ) : (
         <form onSubmit={onSubmit} className="space-y-6">
+          {reviewerFeedback && (
+            <Card className="border-amber-200 bg-amber-50/80">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-amber-900">
+                  Reviewer feedback
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap">{reviewerFeedback}</p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Requisition details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Supplier is assigned on the purchase order after this requisition
+                is approved. GL accounts use company purchase defaults (Global
+                Settings → Default Accounts).
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="requestedDate">Requested date</Label>
@@ -587,37 +675,6 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
                     value={justification}
                     onChange={(e) => setJustification(e.target.value)}
                     required
-                    className="min-h-[80px]"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Supplier Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                GL accounts for this requisition use your company purchase
-                defaults (Global Settings → Default Accounts).
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <SelectVendor
-                    label="Preferred supplier"
-                    value={preferredSupplierId || undefined}
-                    onChange={(v) => setPreferredSupplierId(v)}
-                    placeholder="Select supplier for the Purchase Order"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Supplier Address</Label>
-                  <Textarea
-                    placeholder="Enter supplier address (optional)"
-                    value={supplierAddress}
-                    onChange={(e) => setSupplierAddress(e.target.value)}
                     className="min-h-[80px]"
                   />
                 </div>
@@ -912,7 +969,13 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
               type="submit"
               disabled={requisitionItems.length === 0 || submitLoading}
             >
-              {submitLoading ? "Creating…" : "Create requisition"}
+              {submitLoading
+                ? isEditMode
+                  ? "Saving…"
+                  : "Creating…"
+                : isEditMode
+                  ? "Save changes"
+                  : "Create requisition"}
             </Button>
           </div>
         </form>

@@ -42,6 +42,8 @@ export type PurchaseRequisitionStatus =
 
 export type PurchaseRequisitionUrgency = "normal" | "urgent" | "critical";
 
+export type PurchaseRequisitionReviewAction = "reject" | "send_back";
+
 export type PurchaseRequisitionDocument = {
   id: string;
   fileName: string;
@@ -111,6 +113,10 @@ export type PurchaseRequisition = {
   /** Finance transaction posted on approve. */
   financeTransactionId?: string;
   rejectionReason?: string;
+  reviewAction?: PurchaseRequisitionReviewAction;
+  rejectedAt?: string;
+  rejectedById?: string;
+  rejectedByName?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -153,6 +159,7 @@ export type PurchaseOrder = {
   requisitionId?: string;
   requisition?: PurchaseRequisition;
   supplierId: string;
+  supplierName?: string;
   supplier?: Supplier;
   orderDate: string;
   expectedDate?: string;

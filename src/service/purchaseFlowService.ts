@@ -82,6 +82,11 @@ export interface PurchaseRequisitionResponseDTO {
   deliveryWarehouseId?: number | null;
   deliveryWarehouseName?: string | null;
   justification?: string | null;
+  rejectionReason?: string | null;
+  reviewAction?: string | null;
+  rejectedAt?: string | null;
+  rejectedById?: number | null;
+  rejectedByName?: string | null;
   createdPurchaseOrderId?: number | null;
   debitAccountId?: number | null;
   debitAccountName?: string | null;
@@ -136,8 +141,8 @@ export interface PurchaseOrderResponseDTO {
   id: number;
   orderNumber: string;
   sourceRequisitionId?: number | null;
-  supplierId: number;
-  supplierName: string;
+  supplierId?: number | null;
+  supplierName?: string | null;
   orderDate: string;
   status: string;
   archived?: boolean;
@@ -218,6 +223,14 @@ function toPurchaseRequisition(
         : undefined,
     deliveryWarehouseName: dto.deliveryWarehouseName ?? undefined,
     justification: dto.justification ?? undefined,
+    rejectionReason: dto.rejectionReason ?? undefined,
+    reviewAction: dto.reviewAction
+      ? (dto.reviewAction.toLowerCase() as PurchaseRequisition["reviewAction"])
+      : undefined,
+    rejectedAt: dto.rejectedAt ?? undefined,
+    rejectedById:
+      dto.rejectedById != null ? String(dto.rejectedById) : undefined,
+    rejectedByName: dto.rejectedByName ?? undefined,
     status: st || "draft",
     items,
     approvedDate: dto.approvedAt || undefined,
@@ -274,7 +287,10 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
       dto.sourceRequisitionId != null && dto.sourceRequisitionId !== undefined
         ? String(dto.sourceRequisitionId)
         : undefined,
-    supplierId: String(dto.supplierId || ""),
+    supplierId:
+      dto.supplierId != null && dto.supplierId !== undefined
+        ? String(dto.supplierId)
+        : "",
     orderDate: dto.orderDate || "",
     status: (normalizeStatus(dto.status) as any) || "draft",
     archived: Boolean(dto.archived),
@@ -289,6 +305,7 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     total,
     orderedBy: String(dto.createdById || ""),
     orderedByName: dto.createdByName,
+    supplierName: dto.supplierName ?? undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",
   };
@@ -363,6 +380,46 @@ export async function submitPurchaseRequisition(id: string | number) {
 export async function approvePurchaseRequisition(id: string | number) {
   const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
     `/purchase/requisitions/${id}/approve`,
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function rejectPurchaseRequisition(
+  id: string | number,
+  comments: string,
+) {
+  const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}/reject`,
+    { action: "REJECT", comments },
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function sendBackPurchaseRequisition(
+  id: string | number,
+  comments: string,
+) {
+  const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}/send-back`,
+    { action: "SEND_BACK", comments },
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function revisePurchaseRequisition(id: string | number) {
+  const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}/revise`,
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function updatePurchaseRequisition(
+  id: string | number,
+  payload: PurchaseRequisitionCreateDTO,
+) {
+  const res = await apiClient.put<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}`,
+    payload,
   );
   return toPurchaseRequisition(res.data);
 }
@@ -497,6 +554,17 @@ export async function updatePurchaseOrder(
   const res = await apiClient.put<PurchaseOrderResponseDTO>(
     `/purchase/orders/${id}`,
     payload,
+  );
+  return toPurchaseOrder(res.data);
+}
+
+export async function assignPurchaseOrderSupplier(
+  id: string | number,
+  supplierId: number,
+) {
+  const res = await apiClient.post<PurchaseOrderResponseDTO>(
+    `/purchase/orders/${id}/supplier`,
+    { supplierId },
   );
   return toPurchaseOrder(res.data);
 }

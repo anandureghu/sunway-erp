@@ -24,6 +24,7 @@ import SuppliersPage from "./pages/purchase/suppliers-page";
 import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
 import ReceivingPage from "./pages/purchase/receiving-page";
 import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
+import EditPurchaseRequisitionPage from "./pages/purchase/edit-purchase-requisition-page";
 import { PermissionProtectedRoute as PrivateRoute } from "./components/protected-route";
 import { useAppDispatch, useAppSelector } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
@@ -256,6 +257,10 @@ export default function App() {
             <Route
               path="purchase/requisitions/new"
               element={<PurchaseRequisitionsPage />}
+            />
+            <Route
+              path="purchase/requisitions/:id/edit"
+              element={<EditPurchaseRequisitionPage />}
             />
             <Route
               path="purchase/requisitions/:id"

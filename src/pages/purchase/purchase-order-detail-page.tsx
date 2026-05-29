@@ -15,10 +15,12 @@ import {
 import { format } from "date-fns";
 import {
   getPurchaseOrder,
+  assignPurchaseOrderSupplier,
   confirmPurchaseOrder,
   cancelPurchaseOrder,
   getGoodsReceiptsByPurchaseOrder,
 } from "@/service/purchaseFlowService";
+import SelectVendor from "@/components/select-vendor";
 import { listVendors } from "@/service/vendorService";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import type { PurchaseOrder } from "@/types/purchase";
@@ -38,6 +40,8 @@ export default function PurchaseOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
+  const [assignSupplierId, setAssignSupplierId] = useState<string>("");
+  const [assignLoading, setAssignLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -89,6 +93,27 @@ export default function PurchaseOrderDetailPage() {
       cancelled = true;
     };
   }, [order?.id]);
+
+  const handleAssignSupplier = async () => {
+    if (!order || !assignSupplierId) {
+      toast.error("Select a supplier to assign.");
+      return;
+    }
+    setAssignLoading(true);
+    try {
+      await assignPurchaseOrderSupplier(order.id, Number(assignSupplierId));
+      toast.success("Supplier assigned to purchase order.");
+      await load();
+    } catch (e: any) {
+      toast.error(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Failed to assign supplier",
+      );
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
   const handleRelease = async () => {
     if (!order) return;
@@ -176,8 +201,10 @@ export default function PurchaseOrderDetailPage() {
   };
 
   const st = (order.status || "").toLowerCase();
+  const hasSupplier = Boolean(order.supplierId);
   const vendorPaymentOk = order.vendorPaymentSettled !== false;
-  const canRelease = st === "draft" && vendorPaymentOk;
+  const canAssignSupplier = st === "draft" && !hasSupplier;
+  const canRelease = st === "draft" && vendorPaymentOk && hasSupplier;
   const canCancel = st === "draft";
   const canReceive =
     st === "confirmed" ||
@@ -230,12 +257,45 @@ export default function PurchaseOrderDetailPage() {
           </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {st === "draft" && !vendorPaymentOk && (
+          {canAssignSupplier && (
+            <div className="rounded-md border border-dashed border-primary/40 bg-background p-4 space-y-3">
+              <p className="text-sm font-medium">Register supplier</p>
+              <p className="text-sm text-muted-foreground">
+                Select a vendor from your supplier master and assign them to
+                this draft purchase order before release.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+                <div className="flex-1 min-w-0">
+                  <SelectVendor
+                    label="Supplier"
+                    value={assignSupplierId || undefined}
+                    onChange={setAssignSupplierId}
+                    placeholder="Select supplier"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => void handleAssignSupplier()}
+                  disabled={assignLoading || !assignSupplierId}
+                  className="shrink-0"
+                >
+                  Assign supplier
+                </Button>
+              </div>
+            </div>
+          )}
+          {st === "draft" && hasSupplier && !vendorPaymentOk && (
             <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-950 px-3 py-2">
               Confirm the vendor payable in{" "}
               <strong>Finance → Accounts payable → Vendor payments</strong> (use{" "}
               <em>Confirm vendor payment</em>) before you can release this
               Purchase Order to the supplier.
+            </p>
+          )}
+          {st === "draft" && !hasSupplier && (
+            <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-950 px-3 py-2">
+              Assign a supplier above before you can release this purchase
+              order.
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -362,29 +422,30 @@ export default function PurchaseOrderDetailPage() {
           <CardTitle className="text-lg">Supplier</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {order.supplier ? (
+          {hasSupplier && (order.supplier || order.supplierName) ? (
             <>
               <div>
                 <p className="text-sm text-muted-foreground">Name</p>
                 <p className="font-medium">
-                  {(order.supplier as { vendorName?: string }).vendorName ||
-                    order.supplier.name ||
+                  {order.supplierName ||
+                    (order.supplier as { vendorName?: string })?.vendorName ||
+                    order.supplier?.name ||
                     "N/A"}
                 </p>
               </div>
-              {order.supplier.code && (
+              {order.supplier?.code && (
                 <div>
                   <p className="text-sm text-muted-foreground">Code</p>
                   <p className="font-medium">{order.supplier.code}</p>
                 </div>
               )}
-              {order.supplier.email && (
+              {order.supplier?.email && (
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
                   <p className="font-medium">{order.supplier.email}</p>
                 </div>
               )}
-              {order.supplier.phone && (
+              {order.supplier?.phone && (
                 <div>
                   <p className="text-sm text-muted-foreground">Phone</p>
                   <p className="font-medium">{order.supplier.phone}</p>
@@ -393,7 +454,8 @@ export default function PurchaseOrderDetailPage() {
             </>
           ) : (
             <p className="text-muted-foreground text-sm">
-              Supplier details load from vendor master when available.
+              No supplier assigned yet. Use Register supplier in Actions when
+              this order is in draft status.
             </p>
           )}
         </CardContent>
