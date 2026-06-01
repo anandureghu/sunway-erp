@@ -7,8 +7,10 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import {
   getInvoice,
+  getInvoicePdfUrl,
   invoiceDocumentPreviewUrl,
 } from "@/service/invoiceService";
+import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
@@ -19,7 +21,6 @@ export default function PurchaseInvoiceDetailPage() {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<FinanceInvoice | null>(null);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -88,15 +89,78 @@ export default function PurchaseInvoiceDetailPage() {
 
   const openDocumentHref =
     invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
+  const isPaid =
+    statusRaw === "paid" || statusRaw === "partially_paid";
+  const isGenerated = invoice.documentSource === "GENERATED";
+  const showReceipt = isGenerated && isPaid;
+
+  const handleDownloadPdf = async () => {
+    try {
+      const url = await getInvoicePdfUrl(invoice.id);
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("PDF is not available.");
+      }
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Could not download PDF."),
+      );
+    }
+  };
+
+  const handleEmailReceipt = async () => {
+    if (!isPaid) {
+      toast.error("Receipt can be emailed only after payment is confirmed.");
+      return;
+    }
+    try {
+      await apiClient.post(`/invoices/${invoice.id}/receipt-email`);
+      toast.success("Receipt email sent (when mail is configured).");
+    } catch {
+      toast.error("Could not send receipt email.");
+    }
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PurchasePageHeader
         title={invoice.invoiceId}
-        description="Supplier document and posted amounts."
+        description={[
+          invoice.orderNumber || invoice.purchaseOrder?.orderNumber
+            ? `PO ${invoice.orderNumber || invoice.purchaseOrder?.orderNumber}`
+            : null,
+          "Supplier document and posted amounts.",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
         backHref="/inventory/purchase/invoices"
         actions={
           <>
+            {isGenerated && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => void handleDownloadPdf()}
+              >
+                {showReceipt ? "Download receipt" : "Download invoice"}
+              </Button>
+            )}
+            {showReceipt && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => void handleEmailReceipt()}
+              >
+                Email receipt
+              </Button>
+            )}
             {openDocumentHref && (
               <Button
                 variant="secondary"
@@ -131,7 +195,9 @@ export default function PurchaseInvoiceDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-lg">Document</CardTitle>
+            <CardTitle className="text-lg">
+              {showReceipt ? "Receipt" : "Invoice"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
@@ -139,13 +205,14 @@ export default function PurchaseInvoiceDetailPage() {
               <span className="text-foreground font-medium">
                 {invoice.documentSource === "SUPPLIER_UPLOAD" && "Uploaded PDF"}
                 {invoice.documentSource === "EXTERNAL_LINK" && "External link"}
-                {invoice.documentSource === "GENERATED" && "Generated (ERP)"}
+                {invoice.documentSource === "GENERATED" &&
+                  (showReceipt ? "Generated receipt (ERP)" : "Generated invoice (ERP)")}
               </span>
             </div>
             {previewUrl ? (
               <div className="border rounded-md overflow-hidden bg-muted/30 h-[min(70vh,560px)]">
                 <iframe
-                  title="Invoice document"
+                  title={showReceipt ? "Receipt document" : "Invoice document"}
                   src={previewUrl}
                   className="w-full h-full min-h-[400px]"
                 />
@@ -191,7 +258,9 @@ export default function PurchaseInvoiceDetailPage() {
                     Purchase order
                   </p>
                   <p className="font-medium">
-                    {invoice.purchaseOrder?.orderNumber || "—"}
+                    {invoice.orderNumber ||
+                      invoice.purchaseOrder?.orderNumber ||
+                      "—"}
                   </p>
                 </div>
                 <div>

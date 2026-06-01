@@ -36,14 +36,29 @@ export type Supplier = {
 export type PurchaseRequisitionStatus =
   | "draft"
   | "submitted"
-  | "approved"
   | "rejected"
   | "converted";
+
+export type PurchaseRequisitionUrgency = "normal" | "urgent" | "critical";
+
+export type PurchaseRequisitionReviewAction = "reject" | "send_back";
+
+export type PurchaseRequisitionDocument = {
+  id: string;
+  fileName: string;
+  contentType?: string;
+  fileSizeBytes?: number;
+  downloadUrl?: string;
+  uploadedAt?: string;
+  uploadedById?: string;
+  uploadedByName?: string;
+};
 
 export type PurchaseRequisitionItem = {
   id: string;
   requisitionId: string;
   itemId: number;
+  itemName?: string;
   item?: PurchaseRequisitionItemDTO;
   quantity: number;
   /** Snapshot of item cost price when the line was added. */
@@ -69,9 +84,19 @@ export type PurchaseRequisition = {
   preferredSupplierName?: string;
   supplierAddress?: string;
   requestedDate: string;
+  requiredDeliveryDate?: string;
+  /** Legacy alias; maps to required delivery date when present. */
   requiredDate?: string;
+  projectCode?: string;
+  requisitionDescription?: string;
+  urgency?: PurchaseRequisitionUrgency;
+  requiredByDate?: string;
+  deliveryWarehouseId?: string;
+  deliveryWarehouseName?: string;
+  justification?: string;
   status: PurchaseRequisitionStatus;
   items: PurchaseRequisitionItem[];
+  documents?: PurchaseRequisitionDocument[];
   totalAmount?: number;
   notes?: string;
   approvedBy?: string;
@@ -88,6 +113,10 @@ export type PurchaseRequisition = {
   /** Finance transaction posted on approve. */
   financeTransactionId?: string;
   rejectionReason?: string;
+  reviewAction?: PurchaseRequisitionReviewAction;
+  rejectedAt?: string;
+  rejectedById?: string;
+  rejectedByName?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -106,6 +135,7 @@ export type PurchaseOrderItem = {
   id: string;
   orderId: string;
   itemId: number;
+  itemName?: string;
   item?: PurchaseOrderItemDTO;
   quantity: number;
   /** Snapshot of item cost price from master. */
@@ -123,6 +153,26 @@ export type PurchaseOrderItem = {
   notes?: string;
 };
 
+export type PurchaseOrderPostingPreview = {
+  action: "release" | "cancel";
+  amount: number;
+  debitAccountId?: number;
+  debitAccountCode?: string;
+  debitAccountName?: string;
+  debitBalanceBefore?: number;
+  debitBalanceAfter?: number;
+  creditAccountId?: number;
+  creditAccountCode?: string;
+  creditAccountName?: string;
+  creditBalanceBefore?: number;
+  creditBalanceAfter?: number;
+  sufficientFunds: boolean;
+  insufficientFundsMessage?: string;
+  fundsAlreadyCommitted?: boolean;
+  willReleaseCommittedFunds?: boolean;
+  summary?: string;
+};
+
 export type PurchaseOrder = {
   id: string;
   orderNo: string;
@@ -130,13 +180,16 @@ export type PurchaseOrder = {
   requisitionId?: string;
   requisition?: PurchaseRequisition;
   supplierId: string;
+  supplierName?: string;
   supplier?: Supplier;
   orderDate: string;
   expectedDate?: string;
   status: PurchaseOrderStatus;
   archived?: boolean;
-  /** False until vendor payable is confirmed under AP → Vendor payments */
+  /** True after vendor payment is confirmed in Finance → AP → Vendor payments */
   vendorPaymentSettled?: boolean;
+  purchaseInvoiceId?: number;
+  vendorPaymentId?: number;
   items: PurchaseOrderItem[];
   subtotal: number;
   tax: number;

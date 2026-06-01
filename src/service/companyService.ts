@@ -31,6 +31,35 @@ export const fetchCompany = async (id: string) => {
   }
 };
 
+// ── HR policies (leave accrual + retirement compensation) ───────────────────
+export interface HrPoliciesPayload {
+  annualLeaveAccrualEnabled?: boolean;
+  annualLeaveAccrualDaysPerMonth?: number;
+  minServiceMonthsForAnnualLeave?: number;
+  retirementCompensationEnabled?: boolean;
+  retirementCompensationMonthsPerYear?: number;
+}
+
+export const fetchHrPolicies = async (
+  companyId: number | string,
+): Promise<HrPoliciesPayload> => {
+  const res = await apiClient.get<HrPoliciesPayload>(
+    `/companies/${companyId}/hr-policies`,
+  );
+  return res.data;
+};
+
+export const updateHrPolicies = async (
+  companyId: number | string,
+  payload: HrPoliciesPayload,
+): Promise<HrPoliciesPayload> => {
+  const res = await apiClient.put<HrPoliciesPayload>(
+    `/companies/${companyId}/hr-policies`,
+    payload,
+  );
+  return res.data;
+};
+
 export const getAllCompanies = async () => {
   try {
     const res = await apiClient.get("/companies");

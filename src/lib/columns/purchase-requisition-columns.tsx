@@ -19,6 +19,9 @@ import {
   FileText,
   Archive,
   Loader2,
+  Undo2,
+  XCircle,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/lib/status-badge";
@@ -28,6 +31,11 @@ export type PurchaseRequisitionColumnActions = {
   onOpenDetail: (id: string) => void;
   onSubmit?: (id: string) => void;
   onApprove?: (id: string) => void;
+  onSendBack?: (id: string) => void;
+  onReject?: (id: string) => void;
+  onRevise?: (id: string) => void;
+  /** Edit full requisition (draft only) */
+  onEdit?: (id: string) => void;
   /** When PR was converted, open the generated PO */
   onOpenPurchaseOrder?: (poId: string) => void;
   onArchive?: (id: string) => void;
@@ -38,7 +46,19 @@ export type PurchaseRequisitionColumnActions = {
 export function createPurchaseRequisitionColumns(
   actions: PurchaseRequisitionColumnActions,
 ): ColumnDef<PurchaseRequisition>[] {
-  const { onOpenDetail, onSubmit, onApprove, onOpenPurchaseOrder, onArchive, processingRequisitionId, processingAction } = actions;
+  const {
+    onOpenDetail,
+    onSubmit,
+    onApprove,
+    onSendBack,
+    onReject,
+    onRevise,
+    onEdit,
+    onOpenPurchaseOrder,
+    onArchive,
+    processingRequisitionId,
+    processingAction,
+  } = actions;
 
   return [
     {
@@ -58,13 +78,6 @@ export function createPurchaseRequisitionColumns(
       ),
     },
     {
-      id: "supplier",
-      header: "Preferred supplier",
-      cell: ({ row }) => (
-        <span>{row.original.preferredSupplierName || "—"}</span>
-      ),
-    },
-    {
       accessorKey: "departmentName",
       header: "Department",
       cell: ({ row }) => (
@@ -75,9 +88,35 @@ export function createPurchaseRequisitionColumns(
     },
     {
       accessorKey: "requestedDate",
-      header: "Date",
+      header: "Requested",
       cell: ({ row }) => {
         const date = row.getValue("requestedDate") as string;
+        return (
+          <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
+        );
+      },
+    },
+    {
+      id: "requiredDelivery",
+      header: "Required delivery",
+      cell: ({ row }) => {
+        const date =
+          row.original.requiredDeliveryDate || row.original.requiredDate;
+        return (
+          <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
+        );
+      },
+    },
+    {
+      id: "projectCode",
+      header: "Project",
+      cell: ({ row }) => <span>{row.original.projectCode || "—"}</span>,
+    },
+    {
+      id: "convertedAt",
+      header: "Converted",
+      cell: ({ row }) => {
+        const date = row.original.convertedAt;
         return (
           <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
         );
@@ -106,8 +145,11 @@ export function createPurchaseRequisitionColumns(
       header: "Actions",
       cell: ({ row }) => {
         const req = row.original;
+        const canEdit = req.status === "draft";
         const canSubmit = req.status === "draft";
         const canApprove = req.status === "submitted";
+        const canReview = req.status === "submitted";
+        const canRevise = req.status === "rejected";
         const isConverted = req.status === "converted";
         const isRejected = req.status === "rejected";
         const canArchive = !req.archived && (isConverted || isRejected);
@@ -129,9 +171,17 @@ export function createPurchaseRequisitionColumns(
                   <FileText className="mr-2 h-4 w-4" />
                   Open detail
                 </DropdownMenuItem>
+                {canEdit && onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(req.id)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit draft
+                  </DropdownMenuItem>
+                )}
 
-                {(canSubmit || canApprove) && <DropdownMenuSeparator />}
-                {(canSubmit || canApprove) && (
+                {(canSubmit || canApprove || canReview || canRevise) && (
+                  <DropdownMenuSeparator />
+                )}
+                {(canSubmit || canApprove || canReview || canRevise) && (
                   <DropdownMenuLabel>Workflow</DropdownMenuLabel>
                 )}
                 {canSubmit && onSubmit && (
@@ -144,6 +194,24 @@ export function createPurchaseRequisitionColumns(
                   <DropdownMenuItem onClick={() => onApprove(req.id)}>
                     <CheckCircle2 className="mr-2 h-4 w-4" />
                     Approve &amp; create Purchase Order
+                  </DropdownMenuItem>
+                )}
+                {canReview && onSendBack && (
+                  <DropdownMenuItem onClick={() => onSendBack(req.id)}>
+                    <Undo2 className="mr-2 h-4 w-4" />
+                    Send back
+                  </DropdownMenuItem>
+                )}
+                {canReview && onReject && (
+                  <DropdownMenuItem onClick={() => onReject(req.id)}>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Reject
+                  </DropdownMenuItem>
+                )}
+                {canRevise && onRevise && (
+                  <DropdownMenuItem onClick={() => onRevise(req.id)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Revise &amp; edit
                   </DropdownMenuItem>
                 )}
 

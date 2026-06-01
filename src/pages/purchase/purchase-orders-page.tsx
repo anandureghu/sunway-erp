@@ -8,8 +8,6 @@ import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import { listVendors } from "@/service/vendorService";
 import {
   archivePurchaseOrder,
-  cancelPurchaseOrder,
-  confirmPurchaseOrder,
   listPurchaseOrders,
 } from "@/service/purchaseFlowService";
 import type { Row } from "@tanstack/react-table";
@@ -134,25 +132,16 @@ export default function PurchaseOrdersPage() {
   }, [orders, searchQuery, statusFilter]);
 
   const handleConfirmOrder = useCallback(
-    async (id: string) => {
-      try {
-        await confirmPurchaseOrder(id);
-        toast.success("Order confirmed successfully");
-        void refreshOrders();
-      } catch (error: any) {
-        toast.error(
-          error?.response?.data?.message ||
-            error?.response?.data?.error ||
-            error?.message ||
-            "Failed to confirm order.",
-        );
-      }
+    (id: string) => {
+      navigate(`/inventory/purchase/orders/${id}`, {
+        state: { openPostingDialog: "release" as const },
+      });
     },
-    [refreshOrders],
+    [navigate],
   );
 
   const handleCancelOrder = useCallback(
-    async (id: string) => {
+    (id: string) => {
       const order = orders.find((o) => o.id === id);
       if (!order) {
         toast.error("Order not found");
@@ -164,25 +153,11 @@ export default function PurchaseOrdersPage() {
         );
         return;
       }
-      if (
-        !confirm(`Cancel order ${order.orderNo}? This action cannot be undone.`)
-      ) {
-        return;
-      }
-      try {
-        await cancelPurchaseOrder(id);
-        toast.success("Order cancelled successfully");
-        void refreshOrders();
-      } catch (error: any) {
-        toast.error(
-          error?.response?.data?.message ||
-            error?.response?.data?.error ||
-            error?.message ||
-            "Failed to cancel order",
-        );
-      }
+      navigate(`/inventory/purchase/orders/${id}`, {
+        state: { openPostingDialog: "cancel" as const },
+      });
     },
-    [orders, refreshOrders],
+    [navigate, orders],
   );
 
   const handleViewDetails = useCallback(
@@ -245,6 +220,12 @@ export default function PurchaseOrdersPage() {
       }
       if (order.status !== "draft") {
         toast.error("Only draft orders can be edited.");
+        return;
+      }
+      if (order.vendorPaymentSettled) {
+        toast.error(
+          "This purchase order cannot be edited after vendor payment is confirmed.",
+        );
         return;
       }
       setOrderToEdit(order);

@@ -9,7 +9,7 @@ type ItemSearchComboboxProps = {
   onQueryChange: (q: string) => void;
   results: ItemResponseDTO[];
   onSelect: (item: ItemResponseDTO) => void;
-  hiddenInputProps: ComponentProps<"input">;
+  hiddenInputProps?: ComponentProps<"input">;
   errorText?: string;
 };
 
@@ -53,7 +53,7 @@ export function ItemSearchCombobox({
           ))}
         </div>
       )}
-      <input type="hidden" {...hiddenInputProps} />
+      {hiddenInputProps ? <input type="hidden" {...hiddenInputProps} /> : null}
       {errorText ? (
         <p className="text-sm text-red-500 mt-1">{errorText}</p>
       ) : null}

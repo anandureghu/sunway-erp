@@ -24,6 +24,7 @@ import SuppliersPage from "./pages/purchase/suppliers-page";
 import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
 import ReceivingPage from "./pages/purchase/receiving-page";
 import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
+import EditPurchaseRequisitionPage from "./pages/purchase/edit-purchase-requisition-page";
 import { PermissionProtectedRoute as PrivateRoute } from "./components/protected-route";
 import { useAppDispatch, useAppSelector } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
@@ -97,6 +98,8 @@ import AppraisalsForm from "@/modules/hr/appraisal/AppraisalsForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 import FinanceReportsPage from "./pages/finance/finance-reports-page";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
+import AdminSystemLogsPage from "./pages/admin/system-logs-page";
+import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
@@ -200,6 +203,8 @@ export default function App() {
             <Route path="customers/:id" element={<CustomerDetailPage />} />
             <Route path="vendors" element={<VendorsPage />} />
             <Route path="vendors/:id" element={<VendorDetailPage />} />
+            <Route path="system-logs" element={<AdminSystemLogsPage />} />
+            <Route path="system-logs/:id" element={<AdminSystemLogDetailPage />} />
           </Route>
 
           {/* Inventory */}
@@ -256,6 +261,10 @@ export default function App() {
             <Route
               path="purchase/requisitions/new"
               element={<PurchaseRequisitionsPage />}
+            />
+            <Route
+              path="purchase/requisitions/:id/edit"
+              element={<EditPurchaseRequisitionPage />}
             />
             <Route
               path="purchase/requisitions/:id"

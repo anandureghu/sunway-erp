@@ -80,7 +80,11 @@ export default function InvoiceDetailPage() {
     .split(/\r?\n/)
     .map((term) => term.trim())
     .filter(Boolean);
+  const orderNo =
+    invoice.orderNumber ||
+    (isSales ? invoice.salesOrder?.orderNumber : invoice.purchaseOrder?.orderNumber);
   const invoiceHeaderDescription = [
+    orderNo ? `SO ${orderNo}` : "",
     invoice.toParty ? String(invoice.toParty) : "",
     invoice.dueDate ? `Due ${formatDate(invoice.dueDate)}` : "",
   ]

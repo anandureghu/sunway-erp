@@ -29,6 +29,8 @@ export const ITEM_SCHEMA = z
     warehouse: z.number().min(1),
 
     quantity: z.number().optional(),
+    minimum: z.number().min(0).optional(),
+    maximum: z.number().min(0).optional(),
     reorderLevel: z.number().optional(),
 
     costPrice: z.number().min(0),
@@ -37,6 +39,11 @@ export const ITEM_SCHEMA = z
     status: z.enum(["active", "discontinued", "out_of_stock"]),
 
     barcode: z.string().optional(),
+    serialNo: z.string().optional(),
+    location: z.string().optional(),
+    dateReceived: z.string().optional(),
+    expiryDate: z.string().optional(),
+    unitSale: z.number().min(0).optional(),
     image: z.any().optional(),
   })
   .superRefine((data, ctx) => {
@@ -100,6 +107,7 @@ export const RECEIVE_ITEM_SCHEMA = z.object({
     .number()
     .min(0.01, "Quantity received must be greater than 0"),
   receivedDate: z.string().min(1, "Received date is required"),
+  expiryDate: z.string().optional(),
   batchNo: z.string().optional(),
   serialNo: z.string().optional(),
   referenceNo: z.string().optional(), // PO number
@@ -119,14 +127,16 @@ export const STOCK_TRANSFER_SCHEMA = z.object({
   notes: z.string().optional(),
 });
 
-// Stock Adjustment Schema (delta vs set-new-quantity modes)
+// Stock Adjustment Schema (delta vs set-new-quantity vs transfer)
 export const STOCK_ADJUSTMENT_SCHEMA = z
   .object({
     itemId: z.string().min(1, "Item is required"),
     warehouseId: z.string().min(1, "Warehouse is required"),
-    adjustmentMode: z.enum(["delta", "set"]),
+    toWarehouseId: z.string().optional(),
+    adjustmentMode: z.enum(["delta", "set", "transfer"]),
     adjustmentQuantity: z.number().optional(),
     newQuantity: z.number().min(0).optional(),
+    transferQuantity: z.number().min(0.01).optional(),
     reason: z.string().min(1, "Reason is required"),
     adjustmentType: z.enum([
       "damaged",
@@ -134,12 +144,42 @@ export const STOCK_ADJUSTMENT_SCHEMA = z
       "wastage",
       "found",
       "theft",
+      "transfer",
       "other",
     ]),
     adjustmentDate: z.string().min(1, "Adjustment date is required"),
     notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.adjustmentType === "transfer") {
+      if (!data.toWarehouseId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Destination warehouse is required",
+          path: ["toWarehouseId"],
+        });
+      }
+      if (data.transferQuantity === undefined || data.transferQuantity <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Transfer quantity must be greater than 0",
+          path: ["transferQuantity"],
+        });
+      }
+      if (
+        data.toWarehouseId &&
+        data.warehouseId &&
+        data.toWarehouseId === data.warehouseId
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Destination warehouse must differ from source",
+          path: ["toWarehouseId"],
+        });
+      }
+      return;
+    }
+
     if (data.adjustmentMode === "delta") {
       if (
         data.adjustmentQuantity === undefined ||
@@ -151,7 +191,7 @@ export const STOCK_ADJUSTMENT_SCHEMA = z
           path: ["adjustmentQuantity"],
         });
       }
-    } else {
+    } else if (data.adjustmentMode === "set") {
       if (data.newQuantity === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

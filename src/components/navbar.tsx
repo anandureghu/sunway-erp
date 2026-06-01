@@ -128,7 +128,7 @@ const Navbar = () => {
                 </p>
               </div>
               <Avatar className="h-9 w-9 border border-border/60 shadow-sm ring-2 ring-background">
-                <AvatarImage src={undefined} alt="" />
+                <AvatarImage src={user?.imageUrl ?? undefined} alt={user?.username ?? ""} className="object-cover" />
                 <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
                   {initials}
                 </AvatarFallback>

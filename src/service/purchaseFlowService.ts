@@ -2,7 +2,9 @@ import { apiClient } from "@/service/apiClient";
 import type {
   PurchaseOrder,
   PurchaseOrderItem,
+  PurchaseOrderPostingPreview,
   PurchaseRequisition,
+  PurchaseRequisitionDocument,
   PurchaseRequisitionItem,
 } from "@/types/purchase";
 
@@ -15,8 +17,17 @@ export interface PurchaseRequisitionCreateDTO {
   debitAccountId: number;
   creditAccountId: number;
   preferredSupplierId?: number;
+  supplierAddress?: string;
   departmentId?: number;
   requestedByUserId?: number;
+  requestedDate?: string;
+  requiredDeliveryDate: string;
+  projectCode?: string;
+  requisitionDescription: string;
+  urgency?: "NORMAL" | "URGENT" | "CRITICAL";
+  requiredByDate: string;
+  deliveryWarehouseId: number;
+  justification: string;
   items: Array<{
     itemId: number;
     requestedQty: number;
@@ -30,12 +41,24 @@ export interface PurchaseRequisitionCreateDTO {
 
 export interface PurchaseRequisitionItemDTO {
   itemId: number;
+  itemName?: string | null;
   requestedQty: number;
   remarks?: string;
   /** Snapshot of item cost price from master. */
   actualItemPrice?: number;
   otherUnitCost?: number;
   estimatedUnitCost?: number;
+}
+
+export interface PurchaseRequisitionDocumentDTO {
+  id: number;
+  fileName: string;
+  contentType?: string | null;
+  fileSizeBytes?: number | null;
+  downloadUrl?: string | null;
+  uploadedAt?: string | null;
+  uploadedById?: number | null;
+  uploadedByName?: string | null;
 }
 
 export interface PurchaseRequisitionResponseDTO {
@@ -52,6 +75,20 @@ export interface PurchaseRequisitionResponseDTO {
   departmentName?: string;
   requestedById?: number;
   requestedByName?: string;
+  requestedDate?: string | null;
+  requiredDeliveryDate?: string | null;
+  projectCode?: string | null;
+  requisitionDescription?: string | null;
+  urgency?: string | null;
+  requiredByDate?: string | null;
+  deliveryWarehouseId?: number | null;
+  deliveryWarehouseName?: string | null;
+  justification?: string | null;
+  rejectionReason?: string | null;
+  reviewAction?: string | null;
+  rejectedAt?: string | null;
+  rejectedById?: number | null;
+  rejectedByName?: string | null;
   createdPurchaseOrderId?: number | null;
   debitAccountId?: number | null;
   debitAccountName?: string | null;
@@ -60,6 +97,24 @@ export interface PurchaseRequisitionResponseDTO {
   financeTransactionId?: number | null;
   archived?: boolean;
   items: PurchaseRequisitionItemDTO[];
+  documents?: PurchaseRequisitionDocumentDTO[];
+}
+
+function toPurchaseRequisitionDocument(
+  dto: PurchaseRequisitionDocumentDTO,
+): PurchaseRequisitionDocument {
+  return {
+    id: String(dto.id),
+    fileName: dto.fileName,
+    contentType: dto.contentType ?? undefined,
+    fileSizeBytes:
+      dto.fileSizeBytes != null ? Number(dto.fileSizeBytes) : undefined,
+    downloadUrl: dto.downloadUrl ?? undefined,
+    uploadedAt: dto.uploadedAt ?? undefined,
+    uploadedById:
+      dto.uploadedById != null ? String(dto.uploadedById) : undefined,
+    uploadedByName: dto.uploadedByName ?? undefined,
+  };
 }
 
 // Purchase Order DTOs
@@ -77,6 +132,7 @@ export interface PurchaseOrderCreateDTO {
 
 export interface PurchaseOrderItemDTO {
   itemId: number;
+  itemName?: string | null;
   quantity: number;
   actualItemPrice?: number;
   otherUnitCost?: number;
@@ -88,8 +144,8 @@ export interface PurchaseOrderResponseDTO {
   id: number;
   orderNumber: string;
   sourceRequisitionId?: number | null;
-  supplierId: number;
-  supplierName: string;
+  supplierId?: number | null;
+  supplierName?: string | null;
   orderDate: string;
   status: string;
   archived?: boolean;
@@ -98,8 +154,9 @@ export interface PurchaseOrderResponseDTO {
   createdAt: string;
   createdById: number;
   createdByName: string;
-  /** From backend: false until vendor payable is confirmed in AP */
   vendorPaymentSettled?: boolean | null;
+  purchaseInvoiceId?: number | null;
+  vendorPaymentId?: number | null;
 }
 
 function toPurchaseRequisition(
@@ -123,6 +180,7 @@ function toPurchaseRequisition(
       id: `pri-${dto.id}-${idx}`,
       requisitionId: String(dto.id),
       itemId: li.itemId,
+      itemName: li.itemName ?? undefined,
       quantity: qty,
       notes: li.remarks,
       actualItemPrice: actualSnap,
@@ -134,7 +192,10 @@ function toPurchaseRequisition(
     };
   });
 
-  const st = normalizeStatus(dto.status) as PurchaseRequisition["status"];
+  const rawStatus = normalizeStatus(dto.status);
+  const st = (
+    rawStatus === "approved" ? "converted" : rawStatus
+  ) as PurchaseRequisition["status"];
 
   return {
     id: String(dto.id),
@@ -155,7 +216,29 @@ function toPurchaseRequisition(
         : undefined,
     preferredSupplierName: dto.preferredSupplierName ?? undefined,
     supplierAddress: dto.supplierAddress || undefined,
-    requestedDate: dto.createdAt || "",
+    requestedDate: dto.requestedDate || dto.createdAt || "",
+    requiredDeliveryDate: dto.requiredDeliveryDate || undefined,
+    requiredDate: dto.requiredDeliveryDate || undefined,
+    projectCode: dto.projectCode ?? undefined,
+    requisitionDescription: dto.requisitionDescription ?? undefined,
+    urgency: dto.urgency
+      ? (dto.urgency.toLowerCase() as PurchaseRequisition["urgency"])
+      : undefined,
+    requiredByDate: dto.requiredByDate || undefined,
+    deliveryWarehouseId:
+      dto.deliveryWarehouseId != null
+        ? String(dto.deliveryWarehouseId)
+        : undefined,
+    deliveryWarehouseName: dto.deliveryWarehouseName ?? undefined,
+    justification: dto.justification ?? undefined,
+    rejectionReason: dto.rejectionReason ?? undefined,
+    reviewAction: dto.reviewAction
+      ? (dto.reviewAction.toLowerCase() as PurchaseRequisition["reviewAction"])
+      : undefined,
+    rejectedAt: dto.rejectedAt ?? undefined,
+    rejectedById:
+      dto.rejectedById != null ? String(dto.rejectedById) : undefined,
+    rejectedByName: dto.rejectedByName ?? undefined,
     status: st || "draft",
     items,
     approvedDate: dto.approvedAt || undefined,
@@ -175,6 +258,7 @@ function toPurchaseRequisition(
       dto.financeTransactionId != null
         ? String(dto.financeTransactionId)
         : undefined,
+    documents: (dto.documents || []).map(toPurchaseRequisitionDocument),
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",
   };
@@ -185,6 +269,7 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     id: `poi-${dto.id}-${idx}`,
     orderId: String(dto.id),
     itemId: li.itemId,
+    itemName: li.itemName ?? undefined,
     item: li,
     quantity: Number(li.quantity || 0),
     actualItemPrice:
@@ -211,14 +296,16 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
       dto.sourceRequisitionId != null && dto.sourceRequisitionId !== undefined
         ? String(dto.sourceRequisitionId)
         : undefined,
-    supplierId: String(dto.supplierId || ""),
+    supplierId:
+      dto.supplierId != null && dto.supplierId !== undefined
+        ? String(dto.supplierId)
+        : "",
     orderDate: dto.orderDate || "",
     status: (normalizeStatus(dto.status) as any) || "draft",
     archived: Boolean(dto.archived),
-    vendorPaymentSettled:
-      dto.vendorPaymentSettled === undefined || dto.vendorPaymentSettled === null
-        ? true
-        : Boolean(dto.vendorPaymentSettled),
+    vendorPaymentSettled: Boolean(dto.vendorPaymentSettled),
+    purchaseInvoiceId: dto.purchaseInvoiceId ?? undefined,
+    vendorPaymentId: dto.vendorPaymentId ?? undefined,
     items,
     subtotal: total,
     tax: 0,
@@ -226,6 +313,7 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     total,
     orderedBy: String(dto.createdById || ""),
     orderedByName: dto.createdByName,
+    supplierName: dto.supplierName ?? undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",
   };
@@ -302,6 +390,77 @@ export async function approvePurchaseRequisition(id: string | number) {
     `/purchase/requisitions/${id}/approve`,
   );
   return toPurchaseRequisition(res.data);
+}
+
+export async function rejectPurchaseRequisition(
+  id: string | number,
+  comments: string,
+) {
+  const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}/reject`,
+    { action: "REJECT", comments },
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function sendBackPurchaseRequisition(
+  id: string | number,
+  comments: string,
+) {
+  const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}/send-back`,
+    { action: "SEND_BACK", comments },
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function revisePurchaseRequisition(id: string | number) {
+  const res = await apiClient.post<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}/revise`,
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function updatePurchaseRequisition(
+  id: string | number,
+  payload: PurchaseRequisitionCreateDTO,
+) {
+  const res = await apiClient.put<PurchaseRequisitionResponseDTO>(
+    `/purchase/requisitions/${id}`,
+    payload,
+  );
+  return toPurchaseRequisition(res.data);
+}
+
+export async function uploadPurchaseRequisitionDocument(
+  requisitionId: string | number,
+  file: File,
+): Promise<PurchaseRequisitionDocument> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<PurchaseRequisitionDocumentDTO>(
+    `/purchase/requisitions/${requisitionId}/documents`,
+    formData,
+  );
+  return toPurchaseRequisitionDocument(res.data);
+}
+
+export async function listPurchaseRequisitionDocuments(
+  requisitionId: string | number,
+): Promise<PurchaseRequisitionDocument[]> {
+  const res = await apiClient.get<PurchaseRequisitionDocumentDTO[]>(
+    `/purchase/requisitions/${requisitionId}/documents`,
+  );
+  return (res.data || []).map(toPurchaseRequisitionDocument);
+}
+
+export async function deletePurchaseRequisitionDocument(
+  requisitionId: string | number,
+  documentId: string | number,
+): Promise<void> {
+  await apiClient.delete(
+    `/purchase/requisitions/${requisitionId}/documents/${documentId}`,
+  );
 }
 
 // --- Purchase Orders ---
@@ -405,6 +564,77 @@ export async function updatePurchaseOrder(
     payload,
   );
   return toPurchaseOrder(res.data);
+}
+
+export async function assignPurchaseOrderSupplier(
+  id: string | number,
+  supplierId: number,
+) {
+  const res = await apiClient.post<PurchaseOrderResponseDTO>(
+    `/purchase/orders/${id}/supplier`,
+    { supplierId },
+  );
+  return toPurchaseOrder(res.data);
+}
+
+export interface PurchaseOrderPostingPreviewDTO {
+  action: string;
+  amount: number;
+  debitAccountId?: number | null;
+  debitAccountCode?: string | null;
+  debitAccountName?: string | null;
+  debitBalanceBefore?: number | null;
+  debitBalanceAfter?: number | null;
+  creditAccountId?: number | null;
+  creditAccountCode?: string | null;
+  creditAccountName?: string | null;
+  creditBalanceBefore?: number | null;
+  creditBalanceAfter?: number | null;
+  sufficientFunds: boolean;
+  insufficientFundsMessage?: string | null;
+  fundsAlreadyCommitted?: boolean | null;
+  willReleaseCommittedFunds?: boolean | null;
+  summary?: string | null;
+}
+
+function toPostingPreview(
+  dto: PurchaseOrderPostingPreviewDTO,
+): PurchaseOrderPostingPreview {
+  const action = dto.action === "cancel" ? "cancel" : "release";
+  return {
+    action,
+    amount: Number(dto.amount ?? 0),
+    debitAccountId: dto.debitAccountId ?? undefined,
+    debitAccountCode: dto.debitAccountCode ?? undefined,
+    debitAccountName: dto.debitAccountName ?? undefined,
+    debitBalanceBefore:
+      dto.debitBalanceBefore != null ? Number(dto.debitBalanceBefore) : undefined,
+    debitBalanceAfter:
+      dto.debitBalanceAfter != null ? Number(dto.debitBalanceAfter) : undefined,
+    creditAccountId: dto.creditAccountId ?? undefined,
+    creditAccountCode: dto.creditAccountCode ?? undefined,
+    creditAccountName: dto.creditAccountName ?? undefined,
+    creditBalanceBefore:
+      dto.creditBalanceBefore != null ? Number(dto.creditBalanceBefore) : undefined,
+    creditBalanceAfter:
+      dto.creditBalanceAfter != null ? Number(dto.creditBalanceAfter) : undefined,
+    sufficientFunds: Boolean(dto.sufficientFunds),
+    insufficientFundsMessage: dto.insufficientFundsMessage ?? undefined,
+    fundsAlreadyCommitted: dto.fundsAlreadyCommitted ?? undefined,
+    willReleaseCommittedFunds: dto.willReleaseCommittedFunds ?? undefined,
+    summary: dto.summary ?? undefined,
+  };
+}
+
+export async function getPurchaseOrderPostingPreview(
+  id: string | number,
+  action: "release" | "cancel",
+) {
+  const res = await apiClient.get<PurchaseOrderPostingPreviewDTO>(
+    `/purchase/orders/${id}/posting-preview`,
+    { params: { action } },
+  );
+  return toPostingPreview(res.data);
 }
 
 export async function confirmPurchaseOrder(id: string | number) {

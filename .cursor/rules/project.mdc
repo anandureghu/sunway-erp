@@ -1,0 +1,67 @@
+---
+description: Sunway ERP frontend — stack, structure, modules, and conventions
+alwaysApply: true
+---
+
+# Sunway ERP frontend
+
+React · TypeScript · Vite · Tailwind · shadcn/ui · sonner
+
+## Commands
+
+```bash
+npm run dev
+npm run build
+```
+
+## Structure
+
+| Path | Purpose |
+|------|---------|
+| `src/pages/` | Route-level screens by product area |
+| `src/modules/` | Large HR sub-features (forms, shells) |
+| `src/service/` | API clients (`apiClient`, `*Service.ts`) |
+| `src/types/` | Shared TypeScript types |
+| `src/lib/` | Columns, helpers (`api-error-message.ts`) |
+| `src/components/` | Shared UI + `ui/` (shadcn) |
+| `src/schema/` | Zod schemas where used |
+
+Alias `@/` → `src/`.
+
+## Product areas (pages)
+
+| Area | Typical path |
+|------|----------------|
+| Dashboard | `pages/dashboard.tsx` |
+| HR / employees | `pages/employees-page.tsx`, `employee-profile-page.tsx`, `modules/hr/` |
+| Admin / company | `pages/admin/hr/`, `pages/hr/` |
+| Inventory | `pages/inventory/` |
+| Purchase | `pages/purchase/` |
+| Sales | `pages/sales/` |
+| Finance | `pages/finance/` |
+| Settings / profile | `pages/settings/`, `pages/profile/`, `user-profile-page.tsx` |
+| Auth | `pages/auth/` |
+
+When adding UI, copy patterns from the **same product folder** (list + detail + dialog, `PageHeader`, toast errors).
+
+## API
+
+- `apiClient` → backend `/api/...`
+- Map DTOs in `*Service.ts` (see `purchaseFlowService.ts`, `salesFlowService.ts`, `hr.service.ts`)
+- Errors: `getApiErrorMessage(error, fallback)` from `@/lib/api-error-message`
+- Show **toast** and, for forms, an **inline alert** when save/submit can fail on server rules
+
+## UI habits
+
+- `CurrencyAmount` for money (including edit forms and line totals)
+- Confirm dialogs before irreversible or financial actions when the module already does
+- Functional components + hooks
+- Keep `.tsx` components **under 250 lines** — see **`split-large-components.mdc`**
+
+## Git
+
+Commit only when the user asks. No Co-authored-by or agent branding.
+
+## Agent-maintained docs
+
+If you introduce a reusable pattern not already in rules/skills, append it per **`capture-knowledge.mdc`** (same session, before you finish).

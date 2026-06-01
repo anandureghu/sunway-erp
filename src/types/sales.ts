@@ -252,6 +252,7 @@ export type Invoice = {
 
   type: "SALES" | "PURCHASE" | string;
   orderId?: number;
+  orderNumber?: string | null;
 
   toParty: string;
   partyClassification: string;

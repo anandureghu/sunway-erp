@@ -2,7 +2,7 @@
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
 import type { Employee } from "../../../types/hr";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
     header: "Employee",
     enableSorting: false,
     cell: ({ row }: Cell<Employee>) => {
-      const { firstName, lastName, username, status } = row.original;
+      const { firstName, lastName, username, status, imageUrl } = row.original;
       const initials   = getInitials(firstName, lastName);
       const fullName   = [firstName, lastName].filter(Boolean).join(" ") || "—";
       const gradColors = avatarColor(status);
@@ -67,6 +67,7 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
       return (
         <div className="flex items-center gap-3 min-w-0 py-0.5">
           <Avatar className="h-8 w-8 shrink-0">
+            <AvatarImage src={imageUrl ?? undefined} alt={fullName} className="object-cover" />
             <AvatarFallback
               className={cn(
                 "bg-gradient-to-br text-white text-xs font-semibold",

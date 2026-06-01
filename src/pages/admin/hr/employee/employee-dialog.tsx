@@ -6,10 +6,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/service/apiClient";
+import { roleService, type RoleResponse } from "@/service/roleService";
 import { toast } from "sonner";
 
 import { useForm } from "react-hook-form";
@@ -53,15 +54,6 @@ const getInitials = (first?: string, last?: string) => {
   return (f + l).toUpperCase() || "?";
 };
 
-const SECURITY_ROLES = [
-  { label: "Admin", value: "ADMIN", description: "Full system access" },
-  { label: "HR", value: "HR", description: "People & hiring" },
-  { label: "User", value: "USER", description: "Standard access" },
-  { label: "Finance Manager", value: "FINANCE_MANAGER", description: "Finance oversight" },
-  { label: "Accountant", value: "ACCOUNTANT", description: "Accounting tools" },
-  { label: "Cashier", value: "CASHIER", description: "Point of sale" },
-  { label: "Super Admin", value: "SUPER_ADMIN", description: "Unrestricted access" },
-];
 
 // ── types ─────────────────────────────────────────────────────────────────────
 type EmployeeDialogProps = {
@@ -146,10 +138,15 @@ export function EmployeeDialog({
   mode = "create",
   employee,
   employeeId,
-  presetRole = "ADMIN",
+  // `presetRole` is accepted for backwards-compat with callers that still pass
+  // the old Spring-Security role enum, but the dropdown now lists company
+  // roles fetched from /api/roles, so the preset is no longer used as a default.
+  presetRole: _presetRole = "ADMIN",
   onSuccess,
 }: EmployeeDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [companyRoles, setCompanyRoles] = useState<RoleResponse[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createEmployeeSchema),
@@ -159,9 +156,44 @@ export function EmployeeDialog({
       email: "",
       username: "",
       password: "",
-      role: presetRole,
+      role: "",
     },
   });
+
+  // Fetch this company's active roles (the ones created in Settings → Roles)
+  // so the dropdown reflects what HR has configured, not a hardcoded list.
+  useEffect(() => {
+    if (!open || !companyId) return;
+    let cancelled = false;
+    setRolesLoading(true);
+    roleService
+      .getActiveRoles(companyId)
+      .then((roles) => {
+        if (!cancelled) setCompanyRoles(roles);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCompanyRoles([]);
+          toast.error("Failed to load roles for this company");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRolesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, companyId]);
+
+  const roleOptions = useMemo(
+    () =>
+      companyRoles.map((r) => ({
+        label: r.name,
+        value: r.name,
+        description: r.description ?? "Company-defined role",
+      })),
+    [companyRoles]
+  );
 
   const { watch } = form;
   const firstName = watch("firstName");
@@ -196,7 +228,9 @@ export function EmployeeDialog({
         email: employee.email,
         username: employee.username,
         password: "",
-        role: (employee.role as string) ?? presetRole,
+        // Prefill with the employee's company role (the HR-defined one).
+        // Fall back to the legacy system role only if no company role is set.
+        role: employee.companyRole ?? (employee.role as string) ?? "",
       });
     }
     if (open && mode === "create") {
@@ -206,7 +240,7 @@ export function EmployeeDialog({
         email: "",
         username: "",
         password: "",
-        role: presetRole,
+        role: "",
       });
     }
   }, [open, employee, mode]);
@@ -225,13 +259,22 @@ export function EmployeeDialog({
 
   const onSubmit = async (values: FormValues): Promise<void> => {
     setLoading(true);
+
+    // The dropdown now lists company roles (from /api/roles), so the selected
+    // value is a CompanyRole name. Send it as `companyRole` (and the matching
+    // `companyRoleId` when we have it). The Spring Security `role` enum is
+    // left at the backend's default (USER) unless an admin overrides it
+    // elsewhere — HR shouldn't be picking it from this dialog.
+    const selectedRole = companyRoles.find((r) => r.name === values.role);
+
     const payload = {
       firstName: values.firstName,
       lastName: values.lastName,
       email: values.email,
       username: values.username,
       companyId,
-      role: values.role || presetRole,
+      companyRole: values.role || undefined,
+      companyRoleId: selectedRole?.id,
     };
 
     try {
@@ -397,51 +440,60 @@ export function EmployeeDialog({
                   <FormField
                     control={form.control}
                     name="role"
-                    render={({ field, fieldState }) => (
-                      <FormItem className="space-y-0">
-                        <Field
-                          label="System role"
-                          required
-                          hint="Determines what this employee can access"
-                          error={fieldState.error?.message}
-                        >
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
+                    render={({ field, fieldState }) => {
+                      const hasRoles = roleOptions.length > 0;
+                      const placeholder = rolesLoading
+                        ? "Loading roles…"
+                        : hasRoles
+                        ? "Select a role"
+                        : "No roles configured — add one in Settings → Roles";
+                      return (
+                        <FormItem className="space-y-0">
+                          <Field
+                            label="Role"
+                            required
+                            hint="Pulled from your company's roles (Settings → Roles)"
+                            error={fieldState.error?.message}
                           >
-                            <FormControl>
-                              <SelectTrigger
-                                className={cn(
-                                  "h-10 w-full rounded-xl border border-slate-200 bg-white pl-3 pr-3 text-[13px] text-slate-800",
-                                  "outline-none ring-0 transition-all duration-150",
-                                  "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
-                                  "data-[-placeholder]:text-slate-300"
-                                )}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <ShieldCheck className="h-[15px] w-[15px] shrink-0 text-slate-300" />
-                                  <SelectValue placeholder="Select a role" />
-                                </div>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-                              {SECURITY_ROLES.map((r) => (
-                                <SelectItem
-                                  key={r.value}
-                                  value={r.value}
-                                  className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              disabled={rolesLoading || !hasRoles}
+                            >
+                              <FormControl>
+                                <SelectTrigger
+                                  className={cn(
+                                    "h-10 w-full rounded-xl border border-slate-200 bg-white pl-3 pr-3 text-[13px] text-slate-800",
+                                    "outline-none ring-0 transition-all duration-150",
+                                    "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
+                                    "data-[-placeholder]:text-slate-300"
+                                  )}
                                 >
-                                  <div>
-                                    <p className="font-medium text-slate-800">{r.label}</p>
-                                    <p className="text-[11px] text-slate-400">{r.description}</p>
+                                  <div className="flex items-center gap-2">
+                                    <ShieldCheck className="h-[15px] w-[15px] shrink-0 text-slate-300" />
+                                    <SelectValue placeholder={placeholder} />
                                   </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                      </FormItem>
-                    )}
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                {roleOptions.map((r) => (
+                                  <SelectItem
+                                    key={r.value}
+                                    value={r.value}
+                                    className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
+                                  >
+                                    <div>
+                                      <p className="font-medium text-slate-800">{r.label}</p>
+                                      <p className="text-[11px] text-slate-400">{r.description}</p>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
 

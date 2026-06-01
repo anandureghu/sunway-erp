@@ -122,6 +122,10 @@ export type ItemResponseDTO = {
   maximum?: number | null;
 
   barcode: string | null;
+  serialNo: string | null;
+  dateReceived?: string | null;
+  expiryDate?: string | null;
+  location: string | null;
 
   status: "active" | "discontinued" | "out_of_stock";
 
@@ -132,6 +136,7 @@ export type ItemResponseDTO = {
   warehouse_name: string;
   warehouse_location: string;
 
+  unitSale: number | null;
   imageUrl: string | null;
   description: string | null;
 };
@@ -144,13 +149,16 @@ export type ItemCreateDTO = {
   subCategory?: string;
   brand?: string;
   location?: string;
+  serialNo?: string;
+  dateReceived?: string;
+  expiryDate?: string;
   quantity?: number;
   minimum?: number;
   maximum?: number;
   barcode?: string;
-  serialNo?: string;
   costPrice?: number;
   sellingPrice?: number;
+  unitSale?: number;
   unitMeasure?: string;
   reorderLevel?: number;
   status?: string;
@@ -160,16 +168,25 @@ export type ItemCreateDTO = {
 };
 
 export type ItemUpdateDTO = {
+  sku?: string;
   name?: string;
+  type?: string;
   category?: string;
   subCategory?: string;
   brand?: string;
   location?: string;
+  serialNo?: string;
+  dateReceived?: string;
+  expiryDate?: string;
   quantity?: number;
   minimum?: number;
   maximum?: number;
+  reorderLevel?: number;
+  barcode?: string;
+  unitMeasure?: string;
   costPrice?: number;
   sellingPrice?: number;
+  unitSale?: number;
   status?: string;
   imageUrl?: string;
   description?: string;
@@ -180,6 +197,7 @@ export type ItemUpdateDTO = {
 export type ItemStockReceivePayload = {
   quantityReceived: number;
   receivedDate?: string;
+  expiryDate?: string;
   batchNo?: string;
   serialNo?: string;
   referenceNo?: string;

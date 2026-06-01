@@ -122,8 +122,17 @@ export async function previewPdfText(file: File): Promise<string> {
 }
 
 /** Direct PDF URL for embedding (blob public URL or external .pdf link). */
+export async function getInvoicePdfUrl(invoiceId: number): Promise<string> {
+  const res = await apiClient.get<string>(`/invoices/${invoiceId}/pdf`);
+  return res.data;
+}
+
+function isUsableDocumentUrl(url?: string | null): boolean {
+  return Boolean(url && url.trim() && !url.includes("dummy.url"));
+}
+
 export function invoiceDocumentPreviewUrl(inv: FinanceInvoice): string | null {
-  if (inv.pdfUrl) return inv.pdfUrl;
+  if (isUsableDocumentUrl(inv.pdfUrl)) return inv.pdfUrl!;
   if (inv.externalDocumentUrl?.toLowerCase().includes(".pdf")) {
     return inv.externalDocumentUrl;
   }

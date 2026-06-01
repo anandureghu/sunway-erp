@@ -81,8 +81,19 @@ export function DataTable<TData, TValue>({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className="cursor-pointer hover:bg-accent/30 transition"
-                onClick={() => onRowClick?.(row)}
+                className={
+                  onRowClick
+                    ? "cursor-pointer hover:bg-accent/30 transition"
+                    : undefined
+                }
+                onClick={(e) => {
+                  if (
+                    (e.target as HTMLElement).closest("[data-no-row-nav]")
+                  ) {
+                    return;
+                  }
+                  onRowClick?.(row);
+                }}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

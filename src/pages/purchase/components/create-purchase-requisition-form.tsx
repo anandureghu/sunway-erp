@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,26 +13,52 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { listItems } from "@/service/inventoryService";
-import { createPurchaseRequisition } from "@/service/purchaseFlowService";
+import { listItems, listWarehouses } from "@/service/inventoryService";
+import {
+  createPurchaseRequisition,
+  getPurchaseRequisition,
+  updatePurchaseRequisition,
+  uploadPurchaseRequisitionDocument,
+  type PurchaseRequisitionCreateDTO,
+} from "@/service/purchaseFlowService";
 import type { PurchaseRequisitionItem } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { toast } from "sonner";
 import type { SelectUserOption } from "@/components/select-user";
-import SelectVendor from "@/components/select-vendor";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
 import { hasPurchaseAccountingDefaults } from "@/lib/accounting-defaults";
 import { Link } from "react-router-dom";
-import { Info } from "lucide-react";
+import { Info, Paperclip, Search, X } from "lucide-react";
+import { ItemSearchCombobox } from "@/pages/inventory/manage-stocks/components/item-search-combobox";
+import { filterItemsByQuery } from "@/lib/filter-items";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PageHeader } from "@/components/PageHeader";
+import { getApiErrorMessage } from "@/lib/api-error-message";
+import { format } from "date-fns";
+import type { Warehouse } from "@/types/inventory";
+import type { PurchaseRequisitionUrgency } from "@/types/purchase";
 
 type Props = {
   onCancel: () => void;
   onCreated?: () => void;
+  onSaved?: () => void;
+  requisitionId?: string;
 };
+
+function toDateInputValue(value?: string) {
+  if (!value) return "";
+  return value.length >= 10 ? value.slice(0, 10) : value;
+}
+
+function mapUrgencyFromApi(urgency?: string): PurchaseRequisitionUrgency {
+  const u = (urgency || "NORMAL").toLowerCase();
+  if (u === "urgent") return "urgent";
+  if (u === "critical") return "critical";
+  return "normal";
+}
 
 function parseOptionalOtherCost(s: string): number | undefined {
   const t = s.trim();
@@ -91,7 +117,13 @@ async function resolveRequesterDepartmentId(userId: string): Promise<string> {
   }
 }
 
-export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
+export function CreatePurchaseRequisitionForm({
+  onCancel,
+  onCreated,
+  onSaved,
+  requisitionId,
+}: Props) {
+  const isEditMode = Boolean(requisitionId);
   const navigate = useNavigate();
   const { user, company } = useAuth();
   const companyId =
@@ -105,6 +137,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     PurchaseRequisitionItem[]
   >([]);
   const [selectedItem, setSelectedItem] = useState<string>("");
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [itemQuantity, setItemQuantity] = useState<number>(1);
   /** Optional override; empty means use item cost price. */
   const [itemOtherCostInput, setItemOtherCostInput] = useState<string>("");
@@ -113,16 +146,29 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [purchaseDefaultsMissing, setPurchaseDefaultsMissing] = useState(false);
 
   const requestedByUserId =
     user?.userId != null ? String(user.userId) : undefined;
   const [departmentId, setDepartmentId] = useState<string>("");
-  const [preferredSupplierId, setPreferredSupplierId] = useState<string>("");
-  const [supplierAddress, setSupplierAddress] = useState<string>("");
   const [debitAccountId, setDebitAccountId] = useState<string>("");
   const [creditAccountId, setCreditAccountId] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [requestedDate, setRequestedDate] = useState(() =>
+    format(new Date(), "yyyy-MM-dd"),
+  );
+  const [requiredDeliveryDate, setRequiredDeliveryDate] = useState("");
+  const [projectCode, setProjectCode] = useState("");
+  const [requisitionDescription, setRequisitionDescription] = useState("");
+  const [urgency, setUrgency] = useState<PurchaseRequisitionUrgency>("normal");
+  const [requiredByDate, setRequiredByDate] = useState("");
+  const [deliveryWarehouseId, setDeliveryWarehouseId] = useState("");
+  const [justification, setJustification] = useState("");
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [reviewerFeedback, setReviewerFeedback] = useState<string | null>(null);
+  const pendingFilesInputRef = useRef<HTMLInputElement>(null);
   const requesterSyncSeqRef = useRef(0);
   const didInitRequesterSyncRef = useRef(false);
 
@@ -132,9 +178,11 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       try {
         setLoading(true);
         setLoadError(null);
-        const it = await listItems();
+        const [it, wh] = await Promise.all([listItems(), listWarehouses()]);
         if (cancelled) return;
         setItems(it);
+        setWarehouses(wh.filter((w) => w.status === "active" || !w.status));
+
         if (companyId) {
           const companyRes = await apiClient.get<Company>(
             `/companies/${companyId}`,
@@ -145,13 +193,47 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
             setPurchaseDefaultsMissing(true);
           } else {
             setPurchaseDefaultsMissing(false);
-            if (co.defaultPurchaseDebitAccountId != null) {
-              setDebitAccountId(String(co.defaultPurchaseDebitAccountId));
-            }
-            if (co.defaultPurchaseCreditAccountId != null) {
-              setCreditAccountId(String(co.defaultPurchaseCreditAccountId));
+            if (!isEditMode) {
+              if (co.defaultPurchaseDebitAccountId != null) {
+                setDebitAccountId(String(co.defaultPurchaseDebitAccountId));
+              }
+              if (co.defaultPurchaseCreditAccountId != null) {
+                setCreditAccountId(String(co.defaultPurchaseCreditAccountId));
+              }
             }
           }
+        }
+
+        if (isEditMode && requisitionId) {
+          const pr = await getPurchaseRequisition(requisitionId);
+          if (cancelled) return;
+          if (pr.status !== "draft") {
+            setLoadError("Only draft requisitions can be edited.");
+            return;
+          }
+          setReviewerFeedback(pr.rejectionReason ?? null);
+          setDepartmentId(pr.departmentId ?? "");
+          setDebitAccountId(pr.debitAccountId ?? "");
+          setCreditAccountId(pr.creditAccountId ?? "");
+          setRequestedDate(toDateInputValue(pr.requestedDate));
+          setRequiredDeliveryDate(
+            toDateInputValue(pr.requiredDeliveryDate || pr.requiredDate),
+          );
+          setProjectCode(pr.projectCode ?? "");
+          setRequisitionDescription(pr.requisitionDescription ?? "");
+          setUrgency(mapUrgencyFromApi(pr.urgency));
+          setRequiredByDate(toDateInputValue(pr.requiredByDate));
+          setDeliveryWarehouseId(pr.deliveryWarehouseId ?? "");
+          setJustification(pr.justification ?? "");
+          setRequisitionItems(
+            pr.items.map((line, idx) => ({
+              ...line,
+              id: line.id || `edit-${idx}`,
+              requisitionId: pr.id,
+              quantity: line.quantity,
+              unitPrice: line.estimatedUnitCost ?? line.unitPrice,
+            })),
+          );
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -166,7 +248,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [reloadSeq, companyId]);
+  }, [reloadSeq, companyId, isEditMode, requisitionId]);
 
   useEffect(() => {
     setItemOtherCostInput("");
@@ -197,8 +279,40 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
     void syncDepartmentForRequester(requestedByUserId);
   }, [requestedByUserId]);
 
+  const activeItems = useMemo(
+    () => items.filter((i) => i.status === "active"),
+    [items],
+  );
+
+  const itemSearchResults = useMemo(
+    () => filterItemsByQuery(activeItems, itemSearchQuery),
+    [activeItems, itemSearchQuery],
+  );
+
+  const selectedItemRecord = useMemo(
+    () =>
+      selectedItem
+        ? items.find((i) => String(i.id) === selectedItem)
+        : undefined,
+    [items, selectedItem],
+  );
+
+  const handleItemSelectFromSearch = (item: ItemResponseDTO) => {
+    if (item.status && item.status !== "active") {
+      toast.error("Only active items can be added to a requisition.");
+      return;
+    }
+    setSelectedItem(String(item.id));
+    setItemSearchQuery("");
+  };
+
   const addItemToRequisition = () => {
-    if (!selectedItem || itemQuantity <= 0) return;
+    if (!selectedItem || itemQuantity <= 0) {
+      if (!selectedItem) {
+        toast.error("Search and select an item before adding a line.");
+      }
+      return;
+    }
 
     const inv = items.find((i) => String(i.id) === selectedItem);
     if (!inv) return;
@@ -212,6 +326,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       id: `temp-${Date.now()}`,
       requisitionId: "",
       itemId: Number(inv.id),
+      itemName: inv.name,
       item: inv as any,
       quantity: itemQuantity,
       actualItemPrice,
@@ -275,11 +390,6 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Supplier is optional at creation
-    // if (!preferredSupplierId) {
-    //   toast.error("Please select a preferred supplier.");
-    //   return;
-    // }
     if (!debitAccountId || !creditAccountId) {
       toast.error(
         "Purchase default accounts are not loaded. Configure them under Global Settings → Default Accounts.",
@@ -294,18 +404,51 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       toast.error("Please add at least one item.");
       return;
     }
+    if (!requisitionDescription.trim()) {
+      toast.error("Requisition description is required.");
+      return;
+    }
+    if (!requiredDeliveryDate) {
+      toast.error("Required delivery date is required.");
+      return;
+    }
+    if (!requiredByDate) {
+      toast.error("Required-by date is required.");
+      return;
+    }
+    if (!deliveryWarehouseId) {
+      toast.error("Delivery warehouse is required.");
+      return;
+    }
+    if (!justification.trim()) {
+      toast.error("Justification is required.");
+      return;
+    }
 
     setSubmitLoading(true);
 
-    const payload = {
+    const urgencyApi: PurchaseRequisitionCreateDTO["urgency"] =
+      urgency === "urgent"
+        ? "URGENT"
+        : urgency === "critical"
+          ? "CRITICAL"
+          : "NORMAL";
+
+    const payload: PurchaseRequisitionCreateDTO = {
       debitAccountId: Number(debitAccountId),
       creditAccountId: Number(creditAccountId),
-      preferredSupplierId: preferredSupplierId ? Number(preferredSupplierId) : undefined,
-      supplierAddress: supplierAddress || undefined,
       departmentId: departmentId ? Number(departmentId) : undefined,
       requestedByUserId: requestedByUserId
         ? Number(requestedByUserId)
         : undefined,
+      requestedDate: requestedDate || undefined,
+      requiredDeliveryDate,
+      projectCode: projectCode.trim() || undefined,
+      requisitionDescription: requisitionDescription.trim(),
+      urgency: urgencyApi,
+      requiredByDate,
+      deliveryWarehouseId: Number(deliveryWarehouseId),
+      justification: justification.trim(),
       items: requisitionItems.map((item) => {
         const applied = item.estimatedUnitCost ?? item.unitPrice ?? undefined;
         const payload: {
@@ -331,34 +474,84 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
       }),
     };
 
-    createPurchaseRequisition(payload)
-      .then((created) => {
+    setSubmitError(null);
+
+    const savePromise = isEditMode && requisitionId
+      ? updatePurchaseRequisition(requisitionId, payload)
+      : createPurchaseRequisition(payload);
+
+    savePromise
+      .then(async (saved) => {
+        if (pendingFiles.length > 0) {
+          try {
+            await Promise.all(
+              pendingFiles.map((file) =>
+                uploadPurchaseRequisitionDocument(saved.id, file),
+              ),
+            );
+          } catch (uploadErr: unknown) {
+            const u = uploadErr as {
+              response?: { data?: { message?: string } };
+              message?: string;
+            };
+            toast.warning(
+              u?.response?.data?.message ||
+                u?.message ||
+                "Requisition saved but some documents failed to upload.",
+            );
+          }
+        }
         toast.success(
-          `Purchase requisition ${created.requisitionNo} created successfully.`,
+          isEditMode
+            ? `Purchase requisition ${saved.requisitionNo} updated.`
+            : `Purchase requisition ${saved.requisitionNo} created successfully.`,
         );
-        onCreated?.();
-        navigate("/inventory/purchase/requisitions", { replace: true });
+        if (isEditMode) {
+          onSaved?.();
+        } else {
+          onCreated?.();
+          navigate(`/inventory/purchase/requisitions/${saved.id}`, {
+            replace: true,
+          });
+        }
       })
-      .catch((error: any) => {
+      .catch((error: unknown) => {
         console.error("Error creating purchase requisition:", error);
-        toast.error(
-          error?.response?.data?.message ||
-            error?.message ||
-            "Failed to create purchase requisition.",
+        const msg = getApiErrorMessage(
+          error,
+          isEditMode
+            ? "Failed to update purchase requisition."
+            : "Failed to create purchase requisition.",
         );
+        setSubmitError(msg);
+        toast.error(msg);
       })
       .finally(() => setSubmitLoading(false));
   };
 
   const total = calculateTotal();
 
+  useEffect(() => {
+    setSubmitError(null);
+  }, [deliveryWarehouseId, requisitionItems]);
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
         variant="darkGreen"
-        title="Create purchase requisition"
-        description="Identify the required items and create a purchase requestion."
-        backHref="/inventory/purchase"
+        title={
+          isEditMode ? "Edit purchase requisition" : "Create purchase requisition"
+        }
+        description={
+          isEditMode
+            ? "Update the requisition and submit again when ready."
+            : "Identify the required items and create a purchase requestion."
+        }
+        backHref={
+          isEditMode && requisitionId
+            ? `/inventory/purchase/requisitions/${requisitionId}`
+            : "/inventory/purchase"
+        }
         actions={
           <Button
             type="button"
@@ -371,6 +564,15 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
           </Button>
         }
       />
+
+      {submitError && !loading && !loadError && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {submitError}
+        </div>
+      )}
 
       {loading ? (
         <div className="py-10 text-center text-muted-foreground">Loading…</div>
@@ -403,30 +605,128 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
         </Card>
       ) : (
         <form onSubmit={onSubmit} className="space-y-6">
+          {reviewerFeedback && (
+            <Card className="border-amber-200 bg-amber-50/80">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-amber-900">
+                  Reviewer feedback
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm whitespace-pre-wrap">{reviewerFeedback}</p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
-              <CardTitle>Supplier Information</CardTitle>
+              <CardTitle>Requisition details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                GL accounts for this requisition use your company purchase
-                defaults (Global Settings → Default Accounts).
+                Supplier is assigned on the purchase order after this requisition
+                is approved. GL accounts use company purchase defaults (Global
+                Settings → Default Accounts).
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <SelectVendor
-                    label="Preferred supplier"
-                    value={preferredSupplierId || undefined}
-                    onChange={(v) => setPreferredSupplierId(v)}
-                    placeholder="Select supplier for the Purchase Order"
+                  <Label htmlFor="requestedDate">Requested date</Label>
+                  <Input
+                    id="requestedDate"
+                    type="date"
+                    value={requestedDate}
+                    onChange={(e) => setRequestedDate(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Supplier Address</Label>
+                  <Label htmlFor="requiredDeliveryDate">
+                    Required delivery date
+                  </Label>
+                  <Input
+                    id="requiredDeliveryDate"
+                    type="date"
+                    value={requiredDeliveryDate}
+                    onChange={(e) => setRequiredDeliveryDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="projectCode">Project code (optional)</Label>
+                  <Input
+                    id="projectCode"
+                    placeholder="e.g. PRJ-2026-001"
+                    value={projectCode}
+                    onChange={(e) => setProjectCode(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="urgency">Urgency</Label>
+                  <Select
+                    value={urgency}
+                    onValueChange={(v) =>
+                      setUrgency(v as PurchaseRequisitionUrgency)
+                    }
+                  >
+                    <SelectTrigger id="urgency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="requisitionDescription">
+                    Requisition description
+                  </Label>
                   <Textarea
-                    placeholder="Enter supplier address (optional)"
-                    value={supplierAddress}
-                    onChange={(e) => setSupplierAddress(e.target.value)}
+                    id="requisitionDescription"
+                    placeholder="Brief summary of what is being requested"
+                    value={requisitionDescription}
+                    onChange={(e) => setRequisitionDescription(e.target.value)}
+                    required
+                    className="min-h-[80px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="requiredByDate">Required-by date</Label>
+                  <Input
+                    id="requiredByDate"
+                    type="date"
+                    value={requiredByDate}
+                    onChange={(e) => setRequiredByDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryWarehouse">Delivery location</Label>
+                  <Select
+                    value={deliveryWarehouseId}
+                    onValueChange={setDeliveryWarehouseId}
+                  >
+                    <SelectTrigger id="deliveryWarehouse">
+                      <SelectValue placeholder="Select warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((wh) => (
+                        <SelectItem key={wh.id} value={String(wh.id)}>
+                          {wh.name}
+                          {wh.code ? ` (${wh.code})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="justification">Justification</Label>
+                  <Textarea
+                    id="justification"
+                    placeholder="Business reason for this purchase"
+                    value={justification}
+                    onChange={(e) => setJustification(e.target.value)}
+                    required
                     className="min-h-[80px]"
                   />
                 </div>
@@ -439,25 +739,56 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
               <CardTitle>Line items</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="space-y-2">
-                  <Label>Item</Label>
-                  <Select value={selectedItem} onValueChange={setSelectedItem}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select item" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items
-                        .filter((i) => i.status === "active")
-                        .map((item) => (
-                          <SelectItem key={item.id} value={String(item.id)}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+              <div className="rounded-lg border border-dashed bg-muted/30 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  Search items
                 </div>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Find by name, SKU, or barcode, then set quantity and add the
+                  line.
+                </p>
+                <ItemSearchCombobox
+                  label=""
+                  query={itemSearchQuery}
+                  onQueryChange={setItemSearchQuery}
+                  results={
+                    itemSearchQuery.trim().length > 0 ? itemSearchResults : []
+                  }
+                  onSelect={handleItemSelectFromSearch}
+                />
+                {itemSearchQuery.trim().length > 0 &&
+                  itemSearchResults.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No active items match your search.
+                    </p>
+                  )}
+                {selectedItemRecord && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+                    <span>
+                      Selected:{" "}
+                      <span className="font-medium">
+                        {selectedItemRecord.name}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · SKU {selectedItemRecord.sku}
+                      </span>
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-muted-foreground"
+                      onClick={() => setSelectedItem("")}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Quantity</Label>
                   <Input
@@ -474,19 +805,12 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
                 <div className="space-y-2">
                   <Label>Item cost (from master)</Label>
                   <CurrencyAmount
-                    amount={
-                      selectedItem
-                        ? Number(
-                            items.find((i) => String(i.id) === selectedItem)
-                              ?.costPrice ?? 0,
-                          )
-                        : 0
-                    }
+                    amount={Number(selectedItemRecord?.costPrice ?? 0)}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Other cost price</Label>
+                  <Label>Estimated cost</Label>
                   <Input
                     type="number"
                     min="0"
@@ -531,9 +855,7 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
                       {requisitionItems.map((row) => (
                         <tr key={row.id} className="border-t">
                           <td className="p-2 align-middle">
-                            {items.find(
-                              (i) => String(i.id) === String(row.itemId),
-                            )?.name ?? `Item #${row.itemId}`}
+                            {purchaseLineItemName(row)}
                           </td>
                           <td className="p-2 align-middle">
                             <Input
@@ -628,6 +950,66 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Supporting documents</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Optional quotes, specifications, or approvals (PDF, Word, or
+                images, max 15 MB each).
+              </p>
+              <input
+                ref={pendingFilesInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                  const picked = e.target.files
+                    ? Array.from(e.target.files)
+                    : [];
+                  if (picked.length) {
+                    setPendingFiles((prev) => [...prev, ...picked]);
+                  }
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => pendingFilesInputRef.current?.click()}
+              >
+                <Paperclip className="mr-2 h-4 w-4" />
+                Add files
+              </Button>
+              {pendingFiles.length > 0 && (
+                <ul className="space-y-2">
+                  {pendingFiles.map((file, idx) => (
+                    <li
+                      key={`${file.name}-${idx}`}
+                      className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <span className="truncate">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setPendingFiles((prev) =>
+                            prev.filter((_, i) => i !== idx),
+                          )
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
           {requisitionItems.length > 0 && (
             <Card>
               <CardHeader>
@@ -661,7 +1043,13 @@ export function CreatePurchaseRequisitionForm({ onCancel, onCreated }: Props) {
               type="submit"
               disabled={requisitionItems.length === 0 || submitLoading}
             >
-              {submitLoading ? "Creating…" : "Create requisition"}
+              {submitLoading
+                ? isEditMode
+                  ? "Saving…"
+                  : "Creating…"
+                : isEditMode
+                  ? "Save changes"
+                  : "Create requisition"}
             </Button>
           </div>
         </form>

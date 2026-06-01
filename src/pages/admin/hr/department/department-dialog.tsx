@@ -35,6 +35,8 @@ import { type Department } from "@/types/department";
 import { type Division } from "@/types/division";
 import { createDepartment, updateDepartment } from "@/service/departmentService";
 import { fetchDivisions } from "@/service/divisionService";
+import { fetchManagers } from "@/service/employeeService";
+import type { Employee } from "@/types/hr";
 import {
   Building2,
   Hash,
@@ -116,6 +118,7 @@ export function DepartmentDialog({
 }: DepartmentDialogProps) {
   const [loading, setLoading] = useState(false);
   const [divisions, setDivisions] = useState<Division[]>([]);
+  const [managers, setManagers] = useState<Employee[]>([]);
   const isEdit = !!department;
 
   const form = useForm<DepartmentFormData>({
@@ -134,6 +137,9 @@ export function DepartmentDialog({
     if (!open || !companyId) return;
     fetchDivisions(companyId).then((data) => {
       if (Array.isArray(data)) setDivisions(data);
+    });
+    fetchManagers(companyId).then((data) => {
+      if (Array.isArray(data)) setManagers(data);
     });
   }, [open, companyId]);
 
@@ -364,19 +370,22 @@ export function DepartmentDialog({
                                 <SelectItem value="none">
                                   — No manager assigned —
                                 </SelectItem>
-                                <SelectItem
-                                  value="1"
-                                  className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium text-slate-800">
-                                      Manager Name
-                                    </span>
-                                    <span className="text-[11px] text-slate-400">
-                                      Job Title — EMP-001
-                                    </span>
-                                  </div>
-                                </SelectItem>
+                                {managers.map((m) => (
+                                  <SelectItem
+                                    key={m.id}
+                                    value={String(m.id)}
+                                    className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-slate-800">
+                                        {m.firstName} {m.lastName}
+                                      </span>
+                                      <span className="text-[11px] text-slate-400">
+                                        {m.companyRole || "Manager"} — {m.employeeNo}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </FormControl>

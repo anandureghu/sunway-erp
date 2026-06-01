@@ -10,19 +10,33 @@ import {
   CheckCircle2,
   ShoppingCart,
   RefreshCw,
+  Undo2,
+  XCircle,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
   getPurchaseRequisition,
   submitPurchaseRequisition,
   approvePurchaseRequisition,
+  rejectPurchaseRequisition,
+  sendBackPurchaseRequisition,
+  revisePurchaseRequisition,
   getGoodsReceiptsByPurchaseOrder,
 } from "@/service/purchaseFlowService";
+import {
+  PurchaseRequisitionReviewDialog,
+  type ReviewActionType,
+} from "./components/purchase-requisition-review-dialog";
 import type { PurchaseRequisition } from "@/types/purchase";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/api-error-message";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
+import { PurchaseRequisitionDocuments } from "./components/purchase-requisition-documents";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
+import type { PurchaseRequisitionDocument } from "@/types/purchase";
 
 export default function PurchaseRequisitionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +48,10 @@ export default function PurchaseRequisitionDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
+  const [reviewDialog, setReviewDialog] = useState<ReviewActionType | null>(
+    null,
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -87,14 +105,53 @@ export default function PurchaseRequisitionDetailPage() {
 
   const handleSubmit = async () => {
     if (!requisition) return;
+    setSubmitError(null);
     setActionLoading(true);
     try {
       await submitPurchaseRequisition(requisition.id);
       toast.success("Submitted for approval.");
       await load();
+    } catch (e: unknown) {
+      const msg = getApiErrorMessage(e, "Failed to submit");
+      setSubmitError(msg);
+      toast.error(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReviewConfirm = async (comments: string) => {
+    if (!requisition || !reviewDialog) return;
+    setActionLoading(true);
+    try {
+      if (reviewDialog === "reject") {
+        await rejectPurchaseRequisition(requisition.id, comments);
+        toast.success("Requisition rejected. The requester can revise and resubmit.");
+      } else {
+        await sendBackPurchaseRequisition(requisition.id, comments);
+        toast.success("Sent back to requester for revision.");
+      }
+      setReviewDialog(null);
+      await load();
     } catch (e: any) {
       toast.error(
-        e?.response?.data?.message || e?.message || "Failed to submit",
+        e?.response?.data?.message || e?.message || "Action failed",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRevise = async () => {
+    if (!requisition) return;
+    setActionLoading(true);
+    try {
+      await revisePurchaseRequisition(requisition.id);
+      toast.success("Requisition reopened for editing.");
+      navigate(`/inventory/purchase/requisitions/${requisition.id}/edit`);
+    } catch (e: any) {
+      toast.error(
+        e?.response?.data?.message || e?.message || "Failed to start revision",
       );
     } finally {
       setActionLoading(false);
@@ -105,7 +162,7 @@ export default function PurchaseRequisitionDetailPage() {
     if (!requisition) return;
     if (
       !confirm(
-        "Approve this requisition? A draft purchase order will be created for the preferred supplier.",
+        "Approve this requisition? A draft purchase order will be created. Assign the supplier on the PO before release.",
       )
     ) {
       return;
@@ -164,18 +221,41 @@ export default function PurchaseRequisitionDetailPage() {
   const statusColors: Record<string, string> = {
     draft: "bg-gray-100 text-gray-800",
     submitted: "bg-amber-100 text-amber-900",
-    approved: "bg-green-100 text-green-800",
     converted: "bg-violet-100 text-violet-900",
     rejected: "bg-red-100 text-red-800",
   };
 
   const canSubmit = requisition.status === "draft";
   const canApprove = requisition.status === "submitted";
+  const canRejectOrSendBack = requisition.status === "submitted";
+  const canRevise = requisition.status === "rejected";
+  const canEdit = requisition.status === "draft";
   const showOpenPo =
     requisition.status === "converted" && requisition.createdPurchaseOrderId;
+  const documentsReadOnly =
+    Boolean(requisition.archived) || requisition.status !== "draft";
+  const reviewFeedbackLabel =
+    requisition.reviewAction === "send_back"
+      ? "Sent back for revision"
+      : "Reviewer feedback";
+
+  const handleDocumentsChange = (documents: PurchaseRequisitionDocument[]) => {
+    setRequisition((prev) => (prev ? { ...prev, documents } : prev));
+  };
 
   return (
     <div className="mx-auto space-y-6 p-6">
+      <PurchaseRequisitionReviewDialog
+        open={reviewDialog != null}
+        onOpenChange={(open) => {
+          if (!open) setReviewDialog(null);
+        }}
+        action={reviewDialog ?? "send_back"}
+        requisitionNo={requisition.requisitionNo}
+        loading={actionLoading}
+        onConfirm={handleReviewConfirm}
+      />
+
       <SecondaryPageHeader
         title={requisition.requisitionNo}
         description="Draft → submit for approval → approve to generate a Purchase Order."
@@ -209,11 +289,21 @@ export default function PurchaseRequisitionDetailPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Actions</CardTitle>
           <p className="text-sm text-muted-foreground font-normal">
-            Submit when ready. Once the requisition is approve it will be
-            released to the procurement as a purchase order
+            Only <strong>Draft</strong> requisitions can be edited. After
+            approval, assign the supplier on the purchase order. Submit when
+            ready for review.
           </p>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
+        <CardContent className="flex flex-col gap-3">
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              {submitError}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
           {canSubmit && (
             <Button
               onClick={() => void handleSubmit()}
@@ -233,6 +323,45 @@ export default function PurchaseRequisitionDetailPage() {
               Approve &amp; create Purchase Order
             </Button>
           )}
+          {canRejectOrSendBack && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setReviewDialog("send_back")}
+                disabled={actionLoading}
+              >
+                <Undo2 className="mr-2 h-4 w-4" />
+                Send back
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setReviewDialog("reject")}
+                disabled={actionLoading}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                Reject
+              </Button>
+            </>
+          )}
+          {canRevise && (
+            <Button
+              onClick={() => void handleRevise()}
+              disabled={actionLoading}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Revise &amp; edit
+            </Button>
+          )}
+          {canEdit && (
+            <Button asChild variant="outline" disabled={actionLoading}>
+              <Link
+                to={`/inventory/purchase/requisitions/${requisition.id}/edit`}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit draft
+              </Link>
+            </Button>
+          )}
           {showOpenPo && (
             <Button asChild variant="secondary">
               <Link
@@ -243,13 +372,51 @@ export default function PurchaseRequisitionDetailPage() {
               </Link>
             </Button>
           )}
-          {!canSubmit && !canApprove && !showOpenPo && (
+          {!canSubmit &&
+            !canApprove &&
+            !canRejectOrSendBack &&
+            !canRevise &&
+            !canEdit &&
+            !showOpenPo && (
             <p className="text-sm text-muted-foreground py-1">
               No workflow actions available for this status.
             </p>
           )}
+          </div>
         </CardContent>
       </Card>
+
+      {requisition.status === "rejected" && requisition.rejectionReason && (
+        <Card className="border-amber-200 bg-amber-50/80 dark:bg-amber-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-amber-900 dark:text-amber-100">
+              {reviewFeedbackLabel}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="whitespace-pre-wrap">{requisition.rejectionReason}</p>
+            {(requisition.rejectedByName || requisition.rejectedAt) && (
+              <p className="text-muted-foreground text-xs">
+                {[
+                  requisition.rejectedByName,
+                  requisition.rejectedAt
+                    ? format(
+                        new Date(requisition.rejectedAt),
+                        "MMM dd, yyyy · HH:mm",
+                      )
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+            <p className="text-muted-foreground text-xs pt-1">
+              Use &quot;Revise &amp; edit&quot; to update this requisition, then
+              submit again for approval.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <RelatedPurchaseDocumentsCard
         context="pr"
@@ -293,11 +460,57 @@ export default function PurchaseRequisitionDetailPage() {
                   : "N/A"}
               </p>
             </div>
-            {requisition.requiredDate && (
+            {(requisition.requiredDeliveryDate || requisition.requiredDate) && (
               <div>
-                <p className="text-sm text-muted-foreground">Required date</p>
+                <p className="text-sm text-muted-foreground">
+                  Required delivery date
+                </p>
                 <p className="font-medium">
-                  {format(new Date(requisition.requiredDate), "MMM dd, yyyy")}
+                  {format(
+                    new Date(
+                      requisition.requiredDeliveryDate ||
+                        requisition.requiredDate!,
+                    ),
+                    "MMM dd, yyyy",
+                  )}
+                </p>
+              </div>
+            )}
+            {requisition.projectCode && (
+              <div>
+                <p className="text-sm text-muted-foreground">Project code</p>
+                <p className="font-medium">{requisition.projectCode}</p>
+              </div>
+            )}
+            {requisition.convertedAt && (
+              <div>
+                <p className="text-sm text-muted-foreground">Converted date</p>
+                <p className="font-medium">
+                  {format(new Date(requisition.convertedAt), "MMM dd, yyyy")}
+                </p>
+              </div>
+            )}
+            {requisition.urgency && (
+              <div>
+                <p className="text-sm text-muted-foreground">Urgency</p>
+                <p className="font-medium capitalize">{requisition.urgency}</p>
+              </div>
+            )}
+            {requisition.requiredByDate && (
+              <div>
+                <p className="text-sm text-muted-foreground">Required-by date</p>
+                <p className="font-medium">
+                  {format(new Date(requisition.requiredByDate), "MMM dd, yyyy")}
+                </p>
+              </div>
+            )}
+            {requisition.deliveryWarehouseName && (
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Delivery location
+                </p>
+                <p className="font-medium">
+                  {requisition.deliveryWarehouseName}
                 </p>
               </div>
             )}
@@ -305,16 +518,6 @@ export default function PurchaseRequisitionDetailPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Requested by</p>
                 <p className="font-medium">{requisition.requestedByName}</p>
-              </div>
-            )}
-            {requisition.preferredSupplierName && (
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Preferred supplier
-                </p>
-                <p className="font-medium">
-                  {requisition.preferredSupplierName}
-                </p>
               </div>
             )}
             {requisition.financeTransactionId && (
@@ -360,17 +563,29 @@ export default function PurchaseRequisitionDetailPage() {
                 </p>
               </div>
             )}
-            {requisition.rejectionReason && (
+            {requisition.rejectionReason && requisition.status !== "rejected" && (
               <div className="sm:col-span-2">
                 <p className="text-sm text-muted-foreground">
-                  Rejection reason
+                  Reviewer comments
                 </p>
-                <p className="font-medium text-red-600">
-                  {requisition.rejectionReason}
-                </p>
+                <p className="font-medium">{requisition.rejectionReason}</p>
               </div>
             )}
           </div>
+          {requisition.requisitionDescription && (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">
+                Requisition description
+              </p>
+              <p className="font-medium">{requisition.requisitionDescription}</p>
+            </div>
+          )}
+          {requisition.justification && (
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground">Justification</p>
+              <p className="font-medium">{requisition.justification}</p>
+            </div>
+          )}
           {requisition.notes && (
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">Notes</p>
@@ -401,7 +616,7 @@ export default function PurchaseRequisitionDetailPage() {
                   className="grid grid-cols-6 gap-3 text-sm border-b pb-2 min-w-[560px]"
                 >
                   <div>
-                    <p className="font-medium">{`Item #${item.itemId}`}</p>
+                    <p className="font-medium">{purchaseLineItemName(item)}</p>
                     {item.notes && (
                       <p className="text-xs text-muted-foreground">
                         {item.notes}
@@ -463,6 +678,13 @@ export default function PurchaseRequisitionDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <PurchaseRequisitionDocuments
+        requisitionId={requisition.id}
+        documents={requisition.documents ?? []}
+        onDocumentsChange={handleDocumentsChange}
+        readOnly={documentsReadOnly}
+      />
     </div>
   );
 }

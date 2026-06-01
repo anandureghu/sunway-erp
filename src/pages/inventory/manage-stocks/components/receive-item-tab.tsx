@@ -19,8 +19,11 @@ import {
 } from "@/schema/inventory";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { receiveItemStock } from "@/service/inventoryService";
-import { listPurchaseOrders } from "@/service/purchaseFlowService";
-import type { PurchaseOrder } from "@/types/purchase";
+import {
+  getPurchaseOrder,
+  listPurchaseOrders,
+} from "@/service/purchaseFlowService";
+import type { PurchaseOrder, PurchaseOrderItem } from "@/types/purchase";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -31,6 +34,33 @@ import { toast } from "sonner";
 import CreateItemForm from "../../item-form";
 import { filterItemsByQuery } from "../use-manage-stocks";
 import { ItemSearchCombobox } from "./item-search-combobox";
+
+const RECEIVABLE_PO_STATUSES = new Set([
+  "confirmed",
+  "ordered",
+  "approved",
+  "partially_received",
+]);
+
+function isReceivablePurchaseOrder(status?: string): boolean {
+  return RECEIVABLE_PO_STATUSES.has((status ?? "").toLowerCase());
+}
+
+function findInventoryItemForPoLine(
+  items: ItemResponseDTO[],
+  poLine: PurchaseOrderItem,
+  preferredWarehouseId?: string,
+): ItemResponseDTO | null {
+  const matches = items.filter((i) => i.id === poLine.itemId);
+  if (matches.length === 0) return null;
+  if (preferredWarehouseId) {
+    const warehouseMatch = matches.find(
+      (i) => String(i.warehouse_id) === preferredWarehouseId,
+    );
+    if (warehouseMatch) return warehouseMatch;
+  }
+  return matches[0];
+}
 
 function getRequestErrorMessage(e: unknown): string {
   if (
@@ -81,7 +111,16 @@ export function ReceiveItemTab({
   const [showCreateItemDialog, setShowCreateItemDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [selectedPurchaseOrder, setSelectedPurchaseOrder] =
+    useState<PurchaseOrder | null>(null);
+  const [selectedPoLineIndex, setSelectedPoLineIndex] = useState(0);
+  const [loadingPoDetails, setLoadingPoDetails] = useState(false);
   const selectedWarehouseId = watch("warehouseId");
+
+  const receivablePurchaseOrders = useMemo(
+    () => purchaseOrders.filter((po) => isReceivablePurchaseOrder(po.status)),
+    [purchaseOrders],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -113,6 +152,97 @@ export function ReceiveItemTab({
 
   const quantityOnHand = stockRowForSelection?.quantity ?? null;
 
+  const applyPoLineToForm = (poLine: PurchaseOrderItem) => {
+    const inventoryItem = findInventoryItemForPoLine(
+      items,
+      poLine,
+      selectedWarehouseId,
+    );
+    if (!inventoryItem) {
+      toast.error(
+        `Item "${poLine.itemName ?? poLine.itemId}" was not found in inventory`,
+      );
+      return;
+    }
+
+    setSelectedItem(inventoryItem);
+    setValue("itemId", inventoryItem.id.toString(), { shouldValidate: true });
+    setValue("warehouseId", String(inventoryItem.warehouse_id), {
+      shouldValidate: true,
+    });
+
+    const remainingQty = Math.max(
+      poLine.quantity - (poLine.receivedQuantity ?? 0),
+      0,
+    );
+    setValue(
+      "quantityReceived",
+      remainingQty > 0 ? remainingQty : poLine.quantity,
+      { shouldValidate: true },
+    );
+
+    const costPrice =
+      poLine.unitPrice ??
+      poLine.otherUnitCost ??
+      poLine.actualItemPrice ??
+      inventoryItem.costPrice;
+    if (costPrice != null) {
+      setValue("costPrice", Number(costPrice), { shouldValidate: true });
+    }
+
+    const unitPrice = inventoryItem.sellingPrice ?? poLine.unitPrice;
+    if (unitPrice != null) {
+      setValue("unitPrice", Number(unitPrice), { shouldValidate: true });
+    }
+
+    setItemSearchQuery(inventoryItem.name);
+  };
+
+  const handlePurchaseOrderChange = async (orderNo: string) => {
+    setValue("referenceNo", orderNo);
+
+    let po =
+      receivablePurchaseOrders.find((p) => p.orderNo === orderNo) ?? null;
+    if (!po) return;
+
+    setSelectedPurchaseOrder(po);
+
+    if (!po.items?.length) {
+      setLoadingPoDetails(true);
+      try {
+        po = await getPurchaseOrder(po.id);
+        setPurchaseOrders((prev) =>
+          prev.map((existing) => (existing.id === po!.id ? po! : existing)),
+        );
+        setSelectedPurchaseOrder(po);
+      } catch {
+        toast.error("Failed to load purchase order details");
+        return;
+      } finally {
+        setLoadingPoDetails(false);
+      }
+    }
+
+    if (!po.items?.length) {
+      toast.error("Selected purchase order has no line items");
+      return;
+    }
+
+    const matchingLineIndex =
+      selectedItem != null
+        ? po.items.findIndex((line) => line.itemId === selectedItem.id)
+        : -1;
+    const lineIndex = matchingLineIndex >= 0 ? matchingLineIndex : 0;
+    setSelectedPoLineIndex(lineIndex);
+    applyPoLineToForm(po.items[lineIndex]);
+  };
+
+  const handlePoLineChange = (lineIndex: number) => {
+    if (!selectedPurchaseOrder?.items?.[lineIndex]) return;
+    setSelectedPoLineIndex(lineIndex);
+    applyPoLineToForm(selectedPurchaseOrder.items[lineIndex]);
+  };
+
   const handleItemSelect = (item: ItemResponseDTO) => {
     setSelectedItem(item);
     setValue("itemId", item.id.toString());
@@ -120,6 +250,16 @@ export function ReceiveItemTab({
       shouldValidate: true,
     });
     setItemSearchQuery("");
+
+    if (selectedPurchaseOrder?.items?.length) {
+      const matchingLineIndex = selectedPurchaseOrder.items.findIndex(
+        (line) => line.itemId === item.id,
+      );
+      if (matchingLineIndex >= 0) {
+        setSelectedPoLineIndex(matchingLineIndex);
+        applyPoLineToForm(selectedPurchaseOrder.items[matchingLineIndex]);
+      }
+    }
   };
 
   const onReceiveItem = async (data: ReceiveItemFormData) => {
@@ -128,6 +268,7 @@ export function ReceiveItemTab({
       await receiveItemStock(data.itemId, {
         quantityReceived: data.quantityReceived,
         receivedDate: data.receivedDate,
+        expiryDate: data.expiryDate || undefined,
         batchNo: data.batchNo,
         serialNo: data.serialNo,
         referenceNo: data.referenceNo,
@@ -142,8 +283,11 @@ export function ReceiveItemTab({
         quantityReceived: 0,
         itemId: "",
         warehouseId: "",
+        referenceNo: "",
       });
       setSelectedItem(null);
+      setSelectedPurchaseOrder(null);
+      setSelectedPoLineIndex(0);
       setItemSearchQuery("");
     } catch (e: unknown) {
       toast.error(getRequestErrorMessage(e));
@@ -163,6 +307,61 @@ export function ReceiveItemTab({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Reference No. (Purchase Order)
+              </label>
+              <Select
+                value={watch("referenceNo") || ""}
+                onValueChange={handlePurchaseOrderChange}
+                disabled={loadingPoDetails}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      loadingPoDetails
+                        ? "Loading purchase order…"
+                        : "Select Purchase Order number"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {receivablePurchaseOrders.map((po) => (
+                    <SelectItem key={po.id} value={po.orderNo}>
+                      {po.orderNo}
+                      {po.supplierName ? ` — ${po.supplierName}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedPurchaseOrder && selectedPurchaseOrder.items.length > 1 && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  PO Line Item
+                </label>
+                <Select
+                  value={String(selectedPoLineIndex)}
+                  onValueChange={(value) =>
+                    handlePoLineChange(Number.parseInt(value, 10))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select line item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedPurchaseOrder.items.map((line, index) => (
+                      <SelectItem key={line.id} value={String(index)}>
+                        {line.itemName ?? `Item #${line.itemId}`} — Qty{" "}
+                        {line.quantity}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">
@@ -274,6 +473,32 @@ export function ReceiveItemTab({
                   />
                 </div>
 
+                {selectedItem.dateReceived && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Last Date Received
+                    </label>
+                    <Input
+                      value={selectedItem.dateReceived}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
+
+                {selectedItem.expiryDate && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Current Expiry Date
+                    </label>
+                    <Input
+                      value={selectedItem.expiryDate}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
+
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     Received Date
@@ -284,6 +509,16 @@ export function ReceiveItemTab({
                       {errors.receivedDate.message}
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Expiry Date
+                  </label>
+                  <Input type="date" {...register("expiryDate")} />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Optional — leave blank if the item does not expire
+                  </p>
                 </div>
 
                 <div>
@@ -301,32 +536,6 @@ export function ReceiveItemTab({
                     placeholder="Serial number"
                     {...register("serialNo")}
                   />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Reference No.
-                  </label>
-                  <Select
-                    value={watch("referenceNo") || ""}
-                    onValueChange={(value) => setValue("referenceNo", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Purchase Order number" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {purchaseOrders
-                        .filter(
-                          (po) =>
-                            po.status === "approved" || po.status === "ordered",
-                        )
-                        .map((po) => (
-                          <SelectItem key={po.id} value={po.orderNo}>
-                            {po.orderNo}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div>
@@ -397,6 +606,8 @@ export function ReceiveItemTab({
                 onClick={() => {
                   reset();
                   setSelectedItem(null);
+                  setSelectedPurchaseOrder(null);
+                  setSelectedPoLineIndex(0);
                   setItemSearchQuery("");
                 }}
                 disabled={submitting}

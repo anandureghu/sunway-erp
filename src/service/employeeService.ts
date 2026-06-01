@@ -3,11 +3,11 @@ import { apiClient } from "./apiClient";
 
 export const fetchEmployees = async () => {
   try {
-    const res = await apiClient.get(`/users`);
+    const res = await apiClient.get(`/employees`);
     return res.data;
   } catch (error) {
-    console.error("Error loading users:", error);
-    toast.error("Failed to load users");
+    console.error("Error loading employees:", error);
+    toast.error("Failed to load employees");
   }
 };
 
@@ -23,7 +23,7 @@ export const fetchManagers = async (companyId?: number) => {
     }
 
     const res = await apiClient.get(
-      `/employees/company/${companyId}/managers`
+      `/employees/managers?companyId=${companyId}`
     );
 
     return res.data;

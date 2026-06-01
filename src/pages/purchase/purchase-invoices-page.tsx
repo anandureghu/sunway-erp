@@ -25,7 +25,12 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 import type { FinanceInvoice } from "@/types/finance-invoice";
-import { archiveInvoice, listPurchaseInvoices } from "@/service/invoiceService";
+import {
+  archiveInvoice,
+  getInvoicePdfUrl,
+  invoiceDocumentPreviewUrl,
+  listPurchaseInvoices,
+} from "@/service/invoiceService";
 import { RegisterSupplierInvoiceDialog } from "@/pages/purchase/components/register-supplier-invoice-dialog";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
@@ -145,10 +150,47 @@ export default function PurchaseInvoicesPage() {
     [rows],
   );
 
+  const handleViewInvoice = useCallback(
+    (inv: FinanceInvoice) => {
+      navigate(`/inventory/purchase/invoices/${inv.id}`);
+    },
+    [navigate],
+  );
+
+  const handleOpenInvoiceDocument = useCallback(async (inv: FinanceInvoice) => {
+    const direct = invoiceDocumentPreviewUrl(inv);
+    if (direct) {
+      window.open(direct, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const url = await getInvoicePdfUrl(inv.id);
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("No document is available for this invoice.");
+      }
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Could not open invoice document."),
+      );
+    }
+  }, []);
+
   const columns = useMemo(
     () =>
-      createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId),
-    [handleArchiveInvoice, processingInvoiceId],
+      createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId, {
+        onViewDetails: handleViewInvoice,
+        onOpenDocument: handleOpenInvoiceDocument,
+      }),
+    [
+      handleArchiveInvoice,
+      processingInvoiceId,
+      handleViewInvoice,
+      handleOpenInvoiceDocument,
+    ],
   );
 
   const purchaseInvoiceKpis = useMemo((): KpiSummaryStat[] => {

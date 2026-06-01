@@ -8,7 +8,14 @@ import {
   listPurchaseRequisitions,
   approvePurchaseRequisition,
   submitPurchaseRequisition,
+  rejectPurchaseRequisition,
+  sendBackPurchaseRequisition,
+  revisePurchaseRequisition,
 } from "@/service/purchaseFlowService";
+import {
+  PurchaseRequisitionReviewDialog,
+  type ReviewActionType,
+} from "./components/purchase-requisition-review-dialog";
 import { toast } from "sonner";
 import { PurchaseRequisitionsListView } from "./components/purchase-requisitions-list-view";
 import { CreatePurchaseRequisitionForm } from "./components/create-purchase-requisition-form";
@@ -37,6 +44,12 @@ export default function PurchaseRequisitionsPage() {
     id: string;
     type: "archive";
   } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{
+    id: string;
+    requisitionNo: string;
+    action: ReviewActionType;
+  } | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   useEffect(() => {
     setShowCreateForm(location.pathname.includes("/new"));
@@ -112,10 +125,7 @@ export default function PurchaseRequisitionsPage() {
         req.requestedByName
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
-        req.departmentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        req.preferredSupplierName
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase());
+        req.departmentName?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || req.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -129,11 +139,18 @@ export default function PurchaseRequisitionsPage() {
     [navigate],
   );
 
+  const handleEdit = useCallback(
+    (id: string) => {
+      navigate(`/inventory/purchase/requisitions/${id}/edit`);
+    },
+    [navigate],
+  );
+
   const handleApprove = useCallback(
     async (id: string) => {
       if (
         !confirm(
-          "Approve this requisition? A draft Purchase Order will be created for the preferred supplier.",
+          "Approve this requisition? A draft purchase order will be created. Assign the supplier on the PO before release.",
         )
       ) {
         return;
@@ -166,6 +183,70 @@ export default function PurchaseRequisitionsPage() {
       }
     },
     [navigate, refreshRequisitions],
+  );
+
+  const handleReviewConfirm = useCallback(
+    async (comments: string) => {
+      if (!reviewTarget) return;
+      setReviewLoading(true);
+      try {
+        if (reviewTarget.action === "reject") {
+          await rejectPurchaseRequisition(reviewTarget.id, comments);
+          toast.success("Requisition rejected.");
+        } else {
+          await sendBackPurchaseRequisition(reviewTarget.id, comments);
+          toast.success("Sent back to requester.");
+        }
+        setReviewTarget(null);
+        await refreshRequisitions();
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to update requisition",
+        );
+      } finally {
+        setReviewLoading(false);
+      }
+    },
+    [reviewTarget, refreshRequisitions],
+  );
+
+  const handleSendBack = useCallback((id: string) => {
+    const req = requisitions.find((r) => r.id === id);
+    if (!req) return;
+    setReviewTarget({
+      id,
+      requisitionNo: req.requisitionNo,
+      action: "send_back",
+    });
+  }, [requisitions]);
+
+  const handleReject = useCallback((id: string) => {
+    const req = requisitions.find((r) => r.id === id);
+    if (!req) return;
+    setReviewTarget({
+      id,
+      requisitionNo: req.requisitionNo,
+      action: "reject",
+    });
+  }, [requisitions]);
+
+  const handleRevise = useCallback(
+    async (id: string) => {
+      try {
+        await revisePurchaseRequisition(id);
+        toast.success("Requisition reopened for editing.");
+        navigate(`/inventory/purchase/requisitions/${id}/edit`);
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to start revision",
+        );
+      }
+    },
+    [navigate],
   );
 
   const handleSubmit = useCallback(
@@ -235,14 +316,29 @@ export default function PurchaseRequisitionsPage() {
     () =>
       createPurchaseRequisitionColumns({
         onOpenDetail: handleOpenDetail,
+        onEdit: handleEdit,
         onSubmit: handleSubmit,
         onApprove: handleApprove,
+        onSendBack: handleSendBack,
+        onReject: handleReject,
+        onRevise: handleRevise,
         onOpenPurchaseOrder: handleOpenPo,
         onArchive: handleArchiveRequisition,
         processingRequisitionId: actionState?.id ?? null,
         processingAction: actionState?.type ?? null,
       }),
-    [handleOpenDetail, handleSubmit, handleApprove, handleOpenPo, handleArchiveRequisition, actionState],
+    [
+      handleOpenDetail,
+      handleEdit,
+      handleSubmit,
+      handleApprove,
+      handleSendBack,
+      handleReject,
+      handleRevise,
+      handleOpenPo,
+      handleArchiveRequisition,
+      actionState,
+    ],
   );
 
   if (showCreateForm) {
@@ -258,7 +354,18 @@ export default function PurchaseRequisitionsPage() {
   }
 
   return (
-    <PurchaseRequisitionsListView
+    <>
+      <PurchaseRequisitionReviewDialog
+        open={reviewTarget != null}
+        onOpenChange={(open) => {
+          if (!open) setReviewTarget(null);
+        }}
+        action={reviewTarget?.action ?? "send_back"}
+        requisitionNo={reviewTarget?.requisitionNo}
+        loading={reviewLoading}
+        onConfirm={handleReviewConfirm}
+      />
+      <PurchaseRequisitionsListView
       loading={loading}
       error={loadError}
       requisitions={filteredRequisitions}
@@ -272,5 +379,6 @@ export default function PurchaseRequisitionsPage() {
       onRowClick={handleRowClick}
       kpiItems={requisitionKpis}
     />
+    </>
   );
 }
