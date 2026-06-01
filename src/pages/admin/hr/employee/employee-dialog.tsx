@@ -35,7 +35,6 @@ import { type Employee } from "@/types/hr";
 import type { z } from "zod";
 import {
   User,
-  Mail,
   AtSign,
   ShieldCheck,
   Hash,
@@ -270,7 +269,7 @@ export function EmployeeDialog({
     const payload = {
       firstName: values.firstName,
       lastName: values.lastName,
-      email: values.email,
+      email: values.email || undefined,
       username: values.username,
       companyId,
       companyRole: values.role || undefined,
@@ -508,29 +507,7 @@ export function EmployeeDialog({
                     </span>
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field, fieldState }) => (
-                      <FormItem className="space-y-0">
-                        <Field
-                          label="Email address"
-                          required
-                          icon={<Mail className="h-[15px] w-[15px]" />}
-                          error={fieldState.error?.message}
-                        >
-                          <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="john.doe@company.com"
-                              {...field}
-                              className={fieldClass()}
-                            />
-                          </FormControl>
-                        </Field>
-                      </FormItem>
-                    )}
-                  />
+                  {/* Email is auto-generated on the backend, so the field is hidden. */}
 
                   <FormField
                     control={form.control}
