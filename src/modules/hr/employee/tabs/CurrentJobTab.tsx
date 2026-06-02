@@ -21,6 +21,15 @@ const EMPTY_FORM = {
   workCountry: "",
 };
 
+// IDs pulled from the GET response so the PUT can re-send the existing job &
+// department without forcing the user to re-pick them in this tab. (For
+// changing the job/department itself, the dedicated Current Job form should
+// be used.)
+interface RefIds {
+  jobCodeId: number | null;
+  departmentId: number | null;
+}
+
 interface ProfileCtx {
   editing: boolean;
   setEditing?: (v: boolean) => void;
@@ -30,7 +39,12 @@ export default function CurrentJobTab() {
   const { id } = useParams<{ id: string }>();
   const { editing, setEditing } = useOutletContext<ProfileCtx>();
   const [form, setForm] = useState(EMPTY_FORM);
+  const [refIds, setRefIds] = useState<RefIds>({
+    jobCodeId: null,
+    departmentId: null,
+  });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Load current job data when id is available
   useEffect(() => {
@@ -57,6 +71,11 @@ export default function CurrentJobTab() {
             workCity: jobData.workCity ?? "",
             workCountry: jobData.workCountry ?? "",
           });
+          setRefIds({
+            jobCodeId: jobData.job?.id ?? jobData.jobCodeId ?? null,
+            departmentId:
+              jobData.department?.id ?? jobData.departmentId ?? null,
+          });
         }
       })
       .catch((err) => {
@@ -70,6 +89,43 @@ export default function CurrentJobTab() {
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((s) => ({ ...s, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    if (!id) return;
+    const employeeId = Number(id);
+
+    if (!refIds.jobCodeId || !refIds.departmentId) {
+      toast.error(
+        "Set the job and department in the Current Job form first — this tab only updates dates and locations.",
+      );
+      return;
+    }
+    if (!form.effectiveFrom || !form.startDate) {
+      toast.error("Effective From and Start Date are required.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await currentJobService.update(employeeId, {
+        jobCodeId: refIds.jobCodeId,
+        departmentId: refIds.departmentId,
+        effectiveFrom: form.effectiveFrom,
+        startDate: form.startDate,
+        expectedEndDate: form.expectedEndDate || undefined,
+        workLocation: form.workLocation || undefined,
+        workCity: form.workCity || undefined,
+        workCountry: form.workCountry || undefined,
+      });
+      toast.success("Current job updated");
+      setEditing?.(false);
+    } catch (err: any) {
+      console.error("Failed to save current job:", err);
+      toast.error(currentJobService.extractErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return <div className="text-sm text-gray-500 p-4">Loading current job...</div>;
@@ -110,15 +166,30 @@ export default function CurrentJobTab() {
       {/* ROW 3: Dates */}
       <Row>
         <Field label="Effective From *">
-          <Input placeholder="dd-mm-yyyy" value={form.effectiveFrom} onChange={onChange("effectiveFrom")} disabled={!editing} />
+          <Input
+            type="date"
+            value={form.effectiveFrom}
+            onChange={onChange("effectiveFrom")}
+            disabled={!editing}
+          />
         </Field>
 
         <Field label="Start Date *">
-          <Input placeholder="dd-mm-yyyy" value={form.startDate} onChange={onChange("startDate")} disabled={!editing} />
+          <Input
+            type="date"
+            value={form.startDate}
+            onChange={onChange("startDate")}
+            disabled={!editing}
+          />
         </Field>
 
         <Field label="Expected End Date">
-          <Input placeholder="dd-mm-yyyy" value={form.expectedEndDate} onChange={onChange("expectedEndDate")} disabled={!editing} />
+          <Input
+            type="date"
+            value={form.expectedEndDate}
+            onChange={onChange("expectedEndDate")}
+            disabled={!editing}
+          />
         </Field>
       </Row>
 
@@ -127,10 +198,16 @@ export default function CurrentJobTab() {
           <Button onClick={() => setEditing?.(true)}>Edit / Update</Button>
         ) : (
           <>
-            <Button variant="secondary" onClick={() => setEditing?.(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setEditing?.(false)}
+              disabled={saving}
+            >
               Cancel
             </Button>
-            <Button onClick={() => setEditing?.(false)}>Save</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
           </>
         )}
       </div>
