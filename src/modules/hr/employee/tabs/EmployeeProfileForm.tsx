@@ -65,6 +65,30 @@ const NEW_EMP: EmpProfile = {
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+const fromBackendStatus = (s?: string | null): string => {
+  if (!s) return NEW_EMP.status ?? "Active";
+  const up = String(s).toUpperCase();
+  if (up === "ACTIVE") return "Active";
+  if (up === "INACTIVE") return "Inactive";
+  if (up === "ON_LEAVE") return "On Leave";
+  if (up === "RESIGNED") return "Resigned";
+  if (up === "TERMINATED") return "Terminated";
+  if (up === "RETIRED") return "Retired";
+  return String(s);
+};
+
+/** Normalize a backend employee record into the form's profile shape. */
+const mapEmployeeToProfile = (emp: any): EmpProfile => ({
+  ...NEW_EMP,
+  ...emp,
+  photoUrl: emp.imageUrl ?? "",
+  status: fromBackendStatus(emp.status),
+  prefix: (emp.prefix ?? "") as Prefix,
+  companyRole: emp.companyRole ?? emp.CompanyRole ?? "",
+  companyRoleId: emp.companyRoleId ?? null,
+  designation: emp.designation ?? "",
+});
+
 const getInitials = (first?: string, last?: string) => {
   const f = (first ?? "").trim()[0] ?? "";
   const l = (last ?? "").trim()[0] ?? "";
@@ -235,28 +259,7 @@ export default function EmployeeProfileForm() {
         );
         if (!mounted) return;
         if (emp) {
-          const fromBackendStatus = (s?: string | null) => {
-            if (!s) return NEW_EMP.status;
-            const up = String(s).toUpperCase();
-            if (up === "ACTIVE") return "Active";
-            if (up === "INACTIVE") return "Inactive";
-            if (up === "ON_LEAVE") return "On Leave";
-            if (up === "RESIGNED") return "Resigned";
-            if (up === "TERMINATED") return "Terminated";
-            if (up === "RETIRED") return "Retired";
-            return String(s);
-          };
-          const merged: EmpProfile = {
-            ...NEW_EMP,
-            ...(emp as any),
-            photoUrl: (emp as any).imageUrl ?? "",
-            status: fromBackendStatus((emp as any).status),
-            prefix: ((emp as any).prefix ?? "") as Prefix,
-            companyRole:
-              (emp as any).companyRole ?? (emp as any).CompanyRole ?? "",
-            companyRoleId: (emp as any).companyRoleId ?? null,
-            designation: (emp as any).designation ?? "",
-          };
+          const merged = mapEmployeeToProfile(emp);
           setSaved(merged);
           setDraft(merged);
           setEditing(false);
@@ -326,12 +329,35 @@ export default function EmployeeProfileForm() {
   const handleSave = useCallback(async () => {
     try {
       await persistChanges(draft);
-      setSaved(draft);
+
+      // Refetch so role + designation reflect the canonical server state
+      // (and stay consistent anywhere the employee is re-read).
+      let next = draft;
+      if (id) {
+        try {
+          const { hrService } = await import("@/service/hr.service");
+          const fresh = await hrService.getEmployee(id);
+          if (fresh) next = mapEmployeeToProfile(fresh);
+        } catch {
+          /* keep local draft if refetch fails */
+        }
+      }
+
+      setSaved(next);
+      setDraft(next);
       setEditing(false);
+
+      try {
+        window.dispatchEvent(
+          new CustomEvent("employee:updated", { detail: next }),
+        );
+      } catch {
+        /* no-op */
+      }
     } catch {
       /* handled inside */
     }
-  }, [draft, persistChanges]);
+  }, [draft, persistChanges, id]);
 
   const handleCancel = useCallback(() => {
     setDraft(saved);
@@ -444,17 +470,13 @@ export default function EmployeeProfileForm() {
                     No employee number
                   </span>
                 )}
-                {(draft.designation || draft.companyRole) && (
+                {(draft.companyRole || draft.designation) && (
                   <span
-                    className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 border border-violet-100"
-                    title={
-                      draft.designation
-                        ? "Designation comes from the assigned Current Job"
-                        : "Security/permission role from the linked user"
-                    }
+                    className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 border border-sky-100"
+                    title="Role — company role / access level for this employee"
                   >
-                    <Briefcase className="h-3 w-3" />
-                    {draft.designation || draft.companyRole}
+                    <ShieldCheck className="h-3 w-3" />
+                    {draft.companyRole || draft.designation}
                   </span>
                 )}
               </div>

@@ -1,5 +1,12 @@
 import { Input } from "@/components/ui/input";
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
 import { useParams } from "react-router-dom";
 import {
@@ -9,10 +16,7 @@ import {
 } from "@/service/contractService";
 import { salaryService } from "@/service/salaryService";
 import { hrService } from "@/service/hr.service";
-import {
-  currentJobService,
-  type CurrentJobResponse,
-} from "@/service/currentJobService";
+import { currentJobService } from "@/service/currentJobService";
 import type { Employee } from "@/types/hr";
 import { downloadContractPdf } from "@/service/contractPdfService";
 import { toast } from "sonner";
@@ -78,6 +82,32 @@ interface ContractFormData {
 
 interface ValidationErrors {
   [key: string]: string;
+}
+
+/** Read-only, normalized view of the employee's current job for this form. */
+interface LinkedJobInfo {
+  jobCode: string;
+  departmentName: string;
+  startDate: string;
+  workLocation: string;
+  workCity: string;
+  workCountry: string;
+}
+
+/**
+ * The /current-job endpoint returns a nested shape ({ job: { code }, department: { name } }),
+ * so flat reads like `res.jobCode` come back empty. Normalize both shapes here.
+ */
+function normalizeLinkedJob(raw: any): LinkedJobInfo | null {
+  if (!raw) return null;
+  return {
+    jobCode: raw.job?.code ?? raw.jobCode ?? "",
+    departmentName: raw.department?.name ?? raw.departmentName ?? "",
+    startDate: raw.startDate ?? "",
+    workLocation: raw.workLocation ?? "",
+    workCity: raw.workCity ?? "",
+    workCountry: raw.workCountry ?? "",
+  };
 }
 
 const createEmptyRow = (): SalaryAllowanceRow => ({
@@ -175,6 +205,38 @@ function buildSalaryOptions(s: any): SalaryOption[] {
   return opts;
 }
 
+/** Clean, legible read-only display for the auto-filled linked fields. */
+function ReadOnlyInfo({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+}) {
+  const display = value && value.trim() !== "" ? value : "—";
+  const isEmpty = display === "—";
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
+      <div className="mb-1 flex items-center gap-1.5">
+        <span className="text-slate-400">{icon}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          {label}
+        </span>
+      </div>
+      <p
+        className={`truncate text-sm font-semibold ${
+          isEmpty ? "text-slate-300" : "text-slate-800"
+        }`}
+        title={isEmpty ? undefined : display}
+      >
+        {display}
+      </p>
+    </div>
+  );
+}
+
 function cleanObject<T extends Record<string, any>>(obj: T): T {
   return Object.fromEntries(
     Object.entries(obj).filter(
@@ -200,7 +262,7 @@ export default function EmployeeContractForm() {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [, setSalaryOptions] = useState<SalaryOption[]>([]);
   const [employeeInfo, setEmployeeInfo] = useState<Employee | null>(null);
-  const [currentJob, setCurrentJob] = useState<CurrentJobResponse | null>(null);
+  const [currentJob, setCurrentJob] = useState<LinkedJobInfo | null>(null);
 
   const allowanceTypeMapRef = useRef<Map<string, number>>(new Map());
   const loadingContractRef = useRef(false);
@@ -408,12 +470,14 @@ export default function EmployeeContractForm() {
 
         // Fetch employee info + current job for read-only auto-filled contract fields
         let empInfo: Employee | null = null;
-        let job: CurrentJobResponse | null = null;
+        let job: LinkedJobInfo | null = null;
         try {
-          [empInfo, job] = await Promise.all([
+          const [emp, jobRaw] = await Promise.all([
             hrService.getEmployee(empId).catch(() => null),
             currentJobService.get(empId).catch(() => null),
           ]);
+          empInfo = emp;
+          job = normalizeLinkedJob(jobRaw);
           setEmployeeInfo(empInfo);
           setCurrentJob(job);
         } catch {
@@ -744,103 +808,48 @@ export default function EmployeeContractForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-            <FormField label="Employee No">
-              <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
-                  disabled
-                  readOnly
-                  value={employeeInfo?.employeeNo ?? ""}
-                  placeholder="—"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Staff Name">
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
-                  disabled
-                  readOnly
-                  value={formData.staffName}
-                  placeholder="—"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Join Date">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
-                  disabled
-                  readOnly
-                  value={employeeInfo?.joinDate ?? ""}
-                  placeholder="—"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Job Code">
-              <div className="relative">
-                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
-                  disabled
-                  readOnly
-                  value={currentJob?.jobCode ?? ""}
-                  placeholder="—"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Department">
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
-                  disabled
-                  readOnly
-                  value={currentJob?.departmentName ?? ""}
-                  placeholder="—"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Job Start Date">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
-                  disabled
-                  readOnly
-                  value={currentJob?.startDate ?? ""}
-                  placeholder="—"
-                />
-              </div>
-            </FormField>
-
-            <FormField label="Work Location">
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-200 rounded-xl bg-slate-50 text-slate-700"
-                  disabled
-                  readOnly
-                  value={[
-                    currentJob?.workLocation,
-                    currentJob?.workCity,
-                    currentJob?.workCountry,
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}
-                  placeholder="—"
-                />
-              </div>
-            </FormField>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+            <ReadOnlyInfo
+              icon={<Hash className="h-3.5 w-3.5" />}
+              label="Employee No"
+              value={employeeInfo?.employeeNo ?? ""}
+            />
+            <ReadOnlyInfo
+              icon={<User className="h-3.5 w-3.5" />}
+              label="Staff Name"
+              value={formData.staffName}
+            />
+            <ReadOnlyInfo
+              icon={<Calendar className="h-3.5 w-3.5" />}
+              label="Join Date"
+              value={employeeInfo?.joinDate ?? ""}
+            />
+            <ReadOnlyInfo
+              icon={<Briefcase className="h-3.5 w-3.5" />}
+              label="Job Code"
+              value={currentJob?.jobCode ?? ""}
+            />
+            <ReadOnlyInfo
+              icon={<Building2 className="h-3.5 w-3.5" />}
+              label="Department"
+              value={currentJob?.departmentName ?? ""}
+            />
+            <ReadOnlyInfo
+              icon={<Calendar className="h-3.5 w-3.5" />}
+              label="Job Start Date"
+              value={currentJob?.startDate ?? ""}
+            />
+            <ReadOnlyInfo
+              icon={<MapPin className="h-3.5 w-3.5" />}
+              label="Work Location"
+              value={[
+                currentJob?.workLocation,
+                currentJob?.workCity,
+                currentJob?.workCountry,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+            />
           </div>
         </section>
 
@@ -1218,11 +1227,20 @@ export default function EmployeeContractForm() {
                         </button>
                       </div>
                     ) : formData.attachmentUrl ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <FileText className="h-5 w-5 text-indigo-600" />
                         <span className="font-medium text-slate-700">
-                          {formData.attachmentUrl}
+                          Contract document
                         </span>
+                        <a
+                          href={formData.attachmentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </a>
                         {editing && (
                           <button
                             type="button"

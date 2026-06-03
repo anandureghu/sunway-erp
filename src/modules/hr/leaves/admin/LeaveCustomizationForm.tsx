@@ -179,6 +179,9 @@ export default function LeaveCustomizationForm() {
     minServiceMonthsForAnnualLeave: 6,
     retirementCompensationEnabled: false,
     retirementCompensationMonthsPerYear: 1,
+    loanPolicyEnabled: false,
+    loanMinServiceDays: 365,
+    loanMaxRepaymentMonths: 24,
   };
   const [hrPolicies, setHrPolicies] = useState<HrPoliciesPayload>(
     DEFAULT_HR_POLICIES,
@@ -684,6 +687,92 @@ export default function LeaveCustomizationForm() {
             <p className="text-[10px] text-slate-400 mt-1">
               e.g. 1.0 → one full month of basic salary per completed year.
             </p>
+          </div>
+        </div>
+
+        {/* Loan eligibility & repayment */}
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                Loan Eligibility & Repayment
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Minimum service before an employee can request a loan, and the
+                maximum repayment period.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                updateHrPolicyField(
+                  "loanPolicyEnabled",
+                  !hrPolicies.loanPolicyEnabled,
+                )
+              }
+              disabled={hrPoliciesLoading}
+              className={`inline-flex h-5 w-9 shrink-0 rounded-full relative transition-colors ${
+                hrPolicies.loanPolicyEnabled ? "bg-emerald-500" : "bg-slate-300"
+              }`}
+              aria-label="Toggle loan eligibility policy"
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  hrPolicies.loanPolicyEnabled
+                    ? "translate-x-4"
+                    : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Days of service before requesting a loan
+              </label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                max="3650"
+                value={hrPolicies.loanMinServiceDays ?? 0}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "loanMinServiceDays",
+                    parseInt(e.target.value) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading || !hrPolicies.loanPolicyEnabled}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                e.g. 365 → one full year of employment before a loan request.
+              </p>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Max. repayment period (months)
+              </label>
+              <Input
+                type="number"
+                step="1"
+                min="1"
+                max="120"
+                value={hrPolicies.loanMaxRepaymentMonths ?? 0}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "loanMaxRepaymentMonths",
+                    parseInt(e.target.value) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading || !hrPolicies.loanPolicyEnabled}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Loan repayment cannot be spread beyond this many months.
+              </p>
+            </div>
           </div>
         </div>
       </div>

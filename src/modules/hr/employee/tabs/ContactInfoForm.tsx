@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   Mail,
   Phone,
-  PhoneCall,
   MapPin,
   StickyNote,
   KeyRound,
@@ -29,6 +28,8 @@ import { addressService } from "@/service/addressService";
 import { contactService } from "@/service/contactService";
 import { hrService } from "@/service/hr.service";
 import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
+import PhoneInput from "@/components/PhoneInput";
+import { validatePhone } from "@/lib/countries";
 import { toast } from "sonner";
 
 type Ctx = {
@@ -200,6 +201,18 @@ export default function ContactInfoForm() {
 
   useEffect(() => {
     const onSave = async () => {
+      // Block saving on an invalid phone number.
+      const phoneValid = validatePhone(draft.phone, { required: true });
+      const altValid = validatePhone(draft.altPhone, { required: false });
+      if (!phoneValid.valid) {
+        toast.error(phoneValid.message ?? "Invalid phone number");
+        return;
+      }
+      if (!altValid.valid) {
+        toast.error(`Alt. phone: ${altValid.message ?? "invalid"}`);
+        return;
+      }
+
       setSaved(draft);
       if (!employeeId) return;
       try {
@@ -272,6 +285,9 @@ export default function ContactInfoForm() {
 
   const set = <K extends keyof ContactInfo>(k: K, v: ContactInfo[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
+
+  const phoneCheck = validatePhone(draft.phone, { required: true });
+  const altPhoneCheck = validatePhone(draft.altPhone, { required: false });
 
   const handleAddAddress = useCallback(() => {
     const newAddress = { ...INITIAL_ADDRESS, id: generateId() };
@@ -653,28 +669,32 @@ export default function ContactInfoForm() {
             </div>
           </Field>
           <Field label="Phone Number" required>
-            <div className="relative">
-              <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                disabled={!editing}
-                value={draft.phone}
-                onChange={(e) => set("phone", e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className={cn(iCls, "pl-9")}
-              />
-            </div>
+            <PhoneInput
+              disabled={!editing}
+              value={draft.phone}
+              onChange={(v) => set("phone", v)}
+              placeholder="Phone number"
+              invalid={editing && !!draft.phone && !phoneCheck.valid}
+            />
+            {editing && !phoneCheck.valid && (
+              <p className="flex items-center gap-1 text-xs text-rose-600">
+                <AlertCircle className="h-3.5 w-3.5" /> {phoneCheck.message}
+              </p>
+            )}
           </Field>
           <Field label="Alt. Phone">
-            <div className="relative">
-              <PhoneCall className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                disabled={!editing}
-                value={draft.altPhone}
-                onChange={(e) => set("altPhone", e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className={cn(iCls, "pl-9")}
-              />
-            </div>
+            <PhoneInput
+              disabled={!editing}
+              value={draft.altPhone}
+              onChange={(v) => set("altPhone", v)}
+              placeholder="Phone number"
+              invalid={editing && !!draft.altPhone && !altPhoneCheck.valid}
+            />
+            {editing && !!draft.altPhone && !altPhoneCheck.valid && (
+              <p className="flex items-center gap-1 text-xs text-rose-600">
+                <AlertCircle className="h-3.5 w-3.5" /> {altPhoneCheck.message}
+              </p>
+            )}
           </Field>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { SelectField } from "@/modules/hr/components/select-field";
 import { isValidAmount, isValidDate } from "@/modules/hr/utils/validation";
 import { formatMoney } from "@/lib/utils";
 import { salaryService } from "@/service/salaryService";
+import type { RetirementCompensation } from "@/service/salaryService";
 import { payrollService } from "@/service/payrollService";
 import { downloadPayslipPdf } from "@/service/payslipService";
 import { timesheetService } from "@/service/timesheetService";
@@ -29,6 +30,8 @@ import {
   Loader2,
   ScrollText,
   CalendarDays,
+  Award,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
@@ -320,6 +323,12 @@ export default function SalaryForm() {
   const [loadingPayrollHistory, setLoadingPayrollHistory] = useState(false);
   const [pdfLoadingCode, setPdfLoadingCode] = useState<string | null>(null);
 
+  // End-of-service compensation (accrued gratuity). `enabled = false` means the
+  // company policy is off (or the data needed to compute it is missing).
+  const [eos, setEos] = useState<RetirementCompensation | null>(null);
+  const [eosEnabled, setEosEnabled] = useState<boolean>(true);
+  const [loadingEos, setLoadingEos] = useState(false);
+
   // Salary month (yyyy-MM, defaults to current month) + days worked from timesheet
   const currentMonthIso = useMemo(() => {
     const now = new Date();
@@ -607,6 +616,32 @@ export default function SalaryForm() {
     };
   }, [employeeId]);
 
+  // ── accrued end-of-service compensation ─────────────────────────────────────
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    setLoadingEos(true);
+    salaryService
+      .getRetirementCompensation(employeeId)
+      .then((res) => {
+        if (!mounted) return;
+        setEos(res.data ?? null);
+        setEosEnabled(true);
+      })
+      .catch(() => {
+        // 4xx ⇒ policy disabled or missing data: hide the figures, show a hint.
+        if (!mounted) return;
+        setEos(null);
+        setEosEnabled(false);
+      })
+      .finally(() => {
+        if (mounted) setLoadingEos(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
   const handlePayslipDownload = async (row: PayrollHistoryRow) => {
     if (!employeeId) return;
     setPdfLoadingCode(row.payrollCode);
@@ -775,6 +810,101 @@ export default function SalaryForm() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* End of Service Compensation card */}
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+            <SectionHeading
+              icon={<Award className="h-4 w-4" />}
+              label="End of Service Compensation"
+              accent="from-amber-500 to-orange-600"
+            />
+            {loadingEos ? (
+              <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Calculating accrued
+                gratuity…
+              </div>
+            ) : !eosEnabled || !eos ? (
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                <ShieldAlert className="h-5 w-5 shrink-0 text-amber-600" />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold text-amber-800">
+                    End-of-service policy not available
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    Enable retirement / end-of-service compensation in the
+                    company HR policy, and make sure the employee has a join date
+                    and an active salary, to accrue gratuity here.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Accrued amount hero */}
+                <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+                    Accrued to date
+                  </p>
+                  <p className="mt-1 text-3xl font-bold tabular-nums text-amber-900">
+                    {formatMoney(
+                      String(eos.compensationAmount),
+                      currencySymbol,
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs text-amber-700/80">
+                    {eos.accruedMonths.toFixed(2)} months of basic salary ·
+                    accrues continuously
+                  </p>
+                </div>
+
+                {/* Breakdown grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    {
+                      label: "Years of Service",
+                      value: `${eos.yearsOfService.toFixed(2)} yrs`,
+                    },
+                    {
+                      label: "Basic Salary",
+                      value: formatMoney(
+                        String(eos.basicSalary),
+                        currencySymbol,
+                      ),
+                    },
+                    {
+                      label: "Policy",
+                      value: `${eos.monthsPerYear.toFixed(2)} mo / yr`,
+                    },
+                    {
+                      label: "Joined",
+                      value: eos.joinDate ? fmtPayrollDate(eos.joinDate) : "—",
+                    },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      className="rounded-lg border border-slate-100 bg-slate-50/60 p-3"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {s.label}
+                      </p>
+                      <p className="mt-0.5 text-sm font-bold tabular-nums text-slate-800">
+                        {s.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Settlement note */}
+                <div className="flex items-start gap-2 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2.5">
+                  <ShieldAlert className="h-4 w-4 shrink-0 text-slate-400 mt-0.5" />
+                  <p className="text-[11px] leading-relaxed text-slate-500">
+                    Paid out on the final settlement when the employee is
+                    terminated, resigned or retired. Any active loan balance is
+                    recovered in full from this amount.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Status & Dates card */}

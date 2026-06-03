@@ -31,13 +31,16 @@ export const fetchCompany = async (id: string) => {
   }
 };
 
-// ── HR policies (leave accrual + retirement compensation) ───────────────────
+// ── HR policies (leave accrual + retirement compensation + loan policy) ─────
 export interface HrPoliciesPayload {
   annualLeaveAccrualEnabled?: boolean;
   annualLeaveAccrualDaysPerMonth?: number;
   minServiceMonthsForAnnualLeave?: number;
   retirementCompensationEnabled?: boolean;
   retirementCompensationMonthsPerYear?: number;
+  loanPolicyEnabled?: boolean;
+  loanMinServiceDays?: number;
+  loanMaxRepaymentMonths?: number;
 }
 
 export const fetchHrPolicies = async (

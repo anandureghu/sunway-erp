@@ -18,10 +18,14 @@ import {
   Upload,
   X,
   AlertCircle,
+  Users,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { hrService } from "@/service/hr.service";
+import type { Employee } from "@/types/hr";
 
 type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
 
@@ -36,9 +40,6 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Unpaid Leave",
   "Maternity Leave",
 ];
-
-// Employees can only submit — approval is done by manager/HR in the history view
-const STATUS: LeaveStatus[] = ["Pending for Approval"];
 
 // Leave types that require a supporting document
 const REQUIRES_DOCUMENT = ["Sick Leave"];
@@ -68,6 +69,7 @@ type LeaveRecord = {
   leaveStatus: LeaveStatus;
   totalDays: number;
   includeWeekends: boolean;
+  delegateId: number | null;
 };
 
 const SEED: LeaveRecord = {
@@ -80,7 +82,30 @@ const SEED: LeaveRecord = {
   leaveStatus: "Pending for Approval",
   totalDays: 0,
   includeWeekends: false,
+  delegateId: null,
 };
+
+/** Exited employees should not appear as delegate options. */
+function isExited(status?: string | null): boolean {
+  if (!status) return false;
+  return ["TERMINATED", "RESIGNED", "RETIRED", "INACTIVE"].includes(
+    String(status).toUpperCase(),
+  );
+}
+
+/** Pill styling for a leave status, mirroring the Loan Status field. */
+function leaveStatusMeta(status: string) {
+  switch (status.toUpperCase()) {
+    case "APPROVED":
+      return { label: "Approved", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+    case "REJECTED":
+      return { label: "Rejected", cls: "bg-rose-50 text-rose-700 border-rose-200" };
+    case "CANCELLED":
+      return { label: "Cancelled", cls: "bg-gray-50 text-gray-700 border-gray-200" };
+    default:
+      return { label: "Pending for Approval", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  }
+}
 
 export default function LeavesForm(): ReactElement {
   const { editing } = useOutletContext<Ctx>();
@@ -96,6 +121,11 @@ export default function LeavesForm(): ReactElement {
   const [loadingTypes, setLoadingTypes] = useState(true);
   const [docFile, setDocFile] = useState<File | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
+
+  // Delegation: colleagues in the same department as the requestor
+  const [colleagues, setColleagues] = useState<Employee[]>([]);
+  const [loadingColleagues, setLoadingColleagues] = useState(false);
+  const [deptLabel, setDeptLabel] = useState<string>("");
 
   const needsDoc = REQUIRES_DOCUMENT.some((t) =>
     draft.leaveType?.toLowerCase().includes(t.toLowerCase()),
@@ -136,6 +166,41 @@ export default function LeavesForm(): ReactElement {
       .finally(() => {
         setLoadingTypes(false);
       });
+  }, [employeeId]);
+
+  // Load same-department colleagues for the delegation selector
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    setLoadingColleagues(true);
+    hrService
+      .listEmployees()
+      .then((list) => {
+        if (!mounted) return;
+        const me = list.find((e) => Number(e.id) === employeeId);
+        const myDeptId =
+          me?.departmentId != null ? String(me.departmentId) : null;
+        const myDeptName = me?.department ?? null;
+        setDeptLabel(myDeptName ?? "");
+
+        const peers = list.filter((e) => {
+          if (Number(e.id) === employeeId) return false;
+          if (isExited(e.status)) return false;
+          if (myDeptId) return String(e.departmentId ?? "") === myDeptId;
+          if (myDeptName) return (e.department ?? "") === myDeptName;
+          return false; // no department on requestor → no peers to delegate to
+        });
+        setColleagues(peers);
+      })
+      .catch(() => {
+        if (mounted) setColleagues([]);
+      })
+      .finally(() => {
+        if (mounted) setLoadingColleagues(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [employeeId]);
 
   // Update leave balance when preview changes
@@ -232,13 +297,10 @@ export default function LeavesForm(): ReactElement {
       leaveType: draft.leaveType,
       startDate: draft.startDate,
       endDate: draft.endDate,
-      dateReported: draft.dateReported,
-      leaveCode: draft.leaveCode,
-      // Leave status should be set by backend - don't send from frontend
-      // leaveStatus is intentionally omitted so backend sets it to PENDING
-      // Send balance so it's stored and visible in history
-      leaveBalance:
-        draft.leaveBalance !== "" ? Number(draft.leaveBalance) : undefined,
+      includeWeekends: draft.includeWeekends,
+      // Leave status is intentionally omitted so the backend sets it to PENDING.
+      // Optional delegation — colleague covering during the leave
+      delegateId: draft.delegateId ?? undefined,
     };
 
     // Validate: sick leave requires a document
@@ -249,39 +311,19 @@ export default function LeavesForm(): ReactElement {
       return;
     }
 
-    leaveService
-      .applyLeave(employeeId, payload)
-      .then(async (result) => {
+    // When a document is attached, create the leave AND upload it in a single
+    // multipart request. (The old two-step path passed the string leaveCode as a
+    // numeric id, so it resolved to NaN and the upload silently failed.)
+    const submit = docFile
+      ? leaveService.applyLeaveWithDocument(employeeId, payload, docFile)
+      : leaveService.applyLeave(employeeId, payload);
+
+    submit
+      .then((result) => {
         // Service never throws — check the success flag explicitly
         if (!result.success) {
           toast.error(result.message || "Failed to apply leave");
           return;
-        }
-
-        // Upload/update document if present.
-        // Backend supports multipart update via `updateLeaveWithDocument`.
-        if (docFile && result.data?.leaveCode) {
-          const upRes = await leaveService.updateLeaveWithDocument(
-            employeeId,
-            // backend is expecting numeric leaveId in the url; UI currently uses leaveCode.
-            // Keep existing behavior by passing leaveCode; if backend requires numeric id,
-            // this will need a mapping.
-            Number(result.data.leaveCode),
-            payload,
-            docFile,
-          );
-          if (!upRes.success) {
-            toast.warning("Leave submitted but document upload failed.");
-          }
-        } else if (docFile && draft.leaveCode) {
-          const upRes = await leaveService.updateLeaveWithDocument(
-            employeeId,
-            Number(draft.leaveCode),
-            payload,
-            docFile,
-          );
-          if (!upRes.success)
-            toast.warning("Leave submitted but document upload failed.");
         }
 
         toast.success("Leave applied successfully");
@@ -310,7 +352,7 @@ export default function LeavesForm(): ReactElement {
         console.error("Apply leave failed", err);
         toast.error("An unexpected error occurred");
       });
-  }, [draft, employeeId]);
+  }, [draft, employeeId, needsDoc, docFile]);
 
   const handleCancel = useCallback(() => {
     if (saved) setDraft(saved);
@@ -332,20 +374,6 @@ export default function LeavesForm(): ReactElement {
     };
   }, [handleSave, handleCancel]);
 
-  /* ── derived status meta ── */
-  const statusDot =
-    draft.leaveStatus === "Approved"
-      ? "bg-emerald-500"
-      : draft.leaveStatus === "Rejected"
-        ? "bg-rose-500"
-        : "bg-amber-400";
-  const statusBadge =
-    draft.leaveStatus === "Approved"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-100"
-      : draft.leaveStatus === "Rejected"
-        ? "bg-rose-50 text-rose-700 border-rose-200 ring-rose-100"
-        : "bg-amber-50 text-amber-700 border-amber-200 ring-amber-100";
-
   const availBal = preview ? (preview.availableBalance ?? 0) : 0;
   const daysReq = preview
     ? (preview.totalDays ?? draft.totalDays)
@@ -359,22 +387,6 @@ export default function LeavesForm(): ReactElement {
         title="Leave Management"
         description="Apply for and track employee leave requests"
         icon={<CalendarDays className="h-5 w-5 text-white" />}
-        actions={
-          <>
-            {/* Status badge */}
-            {draft.leaveStatus && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
-                  statusBadge,
-                )}
-              >
-                <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} />
-                {draft.leaveStatus}
-              </span>
-            )}
-          </>
-        }
       />
 
       {/* ── Balance KPI strip ── */}
@@ -457,30 +469,22 @@ export default function LeavesForm(): ReactElement {
             </div>
           </Field>
 
-          {/* Leave Status */}
-          <Field label="Leave Status" required>
-            <div className="relative">
-              <CheckCircle className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-              <select
-                disabled={!editing}
+          {/* Leave Status — read-only, set by the approval workflow */}
+          <Field label="Leave Status">
+            <div className="mt-0.5 flex h-9 items-center">
+              <span
                 className={cn(
-                  "h-9 w-full appearance-none rounded-lg border border-slate-200 pl-9 pr-8 text-sm bg-white",
-                  "focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30 transition-colors",
-                  !editing && "bg-slate-50 text-slate-600 cursor-not-allowed",
+                  "px-3 py-1 rounded-full text-xs font-semibold border",
+                  leaveStatusMeta(draft.leaveStatus).cls,
                 )}
-                value={draft.leaveStatus}
-                onChange={(e) =>
-                  patch("leaveStatus", e.target.value as LeaveStatus)
-                }
               >
-                {STATUS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <ChevronIcon />
+                {leaveStatusMeta(draft.leaveStatus).label}
+              </span>
             </div>
+            <p className="text-xs text-slate-500 mt-1">
+              New requests start as Pending for Approval and become Approved
+              after an authorized approver decides.
+            </p>
           </Field>
         </div>
       </div>
@@ -580,6 +584,116 @@ export default function LeavesForm(): ReactElement {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Delegation ── */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <SectionHead
+          icon={<Users className="h-3.5 w-3.5" />}
+          label="Delegation"
+          accent="from-indigo-500 to-violet-600"
+        />
+        <p className="-mt-2 mb-4 text-xs text-slate-500">
+          Optionally hand over your responsibilities to a colleague in your
+          department while you're away. They cover for you for the duration of
+          this leave.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Delegate to">
+            <div className="relative">
+              <UserCheck className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+              <select
+                disabled={!editing || loadingColleagues || colleagues.length === 0}
+                className={cn(
+                  "h-9 w-full appearance-none rounded-lg border border-slate-200 pl-9 pr-8 text-sm bg-white",
+                  "focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30 transition-colors",
+                  (!editing || loadingColleagues || colleagues.length === 0) &&
+                    "bg-slate-50 text-slate-600 cursor-not-allowed",
+                )}
+                value={draft.delegateId != null ? String(draft.delegateId) : ""}
+                onChange={(e) =>
+                  patch(
+                    "delegateId",
+                    e.target.value ? Number(e.target.value) : null,
+                  )
+                }
+              >
+                <option value="">No delegation</option>
+                {colleagues.map((c) => {
+                  const name =
+                    `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() ||
+                    c.employeeNo ||
+                    `#${c.id}`;
+                  return (
+                    <option key={c.id} value={String(c.id)}>
+                      {name}
+                      {c.designation ? ` — ${c.designation}` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronIcon />
+            </div>
+            {loadingColleagues ? (
+              <p className="mt-1 text-[11px] text-slate-400">
+                Loading colleagues…
+              </p>
+            ) : colleagues.length === 0 ? (
+              <p className="mt-1 text-[11px] text-amber-600">
+                No other colleagues found in{" "}
+                {deptLabel ? `the ${deptLabel} department` : "your department"}{" "}
+                to delegate to.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] text-slate-400">
+                Showing colleagues from{" "}
+                {deptLabel ? `the ${deptLabel} department` : "your department"}.
+              </p>
+            )}
+          </Field>
+
+          {/* Coverage period — derived from the leave dates */}
+          <Field label="Coverage period">
+            <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">
+              <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+              {draft.startDate && draft.endDate ? (
+                <span>
+                  {draft.startDate} → {draft.endDate}
+                </span>
+              ) : (
+                <span className="text-slate-400">Set the leave dates above</span>
+              )}
+            </div>
+            <p className="mt-1 text-[11px] text-slate-400">
+              The delegate covers for the full leave period.
+            </p>
+          </Field>
+        </div>
+
+        {/* Selected delegate confirmation */}
+        {draft.delegateId != null &&
+          (() => {
+            const d = colleagues.find((c) => Number(c.id) === draft.delegateId);
+            if (!d) return null;
+            const name =
+              `${d.firstName ?? ""} ${d.lastName ?? ""}`.trim() ||
+              d.employeeNo ||
+              `#${d.id}`;
+            return (
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+                <UserCheck className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
+                <p className="text-sm text-indigo-800">
+                  <span className="font-semibold">{name}</span> will cover your
+                  responsibilities
+                  {draft.startDate && draft.endDate
+                    ? ` from ${draft.startDate} to ${draft.endDate}`
+                    : ""}{" "}
+                  while you're on leave.
+                </p>
+              </div>
+            );
+          })()}
       </div>
 
       {/* ── Summary ── */}

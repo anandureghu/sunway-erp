@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Search,
   Wallet,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
@@ -24,6 +25,7 @@ type Row = {
   leaveBalance: string | number;
   leaveStatus: string;
   totalDays: number;
+  supportingDocumentUrl: string;
 };
 
 /** Safely extract an array from any API response shape.
@@ -74,6 +76,11 @@ function normalizeToArray(data: unknown): Row[] {
                 1,
               )
             : 0,
+      supportingDocumentUrl:
+        r.supportingDocumentUrl ??
+        r.supporting_document_url ??
+        r.documentUrl ??
+        "",
     } as Row;
   });
 }
@@ -413,12 +420,13 @@ export default function LeavesHistory() {
                 <Th>Date Reported</Th>
                 <Th center>Days</Th>
                 <Th>Status</Th>
+                <Th center>Document</Th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={8} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-3 text-slate-400">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
                       <span className="text-xs font-medium">
@@ -431,7 +439,7 @@ export default function LeavesHistory() {
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={8} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-rose-500">
                       <AlertCircle className="h-8 w-8" />
                       <span className="text-sm font-medium">{error}</span>
@@ -445,7 +453,7 @@ export default function LeavesHistory() {
 
               {!loading && !error && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
+                  <td colSpan={8} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-slate-400">
                       <Calendar className="h-8 w-8" />
                       <span className="text-sm font-medium">
@@ -506,6 +514,22 @@ export default function LeavesHistory() {
                           {statusMeta.icon}
                           {statusMeta.label}
                         </span>
+                      </Td>
+                      <Td center>
+                        {r.supportingDocumentUrl ? (
+                          <a
+                            href={r.supportingDocumentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View / download supporting document"
+                            className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
                       </Td>
                     </tr>
                   );
