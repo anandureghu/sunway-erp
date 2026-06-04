@@ -154,7 +154,8 @@ export type LeaveType =
   | "Sick Leave"
   | "Emergency Leave"
   | "Unpaid Leave"
-  | "Maternity Leave";
+  | "Maternity Leave"
+  | "Hajj Leave";
 
 export interface LeaveRecord {
   leaveCode: string;
@@ -174,6 +175,8 @@ export interface LeavePolicy {
   paid?: boolean;
   genderRestricted?: boolean;
   allowedGender?: string | null;
+  religionRestricted?: boolean;
+  allowedReligion?: string | null;
   defaultDays?: number;
   includeWeekends?: boolean;
 }

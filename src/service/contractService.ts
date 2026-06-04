@@ -113,7 +113,10 @@ function normalizePayload(payload: ContractApiPayload) {
     signatureDate: payload.signatureDate,
     signedBy: payload.signedBy,
     termsAndConditions: payload.termsAndConditions,
-    attachmentUrl: payload.attachmentUrl,
+    // Intentionally NOT sending attachmentUrl: the file is managed via the
+    // separate uploadAttachment endpoint. Sending the resolved (and expiring)
+    // download URL back here would overwrite the stored blob path and break
+    // future downloads.
     allowances: (payload.allowances ?? []).map(normalizeAllowance),
   };
 }

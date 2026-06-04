@@ -106,6 +106,14 @@ function validateDates(input: {
   return null;
 }
 
+// Exiting employees (terminated / resigned / retired) get a final settlement and
+// must be processed individually — they are excluded from bulk runs. Backend
+// serialises status as the uppercase enum name.
+const EXIT_STATUSES = new Set(["TERMINATED", "RESIGNED", "RETIRED"]);
+function isExitStatus(status?: string | null): boolean {
+  return !!status && EXIT_STATUSES.has(String(status).toUpperCase());
+}
+
 
 
 // ── Bulk status pill ───────────────────────────────────────────────────────────
@@ -247,27 +255,34 @@ function EmployeePayrollTab() {
       .includes(search.toLowerCase()),
   );
 
+  // Only active employees can be bulk-processed; exits are settled individually.
+  const bulkEligibleEmployees = filteredEmployees.filter(
+    (e) => !isExitStatus(e.status),
+  );
+
   const allFilteredChecked =
-    filteredEmployees.length > 0 &&
-    filteredEmployees.every((e) => checkedIds.has(Number(e.id)));
+    bulkEligibleEmployees.length > 0 &&
+    bulkEligibleEmployees.every((e) => checkedIds.has(Number(e.id)));
 
   const toggleAll = () => {
     if (allFilteredChecked) {
       setCheckedIds((prev) => {
         const next = new Set(prev);
-        filteredEmployees.forEach((e) => next.delete(Number(e.id)));
+        bulkEligibleEmployees.forEach((e) => next.delete(Number(e.id)));
         return next;
       });
     } else {
       setCheckedIds((prev) => {
         const next = new Set(prev);
-        filteredEmployees.forEach((e) => next.add(Number(e.id)));
+        bulkEligibleEmployees.forEach((e) => next.add(Number(e.id)));
         return next;
       });
     }
   };
 
   const toggleOne = (empId: number) => {
+    const emp = employees.find((e) => Number(e.id) === empId);
+    if (emp && isExitStatus(emp.status)) return; // exits are manual-only
     setCheckedIds((prev) => {
       const next = new Set(prev);
       if (next.has(empId)) {
@@ -391,6 +406,23 @@ function EmployeePayrollTab() {
 
     for (const emp of selectedBulkEmployees) {
       const empId = Number(emp.id);
+
+      // exiting employees are settled individually — never bulk-processed
+      if (isExitStatus(emp.status)) {
+        skippedCount++;
+        setBulkResults((prev) =>
+          prev.map((r) =>
+            r.empId === empId
+              ? {
+                  ...r,
+                  status: "skipped",
+                  message: "Exiting employee — process individually",
+                }
+              : r,
+          ),
+        );
+        continue;
+      }
 
       // check if already generated this month
       const existingRows = allHistories[String(emp.id)] ?? [];
@@ -663,7 +695,7 @@ function EmployeePayrollTab() {
               </div>
 
               {/* Bulk: select all row */}
-              {bulkMode && filteredEmployees.length > 0 && (
+              {bulkMode && bulkEligibleEmployees.length > 0 && (
                 <button
                   onClick={toggleAll}
                   className="w-full flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-slate-50 transition-colors"
@@ -675,7 +707,7 @@ function EmployeePayrollTab() {
                   )}
                   <span className="text-xs font-semibold text-slate-600">
                     {allFilteredChecked ? "Deselect all" : "Select all"} (
-                    {filteredEmployees.length})
+                    {bulkEligibleEmployees.length})
                   </span>
                   {checkedIds.size > 0 && (
                     <span className="ml-auto text-xs font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
@@ -700,6 +732,7 @@ function EmployeePayrollTab() {
                   const empId = Number(emp.id);
                   const isSelected = selected?.id === emp.id;
                   const isChecked = checkedIds.has(empId);
+                  const isExit = isExitStatus(emp.status);
                   const initials =
                     `${emp.firstName?.[0] ?? ""}${emp.lastName?.[0] ?? ""}`.toUpperCase();
                   const hasPayroll = !!allHistories[String(emp.id)]?.length;
@@ -709,12 +742,24 @@ function EmployeePayrollTab() {
                     <button
                       key={emp.id}
                       onClick={() => toggleOne(empId)}
+                      disabled={isExit}
+                      title={
+                        isExit
+                          ? "Exiting employee — process the final settlement individually in Single mode"
+                          : undefined
+                      }
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 text-left transition-all border-b border-slate-50 last:border-0",
-                        isChecked ? "bg-violet-50/60" : "hover:bg-slate-50",
+                        isExit
+                          ? "opacity-60 cursor-not-allowed"
+                          : isChecked
+                            ? "bg-violet-50/60"
+                            : "hover:bg-slate-50",
                       )}
                     >
-                      {isChecked ? (
+                      {isExit ? (
+                        <Square className="h-4 w-4 text-slate-200 shrink-0" />
+                      ) : isChecked ? (
                         <CheckSquare className="h-4 w-4 text-violet-600 shrink-0" />
                       ) : (
                         <Square className="h-4 w-4 text-slate-300 shrink-0" />
@@ -742,11 +787,17 @@ function EmployeePayrollTab() {
                           {emp.employeeNo || `#${emp.id}`}
                         </p>
                       </div>
-                      {hasPayroll && (
-                        <span
-                          className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"
-                          title="Has payroll history"
-                        />
+                      {isExit ? (
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          Manual only
+                        </span>
+                      ) : (
+                        hasPayroll && (
+                          <span
+                            className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"
+                            title="Has payroll history"
+                          />
+                        )
                       )}
                     </button>
                   ) : (
@@ -1083,6 +1134,19 @@ function EmployeePayrollTab() {
                     Once per month
                   </span>
                 </div>
+
+                {isExitStatus(selected.status) && (
+                  <div className="flex items-start gap-2.5 rounded-xl bg-indigo-50 border border-indigo-200 p-3">
+                    <AlertCircle className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-indigo-800">
+                      <strong>Final settlement.</strong> This employee is{" "}
+                      {String(selected.status).toLowerCase()}. End of Service
+                      Compensation will be paid and any active loan balance
+                      settled in full from it. Exiting employees are processed
+                      here individually, not in bulk.
+                    </p>
+                  </div>
+                )}
 
                 {alreadyGeneratedForMonth && payrollInput.payPeriodStart && (
                   <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 p-3">
