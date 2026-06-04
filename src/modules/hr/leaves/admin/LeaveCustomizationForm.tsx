@@ -32,6 +32,7 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Emergency Leave",
   "Unpaid Leave",
   "Maternity Leave",
+  "Hajj Leave",
 ];
 
 // Dynamic roles type
@@ -102,7 +103,21 @@ const LEAVE_TYPE_COLORS: Record<
     text: "text-pink-700",
     icon: "text-pink-500",
   },
+  "Hajj Leave": {
+    bg: "bg-emerald-50 border-emerald-200",
+    text: "text-emerald-700",
+    icon: "text-emerald-500",
+  },
 };
+
+// Religion-restricted leave types: only employees whose religion matches can
+// apply (mirrors the gender restriction for maternity leave).
+const LEAVE_TYPE_RELIGION_CONFIG: Record<string, string> = {
+  "Hajj Leave": "Islam",
+};
+
+const getLeaveTypeAllowedReligion = (leaveType: string): string | null =>
+  LEAVE_TYPE_RELIGION_CONFIG[leaveType] ?? null;
 
 type Gender = "MALE" | "FEMALE" | "OTHER";
 
@@ -137,6 +152,11 @@ const LEAVE_TYPE_GENDER_CONFIG: LeaveTypeGenderConfig[] = [
     type: "Maternity Leave",
     applicableGenders: ["FEMALE"],
     isGenderRestricted: true,
+  },
+  {
+    type: "Hajj Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
   },
 ];
 
@@ -408,6 +428,8 @@ export default function LeaveCustomizationForm() {
         paid: p.leaveType !== "Unpaid Leave",
         genderRestricted: p.leaveType === "Maternity Leave",
         allowedGender: p.leaveType === "Maternity Leave" ? "FEMALE" : null,
+        religionRestricted: getLeaveTypeAllowedReligion(p.leaveType) !== null,
+        allowedReligion: getLeaveTypeAllowedReligion(p.leaveType),
         includeWeekends: p.includeWeekends ?? false,
       }));
 
@@ -915,6 +937,7 @@ export default function LeaveCustomizationForm() {
                     icon: "text-slate-500",
                   };
                   const isRestricted = isLeaveTypeGenderRestricted(leaveType);
+                  const allowedReligion = getLeaveTypeAllowedReligion(leaveType);
                   const days = policy?.daysAllowed ?? 0;
 
                   return (
@@ -933,6 +956,14 @@ export default function LeaveCustomizationForm() {
                           <span
                             className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white"
                             title="Female only"
+                          >
+                            <Lock className="h-2.5 w-2.5" />
+                          </span>
+                        )}
+                        {allowedReligion && (
+                          <span
+                            className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"
+                            title={`${allowedReligion} only`}
                           >
                             <Lock className="h-2.5 w-2.5" />
                           </span>
@@ -1000,6 +1031,11 @@ export default function LeaveCustomizationForm() {
                       {isRestricted && (
                         <p className="text-center text-[10px] text-pink-500 font-medium">
                           Female only
+                        </p>
+                      )}
+                      {allowedReligion && (
+                        <p className="text-center text-[10px] text-emerald-600 font-medium">
+                          {allowedReligion} only
                         </p>
                       )}
                     </div>

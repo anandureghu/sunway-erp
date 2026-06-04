@@ -2,7 +2,7 @@ import Info from "@/components/info";
 import { Button } from "@/components/ui/button";
 import type { DivisionResponseDTO } from "@/types/division";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface DivisionColumnsProps {
   onEdit?: (division: DivisionResponseDTO) => void;
@@ -10,6 +10,7 @@ interface DivisionColumnsProps {
 }
 
 export const getDivisionColumns = ({
+  onEdit,
   onDelete,
 }: DivisionColumnsProps): ColumnDef<DivisionResponseDTO>[] => [
   {
@@ -56,16 +57,16 @@ export const getDivisionColumns = ({
       const division = row.original;
       return (
         <div className="flex gap-2">
-          {/* <Button
+          <Button
             variant="ghost"
             size="icon"
             onClick={(e) => {
               e.stopPropagation();
-              onEdit(division);
+              onEdit?.(division);
             }}
           >
             <Pencil className="h-4 w-4 text-blue-600" />
-          </Button> */}
+          </Button>
           <Button
             variant="ghost"
             size="icon"

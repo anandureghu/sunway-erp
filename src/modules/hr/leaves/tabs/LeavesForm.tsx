@@ -39,6 +39,7 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Emergency Leave",
   "Unpaid Leave",
   "Maternity Leave",
+  "Hajj Leave",
 ];
 
 // Leave types that require a supporting document
@@ -60,7 +61,6 @@ function countWorkingDays(start: string, end: string): number {
 }
 
 type LeaveRecord = {
-  leaveCode: string;
   leaveType: LeaveType;
   startDate: string;
   endDate: string;
@@ -73,7 +73,6 @@ type LeaveRecord = {
 };
 
 const SEED: LeaveRecord = {
-  leaveCode: "L001",
   leaveType: "Annual Leave",
   startDate: "",
   endDate: "",
@@ -422,20 +421,6 @@ export default function LeavesForm(): ReactElement {
           accent="from-violet-600 to-blue-600"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Leave Code */}
-          <Field label="Leave Code" required>
-            <div className="relative">
-              <FileText className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                disabled={!editing}
-                value={draft.leaveCode}
-                onChange={(e) => patch("leaveCode", e.target.value)}
-                placeholder="e.g., L001"
-                className={cn(iCls, "pl-9 font-mono")}
-              />
-            </div>
-          </Field>
-
           {/* Leave Type */}
           <Field label="Leave Type" required>
             <div className="relative">
