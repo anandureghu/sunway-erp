@@ -26,7 +26,7 @@ import ReceivingPage from "./pages/purchase/receiving-page";
 import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
 import EditPurchaseRequisitionPage from "./pages/purchase/edit-purchase-requisition-page";
 import { PermissionProtectedRoute as PrivateRoute } from "./components/protected-route";
-import { useAppDispatch, useAppSelector } from "./store/store";
+import { useAppDispatch } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
 import Payroll from "./pages/finance/payroll";
 import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
@@ -115,7 +115,7 @@ import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-
 import DivisionListPage from "./pages/admin/hr/division/division-list-page";
 import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
 import { useEffect } from "react";
-import { setAdminView, setGlobalSettingsView } from "@/store/uiSlice";
+import { setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import SettingsPayrollPage from "@/pages/settings/settings-payroll-page";
@@ -129,9 +129,7 @@ import PublicInvoicePage from "./pages/public/public-invoice-page";
 
 export default function App() {
   const dispatch = useAppDispatch();
-  const { adminView } = useAppSelector((s) => s.ui);
   useEffect(() => {
-    dispatch(setAdminView(false));
     dispatch(setGlobalSettingsView(false));
   }, []);
   return (
@@ -148,7 +146,7 @@ export default function App() {
         >
           <Route
             index
-            element={adminView ? <DashboardPage /> : <DashboardPage />}
+            element={<DashboardPage />}
           />
           <Route path="profile" element={<UserProfilePage />} />
 
