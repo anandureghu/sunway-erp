@@ -17,6 +17,7 @@ import {
 } from "@/service/currentJobService";
 import { hrService } from "@/service/hr.service";
 import { fetchDepartments } from "@/service/departmentService";
+import { fetchDivisionsByDepartment } from "@/service/divisionService";
 import { fetchEmployees } from "@/service/employeeService";
 import { toast } from "sonner";
 import {
@@ -27,6 +28,7 @@ import {
   type EmploymentType,
 } from "@/types/hr";
 import type { Department } from "@/types/department";
+import type { Division } from "@/types/division";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import {
   Briefcase,
@@ -108,6 +110,8 @@ export default function CurrentJobForm() {
   const [loadingJobCodes, setLoadingJobCodes] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [departmentDivisions, setDepartmentDivisions] = useState<Division[]>([]);
+  const [loadingDivisions, setLoadingDivisions] = useState(false);
   const [managerCandidates, setManagerCandidates] = useState<EmployeeOption[]>(
     [],
   );
@@ -170,6 +174,7 @@ export default function CurrentJobForm() {
       const payload: CurrentJobApiPayload = {
         jobCodeId: selectedJob.id,
         departmentId: selectedDept.id,
+        divisionId: data.divisionId ?? null,
         workLocation: data.workLocation,
         workCity: data.workCity,
         workCountry: data.workCountry,
@@ -259,9 +264,17 @@ export default function CurrentJobForm() {
 
     updateField("departmentCode")(resData.department?.code ?? "");
     updateField("departmentName")(resData.department?.name ?? "");
-    updateField("divisionId")(resData.department?.divisionId ?? null);
+    const divisionId = resData.department?.divisionId ?? null;
+    updateField("divisionId")(divisionId);
     updateField("divisionCode")(resData.department?.divisionCode ?? "");
     updateField("divisionName")(resData.department?.divisionName ?? "");
+
+    const deptId = resData.department?.id;
+    if (deptId) {
+      void loadDivisionsForDepartment(deptId);
+    } else {
+      setDepartmentDivisions([]);
+    }
 
     updateField("startDate")(res.startDate ?? "");
     updateField("effectiveFrom")(res.effectiveFrom ?? "");
@@ -464,20 +477,47 @@ export default function CurrentJobForm() {
     }
   };
 
+  const loadDivisionsForDepartment = async (departmentId: number) => {
+    setLoadingDivisions(true);
+    try {
+      const divisions = await fetchDivisionsByDepartment(departmentId);
+      setDepartmentDivisions(divisions);
+    } finally {
+      setLoadingDivisions(false);
+    }
+  };
+
   const handleDepartmentChange = (value: string) => {
     updateField("departmentCode")(value);
+    updateField("divisionId")(null);
+    updateField("divisionCode")("");
+    updateField("divisionName")("");
+    setDepartmentDivisions([]);
+
     if (value) {
       const selectedDept = departments.find((d) => d.departmentCode === value);
       if (selectedDept) {
         updateField("departmentName")(selectedDept.departmentName);
-        updateField("divisionId")(selectedDept.divisionId ?? null);
-        updateField("divisionCode")(selectedDept.divisionCode ?? "");
-        updateField("divisionName")(selectedDept.divisionName ?? "");
-      } else {
-        updateField("divisionId")(null);
-        updateField("divisionCode")("");
-        updateField("divisionName")("");
+        void loadDivisionsForDepartment(selectedDept.id);
       }
+    }
+  };
+
+  const handleDivisionChange = (value: string) => {
+    if (value === "none") {
+      updateField("divisionId")(null);
+      updateField("divisionCode")("");
+      updateField("divisionName")("");
+      return;
+    }
+
+    const selectedDivision = departmentDivisions.find(
+      (d) => String(d.id) === value,
+    );
+    if (selectedDivision) {
+      updateField("divisionId")(selectedDivision.id);
+      updateField("divisionCode")(selectedDivision.code);
+      updateField("divisionName")(selectedDivision.name);
     }
   };
 
@@ -715,42 +755,55 @@ export default function CurrentJobForm() {
             </div>
           </Field>
 
-          <Field label="Division Code">
-            <div className="relative">
-              <Network className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Field label="Division">
+            {loadingDivisions ? (
               <Input
-                className={cn(fieldCls, "pl-9")}
+                className={fieldCls}
                 disabled
-                value={formData.divisionCode ?? ""}
-                placeholder={
-                  formData.departmentCode
-                    ? "No division assigned"
-                    : "Pick a department first"
-                }
+                placeholder="Loading divisions…"
               />
-            </div>
-          </Field>
-
-          <Field label="Division Name">
-            <div className="relative">
-              <Network className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className={cn(fieldCls, "pl-9")}
-                disabled
-                value={formData.divisionName ?? ""}
-                placeholder={
-                  formData.departmentCode
-                    ? "No division assigned"
-                    : "Pick a department first"
-                }
-              />
-            </div>
+            ) : (
+              <div className="relative">
+                <Network className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Select
+                  value={
+                    formData.divisionId != null
+                      ? String(formData.divisionId)
+                      : "none"
+                  }
+                  onValueChange={handleDivisionChange}
+                >
+                  <SelectTrigger
+                    className={cn(fieldCls, "pl-9")}
+                    disabled={!editing || !formData.departmentCode}
+                  >
+                    <SelectValue
+                      placeholder={
+                        formData.departmentCode
+                          ? "Select division (optional)"
+                          : "Pick a department first"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— No division —</SelectItem>
+                    {departmentDivisions.map((div) => (
+                      <SelectItem key={div.id} value={String(div.id)}>
+                        {div.code} — {div.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </Field>
         </div>
-        {!formData.divisionName && formData.departmentCode && (
+        {formData.departmentCode &&
+          !loadingDivisions &&
+          departmentDivisions.length === 0 && (
           <p className="text-[11px] text-amber-600 mt-3 flex items-center gap-1">
-            <Network className="h-3 w-3" /> This department has no division
-            assigned. Set one in Department Master.
+            <Network className="h-3 w-3" /> No divisions under this department
+            yet. Add one in Division Master.
           </p>
         )}
       </div>

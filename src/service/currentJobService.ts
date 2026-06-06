@@ -35,6 +35,7 @@ export interface CurrentJobPayload {
 export interface CurrentJobApiPayload {
   jobCodeId?: number;
   departmentId?: number;
+  divisionId?: number | null;
   workLocation?: string;
   workCity?: string;
   workCountry?: string;

@@ -22,6 +22,16 @@ export const getDivisionColumns = ({
     header: "Name",
   },
   {
+    id: "departmentName",
+    header: "Department",
+    cell: ({ row }) => (
+      <Info
+        title={row.original.departmentName ?? "—"}
+        subtitle={row.original.departmentCode ?? ""}
+      />
+    ),
+  },
+  {
     accessorKey: "managerId",
     header: "Manager",
     cell: ({ row }) => {
@@ -39,16 +49,6 @@ export const getDivisionColumns = ({
         />
       );
     },
-  },
-  {
-    id: "companyName",
-    header: "Company",
-    cell: ({ row }) => (
-      <Info
-        title={row.original.companyName ?? "—"}
-        subtitle={row.original.companyCode ?? ""}
-      />
-    ),
   },
   {
     id: "actions",
