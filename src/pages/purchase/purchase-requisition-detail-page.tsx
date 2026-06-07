@@ -32,6 +32,7 @@ import {
   sendBackPurchaseRequisition,
   revisePurchaseRequisition,
   getGoodsReceiptsByPurchaseOrder,
+  getPurchaseOrder,
 } from "@/service/purchaseFlowService";
 import {
   PurchaseRequisitionReviewDialog,
@@ -121,6 +122,9 @@ export default function PurchaseRequisitionDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
+  const [linkedPurchaseOrderNo, setLinkedPurchaseOrderNo] = useState<
+    string | null
+  >(null);
   const [reviewDialog, setReviewDialog] = useState<ReviewActionType | null>(
     null,
   );
@@ -160,24 +164,41 @@ export default function PurchaseRequisitionDetailPage() {
     const poId = requisition?.createdPurchaseOrderId;
     if (!poId) {
       setLinkedReceipts([]);
+      setLinkedPurchaseOrderNo(null);
       return;
     }
+
+    if (requisition.createdPurchaseOrderNumber) {
+      setLinkedPurchaseOrderNo(requisition.createdPurchaseOrderNumber);
+    }
+
     let cancelled = false;
-    getGoodsReceiptsByPurchaseOrder(poId)
-      .then((list) => {
-        if (!cancelled) {
-          setLinkedReceipts(
-            list.map((r) => ({ id: r.id, receiptNo: r.receiptNo })),
-          );
+    const receiptsPromise = getGoodsReceiptsByPurchaseOrder(poId);
+    const orderPromise = requisition.createdPurchaseOrderNumber
+      ? Promise.resolve(null)
+      : getPurchaseOrder(poId).catch(() => null);
+
+    Promise.all([receiptsPromise, orderPromise])
+      .then(([list, order]) => {
+        if (cancelled) return;
+        setLinkedReceipts(
+          list.map((r) => ({ id: r.id, receiptNo: r.receiptNo })),
+        );
+        if (!requisition.createdPurchaseOrderNumber && order) {
+          setLinkedPurchaseOrderNo(order.orderNo);
         }
       })
       .catch(() => {
         if (!cancelled) setLinkedReceipts([]);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [requisition?.createdPurchaseOrderId]);
+  }, [
+    requisition?.createdPurchaseOrderId,
+    requisition?.createdPurchaseOrderNumber,
+  ]);
 
   const handleSubmit = async () => {
     if (!requisition) return;
@@ -309,8 +330,7 @@ export default function PurchaseRequisitionDetailPage() {
   const canRejectOrSendBack = requisition.status === "submitted";
   const canRevise = requisition.status === "rejected";
   const canEdit = requisition.status === "draft";
-  const showOpenPo =
-    requisition.status === "converted" && requisition.createdPurchaseOrderId;
+  const isConverted = requisition.status === "converted";
   const documentsReadOnly =
     Boolean(requisition.archived) || requisition.status !== "draft";
   const reviewFeedbackLabel =
@@ -327,11 +347,17 @@ export default function PurchaseRequisitionDetailPage() {
     canApprove ||
     canRejectOrSendBack ||
     canRevise ||
-    canEdit ||
-    Boolean(showOpenPo);
+    canEdit;
 
   const deliveryDate =
     requisition.requiredDeliveryDate || requisition.requiredDate;
+
+  const linkedPurchaseOrderLabel =
+    requisition.createdPurchaseOrderNumber ||
+    linkedPurchaseOrderNo ||
+    (requisition.createdPurchaseOrderId
+      ? `PO-${requisition.createdPurchaseOrderId}`
+      : "");
 
   const statusLabel =
     requisition.status.charAt(0).toUpperCase() + requisition.status.slice(1);
@@ -421,8 +447,45 @@ export default function PurchaseRequisitionDetailPage() {
           />
         </div>
 
-        {/* Workflow actions */}
-        {hasWorkflowActions && (
+        {/* Workflow status / actions */}
+        {isConverted ? (
+          <div className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100">
+                  <CheckCircle2 className="h-5 w-5 text-violet-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-violet-900">
+                    Converted to purchase order
+                  </p>
+                  <p className="text-sm text-violet-800/85">
+                    This requisition is locked and cannot be edited.
+                  </p>
+                  {requisition.convertedAt && (
+                    <p className="mt-1 text-xs text-violet-700/70">
+                      Converted on{" "}
+                      {format(
+                        new Date(requisition.convertedAt),
+                        "MMM d, yyyy · HH:mm",
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {requisition.createdPurchaseOrderId && (
+                <Button asChild className="rounded-lg bg-violet-600 hover:bg-violet-700">
+                  <Link
+                    to={`${BASE}/orders/${requisition.createdPurchaseOrderId}`}
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Open purchase order
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : hasWorkflowActions ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             {submitError && (
               <div
@@ -493,15 +556,7 @@ export default function PurchaseRequisitionDetailPage() {
                   </Link>
                 </Button>
               )}
-              {showOpenPo && (
-                <Button asChild variant="secondary" className="rounded-lg">
-                  <Link to={`${BASE}/orders/${requisition.createdPurchaseOrderId}`}>
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Open purchase order
-                  </Link>
-                </Button>
-              )}
-              {(canEdit || documentCount > 0) && (
+              {canEdit && (
                 <Button
                   variant="outline"
                   className="rounded-lg"
@@ -514,7 +569,22 @@ export default function PurchaseRequisitionDetailPage() {
               )}
             </div>
           </div>
-        )}
+        ) : requisition.status === "submitted" ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 shadow-sm">
+            <div className="flex gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                <Send className="h-5 w-5 text-amber-700" />
+              </div>
+              <div>
+                <p className="font-semibold text-amber-900">Awaiting approval</p>
+                <p className="text-sm text-amber-800/85">
+                  This requisition is submitted and cannot be edited until it is
+                  approved, sent back, or rejected.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Reviewer feedback */}
         {requisition.status === "rejected" && requisition.rejectionReason && (
@@ -827,7 +897,7 @@ export default function PurchaseRequisitionDetailPage() {
                           Purchase order
                         </p>
                         <p className="truncate font-semibold text-slate-900">
-                          PO #{requisition.createdPurchaseOrderId}
+                          {linkedPurchaseOrderLabel}
                         </p>
                       </div>
                     </Link>

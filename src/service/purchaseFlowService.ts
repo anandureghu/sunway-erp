@@ -90,6 +90,7 @@ export interface PurchaseRequisitionResponseDTO {
   rejectedById?: number | null;
   rejectedByName?: string | null;
   createdPurchaseOrderId?: number | null;
+  createdPurchaseOrderNumber?: string | null;
   debitAccountId?: number | null;
   debitAccountName?: string | null;
   creditAccountId?: number | null;
@@ -144,6 +145,7 @@ export interface PurchaseOrderResponseDTO {
   id: number;
   orderNumber: string;
   sourceRequisitionId?: number | null;
+  sourceRequisitionNumber?: string | null;
   supplierId?: number | null;
   supplierName?: string | null;
   orderDate: string;
@@ -248,6 +250,7 @@ function toPurchaseRequisition(
       dto.createdPurchaseOrderId != null
         ? String(dto.createdPurchaseOrderId)
         : undefined,
+    createdPurchaseOrderNumber: dto.createdPurchaseOrderNumber || undefined,
     debitAccountId:
       dto.debitAccountId != null ? String(dto.debitAccountId) : undefined,
     debitAccountName: dto.debitAccountName ?? undefined,
@@ -296,6 +299,7 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
       dto.sourceRequisitionId != null && dto.sourceRequisitionId !== undefined
         ? String(dto.sourceRequisitionId)
         : undefined,
+    requisitionNo: dto.sourceRequisitionNumber || undefined,
     supplierId:
       dto.supplierId != null && dto.supplierId !== undefined
         ? String(dto.supplierId)
