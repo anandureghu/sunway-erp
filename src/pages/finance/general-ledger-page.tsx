@@ -77,10 +77,10 @@ const GeneralLedgerPage = () => {
 
   return (
     user?.companyId && (
-      <div className="p-6 bg-slate-50/60 min-h-screen">
+      <div className="min-h-screen space-y-5 bg-slate-50/60 p-4 sm:p-6">
         <PageHeader
           title="General Ledger"
-          description="Manage your general ledger and transactions"
+          description="Chart of accounts, journals, transactions, and reconciliations"
           variant="darkBlue"
           icon={<BookOpen className="w-6 h-6" />}
         />
@@ -88,6 +88,7 @@ const GeneralLedgerPage = () => {
           tabs={tabsList}
           defaultValue={tabsList[0].value}
           props={{ companyId: Number(user?.companyId) }}
+          className="p-0"
         />
       </div>
     )

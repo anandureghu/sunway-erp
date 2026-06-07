@@ -8,10 +8,11 @@ import { TabsTrigger } from "./ui/tabs";
  * Uses data attributes for active/inactive states.
  */
 const tabTriggerBase = `
-  px-4 py-2 text-sm font-medium rounded-md transition-colors
-  data-[state=active]:bg-blue-600 data-[state=active]:text-white
-  data-[state=inactive]:text-gray-600
-  data-[state=inactive]:hover:text-blue-600
+  px-4 py-2.5 text-sm font-medium rounded-lg transition-all
+  data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-800 data-[state=active]:to-indigo-900
+  data-[state=active]:text-white data-[state=active]:shadow-sm
+  data-[state=inactive]:text-slate-600
+  data-[state=inactive]:hover:bg-slate-50 data-[state=inactive]:hover:text-slate-900
 `;
 /**
  * StyledTabsTrigger extends ShadCN’s TabsTrigger

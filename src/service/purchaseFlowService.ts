@@ -769,20 +769,35 @@ export async function createGoodsReceipt(payload: GoodsReceiptCreateDTO) {
   return toGoodsReceipt(res.data, order);
 }
 
+export async function listGoodsReceipts(
+  orders?: PurchaseOrder[],
+): Promise<GoodsReceipt[]> {
+  const res = await apiClient.get<GoodsReceiptResponseDTO[]>("/purchase/receipts");
+  const orderById = new Map(
+    (orders ?? []).map((order) => [String(order.id), order]),
+  );
+  return (res.data || []).map((dto) => {
+    const order = orderById.get(String(dto.purchaseOrderId));
+    return toGoodsReceipt(dto, order);
+  });
+}
+
 export async function getGoodsReceiptsByPurchaseOrder(
   poId: string | number,
+  order?: PurchaseOrder,
 ): Promise<GoodsReceipt[]> {
   const res = await apiClient.get<GoodsReceiptResponseDTO[]>(
     `/purchase/receipts/purchase-order/${poId}`,
   );
-  // Optionally fetch the order to enrich receipts
-  let order: PurchaseOrder | undefined;
-  try {
-    order = await getPurchaseOrder(poId);
-  } catch (e) {
-    console.warn("Could not fetch order for receipts:", e);
+  let enrichedOrder = order;
+  if (!enrichedOrder) {
+    try {
+      enrichedOrder = await getPurchaseOrder(poId);
+    } catch (e) {
+      console.warn("Could not fetch order for receipts:", e);
+    }
   }
-  return (res.data || []).map((dto) => toGoodsReceipt(dto, order));
+  return (res.data || []).map((dto) => toGoodsReceipt(dto, enrichedOrder));
 }
 
 export async function getGoodsReceiptById(

@@ -1,8 +1,11 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { format } from "date-fns";
 import { DataTable } from "@/components/datatable";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GOODS_RECEIPT_COLUMNS } from "@/lib/columns/purchase-columns";
 import {
   Plus,
@@ -17,7 +20,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import {
   listPurchaseOrders,
-  getGoodsReceiptsByPurchaseOrder,
+  listGoodsReceipts,
 } from "@/service/purchaseFlowService";
 import type { GoodsReceipt, PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
@@ -50,6 +53,26 @@ function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
   );
 }
 
+function orderDeliveryLabel(order: PurchaseOrder): string {
+  if (order.expectedDate) {
+    try {
+      return format(new Date(order.expectedDate), "MMM d, yyyy");
+    } catch {
+      return order.expectedDate;
+    }
+  }
+  if (order.orderDate) {
+    try {
+      return `Ordered ${format(new Date(order.orderDate), "MMM d, yyyy")}`;
+    } catch {
+      return `Ordered ${order.orderDate}`;
+    }
+  }
+  return "No date set";
+}
+
+type ReceivingListTab = "ready" | "receipts";
+
 export default function ReceivingPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,7 +82,9 @@ export default function ReceivingPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [receipts, setReceipts] = useState<GoodsReceipt[]>([]);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<ReceivingListTab>("ready");
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const handleRowClick = useCallback(
@@ -81,59 +106,39 @@ export default function ReceivingPage() {
     }
   }, [location.state, location.pathname, navigate]);
 
-  // Load orders and receipts
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        setLoadError(null);
-        const [ordersData, vendorsData] = await Promise.all([
-          listPurchaseOrders(),
-          listVendors(),
-        ]);
-        if (cancelled) return;
+  const refreshData = useCallback(async () => {
+    setLoadError(null);
+    setOrdersLoading(true);
+    setReceiptsLoading(true);
+    try {
+      const [ordersData, vendorsData] = await Promise.all([
+        listPurchaseOrders(),
+        listVendors(),
+      ]);
+      const enriched = enrichPurchaseOrdersWithVendors(ordersData, vendorsData);
+      setOrders(enriched);
+      setOrdersLoading(false);
 
-        setOrders(enrichPurchaseOrdersWithVendors(ordersData, vendorsData));
-
-        // Fetch receipts for all orders
-        const allReceipts: GoodsReceipt[] = [];
-        for (const order of ordersData) {
-          try {
-            const orderReceipts = await getGoodsReceiptsByPurchaseOrder(
-              order.id,
-            );
-            allReceipts.push(...orderReceipts);
-          } catch (e) {
-            // Some orders may not have receipts yet, that's okay
-            console.warn(`No receipts for order ${order.id}:`, e);
-          }
-        }
-
-        if (!cancelled) {
-          setReceipts(allReceipts);
-        }
-      } catch (e: any) {
-        if (!cancelled) {
-          console.error("Error loading purchase orders:", e);
-          const errorMessage =
-            e?.response?.data?.message ||
-            e?.response?.data?.error ||
-            e?.message ||
-            "Failed to load purchase orders. Please check if the API endpoint is configured correctly.";
-          setLoadError(errorMessage);
-          toast.error(errorMessage);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      const allReceipts = await listGoodsReceipts(enriched);
+      setReceipts(allReceipts);
+    } catch (e: any) {
+      console.error("Error loading receiving data:", e);
+      const errorMessage =
+        e?.response?.data?.message ||
+        e?.response?.data?.error ||
+        e?.message ||
+        "Failed to load receiving data.";
+      setLoadError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setOrdersLoading(false);
+      setReceiptsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void refreshData();
+  }, [refreshData]);
 
   const filteredReceipts = useMemo(() => {
     return receipts.filter((receipt) => {
@@ -218,8 +223,7 @@ export default function ReceivingPage() {
         orderId={selectedOrderId}
         onSuccess={() => {
           setShowCreateForm(false);
-          // Reload receipts
-          window.location.reload();
+          void refreshData();
         }}
       />
     );
@@ -244,103 +248,114 @@ export default function ReceivingPage() {
         }
       />
 
-      {!loading && !loadError ? (
+      {!ordersLoading && !loadError ? (
         <KpiSummaryStrip items={receivingKpis} />
       ) : null}
 
-      {/* Orders Ready for Receiving */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Orders Ready for Receiving</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search purchase orders..."
-                value={orderSearchQuery}
-                onChange={(e) => setOrderSearchQuery(e.target.value)}
-                className="pl-8 w-64"
-              />
+      <Card>
+        <CardHeader className="pb-3">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as ReceivingListTab)}
+            className="w-full gap-4"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
+                <TabsTrigger value="ready" className="gap-2">
+                  <Package className="h-4 w-4" />
+                  Orders ready
+                  <Badge variant="secondary" className="font-normal">
+                    {ordersReadyForReceiving.length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="receipts" className="gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Goods receipts
+                  <Badge variant="secondary" className="font-normal">
+                    {receipts.length}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={
+                    activeTab === "ready"
+                      ? "Search purchase orders..."
+                      : "Search receipts..."
+                  }
+                  value={
+                    activeTab === "ready" ? orderSearchQuery : searchQuery
+                  }
+                  onChange={(e) =>
+                    activeTab === "ready"
+                      ? setOrderSearchQuery(e.target.value)
+                      : setSearchQuery(e.target.value)
+                  }
+                  className="w-64 pl-8"
+                />
+              </div>
             </div>
-          </div>
+          </Tabs>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="py-4 text-center text-muted-foreground">
-              Loading orders...
-            </div>
-          ) : loadError ? (
-            <div className="py-4 text-center text-red-600">
-              <p className="font-medium">Error loading purchase orders</p>
-              <p className="text-sm mt-1">{loadError}</p>
+          {loadError ? (
+            <div className="py-10 text-center text-red-600">
+              <p className="font-medium">Error loading receiving data</p>
+              <p className="mt-1 text-sm">{loadError}</p>
               <Button
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                onClick={() => window.location.reload()}
+                onClick={() => void refreshData()}
               >
                 Retry
               </Button>
             </div>
-          ) : ordersReadyForReceiving.length === 0 ? (
-            <div className="py-4 text-center text-muted-foreground">
-              {orderSearchQuery.trim()
-                ? `No purchase orders found matching "${orderSearchQuery}"`
-                : "No purchase orders ready for receiving"}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {ordersReadyForReceiving.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                >
-                  <div>
-                    <p className="font-medium">{order.orderNo}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {purchaseOrderSupplierLabel(order)} • Expected:{" "}
-                      {order.expectedDate || "N/A"}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setSelectedOrderId(order.id);
-                      setShowCreateForm(true);
-                    }}
+          ) : activeTab === "ready" ? (
+            ordersLoading ? (
+              <div className="py-10 text-center text-muted-foreground">
+                Loading orders...
+              </div>
+            ) : ordersReadyForReceiving.length === 0 ? (
+              <div className="py-10 text-center text-muted-foreground">
+                {orderSearchQuery.trim()
+                  ? `No purchase orders found matching "${orderSearchQuery}"`
+                  : "No purchase orders ready for receiving"}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {ordersReadyForReceiving.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50"
                   >
-                    <ClipboardCheck className="mr-2 h-4 w-4" />
-                    Receive Goods
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Goods Receipts</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search receipts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-64"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
+                    <div>
+                      <p className="font-medium">{order.orderNo}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {purchaseOrderSupplierLabel(order)} •{" "}
+                        {order.expectedDate ? "Expected" : "Delivery"}:{" "}
+                        {orderDeliveryLabel(order)}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedOrderId(order.id);
+                        setShowCreateForm(true);
+                      }}
+                    >
+                      <ClipboardCheck className="mr-2 h-4 w-4" />
+                      Receive Goods
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : receiptsLoading ? (
             <div className="py-10 text-center text-muted-foreground">
-              Loading...
+              Loading receipts...
             </div>
-          ) : loadError ? (
-            <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : filteredReceipts.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">
               {searchQuery.trim()
@@ -532,7 +547,7 @@ function CreateReceiptForm({
         variant="darkGreen"
         title="Create goods receipt"
         description="Select a released purchase order and enter quantities accepted or rejected per line."
-        backHref="/inventory/purchase/receiving"
+        onBack={onCancel}
         actions={
           <Button
             type="button"

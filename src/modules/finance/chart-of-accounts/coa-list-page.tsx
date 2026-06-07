@@ -1,22 +1,22 @@
 // src/pages/admin/chartOfAccounts/ChartOfAccountsListPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Layers, Plus, Search } from "lucide-react";
+import { Layers, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
 import { CHART_OF_ACCOUNTS_COLUMNS } from "@/lib/columns/finance/chart-of-accounts-columns";
 import { useAuth } from "@/context/AuthContext";
 import { ChartOfAccountsDialog } from "@/modules/finance/chart-of-accounts/coa-dialog";
-import { Link } from "react-router-dom";
+import { GlTabPanel } from "@/components/finance/gl-tab-panel";
 
 export default function ChartOfAccountsListPage() {
   const [chartOfAccounts, setChartOfAccounts] = useState<ChartOfAccounts[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ChartOfAccounts | null>(null);
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { company } = useAuth();
 
@@ -69,41 +69,43 @@ export default function ChartOfAccountsListPage() {
     company: company!,
   });
 
-  if (loading)
-    return <p className="text-center text-muted-foreground p-10">Loading...</p>;
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return chartOfAccounts;
+    return chartOfAccounts.filter((coa) =>
+      [coa.accountNo, coa.accountCode, coa.accountName, coa.type]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [chartOfAccounts, searchQuery]);
 
   return (
-    <div className="rounded-xl border bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
-            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
+    <>
+      <GlTabPanel
+        title="Chart of Accounts"
+        description="Define and manage your company's account structure."
+        icon={<Layers className="h-5 w-5" />}
+        searchPlaceholder="Search chart of accounts..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        loading={loading}
+        actions={
+          <Button
+            onClick={() => {
+              setSelected(null);
+              setOpen(true);
+            }}
+            className="rounded-lg bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add account
           </Button>
-          <Layers className="h-5 w-5" />
-          <span className="text-lg font-semibold">Chart Of Accounts</span>
-        </div>
-      </div>
-
-      <div className="px-4 pt-4 pb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b bg-white">
-        <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input placeholder="Search chart of accounts..." className="pl-10" />
-        </div>
-        <Button
-          onClick={() => {
-            setSelected(null);
-            setOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Chart of Account
-        </Button>
-      </div>
-
-      <div className="p-4">
-        <DataTable columns={columns} data={chartOfAccounts} />
-      </div>
+        }
+      >
+        <DataTable columns={columns} data={filtered} />
+      </GlTabPanel>
 
       <ChartOfAccountsDialog
         open={open}
@@ -111,6 +113,6 @@ export default function ChartOfAccountsListPage() {
         coa={selected}
         onSuccess={handleSuccess}
       />
-    </div>
+    </>
   );
 }

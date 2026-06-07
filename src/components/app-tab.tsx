@@ -87,8 +87,8 @@ export const AppTab = <TProps extends Record<string, unknown>>({
         defaultValue={defaultValue ?? tabs[0]?.value}
         className="w-full pt-2"
       >
-        <div className="w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
-          <TabsList className="inline-flex min-w-max w-max flex-nowrap">
+        <div className="w-full overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
+          <TabsList className="inline-flex min-w-max w-max flex-nowrap gap-1 bg-transparent p-0">
             {tabs.map((tab) => (
               <StyledTabsTrigger
                 key={tab.value}
@@ -107,7 +107,7 @@ export const AppTab = <TProps extends Record<string, unknown>>({
         </div>
 
         {tabs.map((tab) => (
-          <TabsContent key={tab.value} value={tab.value} className="pt-6">
+          <TabsContent key={tab.value} value={tab.value} className="pt-4 focus-visible:outline-none">
             {typeof tab.element === "function"
               ? tab.element(props as TProps)
               : tab.element || <div>{tab.label} Content</div>}
