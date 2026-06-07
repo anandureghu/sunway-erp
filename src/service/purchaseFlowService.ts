@@ -709,8 +709,10 @@ function toGoodsReceipt(
       item: orderItem
         ? {
             id: orderItem.itemId,
-            name: orderItem.itemName ?? orderItem.item?.itemName ?? undefined,
-            sku: (orderItem.item as { sku?: string } | undefined)?.sku,
+            name:
+              orderItem.itemName ??
+              orderItem.item?.itemName ??
+              undefined,
           }
         : undefined,
       orderedQuantity: orderItem?.quantity || 0,

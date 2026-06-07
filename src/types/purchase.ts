@@ -223,13 +223,20 @@ export type QualityInspectionStatus =
   | "failed"
   | "partial";
 
+/** Lightweight item snapshot for GR line display (not full catalog DTO). */
+export type PurchaseItemRef = {
+  id: number;
+  name?: string;
+  sku?: string;
+};
+
 export type GoodsReceiptItem = {
   id: string;
   receiptId: string;
   orderItemId: string;
   orderItem?: PurchaseOrderItem;
   itemId: number;
-  item?: ItemResponseDTO;
+  item?: PurchaseItemRef;
   orderedQuantity: number;
   receivedQuantity: number;
   acceptedQuantity: number;

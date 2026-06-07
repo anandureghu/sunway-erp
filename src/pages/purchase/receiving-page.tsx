@@ -643,8 +643,7 @@ function CreateReceiptForm({
                     const catalogItem = catalogItems.find(
                       (ci) => Number(ci.id) === item.itemId,
                     );
-                    const itemSku =
-                      orderItem?.item?.sku || catalogItem?.sku || null;
+                    const itemSku = catalogItem?.sku || null;
                     return (
                       <tr
                         key={idx}
