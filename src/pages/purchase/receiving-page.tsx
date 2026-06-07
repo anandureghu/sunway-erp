@@ -25,6 +25,10 @@ import type { Row } from "@tanstack/react-table";
 import { listItems, listWarehouses } from "@/service/inventoryService";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import type { Warehouse } from "@/types/inventory";
+import { listVendors } from "@/service/vendorService";
+import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -36,6 +40,15 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+
+function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
+  return (
+    order.supplierName ||
+    order.supplier?.name ||
+    (order.supplier as { vendorName?: string } | undefined)?.vendorName ||
+    "No supplier assigned"
+  );
+}
 
 export default function ReceivingPage() {
   const navigate = useNavigate();
@@ -75,10 +88,13 @@ export default function ReceivingPage() {
       try {
         setLoading(true);
         setLoadError(null);
-        const ordersData = await listPurchaseOrders();
+        const [ordersData, vendorsData] = await Promise.all([
+          listPurchaseOrders(),
+          listVendors(),
+        ]);
         if (cancelled) return;
 
-        setOrders(ordersData);
+        setOrders(enrichPurchaseOrdersWithVendors(ordersData, vendorsData));
 
         // Fetch receipts for all orders
         const allReceipts: GoodsReceipt[] = [];
@@ -146,7 +162,7 @@ export default function ReceivingPage() {
       filtered = filtered.filter(
         (order) =>
           order.orderNo.toLowerCase().includes(query) ||
-          order.supplier?.name?.toLowerCase().includes(query) ||
+          purchaseOrderSupplierLabel(order).toLowerCase().includes(query) ||
           order.supplier?.code?.toLowerCase().includes(query),
       );
     }
@@ -282,7 +298,7 @@ export default function ReceivingPage() {
                   <div>
                     <p className="font-medium">{order.orderNo}</p>
                     <p className="text-sm text-muted-foreground">
-                      {order.supplier?.name || "Unknown Supplier"} • Expected:{" "}
+                      {purchaseOrderSupplierLabel(order)} • Expected:{" "}
                       {order.expectedDate || "N/A"}
                     </p>
                   </div>
@@ -388,19 +404,35 @@ function CreateReceiptForm({
       remarks: "",
     }));
 
+  const receivableOrders = useMemo(
+    () =>
+      orders.filter((o) => {
+        const status = o.status?.toLowerCase();
+        return (
+          status === "ordered" ||
+          status === "approved" ||
+          status === "partially_received" ||
+          status === "confirmed"
+        );
+      }),
+    [orders],
+  );
+
   useEffect(() => {
     (async () => {
       try {
-        const [ordersData, itemsData, whData] = await Promise.all([
+        const [ordersData, vendorsData, itemsData, whData] = await Promise.all([
           listPurchaseOrders(),
+          listVendors(),
           listItems(),
           listWarehouses(),
         ]);
-        setOrders(ordersData);
+        const enriched = enrichPurchaseOrdersWithVendors(ordersData, vendorsData);
+        setOrders(enriched);
         setCatalogItems(itemsData);
         setWarehouses(whData);
         if (orderId) {
-          const order = ordersData.find((o) => o.id === orderId);
+          const order = enriched.find((o) => o.id === orderId);
           if (order) {
             setSelectedOrder(order);
             setReceiptItems(
@@ -488,13 +520,19 @@ function CreateReceiptForm({
     setReceiptItems(updated);
   };
 
+  const handleOrderSelect = (value: string) => {
+    const order = receivableOrders.find((o) => o.id === value) ?? null;
+    setSelectedOrder(order);
+    if (order) setReceiptItems(buildReceiptLines(order));
+  };
+
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-5 p-6">
       <PageHeader
         variant="darkGreen"
         title="Create goods receipt"
         description="Select a released purchase order and enter quantities accepted or rejected per line."
-        backHref="/inventory/purchase"
+        backHref="/inventory/purchase/receiving"
         actions={
           <Button
             type="button"
@@ -508,178 +546,216 @@ function CreateReceiptForm({
         }
       />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Purchase Order</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <select
-              value={selectedOrder?.id || ""}
-              onChange={(e) => {
-                const order = orders.find((o) => o.id === e.target.value);
-                setSelectedOrder(order || null);
-                if (order) {
-                  setReceiptItems(buildReceiptLines(order));
-                }
-              }}
-              className="w-full p-2 border rounded"
-              required
-            >
-              <option value="">Select Purchase Order</option>
-              {orders
-                .filter((o) => {
-                  const status = o.status?.toLowerCase();
-                  return (
-                    status === "ordered" ||
-                    status === "approved" ||
-                    status === "partially_received" ||
-                    status === "confirmed"
-                  );
-                })
-                .map((order) => (
-                  <option key={order.id} value={order.id}>
-                    {order.orderNo} -{" "}
-                    {(order.supplier as any)?.vendorName ||
-                      (order.supplier as any)?.name ||
-                      "N/A"}
-                  </option>
-                ))}
-            </select>
-          </CardContent>
-        </Card>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">
+            Purchase order
+          </h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Choose a released purchase order to receive against.
+          </p>
+          <Select
+            value={selectedOrder?.id || ""}
+            onValueChange={handleOrderSelect}
+          >
+            <SelectTrigger className="rounded-lg">
+              <SelectValue placeholder="Select purchase order" />
+            </SelectTrigger>
+            <SelectContent>
+              {receivableOrders.map((order) => (
+                <SelectItem key={order.id} value={order.id}>
+                  {order.orderNo} — {purchaseOrderSupplierLabel(order)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedOrder && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Order
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {selectedOrder.orderNo}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Supplier
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {purchaseOrderSupplierLabel(selectedOrder)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  Line items
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {selectedOrder.items.length}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {selectedOrder && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Receipt Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="p-2 text-left">Item</th>
-                      <th className="p-2 text-left">Warehouse</th>
-                      <th className="p-2 text-left">Ordered Qty</th>
-                      <th className="p-2 text-left">Received Qty</th>
-                      <th className="p-2 text-left">Accepted Qty</th>
-                      <th className="p-2 text-left">Rejected Qty</th>
-                      <th className="p-2 text-left">Remarks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {receiptItems.map((item, idx) => {
-                      const orderItem = selectedOrder.items.find(
-                        (oi) => Number(oi.itemId) === item.itemId,
-                      );
-                      return (
-                        <tr key={idx} className="border-t">
-                          <td className="p-2">
-                            {orderItem?.item?.itemId || `Item ${item.itemId}`}
-                          </td>
-                          <td className="p-2 min-w-[160px]">
-                            <Select
-                              value={
-                                item.warehouseId ? String(item.warehouseId) : ""
-                              }
-                              onValueChange={(v) =>
-                                updateItem(idx, "warehouseId", v)
-                              }
-                            >
-                              <SelectTrigger className="h-9">
-                                <SelectValue placeholder="Warehouse" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {warehouses
-                                  .filter((w) => w.status === "active")
-                                  .map((wh) => (
-                                    <SelectItem
-                                      key={wh.id}
-                                      value={String(wh.id)}
-                                    >
-                                      {wh.name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="p-2">{orderItem?.quantity || 0}</td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              value={item.receivedQty}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  "receivedQty",
-                                  Number(e.target.value),
-                                )
-                              }
-                              className="w-20"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              value={item.acceptedQty}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  "acceptedQty",
-                                  Number(e.target.value),
-                                )
-                              }
-                              className="w-20"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              value={item.rejectedQty}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  "rejectedQty",
-                                  Number(e.target.value),
-                                )
-                              }
-                              className="w-20"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="text"
-                              value={item.remarks || ""}
-                              onChange={(e) =>
-                                updateItem(idx, "remarks", e.target.value)
-                              }
-                              placeholder="Remarks"
-                              className="w-40"
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-1 text-sm font-semibold text-slate-900">
+              Receipt items
+            </h2>
+            <p className="mb-4 text-sm text-slate-500">
+              Enter received, accepted, and rejected quantities per line.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[960px] text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="pb-3 pr-4">Item</th>
+                    <th className="pb-3 pr-4">Warehouse</th>
+                    <th className="pb-3 pr-4 text-right">Ordered</th>
+                    <th className="pb-3 pr-4 text-right">Received</th>
+                    <th className="pb-3 pr-4 text-right">Accepted</th>
+                    <th className="pb-3 pr-4 text-right">Rejected</th>
+                    <th className="pb-3">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {receiptItems.map((item, idx) => {
+                    const orderItem = selectedOrder.items.find(
+                      (oi) => Number(oi.itemId) === item.itemId,
+                    );
+                    const catalogItem = catalogItems.find(
+                      (ci) => Number(ci.id) === item.itemId,
+                    );
+                    const itemSku =
+                      orderItem?.item?.sku || catalogItem?.sku || null;
+                    return (
+                      <tr
+                        key={idx}
+                        className="border-b border-slate-100 last:border-0"
+                      >
+                        <td className="py-3 pr-4">
+                          <p className="font-medium text-slate-900">
+                            {orderItem
+                              ? purchaseLineItemName(orderItem)
+                              : `Item #${item.itemId}`}
+                          </p>
+                          {itemSku ? (
+                            <p className="text-xs text-slate-500">
+                              SKU: {itemSku}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="py-3 pr-4 min-w-[180px]">
+                          <Select
+                            value={
+                              item.warehouseId ? String(item.warehouseId) : ""
+                            }
+                            onValueChange={(v) =>
+                              updateItem(idx, "warehouseId", v)
+                            }
+                          >
+                            <SelectTrigger className="h-9 rounded-lg">
+                              <SelectValue placeholder="Warehouse" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {warehouses
+                                .filter((w) => w.status === "active")
+                                .map((wh) => (
+                                  <SelectItem
+                                    key={wh.id}
+                                    value={String(wh.id)}
+                                  >
+                                    {wh.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-3 pr-4 text-right tabular-nums">
+                          {orderItem?.quantity || 0}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.receivedQty}
+                            onChange={(e) =>
+                              updateItem(
+                                idx,
+                                "receivedQty",
+                                Number(e.target.value),
+                              )
+                            }
+                            className="ml-auto w-24 rounded-lg text-right tabular-nums"
+                          />
+                        </td>
+                        <td className="py-3 pr-4">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.acceptedQty}
+                            onChange={(e) =>
+                              updateItem(
+                                idx,
+                                "acceptedQty",
+                                Number(e.target.value),
+                              )
+                            }
+                            className="ml-auto w-24 rounded-lg text-right tabular-nums"
+                          />
+                        </td>
+                        <td className="py-3 pr-4">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.rejectedQty}
+                            onChange={(e) =>
+                              updateItem(
+                                idx,
+                                "rejectedQty",
+                                Number(e.target.value),
+                              )
+                            }
+                            className="ml-auto w-24 rounded-lg text-right tabular-nums"
+                          />
+                        </td>
+                        <td className="py-3">
+                          <Input
+                            type="text"
+                            value={item.remarks || ""}
+                            onChange={(e) =>
+                              updateItem(idx, "remarks", e.target.value)
+                            }
+                            placeholder="Optional notes"
+                            className="min-w-[160px] rounded-lg"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-lg"
+            onClick={onCancel}
+          >
             Cancel
           </Button>
           <Button
             type="submit"
+            className={cn("rounded-lg", loading && "opacity-80")}
             disabled={!selectedOrder || receiptItems.length === 0 || loading}
           >
-            {loading ? "Creating..." : "Create Receipt"}
+            {loading ? "Creating…" : "Create receipt"}
           </Button>
         </div>
       </form>

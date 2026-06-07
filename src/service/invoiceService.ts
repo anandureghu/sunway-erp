@@ -1,16 +1,6 @@
 import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
-
-function apiBase(): string {
-  return import.meta.env.VITE_APP_BASE_URL
-    ? (import.meta.env.VITE_APP_BASE_URL as string) || "https://api.picominds.com/api"
-    : "/api";
-}
-
-function authHeader(): Record<string, string> {
-  const token = localStorage.getItem("accessToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+import axios from "axios";
 
 export async function listPurchaseInvoices(): Promise<FinanceInvoice[]> {
   const res = await apiClient.get<FinanceInvoice[]>("/invoices", {
@@ -49,6 +39,35 @@ export type CreatePurchaseInvoicePayload = {
   notesRemarks?: string;
 };
 
+export function invoiceApiError(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as
+      | { message?: string; error?: string }
+      | string
+      | undefined;
+    if (typeof data === "string" && data.trim()) return data;
+    if (data && typeof data === "object") {
+      return data.message || data.error || err.message || fallback;
+    }
+    return err.message || fallback;
+  }
+  return err instanceof Error ? err.message : fallback;
+}
+
+export async function findPurchaseInvoiceForOrder(
+  orderId: string | number,
+): Promise<FinanceInvoice | null> {
+  const numericOrderId = Number(orderId);
+  if (Number.isNaN(numericOrderId)) return null;
+  const invoices = await listPurchaseInvoices();
+  return (
+    invoices.find(
+      (inv) =>
+        inv.type === "PURCHASE" && Number(inv.orderId) === numericOrderId,
+    ) ?? null
+  );
+}
+
 export async function createInvoiceWithDocument(
   payload: CreatePurchaseInvoicePayload,
   file: File | null,
@@ -57,29 +76,36 @@ export async function createInvoiceWithDocument(
   formData.append(
     "invoice",
     new Blob([JSON.stringify(payload)], { type: "application/json" }),
+    "invoice.json",
   );
   if (file) {
     formData.append("file", file);
   }
 
-  const res = await fetch(`${apiBase()}/invoices/with-document`, {
-    method: "POST",
-    headers: authHeader(),
-    body: formData,
-  });
-
-  if (!res.ok) {
-    let msg = res.statusText;
-    try {
-      const err = await res.json();
-      msg = err?.message || err?.error || JSON.stringify(err) || msg;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(msg || "Failed to create invoice");
+  try {
+    const res = await apiClient.post<FinanceInvoice>(
+      "/invoices/with-document",
+      formData,
+    );
+    return res.data;
+  } catch (err: unknown) {
+    throw new Error(invoiceApiError(err, "Failed to create invoice"));
   }
+}
 
-  return res.json() as Promise<FinanceInvoice>;
+export async function updatePurchaseInvoice(
+  invoiceId: number,
+  payload: CreatePurchaseInvoicePayload,
+): Promise<FinanceInvoice> {
+  try {
+    const res = await apiClient.put<FinanceInvoice>(
+      `/invoices/${invoiceId}`,
+      payload,
+    );
+    return res.data;
+  } catch (err: unknown) {
+    throw new Error(invoiceApiError(err, "Failed to update invoice"));
+  }
 }
 
 export async function attachSupplierDocument(
@@ -88,37 +114,29 @@ export async function attachSupplierDocument(
 ): Promise<FinanceInvoice> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${apiBase()}/invoices/${invoiceId}/supplier-document`, {
-    method: "POST",
-    headers: authHeader(),
-    body: formData,
-  });
-  if (!res.ok) {
-    let msg = res.statusText;
-    try {
-      const err = await res.json();
-      msg = err?.message || msg;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(msg || "Upload failed");
+  try {
+    const res = await apiClient.post<FinanceInvoice>(
+      `/invoices/${invoiceId}/supplier-document`,
+      formData,
+    );
+    return res.data;
+  } catch (err: unknown) {
+    throw new Error(invoiceApiError(err, "Upload failed"));
   }
-  return res.json() as Promise<FinanceInvoice>;
 }
 
 export async function previewPdfText(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${apiBase()}/invoices/preview-pdf-text`, {
-    method: "POST",
-    headers: authHeader(),
-    body: formData,
-  });
-  if (!res.ok) {
+  try {
+    const res = await apiClient.post<{ text?: string }>(
+      "/invoices/preview-pdf-text",
+      formData,
+    );
+    return res.data.text ?? "";
+  } catch {
     throw new Error("Could not read PDF text");
   }
-  const data = (await res.json()) as { text?: string };
-  return data.text ?? "";
 }
 
 /** Direct PDF URL for embedding (blob public URL or external .pdf link). */

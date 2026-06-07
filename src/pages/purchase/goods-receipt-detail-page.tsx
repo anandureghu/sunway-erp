@@ -1,21 +1,126 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Printer } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ArrowLeft,
+  Printer,
+  Package,
+  FileText,
+  ShoppingCart,
+  Calendar,
+  User,
+  ClipboardCheck,
+  LayoutGrid,
+  ListOrdered,
+  Link2,
+} from "lucide-react";
 import { format } from "date-fns";
 import {
   getGoodsReceiptById,
   getGoodsReceiptPdfUrl,
   getGoodsReceiptsByPurchaseOrder,
   getPurchaseOrder,
+  getPurchaseRequisition,
 } from "@/service/purchaseFlowService";
 import type { GoodsReceipt } from "@/types/purchase";
 import { toast } from "sonner";
-import { RelatedPurchaseDocumentsCard } from "./components/related-purchase-documents";
 import { PurchasePageHeader } from "./components/purchase-page-header";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
+import { cn } from "@/lib/utils";
+
+const BASE = "/inventory/purchase";
+
+const STATUS_COLORS: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800",
+  in_progress: "bg-blue-100 text-blue-800",
+  completed: "bg-green-100 text-green-800",
+  cancelled: "bg-red-100 text-red-800",
+};
+
+const QUALITY_COLORS: Record<string, string> = {
+  pending: "bg-gray-100 text-gray-800",
+  passed: "bg-green-100 text-green-800",
+  failed: "bg-red-100 text-red-800",
+  partial: "bg-orange-100 text-orange-800",
+};
+
+function formatLabel(value: string) {
+  return value
+    .replace("_", " ")
+    .split(" ")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ");
+}
+
+function DetailField({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) {
+  if (value == null || value === "" || value === "—") return null;
+  return (
+    <div className={cn("space-y-1", className)}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        {label}
+      </p>
+      <div className="text-sm font-medium text-slate-900">{value}</div>
+    </div>
+  );
+}
+
+function KpiTile({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  accent: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+            accent,
+          )}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            {label}
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function receiptItemName(
+  item: GoodsReceipt["items"][number],
+): string {
+  return purchaseLineItemName(
+    item.orderItem ?? {
+      itemId: item.itemId,
+      itemName: item.item?.name,
+      item: item.item,
+    },
+  );
+}
 
 export default function GoodsReceiptDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,9 +129,15 @@ export default function GoodsReceiptDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
-  const [requisitionIdForLink, setRequisitionIdForLink] = useState<
+  const [linkedRequisitionId, setLinkedRequisitionId] = useState<
     string | undefined
   >(undefined);
+  const [linkedRequisitionNo, setLinkedRequisitionNo] = useState<string | null>(
+    null,
+  );
+  const [linkedPurchaseOrderNo, setLinkedPurchaseOrderNo] = useState<
+    string | null
+  >(null);
   const [receiptPdfUrl, setReceiptPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -42,47 +153,77 @@ export default function GoodsReceiptDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        setRequisitionIdForLink(undefined);
+        setLinkedRequisitionId(undefined);
+        setLinkedRequisitionNo(null);
+        setLinkedPurchaseOrderNo(null);
         setLinkedReceipts([]);
 
-        // Try to get receipt directly by ID
         const foundReceipt = await getGoodsReceiptById(id);
-
         if (cancelled) return;
 
-        if (foundReceipt) {
-          setReceipt(foundReceipt);
-          const reqFromOrder = foundReceipt.order?.requisitionId;
-          if (reqFromOrder) {
-            setRequisitionIdForLink(reqFromOrder);
-          } else if (foundReceipt.orderId) {
-            try {
-              const po = await getPurchaseOrder(foundReceipt.orderId);
-              if (po.requisitionId) setRequisitionIdForLink(po.requisitionId);
-            } catch {
-              /* ignore */
-            }
-          }
-        } else {
+        if (!foundReceipt) {
           setError(
             "Goods receipt not found. The receipt may not exist or may have been deleted.",
           );
           toast.error("Goods receipt not found");
+          return;
         }
-      } catch (e: any) {
+
+        setReceipt(foundReceipt);
+
+        const poFromReceipt = foundReceipt.order;
+        if (poFromReceipt?.orderNo) {
+          setLinkedPurchaseOrderNo(poFromReceipt.orderNo);
+        }
+
+        let reqId =
+          poFromReceipt?.requisitionId ?? foundReceipt.order?.requisitionId;
+        let reqNo = poFromReceipt?.requisitionNo ?? null;
+
+        if (foundReceipt.orderId) {
+          try {
+            const po = poFromReceipt ?? (await getPurchaseOrder(foundReceipt.orderId));
+            if (!cancelled) {
+              setLinkedPurchaseOrderNo(po.orderNo);
+              reqId = reqId ?? po.requisitionId;
+              reqNo = reqNo ?? po.requisitionNo ?? null;
+              setReceipt((prev) =>
+                prev ? { ...prev, order: po } : prev,
+              );
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
+        if (reqId && !cancelled) {
+          setLinkedRequisitionId(reqId);
+          if (reqNo) {
+            setLinkedRequisitionNo(reqNo);
+          } else {
+            try {
+              const pr = await getPurchaseRequisition(reqId);
+              if (!cancelled) setLinkedRequisitionNo(pr.requisitionNo);
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      } catch (e: unknown) {
         if (!cancelled) {
-          console.error("Error loading goods receipt:", e);
+          const err = e as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          };
           const errorMessage =
-            e?.response?.data?.message ||
-            e?.message ||
+            err?.response?.data?.message ||
+            err?.message ||
             "Failed to load goods receipt. Please try again.";
           setError(errorMessage);
           toast.error(errorMessage);
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     })();
 
@@ -148,8 +289,8 @@ export default function GoodsReceiptDetailPage() {
   if (error || !receipt) {
     return (
       <div className="p-6">
-        <div className="py-10 text-center space-y-4">
-          <div className="text-red-600 font-medium">
+        <div className="space-y-4 py-10 text-center">
+          <div className="font-medium text-red-600">
             {error || "Goods receipt not found"}
           </div>
           <Button variant="outline" onClick={() => navigate(-1)}>
@@ -161,19 +302,29 @@ export default function GoodsReceiptDetailPage() {
     );
   }
 
-  const statusColors: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    in_progress: "bg-blue-100 text-blue-800",
-    completed: "bg-green-100 text-green-800",
-    cancelled: "bg-red-100 text-red-800",
-  };
-
-  const qualityColors: Record<string, string> = {
-    pending: "bg-gray-100 text-gray-800",
-    passed: "bg-green-100 text-green-800",
-    failed: "bg-red-100 text-red-800",
-    partial: "bg-orange-100 text-orange-800",
-  };
+  const linkedRequisitionLabel =
+    linkedRequisitionNo ||
+    (linkedRequisitionId ? `PR-${linkedRequisitionId}` : "");
+  const linkedPurchaseOrderLabel =
+    linkedPurchaseOrderNo ||
+    receipt.order?.orderNo ||
+    (receipt.orderId ? `PO-${receipt.orderId}` : "");
+  const totalReceived = receipt.items.reduce(
+    (sum, item) => sum + item.receivedQuantity,
+    0,
+  );
+  const totalAccepted = receipt.items.reduce(
+    (sum, item) => sum + item.acceptedQuantity,
+    0,
+  );
+  const totalRejected = receipt.items.reduce(
+    (sum, item) => sum + item.rejectedQuantity,
+    0,
+  );
+  const hasRelated =
+    Boolean(linkedRequisitionId) ||
+    Boolean(receipt.orderId) ||
+    linkedReceipts.length > 0;
 
   const handlePrint = () => {
     window.print();
@@ -181,15 +332,10 @@ export default function GoodsReceiptDetailPage() {
 
   return (
     <>
-      {/* Print Styles */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-content, .print-content * {
-            visibility: visible;
-          }
+          body * { visibility: hidden; }
+          .print-content, .print-content * { visibility: visible; }
           .print-content {
             position: absolute;
             left: 0;
@@ -197,26 +343,20 @@ export default function GoodsReceiptDetailPage() {
             width: 100%;
             padding: 20px;
           }
-          .no-print {
-            display: none !important;
-          }
+          .no-print { display: none !important; }
           .print-header {
             text-align: center;
             margin-bottom: 30px;
             border-bottom: 2px solid #000;
             padding-bottom: 20px;
           }
-          .print-section {
-            margin-bottom: 20px;
-            page-break-inside: avoid;
-          }
+          .print-section { margin-bottom: 20px; page-break-inside: avoid; }
           .print-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
           }
-          .print-table th,
-          .print-table td {
+          .print-table th, .print-table td {
             border: 1px solid #000;
             padding: 8px;
             text-align: left;
@@ -239,12 +379,12 @@ export default function GoodsReceiptDetailPage() {
         }
       `}</style>
 
-      <div className="space-y-6 p-4 sm:p-6 print-content">
+      <div className="space-y-5 p-6 print-content">
         <div className="no-print">
           <PurchasePageHeader
-            title={`Receipt ${receipt.receiptNo}`}
-            description="Receiving and quality inspection details for this GRN."
-            backHref="/inventory/purchase/receiving"
+            title={receipt.receiptNo}
+            description="Receiving and quality inspection details for this goods receipt."
+            backHref={`${BASE}/receiving`}
             actions={
               <>
                 <Button
@@ -257,69 +397,451 @@ export default function GoodsReceiptDetailPage() {
                 </Button>
                 <Badge
                   className={
-                    statusColors[receipt.status] || "bg-gray-100 text-gray-800"
+                    STATUS_COLORS[receipt.status] || "bg-gray-100 text-gray-800"
                   }
                 >
-                  {receipt.status
-                    .replace("_", " ")
-                    .split(" ")
-                    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-                    .join(" ")}
+                  {formatLabel(receipt.status)}
                 </Badge>
               </>
             }
           />
         </div>
 
-        <div className="no-print mb-4">
-          <RelatedPurchaseDocumentsCard
-            context="gr"
-            requisitionId={requisitionIdForLink}
-            purchaseOrderId={receipt.orderId}
-            goodsReceipts={linkedReceipts}
-          />
-        </div>
+        <div className="no-print space-y-5">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KpiTile
+              icon={<Calendar className="h-4 w-4 text-emerald-600" />}
+              label="Receipt date"
+              value={
+                receipt.receiptDate
+                  ? format(new Date(receipt.receiptDate), "MMM d, yyyy")
+                  : "—"
+              }
+              accent="bg-emerald-50"
+            />
+            <KpiTile
+              icon={<Package className="h-4 w-4 text-blue-600" />}
+              label="Line items"
+              value={receipt.items.length}
+              accent="bg-blue-50"
+            />
+            <KpiTile
+              icon={<ClipboardCheck className="h-4 w-4 text-green-600" />}
+              label="Accepted qty"
+              value={totalAccepted}
+              accent="bg-green-50"
+            />
+            <KpiTile
+              icon={<Package className="h-4 w-4 text-red-600" />}
+              label="Rejected qty"
+              value={totalRejected}
+              accent="bg-red-50"
+            />
+          </div>
 
-        <Card className="no-print mb-4">
-          <CardHeader>
-            <CardTitle className="text-lg">Goods receipt PDF</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {receiptPdfUrl ? (
-              <>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={receiptPdfUrl} target="_blank" rel="noreferrer">
-                    Open in new tab
-                  </a>
-                </Button>
-                <div className="h-[min(520px,70vh)] w-full overflow-hidden rounded-md border">
-                  <iframe
-                    title="Goods receipt PDF"
-                    src={receiptPdfUrl}
-                    className="h-full min-h-[400px] w-full"
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="mb-4 h-auto w-full justify-start gap-1 rounded-xl bg-slate-100/80 p-1">
+              <TabsTrigger
+                value="overview"
+                className="gap-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="items"
+                className="gap-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <ListOrdered className="h-4 w-4" />
+                Inspection items
+                {receipt.items.length > 0 ? ` (${receipt.items.length})` : ""}
+              </TabsTrigger>
+              {hasRelated && (
+                <TabsTrigger
+                  value="related"
+                  className="gap-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Related
+                </TabsTrigger>
+              )}
+              <TabsTrigger
+                value="document"
+                className="gap-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <FileText className="h-4 w-4" />
+                PDF
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="mt-0 space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-slate-900">
+                  Receipt information
+                </h2>
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  <DetailField label="Receipt number" value={receipt.receiptNo} />
+                  <DetailField
+                    label="Status"
+                    value={
+                      <Badge
+                        className={
+                          STATUS_COLORS[receipt.status] ||
+                          "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {formatLabel(receipt.status)}
+                      </Badge>
+                    }
+                  />
+                  <DetailField
+                    label="Receipt date"
+                    value={
+                      receipt.receiptDate
+                        ? format(new Date(receipt.receiptDate), "MMM d, yyyy")
+                        : null
+                    }
+                  />
+                  <DetailField
+                    label="Purchase order"
+                    value={
+                      receipt.orderId ? (
+                        <Link
+                          className="inline-flex items-center gap-1.5 text-violet-700 hover:underline"
+                          to={`${BASE}/orders/${receipt.orderId}`}
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                          {linkedPurchaseOrderLabel}
+                        </Link>
+                      ) : null
+                    }
+                  />
+                  <DetailField
+                    label="Source requisition"
+                    value={
+                      linkedRequisitionId ? (
+                        <Link
+                          className="inline-flex items-center gap-1.5 text-emerald-700 hover:underline"
+                          to={`${BASE}/requisitions/${linkedRequisitionId}`}
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          {linkedRequisitionLabel}
+                        </Link>
+                      ) : null
+                    }
+                  />
+                  <DetailField
+                    label="Received by"
+                    value={
+                      receipt.receivedByName ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-slate-400" />
+                          {receipt.receivedByName}
+                        </span>
+                      ) : null
+                    }
+                  />
+                  <DetailField
+                    label="Inspected by"
+                    value={receipt.inspectedByName}
+                  />
+                  <DetailField
+                    label="Inspection date"
+                    value={
+                      receipt.inspectionDate
+                        ? format(new Date(receipt.inspectionDate), "MMM d, yyyy")
+                        : null
+                    }
+                  />
+                  <DetailField
+                    label="Notes"
+                    value={receipt.notes}
+                    className="sm:col-span-2"
                   />
                 </div>
-              </>
-            ) : (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void ensureReceiptPdf()}
-                disabled={pdfLoading}
-              >
-                {pdfLoading ? "Loading…" : "Load or generate receipt PDF"}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+              </div>
 
-        {/* Print Header */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-slate-900">
+                  Receipt summary
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                    <p className="text-xs text-slate-500">Total items</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">
+                      {receipt.items.length}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                    <p className="text-xs text-slate-500">Received quantity</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">
+                      {totalReceived}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-green-100 bg-green-50/60 p-4">
+                    <p className="text-xs text-green-700">Accepted</p>
+                    <p className="mt-1 text-lg font-semibold text-green-800">
+                      {totalAccepted}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-red-100 bg-red-50/60 p-4">
+                    <p className="text-xs text-red-700">Rejected</p>
+                    <p className="mt-1 text-lg font-semibold text-red-800">
+                      {totalRejected}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="items" className="mt-0">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm print-section">
+                <h2 className="mb-4 text-sm font-semibold text-slate-900">
+                  Quality inspection items
+                </h2>
+                {receipt.items.length > 0 ? (
+                  <>
+                    <div className="no-print overflow-x-auto">
+                      <table className="w-full min-w-[880px] text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <th className="pb-3 pr-4">Item</th>
+                            <th className="pb-3 pr-4 text-right">Ordered</th>
+                            <th className="pb-3 pr-4 text-right">Received</th>
+                            <th className="pb-3 pr-4 text-right">Accepted</th>
+                            <th className="pb-3 pr-4 text-right">Rejected</th>
+                            <th className="pb-3 pr-4 text-center">Quality</th>
+                            <th className="pb-3">Warehouse</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {receipt.items.map((item) => (
+                            <tr
+                              key={item.id}
+                              className="border-b border-slate-100 last:border-0"
+                            >
+                              <td className="py-3 pr-4">
+                                <p className="font-medium text-slate-900">
+                                  {receiptItemName(item)}
+                                </p>
+                                {item.item?.sku ? (
+                                  <p className="text-xs text-slate-500">
+                                    SKU: {item.item.sku}
+                                  </p>
+                                ) : null}
+                                {item.batchNo ? (
+                                  <p className="text-xs text-slate-500">
+                                    Batch: {item.batchNo}
+                                  </p>
+                                ) : null}
+                                {item.lotNo ? (
+                                  <p className="text-xs text-slate-500">
+                                    Lot: {item.lotNo}
+                                  </p>
+                                ) : null}
+                                {item.expiryDate ? (
+                                  <p className="text-xs text-slate-500">
+                                    Expiry:{" "}
+                                    {format(
+                                      new Date(item.expiryDate),
+                                      "MMM d, yyyy",
+                                    )}
+                                  </p>
+                                ) : null}
+                              </td>
+                              <td className="py-3 pr-4 text-right tabular-nums">
+                                {item.orderedQuantity}
+                              </td>
+                              <td className="py-3 pr-4 text-right tabular-nums">
+                                {item.receivedQuantity}
+                              </td>
+                              <td className="py-3 pr-4 text-right font-medium tabular-nums text-green-700">
+                                {item.acceptedQuantity}
+                              </td>
+                              <td className="py-3 pr-4 text-right font-medium tabular-nums text-red-700">
+                                {item.rejectedQuantity}
+                              </td>
+                              <td className="py-3 pr-4 text-center">
+                                <Badge
+                                  className={
+                                    QUALITY_COLORS[item.qualityStatus] ||
+                                    "bg-gray-100 text-gray-800"
+                                  }
+                                >
+                                  {formatLabel(item.qualityStatus)}
+                                </Badge>
+                              </td>
+                              <td className="py-3 text-slate-700">
+                                {item.warehouse?.name || item.warehouseId || "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <table className="print-table hidden print:table">
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th>SKU</th>
+                          <th>Ordered</th>
+                          <th>Received</th>
+                          <th>Accepted</th>
+                          <th>Rejected</th>
+                          <th>Quality Status</th>
+                          <th>Warehouse</th>
+                          <th>Batch/Lot</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {receipt.items.map((item) => (
+                          <tr key={item.id}>
+                            <td>{receiptItemName(item)}</td>
+                            <td>{item.item?.sku || "—"}</td>
+                            <td className="text-center">{item.orderedQuantity}</td>
+                            <td className="text-center">{item.receivedQuantity}</td>
+                            <td className="text-center">{item.acceptedQuantity}</td>
+                            <td className="text-center">{item.rejectedQuantity}</td>
+                            <td className="text-center">
+                              {formatLabel(item.qualityStatus)}
+                            </td>
+                            <td>
+                              {item.warehouse?.name || item.warehouseId || "—"}
+                            </td>
+                            <td>
+                              {item.batchNo || item.lotNo
+                                ? `${item.batchNo || ""}${item.batchNo && item.lotNo ? "/" : ""}${item.lotNo || ""}`
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-500">No items in this receipt</p>
+                )}
+              </div>
+            </TabsContent>
+
+            {hasRelated && (
+              <TabsContent value="related" className="mt-0">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="mb-1 text-sm font-semibold text-slate-900">
+                    Linked procurement documents
+                  </h2>
+                  <p className="mb-5 text-sm text-slate-500">
+                    Upstream requisition and purchase order for this receipt.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {linkedRequisitionId && (
+                      <Link
+                        to={`${BASE}/requisitions/${linkedRequisitionId}`}
+                        className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-emerald-200 hover:bg-emerald-50/50"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
+                          <FileText className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            Requisition
+                          </p>
+                          <p className="truncate font-semibold text-slate-900">
+                            {linkedRequisitionLabel}
+                          </p>
+                        </div>
+                      </Link>
+                    )}
+
+                    {receipt.orderId && (
+                      <Link
+                        to={`${BASE}/orders/${receipt.orderId}`}
+                        className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-violet-200 hover:bg-violet-50/50"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
+                          <ShoppingCart className="h-5 w-5 text-violet-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            Purchase order
+                          </p>
+                          <p className="truncate font-semibold text-slate-900">
+                            {linkedPurchaseOrderLabel}
+                          </p>
+                        </div>
+                      </Link>
+                    )}
+
+                    {linkedReceipts.map((gr) => (
+                      <Link
+                        key={gr.id}
+                        to={`${BASE}/receiving/${gr.id}`}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-200 hover:bg-blue-50/50",
+                          gr.id === receipt.id && "border-blue-300 bg-blue-50/60",
+                        )}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
+                          <Package className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            Goods receipt
+                          </p>
+                          <p className="truncate font-semibold text-slate-900">
+                            {gr.receiptNo}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </TabsContent>
+            )}
+
+            <TabsContent value="document" className="mt-0">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-slate-900">
+                  Goods receipt PDF
+                </h2>
+                {receiptPdfUrl ? (
+                  <div className="space-y-3">
+                    <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                      <a href={receiptPdfUrl} target="_blank" rel="noreferrer">
+                        Open in new tab
+                      </a>
+                    </Button>
+                    <div className="h-[min(520px,70vh)] w-full overflow-hidden rounded-xl border border-slate-200">
+                      <iframe
+                        title="Goods receipt PDF"
+                        src={receiptPdfUrl}
+                        className="h-full min-h-[400px] w-full"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="rounded-lg"
+                    onClick={() => void ensureReceiptPdf()}
+                    disabled={pdfLoading}
+                  >
+                    {pdfLoading ? "Loading…" : "Load or generate receipt PDF"}
+                  </Button>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
         <div className="print-header hidden print:block">
-          <h1 className="text-3xl font-bold mb-2">GOODS RECEIPT CERTIFICATE</h1>
+          <h1 className="mb-2 text-3xl font-bold">GOODS RECEIPT CERTIFICATE</h1>
           <h2 className="text-xl font-semibold">
             Receipt No: {receipt.receiptNo}
           </h2>
-          <p className="text-sm mt-2">
+          <p className="mt-2 text-sm">
             Date:{" "}
             {receipt.receiptDate
               ? format(new Date(receipt.receiptDate), "MMMM dd, yyyy")
@@ -327,269 +849,13 @@ export default function GoodsReceiptDetailPage() {
           </p>
         </div>
 
-        {/* Receipt Info */}
-        <Card className="print-section">
-          <CardHeader>
-            <CardTitle className="text-lg">Receipt Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Receipt Number</p>
-                <p className="font-medium">{receipt.receiptNo}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge
-                  className={
-                    statusColors[receipt.status] || "bg-gray-100 text-gray-800"
-                  }
-                >
-                  {receipt.status
-                    .replace("_", " ")
-                    .split(" ")
-                    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-                    .join(" ")}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Receipt Date</p>
-                <p className="font-medium">
-                  {receipt.receiptDate
-                    ? format(new Date(receipt.receiptDate), "MMM dd, yyyy")
-                    : "N/A"}
-                </p>
-              </div>
-              {receipt.orderId && (
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Purchase order
-                  </p>
-                  <Link
-                    className="font-medium text-primary hover:underline"
-                    to={`/inventory/purchase/orders/${receipt.orderId}`}
-                  >
-                    {receipt.order?.orderNo ||
-                      `Purchase Order #${receipt.orderId}`}
-                  </Link>
-                </div>
-              )}
-              {requisitionIdForLink && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Requisition</p>
-                  <Link
-                    className="font-medium text-primary hover:underline"
-                    to={`/inventory/purchase/requisitions/${requisitionIdForLink}`}
-                  >
-                    PR #{requisitionIdForLink}
-                  </Link>
-                </div>
-              )}
-              {receipt.receivedByName && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Received By</p>
-                  <p className="font-medium">{receipt.receivedByName}</p>
-                </div>
-              )}
-              {receipt.inspectedByName && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Inspected By</p>
-                  <p className="font-medium">{receipt.inspectedByName}</p>
-                </div>
-              )}
-              {receipt.inspectionDate && (
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Inspection Date
-                  </p>
-                  <p className="font-medium">
-                    {format(new Date(receipt.inspectionDate), "MMM dd, yyyy")}
-                  </p>
-                </div>
-              )}
-            </div>
-            {receipt.notes && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground">Notes</p>
-                <p className="font-medium">{receipt.notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quality Inspection Items */}
-        <Card className="print-section">
-          <CardHeader>
-            <CardTitle className="text-lg">Quality Inspection Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {receipt.items.length > 0 ? (
-              <>
-                {/* Screen View */}
-                <div className="space-y-3 no-print">
-                  <div className="grid grid-cols-7 gap-4 font-medium text-sm border-b pb-2">
-                    <div>Item</div>
-                    <div className="text-right">Ordered</div>
-                    <div className="text-right">Received</div>
-                    <div className="text-right">Accepted</div>
-                    <div className="text-right">Rejected</div>
-                    <div className="text-center">Quality Status</div>
-                    <div>Warehouse</div>
-                  </div>
-                  {receipt.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-7 gap-4 text-sm border-b pb-2"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {item.item?.name || `Item ${item.itemId}`}
-                        </p>
-                        {item.item?.sku && (
-                          <p className="text-xs text-muted-foreground">
-                            SKU: {item.item.sku}
-                          </p>
-                        )}
-                        {item.batchNo && (
-                          <p className="text-xs text-muted-foreground">
-                            Batch: {item.batchNo}
-                          </p>
-                        )}
-                        {item.lotNo && (
-                          <p className="text-xs text-muted-foreground">
-                            Lot: {item.lotNo}
-                          </p>
-                        )}
-                        {item.expiryDate && (
-                          <p className="text-xs text-muted-foreground">
-                            Expiry:{" "}
-                            {format(new Date(item.expiryDate), "MMM dd, yyyy")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">{item.orderedQuantity}</div>
-                      <div className="text-right">{item.receivedQuantity}</div>
-                      <div className="text-right text-green-600 font-medium">
-                        {item.acceptedQuantity}
-                      </div>
-                      <div className="text-right text-red-600 font-medium">
-                        {item.rejectedQuantity}
-                      </div>
-                      <div className="text-center">
-                        <Badge
-                          className={
-                            qualityColors[item.qualityStatus] ||
-                            "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {item.qualityStatus.charAt(0).toUpperCase() +
-                            item.qualityStatus.slice(1)}
-                        </Badge>
-                      </div>
-                      <div>
-                        {item.warehouse?.name || item.warehouseId || "N/A"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Print View */}
-                <table className="print-table hidden print:table">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>SKU</th>
-                      <th>Ordered</th>
-                      <th>Received</th>
-                      <th>Accepted</th>
-                      <th>Rejected</th>
-                      <th>Quality Status</th>
-                      <th>Warehouse</th>
-                      <th>Batch/Lot</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {receipt.items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.item?.name || `Item ${item.itemId}`}</td>
-                        <td>{item.item?.sku || "-"}</td>
-                        <td className="text-center">{item.orderedQuantity}</td>
-                        <td className="text-center">{item.receivedQuantity}</td>
-                        <td className="text-center">{item.acceptedQuantity}</td>
-                        <td className="text-center">{item.rejectedQuantity}</td>
-                        <td className="text-center">
-                          {item.qualityStatus.charAt(0).toUpperCase() +
-                            item.qualityStatus.slice(1)}
-                        </td>
-                        <td>
-                          {item.warehouse?.name || item.warehouseId || "N/A"}
-                        </td>
-                        <td>
-                          {item.batchNo || item.lotNo
-                            ? `${item.batchNo || ""}${item.batchNo && item.lotNo ? "/" : ""}${item.lotNo || ""}`
-                            : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            ) : (
-              <p className="text-muted-foreground">No items in this receipt</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Summary */}
-        <Card className="print-section">
-          <CardHeader>
-            <CardTitle className="text-lg">Receipt Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Total Items:</span>
-                <span className="font-medium">{receipt.items.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Received Quantity:</span>
-                <span className="font-medium">
-                  {receipt.items.reduce(
-                    (sum, item) => sum + item.receivedQuantity,
-                    0,
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between text-green-600">
-                <span>Total Accepted:</span>
-                <span className="font-medium">
-                  {receipt.items.reduce(
-                    (sum, item) => sum + item.acceptedQuantity,
-                    0,
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between text-red-600">
-                <span>Total Rejected:</span>
-                <span className="font-medium">
-                  {receipt.items.reduce(
-                    (sum, item) => sum + item.rejectedQuantity,
-                    0,
-                  )}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Print Signatures */}
         <div className="print-signature hidden print:flex print-section">
           <div>
             <p className="font-semibold">Received By:</p>
             <p className="mt-8">
               {receipt.receivedByName || "________________"}
             </p>
-            <p className="text-sm mt-2">
+            <p className="mt-2 text-sm">
               Date:{" "}
               {receipt.receiptDate
                 ? format(new Date(receipt.receiptDate), "MMM dd, yyyy")
@@ -601,7 +867,7 @@ export default function GoodsReceiptDetailPage() {
             <p className="mt-8">
               {receipt.inspectedByName || "________________"}
             </p>
-            <p className="text-sm mt-2">
+            <p className="mt-2 text-sm">
               Date:{" "}
               {receipt.inspectionDate
                 ? format(new Date(receipt.inspectionDate), "MMM dd, yyyy")
@@ -611,7 +877,7 @@ export default function GoodsReceiptDetailPage() {
           <div>
             <p className="font-semibold">Authorized By:</p>
             <p className="mt-8">________________</p>
-            <p className="text-sm mt-2">Date: ________________</p>
+            <p className="mt-2 text-sm">Date: ________________</p>
           </div>
         </div>
       </div>

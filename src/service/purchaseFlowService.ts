@@ -706,6 +706,13 @@ function toGoodsReceipt(
       orderItemId: orderItem?.id || `poi-${dto.purchaseOrderId}-${idx}`,
       orderItem: orderItem,
       itemId: li.itemId,
+      item: orderItem
+        ? {
+            id: orderItem.itemId,
+            name: orderItem.itemName ?? orderItem.item?.itemName ?? undefined,
+            sku: (orderItem.item as { sku?: string } | undefined)?.sku,
+          }
+        : undefined,
       orderedQuantity: orderItem?.quantity || 0,
       receivedQuantity: Number(li.receivedQty || 0),
       acceptedQuantity: Number(li.acceptedQty || 0),
