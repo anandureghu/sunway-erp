@@ -28,10 +28,15 @@ import {
   XCircle,
 } from "lucide-react";
 import { archivePurchaseRequisition } from "@/service/purchaseFlowService";
+import { useModulePermission } from "@/hooks/use-module-permission";
+import { InventoryModule } from "@/lib/module-permissions";
 
 export default function PurchaseRequisitionsPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canCreate, canEdit, canApprove, canDelete } = useModulePermission(
+    InventoryModule.PURCHASE,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(
@@ -52,8 +57,13 @@ export default function PurchaseRequisitionsPage() {
   const [reviewLoading, setReviewLoading] = useState(false);
 
   useEffect(() => {
-    setShowCreateForm(location.pathname.includes("/new"));
-  }, [location.pathname]);
+    const wantsCreate = location.pathname.includes("/new");
+    if (wantsCreate && !canCreate) {
+      navigate("/inventory/purchase/requisitions", { replace: true });
+      return;
+    }
+    setShowCreateForm(wantsCreate && canCreate);
+  }, [location.pathname, canCreate, navigate]);
 
   const refreshRequisitions = useCallback(async () => {
     setLoading(true);
@@ -316,14 +326,14 @@ export default function PurchaseRequisitionsPage() {
     () =>
       createPurchaseRequisitionColumns({
         onOpenDetail: handleOpenDetail,
-        onEdit: handleEdit,
-        onSubmit: handleSubmit,
-        onApprove: handleApprove,
-        onSendBack: handleSendBack,
-        onReject: handleReject,
-        onRevise: handleRevise,
+        onEdit: canEdit ? handleEdit : undefined,
+        onSubmit: canEdit ? handleSubmit : undefined,
+        onApprove: canApprove ? handleApprove : undefined,
+        onSendBack: canApprove ? handleSendBack : undefined,
+        onReject: canApprove ? handleReject : undefined,
+        onRevise: canEdit ? handleRevise : undefined,
         onOpenPurchaseOrder: handleOpenPo,
-        onArchive: handleArchiveRequisition,
+        onArchive: canDelete ? handleArchiveRequisition : undefined,
         processingRequisitionId: actionState?.id ?? null,
         processingAction: actionState?.type ?? null,
       }),
@@ -338,6 +348,9 @@ export default function PurchaseRequisitionsPage() {
       handleOpenPo,
       handleArchiveRequisition,
       actionState,
+      canEdit,
+      canApprove,
+      canDelete,
     ],
   );
 
@@ -373,6 +386,7 @@ export default function PurchaseRequisitionsPage() {
       statusFilter={statusFilter}
       columns={columns}
       onCreateNew={() => navigate("/inventory/purchase/requisitions/new")}
+      showCreateButton={canCreate}
       onSearchChange={setSearchQuery}
       onStatusChange={setStatusFilter}
       onRetry={() => void refreshRequisitions()}

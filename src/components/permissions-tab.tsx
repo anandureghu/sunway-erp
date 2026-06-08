@@ -37,6 +37,7 @@ interface Role {
 
 interface Permission {
   id: number;
+  roleId?: number;
   role: string;
   staffId?: number;
   staffName: string;
@@ -60,10 +61,8 @@ const CAPS = [
   { key: "approve", label: "Approve" },
 ];
 
-const FALLBACK_ROLES: Role[] = [
-  { id: 1, name: "USER", custom: false },
-  { id: 2, name: "ADMIN", custom: false },
-];
+const normalizeModuleKey = (mod: string): string =>
+  mod.toUpperCase().replace(/[_-]/g, "_");
 
 export default function PermissionsTab({ moduleType, modules }: Props) {
   const { user } = useAuth();
@@ -72,49 +71,96 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   const [modal, setModal] = useState<"perm" | "role" | null>(null);
   const [permForm, setPermForm] = useState<
     Partial<Permission> & { caps: Record<string, Record<string, boolean>> }
-  >({ role: "", staffId: undefined, caps: {}, active: true });
+  >({ role: "", roleId: undefined, staffId: undefined, caps: {}, active: true });
   const [employees, setEmployees] = useState<any[]>([]);
   const [q] = useState("");
   const [filterRole] = useState("All");
 
   const companyId = user?.companyId ? Number(user.companyId) : null;
+  const modulePrefix = `${moduleType}_`;
 
   const emptyCaps = useCallback(() => {
     return Object.fromEntries(
       modules.map((m) => [
-        m.id.toUpperCase().replace(/[_-]/g, "_"),
+        normalizeModuleKey(m.id),
         Object.fromEntries(CAPS.map((c) => [c.key, false])),
       ]),
     );
   }, [modules]);
 
+  const belongsToModuleType = useCallback(
+    (moduleKey: string) => {
+      const upper = normalizeModuleKey(moduleKey);
+      return upper.startsWith(modulePrefix);
+    },
+    [modulePrefix],
+  );
+
+  const filterCapsForModuleType = useCallback(
+    (caps: Record<string, Record<string, boolean>>) => {
+      return Object.fromEntries(
+        Object.entries(caps).filter(([key]) => belongsToModuleType(key)),
+      );
+    },
+    [belongsToModuleType],
+  );
+
+  const capsToForm = useCallback(
+    (caps: Record<string, Record<string, boolean>>) => {
+      const formCaps = emptyCaps();
+      for (const [key, perms] of Object.entries(caps)) {
+        const upper = normalizeModuleKey(key);
+        if (!belongsToModuleType(upper)) continue;
+        const formKey = upper.startsWith(modulePrefix)
+          ? upper.slice(modulePrefix.length)
+          : upper;
+        if (formCaps[formKey]) {
+          formCaps[formKey] = { ...formCaps[formKey], ...perms };
+        }
+      }
+      return formCaps;
+    },
+    [belongsToModuleType, emptyCaps, modulePrefix],
+  );
+
+  const countActiveCaps = useCallback(
+    (caps: Record<string, Record<string, boolean>>) =>
+      Object.values(filterCapsForModuleType(caps)).reduce(
+        (sum, m) => sum + Object.values(m).filter(Boolean).length,
+        0,
+      ),
+    [filterCapsForModuleType],
+  );
+
   useEffect(() => {
     const ensureRoles = async () => {
-      if (roles.length > 0) return;
       try {
         const res = companyId
           ? await roleService.getRoles(companyId)
           : await roleService.getRoles();
         if (res && res.length > 0) {
           setRoles(
-            res.map((r: any) => ({
-              id: r.id!,
-              name: r.name,
-              custom: !!r.custom,
-              description: r.description,
-              active: r.active,
-            })),
+            res
+              .filter((r: any) => r.id !== undefined)
+              .map((r: any) => ({
+                id: r.id!,
+                name: r.name,
+                custom: !!r.custom,
+                description: r.description,
+                active: r.active,
+              })),
           );
         } else {
-          setRoles(FALLBACK_ROLES);
+          setRoles([]);
         }
       } catch (err) {
         console.error("Failed to load roles:", err);
-        setRoles(FALLBACK_ROLES);
+        setRoles([]);
+        toast.error("Failed to load company roles");
       }
     };
     ensureRoles();
-  }, [companyId, roles.length]);
+  }, [companyId]);
 
   useEffect(() => {
     const loadEmployees = async () => {
@@ -129,89 +175,115 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   }, []);
 
   const fetchPerms = useCallback(async () => {
+    if (roles.length === 0) {
+      setPerms([]);
+      return;
+    }
+
     try {
       const results: Permission[] = [];
+
       for (const role of roles) {
         try {
-          const rolePerms = await permissionService.getByRole(role.name);
+          const rolePerms = await permissionService.getCompanyRolePermissions(
+            role.id,
+          );
           if (!rolePerms || rolePerms.length === 0) continue;
 
-          const roleWidePerms = rolePerms.filter(
-            (p) => !p.employeeId && !p.employee,
-          );
-          if (roleWidePerms.length > 0) {
-            results.push({
-              id: role.id,
-              role: role.name,
-              staffId: undefined,
-              staffName: "",
-              email: "",
-              phone: "",
-              caps: permissionService.toFrontendCaps(roleWidePerms),
-              active: true,
-            });
-          }
+          const caps = permissionService.toFrontendCaps(rolePerms);
+          if (countActiveCaps(caps) === 0) continue;
+
+          results.push({
+            id: role.id,
+            roleId: role.id,
+            role: role.name,
+            staffId: undefined,
+            staffName: "",
+            email: "",
+            phone: "",
+            caps,
+            active: true,
+          });
         } catch (e) {
           console.warn(`Failed role ${role.name}:`, e);
         }
       }
+
+      for (const emp of employees) {
+        if (!emp.id) continue;
+        try {
+          const empPerms = await permissionService.getEmployeePermissions(
+            Number(emp.id),
+          );
+          if (!empPerms || empPerms.length === 0) continue;
+
+          const caps = permissionService.toFrontendCaps(empPerms);
+          if (countActiveCaps(caps) === 0) continue;
+
+          results.push({
+            id: 100000 + Number(emp.id),
+            role: emp.companyRole || String(emp.role || "Unassigned"),
+            staffId: Number(emp.id),
+            staffName: `${emp.firstName} ${emp.lastName}`,
+            email: emp.email || "",
+            phone: emp.phoneNo || "",
+            caps,
+            active: true,
+          });
+        } catch (e) {
+          console.warn(`Failed employee ${emp.id}:`, e);
+        }
+      }
+
       setPerms(results);
     } catch (err) {
       console.error("Error loading permissions:", err);
     }
-  }, [roles]);
+  }, [roles, employees, countActiveCaps]);
 
   useEffect(() => {
-    if (roles.length > 0) fetchPerms();
-  }, [roles.length, fetchPerms]);
-
-  const normalizeModuleKey = useCallback(
-    (mod: string): string => mod.toUpperCase().replace(/[_-]/g, "_"),
-    [],
-  );
+    if (roles.length > 0) void fetchPerms();
+  }, [roles.length, employees.length, fetchPerms]);
 
   const allModOn = useCallback(
     (modId: string) =>
       CAPS.every(
-        (cap) => permForm.caps?.[normalizeModuleKey(modId)]?.[cap.key] || false,
+        (cap) =>
+          permForm.caps?.[normalizeModuleKey(modId)]?.[cap.key] || false,
       ),
-    [permForm.caps, normalizeModuleKey],
+    [permForm.caps],
   );
 
-  const toggleAllMod = useCallback(
-    (modId: string) => {
-      const normalizedMod = normalizeModuleKey(modId);
-      const on = !allModOn(modId);
-      setPermForm((v) => ({
-        ...v,
-        caps: {
-          ...v.caps,
-          [normalizedMod]: Object.fromEntries(CAPS.map((c) => [c.key, on])),
-        },
-      }));
-    },
-    [allModOn, normalizeModuleKey],
-  );
+  const toggleAllMod = useCallback((modId: string) => {
+    const normalizedMod = normalizeModuleKey(modId);
+    const on = !allModOn(modId);
+    setPermForm((v) => ({
+      ...v,
+      caps: {
+        ...v.caps,
+        [normalizedMod]: Object.fromEntries(CAPS.map((c) => [c.key, on])),
+      },
+    }));
+  }, [allModOn]);
 
-  const toggleCap = useCallback(
-    (modId: string, cap: string, checked: boolean) => {
-      const normalizedMod = normalizeModuleKey(modId);
-      setPermForm((prev) => ({
-        ...prev,
-        caps: {
-          ...prev.caps,
-          [normalizedMod]: {
-            ...prev.caps[normalizedMod],
-            [cap]: checked,
-          },
+  const toggleCap = useCallback((modId: string, cap: string, checked: boolean) => {
+    const normalizedMod = normalizeModuleKey(modId);
+    setPermForm((prev) => ({
+      ...prev,
+      caps: {
+        ...prev.caps,
+        [normalizedMod]: {
+          ...prev.caps[normalizedMod],
+          [cap]: checked,
         },
-      }));
-    },
-    [normalizeModuleKey],
-  );
+      },
+    }));
+  }, []);
 
   const savePerm = useCallback(async () => {
-    if (!permForm.role) return toast.error("Role is required");
+    if (!permForm.roleId && !permForm.staffId) {
+      return toast.error("Role is required");
+    }
 
     try {
       const normalizedCaps: Record<string, Record<string, boolean>> = {};
@@ -232,20 +304,26 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
         },
       }));
 
-      let employeeId: number | undefined = undefined;
-      if (permForm.staffId && permForm.staffId > 0)
-        employeeId = Number(permForm.staffId);
+      if (permForm.staffId && permForm.staffId > 0) {
+        await permissionService.assignEmployeePermissions(
+          Number(permForm.staffId),
+          dtos,
+        );
+      } else {
+        await permissionService.assignCompanyRolePermissions(
+          Number(permForm.roleId),
+          dtos,
+        );
+      }
 
-      const roleToSend = normalizeRole(permForm.role as string);
-      await permissionService.assignPermissions(roleToSend, dtos, employeeId);
       toast.success("Permissions saved!");
-      fetchPerms();
+      await fetchPerms();
       setModal(null);
     } catch (err) {
       console.error("Failed to save permissions", err);
       toast.error("Failed to save permissions");
     }
-  }, [permForm, moduleType, fetchPerms, normalizeModuleKey]);
+  }, [permForm, moduleType, fetchPerms]);
 
   const displayed = useMemo(() => {
     let list = perms;
@@ -265,9 +343,20 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   const openAdd = () => {
     setPermForm({
       role: "",
+      roleId: undefined,
       staffId: undefined,
       caps: emptyCaps(),
       active: true,
+    });
+    setModal("perm");
+  };
+
+  const openEdit = (rec: Permission) => {
+    setPermForm({
+      ...rec,
+      roleId: rec.roleId,
+      caps: capsToForm(rec.caps),
+      active: rec.active ?? true,
     });
     setModal("perm");
   };
@@ -310,15 +399,15 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
                 <TableCell>{p.staffName || "Role-wide"}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">
-                    {Object.values(p.caps || {}).reduce(
-                      (sum, m) => sum + Object.values(m).filter(Boolean).length,
-                      0,
-                    )}{" "}
-                    permissions
+                    {countActiveCaps(p.caps)} permissions
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEdit(p)}
+                  >
                     Edit
                   </Button>
                 </TableCell>
@@ -332,9 +421,11 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
         <Dialog open onOpenChange={() => setModal(null)}>
           <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add Permission</DialogTitle>
+              <DialogTitle>
+                {permForm.id ? "Edit Permission" : "Add Permission"}
+              </DialogTitle>
               <DialogDescription>
-                Choose a role and optionally an individual employee, then
+                Choose a company role and optionally an individual employee, then
                 configure their access.
               </DialogDescription>
             </DialogHeader>
@@ -345,15 +436,21 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
                     Role *
                   </label>
                   <select
-                    value={permForm.role ?? ""}
-                    onChange={(e) =>
-                      setPermForm((v) => ({ ...v, role: e.target.value }))
-                    }
+                    value={permForm.roleId ?? ""}
+                    onChange={(e) => {
+                      const roleId = Number(e.target.value) || undefined;
+                      const role = roles.find((r) => r.id === roleId);
+                      setPermForm((v) => ({
+                        ...v,
+                        roleId,
+                        role: role?.name ?? "",
+                      }));
+                    }}
                     className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                   >
                     <option value="">None selected</option>
                     {roles.map((r) => (
-                      <option key={r.id} value={r.name}>
+                      <option key={r.id} value={r.id}>
                         {r.name}
                       </option>
                     ))}

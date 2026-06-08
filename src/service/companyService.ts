@@ -250,34 +250,60 @@ export const getSidebarItems = async (
 
     // ── Inventory ─────────────────────────────────────────────────────────────
     ...(company.inventoryEnabled
-      ? [
-          {
-            title: "Inventory",
-            icon: Package,
-            color: "text-amber-700",
-            image: "/assets/images/inventory.svg",
-            url: "/inventory/dashboard",
-            items: [
-              {
-                title: "Inventory (Stocks)",
-                url: "/inventory/stocks",
-                icon: Package,
-              },
-              { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-              { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
-              {
-                title: "Inventory Reports",
-                url: "/inventory/reports",
-                icon: FileText,
-              },
-              {
-                title: "Inventory Settings",
-                url: "/inventory/settings",
-                icon: Settings,
-              },
-            ],
-          },
-        ]
+      ? (() => {
+          const inventoryItems = [
+            ...(canView(permissions, "INVENTORY_STOCK") ||
+            canView(permissions, "INVENTORY_ITEM")
+              ? [
+                  {
+                    title: "Inventory (Stocks)",
+                    url: "/inventory/stocks",
+                    icon: Package,
+                  },
+                ]
+              : []),
+            ...(canView(permissions, "INVENTORY_SALES")
+              ? [{ title: "Sales", url: "/inventory/sales", icon: ShoppingCart }]
+              : []),
+            ...(canView(permissions, "INVENTORY_PURCHASE")
+              ? [{ title: "Purchase", url: "/inventory/purchase", icon: Receipt }]
+              : []),
+            ...(canView(permissions, "INVENTORY_STOCK")
+              ? [
+                  {
+                    title: "Inventory Reports",
+                    url: "/inventory/reports",
+                    icon: FileText,
+                  },
+                ]
+              : []),
+            ...(canView(permissions, "INVENTORY_CATEGORY") ||
+            canView(permissions, "INVENTORY_WAREHOUSE") ||
+            canView(permissions, "INVENTORY_PURCHASE") ||
+            canView(permissions, "INVENTORY_SALES")
+              ? [
+                  {
+                    title: "Inventory Settings",
+                    url: "/inventory/settings",
+                    icon: Settings,
+                  },
+                ]
+              : []),
+          ];
+
+          if (inventoryItems.length === 0) return [];
+
+          return [
+            {
+              title: "Inventory",
+              icon: Package,
+              color: "text-amber-700",
+              image: "/assets/images/inventory.svg",
+              url: "/inventory/dashboard",
+              items: inventoryItems,
+            },
+          ];
+        })()
       : []),
 
     // ── Finance ───────────────────────────────────────────────────────────────
