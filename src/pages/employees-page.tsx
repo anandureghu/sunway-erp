@@ -237,7 +237,7 @@ export default function EmployeesPage() {
       return;
     }
 
-    const hasPermission = (moduleId: string) => {
+    const hasView = (moduleId: string) => {
       const perm = (permissions as any)?.[moduleId];
       if (!perm) return false;
       return !!(
@@ -249,7 +249,7 @@ export default function EmployeesPage() {
     };
 
     const has =
-      hasPermission("EMPLOYEE_PROFILE") || hasPermission("CURRENT_JOB");
+      hasView("EMPLOYEE_PROFILE") || hasView("CURRENT_JOB");
     setCanViewEmployees(!!has);
   }, [permissions, permissionsLoading]);
 
@@ -327,12 +327,14 @@ export default function EmployeesPage() {
       window.removeEventListener("employee:updated", handler as EventListener);
   }, []);
 
+  const hasCreate = (moduleId: string) =>
+    !!(permissions as any)?.[moduleId]?.create;
+
   const showAdd =
     permissions === null ||
     permissionsLoading ||
-    ["employee_profile", "current_job"].some(
-      (m) => (permissions as any)?.[m]?.create === true,
-    );
+    hasCreate("EMPLOYEE_PROFILE") ||
+    hasCreate("CURRENT_JOB");
 
   return (
     <div className="p-6 space-y-4">
