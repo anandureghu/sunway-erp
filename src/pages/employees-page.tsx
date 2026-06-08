@@ -17,7 +17,7 @@ import { EmployeeStats } from "@/modules/hr/components/employee-stats";
 import { AddEmployeeModal } from "@/context/employee-selection";
 import { useAuth } from "@/context/AuthContext";
 import { UserPlus, Users2, LayoutGrid } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isSecurityAdmin } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 
 interface EmployeeTableProps {
@@ -221,10 +221,12 @@ export default function EmployeesPage() {
   };
 
   // load employees with department from current job
+  const isAdmin = isSecurityAdmin(user?.role);
+
   // determine canViewEmployees once when permissions change
   useEffect(() => {
-    // Admin bypass (permissions === null)
-    if (permissions === null) {
+    // Admin bypass (permissions === null or JWT security role)
+    if (isAdmin || permissions === null) {
       setCanViewEmployees(true);
       return;
     }
@@ -251,7 +253,7 @@ export default function EmployeesPage() {
     const has =
       hasView("EMPLOYEE_PROFILE") || hasView("CURRENT_JOB");
     setCanViewEmployees(!!has);
-  }, [permissions, permissionsLoading]);
+  }, [permissions, permissionsLoading, isAdmin]);
 
   // Load employees when we know user can view them
   useEffect(() => {
@@ -259,10 +261,6 @@ export default function EmployeesPage() {
 
     const load = async () => {
       try {
-        const isAdmin =
-          (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
-          (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
-
         if (!isAdmin && !canViewEmployees) {
           setEmployees([]);
           return;
@@ -299,7 +297,7 @@ export default function EmployeesPage() {
     return () => {
       mounted = false;
     };
-  }, [canViewEmployees, user]);
+  }, [canViewEmployees, user, isAdmin]);
 
   // permissionsLoading handled above; no local permissionsLoaded state
 
@@ -331,6 +329,7 @@ export default function EmployeesPage() {
     !!(permissions as any)?.[moduleId]?.create;
 
   const showAdd =
+    isAdmin ||
     permissions === null ||
     permissionsLoading ||
     hasCreate("EMPLOYEE_PROFILE") ||

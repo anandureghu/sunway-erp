@@ -9,6 +9,7 @@ import permissionService from "@/service/permissionService";
 import type { AccountingPeriod } from "@/types/accounting-period";
 import type { AxiosResponse } from "axios";
 import { fetchCompany } from "@/service/companyService";
+import { isSecurityAdmin } from "@/lib/utils";
 
 type DecodedToken = {
   userId?: number;
@@ -102,15 +103,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return result;
   };
 
-  // Fetch permissions based on user role
-  const fetchPermissions = async (role: string, companyRoleId?: number) => {
+  // Fetch permissions based on company role; securityRole is JWT ADMIN/SUPER_ADMIN.
+  const fetchPermissions = async (
+    role: string,
+    companyRoleId?: number,
+    securityRole?: string,
+  ) => {
     try {
       setPermissionsLoading(true);
-      console.debug("🔐 Starting permission fetch for role:", role, "companyRoleId:", companyRoleId);
+      console.debug("🔐 Starting permission fetch for role:", role, "companyRoleId:", companyRoleId, "securityRole:", securityRole);
 
-      // ADMIN/SUPER_ADMIN skip DB fetch — canAccess returns true for null
-      if (role === "ADMIN" || role === "SUPER_ADMIN") {
-        console.debug("✅ Admin user detected - granting full permissions");
+      // ADMIN/SUPER_ADMIN bypass uses JWT security role — not company role name
+      // (prod super admins often have companyRoleId + companyRole like "Super Admin").
+      if (isSecurityAdmin(securityRole)) {
+        console.debug("✅ Security admin detected - granting full permissions");
         setPermissions(null); // null = admin, full access
         setPermissionsLoading(false);
         return;
@@ -190,7 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Last resort: Try getByRole (only works for ADMIN/SUPER_ADMIN)
       // Skip for non-admin users since the endpoint is restricted
-      if (role === "ADMIN" || role === "SUPER_ADMIN") {
+      if (isSecurityAdmin(securityRole)) {
         try {
           console.debug(`📡 Calling getByRole(${role})...`);
           const rolePerms = await permissionService.getByRole(role as string);
@@ -300,11 +306,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (decoded.companyRoleId != null) {
             fetchPermissions(
               decoded.companyRole || role,
-              decoded.companyRoleId
+              decoded.companyRoleId,
+              role,
             );
           } else {
             const effectiveRole = profile.companyRole ?? role;
-            fetchPermissions(effectiveRole);
+            fetchPermissions(effectiveRole, undefined, role);
           }
         })
         .catch((e) => {
@@ -312,14 +319,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (decoded.companyRoleId != null) {
             fetchPermissions(
               decoded.companyRole || role,
-              decoded.companyRoleId
+              decoded.companyRoleId,
+              role,
             );
           } else {
-            fetchPermissions(role);
+            fetchPermissions(role, undefined, role);
           }
         });
     } else {
-      fetchPermissions(role);
+      fetchPermissions(role, undefined, role);
     }
   };
 
