@@ -21,13 +21,19 @@ import {
   Shield,
 } from "lucide-react";
 
-export const fetchCompany = async (id: string) => {
+export const fetchCompany = async (
+  id: string,
+  options?: { silent?: boolean },
+) => {
   try {
     const res = await apiClient.get(`/companies/${id}`);
     return res.data;
   } catch (err) {
     console.error("fetchCompany:", err);
-    toast.error("Failed to load company");
+    if (!options?.silent) {
+      toast.error("Failed to load company");
+    }
+    return undefined;
   }
 };
 
@@ -166,6 +172,11 @@ export const getSidebarItems = async (
     skipPermissions?: boolean;
     permissions?: Record<string, any> | null;
     permissionsLoading?: boolean;
+    company?: {
+      hrEnabled?: boolean;
+      inventoryEnabled?: boolean;
+      financeEnabled?: boolean;
+    } | null;
   },
 ): Promise<SidebarItem[]> => {
   const permissions = options?.skipPermissions ? null : options?.permissions;
@@ -182,7 +193,9 @@ export const getSidebarItems = async (
         : "N/A",
   });
 
-  const company = await fetchCompany(companyId);
+  const company =
+    options?.company ??
+    (await fetchCompany(companyId, { silent: true }));
   if (!company) {
     console.warn("❌ Company not found");
     return [];

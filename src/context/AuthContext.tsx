@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { apiClient } from "@/service/apiClient";
 import type { Employee, Role } from "@/types/hr";
@@ -10,6 +10,11 @@ import type { AccountingPeriod } from "@/types/accounting-period";
 import type { AxiosResponse } from "axios";
 import { fetchCompany } from "@/service/companyService";
 import { isSecurityAdmin } from "@/lib/utils";
+import {
+  ACTIVE_COMPANY_KEY,
+  type CompanySummary,
+  type JwtLoginResponse,
+} from "@/types/auth-company";
 
 type DecodedToken = {
   userId?: number;
@@ -28,10 +33,14 @@ type AuthContextType = {
   user: Employee | null;
   accessToken: string | null;
   refreshToken: string | null;
-  login: (accessToken: string, refreshToken: string) => void;
+  login: (accessToken: string, refreshToken: string, meta?: Partial<JwtLoginResponse>) => void;
   logout: () => void;
   isAuthenticated: boolean;
   company: Company | null;
+  /** Active tenant id from JWT — use this (or company.id) for all company-scoped API calls */
+  activeCompanyId: number | null;
+  companies: CompanySummary[];
+  switchCompany: (companyId: number) => Promise<void>;
   permissions: Record<string, Record<string, boolean>> | null;
   permissionsLoading: boolean;
   accountPeriodOpen: boolean;
@@ -41,11 +50,30 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/** Rewrite settings URLs that embed company id when the active tenant changes. */
+function remapCompanyScopedPath(
+  pathname: string,
+  companyId: number,
+): string | null {
+  const payroll = pathname.match(/^\/settings\/payroll\/(\d+)(\/.*)?$/);
+  if (payroll) return `/settings/payroll/${companyId}${payroll[2] ?? ""}`;
+
+  const roles = pathname.match(/^\/settings\/roles\/(\d+)(\/.*)?$/);
+  if (roles) return `/settings/roles/${companyId}${roles[2] ?? ""}`;
+
+  const settings = pathname.match(/^\/settings\/(\d+)(\/.*)?$/);
+  if (settings) return `/settings/${companyId}${settings[2] ?? ""}`;
+
+  return null;
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [user, setUser] = useState<Employee | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+  const [companies, setCompanies] = useState<CompanySummary[]>([]);
   const [accountPeriodOpen, setAccountPeriodOpen] = useState<boolean>(false);
   const [openPeriod, setOpenPeriod] = useState<AccountingPeriod | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(
@@ -252,6 +280,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const fetchMyCompanies = async () => {
+    try {
+      const res = await apiClient.get<CompanySummary[]>("/auth/my-companies");
+      setCompanies(res.data ?? []);
+    } catch (e) {
+      console.warn("Failed to load companies:", e);
+    }
+  };
+
   const applyUserFromToken = (token: string) => {
     const decoded: DecodedToken = jwtDecode(token);
     const rawRole = String(decoded.role ?? "USER").toUpperCase();
@@ -271,6 +308,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       companyId: decoded.companyId,
     });
 
+    const activeCompanyId =
+      decoded.companyId != null ? Number(decoded.companyId) : null;
+
     setUser({
       userId: decoded.userId != null ? String(decoded.userId) : undefined,
       id: decoded.userId != null ? String(decoded.userId) : undefined,
@@ -278,7 +318,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       role,
       companyRoleId: decoded.companyRoleId,
       companyRole: decoded.companyRole,
-    });
+      companyId: activeCompanyId != null ? String(activeCompanyId) : undefined,
+      employeeId:
+        decoded.employeeId != null ? String(decoded.employeeId) : undefined,
+    } as Employee);
 
     if (decoded.userId != null) {
       apiClient
@@ -292,15 +335,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             role,
             companyRoleId: decoded.companyRoleId,
             companyRole: decoded.companyRole,
-          });
+            // JWT active tenant wins over stale users.company_id on profile
+            companyId:
+              activeCompanyId != null
+                ? String(activeCompanyId)
+                : profile.companyId != null
+                  ? String(profile.companyId)
+                  : undefined,
+            employeeId:
+              decoded.employeeId != null
+                ? String(decoded.employeeId)
+                : profile.employeeId != null
+                  ? String(profile.employeeId)
+                  : undefined,
+          } as Employee);
 
-          const companyId = profile.companyId || decoded.companyId;
+          const companyId = activeCompanyId ?? profile.companyId;
 
           if (companyId) {
-            fetchCompany(companyId).then((data) => {
-              setCompany(data);
+            localStorage.setItem(ACTIVE_COMPANY_KEY, String(companyId));
+            fetchCompany(String(companyId)).then((data) => {
+              if (data) setCompany(data);
             });
           }
+
+          fetchMyCompanies();
 
           // Prefer companyRoleId for permission resolution (new backend)
           if (decoded.companyRoleId != null) {
@@ -316,6 +375,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         })
         .catch((e) => {
           console.warn("Failed to load user profile:", e?.response?.status || e);
+          if (activeCompanyId != null) {
+            localStorage.setItem(ACTIVE_COMPANY_KEY, String(activeCompanyId));
+            fetchCompany(String(activeCompanyId)).then((data) => {
+              if (data) setCompany(data);
+            });
+          }
           if (decoded.companyRoleId != null) {
             fetchPermissions(
               decoded.companyRole || role,
@@ -391,7 +456,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [navigate]);
 
-  const login = (accessToken: string, refreshToken: string) => {
+  const login = (
+    accessToken: string,
+    refreshToken: string,
+    meta?: Partial<JwtLoginResponse>,
+  ) => {
     setAccessToken(accessToken);
     setRefreshToken(refreshToken);
     localStorage.setItem("accessToken", accessToken);
@@ -400,11 +469,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     apiClient.defaults.headers.common["Authorization"] =
       `Bearer ${accessToken}`;
 
+    if (meta?.companies) {
+      setCompanies(meta.companies);
+    }
+
+    setCompany(null);
+
     try {
       applyUserFromToken(accessToken);
       fetchAccountPeriodStatus();
     } catch (err) {
       console.error("Token decode failed", err);
+    }
+  };
+
+  const switchCompany = async (companyId: number) => {
+    try {
+      const res = await apiClient.post<JwtLoginResponse>("/auth/switch-company", {
+        companyId,
+      });
+      const { accessToken, refreshToken, companies: companyList } = res.data;
+      if (!accessToken) {
+        toast.error("Failed to switch company");
+        return;
+      }
+      localStorage.setItem(ACTIVE_COMPANY_KEY, String(companyId));
+      setCompany(null);
+      login(accessToken, refreshToken ?? "", { companies: companyList });
+
+      const remapped = remapCompanyScopedPath(location.pathname, companyId);
+      if (remapped) {
+        navigate(`${remapped}${location.search}${location.hash}`, {
+          replace: true,
+        });
+      }
+    } catch (err) {
+      console.error("Switch company failed:", err);
+      toast.error("Failed to switch company");
     }
   };
 
@@ -415,15 +516,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      const response = await apiClient.post("/auth/refresh", { refreshToken });
-      const { accessToken: newAccessToken } = response.data;
+      const response = await apiClient.post<JwtLoginResponse>("/auth/refresh", {
+        refreshToken,
+      });
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken, companies: companyList } =
+        response.data;
 
       if (newAccessToken) {
         setAccessToken(newAccessToken);
         localStorage.setItem("accessToken", newAccessToken);
 
+        if (newRefreshToken) {
+          setRefreshToken(newRefreshToken);
+          localStorage.setItem("refreshToken", newRefreshToken);
+        }
+
+        if (companyList) {
+          setCompanies(companyList);
+        }
+
         apiClient.defaults.headers.common["Authorization"] =
           `Bearer ${newAccessToken}`;
+
+        applyUserFromToken(newAccessToken);
       } else {
         logout();
       }
@@ -435,16 +550,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    setCompany(null);
+    setCompanies([]);
     setPermissions(null);
     setAccessToken(null);
     setRefreshToken(null);
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem(ACTIVE_COMPANY_KEY);
 
     delete apiClient.defaults.headers.common["Authorization"];
 
     navigate("/auth/login");
   };
+
+  // JWT user.companyId is the active tenant; company object may lag after switch.
+  const activeCompanyId =
+    user?.companyId != null
+      ? Number(user.companyId)
+      : company?.id != null
+        ? Number(company.id)
+        : null;
 
   return (
     <AuthContext.Provider
@@ -455,6 +581,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         logout,
         company,
+        activeCompanyId,
+        companies,
+        switchCompany,
         isAuthenticated: !!accessToken,
         permissions,
         permissionsLoading,

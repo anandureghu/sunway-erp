@@ -133,7 +133,12 @@ export function AppSidebar() {
   const dispatch = useAppDispatch();
   const path = location.pathname;
   const { selected } = useEmployeeSelection();
-  const { user, permissions: authPermissions } = useAuth();
+  const {
+    user,
+    company,
+    activeCompanyId,
+    permissions: authPermissions,
+  } = useAuth();
 
   const { globalSettingsView } = useAppSelector((s) => s.ui);
 
@@ -197,7 +202,7 @@ export function AppSidebar() {
   ];
 
   const globalSettings = useMemo(() => {
-    const cid = user?.companyId;
+    const cid = activeCompanyId;
     const settingsRoot = cid != null ? `/settings/${cid}` : null;
     const payrollSettings = cid != null ? `/settings/payroll/${cid}` : null;
     const rolesSettings = cid != null ? `/settings/roles/${cid}` : null;
@@ -258,26 +263,34 @@ export function AppSidebar() {
         ],
       },
     ];
-  }, [user?.companyId]);
+  }, [activeCompanyId]);
 
   useEffect(() => {
-    if (!user?.companyId) return;
+    if (!activeCompanyId) return;
 
     if (isPrivileged) {
-      getSidebarItems(String(user.companyId), { skipPermissions: true }).then(
-        setSidebarItems,
-      );
+      getSidebarItems(String(activeCompanyId), {
+        skipPermissions: true,
+        company:
+          company?.id != null && Number(company.id) === activeCompanyId
+            ? company
+            : undefined,
+      }).then(setSidebarItems);
       setPermissions(null as any);
     } else {
       // Use permissions from AuthContext directly
-      getSidebarItems(String(user.companyId), {
+      getSidebarItems(String(activeCompanyId), {
         permissions: authPermissions,
+        company:
+          company?.id != null && Number(company.id) === activeCompanyId
+            ? company
+            : undefined,
       }).then((items) => {
         setSidebarItems(items);
         setPermissions(authPermissions as any);
       });
     }
-  }, [user, isPrivileged, authPermissions]);
+  }, [activeCompanyId, company, isPrivileged, authPermissions]);
 
   // Close the mobile sidebar sheet after route navigation.
   useEffect(() => {
@@ -660,8 +673,8 @@ export function AppSidebar() {
                   to={
                     globalSettingsView
                       ? "/"
-                      : user?.companyId != null
-                        ? `/settings/${user.companyId}`
+                      : activeCompanyId != null
+                        ? `/settings/${activeCompanyId}`
                         : "/"
                   }
                   onClick={() => dispatch(toggleGlobalSettingsView())}

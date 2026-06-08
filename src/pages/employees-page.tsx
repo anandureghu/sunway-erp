@@ -72,7 +72,7 @@ export default function EmployeesPage() {
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const navigate = useNavigate();
   const { setSelected } = useEmployeeSelection();
-  const { permissions, permissionsLoading, user } = useAuth();
+  const { permissions, permissionsLoading, user, company } = useAuth();
   const [canViewEmployees, setCanViewEmployees] = useState(false);
 
   const filteredEmployees = useMemo(() => {
@@ -135,6 +135,7 @@ export default function EmployeesPage() {
   const handleAddEmployee = async (newEmployee: any) => {
     try {
       const payload = {
+        companyId: company?.id != null ? Number(company.id) : undefined,
         firstName: newEmployee.firstName ?? "",
         lastName: newEmployee.lastName ?? "",
         gender: newEmployee.gender ?? undefined,
@@ -153,8 +154,7 @@ export default function EmployeesPage() {
           newEmployee.departmentId !== ""
             ? Number(newEmployee.departmentId)
             : undefined,
-        // Use companyRole for display (human-readable) - backend will handle both fields
-        companyRole: newEmployee.companyRole ?? newEmployee.role ?? "Employee",
+        companyRole: newEmployee.companyRole ?? undefined,
         role: newEmployee.role ?? "USER", // Keep security role for permissions
         // username/email/password removed from add employee flow
       };
@@ -297,7 +297,7 @@ export default function EmployeesPage() {
     return () => {
       mounted = false;
     };
-  }, [canViewEmployees, user, isAdmin]);
+  }, [canViewEmployees, user, isAdmin, company?.id]);
 
   // permissionsLoading handled above; no local permissionsLoaded state
 

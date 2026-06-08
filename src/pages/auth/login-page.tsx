@@ -13,6 +13,12 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { CompanyPickerDialog } from "@/components/company-picker-dialog";
+import {
+  ACTIVE_COMPANY_KEY,
+  type CompanySummary,
+  type JwtLoginResponse,
+} from "@/types/auth-company";
 
 const REMEMBER_KEY = "sunway.login.remember";
 const USERNAME_KEY = "sunway.login.username";
@@ -22,6 +28,8 @@ const inputShell =
 
 export default function LoginPage() {
   const [remember, setRemember] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pendingCompanies, setPendingCompanies] = useState<CompanySummary[]>([]);
 
   const {
     register,
@@ -34,7 +42,7 @@ export default function LoginPage() {
   });
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, switchCompany } = useAuth();
 
   useEffect(() => {
     try {
@@ -47,25 +55,44 @@ export default function LoginPage() {
     }
   }, [setValue]);
 
+  const finishLogin = (
+    accessToken: string,
+    refreshToken: string,
+    data: JwtLoginResponse,
+  ) => {
+    login(accessToken, refreshToken, {
+      companies: data.companies,
+      requiresCompanySelection: data.requiresCompanySelection,
+    });
+
+    const forcePasswordReset =
+      (data as { forcePasswordReset?: boolean }).forcePasswordReset ?? false;
+
+    if (forcePasswordReset) {
+      navigate("/auth/reset-password");
+    } else {
+      toast.success("Login successful!");
+      navigate("/dashboard");
+    }
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     try {
-      const response = await apiClient.post("/auth/login", {
+      const preferredCompanyId = localStorage.getItem(ACTIVE_COMPANY_KEY);
+      const response = await apiClient.post<JwtLoginResponse>("/auth/login", {
         loginId: data.username,
         password: data.password,
+        preferredCompanyId: preferredCompanyId
+          ? Number(preferredCompanyId)
+          : undefined,
       });
       const responseData = response.data;
 
-      const accessToken =
-        typeof responseData === "string"
-          ? responseData
-          : (responseData.token ??
-            responseData.accessToken ??
-            responseData.access_token ??
-            responseData?.access?.token ??
-            responseData?.access?.accessToken);
+      const accessToken = responseData.accessToken;
+      const refreshToken = responseData.refreshToken ?? "";
 
       if (!accessToken) {
-        console.error("Login response missing token string:", response.data);
+        console.error("Login response missing token:", response.data);
         toast.error("Login failed: invalid token from server.");
         return;
       }
@@ -82,32 +109,32 @@ export default function LoginPage() {
         /* ignore */
       }
 
-      login(
-        accessToken,
-        (responseData.refreshToken as string) ??
-          (responseData.refresh_token as string) ??
-          "",
-      );
-
-      const forcePasswordReset =
-        responseData.forcePasswordReset ?? responseData.force_password ?? false;
-
-      if (forcePasswordReset) {
-        navigate("/auth/reset-password");
-      } else {
-        toast.success("Login successful!");
-        navigate("/dashboard");
+      if (
+        responseData.requiresCompanySelection &&
+        responseData.companies &&
+        responseData.companies.length > 1
+      ) {
+        login(accessToken, refreshToken, { companies: responseData.companies });
+        setPendingCompanies(responseData.companies);
+        setPickerOpen(true);
+        return;
       }
-    } catch (error: any) {
-      console.error("Login failed:", error);
 
-      if (error.response) {
+      finishLogin(accessToken, refreshToken, responseData);
+    } catch (error: unknown) {
+      console.error("Login failed:", error);
+      const err = error as {
+        response?: { data?: { message?: string; error?: string }; status?: number };
+        request?: unknown;
+      };
+
+      if (err.response) {
         const errorMessage =
-          error.response.data?.message ||
-          error.response.data?.error ||
-          `Server error: ${error.response.status}`;
+          err.response.data?.message ||
+          err.response.data?.error ||
+          `Server error: ${err.response.status}`;
         toast.error(errorMessage);
-      } else if (error.request) {
+      } else if (err.request) {
         toast.error("Unable to reach server. Please check your connection.");
       } else {
         toast.error("Login failed. Please try again.");
@@ -115,114 +142,127 @@ export default function LoginPage() {
     }
   };
 
+  const handleCompanyPick = async (companyId: number) => {
+    setPickerOpen(false);
+    await switchCompany(companyId);
+    navigate("/dashboard");
+    toast.success("Login successful!");
+  };
+
   return (
-    <div
-      className={cn(
-        "w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/20",
-      )}
-    >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 px-8 py-10 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
-          <Building2 className="h-8 w-8 text-white" strokeWidth={1.5} />
+    <>
+      <CompanyPickerDialog
+        open={pickerOpen}
+        companies={pendingCompanies}
+        onSelect={handleCompanyPick}
+      />
+
+      <div
+        className={cn(
+          "w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/20",
+        )}
+      >
+        <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 px-8 py-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+            <Building2 className="h-8 w-8 text-white" strokeWidth={1.5} />
+          </div>
+          <p className="text-sm font-medium text-white/90">Welcome to</p>
+          <h1 className="font-display mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
+            Sunway ERP &amp; E-COM System
+          </h1>
         </div>
-        <p className="text-sm font-medium text-white/90">Welcome to</p>
-        <h1 className="font-display mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
-          Sunway ERP &amp; E-COM System
-        </h1>
-      </div>
 
-      {/* Form */}
-      <div className="px-8 pb-8 pt-7">
-        <p className="text-sm text-muted-foreground">
-          Please enter your username and password:
-        </p>
-        <h2 className="font-display mt-1 text-xl font-bold text-purple-700">
-          Sunway ERP
-        </h2>
+        <div className="px-8 pb-8 pt-7">
+          <p className="text-sm text-muted-foreground">
+            Please enter your username and password:
+          </p>
+          <h2 className="font-display mt-1 text-xl font-bold text-purple-700">
+            Sunway ERP
+          </h2>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
-          <div className="space-y-2">
-            <Label
-              htmlFor="username"
-              className="text-sm font-semibold text-gray-700"
-            >
-              Username:
-            </Label>
-            <div className="relative">
-              <User
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <Input
-                id="username"
-                autoComplete="username"
-                placeholder="Enter your username"
-                className={inputShell}
-                {...register("username")}
-              />
-            </div>
-            {errors.username && (
-              <p className="text-sm text-red-600">{errors.username.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label
-              htmlFor="password"
-              className="text-sm font-semibold text-gray-700"
-            >
-              Password:
-            </Label>
-            <div className="relative">
-              <Lock
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-600"
-                aria-hidden
-              />
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="Enter your password"
-                className={inputShell}
-                {...register("password")}
-              />
-            </div>
-            {errors.password && (
-              <p className="text-sm text-red-600">{errors.password.message}</p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-0.5">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="remember"
-                checked={remember}
-                onCheckedChange={(v) => setRemember(v === true)}
-              />
-              <label
-                htmlFor="remember"
-                className="cursor-pointer text-sm text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
+            <div className="space-y-2">
+              <Label
+                htmlFor="username"
+                className="text-sm font-semibold text-gray-700"
               >
-                Remember me
-              </label>
+                Username:
+              </Label>
+              <div className="relative">
+                <User
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden
+                />
+                <Input
+                  id="username"
+                  autoComplete="username"
+                  placeholder="Enter your username"
+                  className={inputShell}
+                  {...register("username")}
+                />
+              </div>
+              {errors.username && (
+                <p className="text-sm text-red-600">{errors.username.message}</p>
+              )}
             </div>
-            <Link
-              to="/auth/reset-password"
-              className="text-sm font-medium text-violet-600 hover:text-violet-700 hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
 
-          <Button
-            type="submit"
-            className="mt-2 h-11 w-full rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-base font-semibold text-white shadow-md transition hover:from-violet-700 hover:to-blue-700 hover:shadow-lg"
-          >
-            Sign In
-          </Button>
-        </form>
+            <div className="space-y-2">
+              <Label
+                htmlFor="password"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Password:
+              </Label>
+              <div className="relative">
+                <Lock
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-600"
+                  aria-hidden
+                />
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  className={inputShell}
+                  {...register("password")}
+                />
+              </div>
+              {errors.password && (
+                <p className="text-sm text-red-600">{errors.password.message}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-0.5">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember"
+                  checked={remember}
+                  onCheckedChange={(v) => setRemember(v === true)}
+                />
+                <label
+                  htmlFor="remember"
+                  className="cursor-pointer text-sm text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Remember me
+                </label>
+              </div>
+              <Link
+                to="/auth/reset-password"
+                className="text-sm font-medium text-violet-600 hover:text-violet-700 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            <Button
+              type="submit"
+              className="mt-2 h-11 w-full rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-base font-semibold text-white shadow-md transition hover:from-violet-700 hover:to-blue-700 hover:shadow-lg"
+            >
+              Sign In
+            </Button>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

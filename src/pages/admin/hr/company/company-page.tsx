@@ -11,6 +11,8 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyDialog } from "./company-dialog";
 import { EmployeeDialog } from "../employee/employee-dialog";
+import { CompanyAdminSetupDialog } from "./company-admin-setup-dialog";
+import { AssignExistingUserDialog } from "./assign-existing-user-dialog";
 import { useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 
@@ -19,9 +21,10 @@ export default function CompanyListPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Company | null>(null);
   const [open, setOpen] = useState(false);
-  
-  // State for admin employee dialog (opened after company creation)
+
+  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [empDialogOpen, setEmpDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [newCompanyForAdmin, setNewCompanyForAdmin] = useState<Company | null>(null);
 
   const fetchCompanies = async () => {
@@ -43,9 +46,8 @@ export default function CompanyListPage() {
   const handleDialogSuccess = (updated: Company, mode: "add" | "edit") => {
     if (mode === "add") {
       setCompanies((prev) => [...prev, updated]);
-      // After adding a new company, prompt to create admin
       setNewCompanyForAdmin(updated);
-      setEmpDialogOpen(true);
+      setSetupDialogOpen(true);
     } else {
       setCompanies((prev) =>
         prev.map((c) => (c.id === updated.id ? updated : c)),
@@ -73,7 +75,7 @@ export default function CompanyListPage() {
   const navigate = useNavigate();
 
   const handleRowClick = (row: Row<Company>) => {
-    const company = row.original; // row.original = the full company object
+    const company = row.original;
     navigate(`/companies/${company.id}`);
   };
 
@@ -82,10 +84,10 @@ export default function CompanyListPage() {
     onDelete: handleDelete,
   });
 
-  const handleAdminCreated = () => {
+  const handleAdminSetupComplete = () => {
     setEmpDialogOpen(false);
+    setAssignDialogOpen(false);
     setNewCompanyForAdmin(null);
-    toast.success("Admin created successfully! You can now log in with the admin credentials.");
   };
 
   if (loading)
@@ -129,7 +131,6 @@ export default function CompanyListPage() {
         </CardContent>
       </Card>
 
-      {/* Controlled Dialog (Add + Edit) */}
       <CompanyDialog
         open={open}
         onOpenChange={setOpen}
@@ -137,16 +138,35 @@ export default function CompanyListPage() {
         onSuccess={handleDialogSuccess}
       />
 
-      {/* Admin Employee Dialog - Opens after company creation */}
       {newCompanyForAdmin && (
-        <EmployeeDialog
-          open={empDialogOpen}
-          onOpenChange={setEmpDialogOpen}
-          companyId={newCompanyForAdmin.id}
-          mode="create"
-          presetRole="ADMIN"
-          onSuccess={handleAdminCreated}
-        />
+        <>
+          <CompanyAdminSetupDialog
+            open={setupDialogOpen}
+            onOpenChange={setSetupDialogOpen}
+            company={newCompanyForAdmin}
+            onCreateNew={() => setEmpDialogOpen(true)}
+            onAssignExisting={() => setAssignDialogOpen(true)}
+          />
+
+          <EmployeeDialog
+            open={empDialogOpen}
+            onOpenChange={setEmpDialogOpen}
+            companyId={newCompanyForAdmin.id}
+            mode="create"
+            presetRole="ADMIN"
+            onSuccess={() => {
+              toast.success("Admin created successfully!");
+              handleAdminSetupComplete();
+            }}
+          />
+
+          <AssignExistingUserDialog
+            open={assignDialogOpen}
+            onOpenChange={setAssignDialogOpen}
+            company={newCompanyForAdmin}
+            onSuccess={handleAdminSetupComplete}
+          />
+        </>
       )}
     </div>
   );

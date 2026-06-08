@@ -140,7 +140,7 @@ export function EmployeeDialog({
   // `presetRole` is accepted for backwards-compat with callers that still pass
   // the old Spring-Security role enum, but the dropdown now lists company
   // roles fetched from /api/roles, so the preset is no longer used as a default.
-  presetRole: _presetRole = "ADMIN",
+  presetRole = "ADMIN",
   onSuccess,
 }: EmployeeDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -168,7 +168,17 @@ export function EmployeeDialog({
     roleService
       .getActiveRoles(companyId)
       .then((roles) => {
-        if (!cancelled) setCompanyRoles(roles);
+        if (!cancelled) {
+          setCompanyRoles(roles);
+          if (mode === "create" && presetRole) {
+            const match = roles.find(
+              (r) => r.name.toLowerCase() === presetRole.toLowerCase(),
+            );
+            if (match) {
+              form.setValue("role", match.name);
+            }
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) {
@@ -182,7 +192,7 @@ export function EmployeeDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, companyId]);
+  }, [open, companyId, mode, presetRole, form]);
 
   const roleOptions = useMemo(
     () =>
