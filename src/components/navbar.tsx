@@ -8,15 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { toggleAdminView } from "@/store/uiSlice";
 import { displayRole } from "@/types/role";
-import { Building2, ChevronDown, LogOut, Shield, User } from "lucide-react";
+import { Building2, ChevronDown, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function initialsFromName(name: string | undefined): string {
@@ -30,9 +26,7 @@ function initialsFromName(name: string | undefined): string {
 
 const Navbar = () => {
   const { logout, user, company } = useAuth();
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const adminView = useAppSelector((s) => s.ui.adminView);
   const { open, isMobile } = useSidebar();
 
   const initials = initialsFromName(user?.username);
@@ -62,34 +56,6 @@ const Navbar = () => {
 
       <div className="flex-1 flex min-w-0 shrink-0 flex-wrap items-center justify-center gap-2 sm:gap-3">
         <div className="w-full flex-1 flex items-center justify-center">
-          {user?.role === "SUPER_ADMIN" ? (
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="hidden items-center gap-2 rounded-full border border-border/60 bg-muted/50 px-3 py-1 sm:flex">
-              <Shield className="h-3.5 w-3.5 text-primary" aria-hidden />
-              <Label
-                htmlFor="admin-view-toggle"
-                className="cursor-pointer text-xs font-medium text-muted-foreground"
-              >
-                Admin view
-              </Label>
-              <Switch
-                id="admin-view-toggle"
-                checked={adminView}
-                onCheckedChange={() => dispatch(toggleAdminView())}
-              />
-            </div>
-            <div className="flex items-center gap-2 sm:hidden">
-              <Label htmlFor="admin-view-toggle-mobile" className="sr-only">
-                Admin view
-              </Label>
-              <Switch
-                id="admin-view-toggle-mobile"
-                checked={adminView}
-                onCheckedChange={() => dispatch(toggleAdminView())}
-              />
-            </div>
-          </div>
-        ) : (
           <div className="hidden max-w-[min(100%,280px)] min-w-0 items-center gap-2 md:flex">
             {company?.logoUrl ? (
               <img
@@ -107,7 +73,6 @@ const Navbar = () => {
               Welcome to {company?.companyName ?? user?.companyName ?? "Your company"}
             </p>
           </div>
-        )}
         </div>
 
         <DropdownMenu>

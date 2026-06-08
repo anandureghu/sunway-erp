@@ -36,6 +36,20 @@ export const createDivision = async (payload: DivisionPayload): Promise<Division
   }
 };
 
+export const fetchDivisionsByDepartment = async (
+  departmentId: number,
+): Promise<Division[]> => {
+  try {
+    const res = await apiClient.get<Division[]>(
+      `/divisions/department/${departmentId}`,
+    );
+    return res.data ?? [];
+  } catch (error) {
+    console.error("Error loading divisions for department:", error);
+    return [];
+  }
+};
+
 export const deleteDivision = async (id: number): Promise<boolean> => {
   try {
     await apiClient.delete(`/divisions/${id}`);

@@ -22,6 +22,7 @@ export interface DivisionPayload {
   name: string;
   description?: string;
   managerId?: number | null;
+  departmentId?: number | null;
   companyId?: number;
 }
 
@@ -33,6 +34,9 @@ export interface DivisionResponseDTO {
   managerId?: number | null;
   managerFirstName?: string;
   managerLastName?: string;
+  departmentId?: number | null;
+  departmentCode?: string;
+  departmentName?: string;
   companyId: number;
   companyName?: string;
   companyCode?: string;

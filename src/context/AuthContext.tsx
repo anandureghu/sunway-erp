@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { apiClient } from "@/service/apiClient";
 import type { Employee, Role } from "@/types/hr";
-import { useAppDispatch } from "@/store/store";
-import { setAdminView } from "@/store/uiSlice";
 import type { Company } from "@/types/company";
 import { toast } from "sonner";
 import permissionService from "@/service/permissionService";
@@ -44,7 +42,6 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
 
   const [user, setUser] = useState<Employee | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -371,7 +368,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const handleUnauthorized = () => {
       toast.error("Session expired. Please login again.");
-      dispatch(setAdminView(false));
       setUser(null);
       setPermissions(null);
       setAccessToken(null);
@@ -385,7 +381,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       window.removeEventListener("auth:unauthorized", handleUnauthorized);
     };
-  }, [dispatch, navigate]);
+  }, [navigate]);
 
   const login = (accessToken: string, refreshToken: string) => {
     setAccessToken(accessToken);
@@ -430,7 +426,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    dispatch(setAdminView(false));
     setUser(null);
     setPermissions(null);
     setAccessToken(null);

@@ -1,7 +1,5 @@
-// src/pages/admin/divisions/DivisionListPage.tsx
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
-import { apiClient } from "@/service/apiClient";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +9,8 @@ import type { DivisionResponseDTO } from "@/types/division";
 import { DivisionDialog } from "./division-dialog";
 import { getDivisionColumns } from "@/lib/columns/division-listing-admin";
 import { PageHeader } from "@/components/PageHeader";
+import { useAuth } from "@/context/AuthContext";
+import { fetchDivisions, deleteDivision } from "@/service/divisionService";
 
 export default function DivisionListPage() {
   const [divisions, setDivisions] = useState<DivisionResponseDTO[]>([]);
@@ -18,10 +18,23 @@ export default function DivisionListPage() {
   const [selected, setSelected] = useState<DivisionResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
 
-  const fetchDivisions = async () => {
+  const { company, user } = useAuth();
+  const companyId =
+    company?.id != null
+      ? Number(company.id)
+      : user?.companyId != null
+        ? Number(user.companyId)
+        : null;
+
+  const fetchDivisionsData = async () => {
+    if (companyId == null) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await apiClient.get("/divisions");
-      setDivisions(res.data);
+      const data = await fetchDivisions(companyId);
+      setDivisions(data as DivisionResponseDTO[]);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load divisions");
@@ -31,8 +44,9 @@ export default function DivisionListPage() {
   };
 
   useEffect(() => {
-    fetchDivisions();
-  }, []);
+    setLoading(true);
+    fetchDivisionsData();
+  }, [companyId]);
 
   const handleSuccess = (
     updated: DivisionResponseDTO,
@@ -47,16 +61,16 @@ export default function DivisionListPage() {
     }
   };
 
-  const handleEdit = (dept: DivisionResponseDTO) => {
-    setSelected(dept);
+  const handleEdit = (division: DivisionResponseDTO) => {
+    setSelected(division);
     setOpen(true);
   };
 
-  const handleDelete = async (dept: DivisionResponseDTO) => {
+  const handleDelete = async (division: DivisionResponseDTO) => {
     try {
-      await apiClient.delete(`/divisions/${dept.id}`);
-      toast.success(`Deleted ${dept.name}`);
-      setDivisions((prev) => prev.filter((d) => d.id !== dept.id));
+      await deleteDivision(division.id);
+      toast.success(`Deleted ${division.name}`);
+      setDivisions((prev) => prev.filter((d) => d.id !== division.id));
     } catch {
       toast.error("Failed to delete division");
     }
@@ -70,11 +84,21 @@ export default function DivisionListPage() {
   if (loading)
     return <p className="text-center text-muted-foreground p-10">Loading...</p>;
 
+  if (companyId == null) {
+    return (
+      <div className="p-6">
+        <p className="text-center text-muted-foreground">
+          Loading company information...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <PageHeader
         title="Divisions"
-        description="Manage your divisions"
+        description="Manage divisions under departments"
         variant="darkBlue"
         icon={<Grid2x2 className="w-6 h-6" />}
       />
@@ -82,7 +106,7 @@ export default function DivisionListPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input placeholder="Search division..." className="pl-10" />
             </div>
@@ -108,6 +132,7 @@ export default function DivisionListPage() {
         onOpenChange={setOpen}
         division={selected}
         onSuccess={handleSuccess}
+        companyId={companyId}
       />
     </div>
   );

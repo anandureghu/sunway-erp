@@ -1,31 +1,64 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, ScrollText } from "lucide-react";
+import { ArrowLeft, Copy, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/service/apiClient";
 import { useAuth } from "@/context/AuthContext";
 import type { AdminSystemLog } from "@/types/admin-system-log";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+async function copyToClipboard(text: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(`Copied ${label}`);
+  } catch {
+    toast.error("Could not copy to clipboard");
+  }
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-slate-900"
+      onClick={() => copyToClipboard(text, label)}
+      title={`Copy ${label}`}
+    >
+      <Copy className="h-3.5 w-3.5" />
+      <span className="sr-only">Copy {label}</span>
+    </Button>
+  );
+}
 
 function DetailRow({
   label,
   value,
   mono,
+  copyText,
 }: {
   label: string;
   value: ReactNode;
   mono?: boolean;
+  copyText?: string;
 }) {
   if (value == null || value === "" || value === "—") {
     return null;
   }
   return (
-    <div className="grid gap-1 sm:grid-cols-[140px_1fr] sm:gap-4 py-2 border-b border-slate-100 last:border-0">
+    <div className="grid min-w-0 gap-1 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-4 py-2 border-b border-slate-100 last:border-0">
       <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
-      <dd className={`text-sm text-slate-900 break-words ${mono ? "font-mono text-xs" : ""}`}>
-        {value}
+      <dd className="flex min-w-0 items-start gap-1">
+        <span
+          className={`min-w-0 flex-1 text-sm text-slate-900 ${mono ? "font-mono text-xs break-all" : "break-words"}`}
+        >
+          {value}
+        </span>
+        {copyText ? <CopyButton text={copyText} label={label} /> : null}
       </dd>
     </div>
   );
@@ -120,17 +153,38 @@ export default function AdminSystemLogDetailPage() {
         </div>
 
         <div>
-          <h2 className="text-sm font-medium text-muted-foreground mb-2">Message</h2>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-medium text-muted-foreground">Message</h2>
+            {log.message ? (
+              <CopyButton text={log.message} label="message" />
+            ) : null}
+          </div>
           <p className="text-sm text-slate-900 whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-4 border">
             {log.message}
           </p>
         </div>
 
-        <dl className="rounded-lg border p-4">
-          <DetailRow label="User" value={log.userUsername || log.userEmail} />
-          <DetailRow label="Email" value={log.userEmail} />
-          <DetailRow label="User ID" value={log.userId} />
-          <DetailRow label="Company ID" value={log.companyId} />
+        <dl className="min-w-0 overflow-hidden rounded-lg border p-4">
+          <DetailRow
+            label="User"
+            value={log.userUsername || log.userEmail}
+            copyText={log.userUsername || log.userEmail || undefined}
+          />
+          <DetailRow
+            label="Email"
+            value={log.userEmail}
+            copyText={log.userEmail || undefined}
+          />
+          <DetailRow
+            label="User ID"
+            value={log.userId}
+            copyText={log.userId != null ? String(log.userId) : undefined}
+          />
+          <DetailRow
+            label="Company ID"
+            value={log.companyId}
+            copyText={log.companyId != null ? String(log.companyId) : undefined}
+          />
           <DetailRow
             label="Request"
             value={
@@ -138,14 +192,29 @@ export default function AdminSystemLogDetailPage() {
                 ? `${log.requestMethod ?? "GET"} ${log.requestUri}`
                 : null
             }
+            copyText={
+              log.requestUri
+                ? `${log.requestMethod ?? "GET"} ${log.requestUri}`
+                : undefined
+            }
             mono
           />
-          <DetailRow label="Logger" value={log.loggerName} mono />
+          <DetailRow
+            label="Logger"
+            value={log.loggerName}
+            copyText={log.loggerName || undefined}
+            mono
+          />
         </dl>
 
         {log.stackTrace && (
           <div>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2">Stack trace</h2>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Stack trace
+              </h2>
+              <CopyButton text={log.stackTrace} label="stack trace" />
+            </div>
             <pre className="max-h-[min(60vh,480px)] overflow-auto rounded-lg bg-slate-900 p-4 text-xs text-slate-100">
               {log.stackTrace}
             </pre>

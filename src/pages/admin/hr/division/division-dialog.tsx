@@ -32,8 +32,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { DIVISION_SCHEMA, type DivisionFormData } from "@/schema/division";
 import type { DivisionResponseDTO } from "@/types/division";
+import type { Department } from "@/types/department";
+import type { Employee } from "@/types/hr";
 import { apiClient } from "@/service/apiClient";
-import { useAuth } from "@/context/AuthContext";
+import { fetchDepartments } from "@/service/departmentService";
+import { fetchManagers } from "@/service/employeeService";
 import {
   LayoutGrid,
   Hash,
@@ -42,6 +45,7 @@ import {
   Info,
   Layers,
   Building,
+  Network,
 } from "lucide-react";
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -50,7 +54,7 @@ type DivisionDialogProps = {
   onOpenChange: (v: boolean) => void;
   division?: DivisionResponseDTO | null;
   onSuccess: (dept: DivisionResponseDTO, mode: "add" | "edit") => void;
-  companyId?: number;
+  companyId: number;
 };
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
@@ -111,12 +115,12 @@ export function DivisionDialog({
   onOpenChange,
   division,
   onSuccess,
-  companyId: propCompanyId,
+  companyId,
 }: DivisionDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [managers, setManagers] = useState<Employee[]>([]);
   const isEdit = !!division;
-  const { user } = useAuth();
-  const companyId = propCompanyId ?? Number(user?.companyId) ?? 0;
 
   const form = useForm<DivisionFormData>({
     resolver: zodResolver(DIVISION_SCHEMA),
@@ -124,6 +128,7 @@ export function DivisionDialog({
       code: "",
       name: "",
       managerId: undefined,
+      departmentId: undefined,
       companyId,
       description: "",
     },
@@ -134,12 +139,23 @@ export function DivisionDialog({
   const divCode = watch("code");
 
   useEffect(() => {
+    if (!open || !companyId) return;
+    fetchDepartments(companyId).then((data) => {
+      if (Array.isArray(data)) setDepartments(data);
+    });
+    fetchManagers(companyId).then((data) => {
+      if (Array.isArray(data)) setManagers(data);
+    });
+  }, [open, companyId]);
+
+  useEffect(() => {
     if (open) {
       if (isEdit && division) {
         form.reset({
           code: division.code ?? "",
           name: division.name ?? "",
           managerId: division.managerId ?? undefined,
+          departmentId: division.departmentId ?? undefined,
           companyId: division.companyId ?? companyId,
           description: (division as any).description ?? "",
         });
@@ -148,6 +164,7 @@ export function DivisionDialog({
           code: "",
           name: "",
           managerId: undefined,
+          departmentId: undefined,
           companyId,
           description: "",
         });
@@ -319,12 +336,74 @@ export function DivisionDialog({
                 <div className="p-5 space-y-5">
                   <FormField
                     control={form.control}
+                    name="departmentId"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <Field
+                          label="Parent department"
+                          required
+                          hint="Division belongs under this department (like a subcategory)"
+                          icon={<Network className="h-[15px] w-[15px]" />}
+                        >
+                          <FormControl>
+                            <Select
+                              value={
+                                field.value != null
+                                  ? String(field.value)
+                                  : "none"
+                              }
+                              onValueChange={(v) =>
+                                field.onChange(
+                                  v === "none" ? undefined : Number(v)
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                className={cn(
+                                  "h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[13px] text-slate-800",
+                                  "outline-none ring-0 transition-all duration-150",
+                                  "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
+                                  "data-[-placeholder]:text-slate-300"
+                                )}
+                              >
+                                <SelectValue placeholder="Select department" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                <SelectItem value="none" disabled>
+                                  — Select department —
+                                </SelectItem>
+                                {departments.map((d) => (
+                                  <SelectItem
+                                    key={d.id}
+                                    value={String(d.id)}
+                                    className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-slate-800">
+                                        {d.departmentName}
+                                      </span>
+                                      <span className="text-[11px] text-slate-400">
+                                        {d.departmentCode}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                        </Field>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="managerId"
                     render={({ field }) => (
                       <FormItem className="space-y-0">
                         <Field
                           label="Division manager"
-                          hint="Assign a manager to oversee this division"
+                          hint="Any employee in this company can be assigned (including if already a manager elsewhere)"
                           icon={<User className="h-[15px] w-[15px]" />}
                         >
                           <FormControl>
@@ -354,6 +433,22 @@ export function DivisionDialog({
                                 <SelectItem value="none">
                                   — No manager assigned —
                                 </SelectItem>
+                                {managers.map((m) => (
+                                  <SelectItem
+                                    key={m.id}
+                                    value={String(m.id)}
+                                    className="rounded-lg py-2.5 text-[13px] focus:bg-slate-50"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-slate-800">
+                                        {m.firstName} {m.lastName}
+                                      </span>
+                                      <span className="text-[11px] text-slate-400">
+                                        {m.companyRole || "Employee"} — {m.employeeNo}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </FormControl>

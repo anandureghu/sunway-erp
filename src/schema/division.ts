@@ -7,6 +7,7 @@ export const DIVISION_SCHEMA = z.object({
     .max(10, { message: "Division code must be 10 characters or fewer" }),
   name: z.string().min(2, "Division name is required"),
   managerId: z.number().optional(),
+  departmentId: z.number({ message: "Parent department is required" }),
   companyId: z.number({ message: "Company is required" }),
   description: z.string().optional(),
 });

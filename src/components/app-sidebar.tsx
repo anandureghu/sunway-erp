@@ -33,11 +33,13 @@ import {
   Building,
   Pin,
   PinOff,
+  ScrollText,
+  Shield,
   Wallet,
 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import type { SidebarItem } from "@/types/company";
 import type { ModulePermission } from "@/types/role";
 import { useAuth } from "@/context/AuthContext";
@@ -128,13 +130,12 @@ const defaultColor = {
 
 export function AppSidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const path = location.pathname;
   const { selected } = useEmployeeSelection();
   const { user, permissions: authPermissions } = useAuth();
 
-  const { adminView, globalSettingsView } = useAppSelector((s) => s.ui);
+  const { globalSettingsView } = useAppSelector((s) => s.ui);
 
   const { setOpen, setOpenMobile, isMobile } = useSidebar();
   const [isPinned, setIsPinned] = useState<boolean>(() => {
@@ -181,13 +182,16 @@ export function AppSidebar() {
   // would still see every HR sub-module.
   const isPrivileged = isAdmin;
 
-  const adminSections = [
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+
+  const superAdminSections = [
     {
-      title: "Admin Settings",
-      icon: LayoutDashboard,
+      title: "Platform Admin",
+      icon: Shield,
       color: "text-sky-600 dark:text-sky-400",
       items: [
-        { title: "Company", url: "/admin/company", icon: LayoutDashboard },
+        { title: "Companies", url: "/admin/company", icon: Building },
+        { title: "System Logs", url: "/admin/system-logs", icon: ScrollText },
       ],
     },
   ];
@@ -255,20 +259,6 @@ export function AppSidebar() {
       },
     ];
   }, [user?.companyId]);
-
-  const prevAdminView = useRef<boolean | undefined>(undefined);
-  useEffect(() => {
-    if (prevAdminView.current === adminView) {
-      prevAdminView.current = adminView;
-      return;
-    }
-    if (adminView) {
-      navigate("/admin/company");
-    } else if (prevAdminView.current === true) {
-      navigate("/");
-    }
-    prevAdminView.current = adminView;
-  }, [adminView, navigate]);
 
   useEffect(() => {
     if (!user?.companyId) return;
@@ -354,7 +344,7 @@ export function AppSidebar() {
         {/* ── Content ─────────────────────────────────────── */}
         <SidebarContent className="gap-0 px-3 py-3 group-data-[collapsible=icon]:px-1">
           {/* Dashboard link */}
-          {!adminView && !globalSettingsView && (
+          {!globalSettingsView && (
             <SidebarMenu className="mb-2">
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-auto p-0">
@@ -395,12 +385,8 @@ export function AppSidebar() {
           )}
 
           {/* Main sections */}
-          {(adminView
-            ? adminSections
-            : globalSettingsView
-              ? globalSettings
-              : sidebarItems
-          ).map((section) => (
+          {(globalSettingsView ? globalSettings : sidebarItems).map(
+            (section) => (
             <Collapsible
               key={section.title}
               defaultOpen
@@ -590,6 +576,79 @@ export function AppSidebar() {
               </SidebarGroup>
             </Collapsible>
           ))}
+
+          {/* Super admin section */}
+          {isSuperAdmin &&
+            !globalSettingsView &&
+            superAdminSections.map((section) => (
+              <Collapsible
+                key={section.title}
+                defaultOpen
+                className="group/collapsible mb-1"
+              >
+                <SidebarGroup className="py-0">
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-50">
+                      <section.icon
+                        className={cn("h-3.5 w-3.5", section.color)}
+                      />
+                      <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        {section.title}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu className="gap-0.5 mt-0.5">
+                        {section.items.map((item) => {
+                          const active =
+                            item.url != null && path.startsWith(item.url);
+                          return (
+                            <SidebarMenuSub
+                              key={item.title}
+                              className="border-none"
+                            >
+                              <SidebarMenuItem>
+                                <SidebarMenuButton
+                                  asChild
+                                  className="h-auto p-0"
+                                >
+                                  <Link
+                                    to={item.url}
+                                    className={cn(
+                                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                                      active
+                                        ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
+                                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
+                                        active
+                                          ? "bg-white/20"
+                                          : "bg-slate-200 group-hover:bg-slate-300",
+                                      )}
+                                    >
+                                      <item.icon className="h-3.5 w-3.5" />
+                                    </span>
+                                    <span className="truncate">
+                                      {item.title}
+                                    </span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            </SidebarMenuSub>
+                          );
+                        })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            ))}
         </SidebarContent>
 
         {/* ── Footer ──────────────────────────────────────── */}
