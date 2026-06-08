@@ -1,0 +1,8 @@
+#!/bin/sh
+# Strip Cursor agent attribution — project policy forbids Co-authored-by trailers.
+MSG_FILE="$1"
+if [ -f "$MSG_FILE" ]; then
+  sed -i '' '/^Co-authored-by: Cursor <cursoragent@cursor.com>$/d' "$MSG_FILE" 2>/dev/null \
+    || sed -i '/^Co-authored-by: Cursor <cursoragent@cursor.com>$/d' "$MSG_FILE"
+fi
+exit 0

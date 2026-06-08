@@ -7,5 +7,14 @@ alwaysApply: true
 
 - Commit only when the user explicitly asks
 - Message style: `feat(scope): why-focused summary`
-- No Co-authored-by or agent branding
+- No Co-authored-by or agent branding (see **Cursor attribution** below)
+- Run `npm run build` before committing (not `tsc` alone)
+
+## Cursor attribution
+
+Cursor IDE may append `Co-authored-by: Cursor <cursoragent@cursor.com>` when the agent runs `git commit`, even if rules forbid it. Disable: **Settings → Agent → Attribution**.
+
+Repo hook `.githooks/prepare-commit-msg` strips it. One-time per clone: `git config core.hooksPath .githooks`
+
+Verify after commit: `git log -1 --format=%B`
 - No `--no-verify` or force-push to main unless user requests
