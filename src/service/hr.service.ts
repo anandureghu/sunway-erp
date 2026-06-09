@@ -52,6 +52,7 @@
     identification?: string;
 
     departmentId?: number;
+    companyId?: number;
     role?: string;
     companyRole?: string | null;      // Company role name (for display)
     companyRoleId?: number | null;    // Company role ID (FK to CompanyRole table)

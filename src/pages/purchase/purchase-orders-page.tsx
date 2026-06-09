@@ -20,7 +20,6 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
-import { PurchaseOrderDetailsDialog } from "./components/purchase-order-details-dialog";
 import { PurchaseOrderForm } from "./components/purchase-order-form";
 
 export default function PurchaseOrdersPage() {
@@ -33,9 +32,6 @@ export default function PurchaseOrdersPage() {
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedOrderForDetails, setSelectedOrderForDetails] =
-    useState<PurchaseOrder | null>(null);
-  const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
   const [orderToEdit, setOrderToEdit] = useState<PurchaseOrder | null>(null);
   const [actionState, setActionState] = useState<{
     id: string;
@@ -160,17 +156,6 @@ export default function PurchaseOrdersPage() {
     [navigate, orders],
   );
 
-  const handleViewDetails = useCallback(
-    (id: string) => {
-      const order = orders.find((o) => o.id === id);
-      if (order) {
-        setSelectedOrderForDetails(order);
-        setShowOrderDetailsDialog(true);
-      }
-    },
-    [orders],
-  );
-
   const handleArchiveOrder = useCallback(
     async (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -246,7 +231,6 @@ export default function PurchaseOrdersPage() {
         onOpenOrder: (id) => navigate(`/inventory/purchase/orders/${id}`),
         onConfirm: handleConfirmOrder,
         onCancel: handleCancelOrder,
-        onViewDetails: handleViewDetails,
         onEdit: handleEdit,
         onArchive: handleArchiveOrder,
         processingOrderId: actionState?.id ?? null,
@@ -262,7 +246,6 @@ export default function PurchaseOrdersPage() {
       navigate,
       handleConfirmOrder,
       handleCancelOrder,
-      handleViewDetails,
       handleEdit,
       handleArchiveOrder,
       actionState,
@@ -297,11 +280,6 @@ export default function PurchaseOrdersPage() {
         onRowClick={handleRowClick}
         onRetry={() => void refreshOrders()}
         kpiItems={purchaseOrderKpis}
-      />
-      <PurchaseOrderDetailsDialog
-        open={showOrderDetailsDialog}
-        onOpenChange={setShowOrderDetailsDialog}
-        order={selectedOrderForDetails}
       />
     </>
   );

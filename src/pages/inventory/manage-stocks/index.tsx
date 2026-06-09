@@ -10,9 +10,17 @@ import { StockStatsCards } from "./components/stock-stats-cards";
 import { VarianceTab } from "./components/variance-tab";
 import { useManageStocks } from "./use-manage-stocks";
 import { PageHeader } from "@/components/PageHeader";
+import { useModulePermission } from "@/hooks/use-module-permission";
+import { InventoryModule } from "@/lib/module-permissions";
 
 export default function ManageStocks() {
   const navigate = useNavigate();
+  const stockCaps = useModulePermission(InventoryModule.STOCK);
+  const itemCaps = useModulePermission(InventoryModule.ITEM);
+  const canViewStock = stockCaps.canView || itemCaps.canView;
+  const canReceive = stockCaps.canCreate || stockCaps.canEdit;
+  const canManageVariances =
+    stockCaps.canCreate || stockCaps.canEdit || stockCaps.canApprove;
   const [activeTab, setActiveTab] = useState("stock");
   const {
     items,
@@ -60,34 +68,45 @@ export default function ManageStocks() {
                 <TabsList
                   className={cn(
                     "grid h-auto w-full grid-cols-1 gap-2 rounded-xl border border-border/50 bg-background/80 p-1.5 shadow-inner",
-                    "sm:grid-cols-3",
+                    canReceive && canManageVariances
+                      ? "sm:grid-cols-3"
+                      : canReceive || canManageVariances
+                        ? "sm:grid-cols-2"
+                        : "sm:grid-cols-1",
                   )}
                 >
-                  <TabsTrigger
-                    value="stock"
-                    className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    <LayoutGrid className="h-4 w-4 shrink-0" />
-                    <span className="truncate">Stock catalog</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="receive"
-                    className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    <PackagePlus className="h-4 w-4 shrink-0" />
-                    <span className="truncate">Receive goods</span>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="variances"
-                    className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    <ArrowRightLeft className="h-4 w-4 shrink-0" />
-                    <span className="truncate">Variances</span>
-                  </TabsTrigger>
+                  {canViewStock && (
+                    <TabsTrigger
+                      value="stock"
+                      className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    >
+                      <LayoutGrid className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Stock catalog</span>
+                    </TabsTrigger>
+                  )}
+                  {canReceive && (
+                    <TabsTrigger
+                      value="receive"
+                      className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    >
+                      <PackagePlus className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Receive goods</span>
+                    </TabsTrigger>
+                  )}
+                  {canManageVariances && (
+                    <TabsTrigger
+                      value="variances"
+                      className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                    >
+                      <ArrowRightLeft className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Variances</span>
+                    </TabsTrigger>
+                  )}
                 </TabsList>
               </div>
 
               <div className="px-4 pb-6 pt-2 sm:px-6 sm:pb-8">
+                {canViewStock && (
                 <TabsContent value="stock" className="mt-0 outline-none">
                   <StockListTab
                     searchQuery={searchQuery}
@@ -103,7 +122,9 @@ export default function ManageStocks() {
                     }
                   />
                 </TabsContent>
+                )}
 
+                {canReceive && (
                 <TabsContent value="receive" className="mt-0 outline-none">
                   <ReceiveItemTab
                     items={items}
@@ -111,7 +132,9 @@ export default function ManageStocks() {
                     onStockUpdated={refetch}
                   />
                 </TabsContent>
+                )}
 
+                {canManageVariances && (
                 <TabsContent value="variances" className="mt-0 outline-none">
                   <VarianceTab
                     items={items}
@@ -119,6 +142,7 @@ export default function ManageStocks() {
                     onStockUpdated={refetch}
                   />
                 </TabsContent>
+                )}
               </div>
             </Tabs>
           </CardContent>

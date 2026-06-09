@@ -1,19 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ReceiptText, Search } from "lucide-react";
+import { ReceiptText } from "lucide-react";
 import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
 import type { TransactionResponseDTO } from "@/types/transactions";
+import { GlTabPanel } from "@/components/finance/gl-tab-panel";
 
 export default function TransactionPage({ companyId }: { companyId: number }) {
   const [txList, setTxList] = useState<TransactionResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -62,33 +61,35 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
     onSourceSave: handleSourceSave,
   });
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-64">Loading...</div>
-    );
+  const filteredTx = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return txList;
+    return txList.filter((tx) => {
+      const haystack = [
+        tx.transactionCode,
+        tx.transactionType,
+        tx.transactionDescription,
+        tx.debitAccountName,
+        tx.creditAccountName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [txList, searchQuery]);
 
   return (
-    <div className="rounded-xl border bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
-            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
-          </Button>
-          <ReceiptText className="h-5 w-5" />
-          <span className="text-lg font-semibold">Transactions</span>
-        </div>
-      </div>
-
-      <div className="px-4 pt-4 pb-2 border-b bg-white">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Search transactions..." className="pl-10" />
-        </div>
-      </div>
-
-      <div className="p-4">
-        <DataTable data={txList} columns={columns} />
-      </div>
-    </div>
+    <GlTabPanel
+      title="Transactions"
+      icon={<ReceiptText className="h-5 w-5" />}
+      searchPlaceholder="Search transactions..."
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      loading={loading}
+      loadingMessage="Loading transactions…"
+    >
+      <DataTable data={filteredTx} columns={columns} />
+    </GlTabPanel>
   );
 }

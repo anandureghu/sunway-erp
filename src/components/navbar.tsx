@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { displayRole } from "@/types/role";
-import { Building2, ChevronDown, LogOut, User } from "lucide-react";
+import { Building2, Check, ChevronDown, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function initialsFromName(name: string | undefined): string {
@@ -25,7 +25,7 @@ function initialsFromName(name: string | undefined): string {
 }
 
 const Navbar = () => {
-  const { logout, user, company } = useAuth();
+  const { logout, user, company, companies, switchCompany } = useAuth();
   const navigate = useNavigate();
   const { open, isMobile } = useSidebar();
 
@@ -56,23 +56,71 @@ const Navbar = () => {
 
       <div className="flex-1 flex min-w-0 shrink-0 flex-wrap items-center justify-center gap-2 sm:gap-3">
         <div className="w-full flex-1 flex items-center justify-center">
-          <div className="hidden max-w-[min(100%,280px)] min-w-0 items-center gap-2 md:flex">
-            {company?.logoUrl ? (
-              <img
-                src={company.logoUrl}
-                alt={`${company.companyName ?? "Company"} logo`}
-                className="h-6 w-6 shrink-0 rounded border border-border/60 bg-muted/30 object-contain"
-              />
-            ) : (
-              <Building2
-                className="h-4 w-4 shrink-0 text-muted-foreground"
-                aria-hidden
-              />
-            )}
-            <p className="truncate text-xs font-medium text-muted-foreground">
-              Welcome to {company?.companyName ?? user?.companyName ?? "Your company"}
-            </p>
-          </div>
+          {companies.length > 1 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="hidden h-9 max-w-[min(100%,320px)] gap-2 px-2 md:flex"
+                >
+                  {company?.logoUrl ? (
+                    <img
+                      src={company.logoUrl}
+                      alt=""
+                      className="h-5 w-5 shrink-0 rounded border object-contain"
+                    />
+                  ) : (
+                    <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="truncate text-xs font-medium">
+                    {company?.companyName ?? "Select company"}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-56 rounded-xl">
+                <DropdownMenuLabel>Switch company</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {companies.map((c) => (
+                  <DropdownMenuItem
+                    key={c.id}
+                    className="cursor-pointer gap-2 rounded-lg"
+                    onClick={() => {
+                      if (c.id !== company?.id) switchCompany(c.id);
+                    }}
+                  >
+                    {c.logoUrl ? (
+                      <img src={c.logoUrl} alt="" className="h-5 w-5 rounded object-contain" />
+                    ) : (
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className="flex-1 truncate">{c.companyName}</span>
+                    {c.id === company?.id && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden max-w-[min(100%,280px)] min-w-0 items-center gap-2 md:flex">
+              {company?.logoUrl ? (
+                <img
+                  src={company.logoUrl}
+                  alt={`${company.companyName ?? "Company"} logo`}
+                  className="h-6 w-6 shrink-0 rounded border border-border/60 bg-muted/30 object-contain"
+                />
+              ) : (
+                <Building2
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+              )}
+              <p className="truncate text-xs font-medium text-muted-foreground">
+                Welcome to {company?.companyName ?? user?.companyName ?? "Your company"}
+              </p>
+            </div>
+          )}
         </div>
 
         <DropdownMenu>

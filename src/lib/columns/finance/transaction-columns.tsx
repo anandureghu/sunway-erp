@@ -1,9 +1,16 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import type { TransactionResponseDTO } from "@/types/transactions";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
+import {
+  transactionTypeBadgeClass,
+  transactionTypeLabel,
+} from "@/lib/transaction-type-label";
+import { cn } from "@/lib/utils";
 
 const UNKNOWN = "UNKNOWN";
 
@@ -66,20 +73,49 @@ export const TRANSACTION_COLUMNS = ({
 }: {
   onSourceSave: (id: number, source: string) => Promise<void>;
 }): ColumnDef<TransactionResponseDTO>[] => [
-  { accessorKey: "transactionCode", header: "Transaction No" },
-  { accessorKey: "transactionType", header: "Type" },
+  {
+    accessorKey: "transactionCode",
+    header: "Transaction No",
+    cell: ({ row }) => (
+      <span className="font-medium text-slate-900">
+        {row.getValue("transactionCode")}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "transactionType",
+    header: "Type",
+    cell: ({ row }) => {
+      const type = row.getValue<string | null>("transactionType");
+      return (
+        <Badge
+          variant="outline"
+          className={cn(
+            "font-normal",
+            transactionTypeBadgeClass(type),
+          )}
+        >
+          {transactionTypeLabel(type)}
+        </Badge>
+      );
+    },
+  },
 
   {
     accessorKey: "transactionDate",
     header: "Date",
-    cell: ({ row }) =>
-      new Date(row.getValue("transactionDate")).toLocaleDateString(),
-  },
-
-  {
-    accessorKey: "transactionDescription",
-    header: "Description",
-    cell: ({ row }) => row.getValue("transactionDescription") ?? "—",
+    cell: ({ row }) => {
+      const date = row.getValue("transactionDate") as string;
+      try {
+        return (
+          <span className="text-slate-600">
+            {format(new Date(date), "MMM d, yyyy")}
+          </span>
+        );
+      } catch {
+        return <span className="text-slate-600">{date}</span>;
+      }
+    },
   },
   {
     accessorKey: "debitAccountName",

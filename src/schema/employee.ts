@@ -7,5 +7,5 @@ export const createEmployeeSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")), // Auto-generated on backend
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().optional().nullable(), // Password is auto-generated on backend
-  role: z.string(), // System role - ADMIN, HR, USER, etc.
+  role: z.string().optional().or(z.literal("")),
 });

@@ -17,7 +17,7 @@ import { EmployeeStats } from "@/modules/hr/components/employee-stats";
 import { AddEmployeeModal } from "@/context/employee-selection";
 import { useAuth } from "@/context/AuthContext";
 import { UserPlus, Users2, LayoutGrid } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isSecurityAdmin } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 
 interface EmployeeTableProps {
@@ -72,7 +72,7 @@ export default function EmployeesPage() {
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const navigate = useNavigate();
   const { setSelected } = useEmployeeSelection();
-  const { permissions, permissionsLoading, user } = useAuth();
+  const { permissions, permissionsLoading, user, company } = useAuth();
   const [canViewEmployees, setCanViewEmployees] = useState(false);
 
   const filteredEmployees = useMemo(() => {
@@ -135,6 +135,7 @@ export default function EmployeesPage() {
   const handleAddEmployee = async (newEmployee: any) => {
     try {
       const payload = {
+        companyId: company?.id != null ? Number(company.id) : undefined,
         firstName: newEmployee.firstName ?? "",
         lastName: newEmployee.lastName ?? "",
         gender: newEmployee.gender ?? undefined,
@@ -153,8 +154,7 @@ export default function EmployeesPage() {
           newEmployee.departmentId !== ""
             ? Number(newEmployee.departmentId)
             : undefined,
-        // Use companyRole for display (human-readable) - backend will handle both fields
-        companyRole: newEmployee.companyRole ?? newEmployee.role ?? "Employee",
+        companyRole: newEmployee.companyRole ?? undefined,
         role: newEmployee.role ?? "USER", // Keep security role for permissions
         // username/email/password removed from add employee flow
       };
@@ -221,10 +221,12 @@ export default function EmployeesPage() {
   };
 
   // load employees with department from current job
+  const isAdmin = isSecurityAdmin(user?.role);
+
   // determine canViewEmployees once when permissions change
   useEffect(() => {
-    // Admin bypass (permissions === null)
-    if (permissions === null) {
+    // Admin bypass (permissions === null or JWT security role)
+    if (isAdmin || permissions === null) {
       setCanViewEmployees(true);
       return;
     }
@@ -237,7 +239,7 @@ export default function EmployeesPage() {
       return;
     }
 
-    const hasPermission = (moduleId: string) => {
+    const hasView = (moduleId: string) => {
       const perm = (permissions as any)?.[moduleId];
       if (!perm) return false;
       return !!(
@@ -249,9 +251,9 @@ export default function EmployeesPage() {
     };
 
     const has =
-      hasPermission("EMPLOYEE_PROFILE") || hasPermission("CURRENT_JOB");
+      hasView("EMPLOYEE_PROFILE") || hasView("CURRENT_JOB");
     setCanViewEmployees(!!has);
-  }, [permissions, permissionsLoading]);
+  }, [permissions, permissionsLoading, isAdmin]);
 
   // Load employees when we know user can view them
   useEffect(() => {
@@ -259,10 +261,6 @@ export default function EmployeesPage() {
 
     const load = async () => {
       try {
-        const isAdmin =
-          (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
-          (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
-
         if (!isAdmin && !canViewEmployees) {
           setEmployees([]);
           return;
@@ -299,7 +297,7 @@ export default function EmployeesPage() {
     return () => {
       mounted = false;
     };
-  }, [canViewEmployees, user]);
+  }, [canViewEmployees, user, isAdmin, company?.id]);
 
   // permissionsLoading handled above; no local permissionsLoaded state
 
@@ -327,12 +325,15 @@ export default function EmployeesPage() {
       window.removeEventListener("employee:updated", handler as EventListener);
   }, []);
 
+  const hasCreate = (moduleId: string) =>
+    !!(permissions as any)?.[moduleId]?.create;
+
   const showAdd =
+    isAdmin ||
     permissions === null ||
     permissionsLoading ||
-    ["employee_profile", "current_job"].some(
-      (m) => (permissions as any)?.[m]?.create === true,
-    );
+    hasCreate("EMPLOYEE_PROFILE") ||
+    hasCreate("CURRENT_JOB");
 
   return (
     <div className="p-6 space-y-4">

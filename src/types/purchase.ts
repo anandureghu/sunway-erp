@@ -106,6 +106,8 @@ export type PurchaseRequisition = {
   archived?: boolean;
   /** Set when approval creates a purchase order in the same request. */
   createdPurchaseOrderId?: string;
+  /** Human-readable PO number (e.g. PO-1000) when a linked order exists. */
+  createdPurchaseOrderNumber?: string;
   debitAccountId?: string;
   debitAccountName?: string;
   creditAccountId?: string;
@@ -178,6 +180,8 @@ export type PurchaseOrder = {
   orderNo: string;
   orderNumber?: string;
   requisitionId?: string;
+  /** Human-readable PR number (e.g. PR-1000) when sourced from a requisition. */
+  requisitionNo?: string;
   requisition?: PurchaseRequisition;
   supplierId: string;
   supplierName?: string;
@@ -219,13 +223,20 @@ export type QualityInspectionStatus =
   | "failed"
   | "partial";
 
+/** Lightweight item snapshot for GR line display (not full catalog DTO). */
+export type PurchaseItemRef = {
+  id: number;
+  name?: string;
+  sku?: string;
+};
+
 export type GoodsReceiptItem = {
   id: string;
   receiptId: string;
   orderItemId: string;
   orderItem?: PurchaseOrderItem;
   itemId: number;
-  item?: ItemResponseDTO;
+  item?: PurchaseItemRef;
   orderedQuantity: number;
   receivedQuantity: number;
   acceptedQuantity: number;

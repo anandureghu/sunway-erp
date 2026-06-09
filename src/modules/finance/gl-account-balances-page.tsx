@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Scale, Search } from "lucide-react";
+import { Scale } from "lucide-react";
 import { toast } from "sonner";
 import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
 import { useAuth } from "@/context/AuthContext";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { SignedColoredAmount } from "@/components/accounting-amount";
+import { GlTabPanel } from "@/components/finance/gl-tab-panel";
+import { coaTypeBadgeClass, coaTypeLabel } from "@/lib/coa-type-label";
+import { cn } from "@/lib/utils";
 
 function InitialBalanceActionCell({
   done,
@@ -145,9 +147,17 @@ export default function GlAccountBalancesPage() {
       {
         accessorKey: "type",
         header: "Type",
-        cell: ({ row }) => (
-          <Badge variant="outline">{row.getValue<string>("type")}</Badge>
-        ),
+        cell: ({ row }) => {
+          const type = row.getValue<string>("type");
+          return (
+            <Badge
+              variant="outline"
+              className={cn("font-normal", coaTypeBadgeClass(type))}
+            >
+              {coaTypeLabel(type)}
+            </Badge>
+          );
+        },
       },
       {
         id: "balance",
@@ -190,42 +200,18 @@ export default function GlAccountBalancesPage() {
     [currencyCode, savingId, setInitial],
   );
 
-  if (loading) {
-    return <p className="text-center text-muted-foreground p-10">Loading...</p>;
-  }
-
   return (
-    <div className="rounded-xl border bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
-            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
-          </Button>
-          <Scale className="h-5 w-5" />
-          <span className="text-lg font-semibold">GL Account Balances</span>
-        </div>
-      </div>
-
-      <div className="px-4 pt-4 pb-2 border-b bg-white space-y-3">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search account..."
-            className="pl-10"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          View each account&apos;s balance. If opening balance was not set when
-          the account was created, enter it here once. After that, balances
-          follow from transactions and journals.
-        </p>
-      </div>
-
-      <div className="p-4">
-        <DataTable columns={columns} data={filtered} />
-      </div>
-    </div>
+    <GlTabPanel
+      title="GL Account Balances"
+      description="View each account's balance. Set opening balances once; thereafter balances follow from transactions and journals."
+      icon={<Scale className="h-5 w-5" />}
+      searchPlaceholder="Search accounts..."
+      searchValue={query}
+      onSearchChange={setQuery}
+      loading={loading}
+      loadingMessage="Loading account balances…"
+    >
+      <DataTable columns={columns} data={filtered} />
+    </GlTabPanel>
   );
 }

@@ -34,8 +34,6 @@ export type PurchaseOrderColumnActions = {
   onOpenOrder?: (id: string) => void;
   onConfirm?: (id: string) => void;
   onCancel?: (id: string) => void;
-  /** Quick preview in dialog (optional) */
-  onViewDetails?: (id: string) => void;
   onEdit?: (id: string) => void;
   /** Goods receipt flow */
   onReceiveGoods?: (orderId: string) => void;
@@ -54,7 +52,6 @@ export function createPurchaseOrderColumns(
     onOpenOrder,
     onConfirm,
     onCancel,
-    onViewDetails,
     onEdit,
     onReceiveGoods,
     onViewRequisition,
@@ -169,13 +166,6 @@ export function createPurchaseOrderColumns(
                     Open detail
                   </DropdownMenuItem>
                 )}
-                {onViewDetails && (
-                  <DropdownMenuItem onClick={() => onViewDetails(order.id)}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Quick preview
-                  </DropdownMenuItem>
-                )}
-
                 {reqId && onViewRequisition && (
                   <>
                     <DropdownMenuSeparator />

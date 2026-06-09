@@ -103,6 +103,8 @@ import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
+import { ModuleAccessGate } from "./components/module-access-gate";
+import { InventoryModule } from "./lib/module-permissions";
 import FinanceSettingsPage from "./pages/finance/finance-settings-page";
 import WarehouseDetail from "./modules/inventory/warehouse/warehouse-detail";
 import SalesOrdersDetailPage from "./pages/sales/sales-orders-detail-page";
@@ -207,69 +209,272 @@ export default function App() {
 
           {/* Inventory */}
           <Route path="inventory">
-            <Route path="settings" element={<InventorySettingsPage />} />
-            <Route path="stocks" element={<ManageStocks />} />
-            <Route path="stocks/:id" element={<InventoryItemDetail />} />
-            <Route path="warehouses/:id" element={<WarehouseDetail />} />
-            <Route path="reports" element={<InventoryReportsPage />} />
-            <Route path="sales" element={<SalesLandingPage />} />
-            <Route path="sales/orders" element={<SalesOrdersPage />} />
+            <Route
+              path="settings"
+              element={
+                <ModuleAccessGate
+                  modules={[
+                    InventoryModule.CATEGORY,
+                    InventoryModule.WAREHOUSE,
+                    InventoryModule.PURCHASE,
+                    InventoryModule.SALES,
+                  ]}
+                  title="Inventory settings access denied"
+                >
+                  <InventorySettingsPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="stocks"
+              element={
+                <ModuleAccessGate
+                  modules={[InventoryModule.STOCK, InventoryModule.ITEM]}
+                  title="Stock management access denied"
+                >
+                  <ManageStocks />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="stocks/:id"
+              element={
+                <ModuleAccessGate
+                  module={InventoryModule.ITEM}
+                  title="Item detail access denied"
+                >
+                  <InventoryItemDetail />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="warehouses/:id"
+              element={
+                <ModuleAccessGate
+                  module={InventoryModule.WAREHOUSE}
+                  title="Warehouse access denied"
+                >
+                  <WarehouseDetail />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <ModuleAccessGate
+                  module={InventoryModule.STOCK}
+                  title="Inventory reports access denied"
+                >
+                  <InventoryReportsPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="sales"
+              element={
+                <ModuleAccessGate
+                  module={InventoryModule.SALES}
+                  title="Sales access denied"
+                >
+                  <SalesLandingPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="sales/orders"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <SalesOrdersPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route
               path="sales/orders/:id"
-              element={<SalesOrdersDetailPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <SalesOrdersDetailPage />
+                </ModuleAccessGate>
+              }
             />
-            <Route path="sales/orders/new" element={<SalesOrdersPage />} />
-            <Route path="sales/customers" element={<SalesCustomersPage />} />
+            <Route
+              path="sales/orders/new"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <SalesOrdersPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="sales/customers"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <SalesCustomersPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route
               path="sales/customers/:id"
-              element={<CustomerDetailPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <CustomerDetailPage />
+                </ModuleAccessGate>
+              }
             />
-            <Route path="sales/picklist" element={<PicklistDispatchPage />} />
-            <Route path="sales/picklist/:id" element={<PicklistDetailPage />} />
-            <Route path="sales/tracking" element={<DeliveryTrackingPage />} />
-            <Route path="sales/invoices" element={<InvoicesPage />} />
-            <Route path="purchase" element={<PurchaseLandingPage />} />
-            <Route path="purchase/orders" element={<PurchaseOrdersPage />} />
+            <Route
+              path="sales/picklist"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <PicklistDispatchPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="sales/picklist/:id"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <PicklistDetailPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="sales/tracking"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <DeliveryTrackingPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="sales/invoices"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <InvoicesPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="purchase"
+              element={
+                <ModuleAccessGate
+                  module={InventoryModule.PURCHASE}
+                  title="Purchase access denied"
+                >
+                  <PurchaseLandingPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="purchase/orders"
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <PurchaseOrdersPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route
               path="purchase/orders/:id"
-              element={<PurchaseOrderDetailPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <PurchaseOrderDetailPage />
+                </ModuleAccessGate>
+              }
             />
-            <Route path="purchase/suppliers" element={<SuppliersPage />} />
+            <Route
+              path="purchase/suppliers"
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <SuppliersPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route
               path="purchase/suppliers/:id"
-              element={<VendorDetailPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <VendorDetailPage />
+                </ModuleAccessGate>
+              }
             />
             <Route
               path="purchase/invoices"
-              element={<PurchaseInvoicesPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <PurchaseInvoicesPage />
+                </ModuleAccessGate>
+              }
             />
             <Route
               path="purchase/invoices/:id"
-              element={<PurchaseInvoiceDetailPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <PurchaseInvoiceDetailPage />
+                </ModuleAccessGate>
+              }
             />
-            <Route path="purchase/receiving" element={<ReceivingPage />} />
+            <Route
+              path="purchase/receiving"
+              element={
+                <ModuleAccessGate module={InventoryModule.RECEIPT}>
+                  <ReceivingPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route
               path="purchase/receiving/:id"
-              element={<GoodsReceiptDetailPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.RECEIPT}>
+                  <GoodsReceiptDetailPage />
+                </ModuleAccessGate>
+              }
             />
             <Route
               path="purchase/requisitions"
-              element={<PurchaseRequisitionsPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <PurchaseRequisitionsPage />
+                </ModuleAccessGate>
+              }
             />
             <Route
               path="purchase/requisitions/new"
-              element={<PurchaseRequisitionsPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <PurchaseRequisitionsPage />
+                </ModuleAccessGate>
+              }
             />
             <Route
               path="purchase/requisitions/:id/edit"
-              element={<EditPurchaseRequisitionPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <EditPurchaseRequisitionPage />
+                </ModuleAccessGate>
+              }
             />
             <Route
               path="purchase/requisitions/:id"
-              element={<PurchaseRequisitionDetailPage />}
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <PurchaseRequisitionDetailPage />
+                </ModuleAccessGate>
+              }
             />
-            <Route path="customers/:id" element={<CustomerDetailPage />} />
-            <Route path="vendors/:id" element={<VendorDetailPage />} />
+            <Route
+              path="customers/:id"
+              element={
+                <ModuleAccessGate module={InventoryModule.SALES}>
+                  <CustomerDetailPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="vendors/:id"
+              element={
+                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                  <VendorDetailPage />
+                </ModuleAccessGate>
+              }
+            />
           </Route>
 
           <Route path="companies">

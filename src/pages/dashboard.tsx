@@ -135,13 +135,19 @@ const getSystemSubtitle = (title: string): string => {
 };
 
 const Dashboard = () => {
-  const { user, permissions: authPermissions, permissionsLoading } = useAuth();
+  const {
+    user,
+    company,
+    activeCompanyId,
+    permissions: authPermissions,
+    permissionsLoading,
+  } = useAuth();
   const [sidebarItems, setSidebarItems] = useState<SidebarItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user?.companyId) {
+    if (!activeCompanyId) {
       setIsLoading(false);
       return;
     }
@@ -159,23 +165,27 @@ const Dashboard = () => {
       (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
 
     console.debug("Dashboard: Fetching sidebar items", {
-      companyId: user.companyId,
+      companyId: activeCompanyId,
       isAdmin,
       hasPermissions: !!authPermissions,
       permissionKeys: authPermissions ? Object.keys(authPermissions) : null,
     });
 
     // Pass permissionsLoading flag so canView() knows the state
-    getSidebarItems(user.companyId, {
+    getSidebarItems(String(activeCompanyId), {
       skipPermissions: isAdmin,
       permissions: authPermissions,
-      permissionsLoading, // NEW: pass loading state
+      permissionsLoading,
+      company:
+        company?.id != null && Number(company.id) === activeCompanyId
+          ? company
+          : undefined,
     }).then((items) => {
       setSidebarItems(items);
       setIsLoading(false);
       console.debug("Dashboard: Fetched sidebar items:", items);
     });
-  }, [user, authPermissions, permissionsLoading]); // Include permissionsLoading
+  }, [activeCompanyId, company, user, authPermissions, permissionsLoading]);
 
   // Show loading state while permissions are being fetched
   if (isLoading) {

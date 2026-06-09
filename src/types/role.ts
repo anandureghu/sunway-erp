@@ -90,6 +90,13 @@ export const ModuleName = {
   IMMIGRATION: "IMMIGRATION",
   HR_REPORTS: "HR_REPORTS",
   HR_SETTINGS: "HR_SETTINGS",
+  INVENTORY_CATEGORY: "INVENTORY_CATEGORY",
+  INVENTORY_WAREHOUSE: "INVENTORY_WAREHOUSE",
+  INVENTORY_STOCK: "INVENTORY_STOCK",
+  INVENTORY_ITEM: "INVENTORY_ITEM",
+  INVENTORY_PURCHASE: "INVENTORY_PURCHASE",
+  INVENTORY_RECEIPT: "INVENTORY_RECEIPT",
+  INVENTORY_SALES: "INVENTORY_SALES",
 } as const;
 
 export type ModuleName = typeof ModuleName[keyof typeof ModuleName];
@@ -106,6 +113,13 @@ export const moduleDisplayNames: Record<string, string> = {
   IMMIGRATION: "Immigration",
   HR_REPORTS: "HR Reports",
   HR_SETTINGS: "HR Settings",
+  INVENTORY_CATEGORY: "Categories",
+  INVENTORY_WAREHOUSE: "Warehouse",
+  INVENTORY_STOCK: "Stock Management",
+  INVENTORY_ITEM: "Items",
+  INVENTORY_PURCHASE: "Purchase",
+  INVENTORY_RECEIPT: "Goods Receipt",
+  INVENTORY_SALES: "Sales",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -21,13 +21,19 @@ import {
   Shield,
 } from "lucide-react";
 
-export const fetchCompany = async (id: string) => {
+export const fetchCompany = async (
+  id: string,
+  options?: { silent?: boolean },
+) => {
   try {
     const res = await apiClient.get(`/companies/${id}`);
     return res.data;
   } catch (err) {
     console.error("fetchCompany:", err);
-    toast.error("Failed to load company");
+    if (!options?.silent) {
+      toast.error("Failed to load company");
+    }
+    return undefined;
   }
 };
 
@@ -166,6 +172,11 @@ export const getSidebarItems = async (
     skipPermissions?: boolean;
     permissions?: Record<string, any> | null;
     permissionsLoading?: boolean;
+    company?: {
+      hrEnabled?: boolean;
+      inventoryEnabled?: boolean;
+      financeEnabled?: boolean;
+    } | null;
   },
 ): Promise<SidebarItem[]> => {
   const permissions = options?.skipPermissions ? null : options?.permissions;
@@ -182,7 +193,9 @@ export const getSidebarItems = async (
         : "N/A",
   });
 
-  const company = await fetchCompany(companyId);
+  const company =
+    options?.company ??
+    (await fetchCompany(companyId, { silent: true }));
   if (!company) {
     console.warn("❌ Company not found");
     return [];
@@ -250,34 +263,60 @@ export const getSidebarItems = async (
 
     // ── Inventory ─────────────────────────────────────────────────────────────
     ...(company.inventoryEnabled
-      ? [
-          {
-            title: "Inventory",
-            icon: Package,
-            color: "text-amber-700",
-            image: "/assets/images/inventory.svg",
-            url: "/inventory/dashboard",
-            items: [
-              {
-                title: "Inventory (Stocks)",
-                url: "/inventory/stocks",
-                icon: Package,
-              },
-              { title: "Sales", url: "/inventory/sales", icon: ShoppingCart },
-              { title: "Purchase", url: "/inventory/purchase", icon: Receipt },
-              {
-                title: "Inventory Reports",
-                url: "/inventory/reports",
-                icon: FileText,
-              },
-              {
-                title: "Inventory Settings",
-                url: "/inventory/settings",
-                icon: Settings,
-              },
-            ],
-          },
-        ]
+      ? (() => {
+          const inventoryItems = [
+            ...(canView(permissions, "INVENTORY_STOCK") ||
+            canView(permissions, "INVENTORY_ITEM")
+              ? [
+                  {
+                    title: "Inventory (Stocks)",
+                    url: "/inventory/stocks",
+                    icon: Package,
+                  },
+                ]
+              : []),
+            ...(canView(permissions, "INVENTORY_SALES")
+              ? [{ title: "Sales", url: "/inventory/sales", icon: ShoppingCart }]
+              : []),
+            ...(canView(permissions, "INVENTORY_PURCHASE")
+              ? [{ title: "Purchase", url: "/inventory/purchase", icon: Receipt }]
+              : []),
+            ...(canView(permissions, "INVENTORY_STOCK")
+              ? [
+                  {
+                    title: "Inventory Reports",
+                    url: "/inventory/reports",
+                    icon: FileText,
+                  },
+                ]
+              : []),
+            ...(canView(permissions, "INVENTORY_CATEGORY") ||
+            canView(permissions, "INVENTORY_WAREHOUSE") ||
+            canView(permissions, "INVENTORY_PURCHASE") ||
+            canView(permissions, "INVENTORY_SALES")
+              ? [
+                  {
+                    title: "Inventory Settings",
+                    url: "/inventory/settings",
+                    icon: Settings,
+                  },
+                ]
+              : []),
+          ];
+
+          if (inventoryItems.length === 0) return [];
+
+          return [
+            {
+              title: "Inventory",
+              icon: Package,
+              color: "text-amber-700",
+              image: "/assets/images/inventory.svg",
+              url: "/inventory/dashboard",
+              items: inventoryItems,
+            },
+          ];
+        })()
       : []),
 
     // ── Finance ───────────────────────────────────────────────────────────────

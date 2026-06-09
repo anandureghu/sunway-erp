@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Calculator, ArrowLeft, Plus } from "lucide-react";
+import { Calculator, Plus } from "lucide-react";
 
 import { DataTable } from "@/components/datatable";
 
@@ -15,6 +14,7 @@ import { BUDGET_COLUMNS } from "@/lib/columns/finance/budget-columns";
 import { BudgetDialog } from "./budget-dialog";
 import { useAuth } from "@/context/AuthContext";
 import { hasAnyRole } from "@/lib/utils";
+import { GlTabPanel } from "@/components/finance/gl-tab-panel";
 
 export default function BudgetPage({ companyId }: { companyId: number }) {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BudgetResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchAll = async () => {
     apiClient
@@ -79,46 +80,49 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
     role: user?.role,
   });
 
-  if (loading) return <div className="p-6 text-center">Loading...</div>;
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((budget) =>
+      [budget.budgetName, budget.status, budget.fiscalYear]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [list, searchQuery]);
 
   return (
-    <div className="rounded-xl border bg-white overflow-hidden">
-      {/* Header bar - HR Style */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:bg-white/20 hover:text-white rounded-lg" asChild>
-            <Link to="/dashboard" aria-label="Back to dashboard"><ArrowLeft className="h-4 w-4" /></Link>
-          </Button>
-          <Calculator className="h-5 w-5" />
-          <span className="text-lg font-semibold">Budgets</span>
-        </div>
-      </div>
-
-      {/* Search and Actions bar */}
-      <div className="px-4 pt-4 pb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b bg-white">
-        <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Search budgets..." className="pl-10" />
-        </div>
-
-        {hasAnyRole(user?.role, ["FINANCE_MANAGER", "SUPER_ADMIN"]) && (
-          <Button
-            onClick={() => {
-              setSelected(null);
-              setOpen(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Budget
-          </Button>
-        )}
-      </div>
-
-      {/* Table Content */}
-      <div className="p-4">
-        <DataTable data={list} columns={columns} onRowClick={handleRowClick} />
-      </div>
+    <>
+      <GlTabPanel
+        title="Budgets"
+        description="Plan and track spending against approved budget periods."
+        icon={<Calculator className="h-5 w-5" />}
+        searchPlaceholder="Search budgets..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        loading={loading}
+        actions={
+          hasAnyRole(user?.role, ["FINANCE_MANAGER", "SUPER_ADMIN"]) ? (
+            <Button
+              onClick={() => {
+                setSelected(null);
+                setOpen(true);
+              }}
+              className="rounded-lg bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add budget
+            </Button>
+          ) : undefined
+        }
+      >
+        <DataTable
+          data={filtered}
+          columns={columns}
+          onRowClick={handleRowClick}
+        />
+      </GlTabPanel>
 
       <BudgetDialog
         companyId={companyId || 0}
@@ -129,6 +133,6 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
           fetchAll();
         }}
       />
-    </div>
+    </>
   );
 }

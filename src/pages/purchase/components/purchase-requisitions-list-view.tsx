@@ -30,6 +30,7 @@ type Props = {
   statusFilter: string;
   columns: ColumnDef<PurchaseRequisition>[];
   onCreateNew: () => void;
+  showCreateButton?: boolean;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onRetry: () => void;
@@ -47,6 +48,7 @@ export function PurchaseRequisitionsListView({
   statusFilter,
   columns,
   onCreateNew,
+  showCreateButton = true,
   onSearchChange,
   onStatusChange,
   onRetry,
@@ -103,13 +105,15 @@ export function PurchaseRequisitionsListView({
         backHref="/inventory/purchase"
         variant="darkGreen"
         actions={
-          <Button
-            size="lg"
-            onClick={onCreateNew}
-            className="bg-white text-slate-900 hover:bg-white/90"
-          >
-            Create requisition
-          </Button>
+          showCreateButton ? (
+            <Button
+              size="lg"
+              onClick={onCreateNew}
+              className="bg-white text-slate-900 hover:bg-white/90"
+            >
+              Create requisition
+            </Button>
+          ) : undefined
         }
       />
 

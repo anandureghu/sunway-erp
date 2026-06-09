@@ -6,6 +6,12 @@ import { twMerge } from "tailwind-merge";
 import { apiClient } from "@/service/apiClient";
 import { formatCurrencyAmount } from "@/lib/currency";
 
+/** JWT security role (ADMIN / SUPER_ADMIN), not company role display name. */
+export function isSecurityAdmin(role?: string | null): boolean {
+  const r = String(role ?? "").toUpperCase();
+  return r === "ADMIN" || r === "SUPER_ADMIN";
+}
+
 // ✅ FIXED: Matches your ModulePermissionDTO structure
 export function canViewModule(permissions: ModulePermission[] | null, module: string): boolean {
   // `permissions === null` is the admin bypass (show everything).

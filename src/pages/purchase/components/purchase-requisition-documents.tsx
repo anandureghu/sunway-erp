@@ -18,6 +18,8 @@ type Props = {
   documents: PurchaseRequisitionDocument[];
   onDocumentsChange: (documents: PurchaseRequisitionDocument[]) => void;
   readOnly?: boolean;
+  /** When true, renders without the outer Card wrapper (for tabs/panels). */
+  embedded?: boolean;
 };
 
 function formatFileSize(bytes?: number) {
@@ -43,6 +45,7 @@ export function PurchaseRequisitionDocuments({
   documents,
   onDocumentsChange,
   readOnly = false,
+  embedded = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -94,43 +97,49 @@ export function PurchaseRequisitionDocuments({
     }
   };
 
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-        <div>
+  const header = (
+    <div className="flex flex-row items-center justify-between gap-4">
+      <div>
+        {embedded ? (
+          <h3 className="text-base font-semibold text-slate-900">Attachments</h3>
+        ) : (
           <CardTitle className="text-lg">Documents</CardTitle>
-          <p className="text-sm text-muted-foreground font-normal mt-1">
-            PDF, Word, or images up to 15 MB each.
-          </p>
-        </div>
-        {!readOnly && (
-          <>
-            <input
-              ref={inputRef}
-              type="file"
-              accept={ACCEPT}
-              multiple
-              className="hidden"
-              onChange={(e) => void handleUpload(e.target.files)}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={uploading}
-              onClick={() => inputRef.current?.click()}
-            >
-              {uploading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="mr-2 h-4 w-4" />
-              )}
-              Upload
-            </Button>
-          </>
         )}
-      </CardHeader>
-      <CardContent>
+        <p className="text-sm text-muted-foreground font-normal mt-1">
+          PDF, Word, or images up to 15 MB each.
+        </p>
+      </div>
+      {!readOnly && (
+        <>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={ACCEPT}
+            multiple
+            className="hidden"
+            onChange={(e) => void handleUpload(e.target.files)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Upload
+          </Button>
+        </>
+      )}
+    </div>
+  );
+
+  const body = (
+    <>
         {documents.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
             {readOnly
@@ -227,7 +236,22 @@ export function PurchaseRequisitionDocuments({
             })}
           </ul>
         )}
-      </CardContent>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="space-y-4">
+        {header}
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="space-y-0">{header}</CardHeader>
+      <CardContent>{body}</CardContent>
     </Card>
   );
 }

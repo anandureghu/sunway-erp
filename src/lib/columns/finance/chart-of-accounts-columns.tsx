@@ -14,6 +14,8 @@ import {
 import type { Company } from "@/types/company";
 import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
 import { SignedColoredAmount } from "@/components/accounting-amount";
+import { coaTypeBadgeClass, coaTypeLabel } from "@/lib/coa-type-label";
+import { cn } from "@/lib/utils";
 
 export const CHART_OF_ACCOUNTS_COLUMNS = ({
   onEdit,
@@ -38,9 +40,17 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
   {
     accessorKey: "type",
     header: "Type",
-    cell: ({ row }) => (
-      <Badge variant="outline">{row.getValue<string>("type")}</Badge>
-    ),
+    cell: ({ row }) => {
+      const type = row.getValue<string>("type");
+      return (
+        <Badge
+          variant="outline"
+          className={cn("font-normal", coaTypeBadgeClass(type))}
+        >
+          {coaTypeLabel(type)}
+        </Badge>
+      );
+    },
   },
 
   {

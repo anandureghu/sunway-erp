@@ -136,10 +136,18 @@ export function ReceiveItemTab({
     };
   }, []);
 
-  const searchResults = useMemo(
-    () => filterItemsByQuery(items, itemSearchQuery),
-    [items, itemSearchQuery],
-  );
+  const searchResults = useMemo(() => {
+    const query = itemSearchQuery.trim();
+    if (!query) return [];
+    const filtered = filterItemsByQuery(items, itemSearchQuery);
+    if (
+      selectedItem &&
+      selectedItem.name.trim().toLowerCase() === query.toLowerCase()
+    ) {
+      return [];
+    }
+    return filtered;
+  }, [items, itemSearchQuery, selectedItem]);
 
   const stockRowForSelection = useMemo(() => {
     if (!selectedItem || !selectedWarehouseId) return null;
@@ -382,7 +390,7 @@ export function ReceiveItemTab({
                 label=""
                 query={itemSearchQuery}
                 onQueryChange={setItemSearchQuery}
-                results={itemSearchQuery.length > 0 ? searchResults : []}
+                results={searchResults}
                 onSelect={handleItemSelect}
                 hiddenInputProps={register("itemId")}
                 errorText={errors.itemId?.message}
