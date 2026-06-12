@@ -92,16 +92,17 @@ function SourceCell({
   tx: TransactionResponseDTO;
   onSourceSave: (id: number, source: string) => Promise<void>;
 }) {
-  if (!isSingleSided(tx)) {
-    return <span className="text-sm text-muted-foreground">—</span>;
-  }
-
+  const singleSided = isSingleSided(tx);
   const raw = (tx.source ?? UNKNOWN).toUpperCase();
-  const editable = raw === UNKNOWN && !tx.sourceLocked;
+  const editable = singleSided && raw === UNKNOWN && !tx.sourceLocked;
   const [val, setVal] = useState(
     tx.source === UNKNOWN || !tx.source ? "" : tx.source,
   );
   const [saving, setSaving] = useState(false);
+
+  if (!singleSided) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
 
   if (!editable) {
     return <span className="text-sm">{tx.source ?? UNKNOWN}</span>;

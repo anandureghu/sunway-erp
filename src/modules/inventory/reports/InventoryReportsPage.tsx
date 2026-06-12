@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Card,
   CardContent,
@@ -8,9 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsContent } from "@/components/ui/tabs";
-import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
+import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -20,8 +26,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  TrendingUp,
-  DollarSign,
   Package,
   AlertTriangle,
   BarChart3,
@@ -30,21 +34,27 @@ import {
   Loader2,
   Warehouse as WarehouseIcon,
   Layers,
+  Download,
+  Boxes,
 } from "lucide-react";
-import { format, endOfMonth, parseISO, startOfMonth } from "date-fns";
-import { ChartContainer } from "@/components/ui/chart";
+import { format, endOfMonth, isValid, parseISO, startOfMonth } from "date-fns";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import {
   BarChart,
   Bar,
-  PieChart as RechartsPieChart,
+  PieChart,
   Pie,
   Cell,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
 import {
   getInventoryReportSummary,
@@ -60,24 +70,35 @@ import { listSalesOrders } from "@/service/salesFlowService";
 import type { SalesOrder } from "@/types/sales";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import {
+  KpiSummaryStrip,
+  type KpiSummaryStat,
+} from "@/components/kpi-summary-strip";
 
-const CHART_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+const PIE_COLORS = [
+  "hsl(220 83% 56%)",
+  "hsl(142 76% 45%)",
+  "hsl(38 92% 56%)",
+  "hsl(280 70% 60%)",
+  "hsl(0 78% 60%)",
+  "hsl(190 80% 50%)",
 ];
 
-function formatMoney(n: number | undefined | null) {
-  const v = Number(n ?? 0);
-  return v.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
+const VALUATION_COLOR = "hsl(142 76% 45%)";
+const COGS_COLOR = "hsl(38 92% 56%)";
+
+const compactNumber = (n: number) => {
+  if (!Number.isFinite(n)) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return Math.round(n).toString();
+};
 
 function inDateRange(isoDate: string, from: string, to: string): boolean {
   try {
@@ -90,7 +111,6 @@ function inDateRange(isoDate: string, from: string, to: string): boolean {
   }
 }
 
-/** Orders that typically represent fulfilled demand for turnover / COGS. */
 function orderCountsForTurnover(o: SalesOrder): boolean {
   const s = (o.status || "").toLowerCase();
   if (s === "cancelled" || s === "draft") return false;
@@ -98,8 +118,41 @@ function orderCountsForTurnover(o: SalesOrder): boolean {
   return true;
 }
 
+function QuickChip({
+  children,
+  onClick,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-foreground"
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex h-72 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+      {message}
+    </div>
+  );
+}
+
 export default function InventoryReportsPage() {
   const { company } = useAuth();
+  const { currencyCode, currencySymbol } = useCompanyCurrency();
+  const fmt = (v: number) => formatMoney(v, currencyCode);
+  const stockValueIcon = useMemo(
+    () => createCurrencySymbolIcon(currencySymbol),
+    [currencySymbol],
+  );
+
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
@@ -205,7 +258,7 @@ export default function InventoryReportsPage() {
         : categories.find((c) => String(c.id) === categoryId)?.name;
 
     for (const order of rangeOrders) {
-      for (const line of order.items) {
+      for (const line of order.items ?? []) {
         const item = itemById.get(line.itemId);
         if (!item) continue;
         if (catName && item.category !== catName) continue;
@@ -259,37 +312,43 @@ export default function InventoryReportsPage() {
     categories,
   ]);
 
-  const valuationByWarehouse = useMemo(() => {
-    return (summary?.byWarehouse ?? []).map((w) => ({
-      warehouse: w.warehouseName,
-      value: Number(w.valueAtCost ?? 0),
-      quantity: w.onHand,
-    }));
-  }, [summary]);
+  const valuationByWarehouse = useMemo(
+    () =>
+      (summary?.byWarehouse ?? []).map((w) => ({
+        warehouse: w.warehouseName,
+        value: Number(w.valueAtCost ?? 0),
+        quantity: w.onHand,
+      })),
+    [summary],
+  );
 
-  const valuationByCategory = useMemo(() => {
-    return (summary?.byCategory ?? []).map((c) => ({
-      category: c.category,
-      value: Number(c.valueAtCost ?? 0),
-    }));
-  }, [summary]);
+  const valuationByCategory = useMemo(
+    () =>
+      (summary?.byCategory ?? []).map((c) => ({
+        category: c.category,
+        value: Number(c.valueAtCost ?? 0),
+      })),
+    [summary],
+  );
 
-  const topItems = useMemo(() => {
-    return (summary?.topStockLinesByValue ?? []).map((row) => {
-      const unitCost =
-        row.quantityOnHand > 0
-          ? Number(row.valueAtCost ?? 0) / row.quantityOnHand
-          : 0;
-      return {
-        name: row.name,
-        sku: row.sku,
-        quantity: row.quantityOnHand,
-        unitCost,
-        totalValue: Number(row.valueAtCost ?? 0),
-        warehouse: row.warehouseName,
-      };
-    });
-  }, [summary]);
+  const topItems = useMemo(
+    () =>
+      (summary?.topStockLinesByValue ?? []).map((row) => {
+        const unitCost =
+          row.quantityOnHand > 0
+            ? Number(row.valueAtCost ?? 0) / row.quantityOnHand
+            : 0;
+        return {
+          name: row.name,
+          sku: row.sku,
+          quantity: row.quantityOnHand,
+          unitCost,
+          totalValue: Number(row.valueAtCost ?? 0),
+          warehouse: row.warehouseName,
+        };
+      }),
+    [summary],
+  );
 
   const kpis = useMemo(() => {
     const t = summary?.totals;
@@ -301,22 +360,134 @@ export default function InventoryReportsPage() {
     };
   }, [summary]);
 
+  const kpiItems: KpiSummaryStat[] = useMemo(
+    () => [
+      {
+        label: "Stock value (cost)",
+        value: summaryLoading ? (
+          <Skeleton className="h-8 w-36" />
+        ) : (
+          <CurrencyAmount amount={kpis.stockValue} />
+        ),
+        hint: "Inventory at cost for current filters",
+        accent: "emerald",
+        icon: stockValueIcon,
+      },
+      {
+        label: "Distinct SKUs",
+        value: summaryLoading ? (
+          <Skeleton className="h-8 w-16" />
+        ) : (
+          kpis.totalSkus.toLocaleString()
+        ),
+        hint: "Unique items in stock",
+        accent: "sky",
+        icon: Package,
+      },
+      {
+        label: "Low stock items",
+        value: summaryLoading ? (
+          <Skeleton className="h-8 w-16" />
+        ) : (
+          kpis.lowStock.toLocaleString()
+        ),
+        hint: "At or below reorder level",
+        accent: "amber",
+        icon: AlertTriangle,
+      },
+      {
+        label: "Units on hand",
+        value: summaryLoading ? (
+          <Skeleton className="h-8 w-20" />
+        ) : (
+          kpis.onHand.toLocaleString()
+        ),
+        hint: "Total quantity across locations",
+        accent: "violet",
+        icon: Boxes,
+      },
+    ],
+    [summaryLoading, kpis, stockValueIcon],
+  );
+
+  const warehouseChartConfig: ChartConfig = {
+    value: { label: "Value", color: VALUATION_COLOR },
+  };
+
+  const categoryChartConfig = useMemo(
+    () =>
+      Object.fromEntries(
+        valuationByCategory.map((row, i) => [
+          row.category,
+          { label: row.category, color: PIE_COLORS[i % PIE_COLORS.length] },
+        ]),
+      ) as ChartConfig,
+    [valuationByCategory],
+  );
+
+  const cogsChartConfig: ChartConfig = {
+    cogs: { label: "COGS", color: COGS_COLOR },
+  };
+
+  const exportCsv = () => {
+    if (!summary) return;
+    const rows: string[][] = [];
+    rows.push(["Inventory report"]);
+    rows.push(["Company", company?.companyName ?? ""]);
+    rows.push(["Warehouse filter", warehouseId === "all" ? "All" : warehouseId]);
+    rows.push(["Category filter", categoryId === "all" ? "All" : categoryId]);
+    rows.push([]);
+    rows.push(["Metric", "Value"]);
+    rows.push(["Stock value at cost", String(kpis.stockValue)]);
+    rows.push(["Distinct SKUs", String(kpis.totalSkus)]);
+    rows.push(["Low stock items", String(kpis.lowStock)]);
+    rows.push(["Units on hand", String(kpis.onHand)]);
+    rows.push([]);
+    rows.push(["Warehouse", "Value at cost", "Quantity"]);
+    valuationByWarehouse.forEach((w) =>
+      rows.push([w.warehouse, String(w.value), String(w.quantity)]),
+    );
+    rows.push([]);
+    rows.push(["Category", "Value at cost"]);
+    valuationByCategory.forEach((c) =>
+      rows.push([c.category, String(c.value)]),
+    );
+
+    const csv = rows
+      .map((r) => r.map((v) => `"${(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inventory-report-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const setTurnoverMonth = () => {
+    setDateRange({
+      from: format(startOfMonth(new Date()), "yyyy-MM-dd"),
+      to: format(endOfMonth(new Date()), "yyyy-MM-dd"),
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50/90 to-background p-6 pb-10 ">
-      {/* Header */}
+    <div className="space-y-6 p-6">
       <PageHeader
         title="Inventory Reports"
-        description={`${company?.companyName ?? "Company"} · live stock snapshot and analytics`}
+        description={`${company?.companyName ?? "Company"} · stock valuation, turnover, and warehouse analytics`}
         variant="darkGreen"
         icon={<BarChart3 className="w-6 h-6" />}
         actions={
-          <>
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant="secondary"
-              className="gap-2 bg-white/15 text-white hover:bg-white/25 border border-white/30"
+              variant="ghost"
+              size="sm"
               disabled={summaryLoading}
               onClick={() => void loadSummary()}
+              className="border border-white/25 bg-white/15 text-white hover:bg-white/25 hover:text-white"
             >
               {summaryLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -325,34 +496,34 @@ export default function InventoryReportsPage() {
               )}
               Refresh
             </Button>
-          </>
+            <Button
+              size="sm"
+              onClick={exportCsv}
+              disabled={!summary || summaryLoading}
+              className="bg-white text-emerald-800 hover:bg-emerald-50"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          </div>
         }
       />
 
-      {/* Filters */}
-      <Card
-        className={cn(
-          "my-6 border-border/60 shadow-sm transition-shadow duration-300 hover:shadow-md",
-          "animate-in fade-in slide-in-from-bottom-2 duration-500",
-        )}
-      >
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Filters</CardTitle>
           <CardDescription>
-            Warehouse and category apply to the{" "}
-            <span className="font-medium text-foreground">current stock</span>{" "}
-            summary. Date range applies to the{" "}
-            <span className="font-medium text-foreground">Turnover</span> tab
-            only (sales-based COGS).
+            Warehouse and category filter the current stock snapshot. Date range
+            applies to turnover (sales-based COGS) only.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <WarehouseIcon className="h-4 w-4" />
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-2">
+                <WarehouseIcon className="h-4 w-4 text-muted-foreground" />
                 Warehouse
-              </label>
+              </Label>
               <Select value={warehouseId} onValueChange={setWarehouseId}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All warehouses" />
@@ -367,11 +538,11 @@ export default function InventoryReportsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Layers className="h-4 w-4" />
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
                 Category
-              </label>
+              </Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All categories" />
@@ -386,11 +557,10 @@ export default function InventoryReportsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                Period from (turnover)
-              </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-turnover-from">Period from</Label>
               <Input
+                id="inv-turnover-from"
                 type="date"
                 value={dateRange.from}
                 onChange={(e) =>
@@ -398,11 +568,10 @@ export default function InventoryReportsPage() {
                 }
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                Period to (turnover)
-              </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-turnover-to">Period to</Label>
               <Input
+                id="inv-turnover-to"
                 type="date"
                 value={dateRange.to}
                 onChange={(e) =>
@@ -411,96 +580,28 @@ export default function InventoryReportsPage() {
               />
             </div>
           </div>
-          {lastError && (
-            <p className="mt-3 text-sm text-destructive">{lastError}</p>
-          )}
+          <div className="flex flex-wrap gap-2">
+            <QuickChip onClick={setTurnoverMonth}>This month</QuickChip>
+          </div>
+          {lastError ? (
+            <p className="text-sm text-destructive">{lastError}</p>
+          ) : null}
         </CardContent>
       </Card>
 
-      {/* KPI strip */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: "Stock value (cost)",
-            value: formatMoney(kpis.stockValue),
-            icon: DollarSign,
-            accent: "text-emerald-600",
-            delay: "0ms",
-          },
-          {
-            label: "Distinct SKUs",
-            value: kpis.totalSkus.toLocaleString(),
-            icon: Package,
-            accent: "text-blue-600",
-            delay: "75ms",
-          },
-          {
-            label: "Low stock items",
-            value: kpis.lowStock.toLocaleString(),
-            icon: AlertTriangle,
-            accent: "text-amber-600",
-            delay: "150ms",
-          },
-          {
-            label: "Units on hand",
-            value: kpis.onHand.toLocaleString(),
-            icon: TrendingUp,
-            accent: "text-violet-600",
-            delay: "225ms",
-          },
-        ].map((k) => (
-          <Card
-            key={k.label}
-            className={cn(
-              "overflow-hidden border-border/60 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
-              "animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both",
-            )}
-            style={{ animationDelay: k.delay }}
-          >
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">{k.label}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums">
-                    {summaryLoading ? (
-                      <Skeleton className="h-8 w-24" />
-                    ) : (
-                      k.value
-                    )}
-                  </p>
-                </div>
-                <k.icon
-                  className={cn("h-8 w-8 shrink-0 opacity-90", k.accent)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <KpiSummaryStrip items={kpiItems} />
 
-      <Tabs defaultValue="valuation" className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 md:grid-cols-4">
-          <StyledTabsTrigger value="valuation">
-            <DollarSign className="mr-2 h-4 w-4" />
-            Stock valuation
-          </StyledTabsTrigger>
-          <StyledTabsTrigger value="turnover">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Turnover
-          </StyledTabsTrigger>
-          <StyledTabsTrigger value="ageing">
-            <Clock className="mr-2 h-4 w-4" />
-            Ageing &amp; expiry
-          </StyledTabsTrigger>
-          <StyledTabsTrigger value="dashboard">
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Dashboard
-          </StyledTabsTrigger>
+      <Tabs defaultValue="valuation" className="space-y-4">
+        <TabsList className="flex flex-wrap">
+          <TabsTrigger value="valuation">Stock valuation</TabsTrigger>
+          <TabsTrigger value="turnover">Turnover</TabsTrigger>
+          <TabsTrigger value="ageing">Ageing &amp; expiry</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="valuation" className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="border-border/60 shadow-sm transition-shadow hover:shadow-md">
+        <TabsContent value="valuation" className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card>
               <CardHeader>
                 <CardTitle>Valuation by warehouse</CardTitle>
                 <CardDescription>
@@ -509,167 +610,164 @@ export default function InventoryReportsPage() {
               </CardHeader>
               <CardContent>
                 {summaryLoading ? (
-                  <Skeleton className="h-[300px] w-full rounded-lg" />
+                  <Skeleton className="h-72 w-full" />
+                ) : valuationByWarehouse.length === 0 ? (
+                  <EmptyState message="No warehouse valuation data for current filters." />
                 ) : (
                   <ChartContainer
-                    config={{
-                      value: { label: "Value", color: "hsl(var(--chart-1))" },
-                    }}
-                    className="h-[300px]"
+                    config={warehouseChartConfig}
+                    className="h-72 w-full"
                   >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={valuationByWarehouse}
-                        margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          className="stroke-muted"
-                        />
-                        <XAxis dataKey="warehouse" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.length) return null;
-                            const p = payload[0].payload as {
-                              warehouse: string;
-                              value: number;
-                              quantity: number;
-                            };
-                            return (
-                              <div className="rounded-lg border bg-background/95 p-3 text-sm shadow-md backdrop-blur-sm">
-                                <p className="font-medium">{p.warehouse}</p>
-                                <p className="text-muted-foreground">
-                                  Value: {formatMoney(p.value)}
-                                </p>
-                                <p className="text-muted-foreground">
-                                  Qty: {p.quantity.toLocaleString()}
-                                </p>
-                              </div>
-                            );
-                          }}
-                        />
-                        <Bar
-                          dataKey="value"
-                          fill="hsl(var(--chart-1))"
-                          radius={[6, 6, 0, 0]}
-                          isAnimationActive
-                          animationDuration={900}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <BarChart
+                      data={valuationByWarehouse}
+                      margin={{ left: 8, right: 8, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="warehouse"
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 11 }}
+                      />
+                      <YAxis
+                        tickFormatter={(v) => compactNumber(Number(v))}
+                        tickLine={false}
+                        axisLine={false}
+                        width={56}
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value) => fmt(Number(value))}
+                          />
+                        }
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill={VALUATION_COLOR}
+                        radius={[6, 6, 0, 0]}
+                      />
+                    </BarChart>
                   </ChartContainer>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 shadow-sm transition-shadow hover:shadow-md">
+            <Card>
               <CardHeader>
                 <CardTitle>Valuation by category</CardTitle>
                 <CardDescription>Value distribution</CardDescription>
               </CardHeader>
               <CardContent>
                 {summaryLoading ? (
-                  <Skeleton className="h-[300px] w-full rounded-lg" />
+                  <Skeleton className="h-72 w-full" />
+                ) : valuationByCategory.length === 0 ? (
+                  <EmptyState message="No category valuation data for current filters." />
                 ) : (
-                  <ChartContainer
-                    config={{
-                      value: { label: "Value", color: "hsl(var(--chart-2))" },
-                    }}
-                    className="h-[300px]"
-                  >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart>
+                  <>
+                    <ChartContainer
+                      config={categoryChartConfig}
+                      className="mx-auto aspect-square max-h-64"
+                    >
+                      <PieChart>
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value) => fmt(Number(value))}
+                            />
+                          }
+                        />
                         <Pie
                           data={valuationByCategory}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ category, percent }) =>
-                            `${category}: ${((percent as number) * 100).toFixed(0)}%`
-                          }
-                          outerRadius={100}
                           dataKey="value"
-                          isAnimationActive
-                          animationDuration={900}
+                          nameKey="category"
+                          innerRadius="55%"
+                          outerRadius="90%"
+                          strokeWidth={2}
                         >
                           {valuationByCategory.map((_, index) => (
                             <Cell
                               key={`cell-${index}`}
-                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                              fill={PIE_COLORS[index % PIE_COLORS.length]}
                             />
                           ))}
                         </Pie>
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.length) return null;
-                            const row = payload[0].payload as {
-                              category: string;
-                              value: number;
-                            };
-                            return (
-                              <div className="rounded-lg border bg-background/95 p-2 text-sm shadow-md">
-                                <p className="font-medium">{row.category}</p>
-                                <p className="text-muted-foreground">
-                                  {formatMoney(row.value)}
-                                </p>
-                              </div>
-                            );
-                          }}
-                        />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
+                      </PieChart>
+                    </ChartContainer>
+                    <ul className="mt-3 space-y-1.5">
+                      {valuationByCategory.map((row, idx) => (
+                        <li
+                          key={row.category}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{
+                                background: PIE_COLORS[idx % PIE_COLORS.length],
+                              }}
+                            />
+                            <span className="truncate">{row.category}</span>
+                          </span>
+                          <span className="ml-2 shrink-0 font-medium tabular-nums">
+                            {fmt(row.value)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader>
               <CardTitle>Top stock lines by value</CardTitle>
               <CardDescription>
-                Highest value positions (per warehouse row)
+                Highest value positions per warehouse row
               </CardDescription>
             </CardHeader>
             <CardContent>
               {summaryLoading ? (
                 <Skeleton className="h-40 w-full" />
+              ) : topItems.length === 0 ? (
+                <EmptyState message="No stock lines for current filters." />
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b text-left text-muted-foreground">
-                        <th className="p-2 font-medium">Item</th>
-                        <th className="p-2 font-medium">SKU</th>
-                        <th className="p-2 text-right font-medium">Qty</th>
-                        <th className="p-2 text-right font-medium">
+                      <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+                        <th className="p-3 font-medium">Item</th>
+                        <th className="p-3 font-medium">SKU</th>
+                        <th className="p-3 text-right font-medium">Qty</th>
+                        <th className="p-3 text-right font-medium">
                           Unit cost
                         </th>
-                        <th className="p-2 text-right font-medium">Value</th>
-                        <th className="p-2 font-medium">Warehouse</th>
+                        <th className="p-3 text-right font-medium">Value</th>
+                        <th className="p-3 font-medium">Warehouse</th>
                       </tr>
                     </thead>
                     <tbody>
                       {topItems.map((item) => (
                         <tr
                           key={`${item.sku}-${item.warehouse}`}
-                          className="border-b transition-colors hover:bg-muted/40"
+                          className="border-b transition-colors hover:bg-muted/30"
                         >
-                          <td className="p-2 font-medium">{item.name}</td>
-                          <td className="p-2 text-muted-foreground">
+                          <td className="p-3 font-medium">{item.name}</td>
+                          <td className="p-3 text-muted-foreground">
                             {item.sku}
                           </td>
-                          <td className="p-2 text-right tabular-nums">
+                          <td className="p-3 text-right tabular-nums">
                             {item.quantity.toLocaleString()}
                           </td>
-                          <td className="p-2 text-right tabular-nums">
-                            {formatMoney(item.unitCost)}
+                          <td className="p-3 text-right tabular-nums">
+                            <CurrencyAmount amount={item.unitCost} />
                           </td>
-                          <td className="p-2 text-right font-semibold tabular-nums">
-                            {formatMoney(item.totalValue)}
+                          <td className="p-3 text-right font-semibold tabular-nums">
+                            <CurrencyAmount amount={item.totalValue} />
                           </td>
-                          <td className="p-2 text-muted-foreground">
+                          <td className="p-3 text-muted-foreground">
                             {item.warehouse}
                           </td>
                         </tr>
@@ -682,14 +780,13 @@ export default function InventoryReportsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="turnover" className="mt-6 space-y-6">
+        <TabsContent value="turnover" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Inventory turnover</CardTitle>
               <CardDescription>
-                COGS from sales order lines (excluding draft/cancelled) × item
-                cost, compared to current inventory value from the summary
-                above.
+                COGS from sales order lines (excluding draft/cancelled) compared
+                to current inventory value.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -700,46 +797,35 @@ export default function InventoryReportsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border bg-muted/40 p-4">
-                      <span className="text-sm font-medium">COGS (period)</span>
-                      <p className="text-2xl font-bold tabular-nums">
-                        {formatMoney(turnover.totalCOGS)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border bg-muted/40 p-4">
-                      <span className="text-sm font-medium">
-                        Avg inventory value (snapshot)
-                      </span>
-                      <p className="text-2xl font-bold tabular-nums">
-                        {formatMoney(turnover.avgInventoryValue)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                      <span className="text-sm font-medium">
-                        Turnover ratio
-                      </span>
-                      <p className="text-3xl font-bold text-primary tabular-nums">
-                        {turnover.turnoverRatio.toFixed(2)}×
-                      </p>
-                    </div>
-                    <div className="rounded-xl border bg-muted/40 p-4">
-                      <span className="text-sm font-medium">Days to sell</span>
-                      <p className="text-2xl font-bold tabular-nums">
-                        {turnover.turnoverRatio > 0
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <MetricTile
+                      label="COGS (period)"
+                      value={<CurrencyAmount amount={turnover.totalCOGS} />}
+                    />
+                    <MetricTile
+                      label="Avg inventory value"
+                      value={
+                        <CurrencyAmount amount={turnover.avgInventoryValue} />
+                      }
+                    />
+                    <MetricTile
+                      label="Turnover ratio"
+                      value={`${turnover.turnoverRatio.toFixed(2)}×`}
+                      highlight
+                    />
+                    <MetricTile
+                      label="Days to sell"
+                      value={
+                        turnover.turnoverRatio > 0
                           ? `${turnover.daysToSell.toFixed(0)} days`
-                          : "—"}
-                      </p>
-                    </div>
+                          : "—"
+                      }
+                    />
                   </div>
-                  <div className="rounded-xl border bg-muted/40 p-4">
-                    <span className="text-sm font-medium">
-                      Sales orders in period
-                    </span>
-                    <p className="text-2xl font-bold">
-                      {turnover.salesCount.toLocaleString()}
-                    </p>
-                  </div>
+                  <MetricTile
+                    label="Sales orders in period"
+                    value={turnover.salesCount.toLocaleString()}
+                  />
                 </>
               )}
             </CardContent>
@@ -749,82 +835,80 @@ export default function InventoryReportsPage() {
             <CardHeader>
               <CardTitle>Turnover by category</CardTitle>
               <CardDescription>
-                COGS / inventory value per category (same filters as summary)
+                COGS / inventory value per category
               </CardDescription>
             </CardHeader>
             <CardContent>
               {summaryLoading || ordersLoading ? (
-                <Skeleton className="h-[280px] w-full rounded-lg" />
+                <Skeleton className="h-72 w-full" />
+              ) : turnover.turnoverByCategory.length === 0 ? (
+                <EmptyState message="No turnover data for current filters." />
               ) : (
                 <ChartContainer
-                  config={{
-                    cogs: { label: "COGS", color: "hsl(var(--chart-3))" },
-                  }}
-                  className="h-[320px]"
+                  config={cogsChartConfig}
+                  className="h-80 w-full"
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={turnover.turnoverByCategory}
-                      margin={{ top: 8, right: 8, left: 8, bottom: 40 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis
-                        dataKey="category"
-                        interval={0}
-                        tick={{ fontSize: 10 }}
-                        angle={-25}
-                        textAnchor="end"
-                        height={70}
-                      />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const row = payload[0]
-                            .payload as (typeof turnover.turnoverByCategory)[0];
-                          return (
-                            <div className="max-w-xs rounded-lg border bg-background/95 p-3 text-xs shadow-md">
-                              <p className="font-semibold">{row.category}</p>
-                              <p>COGS: {formatMoney(row.cogs)}</p>
-                              <p>
-                                Inv value: {formatMoney(row.inventoryValue)}
-                              </p>
-                              <p>Turnover: {row.turnoverRatio.toFixed(2)}×</p>
-                            </div>
-                          );
-                        }}
-                      />
-                      <Legend />
-                      <Bar
-                        dataKey="cogs"
-                        name="COGS"
-                        fill="hsl(var(--chart-3))"
-                        radius={[4, 4, 0, 0]}
-                        isAnimationActive
-                        animationDuration={800}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <BarChart
+                    data={turnover.turnoverByCategory}
+                    margin={{ left: 8, right: 8, bottom: 40 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="category"
+                      interval={0}
+                      tick={{ fontSize: 10 }}
+                      angle={-25}
+                      textAnchor="end"
+                      height={70}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => compactNumber(Number(v))}
+                      tickLine={false}
+                      axisLine={false}
+                      width={56}
+                    />
+                    <ChartTooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const row = payload[0]
+                          .payload as (typeof turnover.turnoverByCategory)[0];
+                        return (
+                          <div className="rounded-lg border bg-background p-3 text-xs shadow-md">
+                            <p className="font-semibold">{row.category}</p>
+                            <p>COGS: {fmt(row.cogs)}</p>
+                            <p>Inv value: {fmt(row.inventoryValue)}</p>
+                            <p>Turnover: {row.turnoverRatio.toFixed(2)}×</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <ChartLegend content={<ChartLegendContent />} />
+                    <Bar
+                      dataKey="cogs"
+                      name="COGS"
+                      fill={COGS_COLOR}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
                 </ChartContainer>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="ageing" className="mt-6 space-y-6">
+        <TabsContent value="ageing" className="space-y-4">
           <Card className="border-dashed">
             <CardHeader>
               <CardTitle>Ageing &amp; expiry</CardTitle>
               <CardDescription>
                 Batch-level received dates and expiry are not stored on stock
-                rows yet, so ageing buckets cannot be calculated from live data.
+                rows yet.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <Package className="h-14 w-14 text-muted-foreground/40" />
+              <Clock className="h-14 w-14 text-muted-foreground/40" />
               <p className="max-w-md text-sm text-muted-foreground">
                 When lot/batch metadata and expiry are captured per warehouse
                 stock line, this section can show value by age and expiry
@@ -834,8 +918,8 @@ export default function InventoryReportsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="dashboard" className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <TabsContent value="dashboard" className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Warehouse mix (value)</CardTitle>
@@ -845,44 +929,50 @@ export default function InventoryReportsPage() {
               </CardHeader>
               <CardContent>
                 {summaryLoading ? (
-                  <Skeleton className="h-[280px] w-full" />
+                  <Skeleton className="h-72 w-full" />
+                ) : valuationByWarehouse.length === 0 ? (
+                  <EmptyState message="No warehouse data." />
                 ) : (
                   <ChartContainer
-                    config={{
-                      value: { label: "Value", color: "hsl(var(--chart-1))" },
-                    }}
-                    className="h-[280px]"
+                    config={warehouseChartConfig}
+                    className="h-72 w-full"
                   >
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={valuationByWarehouse}
-                        layout="vertical"
-                        margin={{ left: 24, right: 16 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          horizontal={false}
-                        />
-                        <XAxis type="number" tick={{ fontSize: 11 }} />
-                        <YAxis
-                          type="category"
-                          dataKey="warehouse"
-                          width={100}
-                          tick={{ fontSize: 11 }}
-                        />
-                        <Tooltip
-                          formatter={(v: number) => formatMoney(v)}
-                          contentStyle={{ borderRadius: 8 }}
-                        />
-                        <Bar
-                          dataKey="value"
-                          fill="hsl(var(--chart-1))"
-                          radius={[0, 6, 6, 0]}
-                          isAnimationActive
-                          animationDuration={850}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <BarChart
+                      data={valuationByWarehouse}
+                      layout="vertical"
+                      margin={{ left: 8, right: 16 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        tickFormatter={(v) => compactNumber(Number(v))}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="warehouse"
+                        width={100}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fontSize: 11 }}
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value) => fmt(Number(value))}
+                          />
+                        }
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill={VALUATION_COLOR}
+                        radius={[0, 6, 6, 0]}
+                      />
+                    </BarChart>
                   </ChartContainer>
                 )}
               </CardContent>
@@ -903,7 +993,7 @@ export default function InventoryReportsPage() {
               </CardHeader>
               <CardContent>
                 {summaryLoading ? (
-                  <Skeleton className="h-[280px] w-full" />
+                  <Skeleton className="h-72 w-full" />
                 ) : (
                   <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
                     {(summary?.lowStockItems ?? []).map((row) => (
@@ -919,12 +1009,10 @@ export default function InventoryReportsPage() {
                             {row.sku}
                           </p>
                         </div>
-                        <div className="text-right tabular-nums">
-                          <Badge variant="outline" className="font-normal">
-                            Avail {row.available ?? 0} / Reorder{" "}
-                            {row.reorderLevel ?? "—"}
-                          </Badge>
-                        </div>
+                        <Badge variant="outline" className="font-normal">
+                          Avail {row.available ?? 0} / Reorder{" "}
+                          {row.reorderLevel ?? "—"}
+                        </Badge>
                       </div>
                     ))}
                     {!summary?.lowStockItems?.length && (
@@ -938,14 +1026,40 @@ export default function InventoryReportsPage() {
             </Card>
           </div>
 
-          {summary?.generatedAt && (
+          {summary?.generatedAt &&
+          isValid(parseISO(summary.generatedAt)) ? (
             <p className="text-center text-xs text-muted-foreground">
               Snapshot generated at{" "}
               {format(parseISO(summary.generatedAt), "PPpp")}
             </p>
-          )}
+          ) : null}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: ReactNode;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={
+        highlight
+          ? "rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4"
+          : "rounded-xl border bg-muted/40 p-4"
+      }
+    >
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <div className="mt-2 text-2xl font-bold tabular-nums">{value}</div>
     </div>
   );
 }
