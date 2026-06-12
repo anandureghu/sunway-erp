@@ -25,6 +25,11 @@ export interface PaymentResponseDTO {
   /** UI archive (hides from default Completed list; does not change payment method). */
   archived?: boolean;
 
+  /** Remaining balance on linked invoice (confirm dialog). */
+  invoiceOutstanding?: number | string | null;
+  /** Total on linked invoice (confirm dialog). */
+  invoiceTotal?: number | string | null;
+
   createdAt: string;
 }
 

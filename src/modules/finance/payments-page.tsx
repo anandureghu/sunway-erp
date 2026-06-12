@@ -14,7 +14,7 @@ import { Search } from "lucide-react";
 import type { PaymentResponseDTO, PaymentsPageVariant } from "@/types/payment";
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
 import { PaymentDialog } from "./payment-dialog";
-import { ConfirmVendorPaymentDialog } from "./confirm-vendor-payment-dialog";
+import { ConfirmPaymentDialog } from "./confirm-payment-dialog";
 import { useNavigate } from "react-router-dom";
 import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
 
@@ -38,10 +38,10 @@ export default function PaymentsPage({
   const [archivingPaymentId, setArchivingPaymentId] = useState<number | null>(
     null,
   );
-  const [vendorConfirmPayment, setVendorConfirmPayment] =
+  const [confirmPayment, setConfirmPayment] =
     useState<PaymentResponseDTO | null>(null);
-  const [vendorConfirmOpen, setVendorConfirmOpen] = useState(false);
-  const [confirmingVendor, setConfirmingVendor] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const directionParam = variant === "vendor" ? "VENDOR" : "CUSTOMER";
 
@@ -84,24 +84,32 @@ export default function PaymentsPage({
   };
 
   const submitConfirmPayment = useCallback(
-    async (payment: PaymentResponseDTO, paymentMethod?: string) => {
+    async (
+      payment: PaymentResponseDTO,
+      payload: { amount: number; paymentMethod?: string },
+    ) => {
       try {
+        const body: { amount: number; paymentMethod?: string } = {
+          amount: payload.amount,
+        };
+        if (variant === "vendor" && payload.paymentMethod) {
+          body.paymentMethod = payload.paymentMethod;
+        }
         const res = await apiClient.post<PaymentResponseDTO>(
           `/finance/payments/${payment.id}/confirm`,
-          variant === "vendor" && paymentMethod
-            ? { paymentMethod }
-            : undefined,
+          body,
         );
         setPayments((prev) =>
           prev.map((p) => (p.id === payment.id ? res.data : p)),
         );
+        void fetchPayments();
         toast.success(
           variant === "vendor"
             ? "Vendor payment confirmed"
             : "Payment confirmed",
         );
-        setVendorConfirmOpen(false);
-        setVendorConfirmPayment(null);
+        setConfirmOpen(false);
+        setConfirmPayment(null);
       } catch (err: unknown) {
         const ax = err as { response?: { data?: { message?: string } } };
         toast.error(
@@ -111,32 +119,28 @@ export default function PaymentsPage({
         throw err;
       }
     },
-    [variant],
+    [variant, fetchPayments],
   );
 
   const handleConfirmPayment = useCallback(
     (payment: PaymentResponseDTO) => {
-      if (variant === "vendor") {
-        setVendorConfirmPayment(payment);
-        setVendorConfirmOpen(true);
-        return;
-      }
-      void submitConfirmPayment(payment);
+      setConfirmPayment(payment);
+      setConfirmOpen(true);
     },
-    [variant, submitConfirmPayment],
+    [],
   );
 
-  const handleVendorConfirmWithMethod = useCallback(
-    async (paymentMethod: string) => {
-      if (!vendorConfirmPayment) return;
-      setConfirmingVendor(true);
+  const handleConfirmWithAmount = useCallback(
+    async (payload: { amount: number; paymentMethod?: string }) => {
+      if (!confirmPayment) return;
+      setConfirming(true);
       try {
-        await submitConfirmPayment(vendorConfirmPayment, paymentMethod);
+        await submitConfirmPayment(confirmPayment, payload);
       } finally {
-        setConfirmingVendor(false);
+        setConfirming(false);
       }
     },
-    [vendorConfirmPayment, submitConfirmPayment],
+    [confirmPayment, submitConfirmPayment],
   );
 
   const handleOpenInvoice = useCallback(
@@ -365,18 +369,17 @@ export default function PaymentsPage({
         onSuccess={handleDialogSuccess}
       />
 
-      {variant === "vendor" && (
-        <ConfirmVendorPaymentDialog
-          open={vendorConfirmOpen}
-          onOpenChange={(o) => {
-            setVendorConfirmOpen(o);
-            if (!o) setVendorConfirmPayment(null);
-          }}
-          payment={vendorConfirmPayment}
-          confirming={confirmingVendor}
-          onConfirm={handleVendorConfirmWithMethod}
-        />
-      )}
+      <ConfirmPaymentDialog
+        open={confirmOpen}
+        onOpenChange={(o) => {
+          setConfirmOpen(o);
+          if (!o) setConfirmPayment(null);
+        }}
+        payment={confirmPayment}
+        variant={variant}
+        confirming={confirming}
+        onConfirm={handleConfirmWithAmount}
+      />
     </div>
   );
 }

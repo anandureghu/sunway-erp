@@ -105,7 +105,9 @@ export function createSalesOrderColumns(
           order.status === "draft" || order.status === "confirmed";
         const canGeneratePicklist =
           order.status === "confirmed" &&
-          (order.paymentStatus || "").toUpperCase() === "PAID";
+          ["PAID", "PARTIALLY_PAID"].includes(
+            (order.paymentStatus || "").toUpperCase(),
+          );
         const canArchive =
           !order.archived &&
           (order.status === "completed" || order.status === "cancelled");
