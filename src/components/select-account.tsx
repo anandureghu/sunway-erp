@@ -35,6 +35,8 @@ const SelectAccount = ({
   placeholder,
   disabled = false,
   showNoneOption = false,
+  allowedTypes,
+  projectCode,
 }: {
   useId?: boolean;
   value: string | undefined;
@@ -44,6 +46,10 @@ const SelectAccount = ({
   disabled?: boolean;
   /** Adds "None" so single-sided transactions can omit this leg. */
   showNoneOption?: boolean;
+  /** When set, only accounts whose COA type is in this list are shown. */
+  allowedTypes?: string[];
+  /** When set, only accounts with this project code are shown (for project budgets). */
+  projectCode?: string;
 }) => {
   const { company } = useAuth();
   const currencyCode = company?.currency?.currencyCode ?? "";
@@ -61,6 +67,21 @@ const SelectAccount = ({
       useId ? String(a.id) === value : String(a.accountCode) === value,
     );
   }, [accounts, value, useId]);
+
+  const filteredAccounts = useMemo(() => {
+    let list = accounts;
+    if (allowedTypes && allowedTypes.length > 0) {
+      list = list.filter((a) => allowedTypes.includes(String(a.type)));
+    }
+    if (projectCode) {
+      list = list.filter(
+        (a) =>
+          a.projectCode &&
+          a.projectCode.toLowerCase() === projectCode.toLowerCase(),
+      );
+    }
+    return list;
+  }, [accounts, allowedTypes, projectCode]);
 
   const triggerTitle = selectedAccount
     ? `${selectedAccount.accountName} · ${selectedAccount.accountCode} · ${formatCoaBalance(selectedAccount.balance, currencyCode)}`
@@ -86,7 +107,7 @@ const SelectAccount = ({
               <span className="text-muted-foreground">None</span>
             </SelectItem>
           )}
-          {accounts.map((d: ChartOfAccounts) => (
+          {filteredAccounts.map((d: ChartOfAccounts) => (
             <SelectItem
               key={d.id}
               value={useId ? d.id.toString() : String(d.accountCode)}

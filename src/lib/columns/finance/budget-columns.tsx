@@ -2,7 +2,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { BudgetResponseDTO } from "@/types/budget";
 import { Button } from "@/components/ui/button";
 import type { Company } from "@/types/company";
-import type { Role } from "@/types/hr";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,24 +13,44 @@ import { MoreHorizontal } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/lib/status-badge";
 import { CreditAmount } from "@/components/accounting-amount";
+import { Badge } from "@/components/ui/badge";
+
+const TYPE_LABELS: Record<string, string> = {
+  OPEX: "OPEX",
+  CAPEX: "CAPEX",
+  PROJECT: "Project",
+};
 
 export const BUDGET_COLUMNS = ({
-  onEdit,
+  onRevise,
+  onDistribute,
   onApprove,
   onReject,
   onHold,
   company,
 }: {
-  onEdit: (row: BudgetResponseDTO) => void;
+  onRevise: (row: BudgetResponseDTO) => void;
+  onDistribute: (row: BudgetResponseDTO) => void;
   onApprove: (row: BudgetResponseDTO) => void;
   onReject: (row: BudgetResponseDTO) => void;
   onHold: (row: BudgetResponseDTO) => void;
   company: Company;
-  role?: Role;
 }): ColumnDef<BudgetResponseDTO>[] => [
   {
     header: "Name",
     accessorKey: "budgetName",
+  },
+  {
+    header: "Type",
+    accessorKey: "budgetType",
+    cell: ({ row }) => {
+      const type = row.original.budgetType ?? "OPEX";
+      return (
+        <Badge variant="outline" className="font-normal">
+          {TYPE_LABELS[type] ?? type}
+        </Badge>
+      );
+    },
   },
   {
     header: "Fiscal Year",
@@ -52,14 +71,18 @@ export const BUDGET_COLUMNS = ({
     header: "Start Date",
     accessorKey: "startDate",
     cell: ({ row }) => {
-      return new Date(row?.original?.startDate).toDateString();
+      return row.original.startDate
+        ? new Date(row.original.startDate).toDateString()
+        : "—";
     },
   },
   {
     header: "End Date",
     accessorKey: "endDate",
     cell: ({ row }) => {
-      return new Date(row?.original?.endDate).toDateString();
+      return row.original.endDate
+        ? new Date(row.original.endDate).toDateString()
+        : "—";
     },
   },
   {
@@ -73,15 +96,23 @@ export const BUDGET_COLUMNS = ({
     accessorKey: "createdAt",
     header: "Created At",
     cell: ({ row }) => {
-      return new Date(row?.original?.createdAt).toDateString();
+      return new Date(row.original.createdAt).toDateString();
     },
   },
-  // { accessorKey: "createdByName", header: "Created By" },
   {
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
       const entry = row.original;
+      const isActiveApproved =
+        entry.status === "APPROVED" && entry.isActive !== false;
+      const canApproveOrHold =
+        entry.status === "IMPLEMENTED" || entry.status === "HOLD";
+      const hasActions = isActiveApproved || canApproveOrHold;
+
+      if (!hasActions) {
+        return <span className="text-muted-foreground">—</span>;
+      }
 
       return (
         <div onClick={(e) => e.stopPropagation()}>
@@ -96,22 +127,25 @@ export const BUDGET_COLUMNS = ({
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <Separator />
 
-              {(entry.status === "APPROVED" || entry.status === "HOLD") && (
-                <DropdownMenuItem onClick={() => onEdit(entry)}>
-                  Revise
-                </DropdownMenuItem>
+              {isActiveApproved && (
+                <>
+                  <DropdownMenuItem onClick={() => onRevise(entry)}>
+                    Revise
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onDistribute(entry)}>
+                    Distribute Budget
+                  </DropdownMenuItem>
+                </>
               )}
 
-              {(entry.status === "IMPLEMENTED" || entry.status === "HOLD") && (
+              {canApproveOrHold && (
                 <>
                   <DropdownMenuItem onClick={() => onApprove(entry)}>
                     Approve
                   </DropdownMenuItem>
-
                   <DropdownMenuItem onClick={() => onReject(entry)}>
                     Reject
                   </DropdownMenuItem>
-
                   {entry.status !== "HOLD" && (
                     <DropdownMenuItem onClick={() => onHold(entry)}>
                       Hold

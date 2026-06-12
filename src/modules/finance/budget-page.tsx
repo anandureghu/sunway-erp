@@ -12,6 +12,7 @@ import type { Row } from "@tanstack/react-table";
 import type { BudgetResponseDTO } from "@/types/budget";
 import { BUDGET_COLUMNS } from "@/lib/columns/finance/budget-columns";
 import { BudgetDialog } from "./budget-dialog";
+import { BudgetDistributeDialog } from "./budget-distribute-dialog";
 import { useAuth } from "@/context/AuthContext";
 import { hasAnyRole } from "@/lib/utils";
 import { GlTabPanel } from "@/components/finance/gl-tab-panel";
@@ -22,7 +23,10 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
   const [list, setList] = useState<BudgetResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BudgetResponseDTO | null>(null);
+  const [distributeTarget, setDistributeTarget] =
+    useState<BudgetResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
+  const [distributeOpen, setDistributeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const fetchAll = async () => {
@@ -37,8 +41,11 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
 
   const handleRowClick = (row: Row<BudgetResponseDTO>) => {
     const budget = row.original;
-    if (budget.status === "APPROVED") navigate(`/finance/budgets/${budget.id}`);
-    else toast.warning("Budget is not approved");
+    if (budget.status === "APPROVED" && budget.isActive !== false) {
+      navigate(`/finance/budgets/${budget.id}`);
+    } else {
+      toast.warning("Only active approved budgets can be opened");
+    }
   };
 
   useEffect(() => {
@@ -46,9 +53,13 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
   }, []);
 
   const columns = BUDGET_COLUMNS({
-    onEdit: (row) => {
+    onRevise: (row) => {
       setSelected(row);
       setOpen(true);
+    },
+    onDistribute: (row) => {
+      setDistributeTarget(row);
+      setDistributeOpen(true);
     },
     onApprove: async (row) => {
       try {
@@ -63,6 +74,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
       try {
         await apiClient.post(`/finance/budgets/${row.id}/close`);
         toast.success("Budget plan rejected successfully");
+        fetchAll();
       } catch {
         toast.error("Failed to reject budget");
       }
@@ -77,14 +89,19 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
       }
     },
     company: company!,
-    role: user?.role,
   });
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return list;
     return list.filter((budget) =>
-      [budget.budgetName, budget.status, budget.fiscalYear]
+      [
+        budget.budgetName,
+        budget.status,
+        budget.fiscalYear,
+        budget.budgetType,
+        budget.projectId,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
@@ -129,6 +146,15 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
         open={open}
         onOpenChange={setOpen}
         data={selected}
+        onSuccess={() => {
+          fetchAll();
+        }}
+      />
+
+      <BudgetDistributeDialog
+        open={distributeOpen}
+        onOpenChange={setDistributeOpen}
+        budget={distributeTarget}
         onSuccess={() => {
           fetchAll();
         }}
