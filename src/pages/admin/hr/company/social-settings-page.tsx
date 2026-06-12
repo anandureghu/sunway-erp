@@ -8,6 +8,7 @@ import { apiClient } from "@/service/apiClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import EmailInput from "@/components/EmailInput";
 import {
   Form,
   FormControl,
@@ -19,10 +20,12 @@ import {
 import type { Company } from "@/types/company";
 import { PageHeader } from "@/components/PageHeader";
 import { Mail } from "lucide-react";
+import { OPTIONAL_EMAIL } from "@/schema/email";
+import { normalizeEmail } from "@/lib/email";
 
 const SCHEMA = z.object({
-  companyEmail: z.string().email().or(z.literal("")),
-  billingEmail: z.string().email().or(z.literal("")),
+  companyEmail: OPTIONAL_EMAIL,
+  billingEmail: OPTIONAL_EMAIL,
   websiteUrl: z.string().url().or(z.literal("")),
 });
 
@@ -55,8 +58,8 @@ export default function SocialSettingsPage() {
         const res = await apiClient.get<Company>(`/companies/${companyId}`);
         setCompany(res.data);
         form.reset({
-          companyEmail: res.data.companyEmail || "",
-          billingEmail: res.data.billingEmail || "",
+          companyEmail: normalizeEmail(res.data.companyEmail),
+          billingEmail: normalizeEmail(res.data.billingEmail),
           websiteUrl: res.data.websiteUrl || "",
         });
       } catch {
@@ -155,11 +158,17 @@ export default function SocialSettingsPage() {
               <FormField
                 control={form.control}
                 name="companyEmail"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Company email</FormLabel>
                     <FormControl>
-                      <Input placeholder="info@company.com" {...field} />
+                      <EmailInput
+                        placeholder="info@company.com"
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        invalid={!!fieldState.error}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -168,11 +177,17 @@ export default function SocialSettingsPage() {
               <FormField
                 control={form.control}
                 name="billingEmail"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Billing email</FormLabel>
                     <FormControl>
-                      <Input placeholder="accounts@company.com" {...field} />
+                      <EmailInput
+                        placeholder="accounts@company.com"
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        invalid={!!fieldState.error}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { OPTIONAL_EMAIL } from "@/schema/email";
 
 export const VENDOR_SCHEMA = z.object({
   vendorName: z
@@ -16,12 +17,7 @@ export const VENDOR_SCHEMA = z.object({
   city: z.string().optional(),
   country: z.string().optional(),
   phoneNo: z.string().optional(),
-  email: z
-    .string()
-    .refine((val) => !val || z.string().email().safeParse(val).success, {
-      message: "Invalid email address",
-    })
-    .optional(),
+  email: OPTIONAL_EMAIL.optional(),
   contactPersonName: z.string().optional(),
   fax: z.string().optional(),
   websiteUrl: z

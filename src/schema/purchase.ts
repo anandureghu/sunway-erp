@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { OPTIONAL_EMAIL } from "@/schema/email";
 
 // Supplier Schema
 export const SUPPLIER_SCHEMA = z.object({
   code: z.string().min(1, "Supplier code is required"),
   name: z.string().min(1, "Supplier name is required"),
   contactPerson: z.string().optional(),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  email: OPTIONAL_EMAIL.optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
