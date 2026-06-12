@@ -278,6 +278,14 @@ export function composePhone(country: Country, national: string): string {
   return `+${country.dial} ${digits}`;
 }
 
+/** Normalize any stored phone value to the canonical "+<dial> <digits>" form. */
+export function normalizePhone(value: string | undefined | null): string {
+  const raw = (value ?? "").trim();
+  if (!raw) return "";
+  const { country, national } = parsePhone(raw);
+  return composePhone(country, national);
+}
+
 export type PhoneValidation = { valid: boolean; message?: string };
 
 /**

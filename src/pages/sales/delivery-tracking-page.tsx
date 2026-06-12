@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import PhoneInput from "@/components/PhoneInput";
+import { normalizePhone } from "@/lib/countries";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -233,7 +235,9 @@ export default function DeliveryTrackingPage() {
       carrierName: trackingCarrierName || undefined,
       trackingNumber: trackingNumberInput || undefined,
       driverName: trackingDriverName || undefined,
-      driverPhone: trackingDriverPhone || undefined,
+      driverPhone: trackingDriverPhone
+        ? normalizePhone(trackingDriverPhone)
+        : undefined,
       estimatedDeliveryDate: trackingEstimatedDate || undefined,
       deliveryAddress: selectedDispatch.deliveryAddress || undefined,
       notes: selectedDispatch.notes || undefined,
@@ -368,7 +372,7 @@ export default function DeliveryTrackingPage() {
     setTrackingCarrierName(selectedDispatch.carrierName || "");
     setTrackingNumberInput(selectedDispatch.trackingNumber || "");
     setTrackingDriverName(selectedDispatch.driverName || "");
-    setTrackingDriverPhone(selectedDispatch.driverPhone || "");
+    setTrackingDriverPhone(normalizePhone(selectedDispatch.driverPhone));
     setTrackingEstimatedDate(
       selectedDispatch.estimatedDeliveryDate
         ? selectedDispatch.estimatedDeliveryDate.slice(0, 10)
@@ -740,10 +744,9 @@ export default function DeliveryTrackingPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tracking-driver-phone">Driver Phone</Label>
-                <Input
-                  id="tracking-driver-phone"
+                <PhoneInput
                   value={trackingDriverPhone}
-                  onChange={(e) => setTrackingDriverPhone(e.target.value)}
+                  onChange={setTrackingDriverPhone}
                   placeholder="Driver phone"
                 />
               </div>

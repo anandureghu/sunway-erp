@@ -2,6 +2,7 @@ import { DataTable } from "@/components/ui/data-table";
 import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import PhoneInput from "@/components/PhoneInput";
 import {
   Select,
   SelectContent,
@@ -28,10 +29,11 @@ import {
   CircleSlash2,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { normalizePhone } from "@/lib/countries";
 
 // Section card
 function SectionCard({
@@ -100,6 +102,7 @@ const WarehouseMaster = () => {
   const {
     register: registerWarehouse,
     handleSubmit: handleWarehouseSubmit,
+    control: warehouseControl,
     formState: { errors: warehouseErrors },
     reset: resetWarehouse,
     watch: watchWarehouse,
@@ -179,6 +182,7 @@ const WarehouseMaster = () => {
       ...warehouse,
       name: warehouse.name,
       status: warehouse.status,
+      phone: normalizePhone(warehouse.phone),
     });
     setShowWarehouseForm(true);
   };
@@ -407,10 +411,18 @@ const WarehouseMaster = () => {
                   </F>
 
                   <F label="Phone">
-                    <Input
-                      placeholder="Phone"
-                      {...registerWarehouse("phone")}
-                      className={icls}
+                    <Controller
+                      name="phone"
+                      control={warehouseControl}
+                      render={({ field, fieldState }) => (
+                        <PhoneInput
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          invalid={!!fieldState.error}
+                          className={icls}
+                        />
+                      )}
                     />
                     {warehouseErrors.phone && (
                       <p className="text-[11px] text-rose-400 mt-1">

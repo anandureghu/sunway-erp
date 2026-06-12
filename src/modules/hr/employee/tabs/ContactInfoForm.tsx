@@ -30,7 +30,7 @@ import { hrService } from "@/service/hr.service";
 import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 import PhoneInput from "@/components/PhoneInput";
 import EmailInput from "@/components/EmailInput";
-import { validatePhone } from "@/lib/countries";
+import { validatePhone, normalizePhone } from "@/lib/countries";
 import { normalizeEmail, validateEmail } from "@/lib/email";
 import { toast } from "sonner";
 
@@ -169,7 +169,7 @@ export default function ContactInfoForm() {
       .then((empData) => {
         if (!mounted) return;
         const employeeEmail = normalizeEmail(empData.email);
-        const employeePhone = empData.phoneNo || "";
+        const employeePhone = normalizePhone(empData.phoneNo);
 
         // Then fetch contact info (which may be empty for new employees)
         return contactService.getContactInfo(employeeId).then((res) => {
@@ -180,15 +180,15 @@ export default function ContactInfoForm() {
           setDraft((d) => ({
             ...d,
             email: normalizeEmail(data.email || employeeEmail),
-            phone: data.phone || employeePhone,
-            altPhone: data.altPhone || "",
+            phone: normalizePhone(data.phone || employeePhone),
+            altPhone: normalizePhone(data.altPhone),
             notes: data.notes || "",
           }));
           setSaved((s) => ({
             ...s,
             email: normalizeEmail(data.email || employeeEmail),
-            phone: data.phone || employeePhone,
-            altPhone: data.altPhone || "",
+            phone: normalizePhone(data.phone || employeePhone),
+            altPhone: normalizePhone(data.altPhone),
             notes: data.notes || "",
           }));
         });
@@ -226,8 +226,8 @@ export default function ContactInfoForm() {
         try {
           await contactService.saveContactInfo(employeeId, {
             email: normalizeEmail(draft.email),
-            phone: draft.phone,
-            altPhone: draft.altPhone || undefined,
+            phone: normalizePhone(draft.phone),
+            altPhone: draft.altPhone ? normalizePhone(draft.altPhone) : undefined,
             notes: draft.notes || "",
           });
         } catch (err) {

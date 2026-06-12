@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { OPTIONAL_PHONE } from "@/schema/phone";
 export const ITEM_SCHEMA = z
   .object({
     id: z.string().optional(),
@@ -94,7 +95,7 @@ export const WAREHOUSE_SCHEMA = z.object({
   street: z.string(),
   country: z.string(),
   pin: z.string(),
-  phone: z.string(),
+  phone: OPTIONAL_PHONE,
   contactPersonName: z.string(),
   manager: z.number(),
 });

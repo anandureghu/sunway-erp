@@ -17,6 +17,8 @@ import {
 import { FormRow } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
+import PhoneInput from "@/components/PhoneInput";
+import { normalizePhone, validatePhone } from "@/lib/countries";
 import { isValidDate } from "@/modules/hr/utils/validation";
 import type { Dependent, Gender, MaritalStatus } from "@/types/hr";
 import { useParams, useNavigate } from "react-router-dom";
@@ -79,7 +81,7 @@ export function createInitialDependentFromData(data: {
     nationality: data.nationality || "",
     maritalStatus: (data.maritalStatus as MaritalStatus) || undefined,
     relationship: (data.relationship as Dependent["relationship"]) || undefined,
-    phoneNo: data.phoneNumber || "",
+    phoneNo: normalizePhone(data.phoneNumber),
     address: data.addressLine1 || "",
     address2: data.addressLine2 || "",
     city: data.city || "",
@@ -151,7 +153,7 @@ export function DependentsForm() {
           nationality: d.nationality ?? "",
           maritalStatus: d.maritalStatus as MaritalStatus | undefined,
           relationship: d.relationship as any,
-          phoneNo: d.phoneNo ?? "",
+          phoneNo: normalizePhone(d.phoneNo),
           address: d.address ?? "",
           address2: d.address2 ?? "",
           city: d.city ?? "",
@@ -189,6 +191,12 @@ export function DependentsForm() {
 
       if (!empId) return;
 
+      const phoneCheck = validatePhone(dependent.phoneNo, { required: true });
+      if (!phoneCheck.valid) {
+        toast.error(phoneCheck.message ?? "Invalid phone number");
+        return;
+      }
+
       try {
         const payload = {
           firstName: dependent.firstName,
@@ -202,7 +210,7 @@ export function DependentsForm() {
           nationalId: dependent.nationalId || undefined,
           maritalStatus: dependent.maritalStatus || undefined,
           relationship: dependent.relationship,
-          phoneNo: dependent.phoneNo || undefined,
+          phoneNo: normalizePhone(dependent.phoneNo) || undefined,
           address: dependent.address || undefined,
           address2: dependent.address2 || undefined,
           city: dependent.city || undefined,
@@ -615,16 +623,19 @@ export function DependentsForm() {
                         <Label className="text-sm font-medium text-slate-700">
                           Phone Number <span className="text-red-500">*</span>
                         </Label>
-                        <Input
-                          value={dependent.phoneNo}
-                          onChange={(e) =>
+                        <PhoneInput
+                          value={dependent.phoneNo ?? ""}
+                          onChange={(v) =>
                             updateDependent(dependent.id, {
-                              phoneNo: e.target.value,
+                              phoneNo: v,
                             })
                           }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter phone number"
-                          required
+                          invalid={
+                            !!dependent.phoneNo &&
+                            !validatePhone(dependent.phoneNo, { required: true })
+                              .valid
+                          }
+                          placeholder="Phone number"
                         />
                       </div>
                     </FormRow>

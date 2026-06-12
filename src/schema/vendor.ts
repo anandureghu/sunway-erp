@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { OPTIONAL_EMAIL } from "@/schema/email";
+import { OPTIONAL_PHONE } from "@/schema/phone";
 
 export const VENDOR_SCHEMA = z.object({
   vendorName: z
@@ -16,7 +17,7 @@ export const VENDOR_SCHEMA = z.object({
   street: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
-  phoneNo: z.string().optional(),
+  phoneNo: OPTIONAL_PHONE.optional(),
   email: OPTIONAL_EMAIL.optional(),
   contactPersonName: z.string().optional(),
   fax: z.string().optional(),
