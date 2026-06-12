@@ -687,14 +687,6 @@ export default function PurchaseRequisitionDetailPage() {
                   value={requisition.deliveryWarehouseName}
                 />
                 <DetailField
-                  label="Required-by date"
-                  value={
-                    requisition.requiredByDate
-                      ? format(new Date(requisition.requiredByDate), "MMM d, yyyy")
-                      : null
-                  }
-                />
-                <DetailField
                   label="Converted"
                   value={
                     requisition.convertedAt
