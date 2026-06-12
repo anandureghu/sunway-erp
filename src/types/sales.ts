@@ -249,6 +249,8 @@ export type Invoice = {
   companyEmail?: string;
   billingEmail?: string;
   companyWebsiteUrl?: string;
+  currencyCode?: string;
+  currencySymbol?: string;
 
   type: "SALES" | "PURCHASE" | string;
   orderId?: number;

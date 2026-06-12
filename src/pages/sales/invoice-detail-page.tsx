@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
 import { SalesPageHeader } from "./components/sales-page-header";
+import { formatCurrencyAmount } from "@/lib/currency";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
 
 /* =======================
    CONSTANTS
@@ -37,13 +39,6 @@ const safe = (v: any) =>
 const formatDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString() : MISSING;
 
-const money = (n?: number) =>
-  typeof n === "number" ? n.toLocaleString() : MISSING;
-
-/* =======================
-   COMPONENT
-======================= */
-
 const formatTemplate = (
   template: string | undefined,
   replacements: Record<string, string>,
@@ -55,8 +50,13 @@ const formatTemplate = (
   );
 };
 
+/* =======================
+   COMPONENT
+======================= */
+
 export default function InvoiceDetailPage() {
   const { id } = useParams();
+  const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [tab, setTab] = useState<"invoice" | "receipt">("invoice");
@@ -70,6 +70,12 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return <div className="p-8">Loading invoice…</div>;
   }
+
+  const currencyCode = invoice.currencyCode ?? companyCurrencyCode;
+  const money = (n?: number) =>
+    typeof n === "number"
+      ? formatCurrencyAmount({ amount: n, currencyCode })
+      : MISSING;
 
   const isSales = invoice.type === "SALES";
   const order = isSales ? invoice.salesOrder : invoice.purchaseOrder;
