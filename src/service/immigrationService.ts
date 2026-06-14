@@ -52,6 +52,25 @@ const updateResidencePermit = (employeeId: number, payload: ResidencePermitPaylo
 const deleteResidencePermit = (employeeId: number) =>
   apiClient.delete(`/employees/${employeeId}/residence-permit`);
 
+
+/* ================= EXPIRY REPORT ================= */
+
+export interface ImmigrationExpiryItem {
+  documentType: "PASSPORT" | "RESIDENCE_PERMIT";
+  employeeId: number;
+  employeeCode: string | null;
+  employeeName: string | null;
+  documentNumber: string;
+  expiryDate: string;
+  daysRemaining: number;
+  status: "EXPIRED" | "EXPIRING_SOON";
+}
+
+const getExpiring = (withinDays = 30): Promise<ImmigrationExpiryItem[]> =>
+  apiClient
+    .get(`/immigration/expiring`, { params: { withinDays } })
+    .then((r) => r.data ?? []);
+
 export const immigrationService = {
   getPassport,
   createPassport,
@@ -62,6 +81,8 @@ export const immigrationService = {
   createResidencePermit,
   updateResidencePermit,
   deleteResidencePermit,
+
+  getExpiring,
 };
 
 export default immigrationService;

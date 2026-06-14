@@ -4,6 +4,7 @@ import type { SidebarItem } from "@/types/company";
 import {
   Users,
   FileSpreadsheet,
+  ShieldAlert,
   Settings,
   Package,
   ShoppingCart,
@@ -242,6 +243,17 @@ export const getSidebarItems = async (
                       title: "HR Reports",
                       url: "/hr/reports",
                       icon: FileSpreadsheet,
+                    },
+                  ]
+                : []),
+
+              // Immigration Expiry — gated by IMMIGRATION (VIEW_ALL on backend)
+              ...(canView(permissions, "IMMIGRATION")
+                ? [
+                    {
+                      title: "Immigration Expiry",
+                      url: "/hr/immigration-expiry",
+                      icon: ShieldAlert,
                     },
                   ]
                 : []),
