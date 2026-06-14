@@ -155,7 +155,7 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
   },
   {
     accessorKey: "expiryDate",
-    header: "Expiry Date",
+    header: "Sale by Date",
     cell: ({ row }) => (
       <span className="text-gray-600">
         {formatOptionalDate(row.original.expiryDate)}
