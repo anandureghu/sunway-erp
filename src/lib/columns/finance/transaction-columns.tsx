@@ -101,6 +101,9 @@ function SourceCell({
   const [saving, setSaving] = useState(false);
 
   if (!singleSided) {
+    if (tx.source && tx.source.toUpperCase() !== UNKNOWN) {
+      return <span className="text-sm">{tx.source}</span>;
+    }
     return <span className="text-sm text-muted-foreground">—</span>;
   }
 
