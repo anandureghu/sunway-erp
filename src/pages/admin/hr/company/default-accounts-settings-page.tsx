@@ -33,7 +33,7 @@ import {
   ALL_ACCOUNTING_PROCESS_CODES,
 } from "@/lib/accounting-defaults";
 import { toast } from "sonner";
-import { Banknote, Plus, Trash2 } from "lucide-react";
+import { Banknote } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 const SCHEMA = z.object({
@@ -46,12 +46,19 @@ const SCHEMA = z.object({
 
 type FormData = z.infer<typeof SCHEMA>;
 
-type ProcessRow = {
-  key: string;
-  processCode: AccountingProcessCode | "";
+type ProcessAccountFields = {
   debitAccountId: string;
   creditAccountId: string;
 };
+
+type ProcessAccountsState = Record<AccountingProcessCode, ProcessAccountFields>;
+
+function emptyProcessAccounts(): ProcessAccountsState {
+  return ALL_ACCOUNTING_PROCESS_CODES.reduce((acc, code) => {
+    acc[code] = { debitAccountId: "", creditAccountId: "" };
+    return acc;
+  }, {} as ProcessAccountsState);
+}
 
 function toStr(x: number | string | null | undefined) {
   return x != null && x !== "" ? String(x) : "";
@@ -61,25 +68,14 @@ function optNum(s?: string) {
   return s != null && String(s).trim() !== "" ? Number(s) : undefined;
 }
 
-function newProcessRow(
-  partial?: Partial<ProcessRow>,
-): ProcessRow {
-  return {
-    key: crypto.randomUUID(),
-    processCode: "",
-    debitAccountId: "",
-    creditAccountId: "",
-    ...partial,
-  };
-}
-
 export default function DefaultAccountsSettingsPage() {
   const { user } = useAuth();
   const companyId = user?.companyId ? Number(user.companyId) : 0;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [processRows, setProcessRows] = useState<ProcessRow[]>([]);
+  const [processAccounts, setProcessAccounts] =
+    useState<ProcessAccountsState>(emptyProcessAccounts);
 
   const form = useForm<FormData>({
     resolver: zodResolver(SCHEMA),
@@ -124,14 +120,16 @@ export default function DefaultAccountsSettingsPage() {
           ),
           defaultBankAccountId: toStr(co?.defaultBankAccountId),
         });
-        const rows = (processRes.data || []).map((row) =>
-          newProcessRow({
-            processCode: row.processCode,
+
+        const next = emptyProcessAccounts();
+        for (const row of processRes.data || []) {
+          if (!row.processCode) continue;
+          next[row.processCode] = {
             debitAccountId: toStr(row.debitAccountId),
             creditAccountId: toStr(row.creditAccountId),
-          }),
-        );
-        setProcessRows(rows);
+          };
+        }
+        setProcessAccounts(next);
       } catch (e: unknown) {
         if (!cancelled) {
           console.error(e);
@@ -146,45 +144,41 @@ export default function DefaultAccountsSettingsPage() {
     };
   }, [companyId, form]);
 
-  const usedProcessCodes = new Set(
-    processRows.map((r) => r.processCode).filter(Boolean),
-  );
-
-  const updateProcessRow = (key: string, patch: Partial<ProcessRow>) => {
-    setProcessRows((prev) =>
-      prev.map((row) => (row.key === key ? { ...row, ...patch } : row)),
-    );
-  };
-
-  const removeProcessRow = (key: string) => {
-    setProcessRows((prev) => prev.filter((row) => row.key !== key));
-  };
-
-  const addProcessRow = () => {
-    setProcessRows((prev) => [...prev, newProcessRow()]);
+  const updateProcessAccount = (
+    code: AccountingProcessCode,
+    patch: Partial<ProcessAccountFields>,
+  ) => {
+    setProcessAccounts((prev) => ({
+      ...prev,
+      [code]: { ...prev[code], ...patch },
+    }));
   };
 
   const onSubmit = async (data: FormData) => {
     if (!companyId) return;
 
-    const incompleteRow = processRows.find(
-      (row) =>
-        row.processCode &&
-        ((row.debitAccountId && !row.creditAccountId) ||
-          (!row.debitAccountId && row.creditAccountId)),
-    );
-    if (incompleteRow) {
-      toast.error("Each process row needs both debit and credit accounts");
+    const incompleteProcess = ALL_ACCOUNTING_PROCESS_CODES.find((code) => {
+      const { debitAccountId, creditAccountId } = processAccounts[code];
+      return (
+        (debitAccountId && !creditAccountId) ||
+        (!debitAccountId && creditAccountId)
+      );
+    });
+    if (incompleteProcess) {
+      toast.error(
+        `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} needs both debit and credit accounts`,
+      );
       return;
     }
 
-    const processPayload = processRows
-      .filter((row) => row.processCode)
-      .map((row) => ({
-        processCode: row.processCode as AccountingProcessCode,
-        debitAccountId: optNum(row.debitAccountId),
-        creditAccountId: optNum(row.creditAccountId),
-      }));
+    const processPayload = ALL_ACCOUNTING_PROCESS_CODES.filter((code) => {
+      const { debitAccountId, creditAccountId } = processAccounts[code];
+      return debitAccountId && creditAccountId;
+    }).map((code) => ({
+      processCode: code,
+      debitAccountId: optNum(processAccounts[code].debitAccountId),
+      creditAccountId: optNum(processAccounts[code].creditAccountId),
+    }));
 
     try {
       setSaving(true);
@@ -243,17 +237,17 @@ export default function DefaultAccountsSettingsPage() {
         }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">GL and bank defaults</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form
-              id="default-accounts-form"
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
+      <Form {...form}>
+        <form
+          id="default-accounts-form"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-6"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">GL and bank defaults</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -358,109 +352,57 @@ export default function DefaultAccountsSettingsPage() {
                   )}
                 />
               </div>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <CardTitle className="text-lg">Process account defaults</CardTitle>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addProcessRow}
-                    disabled={
-                      processRows.length >= ALL_ACCOUNTING_PROCESS_CODES.length
-                    }
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add row
-                  </Button>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {processRows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No process defaults configured. Add a row to set debit and
-                      credit accounts for manual journal, variance, and other
-                      processes.
-                    </p>
-                  ) : (
-                    processRows.map((row) => (
-                      <div
-                        key={row.key}
-                        className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr_auto] gap-4 items-end border rounded-lg p-4"
-                      >
-                        <div className="space-y-2">
-                          <FormLabel>Process</FormLabel>
-                          <Select
-                            value={row.processCode || "__none__"}
-                            onValueChange={(v) =>
-                              updateProcessRow(row.key, {
-                                processCode:
-                                  v === "__none__"
-                                    ? ""
-                                    : (v as AccountingProcessCode),
-                              })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select process" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">
-                                Select process
-                              </SelectItem>
-                              {ALL_ACCOUNTING_PROCESS_CODES.filter(
-                                (code) =>
-                                  code === row.processCode ||
-                                  !usedProcessCodes.has(code),
-                              ).map((code) => (
-                                <SelectItem key={code} value={code}>
-                                  {ACCOUNTING_PROCESS_LABELS[code]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Process account defaults</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-0 divide-y">
+              {ALL_ACCOUNTING_PROCESS_CODES.map((code) => (
+                <div key={code} className="space-y-4 py-6 first:pt-0 last:pb-0">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {ACCOUNTING_PROCESS_LABELS[code]}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormItem>
+                      <FormControl>
                         <SelectAccount
                           label="Debit account"
                           useId
                           showNoneOption
-                          value={row.debitAccountId}
+                          value={processAccounts[code].debitAccountId}
                           onChange={(v) =>
-                            updateProcessRow(row.key, { debitAccountId: v })
+                            updateProcessAccount(code, { debitAccountId: v })
                           }
                         />
+                      </FormControl>
+                    </FormItem>
+                    <FormItem>
+                      <FormControl>
                         <SelectAccount
                           label="Credit account"
                           useId
                           showNoneOption
-                          value={row.creditAccountId}
+                          value={processAccounts[code].creditAccountId}
                           onChange={(v) =>
-                            updateProcessRow(row.key, { creditAccountId: v })
+                            updateProcessAccount(code, { creditAccountId: v })
                           }
                         />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => removeProcessRow(row.key)}
-                          aria-label="Remove row"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
+                      </FormControl>
+                    </FormItem>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
-              <Button type="submit" disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 }
