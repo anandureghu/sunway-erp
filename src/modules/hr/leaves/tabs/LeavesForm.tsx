@@ -65,6 +65,7 @@ type LeaveRecord = {
   startDate: string;
   endDate: string;
   dateReported: string;
+  returnDate: string;
   leaveBalance: string;
   leaveStatus: LeaveStatus;
   totalDays: number;
@@ -76,7 +77,9 @@ const SEED: LeaveRecord = {
   leaveType: "Annual Leave",
   startDate: "",
   endDate: "",
+  // Stamped server-side on apply; shown read-only as "Applied On".
   dateReported: new Date().toISOString().slice(0, 10),
+  returnDate: "",
   leaveBalance: "",
   leaveStatus: "Pending for Approval",
   totalDays: 0,
@@ -289,6 +292,13 @@ export default function LeavesForm(): ReactElement {
       return;
     }
 
+    // The return-to-office date is optional, but if set it must be after the
+    // leave ends (mirrors the backend rule).
+    if (draft.returnDate && draft.returnDate <= draft.endDate) {
+      toast.error("Reporting to Office date must be after the End Date");
+      return;
+    }
+
     // IMPORTANT: Do NOT send leaveStatus to backend
     // New leave requests should always be PENDING by default
     // Only HR/Department managers can approve via the approval panel
@@ -300,6 +310,8 @@ export default function LeavesForm(): ReactElement {
       // Leave status is intentionally omitted so the backend sets it to PENDING.
       // Optional delegation — colleague covering during the leave
       delegateId: draft.delegateId ?? undefined,
+      // Optional date the employee returns to the office after the leave.
+      returnDate: draft.returnDate || undefined,
     };
 
     // Validate: sick leave requires a document
@@ -508,17 +520,36 @@ export default function LeavesForm(): ReactElement {
             </div>
           </Field>
 
-          <Field label="Date Reported">
+          <Field label="Reporting to Office">
+            <div className="relative">
+              <UserCheck className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                disabled={!editing}
+                value={draft.returnDate}
+                min={draft.endDate || undefined}
+                onChange={(e) => patch("returnDate", e.target.value)}
+                className={cn(iCls, "pl-9")}
+              />
+            </div>
+            <p className="mt-1 text-[11px] text-slate-400">
+              Date the employee heads back to the office (after the leave ends).
+            </p>
+          </Field>
+
+          <Field label="Applied On">
             <div className="relative">
               <Clock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="date"
-                disabled={!editing}
+                disabled
                 value={draft.dateReported}
-                onChange={(e) => patch("dateReported", e.target.value)}
-                className={cn(iCls, "pl-9")}
+                className={cn(iCls, "pl-9 bg-slate-50")}
               />
             </div>
+            <p className="mt-1 text-[11px] text-slate-400">
+              Set automatically when the request is submitted.
+            </p>
           </Field>
         </div>
 

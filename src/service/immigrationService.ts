@@ -52,6 +52,48 @@ const updateResidencePermit = (employeeId: number, payload: ResidencePermitPaylo
 const deleteResidencePermit = (employeeId: number) =>
   apiClient.delete(`/employees/${employeeId}/residence-permit`);
 
+
+/* ================= EXPIRY REPORT ================= */
+
+export interface ImmigrationExpiryItem {
+  documentType: "PASSPORT" | "RESIDENCE_PERMIT";
+  employeeId: number;
+  employeeCode: string | null;
+  employeeName: string | null;
+  documentNumber: string;
+  expiryDate: string; // YYYY-MM-DD
+  daysRemaining: number; // negative when expired
+  status: "EXPIRED" | "EXPIRING_SOON";
+}
+
+const getExpiring = (withinDays = 30): Promise<ImmigrationExpiryItem[]> =>
+  apiClient
+    .get(`/immigration/expiring`, { params: { withinDays } })
+    .then((r) => r.data ?? []);
+
+
+/* ================= DOCUMENT UPLOAD ================= */
+
+const uploadPassportDocument = (employeeId: number, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return apiClient
+    .post(`/employees/${employeeId}/passport/document`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((r) => r.data);
+};
+
+const uploadResidenceDocument = (employeeId: number, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return apiClient
+    .post(`/employees/${employeeId}/residence-permit/document`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((r) => r.data);
+};
+
 export const immigrationService = {
   getPassport,
   createPassport,
@@ -62,6 +104,11 @@ export const immigrationService = {
   createResidencePermit,
   updateResidencePermit,
   deleteResidencePermit,
+
+  getExpiring,
+
+  uploadPassportDocument,
+  uploadResidenceDocument,
 };
 
 export default immigrationService;

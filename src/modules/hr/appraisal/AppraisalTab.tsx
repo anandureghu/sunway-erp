@@ -27,7 +27,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { appraisalConfigService } from "@/service/appraisalConfigService";
+import {
+  appraisalConfigService,
+  type AppraisalConfigResponse,
+} from "@/service/appraisalConfigService";
 import { appraisalService } from "@/service/appraisalService";
 import { useAuth } from "@/context/AuthContext";
 import { roleService } from "@/service/roleService";
@@ -253,89 +256,105 @@ export default function AppraisalTab() {
   );
   const [phases, setPhases] = useState<Phase[]>(FALLBACK_PHASES);
 
-  // ── Load config from backend when year changes ──
+  // All cycles for the selected year (multiple cycles per year are supported)
+  const [cyclesForYear, setCyclesForYear] = useState<AppraisalConfigResponse[]>(
+    [],
+  );
+
+  // Load one cycle into the editor
+  function populateFromCfg(cfg: AppraisalConfigResponse) {
+    setCycleConfig((p) => ({
+      ...p,
+      id: cfg.id,
+      appraisalName: cfg.cycleName || p.appraisalName,
+      startMonth: cfg.startMonth || p.startMonth,
+      endMonth: cfg.endMonth || p.endMonth,
+      minGoals: cfg.minGoals ?? p.minGoals,
+      maxGoals: cfg.maxGoals ?? p.maxGoals,
+      enableSelfAssessment: cfg.enableSelfAssessment ?? p.enableSelfAssessment,
+      enableMidYear: cfg.enableMidYear ?? p.enableMidYear,
+      enablePIP: cfg.enablePIP ?? p.enablePIP,
+      status: cfg.status || p.status,
+    }));
+
+    if (cfg.ratingScale && cfg.ratingScale.length > 0) {
+      setRatingScale(cfg.ratingScale);
+    }
+    if (cfg.phases && cfg.phases.length > 0) {
+      setPhases(
+        cfg.phases.map((ph: any) => ({
+          id: ph.id || "",
+          label: ph.label || "",
+          icon: ph.icon || "",
+          description: ph.description || "",
+          startDate: ph.startDate || "",
+          endDate: ph.endDate || "",
+          enabled: ph.enabled ?? true,
+        })),
+      );
+    }
+
+    if (cfg.roles && cfg.roles.length > 0) {
+      const roleNames = cfg.roles.map((r: any) => r.roleName);
+      setRoles(roleNames);
+      setSelectedRole(roleNames[0] || "");
+      const map: Record<string, Goal[]> = {};
+      cfg.roles.forEach((r: any) => {
+        map[r.roleName] = (r.goals || []).map((g: any, i: number) => ({
+          id: g.goalId || i + 1,
+          kpi: g.kpi || "",
+          description: g.description || "",
+          weight: g.weight || 0,
+          active: true,
+        }));
+      });
+      setGoalsByRole(map);
+    } else {
+      setGoalsByRole({});
+      setRoles([]);
+      setSelectedRole("");
+    }
+    setSaved(false);
+  }
+
+  // Reset the editor to a blank, unsaved new cycle (keeps the current year)
+  function resetEditorForNew() {
+    setCycleConfig((p) => ({
+      ...p,
+      id: undefined,
+      appraisalName: "",
+      status: "DRAFT",
+    }));
+    setGoalsByRole({});
+    setRoles([]);
+    setSelectedRole("");
+    setSaved(false);
+  }
+
+  // Load the cycle list for a year and select one (prefer a specific id)
+  async function refreshCycles(year: number, preferId?: number) {
+    setConfigLoading(true);
+    try {
+      const list = await appraisalConfigService.listByYear(year);
+      setCyclesForYear(list);
+      const pick =
+        (preferId && list.find((c) => c.id === preferId)) || list[0];
+      if (pick) populateFromCfg(pick);
+      else resetEditorForNew();
+    } catch {
+      setCyclesForYear([]);
+      resetEditorForNew();
+    } finally {
+      setConfigLoading(false);
+    }
+  }
+
+  // ── Load cycles when the year changes ──
   useEffect(() => {
     const year = parseInt(cycleConfig.appraisalYear);
     if (!year) return;
-
-    setConfigLoading(true);
-    appraisalConfigService
-      .getByYear(year)
-      .then((cfg) => {
-        if (!cfg) {
-          // No config for this year — reset to empty (no mock data)
-          setGoalsByRole({});
-          setRoles([]);
-          setSelectedRole("");
-          return;
-        }
-
-        // Populate cycle config from backend
-        setCycleConfig((p) => ({
-          ...p,
-          id: cfg.id,
-          appraisalName: cfg.cycleName || p.appraisalName,
-          startMonth: cfg.startMonth || p.startMonth,
-          endMonth: cfg.endMonth || p.endMonth,
-          minGoals: cfg.minGoals ?? p.minGoals,
-          maxGoals: cfg.maxGoals ?? p.maxGoals,
-          enableSelfAssessment:
-            cfg.enableSelfAssessment ?? p.enableSelfAssessment,
-          enableMidYear: cfg.enableMidYear ?? p.enableMidYear,
-          enablePIP: cfg.enablePIP ?? p.enablePIP,
-          status: cfg.status || p.status,
-        }));
-
-        // Populate rating scale from backend if available
-        if (cfg.ratingScale && cfg.ratingScale.length > 0) {
-          setRatingScale(cfg.ratingScale);
-        }
-
-        // Populate phases from backend if available
-        if (cfg.phases && cfg.phases.length > 0) {
-          setPhases(
-            cfg.phases.map((ph: any) => ({
-              id: ph.id || "",
-              label: ph.label || "",
-              icon: ph.icon || "",
-              description: ph.description || "",
-              startDate: ph.startDate || "",
-              endDate: ph.endDate || "",
-              enabled: ph.enabled ?? true,
-            })),
-          );
-        }
-
-        // Populate roles + goals from backend — NO mock data fallback
-        if (cfg.roles && cfg.roles.length > 0) {
-          const roleNames = cfg.roles.map((r: any) => r.roleName);
-          setRoles(roleNames);
-          setSelectedRole(roleNames[0] || "");
-
-          const map: Record<string, Goal[]> = {};
-          cfg.roles.forEach((r: any) => {
-            map[r.roleName] = (r.goals || []).map((g: any, i: number) => ({
-              id: g.goalId || i + 1,
-              kpi: g.kpi || "",
-              description: g.description || "",
-              weight: g.weight || 0,
-              active: true,
-            }));
-          });
-          setGoalsByRole(map);
-        } else {
-          setGoalsByRole({});
-          setRoles([]);
-          setSelectedRole("");
-        }
-      })
-      .catch(() => {
-        // No config found for this year — start fresh, no mock data
-        setGoalsByRole({});
-        setRoles([]);
-        setSelectedRole("");
-      })
-      .finally(() => setConfigLoading(false));
+    void refreshCycles(year, cycleConfig.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cycleConfig.appraisalYear]);
 
   function showToast(msg: string, type: "success" | "error" = "success") {
@@ -386,10 +405,14 @@ export default function AppraisalTab() {
       return;
     }
     try {
-      const result = await appraisalConfigService.save(buildPayload());
+      const payload = buildPayload();
+      const result = cycleConfig.id
+        ? await appraisalConfigService.update(cycleConfig.id, payload)
+        : await appraisalConfigService.create(payload);
       setCycleConfig((p) => ({ ...p, id: result.id, status: result.status }));
       setSaved(true);
       showToast("Configuration saved as draft ✓");
+      await refreshCycles(parseInt(cycleConfig.appraisalYear), result.id);
     } catch (err: any) {
       showToast(
         err?.response?.data?.message || "Failed to save configuration",
@@ -416,11 +439,15 @@ export default function AppraisalTab() {
       return;
     }
     try {
-      const result =
-        await appraisalConfigService.saveAndActivate(buildPayload());
+      const payload = buildPayload();
+      const savedCfg = cycleConfig.id
+        ? await appraisalConfigService.update(cycleConfig.id, payload)
+        : await appraisalConfigService.create(payload);
+      const result = await appraisalConfigService.activate(savedCfg.id);
       setCycleConfig((p) => ({ ...p, id: result.id, status: result.status }));
       setSaved(true);
       showToast("Configuration saved and activated! 🎉");
+      await refreshCycles(parseInt(cycleConfig.appraisalYear), result.id);
     } catch (err: any) {
       showToast(err?.response?.data?.message || "Failed to activate", "error");
     }
@@ -432,6 +459,7 @@ export default function AppraisalTab() {
       const result = await appraisalConfigService.activate(cycleConfig.id);
       setCycleConfig((p) => ({ ...p, status: result.status }));
       showToast("Appraisal configuration activated! ✓");
+      await refreshCycles(parseInt(cycleConfig.appraisalYear), result.id);
     } catch (err: any) {
       showToast(err?.response?.data?.message || "Failed to activate", "error");
     }
@@ -443,6 +471,7 @@ export default function AppraisalTab() {
       const result = await appraisalConfigService.close(cycleConfig.id);
       setCycleConfig((p) => ({ ...p, status: result.status }));
       showToast("Appraisal configuration closed ✓");
+      await refreshCycles(parseInt(cycleConfig.appraisalYear), result.id);
     } catch (err: any) {
       showToast(err?.response?.data?.message || "Failed to close", "error");
     }
@@ -558,6 +587,51 @@ export default function AppraisalTab() {
           </p>
         </div>
       )}
+
+      {/* Cycle selector — multiple cycles can run per year */}
+      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border border-slate-200 p-3">
+        <span className="text-sm font-semibold text-slate-600">Cycle:</span>
+        <select
+          value={cycleConfig.id ?? "new"}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "new") {
+              resetEditorForNew();
+              setActiveTab("cycle");
+              return;
+            }
+            const cfg = cyclesForYear.find((c) => c.id === Number(v));
+            if (cfg) populateFromCfg(cfg);
+          }}
+          className="h-9 rounded-lg border border-slate-200 px-3 text-sm min-w-[240px]"
+        >
+          {cyclesForYear.length === 0 && (
+            <option value="new">No cycles yet — create one</option>
+          )}
+          {cyclesForYear.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.cycleName} · {c.status}
+            </option>
+          ))}
+          {cyclesForYear.length > 0 && (
+            <option value="new">➕ New cycle…</option>
+          )}
+        </select>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            resetEditorForNew();
+            setActiveTab("cycle");
+          }}
+        >
+          + New cycle
+        </Button>
+        <span className="text-xs text-slate-400">
+          {cyclesForYear.length} cycle{cyclesForYear.length === 1 ? "" : "s"} in{" "}
+          {cycleConfig.appraisalYear}
+        </span>
+      </div>
 
       {/* Tabs */}
       <div className="bg-white rounded-xl border border-slate-200 p-1.5 overflow-x-auto">

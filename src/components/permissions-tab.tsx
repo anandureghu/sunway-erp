@@ -77,7 +77,15 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   const [filterRole] = useState("All");
 
   const companyId = user?.companyId ? Number(user.companyId) : null;
-  const modulePrefix = `${moduleType}_`;
+
+  // Full AppModule keys this tab manages (e.g. SALARY, INVENTORY_CATEGORY).
+  // `modules[].id` carries the COMPLETE module id — we never prefix it with the
+  // moduleType, because HR modules (SALARY, EMPLOYEE_PROFILE, …) are stored
+  // unprefixed in AppModule. `moduleType` is only a display label.
+  const moduleKeys = useMemo(
+    () => new Set(modules.map((m) => normalizeModuleKey(m.id))),
+    [modules],
+  );
 
   const emptyCaps = useCallback(() => {
     return Object.fromEntries(
@@ -89,11 +97,8 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   }, [modules]);
 
   const belongsToModuleType = useCallback(
-    (moduleKey: string) => {
-      const upper = normalizeModuleKey(moduleKey);
-      return upper.startsWith(modulePrefix);
-    },
-    [modulePrefix],
+    (moduleKey: string) => moduleKeys.has(normalizeModuleKey(moduleKey)),
+    [moduleKeys],
   );
 
   const filterCapsForModuleType = useCallback(
@@ -110,17 +115,15 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
       const formCaps = emptyCaps();
       for (const [key, perms] of Object.entries(caps)) {
         const upper = normalizeModuleKey(key);
-        if (!belongsToModuleType(upper)) continue;
-        const formKey = upper.startsWith(modulePrefix)
-          ? upper.slice(modulePrefix.length)
-          : upper;
-        if (formCaps[formKey]) {
-          formCaps[formKey] = { ...formCaps[formKey], ...perms };
+        // Only merge caps for modules this tab manages; the full key matches
+        // a formCaps entry directly (no prefix stripping needed).
+        if (formCaps[upper]) {
+          formCaps[upper] = { ...formCaps[upper], ...perms };
         }
       }
       return formCaps;
     },
-    [belongsToModuleType, emptyCaps, modulePrefix],
+    [emptyCaps],
   );
 
   const countActiveCaps = useCallback(
@@ -288,8 +291,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
     try {
       const normalizedCaps: Record<string, Record<string, boolean>> = {};
       Object.entries(permForm.caps || {}).forEach(([mod, perms]) => {
-        const upperMod = normalizeModuleKey(mod);
-        normalizedCaps[`${moduleType}_${upperMod}`] = perms;
+        normalizedCaps[normalizeModuleKey(mod)] = perms;
       });
 
       const dtos = Object.entries(normalizedCaps).map(([module, perms]) => ({
@@ -323,7 +325,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
       console.error("Failed to save permissions", err);
       toast.error("Failed to save permissions");
     }
-  }, [permForm, moduleType, fetchPerms]);
+  }, [permForm, fetchPerms]);
 
   const displayed = useMemo(() => {
     let list = perms;

@@ -43,8 +43,11 @@ import {
   Lock,
   X,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hrService } from "@/service/hr.service";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const getInitials = (first?: string, last?: string) => {
@@ -52,6 +55,20 @@ const getInitials = (first?: string, last?: string) => {
   const l = (last ?? "").trim()[0] ?? "";
   return (f + l).toUpperCase() || "?";
 };
+
+// Password policy — kept in sync with the Contact Info reset modal so an admin
+// sees the same rules wherever they set a password.
+const passwordRules = (pw: string) => [
+  { ok: pw.length >= 8, label: "At least 8 characters" },
+  {
+    ok: /[a-z]/.test(pw) && /[A-Z]/.test(pw),
+    label: "Upper & lowercase letters",
+  },
+  { ok: /\d/.test(pw), label: "At least one number" },
+  { ok: /[!@#$%^&*]/.test(pw), label: "Special character (!@#$%^&*)" },
+];
+
+const isPasswordStrong = (pw: string) => passwordRules(pw).every((r) => r.ok);
 
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -146,6 +163,7 @@ export function EmployeeDialog({
   const [loading, setLoading] = useState(false);
   const [companyRoles, setCompanyRoles] = useState<RoleResponse[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createEmployeeSchema),
@@ -209,6 +227,12 @@ export function EmployeeDialog({
   const lastName = watch("lastName");
   const initials = getInitials(firstName, lastName);
 
+  // In edit mode an admin may set a new password; block save while a typed
+  // password is non-empty but doesn't yet meet the policy.
+  const passwordValue = watch("password") ?? "";
+  const passwordInvalid =
+    mode === "edit" && passwordValue.length > 0 && !isPasswordStrong(passwordValue);
+
   const avatarColors: Record<string, string> = {
     A: "bg-rose-100 text-rose-600",
     B: "bg-orange-100 text-orange-600",
@@ -230,6 +254,7 @@ export function EmployeeDialog({
     avatarColors[initials[0]] ?? "bg-slate-100 text-slate-500";
 
   useEffect(() => {
+    if (open) setShowPassword(false);
     if (open && mode === "edit" && employee) {
       form.reset({
         firstName: employee.firstName,
@@ -292,7 +317,34 @@ export function EmployeeDialog({
         toast.success("Employee created successfully");
       } else {
         await apiClient.put(`/employees/${employeeId}`, payload);
-        toast.success("Employee updated successfully");
+
+        // If the admin typed a new password, reset it for this account.
+        // Left blank → the existing password is kept untouched.
+        const newPassword = values.password?.trim();
+        if (newPassword) {
+          if (!isPasswordStrong(newPassword)) {
+            toast.error(
+              "Password must be 8+ chars with upper & lowercase, a number, and a special character"
+            );
+            setLoading(false);
+            return;
+          }
+          // The reset endpoint is keyed by the *User* id, which is distinct
+          // from the employee id used for the profile update above.
+          const userId = employee?.userId;
+          if (!userId) {
+            toast.error("Cannot reset password: no linked user account found");
+            setLoading(false);
+            return;
+          }
+          await hrService.resetEmployeePassword(Number(userId), {
+            newPassword,
+            confirmPassword: newPassword,
+          });
+          toast.success("Employee updated and password changed");
+        } else {
+          toast.success("Employee updated successfully");
+        }
       }
       onSuccess();
     } catch (err: unknown) {
@@ -543,18 +595,95 @@ export function EmployeeDialog({
                     )}
                   />
 
-                  <Field
-                    label="Password"
-                    badge="auto-generated"
-                    hint="A secure password is sent to the employee's email"
-                    icon={<Lock className="h-[15px] w-[15px]" />}
-                  >
-                    <Input
-                      value="Auto-generated"
-                      disabled
-                      className={fieldClass()}
+                  {mode === "edit" ? (
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field, fieldState }) => (
+                        <FormItem className="space-y-0">
+                          <Field
+                            label="Password"
+                            hint={`Set a new password for @${
+                              watch("username") || "this account"
+                            } — leave blank to keep the current one`}
+                            icon={<Lock className="h-[15px] w-[15px]" />}
+                            error={fieldState.error?.message}
+                          >
+                            <FormControl>
+                              <div className="relative">
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="Enter new password"
+                                  {...field}
+                                  value={field.value ?? ""}
+                                  className={cn(fieldClass(), "pr-10")}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword((v) => !v)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 transition-colors hover:text-slate-500"
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+                            </FormControl>
+
+                            {/* Requirements checklist — only while a new
+                                password is being typed. */}
+                            {field.value && (
+                              <div className="mt-2 space-y-1.5 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                  Requirements
+                                </p>
+                                {passwordRules(field.value).map(
+                                  ({ ok, label }) => (
+                                    <div
+                                      key={label}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <span
+                                        className={cn(
+                                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                                          ok ? "bg-emerald-500" : "bg-slate-300"
+                                        )}
+                                      />
+                                      <span
+                                        className={cn(
+                                          "text-[11px]",
+                                          ok
+                                            ? "text-emerald-700"
+                                            : "text-slate-500"
+                                        )}
+                                      >
+                                        {label}
+                                      </span>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            )}
+                          </Field>
+                        </FormItem>
+                      )}
                     />
-                  </Field>
+                  ) : (
+                    <Field
+                      label="Password"
+                      badge="auto-generated"
+                      hint="A secure password is sent to the employee's email"
+                      icon={<Lock className="h-[15px] w-[15px]" />}
+                    >
+                      <Input
+                        value="Auto-generated"
+                        disabled
+                        className={fieldClass()}
+                      />
+                    </Field>
+                  )}
 
                   {/* Info card */}
                   <div className="!mt-8 rounded-xl border border-slate-100 bg-slate-50 p-4">
@@ -618,7 +747,7 @@ export function EmployeeDialog({
                   </Button>
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || passwordInvalid}
                     className="h-9 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50"
                   >
                     {loading ? (

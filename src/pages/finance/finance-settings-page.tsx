@@ -6,14 +6,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { Settings, Shield, Users } from "lucide-react";
 
 const FINANCE_MODULES = [
-  { id: "coa", label: "Chart of Accounts" },
-  { id: "ledger", label: "General Ledger" },
-  { id: "payable", label: "Accounts Payable" },
-  { id: "receivable", label: "Accounts Receivable" },
-  { id: "journal", label: "Journal Entries" },
-  { id: "budget", label: "Budget" },
-  { id: "payment", label: "Payments" },
-  { id: "invoice", label: "Invoices" },
+  { id: "finance_coa", label: "Chart of Accounts" },
+  { id: "finance_journal", label: "Journal Entries" },
+  { id: "finance_ledger", label: "General Ledger" },
+  { id: "finance_invoice", label: "Invoices & Credit Notes" },
+  { id: "finance_payment", label: "Payments" },
+  { id: "finance_budget", label: "Budget" },
+  { id: "finance_reconciliation", label: "Reconciliation" },
+  { id: "finance_reports", label: "Finance Reports" },
 ];
 
 const FinanceSettingsPage = () => {

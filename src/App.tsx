@@ -113,6 +113,7 @@ import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
 import HRSettingsPage from "./pages/hr/settings-page";
 import HRReportsPage from "./pages/hr/hr-reports-page";
+import ImmigrationExpiryPage from "./pages/hr/immigration-expiry-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
 import DivisionListPage from "./pages/admin/hr/division/division-list-page";
 import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
@@ -499,6 +500,12 @@ export default function App() {
 
             {/* HR Reports */}
             <Route path="reports" element={<HRReportsPage />} />
+
+            {/* Immigration expiry report */}
+            <Route
+              path="immigration-expiry"
+              element={<ImmigrationExpiryPage />}
+            />
 
             {/* HR Settings */}
             <Route path="settings" element={<HRSettingsPage />} />

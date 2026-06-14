@@ -20,6 +20,8 @@ export interface ApplyLeavePayload {
   includeWeekends?: boolean;
   /** Optional same-department colleague who covers duties during the leave. */
   delegateId?: number | null;
+  /** Optional date the employee heads back to the office after the leave. */
+  returnDate?: string;
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string => {

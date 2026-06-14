@@ -23,6 +23,7 @@ export default function HRSettingsPage() {
             { id: "employee_profile", label: "Employee Profile" },
             { id: "current_job", label: "Current Job" },
             { id: "salary", label: "Salary" },
+            { id: "payroll", label: "Payroll" },
             { id: "leaves", label: "Leaves" },
             { id: "loans", label: "Loans" },
             { id: "dependents", label: "Dependents" },
