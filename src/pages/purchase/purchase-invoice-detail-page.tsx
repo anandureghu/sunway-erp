@@ -14,6 +14,7 @@ import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
 import { PurchasePageHeader } from "./components/purchase-page-header";
 
 export default function PurchaseInvoiceDetailPage() {
@@ -89,8 +90,7 @@ export default function PurchaseInvoiceDetailPage() {
 
   const openDocumentHref =
     invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
-  const isPaid =
-    statusRaw === "paid" || statusRaw === "partially_paid";
+  const isPaid = isInvoicePaymentSettled(invoice.status);
   const isGenerated = invoice.documentSource === "GENERATED";
   const showReceipt = isGenerated && isPaid;
 

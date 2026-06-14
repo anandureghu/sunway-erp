@@ -346,6 +346,7 @@ export type SalesOrderResponseDTO = {
   debitAccountName?: string;
   creditAccountId?: Id;
   creditAccountName?: string;
+  salesInvoiceId?: Id;
   items?: SalesOrderItemResponseDTO[];
 };
 

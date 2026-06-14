@@ -20,6 +20,14 @@ export function invoiceMatchesStatusFilter(
   );
 }
 
+/** Invoice is settled enough to show receipt instead of invoice. */
+export function isInvoicePaymentSettled(
+  rawStatus: string | null | undefined,
+): boolean {
+  const k = normalizeInvoiceStatusKey(rawStatus);
+  return k === "PAID" || k === "PARTIALLY_PAID";
+}
+
 /** Paid and cancelled invoices belong in the Archived tab. */
 export function isInvoiceArchivedStatus(
   rawStatus: string | null | undefined,

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
 
 const MISSING = "N/A";
 
@@ -39,7 +40,7 @@ export default function PublicInvoicePage() {
     return <div className="p-8 text-sm text-muted-foreground">Loading invoice...</div>;
   }
 
-  const isPaid = (invoice.status || "").toUpperCase() === "PAID";
+  const isPaid = isInvoicePaymentSettled(invoice.status);
   const currencyCode = invoice.currencyCode;
   const money = (n?: number) =>
     typeof n === "number"
