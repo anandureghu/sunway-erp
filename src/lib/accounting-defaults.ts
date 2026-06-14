@@ -33,7 +33,12 @@ export const ACCOUNTING_PROCESS_LABELS: Record<AccountingProcessCode, string> =
     STOCK_VARIANCE: "Variance process",
     END_OF_SERVICE: "End of service payment",
     EMPLOYEE_TICKET_PAYMENT: "Employee ticket payment",
+    PAYROLL: "Payroll",
   };
+
+/** Processes that post a debit only (no credit account). */
+export const DEBIT_ONLY_PROCESS_CODES: ReadonlySet<AccountingProcessCode> =
+  new Set(["PAYROLL"]);
 
 export const ALL_ACCOUNTING_PROCESS_CODES = Object.keys(
   ACCOUNTING_PROCESS_LABELS,

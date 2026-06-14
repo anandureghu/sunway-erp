@@ -31,6 +31,7 @@ import type {
 import {
   ACCOUNTING_PROCESS_LABELS,
   ALL_ACCOUNTING_PROCESS_CODES,
+  DEBIT_ONLY_PROCESS_CODES,
 } from "@/lib/accounting-defaults";
 import { toast } from "sonner";
 import { Banknote } from "lucide-react";
@@ -159,25 +160,34 @@ export default function DefaultAccountsSettingsPage() {
 
     const incompleteProcess = ALL_ACCOUNTING_PROCESS_CODES.find((code) => {
       const { debitAccountId, creditAccountId } = processAccounts[code];
+      if (DEBIT_ONLY_PROCESS_CODES.has(code)) {
+        return Boolean(creditAccountId);
+      }
       return (
         (debitAccountId && !creditAccountId) ||
         (!debitAccountId && creditAccountId)
       );
     });
     if (incompleteProcess) {
-      toast.error(
-        `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} needs both debit and credit accounts`,
-      );
+      const message = DEBIT_ONLY_PROCESS_CODES.has(incompleteProcess)
+        ? `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} does not use a credit account`
+        : `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} needs both debit and credit accounts`;
+      toast.error(message);
       return;
     }
 
     const processPayload = ALL_ACCOUNTING_PROCESS_CODES.filter((code) => {
       const { debitAccountId, creditAccountId } = processAccounts[code];
+      if (DEBIT_ONLY_PROCESS_CODES.has(code)) {
+        return Boolean(debitAccountId);
+      }
       return debitAccountId && creditAccountId;
     }).map((code) => ({
       processCode: code,
       debitAccountId: optNum(processAccounts[code].debitAccountId),
-      creditAccountId: optNum(processAccounts[code].creditAccountId),
+      creditAccountId: DEBIT_ONLY_PROCESS_CODES.has(code)
+        ? undefined
+        : optNum(processAccounts[code].creditAccountId),
     }));
 
     try {
@@ -227,7 +237,7 @@ export default function DefaultAccountsSettingsPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Default accounts"
-        description="Configure GL defaults for sales, purchases, and other business processes. Sales and purchase values pre-fill orders and requisitions; process defaults auto-fill manual journal entries and stock variance posting."
+        description="Configure GL defaults for sales, purchases, payroll, and other business processes. Sales and purchase values pre-fill orders and requisitions; process defaults auto-fill manual journal entries, stock variance posting, and payroll GL entries."
         variant="darkBlue"
         icon={<Banknote className="w-6 h-6" />}
         actions={
@@ -360,7 +370,9 @@ export default function DefaultAccountsSettingsPage() {
               <CardTitle className="text-lg">Process account defaults</CardTitle>
             </CardHeader>
             <CardContent className="space-y-0 divide-y">
-              {ALL_ACCOUNTING_PROCESS_CODES.map((code) => (
+              {ALL_ACCOUNTING_PROCESS_CODES.map((code) => {
+                const debitOnly = DEBIT_ONLY_PROCESS_CODES.has(code);
+                return (
                 <div key={code} className="space-y-4 py-6 first:pt-0 last:pb-0">
                   <h3 className="text-sm font-semibold text-foreground">
                     {ACCOUNTING_PROCESS_LABELS[code]}
@@ -379,6 +391,7 @@ export default function DefaultAccountsSettingsPage() {
                         />
                       </FormControl>
                     </FormItem>
+                    {!debitOnly && (
                     <FormItem>
                       <FormControl>
                         <SelectAccount
@@ -392,9 +405,11 @@ export default function DefaultAccountsSettingsPage() {
                         />
                       </FormControl>
                     </FormItem>
+                    )}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </CardContent>
           </Card>
 

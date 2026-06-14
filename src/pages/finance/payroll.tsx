@@ -13,6 +13,10 @@ import {
 } from "@/service/payrollExportService";
 import { hrService } from "@/service/hr.service";
 import { payrollService } from "@/service/payrollService";
+import type {
+  PayrollAccountStatus,
+  PayrollPreview,
+} from "@/service/payrollService";
 import { fetchCompany } from "@/service/companyService";
 import { downloadPayslipPdf } from "@/service/payslipService";
 import { formatMoney } from "@/lib/utils";
@@ -114,6 +118,115 @@ function isExitStatus(status?: string | null): boolean {
   return !!status && EXIT_STATUSES.has(String(status).toUpperCase());
 }
 
+function payrollAccountStatusLabel(status: PayrollAccountStatus["status"]) {
+  if (status === "READY") return "Ready";
+  if (status === "INSUFFICIENT") return "Insufficient funds";
+  return "Not configured";
+}
+
+function PayrollAccountStatusCard({
+  accountStatus,
+  currencySymbol,
+  showGrossAmount = true,
+  loading = false,
+}: {
+  accountStatus: PayrollAccountStatus | null;
+  currencySymbol: string;
+  showGrossAmount?: boolean;
+  loading?: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+        <span className="text-sm text-slate-500">Checking payroll account…</span>
+      </div>
+    );
+  }
+
+  if (!accountStatus) return null;
+
+  const isReady = accountStatus.status === "READY";
+  const isConfigured = accountStatus.configured;
+  const isInsufficient = accountStatus.status === "INSUFFICIENT";
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border px-4 py-3 space-y-3",
+        !isConfigured && "border-amber-200 bg-amber-50",
+        isInsufficient && "border-red-200 bg-red-50",
+        isReady && "border-emerald-200 bg-emerald-50",
+      )}
+    >
+      <div className="flex items-start gap-2">
+        {isReady ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+        ) : (
+          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-800">Payroll account</p>
+          <p className="text-xs text-slate-500">
+            {isConfigured
+              ? `${accountStatus.debitAccountCode ?? ""} — ${accountStatus.debitAccountName ?? "Account"}`
+              : "No payroll debit account configured"}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full",
+            isReady && "bg-emerald-100 text-emerald-700",
+            isInsufficient && "bg-red-100 text-red-700",
+            !isConfigured && "bg-amber-100 text-amber-700",
+          )}
+        >
+          {payrollAccountStatusLabel(accountStatus.status)}
+        </span>
+      </div>
+
+      <div className={cn("grid gap-3", showGrossAmount ? "grid-cols-2" : "grid-cols-1")}>
+        <div className="rounded-lg bg-white/70 border border-white px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Available balance
+          </p>
+          <p className="text-sm font-bold text-slate-800">
+            {formatMoney(accountStatus.availableBalance, currencySymbol)}
+          </p>
+        </div>
+        {showGrossAmount && (
+          <div className="rounded-lg bg-white/70 border border-white px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Gross to deduct
+            </p>
+            <p className="text-sm font-bold text-slate-800">
+              {formatMoney(accountStatus.payrollGrossAmount, currencySymbol)}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {!isConfigured && (
+        <p className="text-xs text-amber-800">
+          Set the payroll debit account under{" "}
+          <Link
+            to="/admin/default-accounts"
+            className="font-semibold underline"
+          >
+            Default Accounts
+          </Link>{" "}
+          before generating payroll.
+        </p>
+      )}
+      {isInsufficient && (
+        <p className="text-xs text-red-700">
+          Payroll account balance is lower than the gross amount for this run.
+        </p>
+      )}
+    </div>
+  );
+}
+
 
 
 // ── Bulk status pill ───────────────────────────────────────────────────────────
@@ -183,6 +296,14 @@ function EmployeePayrollTab() {
   const [currencySymbol, setCurrencySymbol] = useState("QAR");
   const [generating, setGenerating] = useState(false);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
+  const [payrollPreview, setPayrollPreview] = useState<PayrollPreview | null>(
+    null,
+  );
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [bulkAccountStatus, setBulkAccountStatus] =
+    useState<PayrollAccountStatus | null>(null);
+  const [loadingBulkAccountStatus, setLoadingBulkAccountStatus] =
+    useState(false);
 
   const [payrollInput, setPayrollInput] = useState({
     payPeriodStart: "",
@@ -512,6 +633,73 @@ function EmployeePayrollTab() {
       return null;
     return validateDates(payrollInput);
   }, [payrollInput]);
+
+  const datesReady =
+    !!payrollInput.payPeriodStart &&
+    !!payrollInput.payPeriodEnd &&
+    !!payrollInput.payDate &&
+    !dateError;
+
+  const canGeneratePayroll =
+    payrollPreview?.payrollAccount?.configured &&
+    payrollPreview?.payrollAccount?.sufficientFunds;
+
+  const canBulkGeneratePayroll = bulkAccountStatus?.configured ?? false;
+
+  useEffect(() => {
+    if (!selected || bulkMode || !datesReady) {
+      setPayrollPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadPreview = async () => {
+      setLoadingPreview(true);
+      try {
+        const res = await payrollService.previewPayroll(
+          Number(selected.id),
+          payrollInput,
+        );
+        if (!cancelled) setPayrollPreview(res.data);
+      } catch {
+        if (!cancelled) setPayrollPreview(null);
+      } finally {
+        if (!cancelled) setLoadingPreview(false);
+      }
+    };
+
+    void loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [selected, bulkMode, datesReady, payrollInput]);
+
+  useEffect(() => {
+    if (!bulkMode || !user?.companyId || !datesReady) {
+      setBulkAccountStatus(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadStatus = async () => {
+      setLoadingBulkAccountStatus(true);
+      try {
+        const res = await payrollService.getPayrollAccountStatus(
+          user.companyId!,
+        );
+        if (!cancelled) setBulkAccountStatus(res.data);
+      } catch {
+        if (!cancelled) setBulkAccountStatus(null);
+      } finally {
+        if (!cancelled) setLoadingBulkAccountStatus(false);
+      }
+    };
+
+    void loadStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [bulkMode, user?.companyId, datesReady]);
 
   const DateForm = ({ title }: { title: string }) => (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 space-y-4">
@@ -920,6 +1108,15 @@ function EmployeePayrollTab() {
               {/* Date form */}
               <DateForm title="Bulk Generate Payroll" />
 
+              {(datesReady || loadingBulkAccountStatus) && (
+                <PayrollAccountStatusCard
+                  accountStatus={bulkAccountStatus}
+                  currencySymbol={currencySymbol}
+                  showGrossAmount={false}
+                  loading={loadingBulkAccountStatus}
+                />
+              )}
+
               {/* Selected employees list + generate button */}
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-100">
@@ -1059,7 +1256,10 @@ function EmployeePayrollTab() {
                         disabled={
                           bulkRunning ||
                           selectedBulkEmployees.length === 0 ||
-                          !!dateError
+                          !!dateError ||
+                          !datesReady ||
+                          loadingBulkAccountStatus ||
+                          !canBulkGeneratePayroll
                         }
                         className="w-full gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
                       >
@@ -1214,10 +1414,47 @@ function EmployeePayrollTab() {
                   </div>
                 </div>
 
+                {(datesReady || loadingPreview) && (
+                  <PayrollAccountStatusCard
+                    accountStatus={payrollPreview?.payrollAccount ?? null}
+                    currencySymbol={currencySymbol}
+                    loading={loadingPreview}
+                  />
+                )}
+
+                {payrollPreview && datesReady && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Net payable
+                      </p>
+                      <p className="text-sm font-bold text-emerald-700">
+                        {formatMoney(payrollPreview.netPayable, currencySymbol)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Deductions
+                      </p>
+                      <p className="text-sm font-bold text-red-600">
+                        {formatMoney(
+                          payrollPreview.totalDeductions,
+                          currencySymbol,
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   onClick={handleGenerate}
                   disabled={
-                    generating || alreadyGeneratedForMonth || !!dateError
+                    generating ||
+                    alreadyGeneratedForMonth ||
+                    !!dateError ||
+                    !datesReady ||
+                    loadingPreview ||
+                    !canGeneratePayroll
                   }
                   className="gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
                 >
