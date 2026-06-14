@@ -5,12 +5,15 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiClient } from "@/service/apiClient";
+import { useAuth } from "@/context/AuthContext";
 import { JournalEntryForm } from "./je-form";
 import type { JournalEntry } from "@/types/finance/journal-entry";
 import type { JEFormData } from "@/schema/finance/journal-entry";
+import type { ProcessAccountDefault } from "@/types/process-account-default";
+import { getProcessDefaults } from "@/lib/accounting-defaults";
 import { X, BookOpen } from "lucide-react";
 
 interface Props {
@@ -26,8 +29,62 @@ export const JournalEntryDialog = ({
   entry,
   onSuccess,
 }: Props) => {
+  const { user } = useAuth();
+  const companyId = user?.companyId ? Number(user.companyId) : 0;
   const [loading, setLoading] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState<Partial<JEFormData> | null>(
+    null,
+  );
   const isEdit = !!entry;
+
+  useEffect(() => {
+    if (!open || isEdit || !companyId) {
+      if (!open) setCreateDefaults(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.get<ProcessAccountDefault[]>(
+          `/companies/${companyId}/process-account-defaults`,
+        );
+        if (cancelled) return;
+        const journalDefaults = getProcessDefaults(res.data, "MANUAL_JOURNAL");
+        setCreateDefaults(
+          journalDefaults
+            ? {
+                debitAccountId: journalDefaults.debitAccountId,
+                creditAccountId: journalDefaults.creditAccountId,
+                amount: "",
+                source: "",
+                description: "",
+              }
+            : {
+                creditAccountId: 0,
+                debitAccountId: 0,
+                amount: "",
+                source: "",
+                description: "",
+              },
+        );
+      } catch {
+        if (!cancelled) {
+          setCreateDefaults({
+            creditAccountId: 0,
+            debitAccountId: 0,
+            amount: "",
+            source: "",
+            description: "",
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isEdit, companyId]);
 
   const handleSubmit = async (data: JEFormData) => {
     try {
@@ -61,7 +118,7 @@ export const JournalEntryDialog = ({
         source: entry.source ?? "",
         description: entry.description ?? "",
       }
-    : null;
+    : createDefaults;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,12 +157,18 @@ export const JournalEntryDialog = ({
           className="overflow-y-auto bg-white px-6 py-5"
           style={{ maxHeight: "calc(92vh - 132px)" }}
         >
-          <JournalEntryForm
-            onSubmit={handleSubmit}
-            loading={loading}
-            defaultValues={defaultValues}
-            hideSubmitButton
-          />
+          {defaultValues ? (
+            <JournalEntryForm
+              onSubmit={handleSubmit}
+              loading={loading}
+              defaultValues={defaultValues}
+              hideSubmitButton
+            />
+          ) : (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Loading defaults…
+            </div>
+          )}
         </div>
 
         {/* ── Footer ── */}

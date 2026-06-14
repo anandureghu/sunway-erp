@@ -24,8 +24,16 @@ import { apiClient } from "@/service/apiClient";
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
 import type { BankAccount } from "@/types/bank-account";
+import type {
+  AccountingProcessCode,
+  ProcessAccountDefault,
+} from "@/types/process-account-default";
+import {
+  ACCOUNTING_PROCESS_LABELS,
+  ALL_ACCOUNTING_PROCESS_CODES,
+} from "@/lib/accounting-defaults";
 import { toast } from "sonner";
-import { Banknote } from "lucide-react";
+import { Banknote, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 const SCHEMA = z.object({
@@ -38,6 +46,13 @@ const SCHEMA = z.object({
 
 type FormData = z.infer<typeof SCHEMA>;
 
+type ProcessRow = {
+  key: string;
+  processCode: AccountingProcessCode | "";
+  debitAccountId: string;
+  creditAccountId: string;
+};
+
 function toStr(x: number | string | null | undefined) {
   return x != null && x !== "" ? String(x) : "";
 }
@@ -46,12 +61,25 @@ function optNum(s?: string) {
   return s != null && String(s).trim() !== "" ? Number(s) : undefined;
 }
 
+function newProcessRow(
+  partial?: Partial<ProcessRow>,
+): ProcessRow {
+  return {
+    key: crypto.randomUUID(),
+    processCode: "",
+    debitAccountId: "",
+    creditAccountId: "",
+    ...partial,
+  };
+}
+
 export default function DefaultAccountsSettingsPage() {
   const { user } = useAuth();
   const companyId = user?.companyId ? Number(user.companyId) : 0;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [processRows, setProcessRows] = useState<ProcessRow[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(SCHEMA),
@@ -75,9 +103,12 @@ export default function DefaultAccountsSettingsPage() {
     (async () => {
       try {
         setLoading(true);
-        const [coRes, bankRes] = await Promise.all([
+        const [coRes, bankRes, processRes] = await Promise.all([
           apiClient.get<Company>(`/companies/${companyId}`),
           apiClient.get<BankAccount[]>(`/bank-accounts/company/${companyId}`),
+          apiClient.get<ProcessAccountDefault[]>(
+            `/companies/${companyId}/process-account-defaults`,
+          ),
         ]);
         if (cancelled) return;
         const co = coRes.data;
@@ -93,6 +124,14 @@ export default function DefaultAccountsSettingsPage() {
           ),
           defaultBankAccountId: toStr(co?.defaultBankAccountId),
         });
+        const rows = (processRes.data || []).map((row) =>
+          newProcessRow({
+            processCode: row.processCode,
+            debitAccountId: toStr(row.debitAccountId),
+            creditAccountId: toStr(row.creditAccountId),
+          }),
+        );
+        setProcessRows(rows);
       } catch (e: unknown) {
         if (!cancelled) {
           console.error(e);
@@ -107,21 +146,64 @@ export default function DefaultAccountsSettingsPage() {
     };
   }, [companyId, form]);
 
+  const usedProcessCodes = new Set(
+    processRows.map((r) => r.processCode).filter(Boolean),
+  );
+
+  const updateProcessRow = (key: string, patch: Partial<ProcessRow>) => {
+    setProcessRows((prev) =>
+      prev.map((row) => (row.key === key ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const removeProcessRow = (key: string) => {
+    setProcessRows((prev) => prev.filter((row) => row.key !== key));
+  };
+
+  const addProcessRow = () => {
+    setProcessRows((prev) => [...prev, newProcessRow()]);
+  };
+
   const onSubmit = async (data: FormData) => {
     if (!companyId) return;
+
+    const incompleteRow = processRows.find(
+      (row) =>
+        row.processCode &&
+        ((row.debitAccountId && !row.creditAccountId) ||
+          (!row.debitAccountId && row.creditAccountId)),
+    );
+    if (incompleteRow) {
+      toast.error("Each process row needs both debit and credit accounts");
+      return;
+    }
+
+    const processPayload = processRows
+      .filter((row) => row.processCode)
+      .map((row) => ({
+        processCode: row.processCode as AccountingProcessCode,
+        debitAccountId: optNum(row.debitAccountId),
+        creditAccountId: optNum(row.creditAccountId),
+      }));
+
     try {
       setSaving(true);
-      await apiClient.put(`/companies/${companyId}/accounting-defaults`, {
-        defaultSalesDebitAccountId: optNum(data.defaultSalesDebitAccountId),
-        defaultSalesCreditAccountId: optNum(data.defaultSalesCreditAccountId),
-        defaultPurchaseDebitAccountId: optNum(
-          data.defaultPurchaseDebitAccountId,
-        ),
-        defaultPurchaseCreditAccountId: optNum(
-          data.defaultPurchaseCreditAccountId,
-        ),
-        defaultBankAccountId: optNum(data.defaultBankAccountId),
-      });
+      await Promise.all([
+        apiClient.put(`/companies/${companyId}/accounting-defaults`, {
+          defaultSalesDebitAccountId: optNum(data.defaultSalesDebitAccountId),
+          defaultSalesCreditAccountId: optNum(data.defaultSalesCreditAccountId),
+          defaultPurchaseDebitAccountId: optNum(
+            data.defaultPurchaseDebitAccountId,
+          ),
+          defaultPurchaseCreditAccountId: optNum(
+            data.defaultPurchaseCreditAccountId,
+          ),
+          defaultBankAccountId: optNum(data.defaultBankAccountId),
+        }),
+        apiClient.put(`/companies/${companyId}/process-account-defaults`, {
+          defaults: processPayload,
+        }),
+      ]);
       toast.success("Default accounts saved");
     } catch (e: unknown) {
       const msg =
@@ -151,11 +233,11 @@ export default function DefaultAccountsSettingsPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Default accounts"
-        description="These values pre-fill sales orders, purchase requisitions, and sales invoices. Customer and Supplier Payments may be blocked until required defaults are set."
+        description="Configure GL defaults for sales, purchases, and other business processes. Sales and purchase values pre-fill orders and requisitions; process defaults auto-fill manual journal entries and stock variance posting."
         variant="darkBlue"
         icon={<Banknote className="w-6 h-6" />}
         actions={
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" form="default-accounts-form" disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </Button>
         }
@@ -167,7 +249,11 @@ export default function DefaultAccountsSettingsPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form
+              id="default-accounts-form"
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-6"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -272,6 +358,102 @@ export default function DefaultAccountsSettingsPage() {
                   )}
                 />
               </div>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="text-lg">Process account defaults</CardTitle>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addProcessRow}
+                    disabled={
+                      processRows.length >= ALL_ACCOUNTING_PROCESS_CODES.length
+                    }
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add row
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {processRows.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No process defaults configured. Add a row to set debit and
+                      credit accounts for manual journal, variance, and other
+                      processes.
+                    </p>
+                  ) : (
+                    processRows.map((row) => (
+                      <div
+                        key={row.key}
+                        className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr_auto] gap-4 items-end border rounded-lg p-4"
+                      >
+                        <div className="space-y-2">
+                          <FormLabel>Process</FormLabel>
+                          <Select
+                            value={row.processCode || "__none__"}
+                            onValueChange={(v) =>
+                              updateProcessRow(row.key, {
+                                processCode:
+                                  v === "__none__"
+                                    ? ""
+                                    : (v as AccountingProcessCode),
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select process" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">
+                                Select process
+                              </SelectItem>
+                              {ALL_ACCOUNTING_PROCESS_CODES.filter(
+                                (code) =>
+                                  code === row.processCode ||
+                                  !usedProcessCodes.has(code),
+                              ).map((code) => (
+                                <SelectItem key={code} value={code}>
+                                  {ACCOUNTING_PROCESS_LABELS[code]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <SelectAccount
+                          label="Debit account"
+                          useId
+                          showNoneOption
+                          value={row.debitAccountId}
+                          onChange={(v) =>
+                            updateProcessRow(row.key, { debitAccountId: v })
+                          }
+                        />
+                        <SelectAccount
+                          label="Credit account"
+                          useId
+                          showNoneOption
+                          value={row.creditAccountId}
+                          onChange={(v) =>
+                            updateProcessRow(row.key, { creditAccountId: v })
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => removeProcessRow(row.key)}
+                          aria-label="Remove row"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
               <Button type="submit" disabled={saving}>
                 {saving ? "Saving…" : "Save"}
               </Button>
