@@ -90,7 +90,9 @@ export default function InvoicesPage({
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         invoice.invoiceId?.toLowerCase().includes(q) ||
-        invoice.toParty?.toLowerCase().includes(q);
+        invoice.toParty?.toLowerCase().includes(q) ||
+        invoice.orderNumber?.toLowerCase().includes(q) ||
+        invoice.salesOrder?.orderNumber?.toLowerCase().includes(q);
 
       const matchesStatus = invoiceMatchesStatusFilter(
         invoice.status,
