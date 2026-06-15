@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
+import { formatCurrencyAmount } from "@/lib/currency";
+import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
 
 const MISSING = "N/A";
 
@@ -10,9 +12,6 @@ const safe = (v: unknown) =>
 
 const formatDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString() : MISSING;
-
-const money = (n?: number) =>
-  typeof n === "number" ? n.toLocaleString() : MISSING;
 
 const formatTemplate = (
   template: string | undefined,
@@ -41,7 +40,12 @@ export default function PublicInvoicePage() {
     return <div className="p-8 text-sm text-muted-foreground">Loading invoice...</div>;
   }
 
-  const isPaid = (invoice.status || "").toUpperCase() === "PAID";
+  const isPaid = isInvoicePaymentSettled(invoice.status);
+  const currencyCode = invoice.currencyCode;
+  const money = (n?: number) =>
+    typeof n === "number"
+      ? formatCurrencyAmount({ amount: n, currencyCode })
+      : MISSING;
   const items = invoice.type === "SALES"
     ? invoice.salesOrder?.items ?? []
     : invoice.purchaseOrder?.items ?? [];
@@ -114,6 +118,13 @@ export default function PublicInvoicePage() {
               ))}
             </tbody>
           </table>
+
+          <div className="rounded-xl bg-gray-50 p-6">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase text-gray-500">Total Amount</p>
+              <p className="text-lg font-bold text-gray-900">{money(invoice.amount)}</p>
+            </div>
+          </div>
 
           <div className="rounded-xl bg-gray-50 p-6">
             <p className="text-xs font-bold uppercase text-gray-500">Notes</p>

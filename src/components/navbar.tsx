@@ -117,7 +117,7 @@ const Navbar = () => {
                 />
               )}
               <p className="truncate text-xs font-medium text-muted-foreground">
-                Welcome to {company?.companyName ?? user?.companyName ?? "Your company"}
+                {company?.companyName ?? user?.companyName ?? "Your company"}
               </p>
             </div>
           )}

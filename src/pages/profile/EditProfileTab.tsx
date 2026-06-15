@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import PhoneInput from '@/components/PhoneInput';
+import { validatePhone } from '@/lib/countries';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -57,6 +59,11 @@ export const EditProfileTab = ({ profile, onSaved }: Props) => {
 
   const onSubmit = async (data: EditFields) => {
     if (!profile.employeeId) return;
+    const phoneCheck = validatePhone(data.phoneNo, { required: false });
+    if (!phoneCheck.valid) {
+      toast.error(phoneCheck.message ?? 'Invalid phone number');
+      return;
+    }
     setSaving(true);
     try {
       const payload: UpdateEmployeePayload = {
@@ -134,7 +141,25 @@ export const EditProfileTab = ({ profile, onSaved }: Props) => {
         <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
           {textField('First Name',   'firstName',      IdCard,   'text', 'John')}
           {textField('Last Name',    'lastName',       IdCard,   'text', 'Doe')}
-          {textField('Phone Number', 'phoneNo',        Phone,    'tel',  '+1 234 567 8900')}
+          <div className="space-y-1.5">
+            <Label htmlFor="phoneNo" className="flex items-center gap-1.5 text-sm font-medium">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+              Phone Number
+            </Label>
+            <Controller
+              name="phoneNo"
+              control={control}
+              render={({ field, fieldState }) => (
+                <PhoneInput
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  invalid={!!fieldState.error}
+                  className="h-10"
+                />
+              )}
+            />
+          </div>
           {textField('National ID',  'identification', BookOpen, 'text', 'ID / Passport number')}
         </CardContent>
       </Card>

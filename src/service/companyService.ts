@@ -252,7 +252,7 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
-              // Immigration Expiry — gated by IMMIGRATION
+              // Immigration Expiry — gated by IMMIGRATION (VIEW_ALL on backend)
               ...(canView(permissions, "IMMIGRATION")
                 ? [
                     {

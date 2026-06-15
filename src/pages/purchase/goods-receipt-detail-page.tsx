@@ -641,7 +641,7 @@ export default function GoodsReceiptDetailPage() {
                                 ) : null}
                                 {item.expiryDate ? (
                                   <p className="text-xs text-slate-500">
-                                    Expiry:{" "}
+                                    Sale by:{" "}
                                     {format(
                                       new Date(item.expiryDate),
                                       "MMM d, yyyy",

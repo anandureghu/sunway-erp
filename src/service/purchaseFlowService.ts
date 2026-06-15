@@ -25,7 +25,6 @@ export interface PurchaseRequisitionCreateDTO {
   projectCode?: string;
   requisitionDescription: string;
   urgency?: "NORMAL" | "URGENT" | "CRITICAL";
-  requiredByDate: string;
   deliveryWarehouseId: number;
   justification: string;
   items: Array<{
@@ -80,7 +79,6 @@ export interface PurchaseRequisitionResponseDTO {
   projectCode?: string | null;
   requisitionDescription?: string | null;
   urgency?: string | null;
-  requiredByDate?: string | null;
   deliveryWarehouseId?: number | null;
   deliveryWarehouseName?: string | null;
   justification?: string | null;
@@ -226,7 +224,6 @@ function toPurchaseRequisition(
     urgency: dto.urgency
       ? (dto.urgency.toLowerCase() as PurchaseRequisition["urgency"])
       : undefined,
-    requiredByDate: dto.requiredByDate || undefined,
     deliveryWarehouseId:
       dto.deliveryWarehouseId != null
         ? String(dto.deliveryWarehouseId)

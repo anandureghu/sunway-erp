@@ -1,12 +1,14 @@
 import { z } from "zod";
+import { OPTIONAL_EMAIL } from "@/schema/email";
+import { OPTIONAL_PHONE } from "@/schema/phone";
 
 // Customer Schema
 export const CUSTOMER_SCHEMA = z.object({
   code: z.string().min(1, "Customer code is required"),
   name: z.string().min(1, "Customer name is required"),
   contactPerson: z.string().optional(),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
-  phone: z.string().optional(),
+  email: OPTIONAL_EMAIL.optional().or(z.literal("")),
+  phone: OPTIONAL_PHONE.optional().or(z.literal("")),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -60,7 +62,7 @@ export const DISPATCH_SCHEMA = z.object({
   carrierName: z.string().optional(),
   vehicleNumber: z.string().optional(),
   driverName: z.string().optional(),
-  driverPhone: z.string().optional(),
+  driverPhone: OPTIONAL_PHONE.optional().or(z.literal("")),
   estimatedDeliveryDate: z.string().optional(),
   deliveryAddress: z.string().min(1, "Delivery address is required"),
   trackingNumber: z.string().optional(),

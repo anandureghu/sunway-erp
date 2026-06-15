@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
+import EmailInput from "@/components/EmailInput";
+import PhoneInput from "@/components/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useMemo } from "react";
@@ -136,16 +138,18 @@ export const VendorForm = ({
               <FormField
                 control={form.control}
                 name="email"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                       Email
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        type="email"
+                      <EmailInput
                         placeholder="email@example.com"
-                        {...field}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        invalid={!!fieldState.error}
                         className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
                       />
                     </FormControl>
@@ -157,16 +161,18 @@ export const VendorForm = ({
               <FormField
                 control={form.control}
                 name="phoneNo"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                       Phone
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="+1234567890"
-                        {...field}
-                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      <PhoneInput
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        invalid={!!fieldState.error}
+                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus-within:border-blue-400 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
                       />
                     </FormControl>
                     <FormMessage />

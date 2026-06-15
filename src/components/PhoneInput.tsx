@@ -15,10 +15,12 @@ type Props = {
   /** Stored combined value, e.g. "+974 33001122" */
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   disabled?: boolean;
   placeholder?: string;
   /** Show error styling (validation handled by the parent) */
   invalid?: boolean;
+  className?: string;
 };
 
 /**
@@ -28,9 +30,11 @@ type Props = {
 export default function PhoneInput({
   value,
   onChange,
+  onBlur,
   disabled = false,
   placeholder = "Phone number",
   invalid = false,
+  className,
 }: Props) {
   const initial = parsePhone(value);
   const [iso, setIso] = useState(initial.country.iso2);
@@ -80,7 +84,7 @@ export default function PhoneInput({
   }, [search]);
 
   return (
-    <div ref={wrapperRef} className="relative">
+    <div ref={wrapperRef} className={cn("relative", className)}>
       <div
         className={cn(
           "flex h-9 items-stretch overflow-hidden rounded-lg border bg-white transition-colors",
@@ -114,6 +118,7 @@ export default function PhoneInput({
           disabled={disabled}
           value={national}
           onChange={(e) => handleNationalChange(e.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
           className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:text-slate-600"
         />

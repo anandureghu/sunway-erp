@@ -157,10 +157,12 @@ export function SalesOrderDetailCards({ so }: Props) {
                 variant={
                   (so.paymentStatus || "").toUpperCase() === "PAID"
                     ? "default"
-                    : "outline"
+                    : (so.paymentStatus || "").toUpperCase() === "PARTIALLY_PAID"
+                      ? "secondary"
+                      : "outline"
                 }
               >
-                {(so.paymentStatus || "UNPAID").replace("_", " ")}
+                {(so.paymentStatus || "UNPAID").replace(/_/g, " ")}
               </Badge>
             </div>
             <Separator />
@@ -196,7 +198,9 @@ export function SalesOrderDetailCards({ so }: Props) {
               <p className="font-medium">
                 {(so.paymentStatus || "").toUpperCase() === "PAID"
                   ? "Payment complete. Fulfillment can proceed."
-                  : "Awaiting payment before fulfillment."}
+                  : (so.paymentStatus || "").toUpperCase() === "PARTIALLY_PAID"
+                    ? "Partially paid. Fulfillment can proceed; remaining balance is outstanding."
+                    : "Awaiting payment before fulfillment."}
               </p>
             </div>
           </CardContent>

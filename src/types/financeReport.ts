@@ -6,7 +6,6 @@ export interface FinanceReportTotals {
   totalPayables: number;
   cashInflow: number;
   cashOutflow: number;
-  payrollCost: number;
   invoiceCount: number;
   paymentCount: number;
 }
@@ -42,6 +41,16 @@ export interface FinanceAccountAmount {
   amount: number;
 }
 
+export interface FinanceDepartmentBudgetSpend {
+  departmentId: number;
+  departmentName: string;
+  departmentCode: string | null;
+  budgeted: number;
+  spent: number;
+  remaining: number;
+  utilizationPercent: number;
+}
+
 export interface FinanceReportSummary {
   from: string;
   to: string;
@@ -56,5 +65,6 @@ export interface FinanceReportSummary {
   topVendors: FinancePartyRow[];
   incomeByAccount: FinanceAccountAmount[];
   expensesByAccount: FinanceAccountAmount[];
+  departmentBudgetSpend: FinanceDepartmentBudgetSpend[];
   generatedAt: string;
 }

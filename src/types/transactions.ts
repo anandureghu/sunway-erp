@@ -8,8 +8,10 @@ export interface TransactionResponseDTO {
   amount: number | string;
 
   debitAccountId?: number | null;
+  debitAccountCode?: string | null;
   debitAccountName?: string | null;
   creditAccountId?: number | null;
+  creditAccountCode?: string | null;
   creditAccountName?: string | null;
 
   companyId?: number;

@@ -162,7 +162,6 @@ export function CreatePurchaseRequisitionForm({
   const [projectCode, setProjectCode] = useState("");
   const [requisitionDescription, setRequisitionDescription] = useState("");
   const [urgency, setUrgency] = useState<PurchaseRequisitionUrgency>("normal");
-  const [requiredByDate, setRequiredByDate] = useState("");
   const [deliveryWarehouseId, setDeliveryWarehouseId] = useState("");
   const [justification, setJustification] = useState("");
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -217,12 +216,13 @@ export function CreatePurchaseRequisitionForm({
           setCreditAccountId(pr.creditAccountId ?? "");
           setRequestedDate(toDateInputValue(pr.requestedDate));
           setRequiredDeliveryDate(
-            toDateInputValue(pr.requiredDeliveryDate || pr.requiredDate),
+            toDateInputValue(
+              pr.requiredDeliveryDate || pr.requiredDate,
+            ),
           );
           setProjectCode(pr.projectCode ?? "");
           setRequisitionDescription(pr.requisitionDescription ?? "");
           setUrgency(mapUrgencyFromApi(pr.urgency));
-          setRequiredByDate(toDateInputValue(pr.requiredByDate));
           setDeliveryWarehouseId(pr.deliveryWarehouseId ?? "");
           setJustification(pr.justification ?? "");
           setRequisitionItems(
@@ -412,10 +412,6 @@ export function CreatePurchaseRequisitionForm({
       toast.error("Required delivery date is required.");
       return;
     }
-    if (!requiredByDate) {
-      toast.error("Required-by date is required.");
-      return;
-    }
     if (!deliveryWarehouseId) {
       toast.error("Delivery warehouse is required.");
       return;
@@ -446,7 +442,6 @@ export function CreatePurchaseRequisitionForm({
       projectCode: projectCode.trim() || undefined,
       requisitionDescription: requisitionDescription.trim(),
       urgency: urgencyApi,
-      requiredByDate,
       deliveryWarehouseId: Number(deliveryWarehouseId),
       justification: justification.trim(),
       items: requisitionItems.map((item) => {
@@ -677,29 +672,6 @@ export function CreatePurchaseRequisitionForm({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="requisitionDescription">
-                    Requisition description
-                  </Label>
-                  <Textarea
-                    id="requisitionDescription"
-                    placeholder="Brief summary of what is being requested"
-                    value={requisitionDescription}
-                    onChange={(e) => setRequisitionDescription(e.target.value)}
-                    required
-                    className="min-h-[80px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="requiredByDate">Required-by date</Label>
-                  <Input
-                    id="requiredByDate"
-                    type="date"
-                    value={requiredByDate}
-                    onChange={(e) => setRequiredByDate(e.target.value)}
-                    required
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="deliveryWarehouse">Delivery location</Label>
                   <Select
@@ -718,6 +690,19 @@ export function CreatePurchaseRequisitionForm({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="requisitionDescription">
+                    Requisition description
+                  </Label>
+                  <Textarea
+                    id="requisitionDescription"
+                    placeholder="Brief summary of what is being requested"
+                    value={requisitionDescription}
+                    onChange={(e) => setRequisitionDescription(e.target.value)}
+                    required
+                    className="min-h-[80px]"
+                  />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="justification">Justification</Label>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { REQUIRED_EMAIL } from "@/schema/email";
 
 export const LOGIN_SCHEMA = z.object({
   username: z.string().min(1, "Username is required"),
@@ -8,7 +9,7 @@ export const LOGIN_SCHEMA = z.object({
 export const REGISTER_SCHEMA = z
   .object({
     username: z.string().min(1, "Username is required"),
-    email: z.string().email("Invalid email address"),
+    email: REQUIRED_EMAIL,
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(6, "Confirm your password"),
   })

@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { TransactionResponseDTO } from "@/types/transactions";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
+import { formatCurrencyAmount } from "@/lib/currency";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import { CurrencyMissingWarningBadge } from "@/components/currency/currency-missing-warning-badge";
 import {
   transactionTypeBadgeClass,
   transactionTypeLabel,
@@ -13,6 +16,68 @@ import {
 import { cn } from "@/lib/utils";
 
 const UNKNOWN = "UNKNOWN";
+
+function AccountCell({
+  accountCode,
+  accountName,
+}: {
+  accountCode?: string | null;
+  accountName?: string | null;
+}) {
+  if (!accountCode && !accountName) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  return (
+    <div className="min-w-0">
+      {accountCode ? (
+        <span className="font-mono text-sm font-medium text-slate-900">
+          {accountCode}
+        </span>
+      ) : null}
+      {accountName ? (
+        <span
+          className={cn(
+            "block truncate text-muted-foreground",
+            accountCode ? "text-xs" : "text-sm",
+          )}
+        >
+          {accountName}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function AmountCell({ tx }: { tx: TransactionResponseDTO }) {
+  const { currencyCode, currencyConfigured } = useCompanyCurrency();
+  const hasDebit =
+    tx.debitAccountId != null && Number(tx.debitAccountId) > 0;
+  const hasCredit =
+    tx.creditAccountId != null && Number(tx.creditAccountId) > 0;
+
+  if (hasDebit && !hasCredit) {
+    return <DebitAmount amount={tx.amount} currencyCode={currencyCode} />;
+  }
+
+  if (hasCredit && !hasDebit) {
+    return <CreditAmount amount={tx.amount} currencyCode={currencyCode} />;
+  }
+
+  const n = Math.abs(Number(tx.amount));
+  if (Number.isNaN(n)) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 tabular-nums font-medium text-slate-900">
+      {formatCurrencyAmount({ amount: n, currencyCode })}
+      {!currencyCode && !currencyConfigured ? (
+        <CurrencyMissingWarningBadge />
+      ) : null}
+    </span>
+  );
+}
 
 function isSingleSided(tx: TransactionResponseDTO) {
   const hasD = tx.debitAccountId != null && tx.debitAccountId > 0;
@@ -27,14 +92,20 @@ function SourceCell({
   tx: TransactionResponseDTO;
   onSourceSave: (id: number, source: string) => Promise<void>;
 }) {
-  if (!isSingleSided(tx)) {
+  const singleSided = isSingleSided(tx);
+  const raw = (tx.source ?? UNKNOWN).toUpperCase();
+  const editable = singleSided && raw === UNKNOWN && !tx.sourceLocked;
+  const [val, setVal] = useState(
+    tx.source === UNKNOWN || !tx.source ? "" : tx.source,
+  );
+  const [saving, setSaving] = useState(false);
+
+  if (!singleSided) {
+    if (tx.source && tx.source.toUpperCase() !== UNKNOWN) {
+      return <span className="text-sm">{tx.source}</span>;
+    }
     return <span className="text-sm text-muted-foreground">—</span>;
   }
-
-  const raw = (tx.source ?? UNKNOWN).toUpperCase();
-  const editable = raw === UNKNOWN && !tx.sourceLocked;
-  const [val, setVal] = useState(tx.source === UNKNOWN || !tx.source ? "" : tx.source);
-  const [saving, setSaving] = useState(false);
 
   if (!editable) {
     return <span className="text-sm">{tx.source ?? UNKNOWN}</span>;
@@ -61,7 +132,13 @@ function SourceCell({
         value={val}
         onChange={(e) => setVal(e.target.value)}
       />
-      <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={submit}>
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        disabled={saving}
+        onClick={submit}
+      >
         {saving ? "…" : "Save"}
       </Button>
     </div>
@@ -90,10 +167,7 @@ export const TRANSACTION_COLUMNS = ({
       return (
         <Badge
           variant="outline"
-          className={cn(
-            "font-normal",
-            transactionTypeBadgeClass(type),
-          )}
+          className={cn("font-normal", transactionTypeBadgeClass(type))}
         >
           {transactionTypeLabel(type)}
         </Badge>
@@ -118,14 +192,24 @@ export const TRANSACTION_COLUMNS = ({
     },
   },
   {
-    accessorKey: "debitAccountName",
+    accessorKey: "debitAccountCode",
     header: "Debit account",
-    cell: ({ row }) => row.original.debitAccountName ?? "—",
+    cell: ({ row }) => (
+      <AccountCell
+        accountCode={row.original.debitAccountCode}
+        accountName={row.original.debitAccountName}
+      />
+    ),
   },
   {
-    accessorKey: "creditAccountName",
+    accessorKey: "creditAccountCode",
     header: "Credit account",
-    cell: ({ row }) => row.original.creditAccountName ?? "—",
+    cell: ({ row }) => (
+      <AccountCell
+        accountCode={row.original.creditAccountCode}
+        accountName={row.original.creditAccountName}
+      />
+    ),
   },
   {
     id: "source",
@@ -139,30 +223,9 @@ export const TRANSACTION_COLUMNS = ({
     ),
   },
   {
-    id: "debitAmount",
-    header: "Debit",
-    cell: ({ row }) => {
-      const tx = row.original;
-      const hasD =
-        tx.debitAccountId != null && Number(tx.debitAccountId) > 0;
-      if (!hasD) {
-        return <span className="text-muted-foreground text-sm">—</span>;
-      }
-      return <DebitAmount amount={tx.amount} />;
-    },
-  },
-  {
-    id: "creditAmount",
-    header: "Credit",
-    cell: ({ row }) => {
-      const tx = row.original;
-      const hasC =
-        tx.creditAccountId != null && Number(tx.creditAccountId) > 0;
-      if (!hasC) {
-        return <span className="text-muted-foreground text-sm">—</span>;
-      }
-      return <CreditAmount amount={tx.amount} />;
-    },
+    accessorKey: "amount",
+    header: "Amount",
+    cell: ({ row }) => <AmountCell tx={row.original} />,
   },
   {
     accessorKey: "paymentId",

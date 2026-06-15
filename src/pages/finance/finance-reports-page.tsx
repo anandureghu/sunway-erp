@@ -26,6 +26,7 @@ import { cn, formatMoney } from "@/lib/utils";
 import { getFinanceSummary } from "@/service/financeReportService";
 import type {
   FinanceAgingBuckets,
+  FinanceDepartmentBudgetSpend,
   FinanceReportSummary,
 } from "@/types/financeReport";
 import {
@@ -39,7 +40,6 @@ import {
   TrendingDown,
   TrendingUp,
   Users,
-  Wallet,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -106,6 +106,16 @@ const compactNumber = (n: number) => {
 
 const sumAging = (b: FinanceAgingBuckets) =>
   b.current + b.d1To30 + b.d31To60 + b.d61To90 + b.d90Plus;
+
+const isHrDepartment = (row: FinanceDepartmentBudgetSpend) => {
+  const name = row.departmentName?.toLowerCase() ?? "";
+  const code = row.departmentCode?.toLowerCase() ?? "";
+  return (
+    name.includes("hr") ||
+    code.includes("hr") ||
+    name.includes("human resource")
+  );
+};
 
 // =====================================================
 // Page
@@ -190,7 +200,19 @@ export default function FinanceReportsPage() {
     rows.push(["Outstanding payables", String(data.totals.totalPayables)]);
     rows.push(["Cash inflow", String(data.totals.cashInflow)]);
     rows.push(["Cash outflow", String(data.totals.cashOutflow)]);
-    rows.push(["Payroll cost", String(data.totals.payrollCost)]);
+    rows.push([]);
+    rows.push(["Department budget spend (excludes payroll)"]);
+    rows.push(["Department", "Code", "Budgeted", "Spent", "Remaining", "Utilization %"]);
+    data.departmentBudgetSpend.forEach((d) =>
+      rows.push([
+        d.departmentName,
+        d.departmentCode ?? "",
+        String(d.budgeted),
+        String(d.spent),
+        String(d.remaining),
+        String(d.utilizationPercent),
+      ]),
+    );
     rows.push([]);
     rows.push(["Top customers"]);
     rows.push(["Name", "Total amount", "Outstanding", "Invoices"]);
@@ -232,7 +254,7 @@ export default function FinanceReportsPage() {
     <div className="space-y-6 p-6">
       <PageHeader
         title="Finance Reports"
-        description="Profit & loss, receivables, payables, cash flow and payroll cost in one place."
+        description="Profit & loss, receivables, payables, cash flow and departmental budget spend in one place."
         variant="darkBlue"
         icon={<PieChartIcon className="w-6 h-6" />}
         actions={
@@ -350,13 +372,6 @@ export default function FinanceReportsPage() {
               accent: "amber",
               icon: Building2,
             },
-            {
-              label: "Payroll Cost",
-              value: fmt(data.totals.payrollCost),
-              hint: "Employee salaries",
-              accent: "violet",
-              icon: Wallet,
-            },
           ]}
         />
       ) : null}
@@ -378,6 +393,7 @@ export default function FinanceReportsPage() {
             <TabsTrigger value="payables">Payables</TabsTrigger>
             <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
             <TabsTrigger value="ledger">Income & Expense</TabsTrigger>
+            <TabsTrigger value="department-budget">Budget by Department</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -410,6 +426,9 @@ export default function FinanceReportsPage() {
           </TabsContent>
           <TabsContent value="ledger" className="space-y-4">
             <LedgerTab data={data} fmt={fmt} />
+          </TabsContent>
+          <TabsContent value="department-budget" className="space-y-4">
+            <DepartmentBudgetTab data={data} fmt={fmt} />
           </TabsContent>
         </Tabs>
       ) : loading ? (
@@ -444,7 +463,7 @@ function QuickChip({
 function KpiSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <Card key={i}>
           <CardContent className="p-4">
             <Skeleton className="h-3 w-24" />
@@ -914,6 +933,247 @@ function CashFlowTab({
                 />
               </LineChart>
             </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ==================== Department budget ====================
+
+function DepartmentBudgetTab({
+  data,
+  fmt,
+}: {
+  data: FinanceReportSummary;
+  fmt: (v: number) => string;
+}) {
+  const rows = data.departmentBudgetSpend ?? [];
+  const hrRow = rows.find(isHrDepartment);
+
+  const chartData = useMemo(
+    () =>
+      rows.slice(0, 8).map((r) => ({
+        department: r.departmentName,
+        budgeted: r.budgeted,
+        spent: r.spent,
+      })),
+    [rows],
+  );
+
+  const config: ChartConfig = {
+    budgeted: { label: "Budgeted", color: "hsl(220 83% 56%)" },
+    spent: { label: "Spent", color: "hsl(38 92% 56%)" },
+  };
+
+  return (
+    <div className="space-y-4">
+      {hrRow ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <KpiCard
+            label="HR budget"
+            value={fmt(hrRow.budgeted)}
+            icon={<Building2 className="h-4 w-4" />}
+            accent="text-blue-500"
+          />
+          <KpiCard
+            label="HR spend (excl. payroll)"
+            value={fmt(hrRow.spent)}
+            icon={<TrendingDown className="h-4 w-4" />}
+            accent="text-amber-500"
+          />
+          <KpiCard
+            label="HR remaining"
+            value={fmt(hrRow.remaining)}
+            icon={
+              hrRow.remaining >= 0 ? (
+                <ArrowUpRight className="h-4 w-4" />
+              ) : (
+                <ArrowDownRight className="h-4 w-4" />
+              )
+            }
+            accent={hrRow.remaining >= 0 ? "text-emerald-500" : "text-rose-500"}
+          />
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Budget vs spend by department</CardTitle>
+            <CardDescription>
+              Approved budget lines compared to expense ledger activity on
+              department-linked accounts. Payroll postings are excluded.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {chartData.length === 0 ? (
+              <EmptyState message="No departmental budget or spend data in this range." />
+            ) : (
+              <ChartContainer config={config} className="h-80 w-full">
+                <BarChart data={chartData} margin={{ left: 8, right: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="department"
+                    tickLine={false}
+                    axisLine={false}
+                    interval={0}
+                    angle={-20}
+                    textAnchor="end"
+                    height={72}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => compactNumber(Number(v))}
+                    tickLine={false}
+                    axisLine={false}
+                    width={56}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value, name) => [
+                          fmt(Number(value)),
+                          String(name).charAt(0).toUpperCase() +
+                            String(name).slice(1),
+                        ]}
+                      />
+                    }
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar
+                    dataKey="budgeted"
+                    fill="hsl(220 83% 56%)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="spent"
+                    fill="hsl(38 92% 56%)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Utilization</CardTitle>
+            <CardDescription>
+              Share of budget consumed in the selected period.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {rows.length === 0 ? (
+              <EmptyState message="No departments to show." />
+            ) : (
+              <ul className="space-y-3">
+                {rows.slice(0, 6).map((r) => {
+                  const pct = Math.min(
+                    100,
+                    Math.max(0, Number(r.utilizationPercent) || 0),
+                  );
+                  const overBudget = r.remaining < 0;
+                  return (
+                    <li key={r.departmentId}>
+                      <div className="flex items-center justify-between gap-2 text-sm">
+                        <span className="min-w-0 truncate font-medium">
+                          {r.departmentName}
+                          {isHrDepartment(r) ? (
+                            <Badge variant="secondary" className="ml-2 text-[10px]">
+                              HR
+                            </Badge>
+                          ) : null}
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 text-xs font-semibold tabular-nums",
+                            overBudget ? "text-rose-500" : "text-muted-foreground",
+                          )}
+                        >
+                          {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={pct}
+                        className={cn(
+                          "mt-1.5 h-1.5",
+                          overBudget && "[&>div]:bg-rose-500",
+                        )}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All departments</CardTitle>
+          <CardDescription>
+            Budget allocation from approved budget lines and actual spend from
+            expense accounts tagged to each department.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {rows.length === 0 ? (
+            <EmptyState message="No departmental budget or spend data in this range." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Department</th>
+                    <th className="pb-2 pr-4 font-medium">Code</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Budgeted</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Spent</th>
+                    <th className="pb-2 pr-4 text-right font-medium">Remaining</th>
+                    <th className="pb-2 text-right font-medium">Used</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr
+                      key={r.departmentId}
+                      className={cn(
+                        "border-b last:border-0",
+                        isHrDepartment(r) && "bg-primary/5",
+                      )}
+                    >
+                      <td className="py-2.5 pr-4 font-medium">
+                        {r.departmentName}
+                      </td>
+                      <td className="py-2.5 pr-4 text-muted-foreground">
+                        {r.departmentCode ?? "—"}
+                      </td>
+                      <td className="py-2.5 pr-4 text-right tabular-nums">
+                        {fmt(r.budgeted)}
+                      </td>
+                      <td className="py-2.5 pr-4 text-right tabular-nums">
+                        {fmt(r.spent)}
+                      </td>
+                      <td
+                        className={cn(
+                          "py-2.5 pr-4 text-right tabular-nums font-medium",
+                          r.remaining < 0 ? "text-rose-500" : "text-foreground",
+                        )}
+                      >
+                        {fmt(r.remaining)}
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums text-muted-foreground">
+                        {r.budgeted > 0
+                          ? `${Number(r.utilizationPercent).toFixed(1)}%`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

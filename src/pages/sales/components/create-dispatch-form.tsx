@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import PhoneInput from "@/components/PhoneInput";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -43,6 +44,7 @@ export function CreateDispatchForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     setValue,
     getValues,
@@ -238,7 +240,23 @@ export function CreateDispatchForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="driverPhone">Driver Phone</Label>
-                <Input id="driverPhone" {...register("driverPhone")} />
+                <Controller
+                  name="driverPhone"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <PhoneInput
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      invalid={!!fieldState.error}
+                    />
+                  )}
+                />
+                {errors.driverPhone && (
+                  <p className="text-sm text-rose-600">
+                    {errors.driverPhone.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="estimatedDeliveryDate">

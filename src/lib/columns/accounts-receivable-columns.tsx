@@ -54,6 +54,21 @@ export function createSalesInvoiceColumns(
     },
   },
   {
+    accessorKey: "orderNumber",
+    header: "Order No",
+    cell: ({ row }) => {
+      const orderNo =
+        row.original.orderNumber ||
+        row.original.salesOrder?.orderNumber ||
+        (row.original.orderId != null ? `SO #${row.original.orderId}` : null);
+      return orderNo ? (
+        <span className="font-mono text-sm">{orderNo}</span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
+    },
+  },
+  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (

@@ -69,8 +69,8 @@ export const PAYMENT_COLUMNS = ({
   },
 
   {
-    id: "reference",
-    header: variant === "vendor" ? "Order / invoice" : "Sales invoice",
+    id: "orderNumber",
+    header: "Order No",
     cell: ({ row }) => {
       const item = row.original;
       const dir =
@@ -79,53 +79,46 @@ export const PAYMENT_COLUMNS = ({
         const poLabel =
           item.purchaseOrderNumber ||
           (item.purchaseOrderId != null ? `PO #${item.purchaseOrderId}` : null);
-        const inv = item.invoiceId;
-        if (!poLabel && !inv) {
+        if (!poLabel) {
           return <span className="text-muted-foreground">—</span>;
         }
-        return (
-          <div className="flex flex-col gap-0.5 text-sm">
-            {poLabel && item.purchaseOrderId != null ? (
-              <button
-                type="button"
-                className="text-blue-600 underline underline-offset-2 text-left"
-                onClick={() => onOpenPurchaseOrder(item.purchaseOrderId!)}
-              >
-                {poLabel}
-              </button>
-            ) : poLabel ? (
-              <span>{poLabel}</span>
-            ) : null}
-            {inv ? (
-              <button
-                type="button"
-                className="text-blue-600 underline underline-offset-2 text-left text-muted-foreground"
-                onClick={() => onOpenInvoice(inv)}
-              >
-                {inv}
-              </button>
-            ) : null}
-          </div>
+        return item.purchaseOrderId != null ? (
+          <button
+            type="button"
+            className="font-mono text-sm text-blue-600 underline underline-offset-2 text-left"
+            onClick={() => onOpenPurchaseOrder(item.purchaseOrderId!)}
+          >
+            {poLabel}
+          </button>
+        ) : (
+          <span className="font-mono text-sm">{poLabel}</span>
         );
       }
-      const inv = item.invoiceId;
       const so = item.salesOrderNumber;
-      if (!inv && !so) {
+      if (!so) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+      return <span className="font-mono text-sm">{so}</span>;
+    },
+  },
+
+  {
+    id: "reference",
+    header: variant === "vendor" ? "Purchase invoice" : "Sales invoice",
+    cell: ({ row }) => {
+      const item = row.original;
+      const inv = item.invoiceId;
+      if (!inv) {
         return <span className="text-muted-foreground">—</span>;
       }
       return (
-        <div className="flex flex-col gap-0.5 text-sm">
-          {so ? <span className="text-muted-foreground">{so}</span> : null}
-          {inv ? (
-            <button
-              type="button"
-              className="text-blue-600 underline underline-offset-2 text-left"
-              onClick={() => onOpenInvoice(inv)}
-            >
-              {inv}
-            </button>
-          ) : null}
-        </div>
+        <button
+          type="button"
+          className="text-blue-600 underline underline-offset-2 text-left text-sm"
+          onClick={() => onOpenInvoice(inv)}
+        >
+          {inv}
+        </button>
       );
     },
   },

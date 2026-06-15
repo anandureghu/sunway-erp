@@ -34,7 +34,7 @@ export function ItemStockSpecs({ item }: Props) {
         <Spec label="Reorder level">{safeLocaleQty(item.reorderLevel, unit, "Not set")}</Spec>
         <Spec label="Unit">{unit}</Spec>
         <Spec label="Date received">{formatOptionalDate(item.dateReceived)}</Spec>
-        <Spec label="Expiry date">{formatOptionalDate(item.expiryDate, "Not set")}</Spec>
+        <Spec label="Sale by Date">{formatOptionalDate(item.expiryDate, "Not set")}</Spec>
       </dl>
     </div>
   );

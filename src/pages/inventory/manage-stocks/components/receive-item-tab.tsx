@@ -497,7 +497,7 @@ export function ReceiveItemTab({
                 {selectedItem.expiryDate && (
                   <div>
                     <label className="text-sm font-medium mb-2 block">
-                      Current Expiry Date
+                      Current Sale by Date
                     </label>
                     <Input
                       value={selectedItem.expiryDate}
@@ -521,11 +521,11 @@ export function ReceiveItemTab({
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    Expiry Date
+                    Sale by Date
                   </label>
                   <Input type="date" {...register("expiryDate")} />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Optional — leave blank if the item does not expire
+                    Optional — leave blank if there is no sale-by date
                   </p>
                 </div>
 

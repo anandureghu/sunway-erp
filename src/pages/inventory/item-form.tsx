@@ -366,7 +366,7 @@ function CreateItemForm({
             </F>
           ) : null}
 
-          <F label="Expiry Date">
+          <F label="Sale by Date">
             <Input type="date" {...register("expiryDate")} className={icls} />
             <p className="text-[11px] text-slate-400 mt-1">Optional</p>
           </F>

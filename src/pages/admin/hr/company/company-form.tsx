@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
+import PhoneInput from "@/components/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { type CompanyFormData, COMPANY_SCHEMA } from "@/schema/company";
@@ -318,12 +319,18 @@ export const CompanyForm = ({
           <FormField
             control={form.control}
             name="phoneNo"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input placeholder="9876543210" {...field} />
+                  <PhoneInput
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    invalid={!!fieldState.error}
+                  />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />

@@ -24,6 +24,15 @@ import { apiClient } from "@/service/apiClient";
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
 import type { BankAccount } from "@/types/bank-account";
+import type {
+  AccountingProcessCode,
+  ProcessAccountDefault,
+} from "@/types/process-account-default";
+import {
+  ACCOUNTING_PROCESS_LABELS,
+  ALL_ACCOUNTING_PROCESS_CODES,
+  DEBIT_ONLY_PROCESS_CODES,
+} from "@/lib/accounting-defaults";
 import { toast } from "sonner";
 import { Banknote } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -37,6 +46,20 @@ const SCHEMA = z.object({
 });
 
 type FormData = z.infer<typeof SCHEMA>;
+
+type ProcessAccountFields = {
+  debitAccountId: string;
+  creditAccountId: string;
+};
+
+type ProcessAccountsState = Record<AccountingProcessCode, ProcessAccountFields>;
+
+function emptyProcessAccounts(): ProcessAccountsState {
+  return ALL_ACCOUNTING_PROCESS_CODES.reduce((acc, code) => {
+    acc[code] = { debitAccountId: "", creditAccountId: "" };
+    return acc;
+  }, {} as ProcessAccountsState);
+}
 
 function toStr(x: number | string | null | undefined) {
   return x != null && x !== "" ? String(x) : "";
@@ -52,6 +75,8 @@ export default function DefaultAccountsSettingsPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [processAccounts, setProcessAccounts] =
+    useState<ProcessAccountsState>(emptyProcessAccounts);
 
   const form = useForm<FormData>({
     resolver: zodResolver(SCHEMA),
@@ -75,9 +100,12 @@ export default function DefaultAccountsSettingsPage() {
     (async () => {
       try {
         setLoading(true);
-        const [coRes, bankRes] = await Promise.all([
+        const [coRes, bankRes, processRes] = await Promise.all([
           apiClient.get<Company>(`/companies/${companyId}`),
           apiClient.get<BankAccount[]>(`/bank-accounts/company/${companyId}`),
+          apiClient.get<ProcessAccountDefault[]>(
+            `/companies/${companyId}/process-account-defaults`,
+          ),
         ]);
         if (cancelled) return;
         const co = coRes.data;
@@ -93,6 +121,16 @@ export default function DefaultAccountsSettingsPage() {
           ),
           defaultBankAccountId: toStr(co?.defaultBankAccountId),
         });
+
+        const next = emptyProcessAccounts();
+        for (const row of processRes.data || []) {
+          if (!row.processCode) continue;
+          next[row.processCode] = {
+            debitAccountId: toStr(row.debitAccountId),
+            creditAccountId: toStr(row.creditAccountId),
+          };
+        }
+        setProcessAccounts(next);
       } catch (e: unknown) {
         if (!cancelled) {
           console.error(e);
@@ -107,21 +145,69 @@ export default function DefaultAccountsSettingsPage() {
     };
   }, [companyId, form]);
 
+  const updateProcessAccount = (
+    code: AccountingProcessCode,
+    patch: Partial<ProcessAccountFields>,
+  ) => {
+    setProcessAccounts((prev) => ({
+      ...prev,
+      [code]: { ...prev[code], ...patch },
+    }));
+  };
+
   const onSubmit = async (data: FormData) => {
     if (!companyId) return;
+
+    const incompleteProcess = ALL_ACCOUNTING_PROCESS_CODES.find((code) => {
+      const { debitAccountId, creditAccountId } = processAccounts[code];
+      if (DEBIT_ONLY_PROCESS_CODES.has(code)) {
+        return Boolean(creditAccountId);
+      }
+      return (
+        (debitAccountId && !creditAccountId) ||
+        (!debitAccountId && creditAccountId)
+      );
+    });
+    if (incompleteProcess) {
+      const message = DEBIT_ONLY_PROCESS_CODES.has(incompleteProcess)
+        ? `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} does not use a credit account`
+        : `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} needs both debit and credit accounts`;
+      toast.error(message);
+      return;
+    }
+
+    const processPayload = ALL_ACCOUNTING_PROCESS_CODES.filter((code) => {
+      const { debitAccountId, creditAccountId } = processAccounts[code];
+      if (DEBIT_ONLY_PROCESS_CODES.has(code)) {
+        return Boolean(debitAccountId);
+      }
+      return debitAccountId && creditAccountId;
+    }).map((code) => ({
+      processCode: code,
+      debitAccountId: optNum(processAccounts[code].debitAccountId),
+      creditAccountId: DEBIT_ONLY_PROCESS_CODES.has(code)
+        ? undefined
+        : optNum(processAccounts[code].creditAccountId),
+    }));
+
     try {
       setSaving(true);
-      await apiClient.put(`/companies/${companyId}/accounting-defaults`, {
-        defaultSalesDebitAccountId: optNum(data.defaultSalesDebitAccountId),
-        defaultSalesCreditAccountId: optNum(data.defaultSalesCreditAccountId),
-        defaultPurchaseDebitAccountId: optNum(
-          data.defaultPurchaseDebitAccountId,
-        ),
-        defaultPurchaseCreditAccountId: optNum(
-          data.defaultPurchaseCreditAccountId,
-        ),
-        defaultBankAccountId: optNum(data.defaultBankAccountId),
-      });
+      await Promise.all([
+        apiClient.put(`/companies/${companyId}/accounting-defaults`, {
+          defaultSalesDebitAccountId: optNum(data.defaultSalesDebitAccountId),
+          defaultSalesCreditAccountId: optNum(data.defaultSalesCreditAccountId),
+          defaultPurchaseDebitAccountId: optNum(
+            data.defaultPurchaseDebitAccountId,
+          ),
+          defaultPurchaseCreditAccountId: optNum(
+            data.defaultPurchaseCreditAccountId,
+          ),
+          defaultBankAccountId: optNum(data.defaultBankAccountId),
+        }),
+        apiClient.put(`/companies/${companyId}/process-account-defaults`, {
+          defaults: processPayload,
+        }),
+      ]);
       toast.success("Default accounts saved");
     } catch (e: unknown) {
       const msg =
@@ -151,23 +237,27 @@ export default function DefaultAccountsSettingsPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Default accounts"
-        description="These values pre-fill sales orders, purchase requisitions, and sales invoices. Customer and Supplier Payments may be blocked until required defaults are set."
+        description="Configure GL defaults for sales, purchases, payroll, and other business processes. Sales and purchase values pre-fill orders and requisitions; process defaults auto-fill manual journal entries, stock variance posting, and payroll GL entries."
         variant="darkBlue"
         icon={<Banknote className="w-6 h-6" />}
         actions={
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" form="default-accounts-form" disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </Button>
         }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">GL and bank defaults</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <Form {...form}>
+        <form
+          id="default-accounts-form"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-6"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">GL and bank defaults</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -272,13 +362,62 @@ export default function DefaultAccountsSettingsPage() {
                   )}
                 />
               </div>
-              <Button type="submit" disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Process account defaults</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-0 divide-y">
+              {ALL_ACCOUNTING_PROCESS_CODES.map((code) => {
+                const debitOnly = DEBIT_ONLY_PROCESS_CODES.has(code);
+                return (
+                <div key={code} className="space-y-4 py-6 first:pt-0 last:pb-0">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {ACCOUNTING_PROCESS_LABELS[code]}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormItem>
+                      <FormControl>
+                        <SelectAccount
+                          label="Debit account"
+                          useId
+                          showNoneOption
+                          value={processAccounts[code].debitAccountId}
+                          onChange={(v) =>
+                            updateProcessAccount(code, { debitAccountId: v })
+                          }
+                        />
+                      </FormControl>
+                    </FormItem>
+                    {!debitOnly && (
+                    <FormItem>
+                      <FormControl>
+                        <SelectAccount
+                          label="Credit account"
+                          useId
+                          showNoneOption
+                          value={processAccounts[code].creditAccountId}
+                          onChange={(v) =>
+                            updateProcessAccount(code, { creditAccountId: v })
+                          }
+                        />
+                      </FormControl>
+                    </FormItem>
+                    )}
+                  </div>
+                </div>
+              );
+              })}
+            </CardContent>
+          </Card>
+
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 }

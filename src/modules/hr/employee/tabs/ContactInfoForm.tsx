@@ -29,7 +29,9 @@ import { contactService } from "@/service/contactService";
 import { hrService } from "@/service/hr.service";
 import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 import PhoneInput from "@/components/PhoneInput";
-import { validatePhone } from "@/lib/countries";
+import EmailInput from "@/components/EmailInput";
+import { validatePhone, normalizePhone } from "@/lib/countries";
+import { normalizeEmail, validateEmail } from "@/lib/email";
 import { toast } from "sonner";
 
 type Ctx = {
@@ -170,8 +172,8 @@ export default function ContactInfoForm() {
       .getEmployee(employeeId)
       .then((empData) => {
         if (!mounted) return;
-        const employeeEmail = empData.email || "";
-        const employeePhone = empData.phoneNo || "";
+        const employeeEmail = normalizeEmail(empData.email);
+        const employeePhone = normalizePhone(empData.phoneNo);
         setEmployeeUsername(empData.username || "");
         setEmployeeUserId(
           empData.userId != null ? Number(empData.userId) : null,
@@ -185,16 +187,16 @@ export default function ContactInfoForm() {
           // Use contact info if available, otherwise fall back to employee data
           setDraft((d) => ({
             ...d,
-            email: data.email || employeeEmail,
-            phone: data.phone || employeePhone,
-            altPhone: data.altPhone || "",
+            email: normalizeEmail(data.email || employeeEmail),
+            phone: normalizePhone(data.phone || employeePhone),
+            altPhone: normalizePhone(data.altPhone),
             notes: data.notes || "",
           }));
           setSaved((s) => ({
             ...s,
-            email: data.email || employeeEmail,
-            phone: data.phone || employeePhone,
-            altPhone: data.altPhone || "",
+            email: normalizeEmail(data.email || employeeEmail),
+            phone: normalizePhone(data.phone || employeePhone),
+            altPhone: normalizePhone(data.altPhone),
             notes: data.notes || "",
           }));
         });
@@ -212,6 +214,11 @@ export default function ContactInfoForm() {
       // Block saving on an invalid phone number.
       const phoneValid = validatePhone(draft.phone, { required: true });
       const altValid = validatePhone(draft.altPhone, { required: false });
+      const emailValid = validateEmail(draft.email, { required: true });
+      if (!emailValid.valid) {
+        toast.error(emailValid.message ?? "Invalid email address");
+        return;
+      }
       if (!phoneValid.valid) {
         toast.error(phoneValid.message ?? "Invalid phone number");
         return;
@@ -226,9 +233,9 @@ export default function ContactInfoForm() {
       try {
         try {
           await contactService.saveContactInfo(employeeId, {
-            email: draft.email,
-            phone: draft.phone,
-            altPhone: draft.altPhone || undefined,
+            email: normalizeEmail(draft.email),
+            phone: normalizePhone(draft.phone),
+            altPhone: draft.altPhone ? normalizePhone(draft.altPhone) : undefined,
             notes: draft.notes || "",
           });
         } catch (err) {
@@ -296,6 +303,7 @@ export default function ContactInfoForm() {
 
   const phoneCheck = validatePhone(draft.phone, { required: true });
   const altPhoneCheck = validatePhone(draft.altPhone, { required: false });
+  const emailCheck = validateEmail(draft.email, { required: true });
 
   const handleAddAddress = useCallback(() => {
     const newAddress = { ...INITIAL_ADDRESS, id: generateId() };
@@ -678,15 +686,21 @@ export default function ContactInfoForm() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Field label="Email Address" required>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <Mail className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <EmailInput
                 disabled={!editing}
                 value={draft.email}
-                onChange={(e) => set("email", e.target.value)}
+                onChange={(v) => set("email", v)}
                 placeholder="you@example.com"
+                invalid={editing && !!draft.email && !emailCheck.valid}
                 className={cn(iCls, "pl-9")}
               />
             </div>
+            {editing && !emailCheck.valid && (
+              <p className="flex items-center gap-1 text-xs text-rose-600">
+                <AlertCircle className="h-3.5 w-3.5" /> {emailCheck.message}
+              </p>
+            )}
           </Field>
           <Field label="Phone Number" required>
             <PhoneInput

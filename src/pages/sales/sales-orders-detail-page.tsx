@@ -2,9 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
+import { getInvoicePdfUrl } from "@/service/invoiceService";
+import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
 import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { SalesOrderDetailCards } from "./components/sales-order-detail-cards";
 import { SalesPageHeader } from "./components/sales-page-header";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
@@ -63,6 +66,24 @@ const SalesOrdersDetailPage = () => {
               className: "border-amber-200 bg-amber-100 text-amber-700",
             };
   const StatusIcon = statusMeta.icon;
+  const paymentSettled = isInvoicePaymentSettled(so.paymentStatus);
+  const hasSalesInvoice = so.salesInvoiceId != null;
+  const showDocumentActions =
+    hasSalesInvoice && status !== "DRAFT" && status !== "CANCELLED";
+
+  const handleDownloadDocumentPdf = async () => {
+    if (!so.salesInvoiceId) return;
+    try {
+      const url = await getInvoicePdfUrl(so.salesInvoiceId);
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("PDF is not available.");
+      }
+    } catch {
+      toast.error("Could not download document.");
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -97,6 +118,40 @@ const SalesOrdersDetailPage = () => {
           <Button onClick={() => updateStatus("confirm")}>Confirm Order</Button>
           <Button variant="destructive" onClick={() => updateStatus("cancel")}>
             Cancel Order
+          </Button>
+        </div>
+      )}
+
+      {showDocumentActions && !paymentSettled && (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => void handleDownloadDocumentPdf()}
+          >
+            Download invoice
+          </Button>
+          <Button type="button" variant="secondary" size="sm" className="rounded-lg" asChild>
+            <Link to={`/sales/invoices/${so.salesInvoiceId}`}>Open invoice</Link>
+          </Button>
+        </div>
+      )}
+
+      {showDocumentActions && paymentSettled && (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => void handleDownloadDocumentPdf()}
+          >
+            Download receipt
+          </Button>
+          <Button type="button" variant="secondary" size="sm" className="rounded-lg" asChild>
+            <Link to={`/sales/invoices/${so.salesInvoiceId}`}>Open receipt</Link>
           </Button>
         </div>
       )}

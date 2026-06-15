@@ -20,6 +20,7 @@ import {
   DollarSign,
   Loader2,
   Building,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
@@ -29,6 +30,7 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
   const iconMap: Record<string, any> = {
     "Employee Overview": Users,
     "HR Reports": FileText,
+    "Immigration Expiry": ShieldAlert,
     "HR Settings": Settings,
     "Inventory Report": FileText,
     "Inventory (Stocks)": BarChart3,
@@ -50,6 +52,8 @@ const getModuleDescription = (title: string): string => {
   const descriptions: Record<string, string> = {
     "Employee Overview": "Employee Life-Cycle Management.",
     "HR Reports": "Detail HR Reports.",
+    "Immigration Expiry":
+      "Passports and residence permits that are expired or expiring soon.",
     "HR Settings":
       "Configure HR setting - Job code, leave policies, system permissions, and appraisal, Public Holidays.",
     "Inventory Report":

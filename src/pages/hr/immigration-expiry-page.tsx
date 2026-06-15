@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ShieldAlert, FileText, Contact2, Landmark, ChevronRight } from "lucide-react";
+import {
+  ShieldAlert,
+  FileText,
+  Contact2,
+  Landmark,
+  ChevronRight,
+} from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +32,8 @@ function statusBadge(item: ImmigrationExpiryItem) {
 }
 
 function daysLabel(d: number) {
-  if (d < 0) return `Expired ${Math.abs(d)} day${Math.abs(d) === 1 ? "" : "s"} ago`;
+  if (d < 0)
+    return `Expired ${Math.abs(d)} day${Math.abs(d) === 1 ? "" : "s"} ago`;
   if (d === 0) return "Expires today";
   return `${d} day${d === 1 ? "" : "s"} left`;
 }
@@ -40,10 +47,11 @@ export default function ImmigrationExpiryPage() {
     setLoading(true);
     try {
       setItems(await immigrationService.getExpiring(days));
-    } catch (err: any) {
-      toast.error(
-        err?.response?.data?.message || "Failed to load expiry report",
-      );
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to load expiry report";
+      toast.error(message);
       setItems([]);
     } finally {
       setLoading(false);
@@ -65,7 +73,6 @@ export default function ImmigrationExpiryPage() {
         icon={<ShieldAlert className="h-5 w-5" />}
       />
 
-      {/* Window filter + summary */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           {WINDOWS.map((w) => (
@@ -107,7 +114,7 @@ export default function ImmigrationExpiryPage() {
           <div className="px-4 py-12 text-center">
             <FileText className="mx-auto mb-2 h-10 w-10 text-slate-300" />
             <p className="text-sm text-slate-500">
-              Nothing expiring in this window. 🎉
+              Nothing expiring in this window.
             </p>
           </div>
         ) : (
@@ -115,7 +122,9 @@ export default function ImmigrationExpiryPage() {
             <Link
               key={`${it.documentType}-${it.employeeId}-${it.documentNumber}`}
               to={`/hr/employees/${it.employeeId}/immigration${
-                it.documentType === "RESIDENCE_PERMIT" ? "/residence-permit" : ""
+                it.documentType === "RESIDENCE_PERMIT"
+                  ? "/residence-permit"
+                  : ""
               }`}
               className="grid grid-cols-[140px_1fr_1fr_130px_150px_40px] items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm last:border-0 hover:bg-slate-50"
             >

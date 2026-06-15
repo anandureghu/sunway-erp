@@ -44,9 +44,9 @@ export function DataTable<TData>({
   });
 
   return (
-    <div className="overflow-x-auto rounded-md border border-gray-200">
+    <div className="overflow-x-auto rounded-md border border-slate-200/70 shadow-sm">
       <table className="w-full text-sm">
-        <thead className="bg-gray-50">
+        <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((header) => {
@@ -55,11 +55,11 @@ export function DataTable<TData>({
                 return (
                   <th
                     key={header.id}
-                    className="px-4 py-3 text-left select-none font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap"
+                    className="select-none"
                   >
                     {canSort ? (
                       <button
-                        className="inline-flex items-center gap-1.5 hover:text-gray-900 transition-colors whitespace-nowrap"
+                        className="inline-flex items-center gap-1.5 font-bold text-slate-700 hover:text-slate-900 transition-colors whitespace-nowrap"
                         onClick={header.column.getToggleSortingHandler()}
                       >
                         {flexRender(

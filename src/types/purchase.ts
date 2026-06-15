@@ -90,7 +90,6 @@ export type PurchaseRequisition = {
   projectCode?: string;
   requisitionDescription?: string;
   urgency?: PurchaseRequisitionUrgency;
-  requiredByDate?: string;
   deliveryWarehouseId?: string;
   deliveryWarehouseName?: string;
   justification?: string;

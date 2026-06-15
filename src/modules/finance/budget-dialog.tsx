@@ -9,7 +9,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import type { BudgetCreateDTO, BudgetResponseDTO } from "@/types/budget";
+import type {
+  BudgetCreateDTO,
+  BudgetResponseDTO,
+  BudgetType,
+} from "@/types/budget";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -20,6 +24,14 @@ import {
   X,
   TrendingUp,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import SelectAccount from "@/components/select-account";
 
 interface Props {
   open: boolean;
@@ -29,7 +41,6 @@ interface Props {
   onSuccess?: () => void;
 }
 
-// ── Field wrapper ─────────────────────────────────────────────────────────────
 function Field({
   label,
   required,
@@ -71,15 +82,33 @@ function Field({
   );
 }
 
-// ── Styled input ──────────────────────────────────────────────────────────────
 const fieldCls = (hasIcon = true) =>
   cn(
     "h-10 w-full rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300",
     "outline-none ring-0 transition-all duration-150",
     "focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]",
     hasIcon && "pl-9",
-    !hasIcon && "px-3"
+    !hasIcon && "px-3",
   );
+
+const BUDGET_TYPE_OPTIONS: { value: BudgetType; label: string; hint: string }[] =
+  [
+    {
+      value: "OPEX",
+      label: "OPEX — Operational",
+      hint: "Distributed to expense and cost accounts",
+    },
+    {
+      value: "CAPEX",
+      label: "CAPEX — Capital",
+      hint: "Distributed to fixed asset accounts only",
+    },
+    {
+      value: "PROJECT",
+      label: "Project",
+      hint: "Specific to a project; distributed to matching project accounts",
+    },
+  ];
 
 export function BudgetDialog({
   open,
@@ -87,8 +116,9 @@ export function BudgetDialog({
   data,
   onSuccess,
 }: Props) {
-  const isEdit = !!data;
-  const lockHeaderFields = isEdit && data?.status === "APPROVED";
+  const isRevise =
+    !!data && data.status === "APPROVED" && data.isActive !== false;
+  const lockHeaderFields = isRevise;
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState<BudgetCreateDTO>({
@@ -97,10 +127,15 @@ export function BudgetDialog({
     startDate: "",
     endDate: "",
     amount: 0,
+    budgetType: "OPEX",
+    budgetAccountId: 0,
+    projectId: "",
   });
 
-  const update = (key: keyof BudgetCreateDTO, value: string | number) =>
-    setForm((p) => ({ ...p, [key]: value }));
+  const update = (
+    key: keyof BudgetCreateDTO,
+    value: string | number,
+  ) => setForm((p) => ({ ...p, [key]: value }));
 
   useEffect(() => {
     if (data) {
@@ -110,6 +145,9 @@ export function BudgetDialog({
         startDate: data.startDate ?? "",
         endDate: data.endDate ?? "",
         amount: data.amount ?? 0,
+        budgetType: data.budgetType ?? "OPEX",
+        budgetAccountId: data.budgetAccountId ?? 0,
+        projectId: data.projectId ?? "",
       });
     } else {
       setForm({
@@ -118,37 +156,64 @@ export function BudgetDialog({
         startDate: "",
         endDate: "",
         amount: 0,
+        budgetType: "OPEX",
+        budgetAccountId: 0,
+        projectId: "",
       });
     }
   }, [data, open]);
 
   const saveBudget = async () => {
+    if (!isRevise) {
+      if (!form.budgetAccountId) {
+        toast.error("Budget account is required");
+        return;
+      }
+      if (form.budgetType === "PROJECT" && !form.projectId?.trim()) {
+        toast.error("Project ID is required for project budgets");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      const payload = {
-        budgetName: form.budgetName,
-        fiscalYear: form.fiscalYear,
-        startDate: form.startDate || null,
-        endDate: form.endDate || null,
-        amount: form.amount || 0,
-      };
-
-      if (data) {
-        await apiClient.put(`/finance/budgets/${data.id}`, payload);
-        if (data.status === "APPROVED") {
-          toast.success("Budget revised");
-        } else {
-          toast.success("Saved as a new budget version");
-        }
+      if (isRevise && data) {
+        await apiClient.put(`/finance/budgets/${data.id}`, {
+          amount: form.amount || 0,
+        });
+        toast.success("Budget revised");
       } else {
+        const payload = {
+          budgetName: form.budgetName,
+          fiscalYear: form.fiscalYear,
+          startDate: form.startDate || null,
+          endDate: form.endDate || null,
+          amount: form.amount || 0,
+          budgetType: form.budgetType,
+          budgetAccountId: form.budgetAccountId,
+          projectId:
+            form.budgetType === "PROJECT" ? form.projectId?.trim() : null,
+        };
         await apiClient.post("/finance/budgets", payload);
         toast.success("Budget created");
       }
       onOpenChange(false);
       onSuccess?.();
-    } catch (err: any) {
-      toast.error("Failed to save budget", {
-        description: err.response?.data?.message,
+    } catch (err: unknown) {
+      const message =
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        err.response &&
+        typeof err.response === "object" &&
+        "data" in err.response &&
+        err.response.data &&
+        typeof err.response.data === "object" &&
+        "message" in err.response.data
+          ? String((err.response.data as { message?: string }).message)
+          : undefined;
+      toast.error(isRevise ? "Failed to revise budget" : "Failed to save budget", {
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -161,7 +226,6 @@ export function BudgetDialog({
         className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
         style={{ maxWidth: 580, maxHeight: "92vh", width: "calc(100vw - 32px)" }}
       >
-        {/* ── Top bar ── */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3.5">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold tracking-wide transition-all duration-300 border-2 border-white/20 bg-emerald-100 text-emerald-600">
@@ -169,15 +233,11 @@ export function BudgetDialog({
             </div>
             <div>
               <DialogTitle className="text-[15px] font-semibold leading-tight text-white">
-                {isEdit
-                  ? data?.status === "APPROVED"
-                    ? "Revise budget"
-                    : "Edit budget (saves new version)"
-                  : "Create new budget"}
+                {isRevise ? "Revise budget" : "Create new budget"}
               </DialogTitle>
               <p className="mt-0.5 text-[12px] text-slate-300">
-                {isEdit
-                  ? "Update the fiscal year budget allocation"
+                {isRevise
+                  ? "Update the approved budget amount"
                   : "Define a budget for a fiscal period"}
               </p>
             </div>
@@ -191,14 +251,11 @@ export function BudgetDialog({
           </button>
         </div>
 
-        {/* ── Body ── */}
         <div
           className="overflow-y-auto bg-white px-6 py-5"
           style={{ maxHeight: "calc(92vh - 132px)" }}
         >
           <div className="space-y-5">
-
-            {/* ── Section: Budget Info ── */}
             <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
@@ -209,6 +266,52 @@ export function BudgetDialog({
                 </span>
               </div>
               <div className="p-5 space-y-5">
+                <Field label="Budget type" required>
+                  <Select
+                    value={form.budgetType}
+                    onValueChange={(v) => update("budgetType", v)}
+                    disabled={lockHeaderFields}
+                  >
+                    <SelectTrigger className={fieldCls(false)}>
+                      <SelectValue placeholder="Select budget type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BUDGET_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                {form.budgetType === "PROJECT" && (
+                  <Field label="Project ID" required icon={<Hash className="h-[15px] w-[15px]" />}>
+                    <Input
+                      value={form.projectId || ""}
+                      onChange={(e) => update("projectId", e.target.value)}
+                      disabled={lockHeaderFields}
+                      placeholder="Project code"
+                      className={fieldCls()}
+                    />
+                  </Field>
+                )}
+
+                {!isRevise && (
+                  <SelectAccount
+                    useId
+                    label="Budget account *"
+                    value={
+                      form.budgetAccountId
+                        ? String(form.budgetAccountId)
+                        : undefined
+                    }
+                    onChange={(v) => update("budgetAccountId", Number(v))}
+                    allowedTypes={["BUDGET"]}
+                    placeholder="Select budget COA account"
+                  />
+                )}
+
                 <Field
                   label="Budget name"
                   required
@@ -252,7 +355,6 @@ export function BudgetDialog({
               </div>
             </div>
 
-            {/* ── Section: Period Dates ── */}
             <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600">
@@ -295,7 +397,6 @@ export function BudgetDialog({
           </div>
         </div>
 
-        {/* ── Footer ── */}
         <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
           <p className="text-[11px] text-slate-500">
             Fields marked <span className="text-rose-400">*</span> are required
@@ -320,11 +421,11 @@ export function BudgetDialog({
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   Saving…
                 </span>
-              ) : isEdit
-                ? data?.status === "APPROVED"
-                  ? "Revise budget"
-                  : "Save new version"
-                : "Create budget"}
+              ) : isRevise ? (
+                "Revise budget"
+              ) : (
+                "Create budget"
+              )}
             </Button>
           </div>
         </div>

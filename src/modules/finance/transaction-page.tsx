@@ -69,7 +69,9 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
         tx.transactionCode,
         tx.transactionType,
         tx.transactionDescription,
+        tx.debitAccountCode,
         tx.debitAccountName,
+        tx.creditAccountCode,
         tx.creditAccountName,
       ]
         .filter(Boolean)

@@ -3,6 +3,9 @@ import { useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
 import { SalesPageHeader } from "./components/sales-page-header";
+import { formatCurrencyAmount } from "@/lib/currency";
+import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
 
 /* =======================
    CONSTANTS
@@ -37,13 +40,6 @@ const safe = (v: any) =>
 const formatDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString() : MISSING;
 
-const money = (n?: number) =>
-  typeof n === "number" ? n.toLocaleString() : MISSING;
-
-/* =======================
-   COMPONENT
-======================= */
-
 const formatTemplate = (
   template: string | undefined,
   replacements: Record<string, string>,
@@ -55,11 +51,15 @@ const formatTemplate = (
   );
 };
 
+/* =======================
+   COMPONENT
+======================= */
+
 export default function InvoiceDetailPage() {
   const { id } = useParams();
+  const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [tab, setTab] = useState<"invoice" | "receipt">("invoice");
 
   useEffect(() => {
     apiClient.get(`/invoices/${id}`).then((res) => {
@@ -71,11 +71,17 @@ export default function InvoiceDetailPage() {
     return <div className="p-8">Loading invoice…</div>;
   }
 
+  const currencyCode = invoice.currencyCode ?? companyCurrencyCode;
+  const money = (n?: number) =>
+    typeof n === "number"
+      ? formatCurrencyAmount({ amount: n, currencyCode })
+      : MISSING;
+
   const isSales = invoice.type === "SALES";
   const order = isSales ? invoice.salesOrder : invoice.purchaseOrder;
   const items = order?.items ?? [];
-  const isReceipt = tab === "receipt";
-  const isPaid = (invoice.status || "").toUpperCase() === "PAID";
+  const isPaid = isInvoicePaymentSettled(invoice.status);
+  const isReceiptView = isPaid;
   const termsAndConditions = (invoice.invoiceTerms || "")
     .split(/\r?\n/)
     .map((term) => term.trim())
@@ -117,10 +123,6 @@ export default function InvoiceDetailPage() {
     .join(", ");
 
   const handleDownloadPdf = () => {
-    if (isReceipt && !isPaid) {
-      alert("Receipt can be downloaded only after payment is completed.");
-      return;
-    }
     apiClient
       .get<string>(`/invoices/${invoice.id}/pdf`)
       .then((res) => {
@@ -134,23 +136,23 @@ export default function InvoiceDetailPage() {
       })
       .catch((error) => {
         console.error("Invoice PDF download failed", error);
-        alert("Unable to download invoice PDF");
+        alert(
+          isReceiptView
+            ? "Unable to download receipt PDF"
+            : "Unable to download invoice PDF",
+        );
       });
   };
 
   const handleSendEmail = async () => {
     try {
-      if (tab === "receipt") {
-        if (!isPaid) {
-          alert("Receipt can be sent only after payment is completed.");
-          return;
-        }
+      if (isReceiptView) {
         await apiClient.post(`/invoices/${invoice.id}/receipt-email`);
       } else {
         await apiClient.post(`/invoices/${invoice.id}/email`);
       }
       alert(
-        `${tab === "receipt" ? "Receipt" : "Invoice"} email sent to customer`,
+        `${isReceiptView ? "Receipt" : "Invoice"} email sent to customer`,
       );
     } catch (error) {
       console.error("Email sending failed", error);
@@ -168,33 +170,19 @@ export default function InvoiceDetailPage() {
       style={{ background: COLORS.gray100 }}
     >
       <SalesPageHeader
-        title={`Invoice ${safe(invoice.invoiceId)}`}
+        title={
+          isReceiptView
+            ? `Receipt ${safe(invoice.invoiceId)}`
+            : `Invoice ${safe(invoice.invoiceId)}`
+        }
         description={invoiceHeaderDescription || undefined}
         backHref={
           isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices"
         }
       />
 
-      {/* TOGGLE */}
-      <div className="my-6 flex max-w-5xl gap-3">
-        {(["invoice", "receipt"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="flex-1 rounded-xl py-4 text-lg font-semibold border"
-            style={{
-              background: tab === t ? COLORS.orange500 : COLORS.white,
-              color: tab === t ? COLORS.white : COLORS.gray900,
-              borderColor: COLORS.gray200,
-            }}
-          >
-            {t === "invoice" ? "📄 Invoice" : "🧾 Receipt"}
-          </button>
-        ))}
-      </div>
-
       {/* ACTIONS */}
-      <div className="max-w-5xl mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="my-6 max-w-5xl mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
           // onClick={() => window.print()}
           className="rounded-xl py-4 text-lg font-semibold border bg-white"
@@ -208,7 +196,7 @@ export default function InvoiceDetailPage() {
           className="rounded-xl py-4 text-lg font-semibold border bg-white"
           style={{ borderColor: COLORS.gray200 }}
         >
-          {isReceipt ? "🧾 Download Receipt" : "📥 Download Invoice"}
+          {isReceiptView ? "🧾 Download Receipt" : "📥 Download Invoice"}
         </button>
 
         <button
@@ -216,7 +204,7 @@ export default function InvoiceDetailPage() {
           className="rounded-xl py-4 text-lg font-semibold"
           style={{ background: COLORS.orange500, color: COLORS.white }}
         >
-          {isReceipt ? "📧 Email Receipt" : "📧 Email Invoice"}
+          {isReceiptView ? "📧 Email Receipt" : "📧 Email Invoice"}
         </button>
       </div>
 

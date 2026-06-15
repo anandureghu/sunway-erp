@@ -1,5 +1,7 @@
 import type { Vendor } from "@/types/vendor";
 import type { VendorFormData } from "@/schema/vendor";
+import { normalizeEmail } from "@/lib/email";
+import { normalizePhone } from "@/lib/countries";
 
 /** Raw vendor JSON from Spring (camelCase + occasional snake_case). */
 type VendorApiRecord = Record<string, unknown> & {
@@ -116,8 +118,8 @@ export function vendorFormToApiPayload(
     street: data.street?.trim() || null,
     city: data.city?.trim() || null,
     country: data.country?.trim() || null,
-    phoneNo: data.phoneNo?.trim() || null,
-    email: data.email?.trim() || null,
+    phoneNo: data.phoneNo?.trim() ? normalizePhone(data.phoneNo) : null,
+    email: data.email?.trim() ? normalizeEmail(data.email) : null,
     contactPersonName: data.contactPersonName?.trim() || null,
     fax: data.fax?.trim() || null,
     websiteUrl: data.websiteUrl?.trim() || null,

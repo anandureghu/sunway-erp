@@ -5,6 +5,7 @@ export const TRANSACTION_TYPES = [
   { key: "JOURNAL", label: "Journal" },
   { key: "RECONCILIATION", label: "Reconciliation" },
   { key: "BUDGET", label: "Budget" },
+  { key: "BUDGET_DISTRIBUTION", label: "Budget Distribution" },
   { key: "PURCHASE_REQUISITION", label: "Purchase Requisition" },
   { key: "VENDOR_PAYMENT", label: "Vendor Payment" },
   { key: "PURCHASE_ORDER_ENCUMBRANCE", label: "Purchase Order Encumbrance" },
