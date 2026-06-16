@@ -17,6 +17,35 @@ import SelectCurrency from "@/components/select-currency";
 import type { Company } from "@/types/company";
 import { hasAnyRole } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia",
+  "Australia", "Austria", "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium",
+  "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria",
+  "Cambodia", "Cameroon", "Canada", "Chile", "China", "Colombia", "Costa Rica",
+  "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Ecuador", "Egypt",
+  "El Salvador", "Estonia", "Ethiopia", "Finland", "France", "Georgia", "Germany",
+  "Ghana", "Greece", "Guatemala", "Honduras", "Hungary", "Iceland", "India",
+  "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan",
+  "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Kyrgyzstan", "Latvia", "Lebanon",
+  "Libya", "Lithuania", "Luxembourg", "Malaysia", "Maldives", "Malta", "Mexico",
+  "Moldova", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Nepal",
+  "Netherlands", "New Zealand", "Nicaragua", "Nigeria", "North Macedonia", "Norway",
+  "Oman", "Pakistan", "Panama", "Paraguay", "Peru", "Philippines", "Poland",
+  "Portugal", "Qatar", "Romania", "Russia", "Saudi Arabia", "Senegal", "Serbia",
+  "Singapore", "Slovakia", "Slovenia", "Somalia", "South Africa", "South Korea",
+  "Spain", "Sri Lanka", "Sudan", "Sweden", "Switzerland", "Syria", "Taiwan",
+  "Tajikistan", "Tanzania", "Thailand", "Tunisia", "Turkey", "Turkmenistan",
+  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+  "Uruguay", "Uzbekistan", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe",
+];
 
 interface CompanyFormProps {
   onSubmit: (
@@ -307,9 +336,23 @@ export const CompanyForm = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Country</FormLabel>
-                <FormControl>
-                  <Input placeholder="India" {...field} />
-                </FormControl>
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="max-h-64">
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormItem>
             )}
           />
