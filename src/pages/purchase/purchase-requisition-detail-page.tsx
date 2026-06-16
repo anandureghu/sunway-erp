@@ -1,4 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -784,36 +785,24 @@ export default function PurchaseRequisitionDetailPage() {
                           <td className="px-4 py-3 text-right tabular-nums">
                             {item.quantity}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-slate-600">
+                          <td className="px-4 py-3 text-right text-slate-600">
                             {item.actualItemPrice != null
-                              ? item.actualItemPrice.toLocaleString(undefined, {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })
+                              ? <CurrencyAmount amount={item.actualItemPrice} showWarningWhenMissing={false} />
                               : "—"}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums text-slate-400">
+                          <td className="px-4 py-3 text-right text-slate-400">
                             {item.otherUnitCost != null && item.otherUnitCost > 0
-                              ? item.otherUnitCost.toLocaleString(undefined, {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })
+                              ? <CurrencyAmount amount={item.otherUnitCost} showWarningWhenMissing={false} />
                               : "—"}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums font-medium">
+                          <td className="px-4 py-3 text-right font-medium">
                             {item.unitPrice != null
-                              ? item.unitPrice.toLocaleString(undefined, {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })
+                              ? <CurrencyAmount amount={item.unitPrice} showWarningWhenMissing={false} />
                               : "—"}
                           </td>
-                          <td className="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">
+                          <td className="px-4 py-3 text-right font-semibold text-slate-900">
                             {item.estimatedTotal != null
-                              ? item.estimatedTotal.toLocaleString(undefined, {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })
+                              ? <CurrencyAmount amount={item.estimatedTotal} />
                               : "—"}
                           </td>
                         </tr>
@@ -829,11 +818,8 @@ export default function PurchaseRequisitionDetailPage() {
                             >
                               Total
                             </td>
-                            <td className="px-4 py-3 text-right text-base font-bold tabular-nums text-slate-900">
-                              {requisition.totalAmount.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                            <td className="px-4 py-3 text-right text-base font-bold text-slate-900">
+                              <CurrencyAmount amount={requisition.totalAmount} />
                             </td>
                           </tr>
                         </tfoot>
