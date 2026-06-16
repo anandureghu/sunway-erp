@@ -38,7 +38,7 @@ export const ACCOUNTING_PROCESS_LABELS: Record<AccountingProcessCode, string> =
 
 /** Processes that post a debit only (no credit account). */
 export const DEBIT_ONLY_PROCESS_CODES: ReadonlySet<AccountingProcessCode> =
-  new Set(["PAYROLL"]);
+  new Set([]);
 
 export const ALL_ACCOUNTING_PROCESS_CODES = Object.keys(
   ACCOUNTING_PROCESS_LABELS,
