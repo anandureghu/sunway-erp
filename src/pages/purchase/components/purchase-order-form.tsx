@@ -42,6 +42,15 @@ type Props = {
   onSaved: (order: PurchaseOrder) => void;
 };
 
+function toSafeDateInput(value?: string | null) {
+  if (!value) return format(new Date(), "yyyy-MM-dd");
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return format(new Date(), "yyyy-MM-dd");
+  }
+  return format(parsed, "yyyy-MM-dd");
+}
+
 export function PurchaseOrderForm({
   mode = "edit",
   initialOrder = null,
@@ -94,11 +103,7 @@ export function PurchaseOrderForm({
   useEffect(() => {
     if (!initialOrder) return;
     setSelectedSupplierId(String(initialOrder.supplierId || ""));
-    setOrderDate(
-      initialOrder.orderDate
-        ? format(new Date(initialOrder.orderDate), "yyyy-MM-dd")
-        : format(new Date(), "yyyy-MM-dd"),
-    );
+    setOrderDate(toSafeDateInput(initialOrder.orderDate));
     setLines(
       (initialOrder.items || []).map((line, idx) => {
         const matchedItem = itemsMaster.find(

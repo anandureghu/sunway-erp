@@ -394,6 +394,7 @@ export function CreatePurchaseRequisitionForm({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const today = format(new Date(), "yyyy-MM-dd");
     if (!debitAccountId || !creditAccountId) {
       toast.error(
         "Purchase default accounts are not loaded. Configure them under Global Settings → Default Accounts.",
@@ -416,7 +417,7 @@ export function CreatePurchaseRequisitionForm({
       toast.error("Required delivery date is required.");
       return;
     }
-    if (requiredDeliveryDate < format(new Date(), "yyyy-MM-dd")) {
+    if (!isEditMode && requiredDeliveryDate < today) {
       toast.error("Required delivery date cannot be in the past.");
       return;
     }
@@ -649,7 +650,7 @@ export function CreatePurchaseRequisitionForm({
                     id="requiredDeliveryDate"
                     type="date"
                     value={requiredDeliveryDate}
-                    min={format(new Date(), "yyyy-MM-dd")}
+                    min={isEditMode ? undefined : format(new Date(), "yyyy-MM-dd")}
                     onChange={(e) => setRequiredDeliveryDate(e.target.value)}
                     required
                   />
