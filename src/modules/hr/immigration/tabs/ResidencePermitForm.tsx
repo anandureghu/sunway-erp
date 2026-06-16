@@ -85,6 +85,8 @@ export default function ResidencePermitForm(): ReactElement {
   const [saved, setSaved] = useState<ResidencePermitModel>(SEED);
   const [hasPermit, setHasPermit] = useState(false);
   const [draft, setDraft] = useState<ResidencePermitModel>(SEED);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -109,6 +111,7 @@ export default function ResidencePermitForm(): ReactElement {
           };
           setSaved(model);
           setDraft(model);
+          setDocumentUrl(data.documentUrl ?? null);
         } else if (mounted) {
           setHasPermit(false);
         }
@@ -123,6 +126,24 @@ export default function ResidencePermitForm(): ReactElement {
       mounted = false;
     };
   }, [empId]);
+
+  /* ================= DOCUMENT UPLOAD ================= */
+
+  const handleUploadDocument = async (file: File) => {
+    if (!empId) return;
+    setUploading(true);
+    try {
+      const res = await immigrationService.uploadResidenceDocument(empId, file);
+      setDocumentUrl(res?.documentUrl ?? null);
+      toast.success("Residence permit document uploaded");
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Failed to upload document",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
 
   /* ================= VALIDITY LOGIC ================= */
 
@@ -216,6 +237,7 @@ export default function ResidencePermitForm(): ReactElement {
         };
         setSaved(model);
         setDraft(model);
+        setDocumentUrl(fresh.documentUrl ?? null);
       }
     } catch (err: any) {
       console.error(
@@ -720,6 +742,59 @@ export default function ResidencePermitForm(): ReactElement {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Document scan */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3 border-b border-slate-100 p-5">
+              <div className="rounded-lg bg-indigo-50 p-2">
+                <FileText className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800">Residence Permit Scan</h3>
+                <p className="text-xs text-slate-500">
+                  Attach a copy of the permit / visa (PDF or image)
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 p-5">
+              {!hasPermit ? (
+                <p className="text-sm text-slate-500">
+                  Save the residence permit details first, then attach a scan.
+                </p>
+              ) : (
+                <>
+                  {documentUrl && (
+                    <a
+                      href={documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                    >
+                      <FileText className="h-4 w-4" /> View document
+                    </a>
+                  )}
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    {uploading
+                      ? "Uploading…"
+                      : documentUrl
+                        ? "Replace document"
+                        : "Upload document"}
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void handleUploadDocument(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -18,13 +18,18 @@ import { appraisalService } from "@/service/appraisalService";
 import { hrService } from "@/service/hr.service";
 import { toast } from "sonner";
 import AppraisalEditor from "./AppraisalEditor";
-import { appraisalConfigService } from "@/service/appraisalConfigService";
+import {
+  appraisalConfigService,
+  type AppraisalConfigResponse,
+} from "@/service/appraisalConfigService";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 
 export type AppModel = {
   id?: number | string;
   _localId?: string;
+  configId?: number | null;
+  cycleName?: string | null;
   year: number | string;
   month?: string;
   status?: string;
@@ -81,14 +86,26 @@ export default function AppraisalsForm() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [adding, setAdding] = useState(false);
 
+  // Active appraisal cycles the admin can assign this employee to
+  const [activeCycles, setActiveCycles] = useState<AppraisalConfigResponse[]>(
+    [],
+  );
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
+
   useEffect(() => {
     appraisalConfigService
-      .getActive()
-      .then((cfg) => {
-        if (cfg) setAppraisalYear(cfg.year);
+      .listActive()
+      .then((cycles) => {
+        setActiveCycles(cycles);
+        if (cycles.length > 0) {
+          setSelectedConfigId(cycles[0].id);
+          setAppraisalYear(cycles[0].year);
+        }
       })
       .catch(() => {});
   }, []);
+
+  const selectedCycle = activeCycles.find((c) => c.id === selectedConfigId);
 
   const reload = useCallback(async (): Promise<void> => {
     if (!empId) return;
@@ -97,6 +114,8 @@ export default function AppraisalsForm() {
       setItems(
         (data.content || []).map((d) => ({
           id: d.id,
+          configId: d.configId ?? null,
+          cycleName: d.cycleName ?? null,
           year: d.year ?? "",
           month: d.month ?? "",
           status: d.status ?? "",
@@ -147,21 +166,29 @@ export default function AppraisalsForm() {
     };
   }, [empId]);
 
-  // Step 1: open month picker
+  // Step 1: open cycle + month picker
   const handleAddClick = () => {
     setSelectedMonth("");
+    if (activeCycles.length > 0 && selectedConfigId == null) {
+      setSelectedConfigId(activeCycles[0].id);
+    }
     setShowMonthPicker(true);
   };
 
-  // Step 2: confirm month and call backend
+  // Step 2: confirm cycle + month and call backend
   const handleConfirmAdd = async () => {
-    if (!empId || !selectedMonth) {
+    if (!empId) return;
+    if (!selectedConfigId) {
+      toast.error("Please select an appraisal cycle");
+      return;
+    }
+    if (!selectedMonth) {
       toast.error("Please select a month");
       return;
     }
     setAdding(true);
     try {
-      await appraisalService.create(empId, appraisalYear, selectedMonth);
+      await appraisalService.create(empId, selectedConfigId, selectedMonth);
       toast.success(`Appraisal created for ${selectedMonth} ${appraisalYear}`);
       setShowMonthPicker(false);
       await reload();
@@ -307,9 +334,9 @@ export default function AppraisalsForm() {
     }
   };
 
-  // Months already used this year
+  // Months already used in the selected cycle (uniqueness is per cycle+month)
   const usedMonths = items
-    .filter((it) => String(it.year) === String(appraisalYear))
+    .filter((it) => selectedConfigId != null && it.configId === selectedConfigId)
     .map((it) => it.month)
     .filter(Boolean);
 
@@ -320,14 +347,47 @@ export default function AppraisalsForm() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-[360px]">
             <h3 className="text-lg font-bold text-slate-800 mb-1">
-              Select Month
+              New Appraisal
             </h3>
             <p className="text-sm text-slate-500 mb-4">
-              Creating appraisal for{" "}
-              <span className="font-semibold text-indigo-600">
-                {appraisalYear}
-              </span>
+              Choose the cycle and month to assign.
             </p>
+
+            {/* Cycle selector */}
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              Appraisal cycle
+            </label>
+            {activeCycles.length === 0 ? (
+              <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                No active cycles. Create and activate one in HR Settings →
+                Appraisal first.
+              </p>
+            ) : (
+              <select
+                value={selectedConfigId ?? ""}
+                onChange={(e) => {
+                  const id = Number(e.target.value) || null;
+                  setSelectedConfigId(id);
+                  const cyc = activeCycles.find((c) => c.id === id);
+                  if (cyc) setAppraisalYear(cyc.year);
+                  setSelectedMonth("");
+                }}
+                className="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm mb-4"
+              >
+                {activeCycles.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.cycleName} · {c.year}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              Month{" "}
+              <span className="font-semibold text-indigo-600 normal-case">
+                {selectedCycle ? `(${selectedCycle.year})` : ""}
+              </span>
+            </label>
             <div className="grid grid-cols-3 gap-2 mb-6">
               {MONTHS.map((m) => {
                 const used = usedMonths.includes(m);
@@ -358,7 +418,7 @@ export default function AppraisalsForm() {
               </Button>
               <Button
                 onClick={handleConfirmAdd}
-                disabled={!selectedMonth || adding}
+                disabled={!selectedMonth || !selectedConfigId || adding}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
                 {adding ? "Creating..." : "Create Appraisal"}
@@ -478,6 +538,11 @@ export default function AppraisalsForm() {
                         >
                           {it.status || "—"}
                         </span>
+                        {it.cycleName && (
+                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            {it.cycleName}
+                          </span>
+                        )}
                       </div>
                       <div className="flex gap-3 flex-wrap mt-2">
                         {it.goals && it.goals.length > 0 && (

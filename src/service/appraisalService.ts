@@ -37,6 +37,8 @@ export interface AppraisalResponse {
   employeeId: number;
   employeeName: string;
   employeeRole: string;
+  configId?: number | null;
+  cycleName?: string | null;
   year: number;
   month: string; // "JANUARY", "FEBRUARY" ... "DECEMBER"
   status: "DRAFT" | "SELF_SUBMITTED" | "MANAGER_REVIEWED" | "LOCKED";
@@ -93,18 +95,18 @@ export const appraisalService = {
   },
 
   /* -------------------------------
-     CREATE — year + month as params
-     POST /api/employees/{id}/appraisals?year=2026&month=MARCH
+     CREATE — assign employee to a specific cycle
+     POST /api/employees/{id}/appraisals?configId=5&month=MARCH
   -------------------------------- */
   async create(
     employeeId: number,
-    year: number,
+    configId: number,
     month: string  // "JANUARY" ... "DECEMBER"
   ): Promise<AppraisalResponse> {
     const res = await apiClient.post<AppraisalResponse>(
       `/employees/${employeeId}/appraisals`,
-      null,                          // no body
-      { params: { year, month } }    // both as query params
+      null,                            // no body
+      { params: { configId, month } } // both as query params
     );
     return res.data;
   },

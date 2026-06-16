@@ -9,13 +9,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { Building, List, Settings, Shield, Users } from "lucide-react";
 
 const INVENTORY_MODULES = [
-  { id: "category", label: "Categories" },
-  { id: "warehouse", label: "Warehouse" },
-  { id: "stock", label: "Stock Management" },
-  { id: "item", label: "Items" },
-  { id: "purchase", label: "Purchase" },
-  { id: "receipt", label: "Goods Receipt" },
-  { id: "sales", label: "Sales" },
+  { id: "inventory_category", label: "Categories" },
+  { id: "inventory_warehouse", label: "Warehouse" },
+  { id: "inventory_stock", label: "Stock Management" },
+  { id: "inventory_item", label: "Items" },
+  { id: "inventory_purchase", label: "Purchase" },
+  { id: "inventory_receipt", label: "Goods Receipt" },
+  { id: "inventory_sales", label: "Sales" },
 ];
 
 const InventorySettingsPage = () => {

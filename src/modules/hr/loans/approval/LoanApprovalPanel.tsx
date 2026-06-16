@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
+import { humanizeLoanType } from "@/lib/loan-type-label";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 export default function LoanApprovalPanel() {
@@ -175,7 +176,7 @@ export default function LoanApprovalPanel() {
                       {loan.employeeName}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {loan.loanType?.replace(/_/g, " ")}
+                      {humanizeLoanType(loan.loanType)}
                     </td>
                     <td className="px-4 py-3 text-right text-slate-800 font-medium">
                       {formatMoney(String(loan.loanAmount), currency)}

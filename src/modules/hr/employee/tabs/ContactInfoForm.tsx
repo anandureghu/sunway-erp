@@ -127,6 +127,10 @@ export default function ContactInfoForm() {
     INITIAL_PASSWORD_STATE,
   );
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [employeeUsername, setEmployeeUsername] = useState("");
+  // The reset endpoint is keyed by the linked User id, which is distinct from
+  // the employee id in the route. Captured from the loaded employee record.
+  const [employeeUserId, setEmployeeUserId] = useState<number | null>(null);
 
   const params = useParams<{ id?: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
@@ -170,6 +174,10 @@ export default function ContactInfoForm() {
         if (!mounted) return;
         const employeeEmail = normalizeEmail(empData.email);
         const employeePhone = normalizePhone(empData.phoneNo);
+        setEmployeeUsername(empData.username || "");
+        setEmployeeUserId(
+          empData.userId != null ? Number(empData.userId) : null,
+        );
 
         // Then fetch contact info (which may be empty for new employees)
         return contactService.getContactInfo(employeeId).then((res) => {
@@ -374,16 +382,16 @@ export default function ContactInfoForm() {
       return;
     }
 
-    if (!employeeId) {
-      toast.error("Employee ID not found");
+    if (!employeeUserId) {
+      toast.error("No linked user account found for this employee");
       return;
     }
 
     setPasswordState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      // Call your password reset service here
-      await hrService.resetEmployeePassword(employeeId, {
+      // Reset is keyed by the User id (not the employee id from the route).
+      await hrService.resetEmployeePassword(employeeUserId, {
         newPassword: passwordState.newPassword,
         confirmPassword: passwordState.confirmPassword,
       });
@@ -468,6 +476,18 @@ export default function ContactInfoForm() {
                     </p>
                   </div>
                 </div>
+
+                {/* Username of the employee whose password is being reset */}
+                {employeeUsername && (
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Username
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-slate-800">
+                      @{employeeUsername}
+                    </span>
+                  </div>
+                )}
 
                 <div className="h-px w-full bg-slate-100" />
 

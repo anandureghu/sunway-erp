@@ -230,11 +230,16 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
-              {
-                title: "Payroll",
-                url: "/hr/payroll",
-                icon: Wallet,
-              },
+              // Payroll — gated by PAYROLL
+              ...(canView(permissions, "PAYROLL")
+                ? [
+                    {
+                      title: "Payroll",
+                      url: "/hr/payroll",
+                      icon: Wallet,
+                    },
+                  ]
+                : []),
 
               // HR Reports — gated by HR_REPORTS
               ...(canView(permissions, "HR_REPORTS")
@@ -333,47 +338,85 @@ export const getSidebarItems = async (
 
     // ── Finance ───────────────────────────────────────────────────────────────
     ...(company.financeEnabled
-      ? [
-          {
-            title: "Finance",
-            icon: DollarSign,
-            color: "text-green-700",
-            image: "/assets/images/finance.svg",
-            url: "/finance/dashboard",
-            items: [
-              {
-                title: "Accounts Receivable",
-                url: "/finance/receivable",
-                icon: Wallet,
-              },
-              {
-                title: "Accounts Payable",
-                url: "/finance/payable",
-                icon: Receipt,
-              },
-              {
-                title: "Employee Payroll",
-                url: "/finance/payroll",
-                icon: Users,
-              },
-              {
-                title: "General Ledger",
-                url: "/finance/ledger",
-                icon: Landmark,
-              },
-              {
-                title: "Finance Report",
-                url: "/finance/reports",
-                icon: PieChart,
-              },
-              {
-                title: "Finance Settings",
-                url: "/finance/settings",
-                icon: Settings,
-              },
-            ],
-          },
-        ]
+      ? (() => {
+          const financeItems = [
+            // Accounts Receivable — customer invoices → FINANCE_INVOICE
+            ...(canView(permissions, "FINANCE_INVOICE")
+              ? [
+                  {
+                    title: "Accounts Receivable",
+                    url: "/finance/receivable",
+                    icon: Wallet,
+                  },
+                ]
+              : []),
+            // Accounts Payable — supplier payments → FINANCE_PAYMENT
+            ...(canView(permissions, "FINANCE_PAYMENT")
+              ? [
+                  {
+                    title: "Accounts Payable",
+                    url: "/finance/payable",
+                    icon: Receipt,
+                  },
+                ]
+              : []),
+            // Employee Payroll (finance view) → PAYROLL
+            ...(canView(permissions, "PAYROLL")
+              ? [
+                  {
+                    title: "Employee Payroll",
+                    url: "/finance/payroll",
+                    icon: Users,
+                  },
+                ]
+              : []),
+            // General Ledger → FINANCE_LEDGER
+            ...(canView(permissions, "FINANCE_LEDGER")
+              ? [
+                  {
+                    title: "General Ledger",
+                    url: "/finance/ledger",
+                    icon: Landmark,
+                  },
+                ]
+              : []),
+            // Finance Reports → FINANCE_REPORTS
+            ...(canView(permissions, "FINANCE_REPORTS")
+              ? [
+                  {
+                    title: "Finance Report",
+                    url: "/finance/reports",
+                    icon: PieChart,
+                  },
+                ]
+              : []),
+            // Finance Settings — any config-level finance permission
+            ...(canView(permissions, "FINANCE_COA") ||
+            canView(permissions, "FINANCE_BUDGET") ||
+            canView(permissions, "FINANCE_RECONCILIATION")
+              ? [
+                  {
+                    title: "Finance Settings",
+                    url: "/finance/settings",
+                    icon: Settings,
+                  },
+                ]
+              : []),
+          ];
+
+          if (financeItems.length === 0) return [];
+
+          return [
+            {
+              title: "Finance",
+              icon: DollarSign,
+              color: "text-green-700",
+              image: "/assets/images/finance.svg",
+              url: "/finance/dashboard",
+              items: financeItems,
+            },
+          ];
+        })()
       : []),
   ] as SidebarItem[];
 };

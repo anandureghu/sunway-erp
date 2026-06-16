@@ -23,6 +23,7 @@ import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { useState, useCallback, useEffect } from "react";
 import { salaryService } from "@/service/salaryService";
 import { formatMoney, generateId } from "@/lib/utils";
+import { humanizeLoanType } from "@/lib/loan-type-label";
 import { addMonths } from "@/lib/date";
 import { useParams } from "react-router-dom";
 import { loanService } from "@/service/loanService";
@@ -111,6 +112,11 @@ export default function LoansForm(): ReactElement {
     const p = Number(period || 0);
     return p > 0 ? a / p : 0;
   };
+  // Prefer the configured loan-type label (e.g. "Car Loan"); fall back to a
+  // humanized form of the raw value so we never show "CAR_LOAN".
+  const loanTypeLabel = (type?: string): string =>
+    (type && loanTypeOptions.find((o) => o.value === type)?.label) ||
+    humanizeLoanType(type);
   const exceedsLimit = (loan: LoansModel) => {
     if (basicSalary <= 0) return false;
     return (
@@ -846,7 +852,7 @@ export default function LoansForm(): ReactElement {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <DetailItem
                               label="Loan Type"
-                              value={loan.loanType || "—"}
+                              value={loanTypeLabel(loan.loanType)}
                             />
                             <DetailItem
                               label="Loan Period"
@@ -973,7 +979,7 @@ export default function LoansForm(): ReactElement {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <DetailItem
                             label="Loan Type"
-                            value={loan.loanType || "—"}
+                            value={loanTypeLabel(loan.loanType)}
                           />
                           <DetailItem
                             label="Loan Period"

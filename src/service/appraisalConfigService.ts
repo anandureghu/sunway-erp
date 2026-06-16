@@ -97,6 +97,42 @@ async function getByYear(year: number): Promise<AppraisalConfigResponse | null> 
 }
 
 /**
+ * List all appraisal cycles for a year (the caller's own company cycles plus
+ * any shared/global ones). Supports multiple cycles per year.
+ */
+async function listByYear(year: number): Promise<AppraisalConfigResponse[]> {
+  const res = await apiClient.get<AppraisalConfigResponse[]>(
+    "/appraisal-config/cycles",
+    { params: { year } },
+  );
+  return res.data ?? [];
+}
+
+/**
+ * List all ACTIVE cycles available to assign employees to (own + global).
+ */
+async function listActive(): Promise<AppraisalConfigResponse[]> {
+  const res = await apiClient.get<AppraisalConfigResponse[]>(
+    "/appraisal-config/cycles/active",
+  );
+  return res.data ?? [];
+}
+
+/**
+ * Update an existing cycle by id.
+ */
+async function update(
+  id: number,
+  payload: AppraisalConfigPayload,
+): Promise<AppraisalConfigResponse> {
+  const res = await apiClient.put<AppraisalConfigResponse>(
+    `/appraisal-config/${id}`,
+    payload,
+  );
+  return res.data;
+}
+
+/**
  * Get the active appraisal configuration
  * Returns null if no active config exists
  */
@@ -318,12 +354,15 @@ export const appraisalConfigService = {
   // Getters
   getByYear,
   getActive,
+  listByYear,
+  listActive,
   getByYearAndRole,
   getRolesByYear,
   getKpisForRole,
-  
+
   // Create/Update
   create,
+  update,
   updateByYear,
   save,
   saveDraft,

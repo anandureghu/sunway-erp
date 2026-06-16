@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
@@ -51,6 +51,7 @@ import {
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
 import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel";
 import LoanApprovalPanel from "@/modules/hr/loans/approval/LoanApprovalPanel";
+import HrPoliciesForm from "@/modules/hr/policies/HrPoliciesForm";
 import { jobCodeService } from "@/service/jobCodeService";
 import { hrService } from "@/service/hr.service";
 import { permissionService } from "@/service/permissionService";
@@ -156,16 +157,21 @@ interface Permission {
 }
 
 const HR_MODULES = [
-  { id: "employee_profile", label: "Employee Profile" },
-  { id: "current_job", label: "Current Job" },
-  { id: "salary", label: "Salary" },
-  { id: "leaves", label: "Leaves" },
-  { id: "loans", label: "Loans" },
-  { id: "dependents", label: "Dependents" },
-  { id: "appraisal", label: "Appraisal" },
-  { id: "immigration", label: "Immigration" },
-  { id: "hr_reports", label: "HR Reports" },
-  { id: "hr_settings", label: "HR Settings" },
+  // People
+  { id: "employee_profile", label: "Employee Profile", group: "People", description: "Employee records, profiles & contact info" },
+  { id: "current_job", label: "Current Job", group: "People", description: "Job assignments, designations & transfers" },
+  { id: "dependents", label: "Dependents", group: "People", description: "Family & dependent records" },
+  { id: "immigration", label: "Immigration", group: "People", description: "Passports, visas & residence permits" },
+  // Compensation
+  { id: "salary", label: "Salary", group: "Compensation", description: "Salary structure & compensation records" },
+  { id: "payroll", label: "Payroll", group: "Compensation", description: "Generate payroll, payslips & bank exports" },
+  { id: "loans", label: "Loans", group: "Compensation", description: "Employee loans & repayment schedules" },
+  // Time & Performance
+  { id: "leaves", label: "Leaves", group: "Time & Performance", description: "Leave requests, balances & approvals" },
+  { id: "appraisal", label: "Appraisal", group: "Time & Performance", description: "Performance reviews & appraisal cycles" },
+  // Administration
+  { id: "hr_reports", label: "HR Reports", group: "Administration", description: "HR analytics & exportable reports" },
+  { id: "hr_settings", label: "HR Settings", group: "Administration", description: "Leave types, policies, roles & permissions" },
 ];
 
 const CAPS = [
@@ -1766,44 +1772,57 @@ function PermissionsTab({
                   ))}
                 </div>
 
-                {HR_MODULES.map((mod) => {
+                {HR_MODULES.map((mod, i) => {
                   const normalizedModKey = normalizeModuleKey(mod.id);
                   const all = allModOn(mod.id);
+                  // Render a section header whenever the module group changes
+                  // (HR_MODULES is ordered by group).
+                  const showGroup =
+                    i === 0 || HR_MODULES[i - 1].group !== mod.group;
 
                   return (
-                    <div
-                      key={mod.id}
-                      className="grid grid-cols-[180px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
-                    >
-                      <div className="p-3">
-                        <p className="text-sm font-medium text-slate-900">
-                          {mod.label}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => toggleAllMod(mod.id)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          {all ? "Deselect all" : "Select all"}
-                        </button>
-                      </div>
-                      {CAPS.map((cap) => (
-                        <div
-                          key={cap.key}
-                          className="flex items-center justify-center p-3"
-                        >
-                          <Switch
-                            checked={
-                              permForm.caps?.[normalizedModKey]?.[cap.key] ||
-                              false
-                            }
-                            onCheckedChange={(checked) =>
-                              toggleCap(mod.id, cap.key, checked)
-                            }
-                          />
+                    <Fragment key={mod.id}>
+                      {showGroup && mod.group && (
+                        <div className="bg-slate-50/80 border-b border-slate-200 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          {mod.group}
                         </div>
-                      ))}
-                    </div>
+                      )}
+                      <div className="grid grid-cols-[180px_repeat(6,1fr)] border-b border-slate-100">
+                        <div className="p-3">
+                          <p className="text-sm font-medium text-slate-900">
+                            {mod.label}
+                          </p>
+                          {mod.description && (
+                            <p className="mt-0.5 text-[11px] leading-snug text-slate-400">
+                              {mod.description}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => toggleAllMod(mod.id)}
+                            className="mt-1 text-xs font-medium text-blue-600 hover:text-blue-700"
+                          >
+                            {all ? "Deselect all" : "Select all"}
+                          </button>
+                        </div>
+                        {CAPS.map((cap) => (
+                          <div
+                            key={cap.key}
+                            className="flex items-center justify-center p-3"
+                          >
+                            <Switch
+                              checked={
+                                permForm.caps?.[normalizedModKey]?.[cap.key] ||
+                                false
+                              }
+                              onCheckedChange={(checked) =>
+                                toggleCap(mod.id, cap.key, checked)
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </Fragment>
                   );
                 })}
               </div>
@@ -2024,6 +2043,11 @@ export default function HRSettingsPage() {
       value: "leaves",
       label: "Leave Types",
       element: () => <LeaveCustomizationForm />,
+    },
+    {
+      value: "hr-policies",
+      label: "HR Policies",
+      element: () => <HrPoliciesForm />,
     },
     ...(canApproveLeaves
       ? [

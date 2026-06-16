@@ -22,6 +22,7 @@ type Row = {
   startDate: string;
   endDate: string;
   dateReported: string;
+  returnDate: string;
   leaveBalance: string | number;
   leaveStatus: string;
   totalDays: number;
@@ -61,6 +62,7 @@ function normalizeToArray(data: unknown): Row[] {
       startDate,
       endDate,
       dateReported: r.dateReported || r.date_reported || "",
+      returnDate: r.returnDate || r.return_date || "",
       leaveBalance: r.leaveBalance ?? r.leave_balance ?? "",
       leaveStatus: r.leaveStatus || r.leave_status || "Pending",
       totalDays:
@@ -417,7 +419,8 @@ export default function LeavesHistory() {
                 <Th>Leave Type</Th>
                 <Th>Start Date</Th>
                 <Th>End Date</Th>
-                <Th>Date Reported</Th>
+                <Th>Reporting to Office</Th>
+                <Th>Applied On</Th>
                 <Th center>Days</Th>
                 <Th>Status</Th>
                 <Th center>Document</Th>
@@ -426,7 +429,7 @@ export default function LeavesHistory() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={9} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-3 text-slate-400">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
                       <span className="text-xs font-medium">
@@ -439,7 +442,7 @@ export default function LeavesHistory() {
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={9} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-rose-500">
                       <AlertCircle className="h-8 w-8" />
                       <span className="text-sm font-medium">{error}</span>
@@ -453,7 +456,7 @@ export default function LeavesHistory() {
 
               {!loading && !error && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={9} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-slate-400">
                       <Calendar className="h-8 w-8" />
                       <span className="text-sm font-medium">
@@ -498,6 +501,7 @@ export default function LeavesHistory() {
                       </Td>
                       <Td>{fmt(r.startDate)}</Td>
                       <Td>{fmt(r.endDate)}</Td>
+                      <Td className="text-slate-500">{fmt(r.returnDate)}</Td>
                       <Td className="text-slate-500">{fmt(r.dateReported)}</Td>
                       <Td center>
                         <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">

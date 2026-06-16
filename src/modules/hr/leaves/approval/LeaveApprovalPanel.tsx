@@ -31,6 +31,7 @@ interface PendingLeave {
   startDate: string;
   endDate: string;
   dateReported: string;
+  returnDate: string;
   totalDays: number;
   leaveStatus: "PENDING" | "APPROVED" | "REJECTED";
   includeWeekends?: boolean;
@@ -141,6 +142,7 @@ const normalizeLeaves = (payload: any): PendingLeave[] => {
         startDate: row.startDate ?? row.start_date ?? "",
         endDate: row.endDate ?? row.end_date ?? "",
         dateReported: row.dateReported ?? row.date_reported ?? "",
+        returnDate: row.returnDate ?? row.return_date ?? "",
         totalDays: Number(row.totalDays ?? row.total_days ?? 0),
         leaveStatus: normalizeStatus(row.leaveStatus ?? row.leave_status),
         includeWeekends: Boolean(row.includeWeekends ?? row.include_weekends),
@@ -504,7 +506,8 @@ export default function LeaveApprovalPanel() {
                     "Leave Type",
                     "Period",
                     "Days",
-                    "Reported",
+                    "Returns",
+                    "Applied On",
                     "Document",
                     "Action",
                   ].map((header) => (
@@ -594,6 +597,10 @@ export default function LeaveApprovalPanel() {
                         <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
                           {leave.totalDays}
                         </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {fmt(leave.returnDate)}
                       </td>
 
                       <td className="px-4 py-3 text-xs text-slate-500">
