@@ -416,6 +416,10 @@ export function CreatePurchaseRequisitionForm({
       toast.error("Required delivery date is required.");
       return;
     }
+    if (requiredDeliveryDate < format(new Date(), "yyyy-MM-dd")) {
+      toast.error("Required delivery date cannot be in the past.");
+      return;
+    }
     if (!deliveryWarehouseId) {
       toast.error("Delivery warehouse is required.");
       return;
@@ -645,6 +649,7 @@ export function CreatePurchaseRequisitionForm({
                     id="requiredDeliveryDate"
                     type="date"
                     value={requiredDeliveryDate}
+                    min={format(new Date(), "yyyy-MM-dd")}
                     onChange={(e) => setRequiredDeliveryDate(e.target.value)}
                     required
                   />
