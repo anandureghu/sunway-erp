@@ -1,9 +1,28 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import type { Warehouse } from "./inventory";
-import type {
-  PurchaseOrderItemDTO,
-  PurchaseRequisitionItemDTO,
-} from "@/service/purchaseFlowService";
+
+/** Raw API response shape for a PR line — inlined here to avoid a circular import with purchaseFlowService. */
+type PurchaseRequisitionItemDTO = {
+  itemId: number;
+  itemName?: string | null;
+  requestedQty: number;
+  remarks?: string;
+  actualItemPrice?: number;
+  otherUnitCost?: number;
+  estimatedUnitCost?: number;
+  estimatedTotal?: number;
+};
+
+/** Raw API response shape for a PO line — inlined here to avoid a circular import with purchaseFlowService. */
+type PurchaseOrderItemDTO = {
+  itemId: number;
+  itemName?: string | null;
+  quantity: number;
+  actualItemPrice?: number;
+  otherUnitCost?: number;
+  unitCost: number;
+  lineTotal?: number;
+};
 
 // Supplier Types
 export type Supplier = {
