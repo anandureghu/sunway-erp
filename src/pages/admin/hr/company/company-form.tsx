@@ -25,26 +25,71 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const COUNTRIES = [
-  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia",
-  "Australia", "Austria", "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium",
-  "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria",
-  "Cambodia", "Cameroon", "Canada", "Chile", "China", "Colombia", "Costa Rica",
-  "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Ecuador", "Egypt",
-  "El Salvador", "Estonia", "Ethiopia", "Finland", "France", "Georgia", "Germany",
-  "Ghana", "Greece", "Guatemala", "Honduras", "Hungary", "Iceland", "India",
-  "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan",
-  "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Kyrgyzstan", "Latvia", "Lebanon",
-  "Libya", "Lithuania", "Luxembourg", "Malaysia", "Maldives", "Malta", "Mexico",
-  "Moldova", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Nepal",
-  "Netherlands", "New Zealand", "Nicaragua", "Nigeria", "North Macedonia", "Norway",
-  "Oman", "Pakistan", "Panama", "Paraguay", "Peru", "Philippines", "Poland",
-  "Portugal", "Qatar", "Romania", "Russia", "Saudi Arabia", "Senegal", "Serbia",
-  "Singapore", "Slovakia", "Slovenia", "Somalia", "South Africa", "South Korea",
-  "Spain", "Sri Lanka", "Sudan", "Sweden", "Switzerland", "Syria", "Taiwan",
-  "Tajikistan", "Tanzania", "Thailand", "Tunisia", "Turkey", "Turkmenistan",
-  "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
-  "Uruguay", "Uzbekistan", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe",
+const COUNTRIES: { name: string; flag: string }[] = [
+  { name: "Afghanistan", flag: "🇦🇫" }, { name: "Albania", flag: "🇦🇱" },
+  { name: "Algeria", flag: "🇩🇿" }, { name: "Andorra", flag: "🇦🇩" },
+  { name: "Angola", flag: "🇦🇴" }, { name: "Argentina", flag: "🇦🇷" },
+  { name: "Armenia", flag: "🇦🇲" }, { name: "Australia", flag: "🇦🇺" },
+  { name: "Austria", flag: "🇦🇹" }, { name: "Azerbaijan", flag: "🇦🇿" },
+  { name: "Bahrain", flag: "🇧🇭" }, { name: "Bangladesh", flag: "🇧🇩" },
+  { name: "Belarus", flag: "🇧🇾" }, { name: "Belgium", flag: "🇧🇪" },
+  { name: "Bolivia", flag: "🇧🇴" }, { name: "Bosnia and Herzegovina", flag: "🇧🇦" },
+  { name: "Botswana", flag: "🇧🇼" }, { name: "Brazil", flag: "🇧🇷" },
+  { name: "Brunei", flag: "🇧🇳" }, { name: "Bulgaria", flag: "🇧🇬" },
+  { name: "Cambodia", flag: "🇰🇭" }, { name: "Cameroon", flag: "🇨🇲" },
+  { name: "Canada", flag: "🇨🇦" }, { name: "Chile", flag: "🇨🇱" },
+  { name: "China", flag: "🇨🇳" }, { name: "Colombia", flag: "🇨🇴" },
+  { name: "Costa Rica", flag: "🇨🇷" }, { name: "Croatia", flag: "🇭🇷" },
+  { name: "Cuba", flag: "🇨🇺" }, { name: "Cyprus", flag: "🇨🇾" },
+  { name: "Czech Republic", flag: "🇨🇿" }, { name: "Denmark", flag: "🇩🇰" },
+  { name: "Ecuador", flag: "🇪🇨" }, { name: "Egypt", flag: "🇪🇬" },
+  { name: "El Salvador", flag: "🇸🇻" }, { name: "Estonia", flag: "🇪🇪" },
+  { name: "Ethiopia", flag: "🇪🇹" }, { name: "Finland", flag: "🇫🇮" },
+  { name: "France", flag: "🇫🇷" }, { name: "Georgia", flag: "🇬🇪" },
+  { name: "Germany", flag: "🇩🇪" }, { name: "Ghana", flag: "🇬🇭" },
+  { name: "Greece", flag: "🇬🇷" }, { name: "Guatemala", flag: "🇬🇹" },
+  { name: "Honduras", flag: "🇭🇳" }, { name: "Hungary", flag: "🇭🇺" },
+  { name: "Iceland", flag: "🇮🇸" }, { name: "India", flag: "🇮🇳" },
+  { name: "Indonesia", flag: "🇮🇩" }, { name: "Iran", flag: "🇮🇷" },
+  { name: "Iraq", flag: "🇮🇶" }, { name: "Ireland", flag: "🇮🇪" },
+  { name: "Israel", flag: "🇮🇱" }, { name: "Italy", flag: "🇮🇹" },
+  { name: "Jamaica", flag: "🇯🇲" }, { name: "Japan", flag: "🇯🇵" },
+  { name: "Jordan", flag: "🇯🇴" }, { name: "Kazakhstan", flag: "🇰🇿" },
+  { name: "Kenya", flag: "🇰🇪" }, { name: "Kuwait", flag: "🇰🇼" },
+  { name: "Kyrgyzstan", flag: "🇰🇬" }, { name: "Latvia", flag: "🇱🇻" },
+  { name: "Lebanon", flag: "🇱🇧" }, { name: "Libya", flag: "🇱🇾" },
+  { name: "Lithuania", flag: "🇱🇹" }, { name: "Luxembourg", flag: "🇱🇺" },
+  { name: "Malaysia", flag: "🇲🇾" }, { name: "Maldives", flag: "🇲🇻" },
+  { name: "Malta", flag: "🇲🇹" }, { name: "Mexico", flag: "🇲🇽" },
+  { name: "Moldova", flag: "🇲🇩" }, { name: "Mongolia", flag: "🇲🇳" },
+  { name: "Montenegro", flag: "🇲🇪" }, { name: "Morocco", flag: "🇲🇦" },
+  { name: "Mozambique", flag: "🇲🇿" }, { name: "Myanmar", flag: "🇲🇲" },
+  { name: "Nepal", flag: "🇳🇵" }, { name: "Netherlands", flag: "🇳🇱" },
+  { name: "New Zealand", flag: "🇳🇿" }, { name: "Nicaragua", flag: "🇳🇮" },
+  { name: "Nigeria", flag: "🇳🇬" }, { name: "North Macedonia", flag: "🇲🇰" },
+  { name: "Norway", flag: "🇳🇴" }, { name: "Oman", flag: "🇴🇲" },
+  { name: "Pakistan", flag: "🇵🇰" }, { name: "Panama", flag: "🇵🇦" },
+  { name: "Paraguay", flag: "🇵🇾" }, { name: "Peru", flag: "🇵🇪" },
+  { name: "Philippines", flag: "🇵🇭" }, { name: "Poland", flag: "🇵🇱" },
+  { name: "Portugal", flag: "🇵🇹" }, { name: "Qatar", flag: "🇶🇦" },
+  { name: "Romania", flag: "🇷🇴" }, { name: "Russia", flag: "🇷🇺" },
+  { name: "Saudi Arabia", flag: "🇸🇦" }, { name: "Senegal", flag: "🇸🇳" },
+  { name: "Serbia", flag: "🇷🇸" }, { name: "Singapore", flag: "🇸🇬" },
+  { name: "Slovakia", flag: "🇸🇰" }, { name: "Slovenia", flag: "🇸🇮" },
+  { name: "Somalia", flag: "🇸🇴" }, { name: "South Africa", flag: "🇿🇦" },
+  { name: "South Korea", flag: "🇰🇷" }, { name: "Spain", flag: "🇪🇸" },
+  { name: "Sri Lanka", flag: "🇱🇰" }, { name: "Sudan", flag: "🇸🇩" },
+  { name: "Sweden", flag: "🇸🇪" }, { name: "Switzerland", flag: "🇨🇭" },
+  { name: "Syria", flag: "🇸🇾" }, { name: "Taiwan", flag: "🇹🇼" },
+  { name: "Tajikistan", flag: "🇹🇯" }, { name: "Tanzania", flag: "🇹🇿" },
+  { name: "Thailand", flag: "🇹🇭" }, { name: "Tunisia", flag: "🇹🇳" },
+  { name: "Turkey", flag: "🇹🇷" }, { name: "Turkmenistan", flag: "🇹🇲" },
+  { name: "Uganda", flag: "🇺🇬" }, { name: "Ukraine", flag: "🇺🇦" },
+  { name: "United Arab Emirates", flag: "🇦🇪" }, { name: "United Kingdom", flag: "🇬🇧" },
+  { name: "United States", flag: "🇺🇸" }, { name: "Uruguay", flag: "🇺🇾" },
+  { name: "Uzbekistan", flag: "🇺🇿" }, { name: "Venezuela", flag: "🇻🇪" },
+  { name: "Vietnam", flag: "🇻🇳" }, { name: "Yemen", flag: "🇾🇪" },
+  { name: "Zambia", flag: "🇿🇲" }, { name: "Zimbabwe", flag: "🇿🇼" },
 ];
 
 interface CompanyFormProps {
@@ -347,8 +392,11 @@ export const CompanyForm = ({
                   </FormControl>
                   <SelectContent className="max-h-64">
                     {COUNTRIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
+                      <SelectItem key={c.name} value={c.name}>
+                        <span className="flex items-center gap-2">
+                          <span>{c.flag}</span>
+                          <span>{c.name}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
