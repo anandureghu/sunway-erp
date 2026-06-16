@@ -202,8 +202,7 @@ export const CompanyForm = ({
             )}
           />
 
-          {isEditMode && (
-            <FormField
+          <FormField
               control={form.control}
               name="companyCode"
               render={({ field }) => (
@@ -212,7 +211,7 @@ export const CompanyForm = ({
                   <FormControl>
                     <Input
                       type="string"
-                      placeholder="100"
+                      placeholder="e.g. 100"
                       {...field}
                       onChange={(e) =>
                         field.onChange(
@@ -225,7 +224,6 @@ export const CompanyForm = ({
                 </FormItem>
               )}
             />
-          )}
 
           <FormField
             control={form.control}
