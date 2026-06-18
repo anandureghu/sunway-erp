@@ -42,6 +42,15 @@ type Props = {
   onSaved: (order: PurchaseOrder) => void;
 };
 
+function toSafeDateInput(value?: string | null) {
+  if (!value) return format(new Date(), "yyyy-MM-dd");
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return format(new Date(), "yyyy-MM-dd");
+  }
+  return format(parsed, "yyyy-MM-dd");
+}
+
 export function PurchaseOrderForm({
   mode = "edit",
   initialOrder = null,
@@ -94,11 +103,7 @@ export function PurchaseOrderForm({
   useEffect(() => {
     if (!initialOrder) return;
     setSelectedSupplierId(String(initialOrder.supplierId || ""));
-    setOrderDate(
-      initialOrder.orderDate
-        ? format(new Date(initialOrder.orderDate), "yyyy-MM-dd")
-        : format(new Date(), "yyyy-MM-dd"),
-    );
+    setOrderDate(toSafeDateInput(initialOrder.orderDate));
     setLines(
       (initialOrder.items || []).map((line, idx) => {
         const matchedItem = itemsMaster.find(
@@ -185,13 +190,19 @@ export function PurchaseOrderForm({
       return;
     }
 
+    const zeroQtyIdx = lines.findIndex((l) => !(l.quantity > 0));
+    if (zeroQtyIdx !== -1) {
+      toast.error(`Line item ${zeroQtyIdx + 1} has an invalid quantity. Please enter a value of 1 or more.`);
+      return;
+    }
+
     try {
       setSubmitLoading(true);
       const payload = {
         orderDate,
         items: lines.map((line) => ({
           itemId: Number(line.itemId),
-          quantity: Number(line.quantity),
+          quantity: Math.max(1, Math.round(Number(line.quantity))),
           unitCost: Number(line.unitCost || 0),
           otherUnitCost:
             line.otherUnitCost > 0 ? Number(line.otherUnitCost) : undefined,
@@ -349,9 +360,10 @@ export function PurchaseOrderForm({
                 min="1"
                 step="1"
                 value={lineQty}
-                onChange={(e) =>
-                  setLineQty(parseInt(e.target.value || "0", 10))
-                }
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setLineQty(isNaN(v) ? 1 : Math.max(1, v));
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -411,11 +423,10 @@ export function PurchaseOrderForm({
                             step={1}
                             className="text-right h-9 tabular-nums"
                             value={line.quantity}
-                            onChange={(e) =>
-                              updateLine(line.id, {
-                                quantity: parseInt(e.target.value || "0", 10),
-                              })
-                            }
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              updateLine(line.id, { quantity: isNaN(v) ? 1 : Math.max(1, v) });
+                            }}
                           />
                         </td>
                         <td className="p-3 align-middle">

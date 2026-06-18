@@ -95,6 +95,7 @@ export interface PurchaseRequisitionResponseDTO {
   creditAccountName?: string | null;
   financeTransactionId?: number | null;
   archived?: boolean;
+  totalAmount?: number | null;
   items: PurchaseRequisitionItemDTO[];
   documents?: PurchaseRequisitionDocumentDTO[];
 }
@@ -258,6 +259,7 @@ function toPurchaseRequisition(
       dto.financeTransactionId != null
         ? String(dto.financeTransactionId)
         : undefined,
+    totalAmount: dto.totalAmount != null ? Number(dto.totalAmount) : undefined,
     documents: (dto.documents || []).map(toPurchaseRequisitionDocument),
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",

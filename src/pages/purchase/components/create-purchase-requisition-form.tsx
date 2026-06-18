@@ -214,6 +214,10 @@ export function CreatePurchaseRequisitionForm({
           setDepartmentId(pr.departmentId ?? "");
           setDebitAccountId(pr.debitAccountId ?? "");
           setCreditAccountId(pr.creditAccountId ?? "");
+          // PR already has accounts — don't block edit form even if company defaults are missing
+          if (pr.debitAccountId && pr.creditAccountId) {
+            setPurchaseDefaultsMissing(false);
+          }
           setRequestedDate(toDateInputValue(pr.requestedDate));
           setRequiredDeliveryDate(
             toDateInputValue(
@@ -390,6 +394,7 @@ export function CreatePurchaseRequisitionForm({
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const today = format(new Date(), "yyyy-MM-dd");
     if (!debitAccountId || !creditAccountId) {
       toast.error(
         "Purchase default accounts are not loaded. Configure them under Global Settings → Default Accounts.",
@@ -410,6 +415,10 @@ export function CreatePurchaseRequisitionForm({
     }
     if (!requiredDeliveryDate) {
       toast.error("Required delivery date is required.");
+      return;
+    }
+    if (!isEditMode && requiredDeliveryDate < today) {
+      toast.error("Required delivery date cannot be in the past.");
       return;
     }
     if (!deliveryWarehouseId) {
@@ -454,7 +463,7 @@ export function CreatePurchaseRequisitionForm({
           otherUnitCost?: number;
         } = {
           itemId: Number(item.itemId),
-          requestedQty: Math.round(item.quantity),
+          requestedQty: Math.max(1, Math.round(item.quantity)),
           remarks: (item.notes || notes || "").trim(),
           estimatedUnitCost: applied,
         };
@@ -641,6 +650,7 @@ export function CreatePurchaseRequisitionForm({
                     id="requiredDeliveryDate"
                     type="date"
                     value={requiredDeliveryDate}
+                    min={isEditMode ? undefined : format(new Date(), "yyyy-MM-dd")}
                     onChange={(e) => setRequiredDeliveryDate(e.target.value)}
                     required
                   />
@@ -778,11 +788,11 @@ export function CreatePurchaseRequisitionForm({
                   <Label>Quantity</Label>
                   <Input
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     value={itemQuantity}
                     onChange={(e) =>
-                      setItemQuantity(parseFloat(e.target.value) || 0)
+                      setItemQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))
                     }
                   />
                 </div>
@@ -845,15 +855,16 @@ export function CreatePurchaseRequisitionForm({
                           <td className="p-2 align-middle">
                             <Input
                               type="number"
-                              min={0.01}
-                              step={0.01}
+                              min={1}
+                              step={1}
                               className="text-right h-9 tabular-nums"
                               value={row.quantity}
-                              onChange={(e) =>
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value, 10);
                                 updateRequisitionLine(row.id, {
-                                  quantity: parseFloat(e.target.value) || 0,
-                                })
-                              }
+                                  quantity: isNaN(v) ? 1 : Math.max(1, v),
+                                });
+                              }}
                             />
                           </td>
                           <td className="p-2 text-right align-middle tabular-nums text-muted-foreground">

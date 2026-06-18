@@ -389,6 +389,14 @@ export function CreateSalesOrderForm({
       );
     }
     if (orderItems.length === 0) return toast.error("Add at least one item.");
+
+    const missingWarehouseIdx = orderItems.findIndex((it) => !it.warehouseId);
+    if (missingWarehouseIdx !== -1) {
+      return toast.error(
+        `Line item ${missingWarehouseIdx + 1} is missing a warehouse. Please select one before saving.`,
+      );
+    }
+
     const completeData = {
       ...data,
       items: orderItems.map((item) => ({
@@ -419,7 +427,7 @@ export function CreateSalesOrderForm({
       const payloadItems = orderItems.map((it) => ({
         itemId: Number(it.itemId),
         warehouseId: Number(it.warehouseId),
-        quantity: Math.round(it.quantity),
+        quantity: Math.max(1, Math.round(it.quantity)),
         unitPrice: it.unitPrice,
         discountPercent: it.discountPercent ?? it.discount,
         taxRate: it.taxRate ?? 0,
@@ -626,11 +634,11 @@ export function CreateSalesOrderForm({
                   <Label>Qty</Label>
                   <Input
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     value={itemQuantity}
                     onChange={(e) =>
-                      setItemQuantity(parseFloat(e.target.value) || 0)
+                      setItemQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))
                     }
                   />
                 </div>
@@ -736,15 +744,16 @@ export function CreateSalesOrderForm({
                           <td className="p-3 align-middle">
                             <Input
                               type="number"
-                              min={0.01}
-                              step={0.01}
+                              min={1}
+                              step={1}
                               className="text-right h-9 tabular-nums"
                               value={item.quantity}
-                              onChange={(e) =>
+                              onChange={(e) => {
+                                const v = parseInt(e.target.value, 10);
                                 updateOrderLine(item.id, {
-                                  quantity: parseFloat(e.target.value) || 0,
-                                })
-                              }
+                                  quantity: isNaN(v) ? 1 : Math.max(1, v),
+                                });
+                              }}
                             />
                           </td>
                           <td className="p-3 align-middle">
