@@ -26,7 +26,6 @@ import {
   ChevronDown,
   Settings,
   LayoutDashboard,
-  Split,
   ArrowLeft,
   Building,
   Pin,
@@ -227,7 +226,6 @@ export function AppSidebar() {
             icon: FileText,
           },
           { title: "Department", url: "/admin/department", icon: FileText },
-          { title: "Division", url: "/admin/division", icon: Split },
           {
             title: "Roles",
             url: rolesSettings,

@@ -115,7 +115,6 @@ import HRSettingsPage from "./pages/hr/settings-page";
 import HRReportsPage from "./pages/hr/hr-reports-page";
 import ImmigrationExpiryPage from "./pages/hr/immigration-expiry-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
-import DivisionListPage from "./pages/admin/hr/division/division-list-page";
 import { useEffect } from "react";
 import { setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
@@ -189,7 +188,7 @@ export default function App() {
             <Route path="social-settings" element={<SocialSettingsPage />} />
             <Route path="invoice-settings" element={<Navigate to="/finance/settings?tab=invoice-settings" replace />} />
             <Route path="department" element={<DepartmentListPage />} />
-            <Route path="division" element={<DivisionListPage />} />
+            <Route path="division" element={<Navigate to="/admin/department" replace />} />
             <Route
               path="accounting-period"
               element={<Navigate to="/finance/settings?tab=accounting-period" replace />}
