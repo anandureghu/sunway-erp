@@ -11,6 +11,10 @@ type SystemLogListItemProps = {
 export function SystemLogListItem({ log }: SystemLogListItemProps) {
   const userLabel =
     log.userUsername || log.userEmail || (log.userId != null ? `User #${log.userId}` : null);
+  const requestLabel =
+    log.requestUri != null
+      ? `${log.requestMethod ?? "GET"} ${log.requestUri}`
+      : null;
 
   return (
     <li className="px-4 py-3 hover:bg-muted/30">
@@ -34,6 +38,12 @@ export function SystemLogListItem({ log }: SystemLogListItemProps) {
                 ? format(new Date(log.createdAt), "MMM d, yyyy HH:mm")
                 : "—"}
             </span>
+            {log.companyId != null && (
+              <>
+                <span aria-hidden>·</span>
+                <span>Company #{log.companyId}</span>
+              </>
+            )}
             {userLabel && (
               <>
                 <span aria-hidden>·</span>
@@ -43,6 +53,14 @@ export function SystemLogListItem({ log }: SystemLogListItemProps) {
               </>
             )}
           </div>
+          {requestLabel ? (
+            <p
+              className="text-xs font-mono text-slate-600 truncate"
+              title={requestLabel}
+            >
+              {requestLabel}
+            </p>
+          ) : null}
           <p className="text-sm text-slate-900 line-clamp-2">{log.message}</p>
         </div>
         <Link
