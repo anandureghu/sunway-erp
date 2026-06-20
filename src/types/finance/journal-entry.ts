@@ -29,4 +29,9 @@ export interface JournalEntry {
 
   createdByName: string | null;
   approvedByName: string | null;
+
+  archived?: boolean;
+  archivedAt?: string | null;
+  archivedById?: number | null;
+  archivedByName?: string | null;
 }

@@ -8,11 +8,17 @@ import { ReceiptText } from "lucide-react";
 import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
 import type { TransactionResponseDTO } from "@/types/transactions";
 import { GlTabPanel } from "@/components/finance/gl-tab-panel";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+
+type TransactionListTab = "active" | "archived";
 
 export default function TransactionPage({ companyId }: { companyId: number }) {
   const [txList, setTxList] = useState<TransactionResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [listTab, setListTab] = useState<TransactionListTab>("active");
+  const [archivingId, setArchivingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -57,14 +63,62 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
     }
   };
 
-  const columns = TRANSACTION_COLUMNS({
-    onSourceSave: handleSourceSave,
-  });
+  const handleArchive = useCallback(
+    async (tx: TransactionResponseDTO) => {
+      if (tx.archived) {
+        toast.error("Transaction is already archived.");
+        return;
+      }
+      const label = tx.transactionCode ?? `#${tx.id}`;
+      if (!confirm(`Archive transaction ${label}?`)) return;
+      setArchivingId(tx.id);
+      try {
+        const res = await apiClient.post<TransactionResponseDTO>(
+          `/finance/transactions/${tx.id}/archive`,
+        );
+        setTxList((prev) =>
+          prev.map((row) => (row.id === tx.id ? res.data : row)),
+        );
+        toast.success("Transaction archived");
+      } catch (err: unknown) {
+        const ax = err as { response?: { data?: { message?: string } } };
+        toast.error(
+          ax?.response?.data?.message ||
+            (err instanceof Error ? err.message : "Failed to archive transaction"),
+        );
+      } finally {
+        setArchivingId(null);
+      }
+    },
+    [],
+  );
+
+  const columns = useMemo(
+    () =>
+      TRANSACTION_COLUMNS({
+        onSourceSave: handleSourceSave,
+        onArchive: listTab === "active" ? handleArchive : undefined,
+        archivingId,
+      }),
+    [archivingId, handleArchive, listTab],
+  );
+
+  const activeCount = useMemo(
+    () => txList.filter((tx) => !tx.archived).length,
+    [txList],
+  );
+  const archivedCount = useMemo(
+    () => txList.filter((tx) => tx.archived).length,
+    [txList],
+  );
 
   const filteredTx = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return txList;
     return txList.filter((tx) => {
+      const matchesTab =
+        listTab === "archived" ? Boolean(tx.archived) : !tx.archived;
+      if (!matchesTab) return false;
+      if (!q) return true;
       const haystack = [
         tx.transactionCode,
         tx.transactionType,
@@ -79,7 +133,7 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [txList, searchQuery]);
+  }, [txList, searchQuery, listTab]);
 
   return (
     <GlTabPanel
@@ -90,6 +144,27 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
       onSearchChange={setSearchQuery}
       loading={loading}
       loadingMessage="Loading transactions…"
+      toolbarExtra={
+        <Tabs
+          value={listTab}
+          onValueChange={(value) => setListTab(value as TransactionListTab)}
+        >
+          <TabsList>
+            <TabsTrigger value="active" className="gap-2">
+              Active
+              <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
+                {activeCount}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="archived" className="gap-2">
+              Archived
+              <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
+                {archivedCount}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      }
     >
       <DataTable data={filteredTx} columns={columns} />
     </GlTabPanel>

@@ -4,7 +4,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/lib/status-badge";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Archive, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,11 +21,15 @@ export const JOURNAL_ENTRY_COLUMNS = ({
   onApprove,
   onReject,
   onHold,
+  onArchive,
+  archivingId,
 }: {
   onEdit: (entry: JournalEntry) => void;
   onApprove: (entry: JournalEntry) => void;
   onReject: (entry: JournalEntry) => void;
   onHold: (entry: JournalEntry) => void;
+  onArchive?: (entry: JournalEntry) => void;
+  archivingId?: number | null;
 }): ColumnDef<JournalEntry>[] => [
   { accessorKey: "jeNumber", header: "JE No" },
   {
@@ -98,7 +102,8 @@ export const JOURNAL_ENTRY_COLUMNS = ({
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
             {(entry.status === "PENDING_APPROVAL" ||
-              entry.status === "ON_HOLD") && (
+              entry.status === "ON_HOLD") &&
+              !entry.archived && (
               <DropdownMenuItem onClick={() => onEdit(entry)}>
                 Edit
               </DropdownMenuItem>
@@ -118,6 +123,33 @@ export const JOURNAL_ENTRY_COLUMNS = ({
                   Hold
                 </DropdownMenuItem>
               </>
+            )}
+
+            {!entry.archived &&
+              entry.status !== "PENDING_APPROVAL" &&
+              onArchive && (
+                <DropdownMenuItem
+                  disabled={archivingId === entry.id}
+                  onClick={() => onArchive(entry)}
+                >
+                  {archivingId === entry.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Archiving…
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="mr-2 h-4 w-4" />
+                      Archive
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
+
+            {entry.archived && (
+              <DropdownMenuItem disabled className="text-muted-foreground">
+                Archived
+              </DropdownMenuItem>
             )}
 
             <DropdownMenuSeparator />

@@ -1,6 +1,6 @@
 // src/pages/admin/finance/JournalEntryListPage.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,11 @@ import { JournalEntryDialog } from "@/modules/finance/journal-entry/je-dialog";
 import type { JournalEntry } from "@/types/finance/journal-entry";
 import { BookOpen, Plus } from "lucide-react";
 import { GlTabPanel } from "@/components/finance/gl-tab-panel";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+type JournalListTab = "active" | "archived";
 
 export default function JournalEntryListPage() {
   const [data, setData] = useState<JournalEntry[]>([]);
@@ -16,35 +21,76 @@ export default function JournalEntryListPage() {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<JournalEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [listTab, setListTab] = useState<JournalListTab>("active");
+  const [archivingId, setArchivingId] = useState<number | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (archived: boolean) => {
     try {
-      const res = await apiClient.get("/finance/journal-entries");
+      setLoading(true);
+      const res = await apiClient.get("/finance/journal-entries", {
+        params: { archived, size: 500 },
+      });
       setData(res.data.content ?? res.data);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchData(listTab === "archived");
+  }, [fetchData, listTab]);
 
   const handleApprove = async (entry: JournalEntry) => {
     await apiClient.put(`/finance/journal-entries/${entry.id}/approve`);
-    fetchData();
+    await fetchData(listTab === "archived");
   };
 
   const handleReject = async (entry: JournalEntry) => {
     await apiClient.put(`/finance/journal-entries/${entry.id}/reject`);
-    fetchData();
+    await fetchData(listTab === "archived");
   };
 
   const handleHold = async (entry: JournalEntry) => {
     await apiClient.put(`/finance/journal-entries/${entry.id}/hold`);
-    fetchData();
+    await fetchData(listTab === "archived");
   };
 
   const handleEdit = (entry: JournalEntry) => {
     setSelected(entry);
     setOpen(true);
   };
+
+  const handleArchive = useCallback(
+    async (entry: JournalEntry) => {
+      if (entry.archived) {
+        toast.error("Journal entry is already archived.");
+        return;
+      }
+      if (entry.status === "PENDING_APPROVAL") {
+        toast.error("Approve, reject, or hold this entry before archiving.");
+        return;
+      }
+      const label = entry.jeNumber ?? `#${entry.id}`;
+      if (!confirm(`Archive journal entry ${label}?`)) return;
+      setArchivingId(entry.id);
+      try {
+        await apiClient.post(`/finance/journal-entries/${entry.id}/archive`);
+        toast.success("Journal entry archived");
+        await fetchData(listTab === "archived");
+      } catch (err: unknown) {
+        const ax = err as { response?: { data?: { message?: string } } };
+        toast.error(
+          ax?.response?.data?.message ||
+            (err instanceof Error
+              ? err.message
+              : "Failed to archive journal entry"),
+        );
+      } finally {
+        setArchivingId(null);
+      }
+    },
+    [fetchData, listTab],
+  );
 
   const handleSuccess = (updated: JournalEntry, mode: "add" | "edit") => {
     if (mode === "add") {
@@ -61,11 +107,9 @@ export default function JournalEntryListPage() {
     onApprove: handleApprove,
     onReject: handleReject,
     onHold: handleHold,
+    onArchive: listTab === "active" ? handleArchive : undefined,
+    archivingId,
   });
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -89,17 +133,37 @@ export default function JournalEntryListPage() {
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         loading={loading}
-        actions={
-          <Button
-            onClick={() => {
-              setSelected(null);
-              setOpen(true);
-            }}
-            className="rounded-lg bg-indigo-600 hover:bg-indigo-700"
+        toolbarExtra={
+          <Tabs
+            value={listTab}
+            onValueChange={(value) => setListTab(value as JournalListTab)}
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Add journal entry
-          </Button>
+            <TabsList>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="archived" className="gap-2">
+                Archived
+                {listTab === "archived" ? (
+                  <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
+                    {filtered.length}
+                  </Badge>
+                ) : null}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
+        actions={
+          listTab === "active" ? (
+            <Button
+              onClick={() => {
+                setSelected(null);
+                setOpen(true);
+              }}
+              className="rounded-lg bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add journal entry
+            </Button>
+          ) : undefined
         }
       >
         <DataTable columns={columns} data={filtered} />

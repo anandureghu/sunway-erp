@@ -28,6 +28,11 @@ export interface TransactionResponseDTO {
   /** UNKNOWN until user sets a concrete value (one-time). */
   source?: string | null;
   sourceLocked?: boolean;
+
+  archived?: boolean;
+  archivedAt?: string | null;
+  archivedByUserId?: number | null;
+  archivedByUserName?: string | null;
 }
 
 export interface CreateTransactionDTO {
