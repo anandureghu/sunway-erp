@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import type { Company } from "@/types/company";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { FileText } from "lucide-react";
 
 const SCHEMA = z.object({
@@ -31,7 +32,11 @@ type FormData = z.infer<typeof SCHEMA>;
 const toStr = (x: number | string | null | undefined) =>
   x != null && x !== "" ? String(x) : "";
 
-export default function TaxSettingsPage() {
+export default function TaxSettingsPage({
+  financeSettings,
+}: {
+  financeSettings?: boolean;
+}) {
   const { user } = useAuth();
   const companyId = user?.companyId ? Number(user.companyId) : 0;
   const [loading, setLoading] = useState(true);
@@ -131,13 +136,21 @@ export default function TaxSettingsPage() {
     );
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Tax Settings"
-        description="Configure company tax behavior and tax footer line for invoices."
-        variant="darkBlue"
-        icon={<FileText className="w-6 h-6" />}
-      />
+    <div className={financeSettings ? "space-y-6" : "p-6 space-y-6"}>
+      {financeSettings ? (
+        <SecondaryPageHeader
+          title="Tax Settings"
+          description="Configure company tax behavior and tax footer line for invoices."
+          icon={<FileText className="h-5 w-5" />}
+        />
+      ) : (
+        <PageHeader
+          title="Tax Settings"
+          description="Configure company tax behavior and tax footer line for invoices."
+          variant="darkBlue"
+          icon={<FileText className="w-6 h-6" />}
+        />
+      )}
 
       <Card>
         <CardHeader>

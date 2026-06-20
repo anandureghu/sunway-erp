@@ -210,7 +210,7 @@ function PayrollAccountStatusCard({
         <p className="text-xs text-amber-800">
           Set the payroll debit account under{" "}
           <Link
-            to="/admin/default-accounts"
+            to="/finance/settings?tab=default-accounts"
             className="font-semibold underline"
           >
             Default Accounts

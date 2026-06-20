@@ -497,7 +497,7 @@ export function CreateSalesOrderForm({
               Settings before creating sales orders.
             </p>
             <Button asChild variant="secondary" className="w-full sm:w-auto">
-              <Link to="/admin/default-accounts">
+              <Link to="/finance/settings?tab=default-accounts">
                 Open Default Accounts (Global Settings)
               </Link>
             </Button>

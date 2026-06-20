@@ -12,7 +12,13 @@ import { toast } from "sonner";
 import { AccountPeriodDialog } from "./accounting-period-dialog";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
-export default function AccountingPeriodPage() {
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+
+export default function AccountingPeriodPage({
+  financeSettings,
+}: {
+  financeSettings?: boolean;
+}) {
   const [accountingPeriods, setAccountingPeriods] = useState<
     AccountingPeriod[]
   >([]);
@@ -73,13 +79,21 @@ export default function AccountingPeriodPage() {
     return <p className="text-center text-muted-foreground p-10">Loading...</p>;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Accounting Periods"
-        description="Manage your accounting periods"
-        variant="darkBlue"
-        icon={<Calendar className="w-6 h-6" />}
-      />
+    <div className={financeSettings ? "space-y-6" : "p-6 space-y-6"}>
+      {financeSettings ? (
+        <SecondaryPageHeader
+          title="Accounting Periods"
+          description="Manage your accounting periods"
+          icon={<Calendar className="h-5 w-5" />}
+        />
+      ) : (
+        <PageHeader
+          title="Accounting Periods"
+          description="Manage your accounting periods"
+          variant="darkBlue"
+          icon={<Calendar className="w-6 h-6" />}
+        />
+      )}
 
       <Card>
         <CardHeader>

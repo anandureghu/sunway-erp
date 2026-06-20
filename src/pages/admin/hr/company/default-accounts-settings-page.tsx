@@ -36,6 +36,7 @@ import {
 import { toast } from "sonner";
 import { Banknote } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 const SCHEMA = z.object({
   defaultSalesDebitAccountId: z.string().optional(),
@@ -69,7 +70,11 @@ function optNum(s?: string) {
   return s != null && String(s).trim() !== "" ? Number(s) : undefined;
 }
 
-export default function DefaultAccountsSettingsPage() {
+export default function DefaultAccountsSettingsPage({
+  financeSettings,
+}: {
+  financeSettings?: boolean;
+}) {
   const { user } = useAuth();
   const companyId = user?.companyId ? Number(user.companyId) : 0;
 
@@ -233,19 +238,30 @@ export default function DefaultAccountsSettingsPage() {
     );
   }
 
+  const saveButton = (
+    <Button type="submit" form="default-accounts-form" disabled={saving}>
+      {saving ? "Saving…" : "Save"}
+    </Button>
+  );
+
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Default accounts"
-        description="Configure GL defaults for sales, purchases, payroll, and other business processes. Sales and purchase values pre-fill orders and requisitions; process defaults auto-fill manual journal entries, stock variance posting, and payroll GL entries."
-        variant="darkBlue"
-        icon={<Banknote className="w-6 h-6" />}
-        actions={
-          <Button type="submit" form="default-accounts-form" disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
-        }
-      />
+    <div className={financeSettings ? "space-y-6" : "p-6 space-y-6"}>
+      {financeSettings ? (
+        <SecondaryPageHeader
+          title="Default accounts"
+          description="Configure GL defaults for sales, purchases, payroll, and other business processes."
+          icon={<Banknote className="h-5 w-5" />}
+          actions={saveButton}
+        />
+      ) : (
+        <PageHeader
+          title="Default accounts"
+          description="Configure GL defaults for sales, purchases, payroll, and other business processes. Sales and purchase values pre-fill orders and requisitions; process defaults auto-fill manual journal entries, stock variance posting, and payroll GL entries."
+          variant="darkBlue"
+          icon={<Banknote className="w-6 h-6" />}
+          actions={saveButton}
+        />
+      )}
 
       <Form {...form}>
         <form

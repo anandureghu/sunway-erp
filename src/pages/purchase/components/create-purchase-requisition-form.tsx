@@ -601,7 +601,7 @@ export function CreatePurchaseRequisitionForm({
               before creating purchase requisitions.
             </p>
             <Button asChild variant="secondary">
-              <Link to="/admin/default-accounts">
+              <Link to="/finance/settings?tab=default-accounts">
                 Open Default Accounts (Global Settings)
               </Link>
             </Button>

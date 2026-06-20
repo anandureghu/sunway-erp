@@ -20,6 +20,8 @@ interface AppTabProps<
   title?: string;
   tabs: TabItem<TProps>[];
   defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
   props?: TProps;
   className?: string;
   subtitle?: string;
@@ -32,6 +34,8 @@ export const AppTab = <TProps extends Record<string, unknown>>({
   title,
   tabs,
   defaultValue,
+  value,
+  onValueChange,
   props,
   className,
   subtitle,
@@ -84,7 +88,9 @@ export const AppTab = <TProps extends Record<string, unknown>>({
       )}
 
       <Tabs
-        defaultValue={defaultValue ?? tabs[0]?.value}
+        {...(value != null
+          ? { value, onValueChange }
+          : { defaultValue: defaultValue ?? tabs[0]?.value })}
         className="w-full pt-2"
       >
         <div className="w-full overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
