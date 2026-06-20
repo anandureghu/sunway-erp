@@ -5,6 +5,7 @@ import { Shield, Plus, Edit2, Trash2, Save, Check } from "lucide-react";
 import { roleService } from "@/service/roleService";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -209,7 +210,13 @@ function RoleCard({
 }
 
 // ─── Roles Tab Content ────────────────────────────────────────────────────
-function RolesTab({ companyId }: { companyId: string }) {
+function RolesTab({
+  companyId,
+  hrSettings,
+}: {
+  companyId: string;
+  hrSettings?: boolean;
+}) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<null | "add" | { edit: Role }>(null);
@@ -308,18 +315,32 @@ function RolesTab({ companyId }: { companyId: string }) {
 
   return (
     <div className="space-y-6 w-full">
-      <PageHeader
-        title="Company Roles"
-        description="Create and manage roles for your company"
-        variant="darkBlue"
-        icon={<Shield className="w-6 h-6" />}
-        actions={
-          <PrimaryBtn onClick={openAdd}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Create Role
-          </PrimaryBtn>
-        }
-      />
+      {hrSettings ? (
+        <SecondaryPageHeader
+          title="Company Roles"
+          description="Create and manage roles for your company"
+          icon={<Shield className="h-5 w-5" />}
+          actions={
+            <PrimaryBtn onClick={openAdd}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              Create Role
+            </PrimaryBtn>
+          }
+        />
+      ) : (
+        <PageHeader
+          title="Company Roles"
+          description="Create and manage roles for your company"
+          variant="darkBlue"
+          icon={<Shield className="w-6 h-6" />}
+          actions={
+            <PrimaryBtn onClick={openAdd}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              Create Role
+            </PrimaryBtn>
+          }
+        />
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -461,16 +482,20 @@ function RolesTab({ companyId }: { companyId: string }) {
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
-export default function SettingsRolesPage() {
+export default function SettingsRolesPage({
+  hrSettings,
+}: {
+  hrSettings?: boolean;
+}) {
   const { id } = useParams<{ id: string }>();
-  const { company } = useAuth();
+  const { company, user } = useAuth();
 
-  const companyId = id || company?.id?.toString() || "";
+  const companyId =
+    id || company?.id?.toString() || user?.companyId?.toString() || "";
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans p-6">
-      {/* Content */}
-      <RolesTab companyId={companyId} />
+    <div className={hrSettings ? "space-y-6" : "min-h-screen bg-slate-50 font-sans p-6"}>
+      <RolesTab companyId={companyId} hrSettings={hrSettings} />
     </div>
   );
 }

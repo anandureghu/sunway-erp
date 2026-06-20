@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import type { Company } from "@/types/company";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { Mail } from "lucide-react";
 import { OPTIONAL_EMAIL } from "@/schema/email";
 import { normalizeEmail } from "@/lib/email";
@@ -31,7 +32,11 @@ const SCHEMA = z.object({
 
 type FormData = z.infer<typeof SCHEMA>;
 
-export default function SocialSettingsPage() {
+export default function SocialSettingsPage({
+  hrSettings,
+}: {
+  hrSettings?: boolean;
+}) {
   const { user } = useAuth();
   const companyId = user?.companyId ? Number(user.companyId) : 0;
   const role = (user?.role || "").toUpperCase();
@@ -141,13 +146,21 @@ export default function SocialSettingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Social Settings"
-        description="Manage company social and email details used across invoices"
-        variant="darkBlue"
-        icon={<Mail className="w-6 h-6" />}
-      />
+    <div className={hrSettings ? "space-y-6" : "p-6 space-y-6"}>
+      {hrSettings ? (
+        <SecondaryPageHeader
+          title="Social Settings"
+          description="Manage company social and email details used across invoices"
+          icon={<Mail className="h-5 w-5" />}
+        />
+      ) : (
+        <PageHeader
+          title="Social Settings"
+          description="Manage company social and email details used across invoices"
+          variant="darkBlue"
+          icon={<Mail className="w-6 h-6" />}
+        />
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Email and website details</CardTitle>

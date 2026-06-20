@@ -29,7 +29,6 @@ import { PermissionProtectedRoute as PrivateRoute } from "./components/protected
 import { useAppDispatch } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
 import Payroll from "./pages/finance/payroll";
-import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
 import CompanyDetailPage from "./pages/hr/company-detail-page";
 import CustomersPage from "./pages/admin/customers/customers-page";
 import CustomerDetailPage from "./pages/admin/customers/customer-detail-page";
@@ -118,8 +117,6 @@ import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-
 import { useEffect } from "react";
 import { setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
-import SettingsRolesPage from "@/pages/settings/settings-role-page";
-import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
 import { ErrorBoundary } from "./components/error-boundary";
 import PublicInvoicePage from "./pages/public/public-invoice-page";
 
@@ -173,7 +170,10 @@ export default function App() {
             element={<Navigate to="/finance/payroll" replace />}
           />
           <Route path="settings/:id" element={<SettingsPage />} />
-          <Route path="settings/roles/:id" element={<SettingsRolesPage />} />
+          <Route
+            path="settings/roles/:id"
+            element={<Navigate to="/hr/settings?tab=roles" replace />}
+          />
 
           {/* Admin */}
           <Route path="admin">
@@ -184,10 +184,10 @@ export default function App() {
               element={<Navigate to="/finance/settings?tab=default-accounts" replace />}
             />
             <Route path="tax-settings" element={<Navigate to="/finance/settings?tab=tax-settings" replace />} />
-            <Route path="social-settings" element={<SocialSettingsPage />} />
+            <Route path="social-settings" element={<Navigate to="/hr/settings?tab=social" replace />} />
             <Route path="invoice-settings" element={<Navigate to="/finance/settings?tab=invoice-settings" replace />} />
-            <Route path="department" element={<DepartmentListPage />} />
-            <Route path="division" element={<Navigate to="/admin/department" replace />} />
+            <Route path="department" element={<Navigate to="/hr/settings?tab=department" replace />} />
+            <Route path="division" element={<Navigate to="/hr/settings?tab=department" replace />} />
             <Route
               path="accounting-period"
               element={<Navigate to="/finance/settings?tab=accounting-period" replace />}

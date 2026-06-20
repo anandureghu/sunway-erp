@@ -22,7 +22,6 @@ import {
 } from "@radix-ui/react-collapsible";
 import {
   Home,
-  FileText,
   ChevronDown,
   Settings,
   LayoutDashboard,
@@ -200,7 +199,6 @@ export function AppSidebar() {
   const globalSettings = useMemo(() => {
     const cid = activeCompanyId;
     const settingsRoot = cid != null ? `/settings/${cid}` : null;
-    const rolesSettings = cid != null ? `/settings/roles/${cid}` : null;
 
     return [
       {
@@ -211,17 +209,6 @@ export function AppSidebar() {
           {
             title: "Company",
             url: settingsRoot,
-            icon: Building,
-          },
-          {
-            title: "Social",
-            url: "/admin/social-settings",
-            icon: FileText,
-          },
-          { title: "Department", url: "/admin/department", icon: FileText },
-          {
-            title: "Roles",
-            url: rolesSettings,
             icon: Building,
           },
         ],

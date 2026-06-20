@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, Fragment } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
 import { leaveService } from "@/service/leaveService";
@@ -62,6 +62,9 @@ import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 import { AppTab } from "@/components/app-tab";
 import { PageHeader } from "@/components/PageHeader";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
+import DepartmentListPage from "@/pages/admin/hr/department/department-list-page";
+import SettingsRolesPage from "@/pages/settings/settings-role-page";
 
 /* ───────────────────────────────────────────────────────────────────────────
    Shared styles + helpers for the Job Code modal.
@@ -1971,6 +1974,7 @@ export type TabId = (typeof TABS)[number]["id"];
 
 export default function HRSettingsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, permissions, permissionsLoading } = useAuth();
   const [jobs, setJobs] = useState<JobCode[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -2072,6 +2076,21 @@ export default function HRSettingsPage() {
       label: "Job Codes",
       element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} />,
     },
+    {
+      value: "social",
+      label: "Social",
+      element: () => <SocialSettingsPage hrSettings />,
+    },
+    {
+      value: "department",
+      label: "Department",
+      element: () => <DepartmentListPage hrSettings />,
+    },
+    {
+      value: "roles",
+      label: "Roles",
+      element: () => <SettingsRolesPage hrSettings />,
+    },
     // Permissions is system-security config — restrict to ADMIN/SUPER_ADMIN.
     // HR Manager keeps HR_SETTINGS for operational tabs but should not be
     // able to escalate by editing permission grants.
@@ -2087,15 +2106,28 @@ export default function HRSettingsPage() {
     { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
   ];
 
+  const tabParam = searchParams.get("tab");
+  const tabValues = tabsList.map((tab) => tab.value);
+  const activeTab =
+    tabParam && tabValues.includes(tabParam) ? tabParam : "leaves";
+
+  const handleTabChange = (value: string) => {
+    setSearchParams(value === "leaves" ? {} : { tab: value }, { replace: true });
+  };
+
   return (
     <div className="p-6 bg-slate-50/60 min-h-screen">
       <PageHeader
         title="HR Settings"
-        description="Manage leave policies, job codes, permissions, and appraisal"
+        description="Manage leave policies, org structure, roles, permissions, and appraisal"
         variant="default"
         icon={<Building className="w-6 h-6" />}
       />
-      <AppTab tabs={tabsList} defaultValue="leaves" />
+      <AppTab
+        tabs={tabsList}
+        value={activeTab}
+        onValueChange={handleTabChange}
+      />
     </div>
   );
 }
