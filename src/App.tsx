@@ -119,7 +119,6 @@ import { useEffect } from "react";
 import { setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
-import SettingsPayrollPage from "@/pages/settings/settings-payroll-page";
 import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
 import { ErrorBoundary } from "./components/error-boundary";
 import PublicInvoicePage from "./pages/public/public-invoice-page";
@@ -171,7 +170,7 @@ export default function App() {
 
           <Route
             path="settings/payroll/:id"
-            element={<SettingsPayrollPage />}
+            element={<Navigate to="/finance/payroll" replace />}
           />
           <Route path="settings/:id" element={<SettingsPage />} />
           <Route path="settings/roles/:id" element={<SettingsRolesPage />} />

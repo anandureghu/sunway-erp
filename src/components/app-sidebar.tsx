@@ -32,7 +32,6 @@ import {
   PinOff,
   ScrollText,
   Shield,
-  Wallet,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -201,7 +200,6 @@ export function AppSidebar() {
   const globalSettings = useMemo(() => {
     const cid = activeCompanyId;
     const settingsRoot = cid != null ? `/settings/${cid}` : null;
-    const payrollSettings = cid != null ? `/settings/payroll/${cid}` : null;
     const rolesSettings = cid != null ? `/settings/roles/${cid}` : null;
 
     return [
@@ -214,11 +212,6 @@ export function AppSidebar() {
             title: "Company",
             url: settingsRoot,
             icon: Building,
-          },
-          {
-            title: "Payroll",
-            url: payrollSettings,
-            icon: Wallet,
           },
           {
             title: "Social",
