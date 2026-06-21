@@ -35,6 +35,18 @@ const TAB_VALUES = [
 
 type FinanceSettingsTab = (typeof TAB_VALUES)[number];
 
+const TAB_VALUES = [
+  "vendors",
+  "accounting-period",
+  "bank-accounts",
+  "default-accounts",
+  "tax-settings",
+  "invoice-settings",
+  "permissions",
+] as const;
+
+type FinanceSettingsTab = (typeof TAB_VALUES)[number];
+
 const FinanceSettingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, permissions } = useAuth();
