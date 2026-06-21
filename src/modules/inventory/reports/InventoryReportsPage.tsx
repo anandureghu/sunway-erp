@@ -187,23 +187,35 @@ export default function InventoryReportsPage() {
   }, [warehouseId, categoryId, categories]);
 
   const loadBaseline = useCallback(async () => {
-    try {
-      const [wh, cat, it, ord] = await Promise.all([
-        listWarehouses(),
-        listCategories(),
-        listItems(),
-        listSalesOrders(),
-      ]);
-      setWarehouses(wh);
-      setCategories(cat);
-      setItems(it);
-      setOrders(ord);
-    } catch (e: unknown) {
-      console.error(e);
-      toast.error("Could not load warehouses, categories, or sales data.");
-    } finally {
-      setOrdersLoading(false);
+    // Load each source independently so a permission a user lacks (e.g. only
+    // INVENTORY_SALES granted, not WAREHOUSE/CATEGORY) doesn't blank the whole
+    // report — the accessible parts still populate.
+    const [whR, catR, itR, ordR] = await Promise.allSettled([
+      listWarehouses(),
+      listCategories(),
+      listItems(),
+      listSalesOrders(),
+    ]);
+
+    if (whR.status === "fulfilled") setWarehouses(whR.value);
+    if (catR.status === "fulfilled") setCategories(catR.value);
+    if (itR.status === "fulfilled") setItems(itR.value);
+    if (ordR.status === "fulfilled") setOrders(ordR.value);
+
+    const failures = [whR, catR, itR, ordR].filter(
+      (r): r is PromiseRejectedResult => r.status === "rejected",
+    );
+    if (failures.length === 4) {
+      // Nothing loaded — likely no inventory access at all.
+      toast.error("Could not load inventory data. Check your permissions.");
+    } else {
+      // Partial failures usually mean the user wasn't granted that sub-module;
+      // log them but don't block the report.
+      failures.forEach((r) =>
+        console.warn("Inventory report source unavailable:", r.reason),
+      );
     }
+    setOrdersLoading(false);
   }, []);
 
   const loadSummary = useCallback(async () => {

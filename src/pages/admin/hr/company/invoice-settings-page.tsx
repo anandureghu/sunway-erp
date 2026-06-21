@@ -6,8 +6,13 @@ import type { Company } from "@/types/company";
 import { InvoiceBrandingSettingsCard } from "./invoice-branding-settings-card";
 import { Receipt } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
-export default function InvoiceSettingsPage() {
+export default function InvoiceSettingsPage({
+  financeSettings,
+}: {
+  financeSettings?: boolean;
+}) {
   const { user } = useAuth();
   const companyId = user?.companyId ? Number(user.companyId) : 0;
   const [loading, setLoading] = useState(true);
@@ -44,13 +49,21 @@ export default function InvoiceSettingsPage() {
     );
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Invoice Settings"
-        description="Configure invoice-specific text branding and QR toggle behavior."
-        variant="darkBlue"
-        icon={<Receipt className="w-6 h-6" />}
-      />
+    <div className={financeSettings ? "space-y-6" : "p-6 space-y-6"}>
+      {financeSettings ? (
+        <SecondaryPageHeader
+          title="Invoice Settings"
+          description="Configure invoice-specific text branding and QR toggle behavior."
+          icon={<Receipt className="h-5 w-5" />}
+        />
+      ) : (
+        <PageHeader
+          title="Invoice Settings"
+          description="Configure invoice-specific text branding and QR toggle behavior."
+          variant="darkBlue"
+          icon={<Receipt className="w-6 h-6" />}
+        />
+      )}
 
       <InvoiceBrandingSettingsCard
         company={company}

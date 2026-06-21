@@ -14,12 +14,15 @@ import {
   Loader2,
   RefreshCw,
   Search,
+  ThumbsDown,
   ThumbsUp,
   Users,
+  XCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Employee } from "@/types/hr";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 
 interface PendingLeave {
   id: number;
@@ -161,9 +164,11 @@ export default function LeaveApprovalPanel() {
   const [pending, setPending] = useState<PendingLeave[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
   const [justApproved, setJustApproved] = useState<Set<number>>(new Set());
+  const [justRejected, setJustRejected] = useState<Set<number>>(new Set());
 
   // Ask the backend the same question it asks itself in canActAsApprover —
   // either LEAVES.APPROVE permission OR being the dept manager of your own
@@ -281,6 +286,46 @@ export default function LeaveApprovalPanel() {
     }
   };
 
+  const handleReject = async (leave: PendingLeave) => {
+    const employeeId = Number(leave.employeeId);
+    const leaveId = Number(leave.leaveId);
+
+    if (!Number.isFinite(employeeId) || employeeId <= 0) {
+      toast.error("Cannot reject: invalid employee id");
+      return;
+    }
+
+    if (!Number.isFinite(leaveId) || leaveId <= 0) {
+      toast.error("Cannot reject: invalid leave id");
+      return;
+    }
+
+    setRejectingId(leave.id);
+
+    try {
+      const res = await leaveService.rejectLeave(leaveId);
+
+      if (!res.success) {
+        toast.error(res.message || "Failed to reject leave");
+        return;
+      }
+
+      toast.success(`Leave rejected for ${leave.employeeName}`);
+      setJustRejected((prev) => new Set(prev).add(leave.id));
+
+      setTimeout(() => {
+        setPending((prev) => prev.filter((item) => item.id !== leave.id));
+        setJustRejected((prev) => {
+          const next = new Set(prev);
+          next.delete(leave.id);
+          return next;
+        });
+      }, 900);
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
   const employees = useMemo(() => {
     return Array.from(
       new Map(
@@ -312,6 +357,21 @@ export default function LeaveApprovalPanel() {
       return matchSearch && matchType;
     });
   }, [pending, search, typeFilter]);
+
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(displayed, 10);
+
+  // Reset to the first page whenever the search or type filter changes.
+  useEffect(() => {
+    setPageIndex(0);
+  }, [search, typeFilter, setPageIndex]);
 
   const stats = useMemo(
     () => [
@@ -529,9 +589,12 @@ export default function LeaveApprovalPanel() {
               </thead>
 
               <tbody>
-                {displayed.map((leave, index) => {
+                {pageItems.map((leave, index) => {
                   const isApproving = approvingId === leave.id;
+                  const isRejecting = rejectingId === leave.id;
+                  const isBusy = isApproving || isRejecting;
                   const wasApproved = justApproved.has(leave.id);
+                  const wasRejected = justRejected.has(leave.id);
 
                   return (
                     <tr
@@ -540,9 +603,11 @@ export default function LeaveApprovalPanel() {
                         "border-b border-slate-100 transition-all duration-500",
                         wasApproved
                           ? "bg-emerald-50"
-                          : index % 2 === 0
-                            ? "bg-white"
-                            : "bg-slate-50/30",
+                          : wasRejected
+                            ? "bg-rose-50"
+                            : index % 2 === 0
+                              ? "bg-white"
+                              : "bg-slate-50/30",
                         "hover:bg-slate-50/60",
                       )}
                     >
@@ -623,29 +688,56 @@ export default function LeaveApprovalPanel() {
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3">
                         {wasApproved ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Approved
-                          </span>
+                          <div className="flex justify-center">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Approved
+                            </span>
+                          </div>
+                        ) : wasRejected ? (
+                          <div className="flex justify-center">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700">
+                              <XCircle className="h-3.5 w-3.5" />
+                              Rejected
+                            </span>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => handleApprove(leave)}
-                            disabled={isApproving}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
-                              "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 shadow-sm",
-                              isApproving && "opacity-60 cursor-wait",
-                            )}
-                          >
-                            {isApproving ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <ThumbsUp className="h-3.5 w-3.5" />
-                            )}
-                            {isApproving ? "Approving..." : "Approve"}
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleApprove(leave)}
+                              disabled={isBusy}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+                                "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 shadow-sm",
+                                isBusy && "opacity-60 cursor-wait",
+                              )}
+                            >
+                              {isApproving ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <ThumbsUp className="h-3.5 w-3.5" />
+                              )}
+                              {isApproving ? "Approving..." : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleReject(leave)}
+                              disabled={isBusy}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+                                "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-400 shadow-sm",
+                                isBusy && "opacity-60 cursor-wait",
+                              )}
+                            >
+                              {isRejecting ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <ThumbsDown className="h-3.5 w-3.5" />
+                              )}
+                              {isRejecting ? "Rejecting..." : "Reject"}
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -653,6 +745,17 @@ export default function LeaveApprovalPanel() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="border-t border-slate-100 px-3">
+            <TablePagination
+              total={total}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              pageCount={pageCount}
+              onPageChange={setPageIndex}
+              onPageSizeChange={setPageSize}
+            />
           </div>
 
           <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-2.5 flex items-center justify-between">

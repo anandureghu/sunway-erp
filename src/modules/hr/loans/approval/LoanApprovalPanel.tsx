@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 
 export default function LoanApprovalPanel() {
   const { permissions, permissionsLoading } = useAuth();
@@ -22,6 +23,16 @@ export default function LoanApprovalPanel() {
   const [pending, setPending] = useState<PendingLoanApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [decidingId, setDecidingId] = useState<number | null>(null);
+
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(pending, 10);
 
   // Permission-driven gate. ADMIN bypass via permissions === null.
   const canApprove =
@@ -164,7 +175,7 @@ export default function LoanApprovalPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {pending.map((loan) => {
+              {pageItems.map((loan) => {
                 const currency = loan.currencySymbol ?? loan.currencyCode ?? "";
                 const busy = decidingId === loan.id;
                 return (
@@ -220,6 +231,16 @@ export default function LoanApprovalPanel() {
               })}
             </tbody>
           </table>
+          <div className="border-t border-slate-100 px-2">
+            <TablePagination
+              total={total}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              pageCount={pageCount}
+              onPageChange={setPageIndex}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
         </div>
       )}
     </div>

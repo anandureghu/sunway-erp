@@ -20,8 +20,13 @@ import {
 } from "@/service/departmentService";
 import { fetchDivisions, deleteDivision } from "@/service/divisionService";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
-export default function DepartmentListPage() {
+export default function DepartmentListPage({
+  hrSettings,
+}: {
+  hrSettings?: boolean;
+}) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [divisions, setDivisions] = useState<DivisionResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,13 +181,21 @@ export default function DepartmentListPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Departments"
-        description="Manage departments and their divisions"
-        variant="darkBlue"
-        icon={<Users className="w-6 h-6" />}
-      />
+    <div className={hrSettings ? "space-y-6" : "p-6 space-y-6"}>
+      {hrSettings ? (
+        <SecondaryPageHeader
+          title="Departments"
+          description="Manage departments and their divisions"
+          icon={<Users className="h-5 w-5" />}
+        />
+      ) : (
+        <PageHeader
+          title="Departments"
+          description="Manage departments and their divisions"
+          variant="darkBlue"
+          icon={<Users className="w-6 h-6" />}
+        />
+      )}
 
       <Card>
         <CardHeader>

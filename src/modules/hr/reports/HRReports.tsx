@@ -24,14 +24,18 @@ import {
   BarChart3,
   ArrowUpRight,
   Briefcase,
+  ShieldAlert,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
 import { appraisalService } from "@/service/appraisalService";
 import { useAuth } from "@/context/AuthContext";
+import { canView } from "@/service/companyService";
 import { cn } from "@/lib/utils";
 import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import ImmigrationExpiryReport from "./ImmigrationExpiryReport";
 
 // ── colour palette ────────────────────────────────────────────────────────────
 const COLORS = {
@@ -182,18 +186,65 @@ const CUSTOM_TOOLTIP = ({ active, payload }: any) => {
 };
 
 // ── tabs ──────────────────────────────────────────────────────────────────────
-const TABS = [
+// Workforce analytics require the HR_REPORTS grant; the Immigration Expiry tab
+// is gated separately by IMMIGRATION so an employee with only their own
+// immigration view still reaches it (and the backend scopes the rows).
+const ANALYTICS_TABS = [
   { id: "workforce", label: "Workforce Overview", icon: Users },
   { id: "department", label: "Department Headcount", icon: Building2 },
   { id: "breakdown", label: "Workforce Breakdown", icon: Globe },
   { id: "appraisal", label: "Performance", icon: Award },
 ] as const;
-type TabId = (typeof TABS)[number]["id"];
+const IMMIGRATION_TAB = {
+  id: "immigration",
+  label: "Immigration Expiry",
+  icon: ShieldAlert,
+} as const;
+type TabId =
+  | "workforce"
+  | "department"
+  | "breakdown"
+  | "appraisal"
+  | "immigration";
+const ALL_TAB_IDS: TabId[] = [
+  "workforce",
+  "department",
+  "breakdown",
+  "appraisal",
+  "immigration",
+];
 
 // ── main component ────────────────────────────────────────────────────────────
 export default function HRReports() {
-  const { company } = useAuth();
-  const [tab, setTab] = useState<TabId>("workforce");
+  const { company, permissions } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  const canHrReports = canView(permissions, "HR_REPORTS");
+  const canImmigration = canView(permissions, "IMMIGRATION");
+
+  const visibleTabs = useMemo(() => {
+    const tabs: Array<{ id: TabId; label: string; icon: React.ElementType }> =
+      [];
+    if (canHrReports) tabs.push(...ANALYTICS_TABS);
+    if (canImmigration) tabs.push(IMMIGRATION_TAB);
+    return tabs;
+  }, [canHrReports, canImmigration]);
+
+  const requestedTab = searchParams.get("tab") as TabId | null;
+  const [tab, setTab] = useState<TabId>(
+    requestedTab && ALL_TAB_IDS.includes(requestedTab)
+      ? requestedTab
+      : "workforce",
+  );
+
+  // Keep the active tab within the set the user is allowed to see (e.g. an
+  // employee with only IMMIGRATION lands directly on the Immigration tab).
+  useEffect(() => {
+    if (visibleTabs.length === 0) return;
+    if (!visibleTabs.some((t) => t.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, tab]);
 
   // ── data state ──────────────────────────────────────────────────────────────
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -229,8 +280,11 @@ export default function HRReports() {
   };
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    // Only pull the company-wide employee list for users who can see the
+    // workforce analytics; an immigration-only viewer skips it.
+    if (canHrReports) fetchEmployees();
+    else setLoadingEmp(false);
+  }, [canHrReports]);
   useEffect(() => {
     if (tab === "appraisal") fetchAppraisals();
   }, [tab, appraisalYear]);
@@ -289,7 +343,11 @@ export default function HRReports() {
 
       <PageHeader
         title="HR Reports & Analytics"
-        description={`${company?.companyName} · ${employees.length} employees`}
+        description={
+          canHrReports
+            ? `${company?.companyName} · ${employees.length} employees`
+            : `${company?.companyName ?? ""}`
+        }
         variant="default"
         icon={<BarChart3 className="w-6 h-6" />}
         actions={
@@ -307,7 +365,7 @@ export default function HRReports() {
 
       {/* Tab bar */}
       <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm w-fit">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -1016,6 +1074,9 @@ export default function HRReports() {
           )}
         </div>
       )}
+
+      {/* ── IMMIGRATION EXPIRY TAB ── */}
+      {tab === "immigration" && <ImmigrationExpiryReport />}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { BankAccountDialog } from "./bank-account-dialog";
 import type { BankAccount } from "@/types/bank-account";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { Banknote } from "lucide-react";
 
 function LabeledField({
@@ -30,7 +31,11 @@ function LabeledField({
   );
 }
 
-export function CompanyBankAccounts() {
+export function CompanyBankAccounts({
+  financeSettings,
+}: {
+  financeSettings?: boolean;
+}) {
   const { user } = useAuth();
   const companyId = user?.companyId;
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -66,18 +71,31 @@ export function CompanyBankAccounts() {
   }, [companyId]);
 
   return (
-    <div className="p-6">
-      <PageHeader
-        title="Bank Accounts"
-        description="Manage your bank accounts"
-        variant="darkBlue"
-        icon={<Banknote className="w-6 h-6" />}
-        actions={
-          <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Add
-          </Button>
-        }
-      />
+    <div className={financeSettings ? "space-y-6" : "p-6"}>
+      {financeSettings ? (
+        <SecondaryPageHeader
+          title="Bank Accounts"
+          description="Manage your bank accounts"
+          icon={<Banknote className="h-5 w-5" />}
+          actions={
+            <Button size="sm" onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          }
+        />
+      ) : (
+        <PageHeader
+          title="Bank Accounts"
+          description="Manage your bank accounts"
+          variant="darkBlue"
+          icon={<Banknote className="w-6 h-6" />}
+          actions={
+            <Button size="sm" onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          }
+        />
+      )}
       {loading ? (
         <div className="mt-6 space-y-3">
           {[1, 2].map((i) => (

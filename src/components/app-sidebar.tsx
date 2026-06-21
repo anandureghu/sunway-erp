@@ -22,20 +22,15 @@ import {
 } from "@radix-ui/react-collapsible";
 import {
   Home,
-  FileText,
   ChevronDown,
   Settings,
   LayoutDashboard,
-  Split,
-  Banknote,
-  Receipt,
   ArrowLeft,
   Building,
   Pin,
   PinOff,
   ScrollText,
   Shield,
-  Wallet,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -204,8 +199,6 @@ export function AppSidebar() {
   const globalSettings = useMemo(() => {
     const cid = activeCompanyId;
     const settingsRoot = cid != null ? `/settings/${cid}` : null;
-    const payrollSettings = cid != null ? `/settings/payroll/${cid}` : null;
-    const rolesSettings = cid != null ? `/settings/roles/${cid}` : null;
 
     return [
       {
@@ -217,48 +210,6 @@ export function AppSidebar() {
             title: "Company",
             url: settingsRoot,
             icon: Building,
-          },
-          {
-            title: "Payroll",
-            url: payrollSettings,
-            icon: Wallet,
-          },
-          {
-            title: "Social",
-            url: "/admin/social-settings",
-            icon: FileText,
-          },
-          { title: "Department", url: "/admin/department", icon: FileText },
-          { title: "Division", url: "/admin/division", icon: Split },
-          {
-            title: "Roles",
-            url: rolesSettings,
-            icon: Building,
-          },
-          {
-            title: "Accounting Period",
-            url: "/admin/accounting-period",
-            icon: Banknote,
-          },
-          {
-            title: "Bank Accounts",
-            url: "/admin/bank-accounts",
-            icon: Banknote,
-          },
-          {
-            title: "Default Accounts",
-            url: "/admin/default-accounts",
-            icon: Banknote,
-          },
-          {
-            title: "Tax Settings",
-            url: "/admin/tax-settings",
-            icon: FileText,
-          },
-          {
-            title: "Invoice Settings",
-            url: "/admin/invoice-settings",
-            icon: Receipt,
           },
         ],
       },

@@ -210,7 +210,7 @@ function PayrollAccountStatusCard({
         <p className="text-xs text-amber-800">
           Set the payroll debit account under{" "}
           <Link
-            to="/admin/default-accounts"
+            to="/finance/settings?tab=default-accounts"
             className="font-semibold underline"
           >
             Default Accounts
@@ -1605,7 +1605,7 @@ function BankPayrollCsvTab() {
     }
     if (!ready) {
       toast.error(
-        "Configure bank payroll file settings in Global Settings → Payroll first",
+        "Configure bank payroll file settings on the Employee Payroll tab first",
       );
       return;
     }
@@ -1662,10 +1662,10 @@ function BankPayrollCsvTab() {
           <p className="text-xs text-slate-600">
             Employer EID, payer EID, payer bank short name, and payer IBAN are
             required. Configure them under{" "}
-            <strong>Global Settings → Payroll</strong>.
+            <strong>Finance → Employee Payroll</strong>.
           </p>
           <Link
-            to={cid ? `/settings/payroll/${cid}` : "/"}
+            to="/finance/payroll"
             className="inline-flex items-center gap-1 text-xs font-semibold text-violet-700 hover:underline"
           >
             <Settings className="h-3.5 w-3.5" />

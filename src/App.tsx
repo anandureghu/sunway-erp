@@ -29,7 +29,6 @@ import { PermissionProtectedRoute as PrivateRoute } from "./components/protected
 import { useAppDispatch } from "./store/store";
 import CompanyPage from "./pages/admin/hr/company/company-page";
 import Payroll from "./pages/finance/payroll";
-import DepartmentListPage from "./pages/admin/hr/department/department-list-page";
 import CompanyDetailPage from "./pages/hr/company-detail-page";
 import CustomersPage from "./pages/admin/customers/customers-page";
 import CustomerDetailPage from "./pages/admin/customers/customer-detail-page";
@@ -113,20 +112,10 @@ import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
 import HRSettingsPage from "./pages/hr/settings-page";
 import HRReportsPage from "./pages/hr/hr-reports-page";
-import ImmigrationExpiryPage from "./pages/hr/immigration-expiry-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
-import DivisionListPage from "./pages/admin/hr/division/division-list-page";
-import AccountingPeriodPage from "./pages/admin/hr/accounting-period/accounting-period-list-page";
 import { useEffect } from "react";
 import { setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
-import SettingsRolesPage from "@/pages/settings/settings-role-page";
-import SettingsPayrollPage from "@/pages/settings/settings-payroll-page";
-import { CompanyBankAccounts } from "@/pages/admin/hr/company/company-bank-accounts";
-import DefaultAccountsSettingsPage from "@/pages/admin/hr/company/default-accounts-settings-page";
-import TaxSettingsPage from "@/pages/admin/hr/company/tax-settings-page";
-import InvoiceSettingsPage from "@/pages/admin/hr/company/invoice-settings-page";
-import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
 import { ErrorBoundary } from "./components/error-boundary";
 import PublicInvoicePage from "./pages/public/public-invoice-page";
 
@@ -177,27 +166,30 @@ export default function App() {
 
           <Route
             path="settings/payroll/:id"
-            element={<SettingsPayrollPage />}
+            element={<Navigate to="/finance/payroll" replace />}
           />
           <Route path="settings/:id" element={<SettingsPage />} />
-          <Route path="settings/roles/:id" element={<SettingsRolesPage />} />
+          <Route
+            path="settings/roles/:id"
+            element={<Navigate to="/hr/settings?tab=roles" replace />}
+          />
 
           {/* Admin */}
           <Route path="admin">
             <Route path="company" element={<CompanyPage />} />
-            <Route path="bank-accounts" element={<CompanyBankAccounts />} />
+            <Route path="bank-accounts" element={<Navigate to="/finance/settings?tab=bank-accounts" replace />} />
             <Route
               path="default-accounts"
-              element={<DefaultAccountsSettingsPage />}
+              element={<Navigate to="/finance/settings?tab=default-accounts" replace />}
             />
-            <Route path="tax-settings" element={<TaxSettingsPage />} />
-            <Route path="social-settings" element={<SocialSettingsPage />} />
-            <Route path="invoice-settings" element={<InvoiceSettingsPage />} />
-            <Route path="department" element={<DepartmentListPage />} />
-            <Route path="division" element={<DivisionListPage />} />
+            <Route path="tax-settings" element={<Navigate to="/finance/settings?tab=tax-settings" replace />} />
+            <Route path="social-settings" element={<Navigate to="/hr/settings?tab=social" replace />} />
+            <Route path="invoice-settings" element={<Navigate to="/finance/settings?tab=invoice-settings" replace />} />
+            <Route path="department" element={<Navigate to="/hr/settings?tab=department" replace />} />
+            <Route path="division" element={<Navigate to="/hr/settings?tab=department" replace />} />
             <Route
               path="accounting-period"
-              element={<AccountingPeriodPage />}
+              element={<Navigate to="/finance/settings?tab=accounting-period" replace />}
             />
             <Route path="leaves" element={<LeaveCustomizationPage />} />
             <Route path="customers" element={<CustomersPage />} />
@@ -501,10 +493,11 @@ export default function App() {
             {/* HR Reports */}
             <Route path="reports" element={<HRReportsPage />} />
 
-            {/* Immigration expiry report */}
+            {/* Immigration expiry now lives as a tab inside HR Reports.
+                Keep the old path working by redirecting to that tab. */}
             <Route
               path="immigration-expiry"
-              element={<ImmigrationExpiryPage />}
+              element={<Navigate to="/hr/reports?tab=immigration" replace />}
             />
 
             {/* HR Settings */}

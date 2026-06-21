@@ -1,10 +1,25 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { Plus, KeyRound, Shield } from "lucide-react";
+import { Plus, KeyRound, Shield, Search, Edit, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/avatar";
+import { TablePagination, usePagination } from "@/components/table-pagination";
+import {
+  roleBadgeClasses,
+  avatarColor,
+  nameInitials,
+  PERMISSION_PAGE_SIZES,
+} from "@/lib/permission-ui";
+import PermissionMatrix, {
+  normalizeModuleKey,
+  emptyCapsFor,
+  type PermissionModuleRow,
+} from "@/components/permission-matrix";
 import {
   Dialog,
   DialogContent,
@@ -49,20 +64,13 @@ interface Permission {
 
 interface Props {
   moduleType: "HR" | "FINANCE" | "INVENTORY";
-  modules: Array<{ id: string; label: string }>;
+  /**
+   * Permission rows presented as a sidebar-style tree. Each entry is a real
+   * page / sub-module mapped to its AppModule id, so granting a row directly
+   * unlocks that page for the role or employee.
+   */
+  modules: PermissionModuleRow[];
 }
-
-const CAPS = [
-  { key: "view_own", label: "View (Own)" },
-  { key: "view_all", label: "View (All)" },
-  { key: "create", label: "Create" },
-  { key: "edit", label: "Edit" },
-  { key: "delete", label: "Delete" },
-  { key: "approve", label: "Approve" },
-];
-
-const normalizeModuleKey = (mod: string): string =>
-  mod.toUpperCase().replace(/[_-]/g, "_");
 
 export default function PermissionsTab({ moduleType, modules }: Props) {
   const { user } = useAuth();
@@ -73,8 +81,12 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
     Partial<Permission> & { caps: Record<string, Record<string, boolean>> }
   >({ role: "", roleId: undefined, staffId: undefined, caps: {}, active: true });
   const [employees, setEmployees] = useState<any[]>([]);
-  const [q] = useState("");
-  const [filterRole] = useState("All");
+  const [q, setQ] = useState("");
+  const [filterRole, setFilterRole] = useState("All");
+  const [del, setDel] = useState<Permission | null>(null);
+
+  // Total grantable capabilities across this area's pages (pages × 6 caps).
+  const TOTAL_CAPS = modules.length * 6;
 
   const companyId = user?.companyId ? Number(user.companyId) : null;
 
@@ -87,14 +99,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
     [modules],
   );
 
-  const emptyCaps = useCallback(() => {
-    return Object.fromEntries(
-      modules.map((m) => [
-        normalizeModuleKey(m.id),
-        Object.fromEntries(CAPS.map((c) => [c.key, false])),
-      ]),
-    );
-  }, [modules]);
+  const emptyCaps = useCallback(() => emptyCapsFor(modules), [modules]);
 
   const belongsToModuleType = useCallback(
     (moduleKey: string) => moduleKeys.has(normalizeModuleKey(moduleKey)),
@@ -156,10 +161,14 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
         } else {
           setRoles([]);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to load roles:", err);
         setRoles([]);
-        toast.error("Failed to load company roles");
+        // A 403 means this user can't manage permissions (the tab should be
+        // hidden for them) — don't spam an error toast in that case.
+        if (err?.response?.status !== 403) {
+          toast.error("Failed to load company roles");
+        }
       }
     };
     ensureRoles();
@@ -205,7 +214,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
             email: "",
             phone: "",
             caps,
-            active: true,
+            active: rolePerms.every((r: any) => r.active !== false),
           });
         } catch (e) {
           console.warn(`Failed role ${role.name}:`, e);
@@ -231,7 +240,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
             email: emp.email || "",
             phone: emp.phoneNo || "",
             caps,
-            active: true,
+            active: empPerms.every((r: any) => r.active !== false),
           });
         } catch (e) {
           console.warn(`Failed employee ${emp.id}:`, e);
@@ -247,41 +256,6 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   useEffect(() => {
     if (roles.length > 0) void fetchPerms();
   }, [roles.length, employees.length, fetchPerms]);
-
-  const allModOn = useCallback(
-    (modId: string) =>
-      CAPS.every(
-        (cap) =>
-          permForm.caps?.[normalizeModuleKey(modId)]?.[cap.key] || false,
-      ),
-    [permForm.caps],
-  );
-
-  const toggleAllMod = useCallback((modId: string) => {
-    const normalizedMod = normalizeModuleKey(modId);
-    const on = !allModOn(modId);
-    setPermForm((v) => ({
-      ...v,
-      caps: {
-        ...v.caps,
-        [normalizedMod]: Object.fromEntries(CAPS.map((c) => [c.key, on])),
-      },
-    }));
-  }, [allModOn]);
-
-  const toggleCap = useCallback((modId: string, cap: string, checked: boolean) => {
-    const normalizedMod = normalizeModuleKey(modId);
-    setPermForm((prev) => ({
-      ...prev,
-      caps: {
-        ...prev.caps,
-        [normalizedMod]: {
-          ...prev.caps[normalizedMod],
-          [cap]: checked,
-        },
-      },
-    }));
-  }, []);
 
   const savePerm = useCallback(async () => {
     if (!permForm.roleId && !permForm.staffId) {
@@ -363,61 +337,328 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
     setModal("perm");
   };
 
+  // Enable/disable a rule server-side (saved but not enforced when off).
+  const toggleActive = async (rec: Permission) => {
+    const next = !rec.active;
+    // Optimistic update; revert on failure.
+    setPerms((prev) =>
+      prev.map((p) => (p.id === rec.id ? { ...p, active: next } : p)),
+    );
+    try {
+      if (rec.staffId && rec.staffId > 0) {
+        await permissionService.setEmployeePermissionsActive(rec.staffId, next);
+      } else if (rec.roleId) {
+        await permissionService.setCompanyRolePermissionsActive(
+          rec.roleId,
+          next,
+        );
+      }
+      toast.success(next ? "Permission enabled" : "Permission disabled");
+    } catch (err) {
+      console.error("Failed to update permission status", err);
+      setPerms((prev) =>
+        prev.map((p) => (p.id === rec.id ? { ...p, active: !next } : p)),
+      );
+      toast.error("Failed to update status");
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!del) return;
+    try {
+      if (del.staffId && del.staffId > 0) {
+        await permissionService.removeAllEmployeePermissions(del.staffId);
+      } else if (del.roleId) {
+        await permissionService.removeAllCompanyRolePermissions(del.roleId);
+      }
+      toast.success("Permission removed");
+      setDel(null);
+      await fetchPerms();
+    } catch (err) {
+      console.error("Failed to remove permission", err);
+      toast.error("Failed to remove permission");
+    }
+  };
+
+  // Client-side pagination (5 / 10 / 15 / 20 per page).
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(displayed, 5);
+
+  // Jump back to the first page whenever the filter or search changes.
+  useEffect(() => {
+    setPageIndex(0);
+  }, [q, filterRole, setPageIndex]);
+
   return (
     <div className="space-y-6">
       <SecondaryPageHeader
         title={`${moduleType === "HR" ? "HR" : moduleType === "FINANCE" ? "Finance" : "Inventory"} Permissions`}
-        description={`Manage permissions for ${moduleType === "HR" ? "HR" : moduleType === "FINANCE" ? "Finance" : "Inventory"}`}
+        description="Manage permissions for employees and roles"
         icon={<Shield className="h-5 w-5" />}
         actions={
-          <Button onClick={openAdd}>
+          <Button
+            onClick={openAdd}
+            className="bg-gradient-to-r from-indigo-600 to-blue-600"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Permission
           </Button>
         }
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Role</TableHead>
-            <TableHead>Staff</TableHead>
-            <TableHead>Access</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {displayed.length === 0 ? (
+      {/* Summary stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Total Rules", val: perms.length, color: "text-blue-600" },
+          {
+            label: "Active",
+            val: perms.filter((p) => p.active).length,
+            color: "text-green-600",
+          },
+          {
+            label: "By Employee",
+            val: perms.filter((p) => p.staffId).length,
+            color: "text-purple-600",
+          },
+          {
+            label: "By Role",
+            val: perms.filter((p) => !p.staffId).length,
+            color: "text-yellow-600",
+          },
+        ].map((s) => (
+          <Card key={s.label} className="bg-white border-slate-200">
+            <CardContent className="p-4">
+              <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
+              <p className="text-xs text-slate-500 font-medium">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Role filter chips + search */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-2">
+          {["All", ...roles.map((r) => r.name)].map((r) => (
+            <Button
+              key={r}
+              variant={filterRole === r ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterRole(r)}
+              className={
+                filterRole === r ? "bg-indigo-600 hover:bg-indigo-700" : ""
+              }
+            >
+              {r}
+            </Button>
+          ))}
+        </div>
+        <div className="ml-auto relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search staff or role..."
+            className="pl-9 w-56"
+          />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8 h-32">
-                <KeyRound className="h-12 w-12 mx-auto text-slate-400 mb-2" />
-                <p className="text-slate-500">No permissions configured</p>
-              </TableCell>
+              <TableHead className="font-semibold text-slate-600">Staff Name</TableHead>
+              <TableHead className="font-semibold text-slate-600">Role</TableHead>
+              <TableHead className="font-semibold text-slate-600">Scope</TableHead>
+              <TableHead className="font-semibold text-slate-600">Email</TableHead>
+              <TableHead className="font-semibold text-slate-600">Phone</TableHead>
+              <TableHead className="font-semibold text-slate-600">Access</TableHead>
+              <TableHead className="font-semibold text-slate-600">Status</TableHead>
+              <TableHead className="font-semibold text-slate-600 text-right">Options</TableHead>
             </TableRow>
-          ) : (
-            displayed.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell>{p.role}</TableCell>
-                <TableCell>{p.staffName || "Role-wide"}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">
-                    {countActiveCaps(p.caps)} permissions
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEdit(p)}
-                  >
-                    Edit
-                  </Button>
+          </TableHeader>
+          <TableBody>
+            {displayed.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2">
+                    <KeyRound className="h-12 w-12 text-slate-300" />
+                    <p className="text-slate-500 font-medium">
+                      No permission rules yet
+                    </p>
+                    <p className="text-slate-400 text-sm">
+                      Click 'Add Permission' to grant an employee or role access
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              pageItems.map((p) => {
+                const cnt = countActiveCaps(p.caps);
+                const pct = TOTAL_CAPS
+                  ? Math.round((cnt / TOTAL_CAPS) * 100)
+                  : 0;
+                return (
+                  <TableRow
+                    key={p.id}
+                    className={`hover:bg-slate-50/50 ${!p.active ? "opacity-50" : ""}`}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        {p.staffName ? (
+                          <Avatar>
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${avatarColor(p.staffName)}`}
+                            >
+                              {nameInitials(p.staffName)}
+                            </div>
+                          </Avatar>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <Users className="h-4 w-4 text-slate-400" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {p.staffName || (
+                              <span className="italic text-slate-400">
+                                All {p.role}s
+                              </span>
+                            )}
+                          </p>
+                          {p.staffName && (
+                            <p className="text-xs text-slate-400">
+                              Individual override
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={roleBadgeClasses(p.role)}>
+                        {p.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          p.staffId
+                            ? "border-purple-300 text-purple-700"
+                            : "border-green-300 text-green-700"
+                        }
+                      >
+                        {p.staffId ? "Individual" : "Role-wide"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-500 font-mono text-sm">
+                      {p.email || "—"}
+                    </TableCell>
+                    <TableCell className="text-slate-500 font-mono text-sm">
+                      {p.phone || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${pct > 70 ? "bg-green-500" : pct > 30 ? "bg-blue-500" : "bg-slate-400"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-500">
+                          {cnt}/{TOTAL_CAPS}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={p.active}
+                          onCheckedChange={() => toggleActive(p)}
+                        />
+                        <span
+                          className={`text-sm font-medium ${p.active ? "text-green-600" : "text-slate-400"}`}
+                        >
+                          {p.active ? "On" : "Off"}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(p)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDel(p)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+
+        {displayed.length > 0 && (
+          <div className="border-t border-slate-100 px-2">
+            <TablePagination
+              total={total}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              pageCount={pageCount}
+              onPageChange={setPageIndex}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={PERMISSION_PAGE_SIZES}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Delete confirmation */}
+      {del && (
+        <Dialog open onOpenChange={() => setDel(null)}>
+          <DialogContent className="sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>Remove permission</DialogTitle>
+              <DialogDescription>
+                Remove all {moduleType.toLowerCase()} permissions for{" "}
+                <span className="font-semibold">
+                  {del.staffName || `all ${del.role}s`}
+                </span>
+                ? This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDel(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={confirmDelete}
+              >
+                Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {modal === "perm" && (
         <Dialog open onOpenChange={() => setModal(null)}>
@@ -482,58 +723,13 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
                 </div>
               </div>
 
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-[180px_repeat(6,1fr)] bg-slate-50 border-b border-slate-200">
-                  <div className="p-2.5 text-xs font-semibold text-slate-600 uppercase">
-                    Module
-                  </div>
-                  {CAPS.map((c) => (
-                    <div
-                      key={c.key}
-                      className="p-2.5 text-xs font-semibold text-slate-600 uppercase text-center"
-                    >
-                      {c.label}
-                    </div>
-                  ))}
-                </div>
-                {modules.map((mod) => {
-                  const normalizedMod = normalizeModuleKey(mod.id);
-                  return (
-                    <div
-                      key={mod.id}
-                      className="grid grid-cols-[180px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
-                    >
-                      <div className="p-3">
-                        <p className="text-sm font-medium text-slate-900">
-                          {mod.label}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => toggleAllMod(mod.id)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          {allModOn(mod.id) ? "Deselect all" : "Select all"}
-                        </button>
-                      </div>
-                      {CAPS.map((cap) => (
-                        <div
-                          key={cap.key}
-                          className="flex items-center justify-center p-3"
-                        >
-                          <Switch
-                            checked={
-                              permForm.caps?.[normalizedMod]?.[cap.key] || false
-                            }
-                            onCheckedChange={(checked) =>
-                              toggleCap(mod.id, cap.key, checked)
-                            }
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
+              <PermissionMatrix
+                modules={modules}
+                caps={permForm.caps}
+                onChange={(next) =>
+                  setPermForm((v) => ({ ...v, caps: next }))
+                }
+              />
 
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                 <Switch

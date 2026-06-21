@@ -6,11 +6,11 @@ export const COMPANY_SCHEMA = z.object({
     .string()
     .min(2, { message: "Company name must be at least 2 characters long" }),
 
+  // Required: the company code becomes the first segment of every GL account
+  // code (e.g. 100.000.100000.000), so each company needs its own 3-digit code.
   companyCode: z
     .string()
-    .length(3, { message: "Company code must be exactly 3 characters" })
-    .or(z.literal(""))
-    .optional(),
+    .regex(/^\d{3}$/, { message: "Company code must be exactly 3 digits" }),
 
   crNo: z
     .number()

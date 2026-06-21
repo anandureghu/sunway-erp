@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
 import { leaveService } from "@/service/leaveService";
@@ -62,6 +62,13 @@ import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 import { AppTab } from "@/components/app-tab";
 import { PageHeader } from "@/components/PageHeader";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
+import DepartmentListPage from "@/pages/admin/hr/department/department-list-page";
+import SettingsRolesPage from "@/pages/settings/settings-role-page";
+import { TablePagination, usePagination } from "@/components/table-pagination";
+import PermissionMatrix from "@/components/permission-matrix";
+import { HR_PERMISSION_MODULES } from "@/lib/permission-catalog";
+import { PERMISSION_PAGE_SIZES } from "@/lib/permission-ui";
 
 /* ───────────────────────────────────────────────────────────────────────────
    Shared styles + helpers for the Job Code modal.
@@ -156,23 +163,9 @@ interface Permission {
   active: boolean;
 }
 
-const HR_MODULES = [
-  // People
-  { id: "employee_profile", label: "Employee Profile", group: "People", description: "Employee records, profiles & contact info" },
-  { id: "current_job", label: "Current Job", group: "People", description: "Job assignments, designations & transfers" },
-  { id: "dependents", label: "Dependents", group: "People", description: "Family & dependent records" },
-  { id: "immigration", label: "Immigration", group: "People", description: "Passports, visas & residence permits" },
-  // Compensation
-  { id: "salary", label: "Salary", group: "Compensation", description: "Salary structure & compensation records" },
-  { id: "payroll", label: "Payroll", group: "Compensation", description: "Generate payroll, payslips & bank exports" },
-  { id: "loans", label: "Loans", group: "Compensation", description: "Employee loans & repayment schedules" },
-  // Time & Performance
-  { id: "leaves", label: "Leaves", group: "Time & Performance", description: "Leave requests, balances & approvals" },
-  { id: "appraisal", label: "Appraisal", group: "Time & Performance", description: "Performance reviews & appraisal cycles" },
-  // Administration
-  { id: "hr_reports", label: "HR Reports", group: "Administration", description: "HR analytics & exportable reports" },
-  { id: "hr_settings", label: "HR Settings", group: "Administration", description: "Leave types, policies, roles & permissions" },
-];
+// HR permission tree comes from the shared catalog (single source of truth,
+// same one Finance & Inventory use). Aliased to keep the existing references.
+const HR_MODULES = HR_PERMISSION_MODULES;
 
 const CAPS = [
   { key: "view_own", label: "View (Own)" },
@@ -427,6 +420,21 @@ function JobCodesTab({
       j.title.toLowerCase().includes(q.toLowerCase()),
   );
 
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(filtered, 10);
+
+  // Jump back to the first page whenever the search query changes.
+  useEffect(() => {
+    setPageIndex(0);
+  }, [q, setPageIndex]);
+
   const openAdd = () => {
     setForm({
       code: "",
@@ -545,7 +553,7 @@ function JobCodesTab({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((j) => (
+            {pageItems.map((j) => (
               <TableRow key={j.id} className="hover:bg-slate-50/50">
                 <TableCell>
                   <code className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-md">
@@ -637,6 +645,18 @@ function JobCodesTab({
             )}
           </TableBody>
         </Table>
+        {filtered.length > 0 && (
+          <div className="border-t border-slate-100 px-2">
+            <TablePagination
+              total={total}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              pageCount={pageCount}
+              onPageChange={setPageIndex}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
+        )}
       </div>
 
       <Dialog open={modal} onOpenChange={setModal}>
@@ -965,7 +985,7 @@ function PermissionsTab({
             email: "",
             phone: "",
             caps: permissionService.toFrontendCaps(rolePerms),
-            active: true,
+            active: rolePerms.every((r: any) => r.active !== false),
           });
         } catch (e) {
           console.warn(`Failed to load permissions for role=${role.name}:`, e);
@@ -990,7 +1010,7 @@ function PermissionsTab({
             email: emp.email || "",
             phone: (emp as any).phoneNo || "",
             caps: permissionService.toFrontendCaps(empPerms),
-            active: true,
+            active: empPerms.every((r: any) => r.active !== false),
           });
         } catch (e) {
           console.warn(
@@ -1036,36 +1056,21 @@ function PermissionsTab({
     return list;
   }, [perms, q, filterRole]);
 
-  const toggleCap = (modId: string, cap: string, checked: boolean) => {
-    const normalizedMod = normalizeModuleKey(modId);
-    setPermForm((prev) => ({
-      ...prev,
-      caps: {
-        ...prev.caps,
-        [normalizedMod]: {
-          ...prev.caps[normalizedMod],
-          [cap]: checked,
-        },
-      },
-    }));
-  };
+  // Client-side pagination for the permission rules list (5 / 10 / 15 / 20).
+  const {
+    pageItems: pagedPerms,
+    pageIndex: permPageIndex,
+    setPageIndex: setPermPageIndex,
+    pageSize: permPageSize,
+    setPageSize: setPermPageSize,
+    pageCount: permPageCount,
+    total: permTotal,
+  } = usePagination(displayed, 5);
 
-  const allModOn = (modId: string) => {
-    const normalizedMod = normalizeModuleKey(modId);
-    return CAPS.every((c) => permForm.caps?.[normalizedMod]?.[c.key]);
-  };
-
-  const toggleAllMod = (modId: string) => {
-    const normalizedMod = normalizeModuleKey(modId);
-    const on = !allModOn(modId);
-    setPermForm((v) => ({
-      ...v,
-      caps: {
-        ...v.caps,
-        [normalizedMod]: Object.fromEntries(CAPS.map((c) => [c.key, on])),
-      },
-    }));
-  };
+  // Jump back to the first page whenever the filter or search changes.
+  useEffect(() => {
+    setPermPageIndex(0);
+  }, [q, filterRole, setPermPageIndex]);
 
   const capCount = (rec: Permission) =>
     Object.values(rec.caps ?? {}).reduce(
@@ -1148,10 +1153,30 @@ function PermissionsTab({
     }
   };
 
-  const toggleActive = (id: number) =>
+  // Enable/disable a rule server-side (saved but not enforced when off).
+  const toggleActive = async (rec: Permission) => {
+    const next = !rec.active;
     setPerms((prev) =>
-      prev.map((x) => (x.id === id ? { ...x, active: !x.active } : x)),
+      prev.map((x) => (x.id === rec.id ? { ...x, active: next } : x)),
     );
+    try {
+      if (rec.staffId && rec.staffId > 0) {
+        await permissionService.setEmployeePermissionsActive(rec.staffId, next);
+      } else if (rec.roleId) {
+        await permissionService.setCompanyRolePermissionsActive(
+          rec.roleId,
+          next,
+        );
+      }
+      toast.success(next ? "Permission enabled" : "Permission disabled");
+    } catch (err) {
+      console.error("Failed to update permission status", err);
+      setPerms((prev) =>
+        prev.map((x) => (x.id === rec.id ? { ...x, active: !next } : x)),
+      );
+      toast.error("Failed to update status");
+    }
+  };
 
   const openEditRole = (r: Role) => {
     setRoleForm({ ...r });
@@ -1492,7 +1517,7 @@ function PermissionsTab({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayed.map((p) => {
+                  pagedPerms.map((p) => {
                     const cnt = capCount(p);
                     const pct = Math.round((cnt / TOTAL_CAPS) * 100);
                     return (
@@ -1578,7 +1603,7 @@ function PermissionsTab({
                           <div className="flex items-center gap-2">
                             <Switch
                               checked={p.active}
-                              onChange={() => toggleActive(p.id)}
+                              onCheckedChange={() => toggleActive(p)}
                             />
                             <span
                               className={`text-sm font-medium ${p.active ? "text-green-600" : "text-slate-400"}`}
@@ -1612,6 +1637,20 @@ function PermissionsTab({
                 )}
               </TableBody>
             </Table>
+
+            {displayed.length > 0 && (
+              <div className="border-t border-slate-100 px-2">
+                <TablePagination
+                  total={permTotal}
+                  pageIndex={permPageIndex}
+                  pageSize={permPageSize}
+                  pageCount={permPageCount}
+                  onPageChange={setPermPageIndex}
+                  onPageSizeChange={setPermPageSize}
+                  pageSizeOptions={PERMISSION_PAGE_SIZES}
+                />
+              </div>
+            )}
           </div>
         </>
       )}
@@ -1757,75 +1796,13 @@ function PermissionsTab({
                 </div>
               )}
 
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="grid grid-cols-[180px_repeat(6,1fr)] bg-slate-50 border-b border-slate-200">
-                  <div className="p-2.5 text-xs font-semibold text-slate-600 uppercase">
-                    Module
-                  </div>
-                  {CAPS.map((c) => (
-                    <div
-                      key={c.key}
-                      className="p-2.5 text-xs font-semibold text-slate-600 uppercase text-center"
-                    >
-                      {c.label}
-                    </div>
-                  ))}
-                </div>
-
-                {HR_MODULES.map((mod, i) => {
-                  const normalizedModKey = normalizeModuleKey(mod.id);
-                  const all = allModOn(mod.id);
-                  // Render a section header whenever the module group changes
-                  // (HR_MODULES is ordered by group).
-                  const showGroup =
-                    i === 0 || HR_MODULES[i - 1].group !== mod.group;
-
-                  return (
-                    <Fragment key={mod.id}>
-                      {showGroup && mod.group && (
-                        <div className="bg-slate-50/80 border-b border-slate-200 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          {mod.group}
-                        </div>
-                      )}
-                      <div className="grid grid-cols-[180px_repeat(6,1fr)] border-b border-slate-100">
-                        <div className="p-3">
-                          <p className="text-sm font-medium text-slate-900">
-                            {mod.label}
-                          </p>
-                          {mod.description && (
-                            <p className="mt-0.5 text-[11px] leading-snug text-slate-400">
-                              {mod.description}
-                            </p>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => toggleAllMod(mod.id)}
-                            className="mt-1 text-xs font-medium text-blue-600 hover:text-blue-700"
-                          >
-                            {all ? "Deselect all" : "Select all"}
-                          </button>
-                        </div>
-                        {CAPS.map((cap) => (
-                          <div
-                            key={cap.key}
-                            className="flex items-center justify-center p-3"
-                          >
-                            <Switch
-                              checked={
-                                permForm.caps?.[normalizedModKey]?.[cap.key] ||
-                                false
-                              }
-                              onCheckedChange={(checked) =>
-                                toggleCap(mod.id, cap.key, checked)
-                              }
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </Fragment>
-                  );
-                })}
-              </div>
+              <PermissionMatrix
+                modules={HR_MODULES}
+                caps={permForm.caps}
+                onChange={(next) =>
+                  setPermForm((v) => ({ ...v, caps: next }))
+                }
+              />
 
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                 <Switch
@@ -1971,6 +1948,7 @@ export type TabId = (typeof TABS)[number]["id"];
 
 export default function HRSettingsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, permissions, permissionsLoading } = useAuth();
   const [jobs, setJobs] = useState<JobCode[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -2072,6 +2050,21 @@ export default function HRSettingsPage() {
       label: "Job Codes",
       element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} />,
     },
+    {
+      value: "social",
+      label: "Social",
+      element: () => <SocialSettingsPage hrSettings />,
+    },
+    {
+      value: "department",
+      label: "Department",
+      element: () => <DepartmentListPage hrSettings />,
+    },
+    {
+      value: "roles",
+      label: "Roles",
+      element: () => <SettingsRolesPage hrSettings />,
+    },
     // Permissions is system-security config — restrict to ADMIN/SUPER_ADMIN.
     // HR Manager keeps HR_SETTINGS for operational tabs but should not be
     // able to escalate by editing permission grants.
@@ -2087,15 +2080,28 @@ export default function HRSettingsPage() {
     { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
   ];
 
+  const tabParam = searchParams.get("tab");
+  const tabValues = tabsList.map((tab) => tab.value);
+  const activeTab =
+    tabParam && tabValues.includes(tabParam) ? tabParam : "leaves";
+
+  const handleTabChange = (value: string) => {
+    setSearchParams(value === "leaves" ? {} : { tab: value }, { replace: true });
+  };
+
   return (
     <div className="p-6 bg-slate-50/60 min-h-screen">
       <PageHeader
         title="HR Settings"
-        description="Manage leave policies, job codes, permissions, and appraisal"
+        description="Manage leave policies, org structure, roles, permissions, and appraisal"
         variant="default"
         icon={<Building className="w-6 h-6" />}
       />
-      <AppTab tabs={tabsList} defaultValue="leaves" />
+      <AppTab
+        tabs={tabsList}
+        value={activeTab}
+        onValueChange={handleTabChange}
+      />
     </div>
   );
 }
