@@ -108,10 +108,9 @@ const FinanceSettingsPage = () => {
   );
 
   const handleTabChange = (value: string) => {
-    setSearchParams(
-      value === "vendors" ? {} : { tab: value },
-      { replace: true },
-    );
+    setSearchParams(value === "vendors" ? {} : { tab: value }, {
+      replace: true,
+    });
   };
 
   return (
@@ -122,11 +121,7 @@ const FinanceSettingsPage = () => {
         variant="darkBlue"
         icon={<Settings className="w-6 h-6" />}
       />
-      <AppTab
-        tabs={tabsList}
-        value={activeTab}
-        onValueChange={handleTabChange}
-      />
+      <AppTab tabs={tabsList} value={activeTab} onValueChange={handleTabChange} />
     </div>
   );
 };
