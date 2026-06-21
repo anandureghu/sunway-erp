@@ -18,6 +18,7 @@ import { bankService, type AccountTypeOption } from "@/service/bankService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
 
 type SalaryCtx = { editing: boolean };
 
@@ -547,16 +548,12 @@ export default function BankForm() {
               </Field>
 
               <Field label="Country" required error={errors.country}>
-                <div className="relative">
-                  <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50"
-                    disabled={!editing}
-                    value={draft.country}
-                    onChange={(e) => patch("country", e.target.value)}
-                    placeholder="Enter country"
-                  />
-                </div>
+                <CountryAutocomplete
+                  value={draft.country}
+                  onChange={(v) => patch("country", v)}
+                  disabled={!editing}
+                  placeholder="Select country..."
+                />
               </Field>
             </div>
           </div>

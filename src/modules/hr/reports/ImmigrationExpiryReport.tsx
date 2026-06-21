@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import {
-  ShieldAlert,
-  FileText,
-  Contact2,
-  Landmark,
-  ChevronRight,
-} from "lucide-react";
-import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { ShieldAlert, FileText, Contact2, Landmark, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   immigrationService,
@@ -38,7 +31,13 @@ function daysLabel(d: number) {
   return `${d} day${d === 1 ? "" : "s"} left`;
 }
 
-export default function ImmigrationExpiryPage() {
+/**
+ * Immigration expiry report — passports & residence permits that are expired or
+ * expiring soon. The backend scopes the rows to the caller's IMMIGRATION grant:
+ * VIEW_ALL returns every employee in the company, VIEW_OWN only the caller's own
+ * documents. This component just renders whatever it receives.
+ */
+export default function ImmigrationExpiryReport() {
   const [withinDays, setWithinDays] = useState(30);
   const [items, setItems] = useState<ImmigrationExpiryItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,8 +48,8 @@ export default function ImmigrationExpiryPage() {
       setItems(await immigrationService.getExpiring(days));
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Failed to load expiry report";
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to load expiry report";
       toast.error(message);
       setItems([]);
     } finally {
@@ -66,12 +65,14 @@ export default function ImmigrationExpiryPage() {
   const soonCount = items.length - expiredCount;
 
   return (
-    <div className="space-y-6 p-6 bg-slate-50/60 min-h-screen">
-      <SecondaryPageHeader
-        title="Immigration Expiry"
-        description="Passports & residence permits that are expired or expiring soon"
-        icon={<ShieldAlert className="h-5 w-5" />}
-      />
+    <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <ShieldAlert className="h-4 w-4 text-rose-500" />
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+          Immigration Expiry
+        </h3>
+        <div className="flex-1 h-px bg-slate-100" />
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
@@ -122,9 +123,7 @@ export default function ImmigrationExpiryPage() {
             <Link
               key={`${it.documentType}-${it.employeeId}-${it.documentNumber}`}
               to={`/hr/employees/${it.employeeId}/immigration${
-                it.documentType === "RESIDENCE_PERMIT"
-                  ? "/residence-permit"
-                  : ""
+                it.documentType === "RESIDENCE_PERMIT" ? "/residence-permit" : ""
               }`}
               className="grid grid-cols-[140px_1fr_1fr_130px_150px_40px] items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm last:border-0 hover:bg-slate-50"
             >

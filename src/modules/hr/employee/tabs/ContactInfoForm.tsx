@@ -116,13 +116,14 @@ function calculatePasswordStrength(
 }
 
 export default function ContactInfoForm() {
-  const { editing, setEditing, isAdmin } = useOutletContext<Ctx>();
+  const { editing, isAdmin } = useOutletContext<Ctx>();
 
   const [saved, setSaved] = useState(SEED);
   const [draft, setDraft] = useState(SEED);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [viewingAddressId, setViewingAddressId] = useState<string | null>(null);
+  const [savingAddressId, setSavingAddressId] = useState<string | null>(null);
   const [passwordState, setPasswordState] = useState<PasswordState>(
     INITIAL_PASSWORD_STATE,
   );
@@ -230,58 +231,21 @@ export default function ContactInfoForm() {
 
       setSaved(draft);
       if (!employeeId) return;
+
+      // Addresses are persisted independently through their own inline
+      // Save/Update buttons — the page-level Save only handles contact details,
+      // so there is no longer a second, duplicate save of address records.
       try {
-        try {
-          await contactService.saveContactInfo(employeeId, {
-            email: normalizeEmail(draft.email),
-            phone: normalizePhone(draft.phone),
-            altPhone: draft.altPhone ? normalizePhone(draft.altPhone) : undefined,
-            notes: draft.notes || "",
-          });
-        } catch (err) {
-          console.error("Failed to save contact info", err);
-          toast.error("Failed to save contact info");
-        }
-
-        for (const a of addresses) {
-          const payload = {
-            line1: a.line1,
-            line2: a.line2 || undefined,
-            city: a.city,
-            state: a.state || undefined,
-            country: a.country,
-            postalCode: a.zipcode || undefined,
-            addressType: "HOME",
-          } as any;
-
-          if (/^\d+$/.test(a.id)) {
-            await addressService.updateAddress(Number(a.id), payload);
-          } else {
-            await addressService.addAddress(employeeId, payload);
-          }
-        }
-
-        try {
-          const resAddrs =
-            await addressService.getAddressesByEmployee(employeeId);
-          const mapped = (resAddrs || []).map((a) => ({
-            id: String(a.id),
-            line1: a.line1 || "",
-            line2: a.line2 || "",
-            city: a.city || "",
-            state: a.state || "",
-            zipcode: a.postalCode || "",
-            country: a.country || "",
-          }));
-          setAddresses(mapped);
-        } catch (err) {
-          console.error("Failed to reload addresses", err);
-        }
-
-        toast.success("Addresses saved");
+        await contactService.saveContactInfo(employeeId, {
+          email: normalizeEmail(draft.email),
+          phone: normalizePhone(draft.phone),
+          altPhone: draft.altPhone ? normalizePhone(draft.altPhone) : undefined,
+          notes: draft.notes || "",
+        });
+        toast.success("Contact information saved");
       } catch (err) {
-        console.error("Failed to save addresses", err);
-        toast.error("Failed to save addresses");
+        console.error("Failed to save contact info", err);
+        toast.error("Failed to save contact info");
       }
     };
 
@@ -296,7 +260,7 @@ export default function ContactInfoForm() {
       document.removeEventListener("profile:cancel", onCancel as EventListener);
       document.removeEventListener("profile:edit", onEdit as EventListener);
     };
-  }, [draft, saved, addresses, employeeId]);
+  }, [draft, saved, employeeId]);
 
   const set = <K extends keyof ContactInfo>(k: K, v: ContactInfo[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
@@ -321,22 +285,83 @@ export default function ContactInfoForm() {
     );
   }, []);
 
-  const handleCancelAddress = useCallback(() => {
-    setAddresses((current) =>
-      current.filter((a) => {
-        if (a.id !== editingAddressId) return true;
+  // Reload the canonical address list from the server (also assigns real ids
+  // to newly created records, so a subsequent edit updates instead of inserts).
+  const reloadAddresses = useCallback(async () => {
+    if (!employeeId) return;
+    try {
+      const res = await addressService.getAddressesByEmployee(employeeId);
+      const mapped = (res || []).map((a) => ({
+        id: String(a.id),
+        line1: a.line1 || "",
+        line2: a.line2 || "",
+        city: a.city || "",
+        state: a.state || "",
+        zipcode: a.postalCode || "",
+        country: a.country || "",
+      }));
+      setAddresses(mapped);
+    } catch (err) {
+      console.error("Failed to reload addresses", err);
+    }
+  }, [employeeId]);
 
-        const isEmpty = !(
-          a.line1?.trim() ||
-          a.city?.trim() ||
-          a.state?.trim() ||
-          a.country?.trim()
-        );
-        return !isEmpty;
-      }),
-    );
+  // Persist a single address immediately (create if new, update if existing).
+  const handlePersistAddress = useCallback(
+    async (address: Address) => {
+      if (!isAddressValid(address)) {
+        toast.error("Address line 1, city, and country are required");
+        return;
+      }
+      if (!employeeId) {
+        toast.error("Cannot save address: missing employee record");
+        return;
+      }
+
+      const payload = {
+        line1: address.line1,
+        line2: address.line2 || undefined,
+        city: address.city,
+        state: address.state || undefined,
+        country: address.country,
+        postalCode: address.zipcode || undefined,
+        addressType: "HOME" as const,
+      };
+
+      setSavingAddressId(address.id);
+      try {
+        if (/^\d+$/.test(address.id)) {
+          await addressService.updateAddress(Number(address.id), payload);
+          toast.success("Address updated");
+        } else {
+          await addressService.addAddress(employeeId, payload);
+          toast.success("Address added");
+        }
+        await reloadAddresses();
+        setEditingAddressId(null);
+      } catch (err) {
+        console.error("Failed to save address", err);
+        toast.error("Failed to save address");
+      } finally {
+        setSavingAddressId(null);
+      }
+    },
+    [employeeId, reloadAddresses],
+  );
+
+  const handleCancelAddress = useCallback(() => {
+    const editingId = editingAddressId;
     setEditingAddressId(null);
-  }, [editingAddressId]);
+    if (!editingId) return;
+
+    if (/^\d+$/.test(editingId)) {
+      // Existing record — discard unsaved edits by reloading canonical data.
+      void reloadAddresses();
+    } else {
+      // New, never-persisted record — simply drop it.
+      setAddresses((current) => current.filter((a) => a.id !== editingId));
+    }
+  }, [editingAddressId, reloadAddresses]);
 
   const handleDeleteAddress = useCallback((id: string) => {
     if (!window.confirm("Are you sure you want to delete this address?"))
@@ -484,7 +509,7 @@ export default function ContactInfoForm() {
                       Username
                     </span>
                     <span className="font-mono text-xs font-semibold text-slate-800">
-                      @{employeeUsername}
+                      {employeeUsername}
                     </span>
                   </div>
                 )}
@@ -749,10 +774,7 @@ export default function ContactInfoForm() {
             <p className="text-sm text-slate-500">No addresses added yet</p>
             <Button
               size="sm"
-              onClick={() => {
-                setEditing?.(true);
-                handleAddAddress();
-              }}
+              onClick={handleAddAddress}
               className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white text-xs"
             >
               <Plus className="h-3.5 w-3.5" /> Add First Address
@@ -760,6 +782,16 @@ export default function ContactInfoForm() {
           </div>
         ) : (
           <div className="space-y-3">
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={handleAddAddress}
+                disabled={editingAddressId !== null}
+                className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white text-xs disabled:opacity-50"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add Address
+              </Button>
+            </div>
             {addresses.map((address, idx) => (
               <div
                 key={address.id}
@@ -860,20 +892,25 @@ export default function ContactInfoForm() {
                         variant="outline"
                         size="sm"
                         className="h-8 rounded-lg text-xs"
+                        disabled={savingAddressId === address.id}
                         onClick={handleCancelAddress}
                       >
                         Cancel
                       </Button>
                       <Button
                         size="sm"
-                        disabled={!isAddressValid(address)}
-                        onClick={() => {
-                          handleSaveAddress(address);
-                          setEditingAddressId(null);
-                        }}
+                        disabled={
+                          !isAddressValid(address) ||
+                          savingAddressId === address.id
+                        }
+                        onClick={() => handlePersistAddress(address)}
                         className="h-8 rounded-lg text-xs bg-gradient-to-r from-violet-600 to-blue-600 text-white disabled:opacity-50"
                       >
-                        Done
+                        {savingAddressId === address.id
+                          ? "Saving…"
+                          : /^\d+$/.test(address.id)
+                            ? "Update"
+                            : "Save"}
                       </Button>
                     </div>
                   </div>

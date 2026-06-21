@@ -281,15 +281,16 @@ export const CompanyForm = ({
               name="companyCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Company Code</FormLabel>
+                  <FormLabel required>Company Code</FormLabel>
                   <FormControl>
                     <Input
-                      type="string"
+                      inputMode="numeric"
+                      maxLength={3}
                       placeholder="e.g. 100"
                       {...field}
                       onChange={(e) =>
                         field.onChange(
-                          e.target.value ? e.target.value : undefined,
+                          e.target.value.replace(/\D/g, "").slice(0, 3),
                         )
                       }
                     />

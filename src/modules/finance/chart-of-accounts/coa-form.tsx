@@ -94,7 +94,15 @@ export const ChartOfAccountsForm = ({
     ? "BUD1"
     : department?.departmentCode || projectCode || "000";
 
-  const computedCode = `${company?.companyCode || "000"}.${
+  // First segment of the GL code is the company's own 3-digit code (zero-padded
+  // so a 1–2 digit code still fills the segment). Falls back to 000 only when a
+  // company has no code set yet.
+  const companySegment = String(company?.companyCode ?? "")
+    .trim()
+    .padStart(3, "0")
+    .slice(-3);
+
+  const computedCode = `${companySegment}.${
     deptCode
   }.${accountNo || "000000"}.${interCompanyNumber || "000"}`;
 

@@ -10,6 +10,9 @@ import InvoiceSettingsPage from "../admin/hr/company/invoice-settings-page";
 
 import PermissionsTab from "@/components/permissions-tab";
 import { PageHeader } from "@/components/PageHeader";
+import { FINANCE_PERMISSION_MODULES } from "@/lib/permission-catalog";
+import { canManagePermissions } from "@/lib/permission-ui";
+import { useAuth } from "@/context/AuthContext";
 import {
   Banknote,
   Calendar,
@@ -19,17 +22,6 @@ import {
   Shield,
   Users,
 } from "lucide-react";
-
-const FINANCE_MODULES = [
-  { id: "finance_coa", label: "Chart of Accounts" },
-  { id: "finance_journal", label: "Journal Entries" },
-  { id: "finance_ledger", label: "General Ledger" },
-  { id: "finance_invoice", label: "Invoices & Credit Notes" },
-  { id: "finance_payment", label: "Payments" },
-  { id: "finance_budget", label: "Budget" },
-  { id: "finance_reconciliation", label: "Reconciliation" },
-  { id: "finance_reports", label: "Finance Reports" },
-];
 
 const TAB_VALUES = [
   "vendors",
@@ -45,12 +37,18 @@ type FinanceSettingsTab = (typeof TAB_VALUES)[number];
 
 const FinanceSettingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user, permissions } = useAuth();
+  const showPermissions = canManagePermissions(user?.role, permissions);
+
   const tabParam = searchParams.get("tab");
-  const activeTab: FinanceSettingsTab = TAB_VALUES.includes(
-    tabParam as FinanceSettingsTab,
-  )
+  const requestedTab = TAB_VALUES.includes(tabParam as FinanceSettingsTab)
     ? (tabParam as FinanceSettingsTab)
     : "vendors";
+  // Don't land on a Permissions tab the user can't use.
+  const activeTab: FinanceSettingsTab =
+    requestedTab === "permissions" && !showPermissions
+      ? "vendors"
+      : requestedTab;
 
   const tabsList = useMemo(
     () => [
@@ -90,23 +88,29 @@ const FinanceSettingsPage = () => {
         icon: <Receipt className="w-6 h-6" />,
         element: () => <InvoiceSettingsPage financeSettings />,
       },
-      {
-        value: "permissions",
-        label: "Permissions",
-        icon: <Shield className="w-6 h-6" />,
-        element: () => (
-          <PermissionsTab moduleType="FINANCE" modules={FINANCE_MODULES} />
-        ),
-      },
+      ...(showPermissions
+        ? [
+            {
+              value: "permissions",
+              label: "Permissions",
+              icon: <Shield className="w-6 h-6" />,
+              element: () => (
+                <PermissionsTab
+                  moduleType="FINANCE"
+                  modules={FINANCE_PERMISSION_MODULES}
+                />
+              ),
+            },
+          ]
+        : []),
     ],
-    [],
+    [showPermissions],
   );
 
   const handleTabChange = (value: string) => {
-    setSearchParams(
-      value === "vendors" ? {} : { tab: value },
-      { replace: true },
-    );
+    setSearchParams(value === "vendors" ? {} : { tab: value }, {
+      replace: true,
+    });
   };
 
   return (
@@ -117,11 +121,7 @@ const FinanceSettingsPage = () => {
         variant="darkBlue"
         icon={<Settings className="w-6 h-6" />}
       />
-      <AppTab
-        tabs={tabsList}
-        value={activeTab}
-        onValueChange={handleTabChange}
-      />
+      <AppTab tabs={tabsList} value={activeTab} onValueChange={handleTabChange} />
     </div>
   );
 };

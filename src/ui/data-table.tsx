@@ -4,21 +4,25 @@ import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import { TablePagination } from "@/components/table-pagination";
 
 type DataTableProps<TData> = {
   columns: ColumnDef<TData, any>[];
   data: TData[];
   onRowClick?: (row: TData) => void;
+  defaultPageSize?: number;
 };
 
 export function DataTable<TData>({
   columns,
   data,
   onRowClick,
+  defaultPageSize = 10,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const table = useReactTable({
@@ -28,10 +32,17 @@ export function DataTable<TData>({
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: { pageSize: defaultPageSize },
+    },
   });
 
+  const { pageIndex, pageSize } = table.getState().pagination;
+
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-200/70 shadow-sm">
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-md border border-slate-200/70 shadow-sm">
       <table className="w-full text-sm">
         <thead>
           {table.getHeaderGroups().map((hg) => (
@@ -101,6 +112,18 @@ export function DataTable<TData>({
           )}
         </tbody>
       </table>
+      </div>
+
+      {data.length > 0 && (
+        <TablePagination
+          total={data.length}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          pageCount={table.getPageCount() || 1}
+          onPageChange={(index) => table.setPageIndex(index)}
+          onPageSizeChange={(size) => table.setPageSize(size)}
+        />
+      )}
     </div>
   );
 }

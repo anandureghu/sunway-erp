@@ -18,6 +18,7 @@ import {
 import { type LeavePolicy, type LeaveType } from "@/types/hr";
 import { leavePolicyService } from "@/service/leavePolicyService";
 import { roleService, type RoleResponse } from "@/service/roleService";
+import { fetchHrPolicies } from "@/service/companyService";
 import { useAuth } from "@/context/AuthContext";
 
 // Default leave types (fallback when API fails)
@@ -185,8 +186,34 @@ export default function LeaveCustomizationForm() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedGender, setSelectedGender] = useState<Gender>("FEMALE");
 
-  // Company-level HR policies (accrual / retirement / loan) now live in their
-  // own "HR Policies" settings tab — see HrPoliciesForm.
+  // Company-level HR policies (accrual / retirement / loan) are edited in their
+  // own "HR Policies" settings tab — see HrPoliciesForm. We read the annual
+  // leave accrual policy here so the Annual Leave entitlement reflects it:
+  // when accrual is on, annual leave is earned per month worked, so the fixed
+  // per-role number no longer applies and is shown as accrual-managed.
+  const [accrualEnabled, setAccrualEnabled] = useState(false);
+  const [accrualDaysPerMonth, setAccrualDaysPerMonth] = useState(0);
+
+  // Annual-equivalent of the monthly accrual rate (e.g. 1.5/mo → ~18 days/yr).
+  const annualAccrualEquivalent = Math.round(accrualDaysPerMonth * 12);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    let cancelled = false;
+    fetchHrPolicies(company.id)
+      .then((policy) => {
+        if (cancelled) return;
+        setAccrualEnabled(!!policy.annualLeaveAccrualEnabled);
+        setAccrualDaysPerMonth(Number(policy.annualLeaveAccrualDaysPerMonth ?? 0));
+      })
+      .catch((err) => {
+        // Non-fatal: fall back to the editable fixed-days behaviour.
+        console.error("Failed to load HR accrual policy:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [company?.id]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -371,7 +398,14 @@ export default function LeaveCustomizationForm() {
       .filter(
         (p) => p.role === role && isLeaveTypeApplicable(p.leaveType, gender),
       )
-      .reduce((sum, p) => sum + p.daysAllowed, 0);
+      .reduce((sum, p) => {
+        // When accrual is enabled, Annual Leave is earned per month worked, so
+        // count the annual-equivalent rather than the (now-ignored) fixed days.
+        if (p.leaveType === "Annual Leave" && accrualEnabled) {
+          return sum + annualAccrualEquivalent;
+        }
+        return sum + p.daysAllowed;
+      }, 0);
   };
 
   if (!company) {
@@ -517,6 +551,24 @@ export default function LeaveCustomizationForm() {
         </p>
       </div>
 
+      {/* ── Accrual override notice ── */}
+      {accrualEnabled && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+          <Zap className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
+          <p className="text-xs text-emerald-700">
+            <span className="font-semibold">Annual Leave Accrual is on.</span>{" "}
+            Annual leave is earned at{" "}
+            <span className="font-semibold">
+              {accrualDaysPerMonth} day{accrualDaysPerMonth === 1 ? "" : "s"}/month
+            </span>{" "}
+            worked (≈ {annualAccrualEquivalent} days/year) from each employee's
+            join date, so the per-role Annual Leave value below is managed by
+            that policy and can't be edited here. Change it in{" "}
+            <span className="font-semibold">HR Policies</span>.
+          </p>
+        </div>
+      )}
+
       {/* ── Policy cards per role ── */}
       <div className="space-y-4">
         {visibleRoles.map((role) => {
@@ -569,6 +621,8 @@ export default function LeaveCustomizationForm() {
                   const isRestricted = isLeaveTypeGenderRestricted(leaveType);
                   const allowedReligion = getLeaveTypeAllowedReligion(leaveType);
                   const days = policy?.daysAllowed ?? 0;
+                  const isAccrualManaged =
+                    leaveType === "Annual Leave" && accrualEnabled;
 
                   return (
                     <div
@@ -598,45 +652,75 @@ export default function LeaveCustomizationForm() {
                             <Lock className="h-2.5 w-2.5" />
                           </span>
                         )}
+                        {isAccrualManaged && (
+                          <span
+                            className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"
+                            title="Managed by Annual Leave Accrual (HR Policies)"
+                          >
+                            <Zap className="h-2.5 w-2.5" />
+                          </span>
+                        )}
                       </div>
 
-                      {/* Stepper */}
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => decrementPolicy(role.key, leaveType)}
-                          disabled={days === 0}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
+                      {isAccrualManaged ? (
+                        <>
+                          {/* Accrual-managed: annual leave is earned per month
+                              worked (set in HR Policies), so the fixed per-role
+                              number no longer applies. */}
+                          <div className="flex h-9 items-center justify-center rounded-lg bg-white/70 shadow-sm ring-1 ring-emerald-200">
+                            <span className="text-xl font-bold text-emerald-700">
+                              ~{annualAccrualEquivalent}
+                            </span>
+                          </div>
+                          <p className="text-center text-[10px] font-medium text-emerald-600 tracking-wide uppercase">
+                            accrued ≈ days / year
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          {/* Stepper */}
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() =>
+                                decrementPolicy(role.key, leaveType)
+                              }
+                              disabled={days === 0}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
 
-                        <Input
-                          type="number"
-                          min="0"
-                          max="365"
-                          value={days}
-                          onChange={(e) =>
-                            updatePolicy(
-                              role.key,
-                              leaveType,
-                              parseInt(e.target.value) || 0,
-                            )
-                          }
-                          className="h-9 flex-1 border-0 bg-white/70 text-center text-xl font-bold shadow-sm ring-1 ring-slate-200 focus-visible:ring-blue-400 rounded-lg p-0"
-                        />
+                            <Input
+                              type="number"
+                              min="0"
+                              max="365"
+                              value={days}
+                              onChange={(e) =>
+                                updatePolicy(
+                                  role.key,
+                                  leaveType,
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              className="h-9 flex-1 border-0 bg-white/70 text-center text-xl font-bold shadow-sm ring-1 ring-slate-200 focus-visible:ring-blue-400 rounded-lg p-0"
+                            />
 
-                        <button
-                          onClick={() => incrementPolicy(role.key, leaveType)}
-                          disabled={days >= 365}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
+                            <button
+                              onClick={() =>
+                                incrementPolicy(role.key, leaveType)
+                              }
+                              disabled={days >= 365}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </div>
 
-                      <p className="text-center text-[10px] font-medium text-slate-400 tracking-wide uppercase">
-                        days / year
-                      </p>
+                          <p className="text-center text-[10px] font-medium text-slate-400 tracking-wide uppercase">
+                            days / year
+                          </p>
+                        </>
+                      )}
 
                       {/* Include Weekends toggle */}
                       <button
@@ -666,6 +750,11 @@ export default function LeaveCustomizationForm() {
                       {allowedReligion && (
                         <p className="text-center text-[10px] text-emerald-600 font-medium">
                           {allowedReligion} only
+                        </p>
+                      )}
+                      {isAccrualManaged && (
+                        <p className="text-center text-[10px] text-emerald-600 font-medium">
+                          {accrualDaysPerMonth} days/mo · set in HR Policies
                         </p>
                       )}
                     </div>
