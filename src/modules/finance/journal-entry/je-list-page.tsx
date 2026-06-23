@@ -12,10 +12,12 @@ import { GlTabPanel } from "@/components/finance/gl-tab-panel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 type JournalListTab = "active" | "archived";
 
 export default function JournalEntryListPage() {
+  const { confirm } = useConfirmDialog();
   const [data, setData] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -71,7 +73,7 @@ export default function JournalEntryListPage() {
         return;
       }
       const label = entry.jeNumber ?? `#${entry.id}`;
-      if (!confirm(`Archive journal entry ${label}?`)) return;
+      if (!(await confirm(`Archive journal entry ${label}?`))) return;
       setArchivingId(entry.id);
       try {
         await apiClient.post(`/finance/journal-entries/${entry.id}/archive`);

@@ -48,6 +48,7 @@ import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
 import type { PurchaseRequisitionDocument } from "@/types/purchase";
 import { cn } from "@/lib/utils";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const BASE = "/inventory/purchase";
 
@@ -132,6 +133,7 @@ export default function PurchaseRequisitionDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [documentsRevealed, setDocumentsRevealed] = useState(false);
+  const { confirm } = useConfirmDialog();
 
   const load = useCallback(async () => {
     if (!id) {
@@ -261,9 +263,12 @@ export default function PurchaseRequisitionDetailPage() {
   const handleApprove = async () => {
     if (!requisition) return;
     if (
-      !confirm(
-        "Approve this requisition? A draft purchase order will be created. Assign the supplier on the PO before release.",
-      )
+      !(await confirm({
+        title: "Approve requisition",
+        description:
+          "A draft purchase order will be created. Assign the supplier on the PO before release.",
+        confirmLabel: "Approve",
+      }))
     ) {
       return;
     }

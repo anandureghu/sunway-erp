@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { addressService, type Address } from "@/service/addressService";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function AddressList({ employeeId }: { employeeId: number }) {
+  const { confirm } = useConfirmDialog();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -49,7 +51,7 @@ export default function AddressList({ employeeId }: { employeeId: number }) {
 
   const handleDelete = async (id?: number) => {
     if (!id) return;
-    if (!confirm("Delete this address?")) return;
+    if (!(await confirm("Delete this address?"))) return;
     try {
       await addressService.deleteAddress(id);
       toast.success("Address deleted");

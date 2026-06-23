@@ -44,6 +44,7 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -52,6 +53,7 @@ interface AccountsPayableProps {
 }
 
 function PayableInvoicesTab() {
+  const { confirm } = useConfirmDialog();
   const navigate = useNavigate();
   const [rows, setRows] = useState<FinanceInvoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ function PayableInvoicesTab() {
         return toast.error("Only paid or cancelled invoices can be archived.");
       }
       if (invoice.archived) return toast.error("Invoice is already archived.");
-      if (!confirm(`Archive invoice ${invoice.invoiceId}?`)) return;
+      if (!(await confirm(`Archive invoice ${invoice.invoiceId}?`))) return;
       setProcessingInvoiceId(id);
       try {
         const updated = await archiveInvoice(id);

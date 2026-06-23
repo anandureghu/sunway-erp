@@ -23,8 +23,10 @@ import { useAuth } from "@/context/AuthContext";
 import { StatusBadge } from "@/lib/status-badge";
 import { CreditAmount } from "@/components/accounting-amount";
 import { Badge } from "@/components/ui/badge";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function BudgetDetailPage() {
+  const { confirm } = useConfirmDialog();
   const { id } = useParams();
   const { company } = useAuth();
   const navigate = useNavigate();
@@ -83,9 +85,9 @@ export default function BudgetDetailPage() {
       return;
     }
     if (
-      !confirm(
+      !(await confirm(
         `Archive all distribution transactions between ${fromDate} and ${toDate}? GL balances will not be reversed.`,
-      )
+      ))
     ) {
       return;
     }

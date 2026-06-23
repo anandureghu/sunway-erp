@@ -42,8 +42,10 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const CategoriesMaster = () => {
+  const { confirm } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -116,7 +118,7 @@ const CategoriesMaster = () => {
       ? "Are you sure you want to delete this subcategory?"
       : "Are you sure you want to delete this category?";
 
-    if (!window.confirm(confirmMessage)) return;
+    if (!(await confirm(confirmMessage))) return;
 
     try {
       await deleteCategory(id);

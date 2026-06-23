@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { Dispatch, Picklist, SalesOrder } from "@/types/sales";
 import {
   createDispatchColumns,
@@ -36,6 +37,7 @@ import {
 } from "@/components/kpi-summary-strip";
 
 export default function PicklistDispatchPage() {
+  const { confirm } = useConfirmDialog();
   const location = useLocation();
   const navState =
     (location.state as {
@@ -125,7 +127,7 @@ export default function PicklistDispatchPage() {
           }
         },
         async (id) => {
-          if (!confirm("Are you sure you want to cancel this picklist?"))
+          if (!(await confirm("Are you sure you want to cancel this picklist?")))
             return;
           try {
             await cancelPicklist(id);
@@ -173,7 +175,7 @@ export default function PicklistDispatchPage() {
           await loadData();
         },
         async (id) => {
-          if (!confirm("Are you sure you want to cancel this shipment?"))
+          if (!(await confirm("Are you sure you want to cancel this shipment?")))
             return;
           await cancelShipment(id);
           await loadData();

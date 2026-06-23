@@ -19,6 +19,7 @@ import { useParams } from "react-router-dom";
 import { propertyService } from "@/service/propertyService";
 import { toast } from "sonner";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -82,6 +83,7 @@ const getStatusColor = (status: string) => {
 };
 
 export default function CompanyPropertiesForm() {
+  const { confirm } = useConfirmDialog();
   const [items, setItems] = useState<CompanyItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -187,7 +189,7 @@ export default function CompanyPropertiesForm() {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      if (!window.confirm("Are you sure you want to delete this property?"))
+      if (!(await confirm("Are you sure you want to delete this property?")))
         return;
       if (!empId) return;
 

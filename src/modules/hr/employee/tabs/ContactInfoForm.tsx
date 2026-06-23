@@ -28,6 +28,7 @@ import { addressService } from "@/service/addressService";
 import { contactService } from "@/service/contactService";
 import { hrService } from "@/service/hr.service";
 import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import PhoneInput from "@/components/PhoneInput";
 import EmailInput from "@/components/EmailInput";
 import { validatePhone, normalizePhone } from "@/lib/countries";
@@ -116,6 +117,7 @@ function calculatePasswordStrength(
 }
 
 export default function ContactInfoForm() {
+  const { confirm } = useConfirmDialog();
   const { editing, isAdmin } = useOutletContext<Ctx>();
 
   const [saved, setSaved] = useState(SEED);
@@ -363,8 +365,8 @@ export default function ContactInfoForm() {
     }
   }, [editingAddressId, reloadAddresses]);
 
-  const handleDeleteAddress = useCallback((id: string) => {
-    if (!window.confirm("Are you sure you want to delete this address?"))
+  const handleDeleteAddress = useCallback(async (id: string) => {
+    if (!(await confirm("Are you sure you want to delete this address?")))
       return;
 
     (async () => {
@@ -380,7 +382,7 @@ export default function ContactInfoForm() {
         toast.error("Failed to delete address");
       }
     })();
-  }, []);
+  }, [confirm]);
 
   // Password Management
   const handlePasswordChange = (field: keyof PasswordState, value: any) => {

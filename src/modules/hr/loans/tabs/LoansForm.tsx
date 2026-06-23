@@ -28,6 +28,7 @@ import { addMonths } from "@/lib/date";
 import { useParams } from "react-router-dom";
 import { loanService } from "@/service/loanService";
 import { SelectField } from "@/modules/hr/components/select-field";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { LoanPayload } from "@/types/hr/loan";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -86,6 +87,7 @@ const INITIAL_LOAN: LoansModel = {
 };
 
 export default function LoansForm(): ReactElement {
+  const { confirm } = useConfirmDialog();
   const params = useParams<{ id: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
   const { user, permissions } = useAuth();
@@ -326,13 +328,13 @@ export default function LoansForm(): ReactElement {
     setEditingId(null);
   }, [editingId]);
 
-  const handleDelete = useCallback((id: string) => {
-    if (!window.confirm("Are you sure you want to delete this loan?")) return;
+  const handleDelete = useCallback(async (id: string) => {
+    if (!(await confirm("Are you sure you want to delete this loan?"))) return;
 
     setLoans((current) => current.filter((l) => l.id !== id));
     setEditingId(null);
     toast.success("Loan removed locally");
-  }, []);
+  }, [confirm]);
 
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {

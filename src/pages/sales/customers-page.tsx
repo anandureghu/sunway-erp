@@ -16,8 +16,10 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function CustomersPage() {
+  const { confirm } = useConfirmDialog();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,9 @@ export default function CustomersPage() {
 
   const handleDelete = async (customer: Customer) => {
     if (
-      !confirm(`Are you sure you want to delete customer "${customer.name}"?`)
+      !(await confirm(
+        `Are you sure you want to delete customer "${customer.name}"?`,
+      ))
     ) {
       return;
     }

@@ -33,6 +33,7 @@ import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { normalizePhone } from "@/lib/countries";
 
 // Section card
@@ -85,6 +86,7 @@ const icls =
   "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
 
 const WarehouseMaster = () => {
+  const { confirm } = useConfirmDialog();
   // Warehouses management state
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
@@ -188,7 +190,7 @@ const WarehouseMaster = () => {
   };
 
   const handleDeleteWarehouse = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this warehouse?")) return;
+    if (!(await confirm("Are you sure you want to delete this warehouse?"))) return;
 
     try {
       await deleteWarehouse(id);

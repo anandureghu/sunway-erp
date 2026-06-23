@@ -25,6 +25,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { dependentService } from "@/service/dependentService";
 import { toast } from "sonner";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -131,6 +132,7 @@ const getRelationshipColor = (relationship: string) => {
 };
 
 export function DependentsForm() {
+  const { confirm } = useConfirmDialog();
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -257,7 +259,7 @@ export function DependentsForm() {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      if (!window.confirm("Are you sure you want to delete this dependent?"))
+      if (!(await confirm("Are you sure you want to delete this dependent?")))
         return;
       if (!empId) {
         return;
@@ -276,7 +278,7 @@ export function DependentsForm() {
         toast.error(dependentService.extractErrorMessage(err));
       }
     },
-    [empId, reloadFromBackend],
+    [empId, reloadFromBackend, confirm],
   );
 
   const updateDependent = useCallback(

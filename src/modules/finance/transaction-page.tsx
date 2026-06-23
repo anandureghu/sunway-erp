@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { ReceiptText } from "lucide-react";
 import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
 import type { TransactionResponseDTO } from "@/types/transactions";
@@ -14,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 type TransactionListTab = "active" | "archived";
 
 export default function TransactionPage({ companyId }: { companyId: number }) {
+  const { confirm } = useConfirmDialog();
   const [txList, setTxList] = useState<TransactionResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,7 +72,7 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
         return;
       }
       const label = tx.transactionCode ?? `#${tx.id}`;
-      if (!confirm(`Archive transaction ${label}?`)) return;
+      if (!(await confirm(`Archive transaction ${label}?`))) return;
       setArchivingId(tx.id);
       try {
         const res = await apiClient.post<TransactionResponseDTO>(

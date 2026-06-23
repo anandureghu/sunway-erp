@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { SalesOrder } from "@/types/sales";
 import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
 import {
@@ -23,6 +24,7 @@ import {
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function SalesOrdersPage() {
+  const { confirm } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
@@ -191,7 +193,7 @@ export default function SalesOrdersPage() {
           `Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`,
         );
       }
-      if (!confirm(`Cancel order ${order.orderNo}? This cannot be undone.`)) {
+      if (!(await confirm(`Cancel order ${order.orderNo}? This cannot be undone.`))) {
         return;
       }
 
@@ -238,7 +240,7 @@ export default function SalesOrdersPage() {
       if (order.archived) {
         return toast.error("Order is already archived.");
       }
-      if (!confirm(`Archive order ${order.orderNo}?`)) return;
+      if (!(await confirm(`Archive order ${order.orderNo}?`))) return;
       setActionState({ id, type: "archive" });
       try {
         const updated = await archiveSalesOrder(id);

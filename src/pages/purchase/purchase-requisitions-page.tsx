@@ -30,6 +30,7 @@ import {
 import { archivePurchaseRequisition } from "@/service/purchaseFlowService";
 import { useModulePermission } from "@/hooks/use-module-permission";
 import { InventoryModule } from "@/lib/module-permissions";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function PurchaseRequisitionsPage() {
   const location = useLocation();
@@ -37,6 +38,7 @@ export default function PurchaseRequisitionsPage() {
   const { canCreate, canEdit, canApprove, canDelete } = useModulePermission(
     InventoryModule.PURCHASE,
   );
+  const { confirm } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(
@@ -159,9 +161,12 @@ export default function PurchaseRequisitionsPage() {
   const handleApprove = useCallback(
     async (id: string) => {
       if (
-        !confirm(
-          "Approve this requisition? A draft purchase order will be created. Assign the supplier on the PO before release.",
-        )
+        !(await confirm({
+          title: "Approve requisition",
+          description:
+            "A draft purchase order will be created. Assign the supplier on the PO before release.",
+          confirmLabel: "Approve",
+        }))
       ) {
         return;
       }
@@ -192,7 +197,7 @@ export default function PurchaseRequisitionsPage() {
         );
       }
     },
-    [navigate, refreshRequisitions],
+    [navigate, refreshRequisitions, confirm],
   );
 
   const handleReviewConfirm = useCallback(
@@ -298,7 +303,7 @@ export default function PurchaseRequisitionsPage() {
         return toast.error("Only converted or rejected requisitions can be archived.");
       }
       if (req.archived) return toast.error("Requisition is already archived.");
-      if (!confirm(`Archive requisition ${req.requisitionNo}?`)) return;
+      if (!(await confirm(`Archive requisition ${req.requisitionNo}?`))) return;
       setActionState({ id, type: "archive" });
       try {
         const updated = await archivePurchaseRequisition(id);
@@ -319,7 +324,7 @@ export default function PurchaseRequisitionsPage() {
         setActionState(null);
       }
     },
-    [requisitions, refreshRequisitions],
+    [requisitions, refreshRequisitions, confirm],
   );
 
   const columns: ColumnDef<PurchaseRequisition>[] = useMemo(

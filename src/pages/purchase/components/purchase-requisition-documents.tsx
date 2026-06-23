@@ -9,6 +9,7 @@ import {
   uploadPurchaseRequisitionDocument,
 } from "@/service/purchaseFlowService";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const ACCEPT =
   ".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*";
@@ -47,6 +48,7 @@ export function PurchaseRequisitionDocuments({
   readOnly = false,
   embedded = false,
 }: Props) {
+  const { confirm } = useConfirmDialog();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function PurchaseRequisitionDocuments({
   };
 
   const handleDelete = async (docId: string) => {
-    if (!confirm("Remove this document from the requisition?")) return;
+    if (!(await confirm("Remove this document from the requisition?"))) return;
     setDeletingId(docId);
     try {
       await deletePurchaseRequisitionDocument(requisitionId, docId);

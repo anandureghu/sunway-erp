@@ -6,6 +6,7 @@ import { SalesPageHeader } from "./components/sales-page-header";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
 import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 /* =======================
    CONSTANTS
@@ -56,6 +57,7 @@ const formatTemplate = (
 ======================= */
 
 export default function InvoiceDetailPage() {
+  const { alert } = useConfirmDialog();
   const { id } = useParams();
   const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
 
@@ -134,9 +136,9 @@ export default function InvoiceDetailPage() {
 
         window.open(pdfUrl, "_blank");
       })
-      .catch((error) => {
+      .catch(async (error) => {
         console.error("Invoice PDF download failed", error);
-        alert(
+        await alert(
           isReceiptView
             ? "Unable to download receipt PDF"
             : "Unable to download invoice PDF",
@@ -151,12 +153,12 @@ export default function InvoiceDetailPage() {
       } else {
         await apiClient.post(`/invoices/${invoice.id}/email`);
       }
-      alert(
+      await alert(
         `${isReceiptView ? "Receipt" : "Invoice"} email sent to customer`,
       );
     } catch (error) {
       console.error("Email sending failed", error);
-      alert("Unable to send email");
+      await alert("Unable to send email");
     }
   };
 
