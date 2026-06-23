@@ -7,18 +7,14 @@ import CustomersPage from "../admin/customers/customers-page";
 import PermissionsTab from "@/components/permissions-tab";
 import { PageHeader } from "@/components/PageHeader";
 import { Building, List, Settings, Shield, Users } from "lucide-react";
-
-const INVENTORY_MODULES = [
-  { id: "inventory_category", label: "Categories" },
-  { id: "inventory_warehouse", label: "Warehouse" },
-  { id: "inventory_stock", label: "Stock Management" },
-  { id: "inventory_item", label: "Items" },
-  { id: "inventory_purchase", label: "Purchase" },
-  { id: "inventory_receipt", label: "Goods Receipt" },
-  { id: "inventory_sales", label: "Sales" },
-];
+import { INVENTORY_PERMISSION_MODULES } from "@/lib/permission-catalog";
+import { useAuth } from "@/context/AuthContext";
+import { canManagePermissions } from "@/lib/permission-ui";
 
 const InventorySettingsPage = () => {
+  const { user, permissions } = useAuth();
+  const showPermissions = canManagePermissions(user?.role, permissions);
+
   const tabsList = [
     {
       value: "categories",
@@ -44,14 +40,21 @@ const InventorySettingsPage = () => {
       element: () => <VendorsPage />,
       icon: <Users className="w-6 h-6" />,
     },
-    {
-      value: "permissions",
-      label: "Permissions",
-      element: () => (
-        <PermissionsTab moduleType="INVENTORY" modules={INVENTORY_MODULES} />
-      ),
-      icon: <Shield className="w-6 h-6" />,
-    },
+    ...(showPermissions
+      ? [
+          {
+            value: "permissions",
+            label: "Permissions",
+            element: () => (
+              <PermissionsTab
+                moduleType="INVENTORY"
+                modules={INVENTORY_PERMISSION_MODULES}
+              />
+            ),
+            icon: <Shield className="w-6 h-6" />,
+          },
+        ]
+      : []),
   ];
 
   return (

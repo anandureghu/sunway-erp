@@ -112,7 +112,6 @@ import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
 import HRSettingsPage from "./pages/hr/settings-page";
 import HRReportsPage from "./pages/hr/hr-reports-page";
-import ImmigrationExpiryPage from "./pages/hr/immigration-expiry-page";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
 import { useEffect } from "react";
 import { setGlobalSettingsView } from "@/store/uiSlice";
@@ -494,10 +493,11 @@ export default function App() {
             {/* HR Reports */}
             <Route path="reports" element={<HRReportsPage />} />
 
-            {/* Immigration expiry report */}
+            {/* Immigration expiry now lives as a tab inside HR Reports.
+                Keep the old path working by redirecting to that tab. */}
             <Route
               path="immigration-expiry"
-              element={<ImmigrationExpiryPage />}
+              element={<Navigate to="/hr/reports?tab=immigration" replace />}
             />
 
             {/* HR Settings */}

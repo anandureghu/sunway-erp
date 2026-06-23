@@ -90,9 +90,12 @@ export default function LoansForm(): ReactElement {
   const employeeId = params.id ? Number(params.id) : undefined;
   const { user, permissions } = useAuth();
   // ADMIN/SUPER_ADMIN get permissions=null and bypass; otherwise check the
-  // explicit LOANS.approve grant. HR Manager / Finance Manager get this via
-  // their company-role permission config.
+  // explicit LOANS grant. HR Manager / Finance Manager get these via their
+  // company-role permission config; individual employees via overrides.
   const canApproveLoans = permissions === null || !!permissions?.LOANS?.approve;
+  const canCreateLoans = permissions === null || !!permissions?.LOANS?.create;
+  const canEditLoans = permissions === null || !!permissions?.LOANS?.edit;
+  const canDeleteLoans = permissions === null || !!permissions?.LOANS?.delete;
 
   const [loans, setLoans] = useState<LoansModel[]>([]);
   const [loanTypeOptions, setLoanTypeOptions] = useState<
@@ -403,13 +406,15 @@ export default function LoansForm(): ReactElement {
         description="Manage loan details and repayment schedules"
         icon={<Building2 className="h-5 w-5 text-white" />}
         actions={
-          <Button
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-          >
-            <Plus className="h-4 w-4" />
-            Request Loan
-          </Button>
+          canCreateLoans ? (
+            <Button
+              onClick={handleAdd}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+            >
+              <Plus className="h-4 w-4" />
+              Request Loan
+            </Button>
+          ) : undefined
         }
       />
 
@@ -907,24 +912,28 @@ export default function LoansForm(): ReactElement {
                           <Eye className="h-4 w-4" />
                           View
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingId(loan.id)}
-                          className="flex items-center gap-1 rounded-lg"
-                        >
-                          <PencilLine className="h-4 w-4" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(loan.id)}
-                          className="text-red-600 rounded-lg"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </Button>
+                        {canEditLoans && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingId(loan.id)}
+                            className="flex items-center gap-1 rounded-lg"
+                          >
+                            <PencilLine className="h-4 w-4" />
+                            Edit
+                          </Button>
+                        )}
+                        {canDeleteLoans && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(loan.id)}
+                            className="text-red-600 rounded-lg"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1039,16 +1048,18 @@ export default function LoansForm(): ReactElement {
                         >
                           Close
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setViewingId(null);
-                            setEditingId(loan.id);
-                          }}
-                          className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
-                        >
-                          <PencilLine className="mr-1 h-3.5 w-3.5" /> Edit
-                        </Button>
+                        {canEditLoans && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setViewingId(null);
+                              setEditingId(loan.id);
+                            }}
+                            className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                          >
+                            <PencilLine className="mr-1 h-3.5 w-3.5" /> Edit
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1067,15 +1078,19 @@ export default function LoansForm(): ReactElement {
               No loans added yet
             </h3>
             <p className="text-slate-600 mb-6">
-              Click "Request Loan" to create your first employee loan
+              {canCreateLoans
+                ? 'Click "Request Loan" to create your first employee loan'
+                : "You don't have permission to request loans."}
             </p>
-            <Button
-              onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg rounded-xl px-6"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Request Your First Loan
-            </Button>
+            {canCreateLoans && (
+              <Button
+                onClick={handleAdd}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg rounded-xl px-6"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Request Your First Loan
+              </Button>
+            )}
           </div>
         )}
       </div>

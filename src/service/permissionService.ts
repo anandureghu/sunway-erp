@@ -53,6 +53,8 @@ export type PermissionRecord = {
   editPermission?: boolean;
   deletePermission?: boolean;
   approve?: boolean;
+  /** Whether the rule is enforced. When false it is saved but ignored. */
+  active?: boolean;
 };
 
 type PermissionPayload = {
@@ -247,6 +249,29 @@ async function removeAllEmployeePermissions(employeeId: number): Promise<void> {
   clearPermissionCache();
 }
 
+// Enable/disable a rule. When inactive it is saved but not enforced (the
+// backend resolver skips it and falls through to the next precedence layer).
+async function setCompanyRolePermissionsActive(
+  companyRoleId: number,
+  active: boolean
+): Promise<void> {
+  await apiClient.patch(
+    `/role-permissions/company-roles/${companyRoleId}/active`,
+    { active }
+  );
+  clearPermissionCache();
+}
+
+async function setEmployeePermissionsActive(
+  employeeId: number,
+  active: boolean
+): Promise<void> {
+  await apiClient.patch(`/role-permissions/employees/${employeeId}/active`, {
+    active,
+  });
+  clearPermissionCache();
+}
+
 // Helpers
 
 function toFrontendCaps(
@@ -348,6 +373,9 @@ export const permissionService = {
   getEmployeePermissions,
   assignEmployeePermissions,
   removeAllEmployeePermissions,
+
+  setCompanyRolePermissionsActive,
+  setEmployeePermissionsActive,
 
   assignPermissions,
 
