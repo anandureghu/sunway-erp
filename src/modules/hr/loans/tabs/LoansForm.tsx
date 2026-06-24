@@ -32,6 +32,7 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { LoanPayload } from "@/types/hr/loan";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { canActScoped } from "@/lib/module-permissions";
 import { fetchCompany } from "@/service/companyService";
 import type { Company } from "@/types/company";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
@@ -91,13 +92,20 @@ export default function LoansForm(): ReactElement {
   const params = useParams<{ id: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
   const { user, permissions } = useAuth();
-  // ADMIN/SUPER_ADMIN get permissions=null and bypass; otherwise check the
-  // explicit LOANS grant. HR Manager / Finance Manager get these via their
-  // company-role permission config; individual employees via overrides.
-  const canApproveLoans = permissions === null || !!permissions?.LOANS?.approve;
-  const canCreateLoans = permissions === null || !!permissions?.LOANS?.create;
-  const canEditLoans = permissions === null || !!permissions?.LOANS?.edit;
-  const canDeleteLoans = permissions === null || !!permissions?.LOANS?.delete;
+  // Loans are scoped to the employee in the route. ADMIN/SUPER_ADMIN bypass via
+  // permissions === null. Otherwise a grant applies per own/all: an "own-only"
+  // grant only enables the action on the user's own records, so the buttons are
+  // hidden on someone else's loans (no button that would 403 on save).
+  // employeeId is populated on the auth user at runtime (from the JWT) but isn't
+  // on the Employee type — read it via a cast, as the rest of the app does.
+  const myEmployeeId = (user as { employeeId?: number | string } | null)
+    ?.employeeId;
+  const isOwnEmployee =
+    myEmployeeId != null && Number(myEmployeeId) === employeeId;
+  const canApproveLoans = canActScoped(permissions, "LOANS", "approve", isOwnEmployee);
+  const canCreateLoans = canActScoped(permissions, "LOANS", "create", isOwnEmployee);
+  const canEditLoans = canActScoped(permissions, "LOANS", "edit", isOwnEmployee);
+  const canDeleteLoans = canActScoped(permissions, "LOANS", "delete", isOwnEmployee);
 
   const [loans, setLoans] = useState<LoansModel[]>([]);
   const [loanTypeOptions, setLoanTypeOptions] = useState<

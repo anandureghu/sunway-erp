@@ -46,9 +46,21 @@ export default function EditUpdateButton({ editing, onEdit, onSave, onCancel, mo
 
       if (!mounted) return;
 
-      // Support both backend DTO shape (editPermission) and frontend 'permission' object
-      const allowed = !!(
-        perm?.editPermission === true || perm?.permission?.edit === true
+      // The button enables when the user can write in this module (create OR
+      // edit), since it gates both "Edit/Update" and create-style actions like
+      // "Request Leave". The backend still enforces the specific action and the
+      // own/all scope on save. We read every shape the API may return:
+      //   • flat granular (current):  perm.editOwn / editAll / createOwn / createAll
+      //   • nested under `permission`: perm.permission.editOwn / .edit / ...
+      //   • legacy single flags:       perm.editPermission / createPermission
+      const truthy = (...vals: unknown[]) => vals.some((v) => v === true);
+      const p: any = perm ?? {};
+      const pp: any = p.permission ?? {};
+      const allowed = truthy(
+        p.editOwn, p.editAll, p.createOwn, p.createAll,
+        pp.editOwn, pp.editAll, pp.createOwn, pp.createAll,
+        pp.edit, pp.create,
+        p.editPermission, p.createPermission,
       );
 
       setCanEdit(allowed);

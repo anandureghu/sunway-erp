@@ -1,9 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { ReactElement } from "react";
-import { useOutletContext } from "react-router-dom";
+import {
+  useOutletContext,
+  useParams,
+  useSearchParams,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useParams } from "react-router-dom";
 import { leaveService } from "@/service/leaveService";
 import { toast } from "sonner";
 import type { LeavePreview } from "@/service/leaveService";
@@ -115,6 +120,13 @@ export default function LeavesForm(): ReactElement {
   const employeeId = id ? Number(id) : undefined;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Edit mode: arriving from Leave History with ?leaveId=<id> means we are
+  // editing an existing pending leave (the row data is passed via router state).
+  const [sp] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const editingLeaveId = sp.get("leaveId") ? Number(sp.get("leaveId")) : null;
+
   const [draft, setDraft] = useState<LeaveRecord>({ ...SEED });
   const [saved, setSaved] = useState<LeaveRecord | null>(null);
   const [preview, setPreview] = useState<LeavePreview | null>(null);
@@ -132,6 +144,31 @@ export default function LeavesForm(): ReactElement {
   const needsDoc = REQUIRES_DOCUMENT.some((t) =>
     draft.leaveType?.toLowerCase().includes(t.toLowerCase()),
   );
+
+  // Pre-fill the form once when editing an existing leave. The row data is
+  // handed over via router state from the Leave History "Edit" action.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current || !editingLeaveId) return;
+    const st = (location.state as { leave?: Partial<LeaveRecord> } | null)
+      ?.leave;
+    if (!st) return;
+    prefilledRef.current = true;
+    const record: LeaveRecord = {
+      ...SEED,
+      leaveType: st.leaveType ?? SEED.leaveType,
+      startDate: st.startDate ?? "",
+      endDate: st.endDate ?? "",
+      returnDate: st.returnDate ?? "",
+      includeWeekends: !!st.includeWeekends,
+      dateReported: st.dateReported || SEED.dateReported,
+      leaveStatus: "Pending for Approval",
+      delegateId: st.delegateId ?? null,
+    };
+    setDraft(record);
+    // Seed "saved" so Cancel reverts to the original values, not a blank form.
+    setSaved(record);
+  }, [editingLeaveId, location.state]);
 
   // ============================================================
   // ✅ FIX: Fetch available leave types with proper error handling
@@ -314,36 +351,54 @@ export default function LeavesForm(): ReactElement {
       returnDate: draft.returnDate || undefined,
     };
 
-    // Validate: sick leave requires a document
-    if (needsDoc && !docFile) {
+    // Validate: sick leave requires a document (only for brand-new requests —
+    // an existing leave being edited already carries its document).
+    if (!editingLeaveId && needsDoc && !docFile) {
       setDocError(
         "A supporting document (e.g. medical certificate) is required for Sick Leave.",
       );
       return;
     }
 
-    // When a document is attached, create the leave AND upload it in a single
-    // multipart request. (The old two-step path passed the string leaveCode as a
-    // numeric id, so it resolved to NaN and the upload silently failed.)
-    const submit = docFile
-      ? leaveService.applyLeaveWithDocument(employeeId, payload, docFile)
-      : leaveService.applyLeave(employeeId, payload);
+    // Editing an existing pending leave → update it. Otherwise create a new one;
+    // when a document is attached, create AND upload in a single multipart call.
+    const submit = editingLeaveId
+      ? leaveService.updateLeave(employeeId, editingLeaveId, payload)
+      : docFile
+        ? leaveService.applyLeaveWithDocument(employeeId, payload, docFile)
+        : leaveService.applyLeave(employeeId, payload);
 
     submit
       .then((result) => {
         // Service never throws — check the success flag explicitly
         if (!result.success) {
-          toast.error(result.message || "Failed to apply leave");
+          toast.error(
+            result.message ||
+              (editingLeaveId
+                ? "Failed to update leave"
+                : "Failed to apply leave"),
+          );
           return;
         }
 
-        toast.success("Leave applied successfully");
+        toast.success(
+          editingLeaveId
+            ? "Leave updated successfully"
+            : "Leave applied successfully",
+        );
         setSaved(draft);
         setDocFile(null);
         setDocError(null);
 
         // Signal the shell to exit edit mode (LeavesShell listens for "leaves:saved")
         document.dispatchEvent(new Event("leaves:saved"));
+
+        // After an edit, return to the Leave History list.
+        if (editingLeaveId) {
+          const base = location.pathname.replace(/\/+$/, "");
+          navigate(`${base}/history`);
+          return;
+        }
 
         // Refresh preview after successful apply
         leaveService
@@ -360,10 +415,18 @@ export default function LeavesForm(): ReactElement {
           });
       })
       .catch((err) => {
-        console.error("Apply leave failed", err);
+        console.error("Save leave failed", err);
         toast.error("An unexpected error occurred");
       });
-  }, [draft, employeeId, needsDoc, docFile]);
+  }, [
+    draft,
+    employeeId,
+    needsDoc,
+    docFile,
+    editingLeaveId,
+    navigate,
+    location.pathname,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (saved) setDraft(saved);

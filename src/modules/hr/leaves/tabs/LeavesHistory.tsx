@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { leaveService } from "@/service/leaveService";
 import {
   Calendar,
@@ -12,11 +12,14 @@ import {
   Search,
   Wallet,
   Download,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 type Row = {
+  id: number;
   leaveCode: string;
   leaveType: string;
   startDate: string;
@@ -26,6 +29,7 @@ type Row = {
   leaveBalance: string | number;
   leaveStatus: string;
   totalDays: number;
+  includeWeekends: boolean;
   supportingDocumentUrl: string;
 };
 
@@ -37,6 +41,19 @@ type Row = {
  *    { content: [...] }    ← Spring Page
  *    { data: [...] }       ← generic wrapper
  */
+/** Normalize a backend leave status (e.g. "PENDING") to title case so it
+ *  matches STATUS_META keys and the Pending/Approved/Rejected comparisons. */
+function normalizeStatus(s: unknown): string {
+  const v = String(s ?? "")
+    .trim()
+    .toUpperCase();
+  if (v === "APPROVED") return "Approved";
+  if (v === "REJECTED") return "Rejected";
+  if (v === "CANCELLED") return "Cancelled";
+  if (v === "PENDING") return "Pending";
+  return s ? String(s) : "Pending";
+}
+
 function normalizeToArray(data: unknown): Row[] {
   if (!data) return [];
   const d = data as any;
@@ -57,14 +74,16 @@ function normalizeToArray(data: unknown): Row[] {
     const startDate = r.startDate || r.start_date || "";
     const endDate = r.endDate || r.end_date || "";
     return {
+      id: Number(r.id ?? r.leaveId ?? r.leave_id ?? 0),
       leaveCode: r.leaveCode || r.leave_code || "—",
       leaveType: r.leaveType || r.leave_type || "—",
       startDate,
       endDate,
+      includeWeekends: Boolean(r.includeWeekends ?? r.include_weekends),
       dateReported: r.dateReported || r.date_reported || "",
       returnDate: r.returnDate || r.return_date || "",
       leaveBalance: r.leaveBalance ?? r.leave_balance ?? "",
-      leaveStatus: r.leaveStatus || r.leave_status || "Pending",
+      leaveStatus: normalizeStatus(r.leaveStatus || r.leave_status),
       totalDays:
         r.totalDays != null
           ? Number(r.totalDays)
@@ -167,6 +186,15 @@ export default function LeavesHistory() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [balances, setBalances] = useState<BalanceEntry[]>([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Edit a pending leave: jump to the leave form (the index tab) in edit mode,
+  // pre-filled with this row's values (handed over via router state).
+  const openEdit = (row: Row) => {
+    const formPath = location.pathname.replace(/\/history$/, "");
+    navigate(`${formPath}?edit=1&leaveId=${row.id}`, { state: { leave: row } });
+  };
 
   // Fetch leave balance per type via the preview endpoint (today → today)
   const fetchBalances = async (
@@ -424,12 +452,13 @@ export default function LeavesHistory() {
                 <Th center>Days</Th>
                 <Th>Status</Th>
                 <Th center>Document</Th>
+                <Th center>Actions</Th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center">
+                  <td colSpan={10} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-3 text-slate-400">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
                       <span className="text-xs font-medium">
@@ -442,7 +471,7 @@ export default function LeavesHistory() {
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center">
+                  <td colSpan={10} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-rose-500">
                       <AlertCircle className="h-8 w-8" />
                       <span className="text-sm font-medium">{error}</span>
@@ -456,7 +485,7 @@ export default function LeavesHistory() {
 
               {!loading && !error && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center">
+                  <td colSpan={10} className="py-12 text-center">
                     <div className="inline-flex flex-col items-center gap-2 text-slate-400">
                       <Calendar className="h-8 w-8" />
                       <span className="text-sm font-medium">
@@ -531,6 +560,23 @@ export default function LeavesHistory() {
                             <Download className="h-3.5 w-3.5" />
                             View
                           </a>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </Td>
+                      <Td center>
+                        {/* Employees can edit a leave only while it's pending,
+                            i.e. before approval or rejection. */}
+                        {r.leaveStatus === "Pending" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(r)}
+                            className="h-7 gap-1 rounded-lg text-xs"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </Button>
                         ) : (
                           <span className="text-slate-300">—</span>
                         )}

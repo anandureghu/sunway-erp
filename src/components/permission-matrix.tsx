@@ -12,17 +12,23 @@ import { FolderTree } from "lucide-react";
 export type CapKey =
   | "view_own"
   | "view_all"
-  | "create"
-  | "edit"
-  | "delete"
+  | "create_own"
+  | "create_all"
+  | "edit_own"
+  | "edit_all"
+  | "delete_own"
+  | "delete_all"
   | "approve";
 
 export const CAP_COLUMNS: { key: CapKey; label: string }[] = [
-  { key: "view_own", label: "View (Own)" },
-  { key: "view_all", label: "View (All)" },
-  { key: "create", label: "Create" },
-  { key: "edit", label: "Edit" },
-  { key: "delete", label: "Delete" },
+  { key: "view_own", label: "View Own" },
+  { key: "view_all", label: "View All" },
+  { key: "create_own", label: "Create Own" },
+  { key: "create_all", label: "Create All" },
+  { key: "edit_own", label: "Edit Own" },
+  { key: "edit_all", label: "Edit All" },
+  { key: "delete_own", label: "Delete Own" },
+  { key: "delete_all", label: "Delete All" },
   { key: "approve", label: "Approve" },
 ];
 
@@ -60,7 +66,9 @@ export function countGrantedCaps(
 ): number {
   return modules.reduce((sum, m) => {
     const row = caps[normalizeModuleKey(m.id)];
-    return sum + (row ? Object.values(row).filter(Boolean).length : 0);
+    if (!row) return sum;
+    // Count only the matrix columns (ignore any coarse alias keys).
+    return sum + CAP_COLUMNS.filter((c) => row[c.key]).length;
   }, 0);
 }
 
@@ -115,9 +123,9 @@ export default function PermissionMatrix({ modules, caps, onChange }: Props) {
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200">
+    <div className="overflow-x-auto rounded-xl border border-slate-200">
       {/* Column header */}
-      <div className="grid grid-cols-[240px_repeat(6,1fr)] border-b border-slate-200 bg-slate-50">
+      <div className="grid min-w-[820px] grid-cols-[180px_repeat(9,minmax(62px,1fr))] border-b border-slate-200 bg-slate-50">
         <div className="p-2.5 text-xs font-semibold uppercase text-slate-600">
           Page
         </div>
@@ -137,7 +145,7 @@ export default function PermissionMatrix({ modules, caps, onChange }: Props) {
           <div key={group || "_ungrouped"}>
             {/* Branch (sub-module) header with a branch-wide toggle */}
             {group && (
-              <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-100/70 px-3 py-2">
+              <div className="flex min-w-[820px] items-center justify-between gap-2 border-b border-slate-200 bg-slate-100/70 px-3 py-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600">
                   <FolderTree className="h-3.5 w-3.5 text-slate-400" />
                   {group}
@@ -158,7 +166,7 @@ export default function PermissionMatrix({ modules, caps, onChange }: Props) {
               return (
                 <div
                   key={mod.id}
-                  className="grid grid-cols-[240px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
+                  className="grid min-w-[820px] grid-cols-[180px_repeat(9,minmax(62px,1fr))] border-b border-slate-100 last:border-0"
                 >
                   <div className={`py-2.5 pr-3 ${group ? "pl-7" : "pl-3"}`}>
                     <p className="text-sm font-medium text-slate-900">
