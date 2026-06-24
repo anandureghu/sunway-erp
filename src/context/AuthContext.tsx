@@ -113,14 +113,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         continue;
       }
 
-      // Backend sends camelCase (viewOwn, viewAll, createPermission, etc.)
-      // Convert to snake_case for frontend
+      // Backend sends granular own/all flags (createOwn, createAll, editOwn,
+      // editAll, deleteOwn, deleteAll). Older payloads used a single flag
+      // (createPermission, …) — fall back to it so both shapes work. We emit
+      // BOTH the granular keys (for own/all-aware checks via canActScoped) and
+      // the coarse create/edit/delete aliases (= own || all) for the many
+      // components that read permissions?.MODULE?.edit etc.
+      const createOwn = Boolean(perm.createOwn ?? perm.createPermission);
+      const createAll = Boolean(perm.createAll ?? perm.createPermission);
+      const editOwn = Boolean(perm.editOwn ?? perm.editPermission);
+      const editAll = Boolean(perm.editAll ?? perm.editPermission);
+      const deleteOwn = Boolean(perm.deleteOwn ?? perm.deletePermission);
+      const deleteAll = Boolean(perm.deleteAll ?? perm.deletePermission);
       result[normalizedModule] = {
         view_own: Boolean(perm.viewOwn || false),
         view_all: Boolean(perm.viewAll || false),
-        create: Boolean(perm.createPermission || false),
-        edit: Boolean(perm.editPermission || false),
-        delete: Boolean(perm.deletePermission || false),
+        create_own: createOwn,
+        create_all: createAll,
+        edit_own: editOwn,
+        edit_all: editAll,
+        delete_own: deleteOwn,
+        delete_all: deleteAll,
+        create: createOwn || createAll,
+        edit: editOwn || editAll,
+        delete: deleteOwn || deleteAll,
         approve: Boolean(perm.approve || false),
       };
 

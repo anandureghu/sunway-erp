@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,40 @@ export const EditProfileTab = ({ profile, onSaved }: Props) => {
       notes:          '',
     },
   });
+
+  // The lightweight ProfileResponse only carries name/phone, so the rest of the
+  // fields would render blank. Pull the full employee record and pre-fill the
+  // form with the employee's existing data so they can see and edit it.
+  useEffect(() => {
+    if (!profile.employeeId) return;
+    let mounted = true;
+    const up = (s?: string | null) => (s ? String(s).toUpperCase() : '');
+    hrService
+      .getEmployee(profile.employeeId)
+      .then((emp: any) => {
+        if (!mounted || !emp) return;
+        reset({
+          firstName:      emp.firstName      ?? profile.firstName ?? '',
+          lastName:       emp.lastName       ?? profile.lastName  ?? '',
+          phoneNo:        emp.phoneNo        ?? profile.phoneNo   ?? '',
+          gender:         up(emp.gender),
+          maritalStatus:  up(emp.maritalStatus),
+          dateOfBirth:    (emp.dateOfBirth ?? '').slice(0, 10),
+          nationality:    emp.nationality    ?? '',
+          religion:       emp.religion       ?? '',
+          birthplace:     emp.birthplace     ?? '',
+          hometown:       emp.hometown       ?? '',
+          identification: emp.identification ?? '',
+          notes:          emp.notes          ?? '',
+        });
+      })
+      .catch(() => {
+        /* keep name/phone defaults if the full record can't be loaded */
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [profile.employeeId, reset, profile.firstName, profile.lastName, profile.phoneNo]);
 
   const onSubmit = async (data: EditFields) => {
     if (!profile.employeeId) return;

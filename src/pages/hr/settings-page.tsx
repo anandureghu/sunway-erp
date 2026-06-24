@@ -66,7 +66,7 @@ import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
 import DepartmentListPage from "@/pages/admin/hr/department/department-list-page";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { TablePagination, usePagination } from "@/components/table-pagination";
-import PermissionMatrix from "@/components/permission-matrix";
+import PermissionCards from "@/components/permission-cards";
 import { HR_PERMISSION_MODULES } from "@/lib/permission-catalog";
 import { PERMISSION_PAGE_SIZES } from "@/lib/permission-ui";
 
@@ -168,13 +168,30 @@ interface Permission {
 const HR_MODULES = HR_PERMISSION_MODULES;
 
 const CAPS = [
-  { key: "view_own", label: "View (Own)" },
-  { key: "view_all", label: "View (All)" },
-  { key: "create", label: "Create" },
-  { key: "edit", label: "Edit" },
-  { key: "delete", label: "Delete" },
+  { key: "view_own", label: "View Own" },
+  { key: "view_all", label: "View All" },
+  { key: "create_own", label: "Create Own" },
+  { key: "create_all", label: "Create All" },
+  { key: "edit_own", label: "Edit Own" },
+  { key: "edit_all", label: "Edit All" },
+  { key: "delete_own", label: "Delete Own" },
+  { key: "delete_all", label: "Delete All" },
   { key: "approve", label: "Approve" },
 ];
+
+// Expand a coarse preset ({create,edit,delete}) into own/all granular caps.
+// Granular keys, if already present, are preserved.
+const expandCaps = (c: Record<string, boolean>): Record<string, boolean> => ({
+  view_own: !!c.view_own,
+  view_all: !!c.view_all,
+  create_own: !!(c.create_own ?? c.create),
+  create_all: !!(c.create_all ?? c.create),
+  edit_own: !!(c.edit_own ?? c.edit),
+  edit_all: !!(c.edit_all ?? c.edit),
+  delete_own: !!(c.delete_own ?? c.delete),
+  delete_all: !!(c.delete_all ?? c.delete),
+  approve: !!c.approve,
+});
 
 const LEVELS = [
   "Intern",
@@ -1074,7 +1091,8 @@ function PermissionsTab({
 
   const capCount = (rec: Permission) =>
     Object.values(rec.caps ?? {}).reduce(
-      (acc, m) => acc + Object.values(m).filter(Boolean).length,
+      (acc, m) =>
+        acc + CAPS.filter((c) => (m as Record<string, boolean>)[c.key]).length,
       0,
     );
 
@@ -1100,11 +1118,13 @@ function PermissionsTab({
   };
 
   const applyPreset = (role: string) => {
-    if (ROLE_PRESETS[role]) {
-      setPermForm((v) => ({
-        ...v,
-        caps: JSON.parse(JSON.stringify(ROLE_PRESETS[role])),
-      }));
+    const preset = ROLE_PRESETS[role];
+    if (preset) {
+      // Expand coarse presets into own/all granular caps.
+      const expanded = Object.fromEntries(
+        Object.entries(preset).map(([mod, caps]) => [mod, expandCaps(caps)]),
+      );
+      setPermForm((v) => ({ ...v, caps: expanded }));
     }
   };
 
@@ -1125,9 +1145,12 @@ function PermissionsTab({
         permission: {
           viewOwn: !!perms.view_own,
           viewAll: !!perms.view_all,
-          create: !!perms.create,
-          edit: !!perms.edit,
-          deletePermission: !!perms.delete,
+          createOwn: !!perms.create_own,
+          createAll: !!perms.create_all,
+          editOwn: !!perms.edit_own,
+          editAll: !!perms.edit_all,
+          deleteOwn: !!perms.delete_own,
+          deleteAll: !!perms.delete_all,
           approve: !!perms.approve,
         },
       }));
@@ -1796,7 +1819,7 @@ function PermissionsTab({
                 </div>
               )}
 
-              <PermissionMatrix
+              <PermissionCards
                 modules={HR_MODULES}
                 caps={permForm.caps}
                 onChange={(next) =>

@@ -41,7 +41,7 @@ export const MODULES = {
   FINANCE_REPORTS: "FINANCE_REPORTS",
 } as const;
 
-// Backend now returns a flat permission record shape.
+// Backend returns a flat permission record with own/all create/edit/delete.
 export type PermissionRecord = {
   employeeId: any;
   employee: any;
@@ -49,9 +49,12 @@ export type PermissionRecord = {
   module: string;
   viewOwn?: boolean;
   viewAll?: boolean;
-  createPermission?: boolean;
-  editPermission?: boolean;
-  deletePermission?: boolean;
+  createOwn?: boolean;
+  createAll?: boolean;
+  editOwn?: boolean;
+  editAll?: boolean;
+  deleteOwn?: boolean;
+  deleteAll?: boolean;
   approve?: boolean;
   /** Whether the rule is enforced. When false it is saved but ignored. */
   active?: boolean;
@@ -62,9 +65,12 @@ type PermissionPayload = {
   permission: {
     viewOwn: boolean;
     viewAll: boolean;
-    create: boolean;
-    edit: boolean;
-    deletePermission: boolean;
+    createOwn: boolean;
+    createAll: boolean;
+    editOwn: boolean;
+    editAll: boolean;
+    deleteOwn: boolean;
+    deleteAll: boolean;
     approve: boolean;
   };
 };
@@ -74,27 +80,25 @@ function normalizeModule(module: string) {
   return (module ?? "").toUpperCase().trim();
 }
 
+// Accepts a permission object in either camelCase (createOwn) or snake_case
+// (create_own) form and produces the backend's own/all DTO.
 function toBackendDTOs(permissions: Array<any>): PermissionPayload[] {
   return permissions.map((perm) => {
     const moduleRaw = perm.module ?? perm.moduleName ?? "";
-    const permissionObj = perm.permission ?? {
-      viewOwn: perm.viewOwn ?? false,
-      viewAll: perm.viewAll ?? false,
-      create: perm.create ?? perm.createPermission ?? false,
-      edit: perm.edit ?? perm.editPermission ?? false,
-      deletePermission: perm.deletePermission ?? false,
-      approve: perm.approve ?? false,
-    };
+    const p = perm.permission ?? perm;
 
     return {
       module: normalizeModule(moduleRaw),
       permission: {
-        viewOwn: Boolean(permissionObj.viewOwn),
-        viewAll: Boolean(permissionObj.viewAll),
-        create: Boolean(permissionObj.create),
-        edit: Boolean(permissionObj.edit),
-        deletePermission: Boolean(permissionObj.deletePermission),
-        approve: Boolean(permissionObj.approve),
+        viewOwn: Boolean(p.viewOwn ?? p.view_own),
+        viewAll: Boolean(p.viewAll ?? p.view_all),
+        createOwn: Boolean(p.createOwn ?? p.create_own),
+        createAll: Boolean(p.createAll ?? p.create_all),
+        editOwn: Boolean(p.editOwn ?? p.edit_own),
+        editAll: Boolean(p.editAll ?? p.edit_all),
+        deleteOwn: Boolean(p.deleteOwn ?? p.delete_own),
+        deleteAll: Boolean(p.deleteAll ?? p.delete_all),
+        approve: Boolean(p.approve),
       },
     };
   });
@@ -106,10 +110,14 @@ function permissionRecordsToModulePermissions(records: PermissionRecord[]): Modu
     permission: {
       viewOwn: Boolean(record.viewOwn),
       viewAll: Boolean(record.viewAll),
-      create: Boolean(record.createPermission),
-      edit: Boolean(record.editPermission),
-      deletePermission: Boolean(record.deletePermission),
+      createOwn: Boolean(record.createOwn),
+      createAll: Boolean(record.createAll),
+      editOwn: Boolean(record.editOwn),
+      editAll: Boolean(record.editAll),
+      deleteOwn: Boolean(record.deleteOwn),
+      deleteAll: Boolean(record.deleteAll),
       approve: Boolean(record.approve),
+      active: record.active,
     },
   }));
 }
@@ -123,10 +131,14 @@ function modulePermissionsToPermissionRecords(
     module: perm.module,
     viewOwn: perm.permission.viewOwn,
     viewAll: perm.permission.viewAll,
-    createPermission: perm.permission.create,
-    editPermission: perm.permission.edit,
-    deletePermission: perm.permission.deletePermission,
+    createOwn: perm.permission.createOwn,
+    createAll: perm.permission.createAll,
+    editOwn: perm.permission.editOwn,
+    editAll: perm.permission.editAll,
+    deleteOwn: perm.permission.deleteOwn,
+    deleteAll: perm.permission.deleteAll,
     approve: perm.permission.approve,
+    active: perm.permission.active,
   }));
 }
 
@@ -288,13 +300,27 @@ function toFrontendCaps(
 
     const p = (perm as any).permission ?? perm;
 
+    const createOwn = Boolean(p.createOwn ?? p.create_own);
+    const createAll = Boolean(p.createAll ?? p.create_all);
+    const editOwn = Boolean(p.editOwn ?? p.edit_own);
+    const editAll = Boolean(p.editAll ?? p.edit_all);
+    const deleteOwn = Boolean(p.deleteOwn ?? p.delete_own);
+    const deleteAll = Boolean(p.deleteAll ?? p.delete_all);
+
     caps[moduleId] = {
       view_own: Boolean(p.viewOwn ?? p.view_own),
       view_all: Boolean(p.viewAll ?? p.view_all),
-      create: Boolean(p.create ?? p.createPermission ?? p.create_permission),
-      edit: Boolean(p.edit ?? p.editPermission ?? p.edit_permission),
-      delete: Boolean(p.deletePermission ?? p.delete_permission),
+      create_own: createOwn,
+      create_all: createAll,
+      edit_own: editOwn,
+      edit_all: editAll,
+      delete_own: deleteOwn,
+      delete_all: deleteAll,
       approve: Boolean(p.approve),
+      // Coarse aliases (backward compat for components reading .create/.edit/.delete).
+      create: createOwn || createAll,
+      edit: editOwn || editAll,
+      delete: deleteOwn || deleteAll,
     };
   }
 
@@ -309,9 +335,12 @@ function toBackendPermissions(
     permission: {
       viewOwn: perms.view_own || false,
       viewAll: perms.view_all || false,
-      create: perms.create || false,
-      edit: perms.edit || false,
-      deletePermission: perms.delete || false,
+      createOwn: perms.create_own || false,
+      createAll: perms.create_all || false,
+      editOwn: perms.edit_own || false,
+      editAll: perms.edit_all || false,
+      deleteOwn: perms.delete_own || false,
+      deleteAll: perms.delete_all || false,
       approve: perms.approve || false,
     },
   }));

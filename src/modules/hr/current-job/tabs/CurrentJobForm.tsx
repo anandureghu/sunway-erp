@@ -302,16 +302,16 @@ export default function CurrentJobForm() {
 
     (async () => {
       try {
-        const codes = await jobCodeService.getAll();
+        // Active job codes are reference data for the designation picker. Use
+        // the /active endpoint (viewable by employees), not getAll() which needs
+        // HR_SETTINGS view-all.
+        const codes = await jobCodeService.getActive();
         if (mounted) setJobCodes(codes || []);
       } catch (error: any) {
+        // A user without job-code read access still gets the form — it falls
+        // back to a free-text job-code entry. Don't alarm them with an error.
         console.error("Error loading job codes:", error);
-        if (mounted) {
-          toast.error(
-            error?.response?.data?.message ||
-              "Failed to load job codes. Please check your permissions or try again.",
-          );
-        }
+        if (mounted) setJobCodes([]);
       } finally {
         if (mounted) setLoadingJobCodes(false);
       }

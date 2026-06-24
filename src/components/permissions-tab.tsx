@@ -15,11 +15,13 @@ import {
   nameInitials,
   PERMISSION_PAGE_SIZES,
 } from "@/lib/permission-ui";
-import PermissionMatrix, {
+import {
+  CAP_COLUMNS,
   normalizeModuleKey,
   emptyCapsFor,
   type PermissionModuleRow,
 } from "@/components/permission-matrix";
+import PermissionCards from "@/components/permission-cards";
 import {
   Dialog,
   DialogContent,
@@ -86,7 +88,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   const [del, setDel] = useState<Permission | null>(null);
 
   // Total grantable capabilities across this area's pages (pages × 6 caps).
-  const TOTAL_CAPS = modules.length * 6;
+  const TOTAL_CAPS = modules.length * CAP_COLUMNS.length;
 
   const companyId = user?.companyId ? Number(user.companyId) : null;
 
@@ -134,7 +136,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   const countActiveCaps = useCallback(
     (caps: Record<string, Record<string, boolean>>) =>
       Object.values(filterCapsForModuleType(caps)).reduce(
-        (sum, m) => sum + Object.values(m).filter(Boolean).length,
+        (sum, m) => sum + CAP_COLUMNS.filter((c) => (m as any)[c.key]).length,
         0,
       ),
     [filterCapsForModuleType],
@@ -273,9 +275,12 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
         permission: {
           viewOwn: !!perms.view_own,
           viewAll: !!perms.view_all,
-          create: !!perms.create,
-          edit: !!perms.edit,
-          deletePermission: !!perms.delete,
+          createOwn: !!perms.create_own,
+          createAll: !!perms.create_all,
+          editOwn: !!perms.edit_own,
+          editAll: !!perms.edit_all,
+          deleteOwn: !!perms.delete_own,
+          deleteAll: !!perms.delete_all,
           approve: !!perms.approve,
         },
       }));
@@ -723,7 +728,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
                 </div>
               </div>
 
-              <PermissionMatrix
+              <PermissionCards
                 modules={modules}
                 caps={permForm.caps}
                 onChange={(next) =>

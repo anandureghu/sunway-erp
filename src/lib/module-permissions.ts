@@ -83,6 +83,27 @@ export function canViewAnyModule(
   return modules.some((m) => canView(permissions, m));
 }
 
+/**
+ * Own/all-aware capability check — mirrors the backend @RequiresPermission
+ * aspect. A write is allowed when the `{action}_all` grant is present, OR the
+ * `{action}_own` grant is present and the record is the caller's own. Use this
+ * to hide an action button on someone else's record when the user only holds
+ * the "own" grant (so they don't see a button that would 403 on save).
+ */
+export function canActScoped(
+  permissions: PermissionMap,
+  module: string,
+  action: "view" | "create" | "edit" | "delete" | "approve",
+  isOwn: boolean,
+): boolean {
+  if (permissions === null) return true; // admin bypass
+  const mod = getModulePerms(permissions, module);
+  if (!mod) return false;
+  if (action === "approve") return !!mod.approve;
+  if (action === "view") return !!mod.view_all || (!!mod.view_own && isOwn);
+  return !!mod[`${action}_all`] || (!!mod[`${action}_own`] && isOwn);
+}
+
 export interface ModuleCaps {
   canView: boolean;
   canCreate: boolean;
