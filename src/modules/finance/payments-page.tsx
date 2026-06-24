@@ -17,6 +17,7 @@ import { PaymentDialog } from "./payment-dialog";
 import { ConfirmPaymentDialog } from "./confirm-payment-dialog";
 import { useNavigate } from "react-router-dom";
 import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 type PaymentListTab = "outstanding" | "archived";
 
@@ -27,6 +28,7 @@ export default function PaymentsPage({
   companyId: number;
   variant?: PaymentsPageVariant;
 }) {
+  const { confirm } = useConfirmDialog();
   const navigate = useNavigate();
   const [payments, setPayments] = useState<PaymentResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -202,7 +204,7 @@ export default function PaymentsPage({
         return;
       }
       const label = payment.paymentCode ?? `#${payment.id}`;
-      if (!confirm(`Archive payment ${label}?`)) return;
+      if (!(await confirm(`Archive payment ${label}?`))) return;
       setArchivingPaymentId(payment.id);
       try {
         const res = await apiClient.post<PaymentResponseDTO>(

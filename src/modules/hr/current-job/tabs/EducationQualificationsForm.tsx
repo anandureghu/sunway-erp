@@ -18,6 +18,7 @@ import {
 import { generateId } from "@/lib/utils";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { educationService } from "@/service/educationService";
 import { FormRow } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
@@ -66,6 +67,7 @@ const INITIAL_EDUCATION: Education = {
 /* ================= COMPONENT ================= */
 
 export default function EducationQualificationsForm() {
+  const { confirm } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
 
@@ -177,7 +179,7 @@ export default function EducationQualificationsForm() {
 
   const handleDelete = async (eduId: string) => {
     if (!employeeId) return;
-    if (!confirm("Delete this education record?")) return;
+    if (!(await confirm("Delete this education record?"))) return;
 
     try {
       if (Number(eduId))

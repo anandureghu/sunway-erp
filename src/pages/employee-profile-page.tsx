@@ -7,11 +7,13 @@ import { DependentsForm } from "@/modules/hr/dependents/DependentsForm";
 import { User } from "lucide-react";
 import type { Employee, EmployeeStatus } from "../types/hr";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import roleService from "@/service/roleService";
 import { permissionService } from "@/service/permissionService";
 import type { RoleOption } from "@/types/role";
 
 export default function EmployeeProfilePage() {
+  const { alert } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: currentUser, permissions } = useAuth();
@@ -380,7 +382,7 @@ export default function EmployeeProfilePage() {
           "Failed to update employee",
       );
 
-      alert("Failed to update employee");
+      await alert("Failed to update employee");
     } finally {
       setEditing(false);
     }

@@ -90,8 +90,9 @@ export function PurchaseOrderPostingDialog({
           <DialogTitle>{titles[action]}</DialogTitle>
           <DialogDescription>
             {orderNo ? `${orderNo} — ` : ""}
-            Review how this action affects your purchase debit and credit accounts
-            before continuing.
+            {action === "release"
+              ? "Review purchase posting accounts. Balances change when vendor payment is confirmed in Accounts Payable."
+              : "Review how cancelling this order affects committed funds on your purchase accounts."}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,14 +131,14 @@ export function PurchaseOrderPostingDialog({
             )}
 
             <AccountRow
-              label="Debit account (funds from)"
+              label="Debit account (expense / inventory)"
               code={preview.debitAccountCode}
               name={preview.debitAccountName}
               before={preview.debitBalanceBefore}
               after={preview.debitBalanceAfter}
             />
             <AccountRow
-              label="Credit account (committed to)"
+              label="Credit account (accounts payable)"
               code={preview.creditAccountCode}
               name={preview.creditAccountName}
               before={preview.creditBalanceBefore}

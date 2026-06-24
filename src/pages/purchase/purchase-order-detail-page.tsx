@@ -476,9 +476,9 @@ export default function PurchaseOrderDetailPage() {
             <div className="mb-4">
               <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Release commits funds from the requisition debit/credit accounts
-                and sends the order to the supplier. Pay the vendor under
-                Finance → Accounts payable → Vendor payments after release.
+                Release sends the order to the supplier and creates accounts payable
+                records. Chart of accounts balances change when vendor payment is
+                confirmed under Finance → Accounts payable → Vendor payments.
               </p>
             </div>
 
@@ -630,7 +630,7 @@ export default function PurchaseOrderDetailPage() {
         {releasePreview && st === "draft" && hasSupplier && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">
-              Fund commitment preview
+              Release preview
             </h2>
             <p className="mt-1 text-sm text-slate-600">{releasePreview.summary}</p>
             <div className="mt-4 space-y-3 text-sm">

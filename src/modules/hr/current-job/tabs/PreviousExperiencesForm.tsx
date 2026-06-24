@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { useParams } from "react-router-dom";
 import { generateId } from "@/lib/utils";
 import { toInputDate, toIsoDate } from "@/lib/date";
@@ -63,6 +64,7 @@ const INITIAL_EXPERIENCE: Experience = {
 /* ================= COMPONENT ================= */
 
 export default function PreviousExperiencesForm() {
+  const { confirm } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
 
@@ -190,7 +192,7 @@ export default function PreviousExperiencesForm() {
 
   const handleDelete = async (expId: string) => {
     if (!employeeId) return;
-    if (!confirm("Delete this experience?")) return;
+    if (!(await confirm("Delete this experience?"))) return;
 
     try {
       if (Number(expId)) await deleteExperienceApi(employeeId, Number(expId));

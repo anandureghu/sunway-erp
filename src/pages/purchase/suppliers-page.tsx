@@ -18,8 +18,10 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { PageHeader } from "@/components/PageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function SuppliersPage() {
+  const { confirm } = useConfirmDialog();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Vendor | null>(null);
@@ -52,9 +54,9 @@ export default function SuppliersPage() {
 
   const handleDelete = async (vendor: Vendor) => {
     if (
-      !confirm(
+      !(await confirm(
         `Are you sure you want to delete supplier "${vendor.vendorName}"?`,
-      )
+      ))
     ) {
       return;
     }

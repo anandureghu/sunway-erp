@@ -35,6 +35,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -45,6 +46,7 @@ export default function InvoicesPage({
 }: {
   disableHeader?: boolean;
 }) {
+  const { confirm } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -112,7 +114,7 @@ export default function InvoicesPage({
         return toast.error("Only paid or cancelled invoices can be archived.");
       }
       if (invoice.archived) return toast.error("Invoice is already archived.");
-      if (!confirm(`Archive invoice ${invoice.invoiceId}?`)) return;
+      if (!(await confirm(`Archive invoice ${invoice.invoiceId}?`))) return;
       setProcessingInvoiceId(id);
       try {
         const { data } = await apiClient.post<Invoice>(

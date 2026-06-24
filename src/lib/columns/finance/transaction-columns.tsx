@@ -14,6 +14,7 @@ import {
   transactionTypeLabel,
 } from "@/lib/transaction-type-label";
 import { cn } from "@/lib/utils";
+import { Archive, Loader2 } from "lucide-react";
 
 const UNKNOWN = "UNKNOWN";
 
@@ -147,8 +148,12 @@ function SourceCell({
 
 export const TRANSACTION_COLUMNS = ({
   onSourceSave,
+  onArchive,
+  archivingId,
 }: {
   onSourceSave: (id: number, source: string) => Promise<void>;
+  onArchive?: (tx: TransactionResponseDTO) => void;
+  archivingId?: number | null;
 }): ColumnDef<TransactionResponseDTO>[] => [
   {
     accessorKey: "transactionCode",
@@ -237,5 +242,36 @@ export const TRANSACTION_COLUMNS = ({
     accessorKey: "invoiceId",
     header: "Invoice No",
     cell: ({ row }) => row.getValue("invoiceId") ?? "—",
+  },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => {
+      const tx = row.original;
+      if (tx.archived) {
+        return <span className="text-xs text-muted-foreground">Archived</span>;
+      }
+      if (!onArchive) {
+        return <span className="text-muted-foreground">—</span>;
+      }
+      const isArchiving = archivingId === tx.id;
+      return (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          disabled={isArchiving}
+          onClick={() => onArchive(tx)}
+        >
+          {isArchiving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Archive className="h-3.5 w-3.5" />
+          )}
+          <span className="ml-1">{isArchiving ? "Archiving…" : "Archive"}</span>
+        </Button>
+      );
+    },
   },
 ];

@@ -395,13 +395,17 @@ export function CreatePurchaseRequisitionForm({
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const today = format(new Date(), "yyyy-MM-dd");
-    if (!debitAccountId || !creditAccountId) {
+    if (
+      !isEditMode &&
+      purchaseDefaultsMissing &&
+      (!debitAccountId || !creditAccountId)
+    ) {
       toast.error(
-        "Purchase default accounts are not loaded. Configure them under Global Settings → Default Accounts.",
+        "Purchase default accounts are not configured. Set them under Global Settings → Default Accounts.",
       );
       return;
     }
-    if (debitAccountId === creditAccountId) {
+    if (debitAccountId && creditAccountId && debitAccountId === creditAccountId) {
       toast.error("Debit and credit accounts must be different.");
       return;
     }
@@ -440,8 +444,8 @@ export function CreatePurchaseRequisitionForm({
           : "NORMAL";
 
     const payload: PurchaseRequisitionCreateDTO = {
-      debitAccountId: Number(debitAccountId),
-      creditAccountId: Number(creditAccountId),
+      ...(debitAccountId ? { debitAccountId: Number(debitAccountId) } : {}),
+      ...(creditAccountId ? { creditAccountId: Number(creditAccountId) } : {}),
       departmentId: departmentId ? Number(departmentId) : undefined,
       requestedByUserId: requestedByUserId
         ? Number(requestedByUserId)

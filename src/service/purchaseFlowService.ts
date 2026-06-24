@@ -14,8 +14,8 @@ function normalizeStatus(status?: string) {
 
 // Purchase Requisition DTOs
 export interface PurchaseRequisitionCreateDTO {
-  debitAccountId: number;
-  creditAccountId: number;
+  debitAccountId?: number;
+  creditAccountId?: number;
   preferredSupplierId?: number;
   supplierAddress?: string;
   departmentId?: number;

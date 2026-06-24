@@ -21,10 +21,12 @@ import {
 } from "lucide-react";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PurchaseOrderForm } from "./components/purchase-order-form";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function PurchaseOrdersPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { confirm } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState(
     (location.state as { searchQuery?: string })?.searchQuery || "",
   );
@@ -166,7 +168,7 @@ export default function PurchaseOrdersPage() {
         );
       }
       if (order.archived) return toast.error("Order is already archived.");
-      if (!confirm(`Archive order ${order.orderNo}?`)) return;
+      if (!(await confirm(`Archive order ${order.orderNo}?`))) return;
       setActionState({ id, type: "archive" });
       try {
         const updated = await archivePurchaseOrder(id);
@@ -193,7 +195,7 @@ export default function PurchaseOrdersPage() {
         setActionState(null);
       }
     },
-    [orders, refreshOrders],
+    [orders, refreshOrders, confirm],
   );
 
   const handleEdit = useCallback(

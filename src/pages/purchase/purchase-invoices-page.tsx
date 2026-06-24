@@ -33,6 +33,7 @@ import {
 } from "@/service/invoiceService";
 import { RegisterSupplierInvoiceDialog } from "@/pages/purchase/components/register-supplier-invoice-dialog";
 import { PageHeader } from "@/components/PageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { toast } from "sonner";
 import {
   KpiSummaryStrip,
@@ -53,6 +54,7 @@ function notArchived(inv: FinanceInvoice): boolean {
 }
 
 export default function PurchaseInvoicesPage() {
+  const { confirm } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
@@ -127,7 +129,7 @@ export default function PurchaseInvoicesPage() {
         return toast.error("Only paid or cancelled invoices can be archived.");
       }
       if (invoice.archived) return toast.error("Invoice is already archived.");
-      if (!confirm(`Archive invoice ${invoice.invoiceId}?`)) return;
+      if (!(await confirm(`Archive invoice ${invoice.invoiceId}?`))) return;
       setProcessingInvoiceId(id);
       try {
         const updated = await archiveInvoice(id);

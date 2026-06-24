@@ -24,6 +24,7 @@ import {
 } from "@/service/appraisalConfigService";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export type AppModel = {
   id?: number | string;
@@ -64,6 +65,7 @@ const MONTHS = [
 ];
 
 export default function AppraisalsForm() {
+  const { confirm } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
@@ -258,7 +260,7 @@ export default function AppraisalsForm() {
   );
 
   const handleDelete = async (appId?: number | string) => {
-    if (!empId || !confirm("Delete appraisal?")) return;
+    if (!empId || !(await confirm("Delete appraisal?"))) return;
     try {
       if (appId && Number(appId)) {
         await appraisalService.removeById(empId, Number(appId));
@@ -275,7 +277,9 @@ export default function AppraisalsForm() {
   const handleForceDelete = async (appId?: number | string) => {
     if (
       !empId ||
-      !confirm("Force delete this LOCKED appraisal? This cannot be undone.")
+      !(await confirm(
+        "Force delete this LOCKED appraisal? This cannot be undone.",
+      ))
     )
       return;
     try {
@@ -293,7 +297,9 @@ export default function AppraisalsForm() {
   const handleUnlock = async (appId?: number | string) => {
     if (
       !empId ||
-      !confirm("Unlock this appraisal? It will return to MANAGER_REVIEWED.")
+      !(await confirm(
+        "Unlock this appraisal? It will return to MANAGER_REVIEWED.",
+      ))
     )
       return;
     try {
