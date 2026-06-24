@@ -45,6 +45,7 @@ export interface ProfileResponse {
   departmentName: string | null;
   // avatar
   imageUrl: string | null;
+  twoFactorEnabled: boolean;
 }
 
 // ── new function ──────────────────────────────────────────────────────────────
@@ -73,6 +74,24 @@ export const changePassword = async (
   } catch (error: any) {
     console.error("Password change failed:", error);
     toast.error(error?.response?.data?.message || "Failed to change password");
+    throw error;
+  }
+};
+
+export interface UpdateSecuritySettingsPayload {
+  twoFactorEnabled: boolean;
+}
+
+export const updateSecuritySettings = async (
+  userId: number,
+  payload: UpdateSecuritySettingsPayload
+): Promise<ProfileResponse> => {
+  try {
+    const res = await apiClient.put(`/users/${userId}/security-settings`, payload);
+    return res.data;
+  } catch (error: any) {
+    console.error("Failed to update security settings:", error);
+    toast.error(error?.response?.data?.message || "Failed to update security settings");
     throw error;
   }
 };
