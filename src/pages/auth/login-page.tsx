@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { Building2, Lock, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { GradientButton } from "@/components/gradient-button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -11,12 +11,13 @@ import { LOGIN_SCHEMA } from "@/schema/auth";
 import type { LoginFormData } from "@/types/auth";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { CompanyPickerDialog } from "@/components/company-picker-dialog";
+import { useAuthLogin } from "@/hooks/use-auth-login";
+import { setPendingLogin } from "@/lib/pending-login";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import {
   ACTIVE_COMPANY_KEY,
-  type CompanySummary,
   type JwtLoginResponse,
 } from "@/types/auth-company";
 
@@ -28,8 +29,7 @@ const inputShell =
 
 export default function LoginPage() {
   const [remember, setRemember] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pendingCompanies, setPendingCompanies] = useState<CompanySummary[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -42,7 +42,8 @@ export default function LoginPage() {
   });
 
   const navigate = useNavigate();
-  const { login, switchCompany } = useAuth();
+  const { pickerOpen, pendingCompanies, handleCompanyPick, completeLogin } =
+    useAuthLogin();
 
   useEffect(() => {
     try {
@@ -55,28 +56,8 @@ export default function LoginPage() {
     }
   }, [setValue]);
 
-  const finishLogin = (
-    accessToken: string,
-    refreshToken: string,
-    data: JwtLoginResponse,
-  ) => {
-    login(accessToken, refreshToken, {
-      companies: data.companies,
-      requiresCompanySelection: data.requiresCompanySelection,
-    });
-
-    const forcePasswordReset =
-      (data as { forcePasswordReset?: boolean }).forcePasswordReset ?? false;
-
-    if (forcePasswordReset) {
-      navigate("/auth/reset-password");
-    } else {
-      toast.success("Login successful!");
-      navigate("/dashboard");
-    }
-  };
-
   const onSubmit = async (data: LoginFormData) => {
+    setLoading(true);
     try {
       const preferredCompanyId = localStorage.getItem(ACTIVE_COMPANY_KEY);
       const response = await apiClient.post<JwtLoginResponse>("/auth/login", {
@@ -87,15 +68,6 @@ export default function LoginPage() {
           : undefined,
       });
       const responseData = response.data;
-
-      const accessToken = responseData.accessToken;
-      const refreshToken = responseData.refreshToken ?? "";
-
-      if (!accessToken) {
-        console.error("Login response missing token:", response.data);
-        toast.error("Login failed: invalid token from server.");
-        return;
-      }
 
       try {
         if (remember) {
@@ -109,44 +81,44 @@ export default function LoginPage() {
         /* ignore */
       }
 
-      if (
-        responseData.requiresCompanySelection &&
-        responseData.companies &&
-        responseData.companies.length > 1
-      ) {
-        login(accessToken, refreshToken, { companies: responseData.companies });
-        setPendingCompanies(responseData.companies);
-        setPickerOpen(true);
+      if (responseData.requiresTwoFactor ) {
+        if (!responseData.preAuthToken) {
+          toast.error("Login failed: missing pre-auth token from server.");
+          return;
+        }
+        const email = responseData.email?.trim();
+        if (!email) {
+          toast.error("Unable to determine your email for verification.");
+          return;
+        }
+
+        setPendingLogin({
+          flow: "login",
+          preAuthToken: responseData.preAuthToken,
+          email,
+          maskedEmail: responseData.maskedEmail ?? "",
+          data: responseData,
+        });
+        navigate("/auth/verify-otp");
         return;
       }
 
-      finishLogin(accessToken, refreshToken, responseData);
+      const accessToken = responseData.accessToken;
+      const refreshToken = responseData.refreshToken ?? "";
+
+      if (!accessToken) {
+        console.error("Login response missing token:", response.data);
+        toast.error("Login failed: invalid token from server.");
+        return;
+      }
+
+      completeLogin(accessToken, refreshToken, responseData);
     } catch (error: unknown) {
       console.error("Login failed:", error);
-      const err = error as {
-        response?: { data?: { message?: string; error?: string }; status?: number };
-        request?: unknown;
-      };
-
-      if (err.response) {
-        const errorMessage =
-          err.response.data?.message ||
-          err.response.data?.error ||
-          `Server error: ${err.response.status}`;
-        toast.error(errorMessage);
-      } else if (err.request) {
-        toast.error("Unable to reach server. Please check your connection.");
-      } else {
-        toast.error("Login failed. Please try again.");
-      }
+      toast.error(getApiErrorMessage(error, "Login failed. Please try again."));
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleCompanyPick = async (companyId: number) => {
-    setPickerOpen(false);
-    await switchCompany(companyId);
-    navigate("/dashboard");
-    toast.success("Login successful!");
   };
 
   return (
@@ -247,19 +219,20 @@ export default function LoginPage() {
                 </label>
               </div>
               <Link
-                to="/auth/reset-password"
+                to="/auth/forgot-password"
                 className="text-sm font-medium text-violet-600 hover:text-violet-700 hover:underline"
               >
                 Forgot password?
               </Link>
             </div>
 
-            <Button
+            <GradientButton
               type="submit"
-              className="mt-2 h-11 w-full rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-base font-semibold text-white shadow-md transition hover:from-violet-700 hover:to-blue-700 hover:shadow-lg"
+              loading={loading}
+              className="mt-2 w-full"
             >
               Sign In
-            </Button>
+            </GradientButton>
           </form>
         </div>
       </div>

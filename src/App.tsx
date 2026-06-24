@@ -49,6 +49,9 @@ import AppLayout from "./components/layout/app-layout";
 
 /* Pages */
 import LoginPage from "./pages/auth/login-page";
+import ForgotPasswordPage from "./pages/auth/forgot-password-page";
+import ForgotPasswordResetPage from "./pages/auth/forgot-password-reset-page";
+import VerifyOtpPage from "./pages/auth/verify-otp-page";
 import ResetPasswordPage from "./pages/auth/reset-password";
 import NotFound from "./pages/not-found";
 import DashboardPage from "./pages/dashboard";
@@ -580,9 +583,10 @@ export default function App() {
         {/* Auth */}
         <Route path="/auth" element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
-          //
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="forgot-password/reset" element={<ForgotPasswordResetPage />} />
+          <Route path="verify-otp" element={<VerifyOtpPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
-          //
         </Route>
 
         <Route path="/dashboard" element={<Navigate to="/" replace />} />
