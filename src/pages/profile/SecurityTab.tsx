@@ -6,20 +6,41 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff, Lock, Shield, CheckCircle2, XCircle, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, Lock, Shield, CheckCircle2, XCircle, KeyRound, ShieldCheck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CHANGE_PASSWORD_SCHEMA } from '@/schema/auth';
-import { changePassword, type ChangePasswordPayload } from '@/service/userService';
+import { changePassword, updateSecuritySettings, type ChangePasswordPayload } from '@/service/userService';
 import { cn } from '@/lib/utils';
 import { getPasswordStrength, PwdRule } from './profile-helpers';
+import { Switch } from '@/components/ui/switch';
 
-export const SecurityTab = () => {
+type Props = {
+  twoFactorEnabled: boolean;
+  onTwoFactorChange: (enabled: boolean) => void;
+};
+
+export const SecurityTab = ({ twoFactorEnabled, onTwoFactorChange }: Props) => {
   const { user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew,     setShowNew]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [saving2fa, setSaving2fa] = useState(false);
+
+  const handleTwoFactorToggle = async (enabled: boolean) => {
+    if (!user?.id) return;
+    setSaving2fa(true);
+    try {
+      const updated = await updateSecuritySettings(Number(user.id), { twoFactorEnabled: enabled });
+      onTwoFactorChange(updated.twoFactorEnabled);
+      toast.success(enabled ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
+    } catch {
+      // toast shown in service
+    } finally {
+      setSaving2fa(false);
+    }
+  };
 
   const form = useForm<ChangePasswordPayload>({
     resolver: zodResolver(CHANGE_PASSWORD_SCHEMA),
@@ -43,6 +64,38 @@ export const SecurityTab = () => {
   };
 
   return (
+    <div className="space-y-4">
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100">
+              <ShieldCheck className="h-4 w-4 text-violet-600" />
+            </div>
+            Two-Factor Authentication
+          </CardTitle>
+          <CardDescription className="text-xs">
+            When enabled, signing in requires a one-time code sent to your email after your password.
+          </CardDescription>
+        </CardHeader>
+        <Separator />
+        <CardContent className="flex items-center justify-between gap-4 pt-5">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Email verification at login</p>
+            <p className="text-xs text-muted-foreground">
+              {twoFactorEnabled
+                ? 'A login code will be sent to your account email on each sign-in.'
+                : 'Sign in with username and password only.'}
+            </p>
+          </div>
+          <Switch
+            checked={twoFactorEnabled}
+            disabled={saving2fa}
+            onCheckedChange={handleTwoFactorToggle}
+            aria-label="Enable two-factor authentication"
+          />
+        </CardContent>
+      </Card>
+
     <div className="grid gap-4 md:grid-cols-5">
       {/* Password form */}
       <Card className="shadow-sm md:col-span-3">
@@ -222,6 +275,7 @@ export const SecurityTab = () => {
           </div>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 };

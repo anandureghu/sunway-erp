@@ -270,7 +270,12 @@ const UserProfilePage = () => {
         )}
 
         <TabsContent value="security" className="mt-4">
-          <SecurityTab />
+          <SecurityTab
+            twoFactorEnabled={profile.twoFactorEnabled ?? false}
+            onTwoFactorChange={(enabled) =>
+              setProfile((prev) => (prev ? { ...prev, twoFactorEnabled: enabled } : prev))
+            }
+          />
         </TabsContent>
       </Tabs>
     </div>
