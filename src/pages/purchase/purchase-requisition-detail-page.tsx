@@ -745,7 +745,13 @@ export default function PurchaseRequisitionDetailPage() {
                   />
                   <DetailField
                     label="Notes"
-                    value={requisition.notes}
+                    value={
+                      requisition.notes ? (
+                        <span className="whitespace-pre-wrap">
+                          {requisition.notes}
+                        </span>
+                      ) : null
+                    }
                     className="sm:col-span-2"
                   />
                 </div>
