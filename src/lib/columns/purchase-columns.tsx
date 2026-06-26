@@ -353,6 +353,15 @@ export type PurchaseInvoiceColumnActions = {
 };
 
 // Purchase Invoice Columns (API FinanceInvoice)
+function purchaseInvoiceSupplierId(inv: FinanceInvoice): string {
+  const id = inv.supplierId ?? inv.purchaseOrder?.supplierId;
+  return id != null ? String(id) : "—";
+}
+
+function purchaseInvoiceSupplierName(inv: FinanceInvoice): string {
+  return inv.supplierName ?? inv.purchaseOrder?.supplierName ?? inv.toParty ?? "—";
+}
+
 export function createPurchaseInvoiceColumns(
   onArchive?: (id: number) => void,
   processingInvoiceId?: number | null,
@@ -361,24 +370,36 @@ export function createPurchaseInvoiceColumns(
   const { onViewDetails, onOpenDocument } = invoiceActions;
   return [
     {
+      id: "slNo",
+      header: "SL no",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground tabular-nums">
+          {row.index + 1}
+        </span>
+      ),
+    },
+    {
       accessorKey: "invoiceId",
-      header: "ERP ref",
+      header: "Inv no",
       cell: ({ row }) => {
         return <span className="font-medium">{row.getValue("invoiceId")}</span>;
       },
     },
     {
-      id: "supplierInvNo",
-      header: "Supplier #",
+      id: "supplierId",
+      header: "Supplier",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {row.original.supplierInvoiceNumber || "—"}
+        <span className="font-mono text-sm">
+          {purchaseInvoiceSupplierId(row.original)}
         </span>
       ),
     },
     {
-      accessorKey: "toParty",
-      header: "Supplier",
+      id: "supplierName",
+      header: "Supplier name",
+      cell: ({ row }) => (
+        <span>{purchaseInvoiceSupplierName(row.original)}</span>
+      ),
     },
     {
       id: "po",

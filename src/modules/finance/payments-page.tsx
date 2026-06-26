@@ -279,6 +279,9 @@ export default function PaymentsPage({
         (p.paymentCode?.toLowerCase().includes(q) ?? false) ||
         (p.invoiceId?.toLowerCase().includes(q) ?? false) ||
         String(p.purchaseOrderId ?? "").includes(q) ||
+        (p.purchaseOrderNumber?.toLowerCase().includes(q) ?? false) ||
+        String(p.supplierId ?? "").includes(q) ||
+        (p.supplierName?.toLowerCase().includes(q) ?? false) ||
         (p.paymentMethod?.toLowerCase().includes(q) ?? false) ||
         String(p.amount ?? "")
           .toLowerCase()
@@ -337,7 +340,7 @@ export default function PaymentsPage({
             <div className="relative w-full max-w-md min-w-[12rem] sm:flex-1 lg:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search code, invoice, Purchase Order, method…"
+                placeholder="Search code, invoice, PO, supplier, method…"
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
