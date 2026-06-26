@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import EmailInput from "@/components/EmailInput";
 import PhoneInput from "@/components/PhoneInput";
+import CountrySelect from "@/components/country-select";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { type CustomerFormData, CUSTOMER_SCHEMA } from "@/schema/customer";
@@ -427,9 +428,11 @@ export const CustomerForm = ({
                       Country
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Country"
-                        {...field}
+                      <CountrySelect
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder="Select country"
                         className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
                       />
                     </FormControl>

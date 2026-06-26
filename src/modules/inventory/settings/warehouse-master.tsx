@@ -3,6 +3,7 @@ import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PhoneInput from "@/components/PhoneInput";
+import CountrySelect from "@/components/country-select";
 import {
   Select,
   SelectContent,
@@ -481,10 +482,18 @@ const WarehouseMaster = () => {
                   </F>
 
                   <F label="Country">
-                    <Input
-                      placeholder="Country"
-                      {...registerWarehouse("country")}
-                      className={icls}
+                    <Controller
+                      name="country"
+                      control={warehouseControl}
+                      render={({ field }) => (
+                        <CountrySelect
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          placeholder="Select country"
+                          className={icls}
+                        />
+                      )}
                     />
                     {warehouseErrors.country && (
                       <p className="text-[11px] text-rose-400 mt-1">

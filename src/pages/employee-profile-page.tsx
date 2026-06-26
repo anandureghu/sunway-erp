@@ -11,6 +11,7 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import roleService from "@/service/roleService";
 import { permissionService } from "@/service/permissionService";
 import type { RoleOption } from "@/types/role";
+import CountrySelect from "@/components/country-select";
 
 export default function EmployeeProfilePage() {
   const { alert } = useConfirmDialog();
@@ -604,12 +605,14 @@ export default function EmployeeProfilePage() {
             </Field>
 
             <Field label="Nationality">
-              <input
-                className="h-9 w-full rounded-md border px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+              <CountrySelect
                 value={form.nationality}
-                onChange={onChange("nationality")}
+                onChange={(nationality) =>
+                  setForm((prev) => ({ ...prev, nationality }))
+                }
                 disabled={!editing}
-                placeholder="Enter nationality"
+                placeholder="Select country"
+                className="h-9 rounded-md"
               />
             </Field>
 

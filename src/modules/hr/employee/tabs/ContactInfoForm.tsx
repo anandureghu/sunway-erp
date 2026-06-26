@@ -27,7 +27,7 @@ import { generateId } from "@/lib/utils";
 import { addressService } from "@/service/addressService";
 import { contactService } from "@/service/contactService";
 import { hrService } from "@/service/hr.service";
-import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
+import CountrySelect from "@/components/country-select";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import PhoneInput from "@/components/PhoneInput";
 import EmailInput from "@/components/EmailInput";
@@ -880,7 +880,7 @@ export default function ContactInfoForm() {
                         />
                       </Field>
                       <Field label="Country" required>
-                        <CountryAutocomplete
+                        <CountrySelect
                           value={address.country}
                           onChange={(v) =>
                             handleSaveAddress({ ...address, country: v })
