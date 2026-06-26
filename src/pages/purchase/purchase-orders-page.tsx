@@ -131,11 +131,27 @@ export default function PurchaseOrdersPage() {
 
   const handleConfirmOrder = useCallback(
     (id: string) => {
+      const order = orders.find((o) => o.id === id);
+      if (!order) {
+        toast.error("Order not found");
+        return;
+      }
+      if ((order.status || "").toLowerCase() !== "draft") {
+        toast.error("Only draft purchase orders can be released.");
+        return;
+      }
+      if (!order.supplierId) {
+        toast.error(
+          "Assign a supplier on the purchase order before releasing to the supplier.",
+        );
+        navigate(`/inventory/purchase/orders/${id}`);
+        return;
+      }
       navigate(`/inventory/purchase/orders/${id}`, {
         state: { openPostingDialog: "release" as const },
       });
     },
-    [navigate],
+    [navigate, orders],
   );
 
   const handleCancelOrder = useCallback(

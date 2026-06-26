@@ -265,8 +265,14 @@ export default function PurchaseOrderDetailPage() {
     const action = state?.openPostingDialog;
     if (!action || !order || loading) return;
     navigate(location.pathname, { replace: true, state: null });
+    if (action === "release" && !order.supplierId) {
+      toast.error(
+        "Assign a supplier before releasing this purchase order.",
+      );
+      return;
+    }
     void openPostingDialog(action);
-  }, [order?.id, loading, location.state, location.pathname, navigate, openPostingDialog, order]);
+  }, [order?.id, order?.supplierId, loading, location.state, location.pathname, navigate, openPostingDialog, order]);
 
   const handleAssignSupplier = async () => {
     if (!order || !assignSupplierId) {

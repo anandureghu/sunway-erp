@@ -137,7 +137,8 @@ export function createPurchaseOrderColumns(
       cell: ({ row }) => {
         const order = row.original;
         const st = (order.status || "").toLowerCase();
-        const canRelease = st === "draft";
+        const hasSupplier = Boolean(order.supplierId);
+        const canRelease = st === "draft" && hasSupplier;
         const canCancel = st === "draft";
         const canReceive =
           st === "confirmed" ||
