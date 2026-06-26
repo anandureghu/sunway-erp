@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { PurchaseOrder, Supplier, GoodsReceipt } from "@/types/purchase";
+import { isVendorEligibleForPurchase } from "@/lib/vendor-api";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
@@ -138,7 +139,15 @@ export function createPurchaseOrderColumns(
         const order = row.original;
         const st = (order.status || "").toLowerCase();
         const hasSupplier = Boolean(order.supplierId);
-        const canRelease = st === "draft" && hasSupplier;
+        const supplierEligible =
+          hasSupplier &&
+          Boolean(order.supplier) &&
+          isVendorEligibleForPurchase({
+            approved: order.supplier?.approved === true,
+            rejected: order.supplier?.rejected === true,
+            active: order.supplier?.status === "active",
+          });
+        const canRelease = st === "draft" && supplierEligible;
         const canCancel = st === "draft";
         const canReceive =
           st === "confirmed" ||

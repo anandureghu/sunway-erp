@@ -126,3 +126,10 @@ export function vendorFormToApiPayload(
     remarks: data.remarks?.trim() || null,
   };
 }
+
+/** Suppliers that may be assigned to or released on purchase orders. */
+export function isVendorEligibleForPurchase(
+  vendor: Pick<Vendor, "approved" | "rejected" | "active">,
+): boolean {
+  return vendor.approved === true && vendor.rejected !== true && vendor.active !== false;
+}

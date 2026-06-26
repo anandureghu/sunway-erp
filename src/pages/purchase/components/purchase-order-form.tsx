@@ -20,7 +20,7 @@ import {
   createPurchaseOrder,
   updatePurchaseOrder,
 } from "@/service/purchaseFlowService";
-import { listVendors } from "@/service/vendorService";
+import { fetchPurchaseEligibleVendors } from "@/service/vendorService";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { PageHeader } from "@/components/PageHeader";
@@ -78,7 +78,7 @@ export function PurchaseOrderForm({
         setLoading(true);
         const [itemsData, vendorsData] = await Promise.all([
           listItems(),
-          listVendors(),
+          fetchPurchaseEligibleVendors(),
         ]);
         if (cancelled) return;
         setItemsMaster(itemsData);

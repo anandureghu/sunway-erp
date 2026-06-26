@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { PurchaseOrder } from "@/types/purchase";
+import { isVendorEligibleForPurchase } from "@/lib/vendor-api";
 import { createPurchaseOrderColumns } from "@/lib/columns/purchase-columns";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import { listVendors } from "@/service/vendorService";
@@ -143,6 +144,21 @@ export default function PurchaseOrdersPage() {
       if (!order.supplierId) {
         toast.error(
           "Assign a supplier on the purchase order before releasing to the supplier.",
+        );
+        navigate(`/inventory/purchase/orders/${id}`);
+        return;
+      }
+      const supplier = order.supplier;
+      if (
+        !supplier ||
+        !isVendorEligibleForPurchase({
+          approved: supplier.approved === true,
+          rejected: supplier.rejected === true,
+          active: supplier.status === "active",
+        })
+      ) {
+        toast.error(
+          "Only approved and active suppliers can be released on a purchase order.",
         );
         navigate(`/inventory/purchase/orders/${id}`);
         return;

@@ -42,6 +42,8 @@ export type Supplier = {
   creditLimit?: number;
   rating?: number; // 1-5 rating for supplier performance
   status: "active" | "inactive";
+  approved?: boolean;
+  rejected?: boolean;
   // Performance tracking
   totalOrders?: number;
   onTimeDeliveryRate?: number; // Percentage

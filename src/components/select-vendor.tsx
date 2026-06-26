@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Label } from "./ui/label";
-import { fetchVendors } from "@/service/vendorService";
+import { fetchPurchaseEligibleVendors } from "@/service/vendorService";
 import type { Vendor } from "@/types/vendor";
 
 const SelectVendor = ({
@@ -24,7 +24,7 @@ const SelectVendor = ({
   const [vendors, setVendors] = useState<Vendor[]>([]);
 
   useEffect(() => {
-    fetchVendors().then((data) => {
+    fetchPurchaseEligibleVendors().then((data) => {
       if (data) setVendors(data);
     });
   }, []);
@@ -38,19 +38,25 @@ const SelectVendor = ({
         </SelectTrigger>
 
         <SelectContent>
-          {vendors.map((d: Vendor) => (
-            <SelectItem key={d.id} value={String(d.id)}>
-              <div>
-                <h2 className="font-semibold">{d.vendorName}</h2>
-                <h4 className="font-sm text-gray-500">
-                  Contact: {d.contactPersonName}
-                </h4>
-                {d.is1099Vendor && (
-                  <h4 className="font-sm text-gray-500">1099 Vendor</h4>
-                )}
-              </div>
-            </SelectItem>
-          ))}
+          {vendors.length === 0 ? (
+            <div className="px-3 py-4 text-sm text-muted-foreground">
+              No approved active suppliers available.
+            </div>
+          ) : (
+            vendors.map((d: Vendor) => (
+              <SelectItem key={d.id} value={String(d.id)}>
+                <div>
+                  <h2 className="font-semibold">{d.vendorName}</h2>
+                  <h4 className="font-sm text-gray-500">
+                    Contact: {d.contactPersonName}
+                  </h4>
+                  {d.is1099Vendor && (
+                    <h4 className="font-sm text-gray-500">1099 Vendor</h4>
+                  )}
+                </div>
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
     </>
