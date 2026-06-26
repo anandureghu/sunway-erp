@@ -9,6 +9,7 @@ import {
   isDummyDocumentUrl,
 } from "@/lib/payment-method-label";
 import { Archive, Loader2 } from "lucide-react";
+import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 
 export const PAYMENT_COLUMNS = ({
   variant = "customer",
@@ -41,24 +42,16 @@ export const PAYMENT_COLUMNS = ({
   ];
 
   if (variant === "vendor") {
-    columns.push(
-      {
-        id: "supplierId",
-        header: "Supplier ID",
-        cell: ({ row }) => (
-          <span className="font-mono text-sm">
-            {row.original.supplierId ?? "—"}
-          </span>
-        ),
-      },
-      {
-        id: "supplierName",
-        header: "Supplier name",
-        cell: ({ row }) => (
-          <span>{row.original.supplierName || "—"}</span>
-        ),
-      },
-    );
+    columns.push({
+      id: "supplier",
+      header: "Supplier",
+      cell: ({ row }) => (
+        <SupplierIdNameCell
+          supplierId={row.original.supplierId}
+          supplierName={row.original.supplierName}
+        />
+      ),
+    });
   }
 
   columns.push(

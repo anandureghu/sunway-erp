@@ -3,7 +3,7 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
 import { type ColumnDef } from "@tanstack/react-table";
-import { AlertTriangle, MapPin, Warehouse } from "lucide-react";
+import { AlertTriangle, Warehouse } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
@@ -85,19 +85,6 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
             </span>
           </div>
         </Link>
-      );
-    },
-  },
-  {
-    accessorKey: "item.warehouse_location",
-    header: "Location",
-    cell: ({ row }) => {
-      const item = row.original;
-      return (
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-600">{item.warehouse_location}</span>
-        </div>
       );
     },
   },

@@ -27,6 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
@@ -353,13 +354,17 @@ export type PurchaseInvoiceColumnActions = {
 };
 
 // Purchase Invoice Columns (API FinanceInvoice)
-function purchaseInvoiceSupplierId(inv: FinanceInvoice): string {
-  const id = inv.supplierId ?? inv.purchaseOrder?.supplierId;
-  return id != null ? String(id) : "—";
+function purchaseInvoiceSupplierId(inv: FinanceInvoice): number | null {
+  return inv.supplierId ?? inv.purchaseOrder?.supplierId ?? null;
 }
 
-function purchaseInvoiceSupplierName(inv: FinanceInvoice): string {
-  return inv.supplierName ?? inv.purchaseOrder?.supplierName ?? inv.toParty ?? "—";
+function purchaseInvoiceSupplierName(inv: FinanceInvoice): string | null {
+  return (
+    inv.supplierName ??
+    inv.purchaseOrder?.supplierName ??
+    inv.toParty ??
+    null
+  );
 }
 
 export function createPurchaseInvoiceColumns(
@@ -386,19 +391,13 @@ export function createPurchaseInvoiceColumns(
       },
     },
     {
-      id: "supplierId",
+      id: "supplier",
       header: "Supplier",
       cell: ({ row }) => (
-        <span className="font-mono text-sm">
-          {purchaseInvoiceSupplierId(row.original)}
-        </span>
-      ),
-    },
-    {
-      id: "supplierName",
-      header: "Supplier name",
-      cell: ({ row }) => (
-        <span>{purchaseInvoiceSupplierName(row.original)}</span>
+        <SupplierIdNameCell
+          supplierId={purchaseInvoiceSupplierId(row.original)}
+          supplierName={purchaseInvoiceSupplierName(row.original)}
+        />
       ),
     },
     {
