@@ -168,7 +168,10 @@ export default function PurchaseOrdersPage() {
         );
       }
       if (order.archived) return toast.error("Order is already archived.");
-      if (!(await confirm(`Archive order ${order.orderNo}?`))) return;
+      const archiveMessage = order.requisitionId
+        ? `Archive order ${order.orderNo}? The linked requisition${order.requisitionNo ? ` ${order.requisitionNo}` : ""} will also be archived.`
+        : `Archive order ${order.orderNo}?`;
+      if (!(await confirm(archiveMessage))) return;
       setActionState({ id, type: "archive" });
       try {
         const updated = await archivePurchaseOrder(id);
@@ -182,7 +185,11 @@ export default function PurchaseOrdersPage() {
               : po,
           ),
         );
-        toast.success("Order archived successfully");
+        toast.success(
+          order.requisitionId
+            ? "Order and linked requisition archived successfully"
+            : "Order archived successfully",
+        );
         void refreshOrders();
       } catch (error: any) {
         toast.error(
