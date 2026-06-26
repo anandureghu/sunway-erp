@@ -78,9 +78,11 @@ export default function PurchaseOrdersPage() {
       const s = (status || "").toLowerCase();
       return s === "received" || s === "cancelled";
     };
-    const openCount = orders.filter((o) => !terminal(o.status)).length;
     const draftCount = orders.filter(
       (o) => (o.status || "").toLowerCase() === "draft",
+    ).length;
+    const terminalCount = orders.filter((o) =>
+      terminal(o.status),
     ).length;
     const openCommitment = orders
       .filter((o) => !terminal(o.status))
@@ -103,8 +105,8 @@ export default function PurchaseOrdersPage() {
       },
       {
         label: "Completed or cancelled POs",
-        value: openCount,
-        hint: "Not fully received or cancelled",
+        value: terminalCount,
+        hint: "Fully received or cancelled",
         accent: "emerald",
         icon: Package,
       },
