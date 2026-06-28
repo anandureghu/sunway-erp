@@ -13,6 +13,7 @@ import type { Vendor } from "@/types/vendor";
 import type { Row } from "@tanstack/react-table";
 import { VendorDialog } from "@/pages/admin/vendors/vendor-dialog";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -67,7 +68,9 @@ export default function SuppliersPage() {
       setVendors((prev) => prev.filter((v) => v.id !== vendor.id));
     } catch (error) {
       console.error("Delete failed:", error);
-      toast.error("Failed to delete supplier");
+      toast.error(
+        getApiErrorMessage(error, "Failed to delete supplier"),
+      );
     }
   };
 

@@ -18,6 +18,8 @@ export interface PaymentResponseDTO {
   paymentDirection?: string | null;
   purchaseOrderId?: number | null;
   purchaseOrderNumber?: string | null;
+  supplierId?: number | null;
+  supplierName?: string | null;
   salesOrderNumber?: string | null;
 
   pdfUrl: string | null;

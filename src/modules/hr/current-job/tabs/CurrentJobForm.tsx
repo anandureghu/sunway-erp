@@ -1,5 +1,6 @@
 import { useOutletContext } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import CountrySelect from "@/components/country-select";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -1059,16 +1060,13 @@ export default function CurrentJobForm() {
           </Field>
 
           <Field label="Work Country">
-            <div className="relative">
-              <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.workCountry}
-                onChange={(e) => updateField("workCountry")(e.target.value)}
-                placeholder="e.g., Malaysia"
-              />
-            </div>
+            <CountrySelect
+              value={formData.workCountry}
+              onChange={updateField("workCountry")}
+              disabled={!editing}
+              placeholder="Select country..."
+              className={fieldCls}
+            />
           </Field>
         </div>
       </div>

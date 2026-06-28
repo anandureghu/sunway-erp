@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { FormRow } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
-import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
+import CountrySelect from "@/components/country-select";
 import PhoneInput from "@/components/PhoneInput";
 import { normalizePhone, validatePhone } from "@/lib/countries";
 import { isValidDate } from "@/modules/hr/utils/validation";
@@ -579,7 +579,7 @@ export function DependentsForm() {
                         <Label className="text-sm font-medium text-slate-700">
                           Nationality
                         </Label>
-                        <CountryAutocomplete
+                        <CountrySelect
                           value={dependent.nationality}
                           onChange={(v) =>
                             updateDependent(dependent.id, { nationality: v })
@@ -738,7 +738,7 @@ export function DependentsForm() {
                         <Label className="text-sm font-medium text-slate-700">
                           Country <span className="text-red-500">*</span>
                         </Label>
-                        <CountryAutocomplete
+                        <CountrySelect
                           value={dependent.country}
                           onChange={(v) =>
                             updateDependent(dependent.id, { country: v })

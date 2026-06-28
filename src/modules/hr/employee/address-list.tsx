@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { addressService, type Address } from "@/service/addressService";
 import { Button } from "@/components/ui/button";
+import CountrySelect from "@/components/country-select";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
@@ -82,7 +83,11 @@ export default function AddressList({ employeeId }: { employeeId: number }) {
             <input className="border p-2 rounded" placeholder="Postal Code" value={form.postalCode} onChange={(e) => setForm((s) => ({ ...s, postalCode: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <input className="border p-2 rounded" placeholder="Country" value={form.country} onChange={(e) => setForm((s) => ({ ...s, country: e.target.value }))} />
+            <CountrySelect
+              value={form.country}
+              onChange={(country) => setForm((s) => ({ ...s, country }))}
+              placeholder="Select country"
+            />
             <select className="border p-2 rounded" value={form.addressType} onChange={(e) => setForm((s) => ({ ...s, addressType: e.target.value as any }))}>
               <option value="HOME">Home</option>
               <option value="OFFICE">Office</option>

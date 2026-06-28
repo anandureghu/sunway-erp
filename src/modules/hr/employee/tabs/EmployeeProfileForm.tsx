@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import roleService from "@/service/roleService";
 import { cn } from "@/lib/utils";
+import CountrySelect from "@/components/country-select";
 
 type Prefix = "" | "Mr." | "Mrs." | "Ms." | "Miss" | "Dr.";
 
@@ -694,12 +695,11 @@ export default function EmployeeProfileForm() {
         />
         <FormRow columns={3}>
           <FormField label="Nationality">
-            <IconInput
-              icon={<Globe className="h-4 w-4" />}
+            <CountrySelect
               disabled={!editing}
               value={draft.nationality ?? ""}
-              onChange={(e) => set("nationality", e.target.value)}
-              placeholder="Enter nationality"
+              onChange={(nationality) => set("nationality", nationality)}
+              placeholder="Select country"
             />
           </FormField>
 

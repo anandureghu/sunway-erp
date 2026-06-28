@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { PurchaseOrder } from "@/types/purchase";
+import { isVendorEligibleForPurchase } from "@/lib/vendor-api";
 import { createPurchaseOrderColumns } from "@/lib/columns/purchase-columns";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import { listVendors } from "@/service/vendorService";
@@ -77,9 +78,11 @@ export default function PurchaseOrdersPage() {
       const s = (status || "").toLowerCase();
       return s === "received" || s === "cancelled";
     };
-    const openCount = orders.filter((o) => !terminal(o.status)).length;
     const draftCount = orders.filter(
       (o) => (o.status || "").toLowerCase() === "draft",
+    ).length;
+    const terminalCount = orders.filter((o) =>
+      terminal(o.status),
     ).length;
     const openCommitment = orders
       .filter((o) => !terminal(o.status))
@@ -102,8 +105,8 @@ export default function PurchaseOrdersPage() {
       },
       {
         label: "Completed or cancelled POs",
-        value: openCount,
-        hint: "Not fully received or cancelled",
+        value: terminalCount,
+        hint: "Fully received or cancelled",
         accent: "emerald",
         icon: Package,
       },
@@ -131,11 +134,42 @@ export default function PurchaseOrdersPage() {
 
   const handleConfirmOrder = useCallback(
     (id: string) => {
+      const order = orders.find((o) => o.id === id);
+      if (!order) {
+        toast.error("Order not found");
+        return;
+      }
+      if ((order.status || "").toLowerCase() !== "draft") {
+        toast.error("Only draft purchase orders can be released.");
+        return;
+      }
+      if (!order.supplierId) {
+        toast.error(
+          "Assign a supplier on the purchase order before releasing to the supplier.",
+        );
+        navigate(`/inventory/purchase/orders/${id}`);
+        return;
+      }
+      const supplier = order.supplier;
+      if (
+        !supplier ||
+        !isVendorEligibleForPurchase({
+          approved: supplier.approved === true,
+          rejected: supplier.rejected === true,
+          active: supplier.status === "active",
+        })
+      ) {
+        toast.error(
+          "Only approved and active suppliers can be released on a purchase order.",
+        );
+        navigate(`/inventory/purchase/orders/${id}`);
+        return;
+      }
       navigate(`/inventory/purchase/orders/${id}`, {
         state: { openPostingDialog: "release" as const },
       });
     },
-    [navigate],
+    [navigate, orders],
   );
 
   const handleCancelOrder = useCallback(
@@ -168,7 +202,10 @@ export default function PurchaseOrdersPage() {
         );
       }
       if (order.archived) return toast.error("Order is already archived.");
-      if (!(await confirm(`Archive order ${order.orderNo}?`))) return;
+      const archiveMessage = order.requisitionId
+        ? `Archive order ${order.orderNo}? The linked requisition${order.requisitionNo ? ` ${order.requisitionNo}` : ""} will also be archived.`
+        : `Archive order ${order.orderNo}?`;
+      if (!(await confirm(archiveMessage))) return;
       setActionState({ id, type: "archive" });
       try {
         const updated = await archivePurchaseOrder(id);
@@ -182,7 +219,11 @@ export default function PurchaseOrdersPage() {
               : po,
           ),
         );
-        toast.success("Order archived successfully");
+        toast.success(
+          order.requisitionId
+            ? "Order and linked requisition archived successfully"
+            : "Order archived successfully",
+        );
         void refreshOrders();
       } catch (error: any) {
         toast.error(

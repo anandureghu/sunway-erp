@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import PhoneInput from '@/components/PhoneInput';
+import CountrySelect from '@/components/country-select';
 import { validatePhone } from '@/lib/countries';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -262,7 +263,25 @@ export const EditProfileTab = ({ profile, onSaved }: Props) => {
           </div>
 
           {textField('Date of Birth', 'dateOfBirth', Calendar, 'date')}
-          {textField('Nationality',   'nationality', Globe,    'text', 'e.g. Indian')}
+          <div className="space-y-1.5">
+            <Label htmlFor="nationality" className="flex items-center gap-1.5 text-sm font-medium">
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              Nationality
+            </Label>
+            <Controller
+              name="nationality"
+              control={control}
+              render={({ field }) => (
+                <CountrySelect
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="Select country"
+                  className="h-10"
+                />
+              )}
+            />
+          </div>
           {textField('Religion',      'religion',    BookOpen, 'text', 'e.g. Hindu')}
           {textField('Birthplace',    'birthplace',  MapPin,   'text', 'City, Country')}
           {textField('Hometown',      'hometown',    MapPin,   'text', 'City, Country')}

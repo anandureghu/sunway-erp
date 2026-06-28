@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { PurchaseOrder, Supplier, GoodsReceipt } from "@/types/purchase";
+import { isVendorEligibleForPurchase } from "@/lib/vendor-api";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
@@ -26,6 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
@@ -137,7 +139,16 @@ export function createPurchaseOrderColumns(
       cell: ({ row }) => {
         const order = row.original;
         const st = (order.status || "").toLowerCase();
-        const canRelease = st === "draft";
+        const hasSupplier = Boolean(order.supplierId);
+        const supplierEligible =
+          hasSupplier &&
+          Boolean(order.supplier) &&
+          isVendorEligibleForPurchase({
+            approved: order.supplier?.approved === true,
+            rejected: order.supplier?.rejected === true,
+            active: order.supplier?.status === "active",
+          });
+        const canRelease = st === "draft" && supplierEligible;
         const canCancel = st === "draft";
         const canReceive =
           st === "confirmed" ||
@@ -343,6 +354,19 @@ export type PurchaseInvoiceColumnActions = {
 };
 
 // Purchase Invoice Columns (API FinanceInvoice)
+function purchaseInvoiceSupplierId(inv: FinanceInvoice): number | null {
+  return inv.supplierId ?? inv.purchaseOrder?.supplierId ?? null;
+}
+
+function purchaseInvoiceSupplierName(inv: FinanceInvoice): string | null {
+  return (
+    inv.supplierName ??
+    inv.purchaseOrder?.supplierName ??
+    inv.toParty ??
+    null
+  );
+}
+
 export function createPurchaseInvoiceColumns(
   onArchive?: (id: number) => void,
   processingInvoiceId?: number | null,
@@ -351,24 +375,30 @@ export function createPurchaseInvoiceColumns(
   const { onViewDetails, onOpenDocument } = invoiceActions;
   return [
     {
+      id: "slNo",
+      header: "SL no",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground tabular-nums">
+          {row.index + 1}
+        </span>
+      ),
+    },
+    {
       accessorKey: "invoiceId",
-      header: "ERP ref",
+      header: "Inv no",
       cell: ({ row }) => {
         return <span className="font-medium">{row.getValue("invoiceId")}</span>;
       },
     },
     {
-      id: "supplierInvNo",
-      header: "Supplier #",
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {row.original.supplierInvoiceNumber || "—"}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "toParty",
+      id: "supplier",
       header: "Supplier",
+      cell: ({ row }) => (
+        <SupplierIdNameCell
+          supplierId={purchaseInvoiceSupplierId(row.original)}
+          supplierName={purchaseInvoiceSupplierName(row.original)}
+        />
+      ),
     },
     {
       id: "po",

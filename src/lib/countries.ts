@@ -230,6 +230,12 @@ export function getCountryByIso(iso2?: string): Country | undefined {
   return COUNTRIES.find((c) => c.iso2 === cc);
 }
 
+export function getCountryByName(name?: string): Country | undefined {
+  if (!name) return undefined;
+  const needle = name.trim().toLowerCase();
+  return COUNTRIES.find((c) => c.name.toLowerCase() === needle);
+}
+
 export const DEFAULT_COUNTRY =
   getCountryByIso(DEFAULT_COUNTRY_ISO) ?? COUNTRIES[0];
 

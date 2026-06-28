@@ -10,7 +10,9 @@ export function vendorToSupplier(vendor: Vendor): Supplier {
     contactPerson: vendor.contactPersonName,
     email: vendor.email,
     phone: vendor.phoneNo,
-    status: vendor.active ? "active" : "inactive",
+    status: vendor.active !== false ? "active" : "inactive",
+    approved: vendor.approved,
+    rejected: vendor.rejected,
     createdAt: "",
   };
 }

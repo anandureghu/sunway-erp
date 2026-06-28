@@ -45,3 +45,32 @@ export function formatOptionalDate(value?: string | null, empty = "—"): string
     day: "numeric",
   });
 }
+
+/** ISO instant from API (`createdAt`, `updatedAt`). */
+export function formatRecordTimestamp(value?: string | null, empty = "—"): string {
+  if (!value?.trim()) return empty;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return empty;
+  return parsed.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function formatUnitLabel(unit?: string | null): string {
+  if (!unit?.trim()) return "—";
+  const labels: Record<string, string> = {
+    pcs: "Pieces (pcs)",
+    kg: "Kilogram (kg)",
+    g: "Gram (g)",
+    box: "Box",
+    pallet: "Pallet",
+    liter: "Liter",
+    meter: "Meter",
+    carton: "Carton",
+    bag: "Bag",
+    bucket: "Bucket",
+  };
+  return labels[unit] ?? unit;
+}

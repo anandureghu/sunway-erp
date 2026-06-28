@@ -32,6 +32,8 @@ export interface FinanceInvoice {
   type?: "SALES" | "PURCHASE";
   orderId?: number | null;
   orderNumber?: string | null;
+  supplierId?: number | null;
+  supplierName?: string | null;
   debitAccountId?: number;
   creditAccountId?: number;
   purchaseOrder?: PurchaseOrderResponseDTO | null;

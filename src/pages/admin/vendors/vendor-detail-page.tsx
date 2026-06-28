@@ -6,6 +6,7 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { type Vendor } from "@/types/vendor";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { VendorDialog } from "./vendor-dialog";
 import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
@@ -43,7 +44,7 @@ export default function VendorDetailPage() {
       navigate(listPath);
     } catch (err) {
       console.error(err);
-      toast.error("Error deleting supplier");
+      toast.error(getApiErrorMessage(err, "Error deleting supplier"));
     }
   };
 

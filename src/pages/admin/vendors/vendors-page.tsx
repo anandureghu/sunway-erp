@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { Users } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
@@ -88,7 +89,7 @@ export default function VendorsPage({
       setVendors((prev) => prev.filter((v) => v.id !== vendor.id));
     } catch (err) {
       console.error("Delete failed:", err);
-      toast.error("Failed to delete supplier");
+      toast.error(getApiErrorMessage(err, "Failed to delete supplier"));
     }
   };
 

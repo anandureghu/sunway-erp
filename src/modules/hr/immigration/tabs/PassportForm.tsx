@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import CountryAutocomplete from "@/modules/hr/components/CountryAutocomplete";
+import CountrySelect from "@/components/country-select";
 import { Label } from "@/components/ui/label";
 import type { ReactElement } from "react";
 import type { ImmigrationCtx } from "../ImmigrationShell";
@@ -447,7 +447,7 @@ export default function PassportForm(): ReactElement {
                   required
                   icon={<MapPin className="h-4 w-4" />}
                 >
-                  <CountryAutocomplete
+                  <CountrySelect
                     disabled={!editing}
                     value={draft.issueCountry}
                     onChange={(v) => {
@@ -466,7 +466,7 @@ export default function PassportForm(): ReactElement {
                   required
                   icon={<Globe className="h-4 w-4" />}
                 >
-                  <CountryAutocomplete
+                  <CountrySelect
                     disabled={!editing}
                     value={draft.nationality}
                     onChange={(v) => patch("nationality", v)}

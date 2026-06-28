@@ -33,30 +33,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import SelectWarehouse from "@/components/select-warehouse";
+import { ItemSectionCard } from "@/components/inventory/item-section-card";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-
-// Section card
-function SectionCard({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
-          {icon}
-        </div>
-        <span className="text-[13px] font-semibold text-slate-700">{title}</span>
-      </div>
-      <div className="p-5 space-y-5">{children}</div>
-    </div>
-  );
-}
 
 // Field wrapper
 function F({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
@@ -142,7 +120,7 @@ function CreateItemForm({
     quantity: Number(data.quantity ?? 0),
     minimum: Number(data.minimum ?? 0), maximum: Number(data.maximum ?? 0),
     costPrice: Number(data.costPrice ?? 0), sellingPrice: Number(data.sellingPrice ?? 0),
-    unitSale: Number(data.unitSale ?? 0),
+    unitSale: Number(data.sellingPrice ?? 0),
     unitMeasure: data.unit, reorderLevel: Number(data.reorderLevel ?? 0),
     status: data.status, barcode: data.barcode,
     expiryDate: data.expiryDate ?? "",
@@ -206,7 +184,7 @@ function CreateItemForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
       {/* ── Section: Item Image ── */}
-      <SectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Item image">
+      <ItemSectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Item image">
         <div className="flex items-center gap-4">
           <Input
             type="file" accept="image/*"
@@ -216,10 +194,10 @@ function CreateItemForm({
           {watch("image") && <span className="text-[12px] text-emerald-600 font-medium">{(watch("image") as File)?.name}</span>}
         </div>
         <p className="text-[11px] text-slate-400">JPG / PNG · Max 5MB</p>
-      </SectionCard>
+      </ItemSectionCard>
 
       {/* ── Section: Basic Information ── */}
-      <SectionCard icon={<Tag className="h-3.5 w-3.5 text-white" />} title="Basic information">
+      <ItemSectionCard icon={<Tag className="h-3.5 w-3.5 text-white" />} title="Basic information">
         <div className="grid grid-cols-2 gap-5">
           <F label="SKU" required>
             <Input placeholder="SKU-001" {...register("sku")} className={icls} />
@@ -252,10 +230,10 @@ function CreateItemForm({
             </F>
           </div>
         </div>
-      </SectionCard>
+      </ItemSectionCard>
 
       {/* ── Section: Classification ── */}
-      <SectionCard icon={<Layers className="h-3.5 w-3.5 text-white" />} title="Classification">
+      <ItemSectionCard icon={<Layers className="h-3.5 w-3.5 text-white" />} title="Classification">
         <div className="grid grid-cols-2 gap-5">
           <F label="Category" required>
             <div className="flex items-center gap-2">
@@ -320,10 +298,10 @@ function CreateItemForm({
             <Input placeholder="Optional serial number" {...register("serialNo")} className={icls} />
           </F>
         </div>
-      </SectionCard>
+      </ItemSectionCard>
 
       {/* ── Section: Unit & Warehouse ── */}
-      <SectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Unit &amp; warehouse">
+      <ItemSectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Unit &amp; warehouse">
         <div className="grid grid-cols-2 gap-5">
           <F label="Unit" required>
             <Select onValueChange={(value) => setValue("unit", value as any)} value={watch("unit")}>
@@ -371,27 +349,22 @@ function CreateItemForm({
             <p className="text-[11px] text-slate-400 mt-1">Optional</p>
           </F>
         </div>
-      </SectionCard>
+      </ItemSectionCard>
 
       {/* ── Section: Pricing ── */}
-      <SectionCard icon={<DollarSign className="h-3.5 w-3.5 text-white" />} title="Pricing">
+      <ItemSectionCard icon={<DollarSign className="h-3.5 w-3.5 text-white" />} title="Pricing">
         <div className="grid grid-cols-2 gap-5">
           <F label="Cost Price" required>
             <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("costPrice", { valueAsNumber: true })} className={icls} />
             {errors.costPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.costPrice.message}</p>}
           </F>
 
-          <F label="Selling Price" required>
+          <F label="Selling price" required>
             <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("sellingPrice", { valueAsNumber: true })} className={icls} />
             {errors.sellingPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.sellingPrice.message}</p>}
           </F>
 
-          <F label="Unit Sale Price">
-            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("unitSale", { setValueAs: (v) => v === "" || v == null ? 0 : Number(v) })} className={icls} />
-            {errors.unitSale && <p className="text-[11px] text-rose-400 mt-1">{errors.unitSale.message}</p>}
-          </F>
-
-          <F label="Reorder Level" required>
+          <F label="Reorder level" required>
             <Input type="number" step="1" min="0" placeholder="0" {...register("reorderLevel", { valueAsNumber: true })} className={icls} />
             {errors.reorderLevel && <p className="text-[11px] text-rose-400 mt-1">{errors.reorderLevel.message}</p>}
           </F>
@@ -406,7 +379,7 @@ function CreateItemForm({
             {errors.maximum && <p className="text-[11px] text-rose-400 mt-1">{errors.maximum.message}</p>}
           </F>
         </div>
-      </SectionCard>
+      </ItemSectionCard>
 
       {/* ── Footer ── */}
       <div className="flex items-center justify-end gap-2.5 pt-2">

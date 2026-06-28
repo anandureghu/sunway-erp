@@ -36,6 +36,7 @@ import {
 import type { PurchaseOrderPostingPreview } from "@/types/purchase";
 import SelectVendor from "@/components/select-vendor";
 import { listVendors } from "@/service/vendorService";
+import { isVendorEligibleForPurchase } from "@/lib/vendor-api";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import type { PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
@@ -265,8 +266,28 @@ export default function PurchaseOrderDetailPage() {
     const action = state?.openPostingDialog;
     if (!action || !order || loading) return;
     navigate(location.pathname, { replace: true, state: null });
+    if (action === "release" && !order.supplierId) {
+      toast.error(
+        "Assign a supplier before releasing this purchase order.",
+      );
+      return;
+    }
+    if (
+      action === "release" &&
+      (!order.supplier ||
+        !isVendorEligibleForPurchase({
+          approved: order.supplier.approved === true,
+          rejected: order.supplier.rejected === true,
+          active: order.supplier.status === "active",
+        }))
+    ) {
+      toast.error(
+        "Only approved and active suppliers can be released on a purchase order.",
+      );
+      return;
+    }
     void openPostingDialog(action);
-  }, [order?.id, loading, location.state, location.pathname, navigate, openPostingDialog, order]);
+  }, [order?.id, order?.supplierId, loading, location.state, location.pathname, navigate, openPostingDialog, order]);
 
   const handleAssignSupplier = async () => {
     if (!order || !assignSupplierId) {
@@ -362,9 +383,17 @@ export default function PurchaseOrderDetailPage() {
 
   const st = (order.status || "").toLowerCase();
   const hasSupplier = Boolean(order.supplierId);
+  const supplierEligible =
+    hasSupplier &&
+    Boolean(order.supplier) &&
+    isVendorEligibleForPurchase({
+      approved: order.supplier?.approved === true,
+      rejected: order.supplier?.rejected === true,
+      active: order.supplier?.status === "active",
+    });
   const vendorPaymentConfirmed = order.vendorPaymentSettled === true;
-  const canAssignSupplier = st === "draft" && !hasSupplier;
-  const canRelease = st === "draft" && hasSupplier;
+  const canAssignSupplier = st === "draft" && (!hasSupplier || !supplierEligible);
+  const canRelease = st === "draft" && supplierEligible;
   const canCancel = st === "draft" && !vendorPaymentConfirmed;
   const canReceive =
     st === "confirmed" ||
@@ -488,8 +517,8 @@ export default function PurchaseOrderDetailPage() {
                   Register supplier
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
-                  Select a vendor from your supplier master and assign them to
-                  this draft purchase order before release.
+                  Only approved and active suppliers from your vendor master can
+                  be assigned before release.
                 </p>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
                   <div className="min-w-0 flex-1">
@@ -576,6 +605,14 @@ export default function PurchaseOrderDetailPage() {
               </div>
             )}
 
+            {st === "draft" && hasSupplier && !supplierEligible && (
+              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                The assigned supplier must be approved and active before this
+                purchase order can be released. Choose an eligible supplier
+                below or update the supplier in the vendor master.
+              </p>
+            )}
+
             {st === "draft" && !hasSupplier && (
               <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                 Assign a supplier above before you can release this purchase
@@ -627,7 +664,7 @@ export default function PurchaseOrderDetailPage() {
           </div>
         )}
 
-        {releasePreview && st === "draft" && hasSupplier && (
+        {releasePreview && st === "draft" && supplierEligible && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">
               Release preview

@@ -15,6 +15,7 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
+import CountrySelect from "@/components/country-select";
 
 export type SelectedEmployee = {
   employeeNo: string;
@@ -374,11 +375,12 @@ export function AddEmployeeModal({
 
               <div>
                 <label className={labelCls}>Nationality</label>
-                <input
-                  name="nationality"
-                  placeholder="e.g. Malaysian"
+                <CountrySelect
                   value={form.nationality}
-                  onChange={handleChange}
+                  onChange={(nationality) =>
+                    setForm((prev) => ({ ...prev, nationality }))
+                  }
+                  placeholder="Select country"
                   className={inputCls}
                 />
               </div>

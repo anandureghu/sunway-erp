@@ -102,10 +102,18 @@ function PayableInvoicesTab() {
       }
 
       const q = searchQuery.toLowerCase();
+      const supplierId =
+        invoice.supplierId ?? invoice.purchaseOrder?.supplierId;
+      const supplierName =
+        invoice.supplierName ??
+        invoice.purchaseOrder?.supplierName ??
+        invoice.toParty;
       const matchesSearch =
         (invoice.invoiceId?.toLowerCase().includes(q) ?? false) ||
-        (invoice.toParty?.toLowerCase().includes(q) ?? false) ||
-        (invoice.supplierInvoiceNumber?.toLowerCase().includes(q) ?? false);
+        (supplierName?.toLowerCase().includes(q) ?? false) ||
+        String(supplierId ?? "").includes(q) ||
+        (invoice.orderNumber?.toLowerCase().includes(q) ?? false) ||
+        (invoice.purchaseOrder?.orderNumber?.toLowerCase().includes(q) ?? false);
       const matchesStatus = invoiceMatchesStatusFilter(
         invoice.status,
         statusFilter,
@@ -273,7 +281,7 @@ function PayableInvoicesTab() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Search by ref, supplier, supplier #…"
+                placeholder="Search inv no, supplier, PO…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

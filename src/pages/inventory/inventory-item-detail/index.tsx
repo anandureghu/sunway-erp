@@ -10,10 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import CreateItemForm from "../item-form";
 import { ChangeItemImageDialog } from "./change-item-image-dialog";
 import { InventoryPageHeader } from "@/components/inventory-page-header";
-import { ItemGallery } from "./ItemGallery";
-import { ItemPriceBlock } from "./ItemPriceBlock";
-import { ItemStockSpecs } from "./ItemStockSpecs";
-import { ItemMeta } from "./ItemMeta";
+import { ItemDetailSections } from "./item-detail-sections";
 
 function apiErrorMessage(e: unknown): string {
   const ax = e as { response?: { data?: { message?: string } }; message?: string };
@@ -83,27 +80,12 @@ export default function InventoryItemDetail() {
           <Package className="h-6 w-6 text-white" />
         </InventoryPageHeader>
 
-        <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
-          {/* Gallery */}
-          <div className="lg:col-span-3">
-            <ItemGallery
-              item={item}
-              imageNonce={imageNonce}
-              onUpdateImage={() => setImageDialogOpen(true)}
-            />
-          </div>
-
-          {/* Info panel */}
-          <div className="lg:col-span-9 space-y-6">
-            <ItemPriceBlock
-              item={item}
-              onEdit={() => setEditOpen(true)}
-              onUpdateImage={() => setImageDialogOpen(true)}
-            />
-            <ItemStockSpecs item={item} />
-            <ItemMeta item={item} />
-          </div>
-        </div>
+        <ItemDetailSections
+          item={item}
+          imageNonce={imageNonce}
+          onEdit={() => setEditOpen(true)}
+          onUpdateImage={() => setImageDialogOpen(true)}
+        />
       </div>
 
       {/* Dialogs */}
@@ -115,17 +97,21 @@ export default function InventoryItemDetail() {
       />
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit product</DialogTitle>
-            <DialogDescription>Update catalog details. SKU cannot be changed.</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-0">
+          <div className="border-b border-slate-100 px-6 py-4">
+            <DialogHeader>
+              <DialogTitle>Edit product</DialogTitle>
+              <DialogDescription>Update catalog details. SKU cannot be changed.</DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="px-6 py-5">
           <CreateItemForm
             editMode
             initialData={item}
             onSuccess={(newItem) => { setItem(newItem); setImageNonce((n) => n + 1); setEditOpen(false); }}
             onCancel={() => setEditOpen(false)}
           />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

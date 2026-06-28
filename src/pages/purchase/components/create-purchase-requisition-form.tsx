@@ -229,6 +229,7 @@ export function CreatePurchaseRequisitionForm({
           setUrgency(mapUrgencyFromApi(pr.urgency));
           setDeliveryWarehouseId(pr.deliveryWarehouseId ?? "");
           setJustification(pr.justification ?? "");
+          setNotes(pr.notes ?? "");
           setRequisitionItems(
             pr.items.map((line, idx) => ({
               ...line,
@@ -457,6 +458,7 @@ export function CreatePurchaseRequisitionForm({
       urgency: urgencyApi,
       deliveryWarehouseId: Number(deliveryWarehouseId),
       justification: justification.trim(),
+      notes: notes.trim() || undefined,
       items: requisitionItems.map((item) => {
         const applied = item.estimatedUnitCost ?? item.unitPrice ?? undefined;
         const payload: {
@@ -468,7 +470,7 @@ export function CreatePurchaseRequisitionForm({
         } = {
           itemId: Number(item.itemId),
           requestedQty: Math.max(1, Math.round(item.quantity)),
-          remarks: (item.notes || notes || "").trim(),
+          remarks: (item.notes || "").trim(),
           estimatedUnitCost: applied,
         };
         if (
