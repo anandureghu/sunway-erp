@@ -154,9 +154,11 @@ export default function PurchaseInvoicesPage() {
 
   const handleViewInvoice = useCallback(
     (inv: FinanceInvoice) => {
-      navigate(`/inventory/purchase/invoices/${inv.id}`);
+      navigate(`/inventory/purchase/invoices/${inv.id}`, {
+        state: { backTo: location.pathname },
+      });
     },
-    [navigate],
+    [navigate, location.pathname],
   );
 
   const handleOpenInvoiceDocument = useCallback(async (inv: FinanceInvoice) => {
@@ -240,9 +242,11 @@ export default function PurchaseInvoicesPage() {
 
   const handleRowClick = useCallback(
     (row: Row<FinanceInvoice>) => {
-      navigate(`/inventory/purchase/invoices/${row.original.id}`);
+      navigate(`/inventory/purchase/invoices/${row.original.id}`, {
+        state: { backTo: location.pathname },
+      });
     },
-    [navigate],
+    [navigate, location.pathname],
   );
 
   return (

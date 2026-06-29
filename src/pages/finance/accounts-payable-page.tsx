@@ -11,7 +11,7 @@ import {
 } from "@/service/invoiceService";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { Row } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,7 @@ interface AccountsPayableProps {
 
 function PayableInvoicesTab() {
   const { confirm } = useConfirmDialog();
+  const location = useLocation();
   const navigate = useNavigate();
   const [rows, setRows] = useState<FinanceInvoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,9 +157,11 @@ function PayableInvoicesTab() {
 
   const handleViewInvoice = useCallback(
     (inv: FinanceInvoice) => {
-      navigate(`/inventory/purchase/invoices/${inv.id}`);
+      navigate(`/inventory/purchase/invoices/${inv.id}`, {
+        state: { backTo: location.pathname },
+      });
     },
-    [navigate],
+    [navigate, location.pathname],
   );
 
   const handleOpenInvoiceDocument = useCallback(async (inv: FinanceInvoice) => {
@@ -199,9 +202,11 @@ function PayableInvoicesTab() {
 
   const handleRowClick = useCallback(
     (row: Row<FinanceInvoice>) => {
-      navigate(`/inventory/purchase/invoices/${row.original.id}`);
+      navigate(`/inventory/purchase/invoices/${row.original.id}`, {
+        state: { backTo: location.pathname },
+      });
     },
-    [navigate],
+    [navigate, location.pathname],
   );
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {

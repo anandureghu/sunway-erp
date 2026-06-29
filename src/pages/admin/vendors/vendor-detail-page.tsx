@@ -11,15 +11,14 @@ import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { VendorDialog } from "./vendor-dialog";
 import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
 
-const PURCHASE_SUPPLIERS_LIST = "/inventory/purchase/suppliers";
-const ADMIN_VENDORS_LIST = "/admin/vendors";
+import { resolveVendorListPath } from "@/lib/navigation-back";
 
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isPurchaseHub = pathname.includes("/inventory/purchase/suppliers");
-  const listPath = isPurchaseHub ? PURCHASE_SUPPLIERS_LIST : ADMIN_VENDORS_LIST;
+  const listPath = resolveVendorListPath(pathname);
 
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,7 +109,7 @@ export default function VendorDetailPage() {
           <div className="flex gap-3 items-center">
             <Button
               variant="ghost"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(listPath)}
               className="flex gap-1"
             >
               <ArrowLeft className="h-4 w-4" /> Back

@@ -8,16 +8,14 @@ import { type Customer } from "@/types/customer";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { CustomerDialog } from "./customer-dialog";
 import { SalesPageHeader } from "@/pages/sales/components/sales-page-header";
-
-const SALES_CUSTOMERS_LIST = "/inventory/sales/customers";
-const ADMIN_CUSTOMERS_LIST = "/admin/customers";
+import { resolveCustomerListPath } from "@/lib/navigation-back";
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isSalesHub = pathname.includes("/inventory/sales/customers");
-  const listPath = isSalesHub ? SALES_CUSTOMERS_LIST : ADMIN_CUSTOMERS_LIST;
+  const listPath = resolveCustomerListPath(pathname);
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +103,7 @@ export default function CustomerDetailPage() {
           <div className="flex gap-3 items-center">
             <Button
               variant="ghost"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(listPath)}
               className="flex gap-1"
             >
               <ArrowLeft className="h-4 w-4" /> Back

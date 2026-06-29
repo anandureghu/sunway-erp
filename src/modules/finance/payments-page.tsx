@@ -147,6 +147,8 @@ export default function PaymentsPage({
 
   const handleOpenInvoice = useCallback(
     async (invoiceCode: string) => {
+      const backTo =
+        variant === "vendor" ? "/finance/payable" : "/finance/receivable";
       try {
         const res = await apiClient.get<{
           id: number;
@@ -155,9 +157,13 @@ export default function PaymentsPage({
         const invoiceId = res.data?.id;
         if (!invoiceId) throw new Error("Invoice not found");
         if (res.data?.type === "PURCHASE") {
-          navigate(`/inventory/purchase/invoices/${invoiceId}`);
+          navigate(`/inventory/purchase/invoices/${invoiceId}`, {
+            state: { backTo },
+          });
         } else {
-          navigate(`/sales/invoices/${invoiceId}`);
+          navigate(`/sales/invoices/${invoiceId}`, {
+            state: { backTo },
+          });
         }
       } catch (err: unknown) {
         const ax = err as { response?: { data?: { message?: string } } };
@@ -167,7 +173,7 @@ export default function PaymentsPage({
         );
       }
     },
-    [navigate],
+    [navigate, variant],
   );
 
   const handleOpenPurchaseOrder = useCallback(

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
 import { SalesPageHeader } from "./components/sales-page-header";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { resolveBackHref } from "@/lib/navigation-back";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
 import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
@@ -59,6 +60,7 @@ const formatTemplate = (
 export default function InvoiceDetailPage() {
   const { alert } = useConfirmDialog();
   const { id } = useParams();
+  const location = useLocation();
   const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -178,9 +180,10 @@ export default function InvoiceDetailPage() {
             : `Invoice ${safe(invoice.invoiceId)}`
         }
         description={invoiceHeaderDescription || undefined}
-        backHref={
-          isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices"
-        }
+        backHref={resolveBackHref(
+          location.state,
+          isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices",
+        )}
       />
 
       {/* ACTIONS */}

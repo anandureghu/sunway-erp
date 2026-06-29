@@ -45,10 +45,11 @@ export default function JournalDetailPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center">
-        <Button variant="link" className="p-0" onClick={() => navigate(-1)}>
+        <Button variant="link" className="p-0" onClick={() => navigate("/finance/ledger")}>
           <ArrowLeft className="mr-2" />
+          Back to ledger
         </Button>
-        <h1 className="text-xl font-normal">go back</h1>
+        <h1 className="text-xl font-normal">Journal entry</h1>
       </div>
 
       <Card>

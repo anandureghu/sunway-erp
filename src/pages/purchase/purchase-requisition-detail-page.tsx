@@ -323,7 +323,7 @@ export default function PurchaseRequisitionDetailPage() {
         <p className="font-medium text-red-600">
           {error || "Purchase requisition not found"}
         </p>
-        <Button variant="outline" onClick={() => navigate(-1)}>
+        <Button variant="outline" onClick={() => navigate(`${BASE}/requisitions`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Go back
         </Button>

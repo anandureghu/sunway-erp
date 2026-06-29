@@ -90,7 +90,7 @@ const SalesOrdersDetailPage = () => {
       <SalesPageHeader
         title={`Order ${so.orderNumber}`}
         description={`Order date: ${so.orderDate || "N/A"}`}
-        backHref="/inventory/sales"
+        backHref="/inventory/sales/orders"
         actions={
           <div className="flex flex-col items-stretch gap-3 sm:items-end">
             <Badge
@@ -134,7 +134,12 @@ const SalesOrdersDetailPage = () => {
             Download invoice
           </Button>
           <Button type="button" variant="secondary" size="sm" className="rounded-lg" asChild>
-            <Link to={`/sales/invoices/${so.salesInvoiceId}`}>Open invoice</Link>
+            <Link
+              to={`/sales/invoices/${so.salesInvoiceId}`}
+              state={{ backTo: `/inventory/sales/orders/${so.id}` }}
+            >
+              Open invoice
+            </Link>
           </Button>
         </div>
       )}
@@ -151,7 +156,12 @@ const SalesOrdersDetailPage = () => {
             Download receipt
           </Button>
           <Button type="button" variant="secondary" size="sm" className="rounded-lg" asChild>
-            <Link to={`/sales/invoices/${so.salesInvoiceId}`}>Open receipt</Link>
+            <Link
+              to={`/sales/invoices/${so.salesInvoiceId}`}
+              state={{ backTo: `/inventory/sales/orders/${so.id}` }}
+            >
+              Open receipt
+            </Link>
           </Button>
         </div>
       )}

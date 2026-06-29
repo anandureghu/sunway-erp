@@ -560,7 +560,7 @@ export function CreatePurchaseRequisitionForm({
         backHref={
           isEditMode && requisitionId
             ? `/inventory/purchase/requisitions/${requisitionId}`
-            : "/inventory/purchase"
+            : "/inventory/purchase/requisitions"
         }
         actions={
           <Button

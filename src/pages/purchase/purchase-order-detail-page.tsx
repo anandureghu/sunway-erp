@@ -372,7 +372,7 @@ export default function PurchaseOrderDetailPage() {
           <div className="text-red-600 font-medium">
             {error || "Purchase order not found"}
           </div>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="outline" onClick={() => navigate("/inventory/purchase/orders")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go Back
           </Button>
@@ -569,6 +569,9 @@ export default function PurchaseOrderDetailPage() {
                     >
                       <Link
                         to={`/inventory/purchase/invoices/${order.purchaseInvoiceId}`}
+                        state={{
+                          backTo: `/inventory/purchase/orders/${order.id}`,
+                        }}
                       >
                         Open purchase invoice
                       </Link>
@@ -598,6 +601,9 @@ export default function PurchaseOrderDetailPage() {
                 >
                   <Link
                     to={`/inventory/purchase/invoices/${order.purchaseInvoiceId}`}
+                    state={{
+                      backTo: `/inventory/purchase/orders/${order.id}`,
+                    }}
                   >
                     Open receipt
                   </Link>

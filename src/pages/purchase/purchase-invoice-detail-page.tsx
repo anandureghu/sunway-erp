@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,13 @@ import type { FinanceInvoice } from "@/types/finance-invoice";
 import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
+import { resolveBackHref } from "@/lib/navigation-back";
 import { PurchasePageHeader } from "./components/purchase-page-header";
 
 export default function PurchaseInvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [invoice, setInvoice] = useState<FinanceInvoice | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -62,7 +64,10 @@ export default function PurchaseInvoiceDetailPage() {
       <div className="p-6">
         <div className="py-10 text-center space-y-4">
           <div className="text-red-600 font-medium">Invoice not found</div>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/inventory/purchase/invoices")}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go Back
           </Button>
@@ -136,7 +141,10 @@ export default function PurchaseInvoiceDetailPage() {
         ]
           .filter(Boolean)
           .join(" · ")}
-        backHref="/inventory/purchase/invoices"
+        backHref={resolveBackHref(
+          location.state,
+          "/inventory/purchase/invoices",
+        )}
         actions={
           <>
             {isGenerated && (

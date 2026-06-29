@@ -283,7 +283,9 @@ export default function InvoicesPage({
         data={filteredInvoices}
         columns={columns}
         onRowClick={(row: Row<Invoice>) =>
-          navigate(`/sales/invoices/${row.original.id}`)
+          navigate(`/sales/invoices/${row.original.id}`, {
+            state: { backTo: location.pathname },
+          })
         }
       />
     </div>

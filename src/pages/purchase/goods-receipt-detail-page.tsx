@@ -293,7 +293,7 @@ export default function GoodsReceiptDetailPage() {
           <div className="font-medium text-red-600">
             {error || "Goods receipt not found"}
           </div>
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="outline" onClick={() => navigate(`${BASE}/receiving`)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go Back
           </Button>
