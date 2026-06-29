@@ -29,6 +29,7 @@ export type StockVariance = {
   rejectedById?: number | null;
   rejectedByName?: string | null;
   rejectedAt?: string | null;
+  archived?: boolean;
 };
 
 export type StockVarianceCreatePayload = {
@@ -62,8 +63,12 @@ export async function listPendingStockVariances(): Promise<StockVariance[]> {
   return res.data || [];
 }
 
-export async function listStockVarianceHistory(): Promise<StockVariance[]> {
-  const res = await apiClient.get<StockVariance[]>("/inventory/variances/history");
+export async function listStockVarianceHistory(
+  archived = false,
+): Promise<StockVariance[]> {
+  const res = await apiClient.get<StockVariance[]>("/inventory/variances/history", {
+    params: { archived },
+  });
   return res.data || [];
 }
 
@@ -84,6 +89,13 @@ export async function approveStockVariance(id: number): Promise<StockVariance> {
 export async function rejectStockVariance(id: number): Promise<StockVariance> {
   const res = await apiClient.post<StockVariance>(
     `/inventory/variances/${id}/reject`,
+  );
+  return res.data;
+}
+
+export async function archiveStockVariance(id: number): Promise<StockVariance> {
+  const res = await apiClient.post<StockVariance>(
+    `/inventory/variances/${id}/archive`,
   );
   return res.data;
 }
