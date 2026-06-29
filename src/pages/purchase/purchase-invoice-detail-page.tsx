@@ -14,7 +14,7 @@ import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
-import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
+import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { resolveBackHref } from "@/lib/navigation-back";
 import { PurchasePageHeader } from "./components/purchase-page-header";
 
@@ -95,7 +95,7 @@ export default function PurchaseInvoiceDetailPage() {
 
   const openDocumentHref =
     invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
-  const isPaid = isInvoicePaymentSettled(invoice.status);
+  const isPaid = isInvoiceReceiptView(invoice.status);
   const isGenerated = invoice.documentSource === "GENERATED";
   const showReceipt = isGenerated && isPaid;
 
@@ -116,16 +116,20 @@ export default function PurchaseInvoiceDetailPage() {
     }
   };
 
-  const handleEmailReceipt = async () => {
-    if (!isPaid) {
-      toast.error("Receipt can be emailed only after payment is confirmed.");
-      return;
-    }
+  const handleEmailDocument = async () => {
+    if (!isGenerated) return;
     try {
-      await apiClient.post(`/invoices/${invoice.id}/receipt-email`);
-      toast.success("Receipt email sent (when mail is configured).");
+      if (isPaid) {
+        await apiClient.post(`/invoices/${invoice.id}/receipt-email`);
+        toast.success("Receipt email sent (when mail is configured).");
+      } else {
+        await apiClient.post(`/invoices/${invoice.id}/email`);
+        toast.success("Invoice email sent (when mail is configured).");
+      }
     } catch {
-      toast.error("Could not send receipt email.");
+      toast.error(
+        isPaid ? "Could not send receipt email." : "Could not send invoice email.",
+      );
     }
   };
 
@@ -158,15 +162,15 @@ export default function PurchaseInvoiceDetailPage() {
                 {showReceipt ? "Download receipt" : "Download invoice"}
               </Button>
             )}
-            {showReceipt && (
+            {isGenerated && (
               <Button
                 type="button"
                 size="sm"
                 variant="secondary"
                 className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
-                onClick={() => void handleEmailReceipt()}
+                onClick={() => void handleEmailDocument()}
               >
-                Email receipt
+                {showReceipt ? "Email receipt" : "Email invoice"}
               </Button>
             )}
             {openDocumentHref && (

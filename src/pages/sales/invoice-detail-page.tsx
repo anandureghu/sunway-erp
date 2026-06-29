@@ -6,7 +6,7 @@ import { SalesPageHeader } from "./components/sales-page-header";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { resolveBackHref } from "@/lib/navigation-back";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
-import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
+import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 /* =======================
@@ -84,7 +84,7 @@ export default function InvoiceDetailPage() {
   const isSales = invoice.type === "SALES";
   const order = isSales ? invoice.salesOrder : invoice.purchaseOrder;
   const items = order?.items ?? [];
-  const isPaid = isInvoicePaymentSettled(invoice.status);
+  const isPaid = isInvoiceReceiptView(invoice.status);
   const isReceiptView = isPaid;
   const termsAndConditions = (invoice.invoiceTerms || "")
     .split(/\r?\n/)
@@ -187,14 +187,19 @@ export default function InvoiceDetailPage() {
       />
 
       {/* ACTIONS */}
-      <div className="my-6 max-w-5xl mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <button
-          // onClick={() => window.print()}
-          className="rounded-xl py-4 text-lg font-semibold border bg-white"
-          style={{ borderColor: COLORS.gray200 }}
-        >
-          🖨️ Print
-        </button>
+      <div
+        className={`my-6 max-w-5xl mb-8 grid grid-cols-1 gap-4 ${
+          isReceiptView ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        }`}
+      >
+        {isReceiptView ? (
+          <button
+            className="rounded-xl py-4 text-lg font-semibold border bg-white"
+            style={{ borderColor: COLORS.gray200 }}
+          >
+            🖨️ Print
+          </button>
+        ) : null}
 
         <button
           onClick={handleDownloadPdf}

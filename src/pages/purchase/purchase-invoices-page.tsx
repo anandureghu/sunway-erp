@@ -42,7 +42,9 @@ import {
 import {
   invoiceMatchesStatusFilter,
   isInvoiceArchivedStatus,
+  isInvoiceReceiptView,
 } from "@/lib/invoice-status-filter";
+import { apiClient } from "@/service/apiClient";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -183,17 +185,51 @@ export default function PurchaseInvoicesPage() {
     }
   }, []);
 
+  const handleDownloadInvoice = useCallback(async (inv: FinanceInvoice) => {
+    try {
+      const url = await getInvoicePdfUrl(inv.id);
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("PDF is not available for this invoice.");
+      }
+    } catch {
+      toast.error("Could not download invoice PDF.");
+    }
+  }, []);
+
+  const handleEmailInvoice = useCallback(async (inv: FinanceInvoice) => {
+    const isReceipt = isInvoiceReceiptView(inv.status);
+    try {
+      if (isReceipt) {
+        await apiClient.post(`/invoices/${inv.id}/receipt-email`);
+        toast.success("Receipt email sent.");
+      } else {
+        await apiClient.post(`/invoices/${inv.id}/email`);
+        toast.success("Invoice email sent.");
+      }
+    } catch {
+      toast.error(
+        isReceipt ? "Could not send receipt email." : "Could not send invoice email.",
+      );
+    }
+  }, []);
+
   const columns = useMemo(
     () =>
       createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId, {
         onViewDetails: handleViewInvoice,
         onOpenDocument: handleOpenInvoiceDocument,
+        onDownload: handleDownloadInvoice,
+        onEmail: handleEmailInvoice,
       }),
     [
       handleArchiveInvoice,
       processingInvoiceId,
       handleViewInvoice,
       handleOpenInvoiceDocument,
+      handleDownloadInvoice,
+      handleEmailInvoice,
     ],
   );
 

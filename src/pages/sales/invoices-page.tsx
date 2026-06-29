@@ -30,7 +30,9 @@ import {
 import {
   invoiceMatchesStatusFilter,
   isInvoiceArchivedStatus,
+  isInvoiceReceiptView,
 } from "@/lib/invoice-status-filter";
+import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -139,9 +141,59 @@ export default function InvoicesPage({
     [invoices],
   );
 
+  const handleViewInvoice = useCallback(
+    (inv: Invoice) => {
+      navigate(`/sales/invoices/${inv.id}`, {
+        state: { backTo: location.pathname },
+      });
+    },
+    [navigate, location.pathname],
+  );
+
+  const handleDownloadInvoice = useCallback(async (inv: Invoice) => {
+    try {
+      const url = await getInvoicePdfUrl(inv.id);
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("PDF is not available for this invoice.");
+      }
+    } catch {
+      toast.error("Could not download invoice PDF.");
+    }
+  }, []);
+
+  const handleEmailInvoice = useCallback(async (inv: Invoice) => {
+    const isReceipt = isInvoiceReceiptView(inv.status);
+    try {
+      if (isReceipt) {
+        await apiClient.post(`/invoices/${inv.id}/receipt-email`);
+        toast.success("Receipt email sent to customer.");
+      } else {
+        await apiClient.post(`/invoices/${inv.id}/email`);
+        toast.success("Invoice email sent to customer.");
+      }
+    } catch {
+      toast.error(
+        isReceipt ? "Could not send receipt email." : "Could not send invoice email.",
+      );
+    }
+  }, []);
+
   const columns = useMemo(
-    () => createSalesInvoiceColumns(handleArchiveInvoice, processingInvoiceId),
-    [handleArchiveInvoice, processingInvoiceId],
+    () =>
+      createSalesInvoiceColumns(handleArchiveInvoice, processingInvoiceId, {
+        onViewDetails: handleViewInvoice,
+        onDownload: handleDownloadInvoice,
+        onEmail: handleEmailInvoice,
+      }),
+    [
+      handleArchiveInvoice,
+      processingInvoiceId,
+      handleViewInvoice,
+      handleDownloadInvoice,
+      handleEmailInvoice,
+    ],
   );
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
-import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
+import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -66,7 +66,7 @@ const SalesOrdersDetailPage = () => {
               className: "border-amber-200 bg-amber-100 text-amber-700",
             };
   const StatusIcon = statusMeta.icon;
-  const paymentSettled = isInvoicePaymentSettled(so.paymentStatus);
+  const showReceiptActions = isInvoiceReceiptView(so.paymentStatus);
   const hasSalesInvoice = so.salesInvoiceId != null;
   const showDocumentActions =
     hasSalesInvoice && status !== "DRAFT" && status !== "CANCELLED";
@@ -122,7 +122,7 @@ const SalesOrdersDetailPage = () => {
         </div>
       )}
 
-      {showDocumentActions && !paymentSettled && (
+      {showDocumentActions && !showReceiptActions && (
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -144,7 +144,7 @@ const SalesOrdersDetailPage = () => {
         </div>
       )}
 
-      {showDocumentActions && paymentSettled && (
+      {showDocumentActions && showReceiptActions && (
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
