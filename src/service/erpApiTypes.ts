@@ -234,6 +234,7 @@ export type InventoryReportTotalsDTO = {
   totalAvailable: number;
   stockValueAtCost: number;
   stockValueAtSelling: number;
+  totalOnOrder: number;
 };
 
 export type InventoryWarehouseBreakdownDTO = {

@@ -27,7 +27,7 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
     cell: ({ row }) => {
       const item = row.original;
       return (
-        <div className="flex item-center gap-2">
+        <div className="flex flex-col gap-0.5">
           <span className="font-medium">{item.sku}</span>
           {item.barcode && (
             <span className="text-xs text-gray-500">{item.barcode}</span>
