@@ -53,11 +53,21 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
     },
   },
   {
-    accessorKey: "item.subcategory",
-    header: "SubCategory",
+    accessorKey: "status",
+    header: "Item Status",
     cell: ({ row }) => {
-      const item = row.original;
-      return <span className="text-gray-600">{item.subCategory || "-"}</span>;
+      const status = row.original.status;
+      const cfg: Record<string, { label: string; className: string }> = {
+        active: { label: "Active", className: "bg-green-100 text-green-700" },
+        discontinued: { label: "Discontinued", className: "bg-red-100 text-red-700" },
+        out_of_stock: { label: "Out of Stock", className: "bg-amber-100 text-amber-700" },
+      };
+      const { label, className } = cfg[status] ?? { label: status, className: "bg-gray-100 text-gray-600" };
+      return (
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}>
+          {label}
+        </span>
+      );
     },
   },
   {

@@ -1,24 +1,23 @@
 import {
   Package,
-  Warehouse as WarehouseIcon,
   AlertTriangle,
-  TrendingUp,
+  ShoppingCart,
+  PackageCheck,
 } from "lucide-react";
-import { formatMoney } from "@/lib/utils";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 
 type StockStatsCardsProps = {
   totalItems: number;
   lowStockItems: number;
-  totalValue: number;
-  warehouseCount: number;
+  onOrderCount: number;
+  onReserveCount: number;
 };
 
 export function StockStatsCards({
   totalItems,
   lowStockItems,
-  totalValue,
-  warehouseCount,
+  onOrderCount,
+  onReserveCount,
 }: StockStatsCardsProps) {
   const hasLow = lowStockItems > 0;
 
@@ -40,18 +39,18 @@ export function StockStatsCards({
           icon: AlertTriangle,
         },
         {
-          label: "Inventory value",
-          value: formatMoney(totalValue),
-          hint: "Available × cost",
+          label: "On Order",
+          value: onOrderCount.toLocaleString(),
+          hint: "From approved purchase orders",
           accent: "emerald",
-          icon: TrendingUp,
+          icon: ShoppingCart,
         },
         {
-          label: "Warehouses",
-          value: warehouseCount.toLocaleString(),
-          hint: "Storage locations",
+          label: "On Reserve",
+          value: onReserveCount.toLocaleString(),
+          hint: "From confirmed sales orders",
           accent: "violet",
-          icon: WarehouseIcon,
+          icon: PackageCheck,
         },
       ]}
     />

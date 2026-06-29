@@ -32,6 +32,8 @@ export default function ManageStocks() {
     setSelectedWarehouse,
     searchQuery,
     setSearchQuery,
+    selectedStatus,
+    setSelectedStatus,
     filteredStock,
     stats,
   } = useManageStocks();
@@ -50,8 +52,8 @@ export default function ManageStocks() {
         <StockStatsCards
           totalItems={stats.totalItems}
           lowStockItems={stats.lowStockItems}
-          totalValue={stats.totalValue}
-          warehouseCount={stats.warehouseCount}
+          onOrderCount={stats.onOrderCount}
+          onReserveCount={stats.onReserveCount}
         />
 
         <Card className="overflow-hidden border-border/80 shadow-md p-0">
@@ -113,6 +115,8 @@ export default function ManageStocks() {
                     onSearchQueryChange={setSearchQuery}
                     selectedWarehouse={selectedWarehouse}
                     onSelectedWarehouseChange={setSelectedWarehouse}
+                    selectedStatus={selectedStatus}
+                    onSelectedStatusChange={setSelectedStatus}
                     warehouses={warehouses}
                     loading={loading}
                     loadError={loadError}

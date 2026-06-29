@@ -35,17 +35,34 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   onRowClick?: (row: Row<TData>) => void;
   defaultPageSize?: number;
+  hideSlNo?: boolean;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SL_NO_COLUMN: ColumnDef<any, any> = {
+  id: "slNo",
+  header: "SL No.",
+  cell: ({ row }: { row: { index: number } }) => (
+    <span className="text-muted-foreground text-sm font-medium tabular-nums">
+      {row.index + 1}
+    </span>
+  ),
+};
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   onRowClick,
   defaultPageSize = 10,
+  hideSlNo = false,
 }: DataTableProps<TData, TValue>) {
+  const allColumns = hideSlNo
+    ? columns
+    : [SL_NO_COLUMN as ColumnDef<TData, unknown>, ...columns];
+
   const table = useReactTable({
     data,
-    columns,
+    columns: allColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
@@ -104,7 +121,7 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
+              <TableCell colSpan={allColumns.length} className="h-24 text-center">
                 No results.
               </TableCell>
             </TableRow>

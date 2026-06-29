@@ -12,6 +12,7 @@ export function useManageStocks() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   const loadData = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent === true;
@@ -60,9 +61,11 @@ export function useManageStocks() {
         stock.name.toLowerCase().includes(q) ||
         stock.sku.toLowerCase().includes(q) ||
         (stock.barcode?.toLowerCase().includes(q) ?? false);
-      return matchesWarehouse && matchesSearch;
+      const matchesStatus =
+        selectedStatus === "all" || stock.status === selectedStatus;
+      return matchesWarehouse && matchesSearch && matchesStatus;
     });
-  }, [items, selectedWarehouse, searchQuery]);
+  }, [items, selectedWarehouse, searchQuery, selectedStatus]);
 
   const stats = useMemo(
     () => ({
@@ -70,13 +73,10 @@ export function useManageStocks() {
       lowStockItems: items.filter(
         (item) => item.available <= item.reorderLevel,
       ).length,
-      totalValue: items.reduce(
-        (sum, item) => sum + item.available * item.costPrice,
-        0,
-      ),
-      warehouseCount: warehouses.length,
+      onOrderCount: 0, // populated from approved POs — needs PO service integration
+      onReserveCount: items.reduce((sum, item) => sum + item.reserved, 0),
     }),
-    [items, warehouses.length],
+    [items],
   );
 
   return {
@@ -89,6 +89,8 @@ export function useManageStocks() {
     setSelectedWarehouse,
     searchQuery,
     setSearchQuery,
+    selectedStatus,
+    setSelectedStatus,
     filteredStock,
     stats,
   };
