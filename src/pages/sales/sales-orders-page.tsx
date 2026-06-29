@@ -17,11 +17,10 @@ import { SalesOrdersListView } from "./components/sales-orders-list-view";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
 import {
   ClipboardList,
-  CircleDollarSign,
+  CheckCircle2,
   Package,
   ShoppingBag,
 } from "lucide-react";
-import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function SalesOrdersPage() {
   const { confirm } = useConfirmDialog();
@@ -102,9 +101,12 @@ export default function SalesOrdersPage() {
 
   const salesOrderKpis = useMemo((): KpiSummaryStat[] => {
     const draftCount = orders.filter((o) => o.status === "draft").length;
-    const openPipelineValue = orders
-      .filter((o) => !isClosedOrder(o))
-      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const confirmedOrdersCount = orders.filter(
+      (o) => !isClosedOrder(o) && o.status !== "draft",
+    ).length;
+    const completedOrdersCount = orders.filter(
+      (o) => o.status === "completed",
+    ).length;
     return [
       {
         label: "Total orders",
@@ -114,9 +116,9 @@ export default function SalesOrdersPage() {
         icon: Package,
       },
       {
-        label: "Open pipeline",
-        value: activeCount,
-        hint: "Excluding completed & cancelled",
+        label: "Confirmed orders",
+        value: confirmedOrdersCount,
+        hint: "Confirmed and in fulfillment",
         accent: "emerald",
         icon: ShoppingBag,
       },
@@ -128,14 +130,14 @@ export default function SalesOrdersPage() {
         icon: ClipboardList,
       },
       {
-        label: "Open order value",
-        value: <CurrencyAmount amount={openPipelineValue} />,
-        hint: "Sum of open order totals",
+        label: "Completed orders",
+        value: completedOrdersCount,
+        hint: "Fully fulfilled orders",
         accent: "violet",
-        icon: CircleDollarSign,
+        icon: CheckCircle2,
       },
     ];
-  }, [orders, activeCount, isClosedOrder]);
+  }, [orders, isClosedOrder]);
 
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();

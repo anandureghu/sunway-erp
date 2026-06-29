@@ -76,7 +76,7 @@ export function SalesOrdersListView({
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
         title="Manage Sales Orders"
-        description="Review order pipeline, tabs for open vs completed work, and drill into any order."
+        description="Review confirmed and completed orders, filter by status, and drill into any order."
         backHref="/inventory/sales"
         variant="darkBlue"
         actions={

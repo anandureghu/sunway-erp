@@ -66,6 +66,17 @@ export function createSalesOrderColumns(
       },
     },
     {
+      accessorKey: "invoiceDueDate",
+      header: "Invoice Due Date",
+      cell: ({ row }) => {
+        const date = row.original.invoiceDueDate;
+        if (!date) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      },
+    },
+    {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
