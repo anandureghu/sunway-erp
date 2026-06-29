@@ -5,10 +5,15 @@ export type CompanySummary = {
 };
 
 export type JwtLoginResponse = {
-  accessToken: string;
-  refreshToken: string;
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  requiresTwoFactor?: boolean;
+  preAuthToken?: string;
+  maskedEmail?: string;
+  email?: string;
   companies?: CompanySummary[];
   requiresCompanySelection?: boolean;
+  forcePasswordReset?: boolean;
 };
 
 export type UserSearchResult = {
