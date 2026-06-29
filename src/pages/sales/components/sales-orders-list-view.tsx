@@ -34,11 +34,13 @@ type Props = {
   closedCount: number;
   searchQuery: string;
   statusFilter: string;
+  paymentStatusFilter: string;
   showArchivedOnly: boolean;
   columns: ColumnDef<SalesOrder>[];
   onCreateNew: () => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
+  onPaymentStatusChange: (value: string) => void;
   onShowArchivedOnlyChange: (value: boolean) => void;
   onRowClick: (id: string) => void;
   kpiItems?: KpiSummaryStat[];
@@ -54,11 +56,13 @@ export function SalesOrdersListView({
   closedCount,
   searchQuery,
   statusFilter,
+  paymentStatusFilter,
   showArchivedOnly,
   columns,
   onCreateNew,
   onSearchChange,
   onStatusChange,
+  onPaymentStatusChange,
   onShowArchivedOnlyChange,
   onRowClick,
   kpiItems,
@@ -129,10 +133,10 @@ export function SalesOrdersListView({
                   <Filter className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Select value={statusFilter} onValueChange={onStatusChange}>
                     <SelectTrigger className="w-44 pl-8">
-                      <SelectValue placeholder="Filter by status" />
+                      <SelectValue placeholder="Order status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="all">All order status</SelectItem>
                       {listTab === "active" ? (
                         <>
                           <SelectItem value="draft">Draft</SelectItem>
@@ -147,6 +151,25 @@ export function SalesOrdersListView({
                           <SelectItem value="cancelled">Cancelled</SelectItem>
                         </>
                       )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="relative">
+                  <Filter className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Select
+                    value={paymentStatusFilter}
+                    onValueChange={onPaymentStatusChange}
+                  >
+                    <SelectTrigger className="w-48 pl-8">
+                      <SelectValue placeholder="Payment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All payment status</SelectItem>
+                      <SelectItem value="unpaid">Unpaid</SelectItem>
+                      <SelectItem value="partially_paid">Partially paid</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

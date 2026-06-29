@@ -31,6 +31,7 @@ export default function SalesOrdersPage() {
     (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [listTab, setListTab] = useState<"active" | "closed">("active");
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(
@@ -72,8 +73,16 @@ export default function SalesOrdersPage() {
 
   useEffect(() => {
     setStatusFilter("all");
+    setPaymentStatusFilter("all");
     setShowArchivedOnly(false);
   }, [listTab]);
+
+  const normalizePaymentStatusKey = useCallback((status?: string) => {
+    const normalized = (status || "UNPAID").trim().toUpperCase().replace(/\s+/g, "_");
+    if (normalized === "PARTIAL") return "PARTIALLY_PAID";
+    if (normalized === "PENDING") return "UNPAID";
+    return normalized || "UNPAID";
+  }, []);
 
   const isClosedOrder = useCallback(
     (o: SalesOrder) =>
@@ -144,9 +153,22 @@ export default function SalesOrdersPage() {
         order.customerName.toLowerCase().includes(q);
       const matchesStatus =
         statusFilter === "all" || order.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesPaymentStatus =
+        paymentStatusFilter === "all" ||
+        normalizePaymentStatusKey(order.paymentStatus) ===
+          paymentStatusFilter.toUpperCase();
+      return matchesSearch && matchesStatus && matchesPaymentStatus;
     });
-  }, [orders, searchQuery, statusFilter, listTab, isClosedOrder, showArchivedOnly]);
+  }, [
+    orders,
+    searchQuery,
+    statusFilter,
+    paymentStatusFilter,
+    listTab,
+    isClosedOrder,
+    showArchivedOnly,
+    normalizePaymentStatusKey,
+  ]);
 
   const handleConfirmOrder = useCallback(
     async (id: string) => {
@@ -350,6 +372,7 @@ export default function SalesOrdersPage() {
         closedCount={closedCount}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
+        paymentStatusFilter={paymentStatusFilter}
         showArchivedOnly={showArchivedOnly}
         columns={columns}
         onCreateNew={() => {
@@ -358,6 +381,7 @@ export default function SalesOrdersPage() {
         }}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
+        onPaymentStatusChange={setPaymentStatusFilter}
         onShowArchivedOnlyChange={setShowArchivedOnly}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}

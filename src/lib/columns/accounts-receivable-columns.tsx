@@ -70,7 +70,7 @@ export function createSalesInvoiceColumns(
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: "Payment Status",
     cell: ({ row }) => (
       <StatusBadge status={String(row.getValue("status") ?? "")} />
     ),

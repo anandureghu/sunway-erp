@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { StatusBadge } from "@/lib/status-badge";
 
 // Sales Order Columns
 export function createSalesOrderColumns(
@@ -86,6 +87,13 @@ export function createSalesOrderColumns(
           </Badge>
         );
       },
+    },
+    {
+      accessorKey: "paymentStatus",
+      header: "Payment Status",
+      cell: ({ row }) => (
+        <StatusBadge status={row.original.paymentStatus || "UNPAID"} />
+      ),
     },
     {
       accessorKey: "total",

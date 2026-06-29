@@ -240,11 +240,11 @@ export default function InvoicesPage({
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Filter status" />
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Payment status" />
               </SelectTrigger>
               <SelectContent position="popper" className="z-[100]">
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">All payment status</SelectItem>
                 {listTab === "outstanding" ? (
                   <>
                     <SelectItem value="Unpaid">Unpaid</SelectItem>
