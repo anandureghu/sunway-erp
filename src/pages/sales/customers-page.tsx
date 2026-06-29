@@ -17,6 +17,18 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  formatCustomerCode,
+  isCustomerActive,
+  normalizeCustomerFromApi,
+} from "@/lib/customer-api";
 
 export default function CustomersPage() {
   const { confirm } = useConfirmDialog();
@@ -26,12 +38,17 @@ export default function CustomersPage() {
   const [selected, setSelected] = useState<Customer | null>(null);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [codeFilter, setCodeFilter] = useState("");
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
       const res = await apiClient.get("/customers");
-      setCustomers(res.data);
+      setCustomers(
+        (res.data as Record<string, unknown>[]).map(normalizeCustomerFromApi),
+      );
     } catch (error) {
       console.error("Error fetching customers:", error);
       toast.error("Failed to load customers");
@@ -49,21 +66,22 @@ export default function CustomersPage() {
     setOpen(true);
   };
 
-  const handleDelete = async (customer: Customer) => {
+  const handleDeactivate = async (customer: Customer) => {
+    const displayName = customer.customerName || customer.name || "Customer";
     if (
       !(await confirm(
-        `Are you sure you want to delete customer "${customer.name}"?`,
+        `Deactivate customer "${displayName}"? They will be hidden from new orders until reactivated.`,
       ))
     ) {
       return;
     }
     try {
       await apiClient.delete(`/customers/${customer.id}`);
-      toast.success(`Customer "${customer.name}" deleted successfully`);
-      setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+      toast.success(`Customer "${displayName}" deactivated`);
+      await fetchCustomers();
     } catch (error) {
-      console.error("Delete failed:", error);
-      toast.error("Failed to delete customer");
+      console.error("Deactivate failed:", error);
+      toast.error("Failed to deactivate customer");
     }
   };
 
@@ -72,38 +90,51 @@ export default function CustomersPage() {
     navigate(`/inventory/sales/customers/${customer.id}`);
   };
 
-  const handleDialogSuccess = (updated: Customer, mode: "add" | "edit") => {
-    if (mode === "add") {
-      fetchCustomers(); // Refresh the list
-    } else {
-      setCustomers((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c)),
-      );
-      fetchCustomers(); // Also refresh to get any server-computed fields
-    }
+  const handleDialogSuccess = (_updated: Customer, mode: "add" | "edit") => {
+    void fetchCustomers();
     setSelected(null);
+    if (mode === "add") setOpen(false);
   };
 
   const columns = getCustomerColumns({
     onEdit: handleEdit,
-    onDelete: handleDelete,
+    onDeactivate: handleDeactivate,
   });
 
-  const filteredCustomers = customers.filter((customer) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      (customer.name?.toLowerCase() ?? "").includes(query) ||
-      (customer.email?.toLowerCase() ?? "").includes(query) ||
-      (customer.phoneNo?.toLowerCase() ?? "").includes(query) ||
-      (customer.city?.toLowerCase() ?? "").includes(query)
-    );
-  });
+  const filteredCustomers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const phoneQ = phoneFilter.trim().toLowerCase();
+    const codeQ = codeFilter.trim().toLowerCase();
+
+    return customers.filter((customer) => {
+      const name = customer.customerName || customer.name || "";
+      const matchesSearch =
+        !query ||
+        name.toLowerCase().includes(query) ||
+        (customer.email?.toLowerCase() ?? "").includes(query) ||
+        (customer.city?.toLowerCase() ?? "").includes(query);
+
+      const matchesPhone =
+        !phoneQ || (customer.phoneNo?.toLowerCase() ?? "").includes(phoneQ);
+
+      const code = formatCustomerCode(customer.id).toLowerCase();
+      const rawId = String(customer.id ?? "").toLowerCase();
+      const matchesCode =
+        !codeQ || code.includes(codeQ) || rawId.includes(codeQ);
+
+      const active = isCustomerActive(customer);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && active) ||
+        (statusFilter === "inactive" && !active);
+
+      return matchesSearch && matchesPhone && matchesCode && matchesStatus;
+    });
+  }, [customers, searchQuery, phoneFilter, codeFilter, statusFilter]);
 
   const customerKpis = useMemo((): KpiSummaryStat[] => {
     const total = customers.length;
-    const active = customers.filter(
-      (c) => c.active !== false && c.isActive !== false,
-    ).length;
+    const active = customers.filter(isCustomerActive).length;
     const withEmail = customers.filter((c) => (c.email || "").trim()).length;
     const inactive = Math.max(0, total - active);
     return [
@@ -131,7 +162,7 @@ export default function CustomersPage() {
       {
         label: "Inactive",
         value: inactive,
-        hint: "Hidden or disabled accounts",
+        hint: "Deactivated accounts",
         accent: "amber",
         icon: UserX,
       },
@@ -171,14 +202,38 @@ export default function CustomersPage() {
 
       <Card>
         <CardHeader>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+          <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+              <Input
+                placeholder="Search by customer name..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             <Input
-              placeholder="Search by customer name..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter by customer code..."
+              className="w-full lg:w-48"
+              value={codeFilter}
+              onChange={(e) => setCodeFilter(e.target.value)}
             />
+            <Input
+              placeholder="Filter by phone..."
+              className="w-full lg:w-44"
+              value={phoneFilter}
+              onChange={(e) => setPhoneFilter(e.target.value)}
+            />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full lg:w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active only</SelectItem>
+                <SelectItem value="inactive">Inactive only</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
 

@@ -34,7 +34,7 @@ export default function VendorsPage({
   const [selected, setSelected] = useState<Vendor | null>(null);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [vendorTypeFilter, setVendorTypeFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,15 +81,15 @@ export default function VendorsPage({
     setOpen(true);
   };
 
-  const handleDelete = async (vendor: Vendor) => {
+  const handleDeactivate = async (vendor: Vendor) => {
     try {
       await apiClient.delete(`/vendors/${vendor.id}`);
       const vendorName = vendor.vendorName || "Supplier";
-      toast.success(`Deleted ${vendorName}`);
-      setVendors((prev) => prev.filter((v) => v.id !== vendor.id));
+      toast.success(`Deactivated ${vendorName}`);
+      await fetchVendors();
     } catch (err) {
-      console.error("Delete failed:", err);
-      toast.error(getApiErrorMessage(err, "Failed to delete supplier"));
+      console.error("Deactivate failed:", err);
+      toast.error(getApiErrorMessage(err, "Failed to deactivate supplier"));
     }
   };
 
@@ -102,7 +102,7 @@ export default function VendorsPage({
 
   const columns = getVendorColumns({
     onEdit: handleEdit,
-    onDelete: handleDelete,
+    onDeactivate: handleDeactivate,
     onView: handleRowClick,
     financeSettings: financeSettings,
     role: user?.role,
@@ -249,9 +249,9 @@ export default function VendorsPage({
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="active">Active only</SelectItem>
+              <SelectItem value="inactive">Inactive only</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
             </SelectContent>
           </Select>
           <Select value={countryFilter} onValueChange={setCountryFilter}>

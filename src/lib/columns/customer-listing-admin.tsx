@@ -1,13 +1,16 @@
 import type { Customer } from "@/types/customer";
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
+import {
+  formatCustomerCode,
+  isCustomerActive,
+} from "@/lib/customer-api";
 
 interface CustomerColumnsProps {
   onEdit: (customer: Customer) => void;
-  onDelete: (customer: Customer) => void;
+  onDeactivate: (customer: Customer) => void;
   onView?: (customer: Customer) => void;
 }
 
-// Helper component to display optional values
 const OptionalCell = ({ value }: { value?: string | number | null | boolean }) => {
   if (value === null || value === undefined) return <span className="text-gray-500 whitespace-nowrap">-</span>;
   if (typeof value === "boolean") return <span className="text-gray-900 whitespace-nowrap">{value ? "Active" : "Inactive"}</span>;
@@ -15,18 +18,15 @@ const OptionalCell = ({ value }: { value?: string | number | null | boolean }) =
   return <span className="text-gray-900 font-normal whitespace-nowrap">{String(value)}</span>;
 };
 
-// Status pill component
 const StatusPill = ({ value }: { value: boolean | undefined }) => {
   const isActive = value !== false;
   return (
     <span
       className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-        isActive 
-          ? "bg-green-500 text-white" 
-          : "bg-red-500 text-white"
+        isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"
       }`}
     >
-      {isActive ? "YES" : "NO"}
+      {isActive ? "Active" : "Inactive"}
     </span>
   );
 };
@@ -35,15 +35,15 @@ type CellProps<TData> = CellContext<TData, unknown>;
 
 export const getCustomerColumns = ({
   onEdit,
-  onDelete,
+  onDeactivate,
   onView,
 }: CustomerColumnsProps): ColumnDef<Customer>[] => [
   {
     accessorKey: "id",
-    header: "ID",
+    header: "Customer Code",
     enableSorting: true,
     cell: (ctx: CellProps<Customer>) => (
-      <OptionalCell value={String(ctx.getValue() ?? "")} />
+      <span className="font-mono text-sm">{formatCustomerCode(ctx.row.original.id)}</span>
     ),
   },
   {
@@ -103,24 +103,16 @@ export const getCustomerColumns = ({
   },
   {
     accessorKey: "active",
-    header: "ACTIVE",
+    header: "STATUS",
     enableSorting: true,
-    cell: (ctx: CellProps<Customer>) => {
-      const customer = ctx.row.original;
-      const status = 
-        customer.active !== undefined ? customer.active :
-        customer.isActive !== undefined ? customer.isActive :
-        (customer as any).is_active !== undefined ? (customer as any).is_active :
-        ctx.getValue() as boolean | undefined;
-      
-      return <StatusPill value={status} />;
-    },
+    cell: ({ row }) => <StatusPill value={isCustomerActive(row.original)} />,
   },
   {
     id: "actions",
     header: "ACTIONS",
     cell: ({ row }) => {
       const customer = row.original;
+      const active = isCustomerActive(customer);
       return (
         <div className="flex items-center gap-2">
           {onView && (
@@ -143,18 +135,19 @@ export const getCustomerColumns = ({
           >
             EDIT
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(customer);
-            }}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
-          >
-            DELETE
-          </button>
+          {active ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeactivate(customer);
+              }}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
+            >
+              DEACTIVATE
+            </button>
+          ) : null}
         </div>
       );
     },
   },
 ];
-

@@ -4,6 +4,11 @@ import type { Customer } from "@/types/customer";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getCustomerColumns } from "@/lib/columns/customer-listing-admin";
+import {
+  formatCustomerCode,
+  isCustomerActive,
+  normalizeCustomerFromApi,
+} from "@/lib/customer-api";
 import { Input } from "@/components/ui/input";
 import { Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,10 +31,12 @@ export default function CustomersPage() {
   const [selected, setSelected] = useState<Customer | null>(null);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [codeFilter, setCodeFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { pathname } = useLocation();
@@ -38,21 +45,9 @@ export default function CustomersPage() {
     try {
       const res = await apiClient.get("/customers");
       // Map API response to match our Customer type
-      const mappedCustomers = res.data.map((customer: any) => {
-        const mapped = {
-          ...customer,
-          customerName: customer.name || customer.customerName,
-          companyId: customer.customerId || customer.companyId,
-          createdAt:
-            customer.createdAt ||
-            customer.created_at ||
-            customer.dateCreated ||
-            customer.date_created,
-        };
-        // Debug: Log first customer to see what fields are available
-
-        return mapped;
-      });
+      const mappedCustomers = (res.data as Record<string, unknown>[]).map(
+        normalizeCustomerFromApi,
+      );
       setCustomers(mappedCustomers);
     } catch (error) {
       console.error("Error fetching customers:", error);
@@ -82,15 +77,15 @@ export default function CustomersPage() {
     setOpen(true);
   };
 
-  const handleDelete = async (customer: Customer) => {
+  const handleDeactivate = async (customer: Customer) => {
+    const customerName = customer.customerName || customer.name || "Customer";
     try {
       await apiClient.delete(`/customers/${customer.id}`);
-      const customerName = customer.name || customer.customerName || "Customer";
-      toast.success(`Deleted ${customerName}`);
-      setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+      toast.success(`Deactivated ${customerName}`);
+      await fetchCustomers();
     } catch (err) {
-      console.error("Delete failed:", err);
-      toast.error("Failed to delete customer");
+      console.error("Deactivate failed:", err);
+      toast.error("Failed to deactivate customer");
     }
   };
 
@@ -105,17 +100,7 @@ export default function CustomersPage() {
   // Calculate statistics
   const stats = useMemo(() => {
     const total = customers.length;
-    const active = customers.filter((c) => {
-      const isActive =
-        c.active !== undefined
-          ? c.active
-          : (c as any).isActive !== undefined
-            ? (c as any).isActive
-            : (c as any).is_active !== undefined
-              ? (c as any).is_active
-              : true;
-      return isActive !== false;
-    }).length;
+    const active = customers.filter(isCustomerActive).length;
     const inactive = total - active;
     return { total, active, inactive };
   }, [customers]);
@@ -139,14 +124,16 @@ export default function CustomersPage() {
 
   const columns = getCustomerColumns({
     onEdit: handleEdit,
-    onDelete: handleDelete,
+    onDeactivate: handleDeactivate,
     onView: handleRowClick,
   });
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((customer) => {
       const query = searchQuery.toLowerCase();
-      const name = customer.name || customer.customerName || "";
+      const phoneQ = phoneFilter.trim().toLowerCase();
+      const codeQ = codeFilter.trim().toLowerCase();
+      const name = customer.customerName || customer.name || "";
       const matchesSearch =
         name.toLowerCase().includes(query) ||
         (customer.contactPersonName?.toLowerCase() ?? "").includes(query) ||
@@ -154,19 +141,20 @@ export default function CustomersPage() {
         (customer.phoneNo?.toLowerCase() ?? "").includes(query) ||
         (customer.city?.toLowerCase() ?? "").includes(query);
 
-      const isActive =
-        customer.active !== undefined
-          ? customer.active
-          : (customer as any).isActive !== undefined
-            ? (customer as any).isActive
-            : (customer as any).is_active !== undefined
-              ? (customer as any).is_active
-              : true;
+      const matchesPhone =
+        !phoneQ || (customer.phoneNo?.toLowerCase() ?? "").includes(phoneQ);
+
+      const code = formatCustomerCode(customer.id).toLowerCase();
+      const rawId = String(customer.id ?? "").toLowerCase();
+      const matchesCode =
+        !codeQ || code.includes(codeQ) || rawId.includes(codeQ);
+
+      const active = isCustomerActive(customer);
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "active" && isActive !== false) ||
-        (statusFilter === "inactive" && isActive === false);
+        (statusFilter === "active" && active) ||
+        (statusFilter === "inactive" && !active);
 
       const matchesCountry =
         countryFilter === "all" || customer.country === countryFilter;
@@ -178,6 +166,8 @@ export default function CustomersPage() {
 
       return (
         matchesSearch &&
+        matchesPhone &&
+        matchesCode &&
         matchesStatus &&
         matchesCountry &&
         matchesCity &&
@@ -187,6 +177,8 @@ export default function CustomersPage() {
   }, [
     customers,
     searchQuery,
+    phoneFilter,
+    codeFilter,
     statusFilter,
     countryFilter,
     cityFilter,
@@ -274,15 +266,27 @@ export default function CustomersPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Input
+            placeholder="Customer code..."
+            className="w-[140px]"
+            value={codeFilter}
+            onChange={(e) => setCodeFilter(e.target.value)}
+          />
+          <Input
+            placeholder="Phone..."
+            className="w-[140px]"
+            value={phoneFilter}
+            onChange={(e) => setPhoneFilter(e.target.value)}
+          />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Statuses" />
+              <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="active">Active only</SelectItem>
+              <SelectItem value="inactive">Inactive only</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
             </SelectContent>
           </Select>
           <Select value={countryFilter} onValueChange={setCountryFilter}>

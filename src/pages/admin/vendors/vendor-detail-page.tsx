@@ -36,14 +36,14 @@ export default function VendorDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeactivate = async () => {
     try {
       await apiClient.delete(`/vendors/${id}`);
-      toast.success("Supplier deleted");
+      toast.success("Supplier deactivated");
       navigate(listPath);
     } catch (err) {
       console.error(err);
-      toast.error(getApiErrorMessage(err, "Error deleting supplier"));
+      toast.error(getApiErrorMessage(err, "Error deactivating supplier"));
     }
   };
 
@@ -93,14 +93,16 @@ export default function VendorDetailPage() {
               >
                 <Edit className="mr-2 h-4 w-4" /> Edit
               </Button>
-              <Button
-                size="lg"
-                variant="destructive"
-                className="shadow-md"
-                onClick={handleDelete}
-              >
-                <Trash className="mr-2 h-4 w-4" /> Delete
-              </Button>
+              {vendor.active !== false && (
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  className="shadow-md"
+                  onClick={handleDeactivate}
+                >
+                  <Trash className="mr-2 h-4 w-4" /> Deactivate
+                </Button>
+              )}
             </>
           }
         />
@@ -122,9 +124,11 @@ export default function VendorDetailPage() {
               <Edit className="h-4 w-4 mr-1" /> Edit
             </Button>
 
-            <Button variant="destructive" onClick={handleDelete}>
-              <Trash className="h-4 w-4 mr-1" /> Delete
-            </Button>
+            {vendor.active !== false && (
+              <Button variant="destructive" onClick={handleDeactivate}>
+                <Trash className="h-4 w-4 mr-1" /> Deactivate
+              </Button>
+            )}
           </div>
         </div>
       )}

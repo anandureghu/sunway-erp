@@ -20,6 +20,13 @@ import {
 } from "@/components/kpi-summary-strip";
 import { PageHeader } from "@/components/PageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SuppliersPage() {
   const { confirm } = useConfirmDialog();
@@ -28,6 +35,7 @@ export default function SuppliersPage() {
   const [selected, setSelected] = useState<Vendor | null>(null);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("active");
 
   const navigate = useNavigate();
 
@@ -53,10 +61,10 @@ export default function SuppliersPage() {
     setOpen(true);
   };
 
-  const handleDelete = async (vendor: Vendor) => {
+  const handleDeactivate = async (vendor: Vendor) => {
     if (
       !(await confirm(
-        `Are you sure you want to delete supplier "${vendor.vendorName}"?`,
+        `Deactivate supplier "${vendor.vendorName}"? They will be hidden from new purchase orders until reactivated.`,
       ))
     ) {
       return;
@@ -64,12 +72,12 @@ export default function SuppliersPage() {
     try {
       await apiClient.delete(`/vendors/${vendor.id}`);
       const vendorName = vendor.vendorName || "Supplier";
-      toast.success(`Supplier "${vendorName}" deleted successfully`);
-      setVendors((prev) => prev.filter((v) => v.id !== vendor.id));
+      toast.success(`Supplier "${vendorName}" deactivated`);
+      await fetchVendors();
     } catch (error) {
-      console.error("Delete failed:", error);
+      console.error("Deactivate failed:", error);
       toast.error(
-        getApiErrorMessage(error, "Failed to delete supplier"),
+        getApiErrorMessage(error, "Failed to deactivate supplier"),
       );
     }
   };
@@ -94,17 +102,23 @@ export default function SuppliersPage() {
 
   const columns = getVendorColumns({
     onEdit: handleEdit,
-    onDelete: handleDelete,
+    onDeactivate: handleDeactivate,
   });
 
   const filteredVendors = vendors.filter((vendor) => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       (vendor.vendorName?.toLowerCase() ?? "").includes(query) ||
       (vendor.contactPersonName?.toLowerCase() ?? "").includes(query) ||
       (vendor.email?.toLowerCase() ?? "").includes(query) ||
-      (vendor.phoneNo?.toLowerCase() ?? "").includes(query)
-    );
+      (vendor.phoneNo?.toLowerCase() ?? "").includes(query);
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && vendor.active !== false) ||
+      (statusFilter === "inactive" && vendor.active === false);
+
+    return matchesSearch && matchesStatus;
   });
 
   const supplierKpis = useMemo((): KpiSummaryStat[] => {
@@ -177,14 +191,26 @@ export default function SuppliersPage() {
 
       <Card>
         <CardHeader>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-            <Input
-              placeholder="Search by name, email, phone, or city..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+              <Input
+                placeholder="Search by name, email, phone, or city..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active only</SelectItem>
+                <SelectItem value="inactive">Inactive only</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
 
