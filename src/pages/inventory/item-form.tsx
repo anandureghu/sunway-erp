@@ -3,6 +3,7 @@ import {
   createItem,
   listCategories,
   createCategory,
+  generateCategoryCode,
   updateItem,
   updateItemMultipart,
 } from "@/service/inventoryService";
@@ -52,6 +53,36 @@ function F({ label, required, children }: { label: string; required?: boolean; c
 const icls =
   "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
 
+function SelectWithAddButton({
+  children,
+  onAdd,
+  addLabel,
+  disabled,
+}: {
+  children: React.ReactNode;
+  onAdd: () => void;
+  addLabel: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="min-w-0 flex-1">{children}</div>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        disabled={disabled}
+        onClick={onAdd}
+        title={addLabel}
+        aria-label={addLabel}
+        className="h-10 w-10 shrink-0 rounded-xl border-slate-200"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 // Create Item Form Component
 function CreateItemForm({
   onSuccess,
@@ -69,8 +100,23 @@ function CreateItemForm({
   const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [showCreateCategoryDialog, setShowCreateCategoryDialog] = useState(false);
+  const [showCreateSubCategoryDialog, setShowCreateSubCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newSubCategoryName, setNewSubCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const [creatingSubCategory, setCreatingSubCategory] = useState(false);
+
+  const refreshCategories = async () => {
+    const cats = await listCategories();
+    setCategories(cats);
+    return cats;
+  };
+
+  const syncSelectedCategory = (cats: ItemCategory[], categoryName: string) => {
+    const cat = cats.find((c) => c.name === categoryName) ?? null;
+    setSelectedCategory(cat);
+    return cat;
+  };
 
   // Load categories from API
   useEffect(() => {
@@ -93,17 +139,54 @@ function CreateItemForm({
     if (!newCategoryName.trim()) { toast.error("Please enter a category name"); return; }
     try {
       setCreatingCategory(true);
-      const newCategory = await createCategory({ name: newCategoryName.trim(), code: newCategoryName.trim().toUpperCase().replace(/\s+/g, "_") });
+      const normalizedName = newCategoryName.trim();
+      const newCategory = await createCategory({
+        name: normalizedName,
+        code: generateCategoryCode(normalizedName),
+        status: "active",
+      });
       toast.success("Category created successfully!");
-      const cats = await listCategories();
-      setCategories(cats);
+      const cats = await refreshCategories();
       setValue("category", newCategory.name);
+      setValue("subcategory", "");
+      syncSelectedCategory(cats, newCategory.name);
       setNewCategoryName("");
       setShowCreateCategoryDialog(false);
     } catch (error: any) {
       toast.error(error?.response?.data?.message ?? "Failed to create category. Please try again.");
     } finally {
       setCreatingCategory(false);
+    }
+  };
+
+  const handleCreateSubCategory = async () => {
+    if (!selectedCategory) {
+      toast.error("Please select a category first");
+      return;
+    }
+    if (!newSubCategoryName.trim()) {
+      toast.error("Please enter a sub category name");
+      return;
+    }
+    try {
+      setCreatingSubCategory(true);
+      const normalizedName = newSubCategoryName.trim();
+      const newSubCategory = await createCategory({
+        name: normalizedName,
+        code: generateCategoryCode(normalizedName),
+        status: "active",
+        parentId: Number(selectedCategory.id),
+      });
+      toast.success("Sub category created successfully!");
+      const cats = await refreshCategories();
+      syncSelectedCategory(cats, selectedCategory.name);
+      setValue("subcategory", newSubCategory.name);
+      setNewSubCategoryName("");
+      setShowCreateSubCategoryDialog(false);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "Failed to create sub category. Please try again.");
+    } finally {
+      setCreatingSubCategory(false);
     }
   };
 
@@ -180,10 +263,14 @@ function CreateItemForm({
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+  const fieldsGrid = "grid grid-cols-2 gap-4 xl:grid-cols-3";
+  const descriptionSpan = "col-span-2 xl:col-span-3";
+  const locationSpan = "col-span-2 xl:col-span-3";
 
-      {/* ── Section: Item Image ── */}
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {!editMode && (
       <ItemSectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Item image">
         <div className="flex items-center gap-4">
           <Input
@@ -195,10 +282,11 @@ function CreateItemForm({
         </div>
         <p className="text-[11px] text-slate-400">JPG / PNG · Max 5MB</p>
       </ItemSectionCard>
+      )}
 
       {/* ── Section: Basic Information ── */}
       <ItemSectionCard icon={<Tag className="h-3.5 w-3.5 text-white" />} title="Basic information">
-        <div className="grid grid-cols-2 gap-5">
+        <div className={fieldsGrid}>
           <F label="SKU" required>
             <Input placeholder="SKU-001" {...register("sku")} className={icls} />
             {errors.sku && <p className="text-[11px] text-rose-400 mt-1">{errors.sku.message}</p>}
@@ -219,11 +307,11 @@ function CreateItemForm({
             {errors.itemType && <p className="text-[11px] text-rose-400 mt-1">{errors.itemType.message}</p>}
           </F>
 
-          <div className="col-span-2">
+          <div className={descriptionSpan}>
             <F label="Description">
               <Textarea
                 placeholder="Item description"
-                rows={3}
+                rows={2}
                 {...register("description")}
                 className="rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)] resize-none"
               />
@@ -234,12 +322,21 @@ function CreateItemForm({
 
       {/* ── Section: Classification ── */}
       <ItemSectionCard icon={<Layers className="h-3.5 w-3.5 text-white" />} title="Classification">
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <F label="Category" required>
-            <div className="flex items-center gap-2">
+            <SelectWithAddButton
+              addLabel="Add category"
+              onAdd={() => setShowCreateCategoryDialog(true)}
+            >
               <Select
-                onValueChange={(value) => { setValue("category", value); setValue("subcategory", ""); const cat = categories.find((c) => c.name === value); if (cat) setSelectedCategory(cat); }}
-                value={watch("category")} disabled={loadingCategories}
+                onValueChange={(value) => {
+                  setValue("category", value);
+                  setValue("subcategory", "");
+                  const cat = categories.find((c) => c.name === value);
+                  if (cat) setSelectedCategory(cat);
+                }}
+                value={watch("category")}
+                disabled={loadingCategories}
               >
                 <SelectTrigger className={icls}>
                   <SelectValue placeholder={loadingCategories ? "Loading categories..." : "Select category"} />
@@ -248,32 +345,51 @@ function CreateItemForm({
                   {loadingCategories ? (
                     <div className="p-2 text-sm text-muted-foreground text-center">Loading categories...</div>
                   ) : categories.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground text-center">No categories available. Click "New Category" to create one.</div>
+                    <div className="p-2 text-sm text-muted-foreground text-center">No categories yet. Use + to add one.</div>
                   ) : (
                     categories.map((cat) => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)
                   )}
                 </SelectContent>
               </Select>
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateCategoryDialog(true)} className="h-10 shrink-0 rounded-xl border-slate-200 text-[12px] font-medium">
-                <Plus className="h-3.5 w-3.5 mr-1" />New
-              </Button>
-            </div>
+            </SelectWithAddButton>
             {errors.category && <p className="text-[11px] text-rose-400 mt-1">{errors.category.message}</p>}
           </F>
 
-          <F label="Sub Category">
-            <Select onValueChange={(value) => setValue("subcategory", value)} value={watch("subcategory")} disabled={selectedCategory?.subCategories?.length === 0}>
-              <SelectTrigger className={icls}>
-                <SelectValue placeholder={loadingCategories ? "Loading subcategories..." : "Select sub category"} />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-                {!selectedCategory ? (
-                  <div className="p-2 text-sm text-muted-foreground text-center">Please select a category first.</div>
-                ) : (
-                  selectedCategory.subCategories?.map((cat) => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)
-                )}
-              </SelectContent>
-            </Select>
+          <F label="Sub category">
+            <SelectWithAddButton
+              addLabel="Add sub category"
+              disabled={!selectedCategory || loadingCategories}
+              onAdd={() => setShowCreateSubCategoryDialog(true)}
+            >
+              <Select
+                onValueChange={(value) => setValue("subcategory", value)}
+                value={watch("subcategory")}
+                disabled={!selectedCategory || loadingCategories}
+              >
+                <SelectTrigger className={icls}>
+                  <SelectValue
+                    placeholder={
+                      !selectedCategory
+                        ? "Select a category first"
+                        : loadingCategories
+                          ? "Loading subcategories..."
+                          : "Select sub category"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                  {!selectedCategory ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">Select a category first.</div>
+                  ) : (selectedCategory.subCategories?.length ?? 0) === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">No sub categories yet. Use + to add one.</div>
+                  ) : (
+                    selectedCategory.subCategories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </SelectWithAddButton>
           </F>
 
           <F label="Status" required>
@@ -302,7 +418,7 @@ function CreateItemForm({
 
       {/* ── Section: Unit & Warehouse ── */}
       <ItemSectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Unit &amp; warehouse">
-        <div className="grid grid-cols-2 gap-5">
+        <div className={fieldsGrid}>
           <F label="Unit" required>
             <Select onValueChange={(value) => setValue("unit", value as any)} value={watch("unit")}>
               <SelectTrigger className={icls}><SelectValue placeholder="Select unit" /></SelectTrigger>
@@ -332,7 +448,7 @@ function CreateItemForm({
             </F>
           )}
 
-          <div className="col-span-2">
+          <div className={locationSpan}>
             <F label="Bin / Location">
               <Input placeholder="e.g., Aisle 3, Shelf B" {...register("location")} className={icls} />
             </F>
@@ -353,7 +469,7 @@ function CreateItemForm({
 
       {/* ── Section: Pricing ── */}
       <ItemSectionCard icon={<DollarSign className="h-3.5 w-3.5 text-white" />} title="Pricing">
-        <div className="grid grid-cols-2 gap-5">
+        <div className={fieldsGrid}>
           <F label="Cost Price" required>
             <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("costPrice", { valueAsNumber: true })} className={icls} />
             {errors.costPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.costPrice.message}</p>}
@@ -380,6 +496,7 @@ function CreateItemForm({
           </F>
         </div>
       </ItemSectionCard>
+      </div>
 
       {/* ── Footer ── */}
       <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -428,6 +545,71 @@ function CreateItemForm({
               <Button type="button" onClick={handleCreateCategory} disabled={creatingCategory || !newCategoryName.trim()}
                 className="h-9 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-5 text-[13px] font-semibold text-white shadow-sm">
                 {creatingCategory ? "Creating..." : "Create Category"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCreateSubCategoryDialog} onOpenChange={setShowCreateSubCategoryDialog}>
+        <DialogContent
+          className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
+          style={{ maxWidth: 480, width: "calc(100vw - 32px)" }}
+        >
+          <div className="bg-linear-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                <Plus className="h-4 w-4 text-white" />
+              </div>
+              <DialogTitle className="text-[15px] font-semibold text-white">
+                Create sub category
+                {selectedCategory ? ` · ${selectedCategory.name}` : ""}
+              </DialogTitle>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCreateSubCategoryDialog(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="p-5 space-y-5">
+            <F label="Sub category name" required>
+              <Input
+                placeholder="e.g., Engine parts"
+                value={newSubCategoryName}
+                onChange={(e) => setNewSubCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !creatingSubCategory) {
+                    e.preventDefault();
+                    void handleCreateSubCategory();
+                  }
+                }}
+                autoFocus
+                className={icls}
+              />
+            </F>
+            <div className="flex items-center justify-end gap-2.5">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowCreateSubCategoryDialog(false);
+                  setNewSubCategoryName("");
+                }}
+                disabled={creatingSubCategory}
+                className="h-9 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleCreateSubCategory()}
+                disabled={creatingSubCategory || !newSubCategoryName.trim()}
+                className="h-9 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-5 text-[13px] font-semibold text-white shadow-sm"
+              >
+                {creatingSubCategory ? "Creating..." : "Create sub category"}
               </Button>
             </div>
           </div>

@@ -97,20 +97,20 @@ export default function InventoryItemDetail() {
       />
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-0">
-          <div className="border-b border-slate-100 px-6 py-4">
+        <DialogContent className="flex max-h-[90vh] max-w-5xl flex-col overflow-hidden p-0 sm:max-w-5xl">
+          <div className="shrink-0 border-b border-slate-100 px-6 py-4">
             <DialogHeader>
               <DialogTitle>Edit product</DialogTitle>
               <DialogDescription>Update catalog details. SKU cannot be changed.</DialogDescription>
             </DialogHeader>
           </div>
-          <div className="px-6 py-5">
-          <CreateItemForm
-            editMode
-            initialData={item}
-            onSuccess={(newItem) => { setItem(newItem); setImageNonce((n) => n + 1); setEditOpen(false); }}
-            onCancel={() => setEditOpen(false)}
-          />
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <CreateItemForm
+              editMode
+              initialData={item}
+              onSuccess={(newItem) => { setItem(newItem); setImageNonce((n) => n + 1); setEditOpen(false); }}
+              onCancel={() => setEditOpen(false)}
+            />
           </div>
         </DialogContent>
       </Dialog>
