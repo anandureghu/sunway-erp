@@ -44,6 +44,7 @@ export interface Employee {
   id?: string;
   employeeNo?: string;
   firstName?: string;
+  middleName?: string;
   lastName?: string;
   status?: EmployeeStatus;
   department?: string;

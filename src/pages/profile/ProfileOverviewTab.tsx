@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, Building2, Briefcase, Phone, Hash, Mail, IdCard, KeyRound } from 'lucide-react';
+import { User, Building2, Briefcase, Phone, Hash, Mail, IdCard, KeyRound, CalendarDays, ShieldCheck } from 'lucide-react';
 import type { ProfileResponse } from '@/service/userService';
 import { InfoRow } from './profile-helpers';
 
@@ -8,6 +8,15 @@ interface Props {
   profile: ProfileResponse;
   roleLabel: string;
 }
+
+/** Format an ISO timestamp as "12 Jan 2024"; undefined when missing/invalid. */
+const fmtDate = (iso?: string | null): string | undefined => {
+  if (!iso) return undefined;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? undefined
+    : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 export const ProfileOverviewTab = ({ profile, roleLabel }: Props) => (
   <div className="grid gap-4 md:grid-cols-2">
@@ -45,10 +54,12 @@ export const ProfileOverviewTab = ({ profile, roleLabel }: Props) => (
       <CardContent className="pt-0">
         <Separator className="mb-1" />
         <div className="divide-y divide-border/50">
-          <InfoRow icon={Building2} label="Company"      value={profile.companyName}  iconBg="bg-purple-50" iconColor="text-purple-600" />
-          <InfoRow icon={Briefcase} label="Company Role" value={profile.companyRole}  iconBg="bg-purple-50" iconColor="text-purple-600" />
-          <InfoRow icon={Hash}      label="Employee No." value={profile.employeeNo}   iconBg="bg-purple-50" iconColor="text-purple-600" />
-          <InfoRow icon={KeyRound}  label="System Role"  value={roleLabel}            iconBg="bg-purple-50" iconColor="text-purple-600" />
+          <InfoRow icon={Building2}  label="Company"      value={profile.companyName}  iconBg="bg-purple-50" iconColor="text-purple-600" />
+          <InfoRow icon={Briefcase}  label="Company Role" value={profile.companyRole}  iconBg="bg-purple-50" iconColor="text-purple-600" />
+          <InfoRow icon={Hash}       label="Employee No." value={profile.employeeNo}   iconBg="bg-purple-50" iconColor="text-purple-600" />
+          <InfoRow icon={KeyRound}   label="System Role"  value={roleLabel}            iconBg="bg-purple-50" iconColor="text-purple-600" />
+          <InfoRow icon={CalendarDays} label="Member Since" value={fmtDate(profile.createdAt)} iconBg="bg-purple-50" iconColor="text-purple-600" />
+          <InfoRow icon={ShieldCheck}  label="Two-Factor Auth" value={profile.twoFactorEnabled ? 'Enabled' : 'Disabled'} iconBg="bg-purple-50" iconColor="text-purple-600" />
         </div>
       </CardContent>
     </Card>

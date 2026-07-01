@@ -58,6 +58,12 @@ export const loanService = {
   fetchPendingApprovals() {
     return apiClient.get<PendingLoanApproval[]>("/loans/pending-approvals");
   },
+
+  // Company-wide history of decided loans (active / closed / rejected) for the
+  // HR Reports "Loan Approvals" view.
+  fetchLoanApprovalsHistory() {
+    return apiClient.get<PendingLoanApproval[]>("/loans/approvals-history");
+  },
 };
 
 export interface PendingLoanApproval {

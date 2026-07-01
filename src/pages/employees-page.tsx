@@ -137,6 +137,7 @@ export default function EmployeesPage() {
       const payload = {
         companyId: company?.id != null ? Number(company.id) : undefined,
         firstName: newEmployee.firstName ?? "",
+        middleName: newEmployee.middleName ?? undefined,
         lastName: newEmployee.lastName ?? "",
         gender: newEmployee.gender ?? undefined,
         prefix: newEmployee.prefix ?? undefined,

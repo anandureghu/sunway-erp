@@ -320,12 +320,24 @@ export default function LeavesForm(): ReactElement {
     [],
   );
 
+  // Guards against double-submit (e.g. double-clicking "Request Leave"), which
+  // could otherwise slip two identical leaves past the server overlap check.
+  const submittingRef = useRef(false);
+
   const handleSave = useCallback(() => {
     if (!employeeId) return;
+    if (submittingRef.current) return;
 
     // Validate required fields before sending
     if (!draft.leaveType || !draft.startDate || !draft.endDate) {
       toast.error("Please fill in Leave Type, Start Date, and End Date");
+      return;
+    }
+
+    // A leave can't start in the past (mirrors the backend rule). Editing an
+    // already-started pending leave is the only case that may pre-date today.
+    if (!editingLeaveId && draft.startDate < new Date().toISOString().slice(0, 10)) {
+      toast.error("Leave cannot be requested for a past date");
       return;
     }
 
@@ -362,6 +374,7 @@ export default function LeavesForm(): ReactElement {
 
     // Editing an existing pending leave → update it. Otherwise create a new one;
     // when a document is attached, create AND upload in a single multipart call.
+    submittingRef.current = true;
     const submit = editingLeaveId
       ? leaveService.updateLeave(employeeId, editingLeaveId, payload)
       : docFile
@@ -417,6 +430,9 @@ export default function LeavesForm(): ReactElement {
       .catch((err) => {
         console.error("Save leave failed", err);
         toast.error("An unexpected error occurred");
+      })
+      .finally(() => {
+        submittingRef.current = false;
       });
   }, [
     draft,
@@ -564,6 +580,7 @@ export default function LeavesForm(): ReactElement {
                 type="date"
                 disabled={!editing}
                 value={draft.startDate}
+                min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => patch("startDate", e.target.value)}
                 className={cn(iCls, "pl-9")}
               />

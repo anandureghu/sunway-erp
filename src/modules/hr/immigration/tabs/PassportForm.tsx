@@ -61,6 +61,36 @@ export default function PassportForm(): ReactElement {
   const [draft, setDraft] = useState<PassportModel>(EMPTY);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // The name on the passport is taken from the employee's profile, not typed.
+  const [profileName, setProfileName] = useState("");
+
+  useEffect(() => {
+    if (!empId) return;
+    let mounted = true;
+    import("@/service/hr.service")
+      .then((m) => m.hrService.getEmployee(String(empId)))
+      .then((emp) => {
+        if (!mounted || !emp) return;
+        const e = emp as {
+          firstName?: string;
+          middleName?: string;
+          lastName?: string;
+        };
+        const name = [e.firstName, e.middleName, e.lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim()
+          .toUpperCase();
+        if (!name) return;
+        setProfileName(name);
+        setDraft((d) => ({ ...d, nameAsPassport: name }));
+        setSaved((s) => ({ ...s, nameAsPassport: name }));
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [empId]);
 
   /* ================= LOAD ================= */
 
@@ -141,7 +171,7 @@ export default function PassportForm(): ReactElement {
   const handleSave = useCallback(async () => {
     if (!empId) return;
 
-    if (!draft.passportNo || !draft.issueCountry || !draft.nameAsPassport) {
+    if (!draft.passportNo || !draft.issueCountry || !(profileName || draft.nameAsPassport)) {
       toast.error("Please fill all required fields");
       return;
     }
@@ -155,7 +185,7 @@ export default function PassportForm(): ReactElement {
 
     const payload: PassportPayload = {
       passportNo: draft.passportNo,
-      nameAsPassport: draft.nameAsPassport,
+      nameAsPassport: profileName || draft.nameAsPassport,
       issueCountry: draft.issueCountry,
       nationality: draft.nationality,
       issueDate: draft.issueDate,
@@ -187,7 +217,7 @@ export default function PassportForm(): ReactElement {
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to save passport");
     }
-  }, [empId, draft, saved]);
+  }, [empId, draft, saved, profileName]);
 
   /* ================= EVENTS ================= */
 
@@ -406,16 +436,14 @@ export default function PassportForm(): ReactElement {
                   icon={<User className="h-4 w-4" />}
                 >
                   <Input
-                    disabled={!editing}
-                    value={draft.nameAsPassport}
-                    onChange={(e) =>
-                      patch("nameAsPassport", e.target.value.toUpperCase())
-                    }
+                    disabled
+                    readOnly
+                    value={profileName || draft.nameAsPassport}
                     placeholder="FULL LEGAL NAME"
                     className="uppercase font-semibold disabled:bg-slate-50 disabled:text-slate-900 h-12"
                   />
                   <p className="text-xs text-slate-500 mt-1.5">
-                    Must match exactly as printed
+                    Taken from the employee profile
                   </p>
                 </FormField>
               </div>

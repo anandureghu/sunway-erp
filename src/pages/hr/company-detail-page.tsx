@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ElementType } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,11 @@ import {
   Pencil,
   X,
   Layers,
+  Mail,
+  CalendarDays,
+  IdCard,
+  Briefcase,
+  ShieldCheck,
 } from "lucide-react";
 import { CompanyDialog } from "../admin/hr/company/company-dialog";
 import { EmployeeDialog } from "../admin/hr/employee/employee-dialog";
@@ -249,6 +254,7 @@ export default function CompanyDetailPage() {
   const [adminLoading, setAdminLoading] = useState(true);
   const [, setAdminError] = useState<string | null>(null);
   const [openEditAdmin, setOpenEditAdmin] = useState(false);
+  const [openViewAdmin, setOpenViewAdmin] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [openCreateAdmin, setOpenCreateAdmin] = useState(false);
 
@@ -639,7 +645,7 @@ export default function CompanyDetailPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/admin/employees/${admin.id}`)}
+                  onClick={() => setOpenViewAdmin(true)}
                   className="h-8 rounded-xl border border-slate-200 bg-white px-4 text-[13px] text-slate-600 hover:bg-slate-50"
                 >
                   View Profile
@@ -724,6 +730,212 @@ export default function CompanyDetailPage() {
           }}
         />
       )}
+
+      {/* ── View Admin (read-only profile) ── */}
+      {admin && (
+        <Dialog open={openViewAdmin} onOpenChange={setOpenViewAdmin}>
+          <DialogContent className="max-w-lg gap-0 overflow-hidden p-0">
+            <DialogTitle className="sr-only">Company Admin Profile</DialogTitle>
+
+            {/* Hero */}
+            <div className="bg-linear-to-br from-violet-600 via-purple-600 to-indigo-600 px-6 py-5">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-white/70 bg-white/10 text-xl font-bold text-white shadow-sm">
+                  {admin.imageUrl ? (
+                    <img
+                      src={admin.imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      {admin.firstName?.[0]}
+                      {admin.lastName?.[0]}
+                    </>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="truncate text-lg font-bold text-white">
+                    {admin.firstName} {admin.lastName}
+                  </h2>
+                  {admin.username && (
+                    <p className="truncate text-sm text-violet-100">
+                      @{admin.username}
+                    </p>
+                  )}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {admin.role && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-white/15 px-2 py-0.5 text-[11px] font-semibold text-white ring-1 ring-white/25">
+                        <ShieldCheck className="h-3 w-3" />
+                        {admin.role}
+                      </span>
+                    )}
+                    {admin.companyRole && (
+                      <span className="inline-flex items-center rounded-md bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white ring-1 ring-white/25">
+                        {admin.companyRole}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="max-h-[60vh] space-y-5 overflow-y-auto px-6 py-5">
+              <AdminSection title="Account">
+                <AdminField icon={Mail} label="Email" value={admin.email} />
+                <AdminField icon={Phone} label="Phone" value={admin.phoneNo} />
+                <AdminField
+                  icon={Phone}
+                  label="Alternate Phone"
+                  value={admin.altPhone}
+                />
+                <AdminField
+                  icon={UserRound}
+                  label="Username"
+                  value={admin.username}
+                />
+              </AdminSection>
+
+              <AdminSection title="Work">
+                <AdminField
+                  icon={Hash}
+                  label="Employee No."
+                  value={admin.employeeNo}
+                />
+                <AdminField
+                  icon={Briefcase}
+                  label="Designation"
+                  value={admin.designation}
+                />
+                <AdminField
+                  icon={Building2}
+                  label="Department"
+                  value={admin.department}
+                />
+                <AdminField
+                  icon={ShieldCheck}
+                  label="Status"
+                  value={admin.status}
+                />
+                <AdminField
+                  icon={CalendarDays}
+                  label="Join Date"
+                  value={fmtDate(admin.joinDate)}
+                />
+              </AdminSection>
+
+              <AdminSection title="Personal">
+                <AdminField
+                  icon={CalendarDays}
+                  label="Date of Birth"
+                  value={fmtDate(admin.dateOfBirth)}
+                />
+                <AdminField
+                  icon={UserRound}
+                  label="Gender"
+                  value={admin.gender}
+                />
+                <AdminField
+                  icon={Globe}
+                  label="Nationality"
+                  value={admin.nationality}
+                />
+                <AdminField
+                  icon={IdCard}
+                  label="National ID"
+                  value={admin.nationalId}
+                />
+                <AdminField
+                  icon={UserRound}
+                  label="Marital Status"
+                  value={admin.maritalStatus}
+                />
+              </AdminSection>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-3.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpenViewAdmin(false)}
+              >
+                Close
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setOpenViewAdmin(false);
+                  setEditEmployee(admin);
+                  setOpenEditAdmin(true);
+                }}
+                className="bg-linear-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700"
+              >
+                <Pencil className="mr-1 h-3.5 w-3.5" />
+                Edit Admin
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+/** Format yyyy-mm-dd / ISO → "12 Jan 2024"; undefined when missing/invalid. */
+function fmtDate(iso?: string | null): string | undefined {
+  if (!iso) return undefined;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? undefined
+    : d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+}
+
+function AdminSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        {title}
+      </h3>
+      <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function AdminField({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: ElementType;
+  label: string;
+  value?: string | null;
+}) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-2.5">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-50">
+        <Icon className="h-3.5 w-3.5 text-violet-600" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          {label}
+        </p>
+        <p className="truncate text-sm font-medium text-slate-700">{value}</p>
+      </div>
     </div>
   );
 }

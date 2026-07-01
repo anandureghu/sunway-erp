@@ -229,11 +229,11 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
-              // Payroll — gated by PAYROLL
+              // Employee Payroll — gated by PAYROLL
               ...(canView(permissions, "PAYROLL")
                 ? [
                     {
-                      title: "Payroll",
+                      title: "Employee Payroll",
                       url: "/hr/payroll",
                       icon: Wallet,
                     },
@@ -350,16 +350,6 @@ export const getSidebarItems = async (
                     title: "Accounts Payable",
                     url: "/finance/payable",
                     icon: Receipt,
-                  },
-                ]
-              : []),
-            // Employee Payroll (finance view) → PAYROLL
-            ...(canView(permissions, "PAYROLL")
-              ? [
-                  {
-                    title: "Employee Payroll",
-                    url: "/finance/payroll",
-                    icon: Users,
                   },
                 ]
               : []),

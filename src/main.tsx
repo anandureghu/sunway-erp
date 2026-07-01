@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+// Bundled SVG country flags (render reliably on Windows, unlike emoji flags).
+import "flag-icons/css/flag-icons.min.css";
 import App from "./App.tsx";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";

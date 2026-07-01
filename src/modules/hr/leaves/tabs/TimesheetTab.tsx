@@ -105,15 +105,20 @@ function ElapsedTimer({ checkInTime }: { checkInTime: string }) {
 function ActionButton({
   isCheckedIn,
   loading,
+  canCheckIn = true,
   onCheckIn,
   onCheckOut,
 }: {
   isCheckedIn: boolean;
   loading: boolean;
+  canCheckIn?: boolean;
   onCheckIn: () => void;
   onCheckOut: () => void;
 }) {
   const isCheckOut = isCheckedIn;
+  // Block a fresh check-in for non-active employees (check-out of an open
+  // session is still allowed so a started shift can be closed).
+  const blocked = !isCheckOut && !canCheckIn;
   return (
     <div className="relative flex items-center justify-center">
       {/* Pulsing rings — only when actively checked in */}
@@ -143,7 +148,7 @@ function ActionButton({
           />
         </>
       )}
-      {!isCheckOut && !loading && (
+      {!isCheckOut && !loading && !blocked && (
         <>
           <span
             className="absolute inline-flex h-full w-full rounded-full opacity-30 bg-emerald-400 animate-ping"
@@ -163,14 +168,21 @@ function ActionButton({
 
       <button
         onClick={isCheckOut ? onCheckOut : onCheckIn}
-        disabled={loading}
+        disabled={loading || blocked}
+        title={
+          blocked
+            ? "Check-in is only available for active employees"
+            : undefined
+        }
         className={cn(
           "relative z-10 flex flex-col items-center justify-center rounded-full transition-all duration-300 active:scale-95",
           "w-40 h-40 shadow-2xl border-4",
           isCheckOut
             ? "bg-gradient-to-br from-rose-500 via-rose-600 to-pink-700 border-rose-300/50 shadow-rose-500/40 hover:shadow-rose-500/60 hover:scale-105"
             : "bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 border-emerald-300/50 shadow-emerald-500/40 hover:shadow-emerald-500/60 hover:scale-105",
-          loading && "opacity-60 cursor-not-allowed",
+          (loading || blocked) && "opacity-60 cursor-not-allowed",
+          blocked &&
+            "grayscale hover:scale-100 hover:shadow-emerald-500/40",
         )}
       >
         {loading ? (
@@ -594,11 +606,39 @@ export default function TimesheetTab() {
   const [history, setHistory] = useState<TimesheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  // Only an ACTIVE employee may check in. Default true so a transient load
+  // failure never wrongly blocks attendance.
+  const [employeeActive, setEmployeeActive] = useState(true);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (!empId) return;
+    let mounted = true;
+    import("@/service/hr.service")
+      .then((m) => m.hrService.getEmployee(String(empId)))
+      .then((emp) => {
+        if (!mounted) return;
+        const s = String((emp as { status?: string })?.status ?? "").toUpperCase();
+        const inactive = [
+          "INACTIVE",
+          "ON_LEAVE",
+          "RESIGNED",
+          "TERMINATED",
+          "RETIRED",
+        ].includes(s);
+        setEmployeeActive(!inactive);
+      })
+      .catch(() => {
+        if (mounted) setEmployeeActive(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [empId]);
 
   const load = useCallback(async () => {
     if (!empId) return;
@@ -808,15 +848,21 @@ export default function TimesheetTab() {
                 <ActionButton
                   isCheckedIn={isCheckedIn}
                   loading={actionLoading}
+                  canCheckIn={employeeActive}
                   onCheckIn={handleCheckIn}
                   onCheckOut={handleCheckOut}
                 />
                 {isCheckedIn && todayEntry?.checkInTime && (
                   <ElapsedTimer checkInTime={todayEntry.checkInTime} />
                 )}
-                {!isCheckedIn && (
+                {!isCheckedIn && employeeActive && (
                   <p className="text-white/30 text-xs text-center font-medium tracking-wide">
                     Tap to start your shift
+                  </p>
+                )}
+                {!isCheckedIn && !employeeActive && (
+                  <p className="text-amber-300/80 text-xs text-center font-medium tracking-wide">
+                    Check-in is disabled — employee is not active
                   </p>
                 )}
               </>

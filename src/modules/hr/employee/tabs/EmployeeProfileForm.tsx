@@ -28,6 +28,7 @@ type EmpProfile = {
   employeeNo: string;
   prefix: Prefix;
   firstName: string;
+  middleName?: string;
   lastName: string;
   photoUrl?: string;
   joinDate: string;
@@ -49,6 +50,7 @@ const NEW_EMP: EmpProfile = {
   employeeNo: "",
   prefix: "",
   firstName: "",
+  middleName: "",
   lastName: "",
   joinDate: "",
   dateOfBirth: "",
@@ -291,6 +293,7 @@ export default function EmployeeProfileForm() {
       const payload: any = {
         employeeNo: updated.employeeNo,
         firstName: updated.firstName,
+        middleName: updated.middleName || null,
         lastName: updated.lastName,
         gender: updated.gender || null,
         prefix: updated.prefix || null,
@@ -540,6 +543,16 @@ export default function EmployeeProfileForm() {
               value={draft.firstName}
               onChange={(e) => set("firstName", e.target.value)}
               placeholder="Enter first name"
+            />
+          </FormField>
+
+          <FormField label="Middle Name">
+            <IconInput
+              icon={<User className="h-4 w-4" />}
+              disabled={!editing}
+              value={draft.middleName ?? ""}
+              onChange={(e) => set("middleName", e.target.value)}
+              placeholder="Enter middle name"
             />
           </FormField>
 
