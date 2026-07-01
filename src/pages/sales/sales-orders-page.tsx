@@ -11,6 +11,10 @@ import {
   confirmSalesOrder,
   listSalesOrders,
 } from "@/service/salesFlowService";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import { CreateSalesOrderForm } from "./components/create-sales-order-form";
 import { SalesOrderDetailsDialog } from "./components/sales-order-details-dialog";
 import { SalesOrdersListView } from "./components/sales-orders-list-view";
@@ -32,7 +36,8 @@ export default function SalesOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [listTab, setListTab] = useState<"active" | "closed">("active");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new"),
   );
@@ -73,7 +78,7 @@ export default function SalesOrdersPage() {
   useEffect(() => {
     setStatusFilter("all");
     setPaymentStatusFilter("all");
-    setShowArchivedOnly(false);
+    setRowSelection({});
   }, [listTab]);
 
   const normalizePaymentStatusKey = useCallback((status?: string) => {
@@ -145,10 +150,7 @@ export default function SalesOrdersPage() {
       const inTab =
         listTab === "closed" ? isClosedOrder(order) : !isClosedOrder(order);
       if (!inTab) return false;
-      if (listTab === "closed") {
-        const isArchived = Boolean(order.archived);
-        if (showArchivedOnly ? !isArchived : isArchived) return false;
-      }
+      if (listTab === "closed" && order.archived) return false;
       const matchesSearch =
         !q ||
         order.orderNo.toLowerCase().includes(q) ||
@@ -168,7 +170,6 @@ export default function SalesOrdersPage() {
     paymentStatusFilter,
     listTab,
     isClosedOrder,
-    showArchivedOnly,
     normalizePaymentStatusKey,
   ]);
 
@@ -293,6 +294,44 @@ export default function SalesOrdersPage() {
     [orders, refreshOrders],
   );
 
+  const selectedOrderIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveOrders = useCallback(async () => {
+    if (selectedOrderIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Inventory Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "SALES_ORDER",
+        selectedOrderIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await refreshOrders();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to archive selected orders.",
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, refreshOrders, selectedOrderIds]);
+
   const handleViewDetails = useCallback(
     (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -375,8 +414,13 @@ export default function SalesOrdersPage() {
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         paymentStatusFilter={paymentStatusFilter}
-        showArchivedOnly={showArchivedOnly}
         columns={columns}
+        enableBulkArchive={listTab === "closed"}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        selectedCount={selectedOrderIds.length}
+        onBulkArchive={handleBulkArchiveOrders}
+        bulkArchiving={bulkArchiving}
         onCreateNew={() => {
           setOrderToEdit(null);
           setShowCreateForm(true);
@@ -384,7 +428,6 @@ export default function SalesOrdersPage() {
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
         onPaymentStatusChange={setPaymentStatusFilter}
-        onShowArchivedOnlyChange={setShowArchivedOnly}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}
       />

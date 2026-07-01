@@ -58,6 +58,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
 // =====================================================
 // Helpers
@@ -385,55 +386,62 @@ export default function FinanceReportsPage() {
       ) : null}
 
       {/* Tabs */}
-      {data && !loading ? (
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="flex flex-wrap">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="receivables">Receivables</TabsTrigger>
-            <TabsTrigger value="payables">Payables</TabsTrigger>
-            <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
-            <TabsTrigger value="ledger">Income & Expense</TabsTrigger>
-            <TabsTrigger value="department-budget">Budget by Department</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="flex flex-wrap">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="receivables">Receivables</TabsTrigger>
+          <TabsTrigger value="payables">Payables</TabsTrigger>
+          <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
+          <TabsTrigger value="ledger">Income & Expense</TabsTrigger>
+          <TabsTrigger value="department-budget">Budget by Department</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
-            <OverviewTab data={data} fmt={fmt} />
-          </TabsContent>
-          <TabsContent value="receivables" className="space-y-4">
-            <AgingTab
-              title="Receivables aging"
-              description="Outstanding sales invoices grouped by how many days they are past their due date."
-              aging={data.arAging}
-              parties={data.topCustomers}
-              partyLabel="Top customers"
-              fmt={fmt}
-              accent="text-blue-500"
-            />
-          </TabsContent>
-          <TabsContent value="payables" className="space-y-4">
-            <AgingTab
-              title="Payables aging"
-              description="Outstanding purchase invoices grouped by how many days they are past their due date."
-              aging={data.apAging}
-              parties={data.topVendors}
-              partyLabel="Top vendors"
-              fmt={fmt}
-              accent="text-amber-500"
-            />
-          </TabsContent>
-          <TabsContent value="cashflow" className="space-y-4">
-            <CashFlowTab data={data} fmt={fmt} />
-          </TabsContent>
-          <TabsContent value="ledger" className="space-y-4">
-            <LedgerTab data={data} fmt={fmt} />
-          </TabsContent>
-          <TabsContent value="department-budget" className="space-y-4">
-            <DepartmentBudgetTab data={data} fmt={fmt} />
-          </TabsContent>
-        </Tabs>
-      ) : loading ? (
-        <ChartSkeleton />
-      ) : null}
+        {data && !loading ? (
+          <>
+            <TabsContent value="overview" className="space-y-4">
+              <OverviewTab data={data} fmt={fmt} />
+            </TabsContent>
+            <TabsContent value="receivables" className="space-y-4">
+              <AgingTab
+                title="Receivables aging"
+                description="Outstanding sales invoices grouped by how many days they are past their due date."
+                aging={data.arAging}
+                parties={data.topCustomers}
+                partyLabel="Top customers"
+                fmt={fmt}
+                accent="text-blue-500"
+              />
+            </TabsContent>
+            <TabsContent value="payables" className="space-y-4">
+              <AgingTab
+                title="Payables aging"
+                description="Outstanding purchase invoices grouped by how many days they are past their due date."
+                aging={data.apAging}
+                parties={data.topVendors}
+                partyLabel="Top vendors"
+                fmt={fmt}
+                accent="text-amber-500"
+              />
+            </TabsContent>
+            <TabsContent value="cashflow" className="space-y-4">
+              <CashFlowTab data={data} fmt={fmt} />
+            </TabsContent>
+            <TabsContent value="ledger" className="space-y-4">
+              <LedgerTab data={data} fmt={fmt} />
+            </TabsContent>
+            <TabsContent value="department-budget" className="space-y-4">
+              <DepartmentBudgetTab data={data} fmt={fmt} />
+            </TabsContent>
+          </>
+        ) : loading ? (
+          <ChartSkeleton />
+        ) : null}
+
+        <TabsContent value="history" className="space-y-4">
+          <HistoryTabPanel module="finance" />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

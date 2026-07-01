@@ -6,8 +6,6 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 
@@ -35,7 +33,6 @@ export default function PaymentsPage({
   const [selected, setSelected] = useState<PaymentResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
   const [listTab, setListTab] = useState<PaymentListTab>("outstanding");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [archivingPaymentId, setArchivingPaymentId] = useState<number | null>(
     null,
@@ -273,9 +270,8 @@ export default function PaymentsPage({
       const settled = isPaymentArchivedTab(p, variant);
       let matchesTab: boolean;
       if (listTab === "archived") {
-        if (!settled) return false;
-        const isDbArchived = Boolean(p.archived);
-        matchesTab = showArchivedOnly ? isDbArchived : !isDbArchived;
+        if (!settled || p.archived) return false;
+        matchesTab = true;
       } else {
         matchesTab = !settled;
       }
@@ -295,7 +291,7 @@ export default function PaymentsPage({
 
       return matchesTab && matchesSearch;
     });
-  }, [payments, variant, listTab, searchQuery, showArchivedOnly]);
+  }, [payments, variant, listTab, searchQuery]);
 
   return (
     <div className="p-0 space-y-4">
@@ -308,7 +304,6 @@ export default function PaymentsPage({
         value={listTab}
         onValueChange={(v) => {
           setListTab(v as PaymentListTab);
-          setShowArchivedOnly(false);
         }}
         className="w-full gap-4"
       >
@@ -328,21 +323,6 @@ export default function PaymentsPage({
             </TabsTrigger>
           </TabsList>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:max-w-2xl">
-            {listTab === "archived" ? (
-              <div className="flex shrink-0 items-center gap-2 rounded-md border px-3 py-2">
-                <Switch
-                  id="payments-archived-only"
-                  checked={showArchivedOnly}
-                  onCheckedChange={setShowArchivedOnly}
-                />
-                <Label
-                  htmlFor="payments-archived-only"
-                  className="cursor-pointer text-sm font-medium"
-                >
-                  Archived only
-                </Label>
-              </div>
-            ) : null}
             <div className="relative w-full max-w-md min-w-[12rem] sm:flex-1 lg:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -364,9 +344,7 @@ export default function PaymentsPage({
         <div className="py-12 text-center text-sm text-muted-foreground">
           {listTab === "outstanding"
             ? "No pending payments match your search."
-            : showArchivedOnly
-              ? "No archived payments match your search."
-              : "No completed payments match your search."}
+            : "No completed payments match your search."}
         </div>
       ) : (
         <DataTable data={filteredPayments} columns={columns} />

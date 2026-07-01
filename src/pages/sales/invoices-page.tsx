@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { createSalesInvoiceColumns } from "@/lib/columns/accounts-receivable-columns";
@@ -34,9 +35,11 @@ import {
 } from "@/lib/invoice-status-filter";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
@@ -57,7 +60,8 @@ export default function InvoicesPage({
   );
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
@@ -86,10 +90,7 @@ export default function InvoicesPage({
       const matchesTab =
         listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
       if (!matchesTab) return false;
-      if (listTab === "archived") {
-        const isArchived = Boolean(invoice.archived);
-        if (showArchivedOnly ? !isArchived : isArchived) return false;
-      }
+      if (listTab === "archived" && invoice.archived) return false;
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -105,7 +106,47 @@ export default function InvoicesPage({
 
       return matchesSearch && matchesStatus;
     });
-  }, [invoices, listTab, searchQuery, statusFilter, showArchivedOnly]);
+  }, [invoices, listTab, searchQuery, statusFilter]);
+
+  const selectedInvoiceIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveInvoices = useCallback(async () => {
+    if (selectedInvoiceIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Finance Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "SALES_INVOICE",
+        selectedInvoiceIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      const res = await apiClient.get<Invoice[]>("/invoices", {
+        params: { type: "SALES" },
+      });
+      setInvoices(res.data);
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to archive selected invoices.";
+      toast.error(message);
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, selectedInvoiceIds]);
 
   const handleArchiveInvoice = useCallback(
     async (id: number) => {
@@ -260,7 +301,7 @@ export default function InvoicesPage({
         onValueChange={(v) => {
           setListTab(v as InvoiceListTab);
           setStatusFilter("all");
-          setShowArchivedOnly(false);
+          setRowSelection({});
         }}
         className="w-full gap-4"
       >
@@ -313,27 +354,30 @@ export default function InvoicesPage({
                 )}
               </SelectContent>
             </Select>
-            {listTab === "archived" ? (
-              <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                <Switch
-                  id="show-archived-invoices"
-                  checked={showArchivedOnly}
-                  onCheckedChange={setShowArchivedOnly}
-                />
-                <Label
-                  htmlFor="show-archived-invoices"
-                  className="text-sm font-medium cursor-pointer"
-                >
-                  Archived only
-                </Label>
-              </div>
-            ) : null}
           </div>
         </div>
       </Tabs>
-      <DataTable
+      {listTab === "archived" ? (
+        <BulkActionBar
+          selectedCount={selectedInvoiceIds.length}
+          onArchive={handleBulkArchiveInvoices}
+          onClear={() => setRowSelection({})}
+          archiving={bulkArchiving}
+        />
+      ) : null}
+      <SelectableDataTable
         data={filteredInvoices}
         columns={columns}
+        enableRowSelection={listTab === "archived"}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        getRowId={(row) => String(row.id)}
+        isRowSelectable={(row) => {
+          const status = (row.status || "").toUpperCase();
+          return (
+            (status === "PAID" || status === "CANCELLED") && !row.archived
+          );
+        }}
         onRowClick={(row: Row<Invoice>) =>
           navigate(`/sales/invoices/${row.original.id}`, {
             state: { backTo: location.pathname },

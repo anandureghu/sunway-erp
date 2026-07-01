@@ -46,8 +46,6 @@ import {
 } from "@/lib/invoice-status-filter";
 import { apiClient } from "@/service/apiClient";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -67,7 +65,6 @@ export default function PurchaseInvoicesPage() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
   );
@@ -104,10 +101,7 @@ export default function PurchaseInvoicesPage() {
       const matchesTab =
         listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
       if (!matchesTab) return false;
-      if (listTab === "archived") {
-        const isArchived = Boolean(invoice.archived);
-        if (showArchivedOnly ? !isArchived : isArchived) return false;
-      }
+      if (listTab === "archived" && invoice.archived) return false;
 
       const q = searchQuery.toLowerCase();
       const matchesSearch =
@@ -120,7 +114,7 @@ export default function PurchaseInvoicesPage() {
       );
       return matchesSearch && matchesStatus;
     });
-  }, [rows, listTab, searchQuery, statusFilter, showArchivedOnly]);
+  }, [rows, listTab, searchQuery, statusFilter]);
 
   const handleArchiveInvoice = useCallback(
     async (id: number) => {
@@ -314,7 +308,6 @@ export default function PurchaseInvoicesPage() {
             onValueChange={(v) => {
               setListTab(v as InvoiceListTab);
               setStatusFilter("all");
-              setShowArchivedOnly(false);
             }}
             className="w-full gap-4"
           >
@@ -368,21 +361,6 @@ export default function PurchaseInvoicesPage() {
                     )}
                   </SelectContent>
                 </Select>
-                {listTab === "archived" ? (
-                  <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                    <Switch
-                      id="show-archived-purchase-invoices"
-                      checked={showArchivedOnly}
-                      onCheckedChange={setShowArchivedOnly}
-                    />
-                    <Label
-                      htmlFor="show-archived-purchase-invoices"
-                      className="text-sm font-medium cursor-pointer"
-                    >
-                      Archived only
-                    </Label>
-                  </div>
-                ) : null}
               </div>
             </div>
           </Tabs>

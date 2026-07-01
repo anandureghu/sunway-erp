@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 import {
   Select,
   SelectContent,
@@ -683,6 +684,7 @@ export default function InventoryReportsPage() {
           <TabsTrigger value="turnover">Turnover</TabsTrigger>
           <TabsTrigger value="ageing">Expiry alerts</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="valuation" className="space-y-4">
@@ -1387,6 +1389,10 @@ export default function InventoryReportsPage() {
               {format(parseISO(summary.generatedAt), "PPpp")}
             </p>
           ) : null}
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <HistoryTabPanel module="inventory" />
         </TabsContent>
       </Tabs>
     </div>

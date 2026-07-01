@@ -1,5 +1,6 @@
 import { Plus, Search, Filter, ListTodo, FileCheck } from "lucide-react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import type { RowSelectionState } from "@tanstack/react-table";
 import type { SalesOrder } from "@/types/sales";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -35,13 +35,17 @@ type Props = {
   searchQuery: string;
   statusFilter: string;
   paymentStatusFilter: string;
-  showArchivedOnly: boolean;
   columns: ColumnDef<SalesOrder>[];
+  enableBulkArchive?: boolean;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: (selection: RowSelectionState) => void;
+  selectedCount?: number;
+  onBulkArchive?: () => void;
+  bulkArchiving?: boolean;
   onCreateNew: () => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onPaymentStatusChange: (value: string) => void;
-  onShowArchivedOnlyChange: (value: boolean) => void;
   onRowClick: (id: string) => void;
   kpiItems?: KpiSummaryStat[];
 };
@@ -57,13 +61,17 @@ export function SalesOrdersListView({
   searchQuery,
   statusFilter,
   paymentStatusFilter,
-  showArchivedOnly,
   columns,
+  enableBulkArchive = false,
+  rowSelection,
+  onRowSelectionChange,
+  selectedCount = 0,
+  onBulkArchive,
+  bulkArchiving = false,
   onCreateNew,
   onSearchChange,
   onStatusChange,
   onPaymentStatusChange,
-  onShowArchivedOnlyChange,
   onRowClick,
   kpiItems,
 }: Props) {
@@ -173,26 +181,19 @@ export function SalesOrdersListView({
                     </SelectContent>
                   </Select>
                 </div>
-                {listTab === "closed" ? (
-                  <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                    <Switch
-                      id="show-archived-orders"
-                      checked={showArchivedOnly}
-                      onCheckedChange={onShowArchivedOnlyChange}
-                    />
-                    <Label
-                      htmlFor="show-archived-orders"
-                      className="text-sm font-medium cursor-pointer"
-                    >
-                      Archived only
-                    </Label>
-                  </div>
-                ) : null}
               </div>
             </div>
           </Tabs>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {enableBulkArchive ? (
+            <BulkActionBar
+              selectedCount={selectedCount}
+              onArchive={onBulkArchive}
+              onClear={() => onRowSelectionChange?.({})}
+              archiving={bulkArchiving}
+            />
+          ) : null}
           {loading ? (
             <div className="py-16 text-center text-muted-foreground">
               Loading sales orders...
@@ -204,10 +205,18 @@ export function SalesOrdersListView({
               {emptyMessage}
             </div>
           ) : (
-            <DataTable
+            <SelectableDataTable
               columns={columns}
               data={orders}
               onRowClick={(row) => onRowClick(row.original.id)}
+              enableRowSelection={enableBulkArchive}
+              rowSelection={rowSelection}
+              onRowSelectionChange={onRowSelectionChange}
+              getRowId={(row) => row.id}
+              isRowSelectable={(row) =>
+                (row.status === "completed" || row.status === "cancelled") &&
+                !row.archived
+              }
             />
           )}
         </CardContent>
