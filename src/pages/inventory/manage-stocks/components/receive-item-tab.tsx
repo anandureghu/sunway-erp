@@ -585,6 +585,9 @@ export function ReceiveItemTab({
                       {errors.costPrice.message}
                     </p>
                   )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A different cost creates a new batch layer; same batch and cost add to the existing layer.
+                  </p>
                 </div>
 
                 <div>

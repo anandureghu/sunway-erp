@@ -4,7 +4,7 @@ import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
-import { CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, XCircle, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -25,8 +25,23 @@ const SalesOrdersDetailPage = () => {
         `/sales/orders/${so.id}`,
       );
       setSo(data);
-    } catch (error) {
+      if (action === "confirm") {
+        toast.success("Order confirmed successfully");
+      } else {
+        toast.success("Order cancelled");
+      }
+    } catch (error: unknown) {
       console.error("Status update failed", error);
+      const err = error as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
+      toast.error(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          err?.message ||
+          `Failed to ${action} order.`,
+      );
     }
   };
 
@@ -70,6 +85,10 @@ const SalesOrdersDetailPage = () => {
   const hasSalesInvoice = so.salesInvoiceId != null;
   const showDocumentActions =
     hasSalesInvoice && status !== "DRAFT" && status !== "CANCELLED";
+  const canConfirm =
+    status === "DRAFT" && so.sufficientDebitBalance !== false;
+  const insufficientBalance =
+    status === "DRAFT" && so.sufficientDebitBalance === false;
 
   const handleDownloadDocumentPdf = async () => {
     if (!so.salesInvoiceId) return;
@@ -113,9 +132,53 @@ const SalesOrdersDetailPage = () => {
         }
       />
 
-      {so.status === "DRAFT" && (
+      {status === "DRAFT" && insufficientBalance && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div className="space-y-1">
+            <p className="font-medium">Insufficient debit account balance</p>
+            <p className="text-amber-900/90">
+              {so.debitAccountName
+                ? `Account "${so.debitAccountName}" does not have enough balance to confirm this order.`
+                : "The selected debit account does not have enough balance to confirm this order."}
+            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-900/80">
+              <span>
+                Order total:{" "}
+                <CurrencyAmount amount={so.totalAmount ?? 0} className="inline" />
+              </span>
+              {so.debitAccountBalance != null ? (
+                <span>
+                  Available:{" "}
+                  <CurrencyAmount
+                    amount={so.debitAccountBalance}
+                    className="inline"
+                  />
+                </span>
+              ) : null}
+              {so.debitBalanceShortage != null && so.debitBalanceShortage > 0 ? (
+                <span>
+                  Short by:{" "}
+                  <CurrencyAmount
+                    amount={so.debitBalanceShortage}
+                    className="inline font-medium"
+                  />
+                </span>
+              ) : null}
+            </div>
+            <p className="text-xs text-amber-900/70">
+              You can save and edit this draft. Confirmation is blocked until the
+              account is funded.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {status === "DRAFT" && (
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => updateStatus("confirm")}>Confirm Order</Button>
+          <Button onClick={() => updateStatus("confirm")} disabled={!canConfirm}>
+            Confirm Order
+          </Button>
           <Button variant="destructive" onClick={() => updateStatus("cancel")}>
             Cancel Order
           </Button>

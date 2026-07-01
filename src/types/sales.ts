@@ -86,6 +86,9 @@ export type SalesOrder = {
   bankAccountName?: string;
   debitAccountId?: number;
   debitAccountName?: string;
+  debitAccountBalance?: number;
+  sufficientDebitBalance?: boolean;
+  debitBalanceShortage?: number;
   creditAccountId?: number;
   creditAccountName?: string;
 };

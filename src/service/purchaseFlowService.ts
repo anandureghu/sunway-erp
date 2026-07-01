@@ -674,6 +674,9 @@ export interface GoodsReceiptCreateDTO {
     acceptedQty: number;
     rejectedQty: number;
     remarks?: string;
+    batchNo?: string;
+    lotNo?: string;
+    unitCost?: number;
   }>;
 }
 
@@ -689,6 +692,9 @@ export interface GoodsReceiptResponseDTO {
     acceptedQty: number;
     rejectedQty: number;
     remarks?: string;
+    batchNo?: string;
+    lotNo?: string;
+    unitCost?: number;
   }>;
 }
 

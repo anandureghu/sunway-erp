@@ -99,6 +99,18 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     bankAccountName: dto.bankAccountName,
     debitAccountId: dto.debitAccountId,
     debitAccountName: dto.debitAccountName,
+    debitAccountBalance:
+      dto.debitAccountBalance != null
+        ? Number(dto.debitAccountBalance)
+        : undefined,
+    sufficientDebitBalance:
+      dto.sufficientDebitBalance !== undefined
+        ? Boolean(dto.sufficientDebitBalance)
+        : true,
+    debitBalanceShortage:
+      dto.debitBalanceShortage != null
+        ? Number(dto.debitBalanceShortage)
+        : undefined,
     creditAccountId: dto.creditAccountId,
     creditAccountName: dto.creditAccountName,
     shippingAddress: dto.shippingAddress || dto.deliveryAddress || undefined,

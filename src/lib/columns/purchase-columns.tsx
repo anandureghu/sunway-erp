@@ -365,10 +365,7 @@ function purchaseInvoiceSupplierId(inv: FinanceInvoice): number | null {
 
 function purchaseInvoiceSupplierName(inv: FinanceInvoice): string | null {
   return (
-    inv.supplierName ??
-    inv.purchaseOrder?.supplierName ??
-    inv.toParty ??
-    null
+    inv.supplierName ?? inv.purchaseOrder?.supplierName ?? inv.toParty ?? null
   );
 }
 
@@ -379,15 +376,6 @@ export function createPurchaseInvoiceColumns(
 ): ColumnDef<FinanceInvoice>[] {
   const { onViewDetails, onOpenDocument, onDownload, onEmail } = invoiceActions;
   return [
-    {
-      id: "slNo",
-      header: "SL no",
-      cell: ({ row }) => (
-        <span className="text-muted-foreground tabular-nums">
-          {row.index + 1}
-        </span>
-      ),
-    },
     {
       accessorKey: "invoiceId",
       header: "Inv no",

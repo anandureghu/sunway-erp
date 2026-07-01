@@ -10,6 +10,10 @@ import type {
   ItemStockReceivePayload,
   ItemWarehouseStockRowDTO,
   InventoryReportSummaryDTO,
+  StockBatchInsightsDTO,
+  StockBatchMovementReportDTO,
+  StockBatchReportDTO,
+  StockBatchResponseDTO,
   WarehouseCreateDTO,
   WarehouseResponseDTO,
   WarehouseUpdateDTO,
@@ -152,6 +156,70 @@ export async function getInventoryReportSummary(
         category: params?.category?.trim() || undefined,
       },
     },
+  );
+  return res.data;
+}
+
+export async function listItemBatches(
+  itemId: Id | string,
+  warehouseId?: number,
+): Promise<StockBatchResponseDTO[]> {
+  const res = await apiClient.get<StockBatchResponseDTO[]>(
+    `/inventory/items/${itemId}/batches`,
+    { params: { warehouseId } },
+  );
+  return res.data || [];
+}
+
+export type InventoryBatchReportQuery = {
+  warehouseId?: number;
+  itemId?: number;
+  batchNo?: string;
+};
+
+export async function getInventoryBatchReport(
+  params?: InventoryBatchReportQuery,
+): Promise<StockBatchReportDTO> {
+  const res = await apiClient.get<StockBatchReportDTO>(
+    "/inventory/reports/batches",
+    {
+      params: {
+        warehouseId: params?.warehouseId,
+        itemId: params?.itemId,
+        batchNo: params?.batchNo?.trim() || undefined,
+      },
+    },
+  );
+  return res.data;
+}
+
+export async function getItemBatchMovements(
+  itemId: Id | string,
+  params?: { warehouseId?: number; limit?: number },
+): Promise<StockBatchMovementReportDTO> {
+  const res = await apiClient.get<StockBatchMovementReportDTO>(
+    `/inventory/items/${itemId}/batch-movements`,
+    { params },
+  );
+  return res.data;
+}
+
+export async function getInventoryBatchMovements(
+  params?: InventoryBatchReportQuery & { limit?: number },
+): Promise<StockBatchMovementReportDTO> {
+  const res = await apiClient.get<StockBatchMovementReportDTO>(
+    "/inventory/reports/batch-movements",
+    { params },
+  );
+  return res.data;
+}
+
+export async function getInventoryBatchInsights(
+  params?: InventoryBatchReportQuery,
+): Promise<StockBatchInsightsDTO> {
+  const res = await apiClient.get<StockBatchInsightsDTO>(
+    "/inventory/reports/batch-insights",
+    { params },
   );
   return res.data;
 }

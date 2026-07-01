@@ -10,7 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import CreateItemForm from "../item-form";
 import { ChangeItemImageDialog } from "./change-item-image-dialog";
 import { InventoryPageHeader } from "@/components/inventory-page-header";
-import { ItemDetailSections } from "./item-detail-sections";
+import { ItemDetailTabs } from "./item-detail-tabs";
 
 function apiErrorMessage(e: unknown): string {
   const ax = e as { response?: { data?: { message?: string } }; message?: string };
@@ -80,7 +80,7 @@ export default function InventoryItemDetail() {
           <Package className="h-6 w-6 text-white" />
         </InventoryPageHeader>
 
-        <ItemDetailSections
+        <ItemDetailTabs
           item={item}
           imageNonce={imageNonce}
           onEdit={() => setEditOpen(true)}

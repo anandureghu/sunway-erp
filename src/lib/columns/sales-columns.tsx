@@ -20,6 +20,7 @@ import {
   Truck,
   Loader2,
   Archive,
+  AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -119,7 +120,8 @@ export function createSalesOrderColumns(
       header: "Actions",
       cell: ({ row }) => {
         const order = row.original;
-        const canConfirm = order.status === "draft";
+        const canConfirm =
+          order.status === "draft" && order.sufficientDebitBalance !== false;
         const canCancel =
           order.status === "draft" || order.status === "confirmed";
         const canGeneratePicklist =
@@ -170,6 +172,13 @@ export function createSalesOrderColumns(
                       : "Confirm Order"}
                   </DropdownMenuItem>
                 )}
+                {order.status === "draft" &&
+                  order.sufficientDebitBalance === false && (
+                    <DropdownMenuItem disabled>
+                      <AlertTriangle className="mr-2 h-4 w-4 text-amber-600" />
+                      Insufficient balance
+                    </DropdownMenuItem>
+                  )}
                 {canGeneratePicklist && onGeneratePicklist && (
                   <>
                     <DropdownMenuSeparator />

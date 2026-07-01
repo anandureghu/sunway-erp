@@ -22,6 +22,15 @@ export function SalesOrderDetailCards({ so }: Props) {
     0,
   );
   const itemRows = so.items || [];
+  const status = (so.status || "draft").toUpperCase();
+  const showCogs = status !== "DRAFT" && status !== "CANCELLED";
+
+  const totalRevenue = so.totalAmount ?? 0;
+  const totalCogs = itemRows.reduce((sum, line) => sum + (line.cogsAmount ?? 0), 0);
+  const hasFifoCogs = itemRows.some((line) => (line.cogsAmount ?? 0) > 0);
+  const grossMargin = totalRevenue - totalCogs;
+  const marginPct =
+    totalRevenue > 0 ? (grossMargin / totalRevenue) * 100 : null;
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -43,11 +52,28 @@ export function SalesOrderDetailCards({ so }: Props) {
                     <th className="px-4 py-3 text-right font-medium">
                       Unit Price
                     </th>
+                    {showCogs ? (
+                      <>
+                        <th className="px-4 py-3 text-right font-medium">
+                          FIFO cost
+                        </th>
+                        <th className="px-4 py-3 text-right font-medium">
+                          COGS
+                        </th>
+                        <th className="px-4 py-3 text-right font-medium">
+                          Margin
+                        </th>
+                      </>
+                    ) : null}
                     <th className="px-4 py-3 text-right font-medium">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {itemRows.map((item) => (
+                  {itemRows.map((item) => {
+                    const lineCogs = item.cogsAmount ?? 0;
+                    const lineRevenue = item.lineTotal ?? 0;
+                    const lineMargin = lineRevenue - lineCogs;
+                    return (
                     <tr key={item.itemId} className="border-t">
                       <td className="px-4 py-3">
                         <p className="font-medium">
@@ -63,11 +89,41 @@ export function SalesOrderDetailCards({ so }: Props) {
                       <td className="px-4 py-3 text-right">
                         <CurrencyAmount amount={item.unitPrice || 0} />
                       </td>
+                      {showCogs ? (
+                        <>
+                          <td className="px-4 py-3 text-right text-muted-foreground">
+                            {(item.fifoUnitCost ?? 0) > 0 ? (
+                              <CurrencyAmount amount={item.fifoUnitCost ?? 0} />
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {lineCogs > 0 ? (
+                              <CurrencyAmount amount={lineCogs} />
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td
+                            className={`px-4 py-3 text-right font-medium ${
+                              lineMargin >= 0 ? "text-emerald-600" : "text-red-600"
+                            }`}
+                          >
+                            {lineCogs > 0 ? (
+                              <CurrencyAmount amount={lineMargin} />
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </>
+                      ) : null}
                       <td className="px-4 py-3 text-right font-semibold">
                         <CurrencyAmount amount={item.lineTotal || 0} />
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -83,6 +139,32 @@ export function SalesOrderDetailCards({ so }: Props) {
                 <CurrencyAmount amount={so.totalAmount || 0} />
               </span>
             </div>
+            {showCogs && hasFifoCogs ? (
+              <>
+                <Separator className="my-3" />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total COGS (FIFO)</span>
+                  <span>
+                    <CurrencyAmount amount={totalCogs} />
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span>Gross margin</span>
+                  <span
+                    className={
+                      grossMargin >= 0 ? "text-emerald-600" : "text-red-600"
+                    }
+                  >
+                    <CurrencyAmount amount={grossMargin} />
+                    {marginPct !== null ? (
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        ({marginPct.toFixed(1)}%)
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+              </>
+            ) : null}
           </CardContent>
         </Card>
 
