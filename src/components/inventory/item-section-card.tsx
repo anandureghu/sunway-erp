@@ -6,15 +6,22 @@ export function ItemSectionCard({
   title,
   children,
   action,
+  className,
 }: {
   icon: ReactNode;
   title: string;
   children: ReactNode;
   action?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
+    <div
+      className={cn(
+        "flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
+        className,
+      )}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
             {icon}
@@ -23,7 +30,7 @@ export function ItemSectionCard({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="space-y-5 p-5">{children}</div>
+      <div className="flex flex-1 flex-col space-y-5 p-5">{children}</div>
     </div>
   );
 }

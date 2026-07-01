@@ -65,7 +65,7 @@ const PicklistDetailPage = () => {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
-        title={`Picklist #${picklist.picklistNumber}`}
+        title={`Picklist ${picklist.picklistNumber}`}
         description={
           picklist.createdAt
             ? `Created ${new Date(picklist.createdAt).toLocaleString()}`
@@ -114,10 +114,6 @@ const PicklistDetailPage = () => {
               <p className="font-medium">{picklist.picklistNumber}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Picklist ID</p>
-              <p className="font-medium">#{picklist.id}</p>
-            </div>
-            <div>
               <p className="text-muted-foreground">Status</p>
               <p className="font-medium capitalize">{picklist.status}</p>
             </div>
@@ -138,10 +134,6 @@ const PicklistDetailPage = () => {
             <CardTitle className="text-base">Related Sales Order</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div>
-              <p className="text-muted-foreground">Sales Order ID</p>
-              <p className="font-medium">#{picklist.salesOrderId}</p>
-            </div>
             <div>
               <p className="text-muted-foreground">Order Number</p>
               <p className="font-medium">{salesOrder?.orderNumber || "-"}</p>

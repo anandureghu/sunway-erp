@@ -57,6 +57,27 @@ export type CategoryUpdateDTO = {
   status?: string;
 };
 
+export type DispatchCarrierResponseDTO = {
+  id: Id;
+  name: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  comments?: string;
+  status?: string;
+};
+
+export type DispatchCarrierCreateDTO = {
+  name: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  comments?: string;
+  status?: string;
+};
+
+export type DispatchCarrierUpdateDTO = DispatchCarrierCreateDTO;
+
 export type WarehouseResponseDTO = {
   id: Id;
 
@@ -234,6 +255,7 @@ export type InventoryReportTotalsDTO = {
   totalAvailable: number;
   stockValueAtCost: number;
   stockValueAtSelling: number;
+  totalOnOrder: number;
 };
 
 export type InventoryWarehouseBreakdownDTO = {
@@ -280,6 +302,79 @@ export type InventoryReportSummaryDTO = {
   generatedAt: string;
 };
 
+export type StockBatchResponseDTO = {
+  id: number;
+  itemId: number;
+  itemSku?: string;
+  itemName?: string;
+  warehouseId: number;
+  warehouseName?: string;
+  batchNo: string;
+  quantityOnHand: number;
+  unitCost: number;
+  lineValue: number;
+  receivedAt?: string;
+  expiryDate?: string | null;
+  sourceType?: string;
+  sourceId?: number | null;
+};
+
+export type StockBatchReportDTO = {
+  batches: StockBatchResponseDTO[];
+  totalValueAtCost: number;
+  totalQuantity: number;
+};
+
+export type StockBatchMovementResponseDTO = {
+  id: number;
+  batchId: number;
+  batchNo: string;
+  itemId: number;
+  itemSku?: string;
+  itemName?: string;
+  warehouseId: number;
+  warehouseName?: string;
+  movementType: string;
+  quantity: number;
+  unitCost: number;
+  lineValue: number;
+  referenceType?: string | null;
+  referenceId?: number | null;
+  createdAt?: string;
+};
+
+export type StockBatchHistoryPointDTO = {
+  period: string;
+  receiveQty: number;
+  issueQty: number;
+  receiveValue: number;
+  issueValue: number;
+};
+
+export type StockBatchMovementReportDTO = {
+  movements: StockBatchMovementResponseDTO[];
+  receiveTrend: StockBatchHistoryPointDTO[];
+  totalMovements: number;
+};
+
+export type StockBatchCostLayerDTO = {
+  label: string;
+  unitCost: number;
+  quantity: number;
+  value: number;
+};
+
+export type StockBatchInsightsDTO = {
+  expiringWithin30Days: number;
+  expiringWithin60Days: number;
+  expiringWithin90Days: number;
+  valueExpiringWithin30Days: number;
+  valueExpiringWithin60Days: number;
+  valueExpiringWithin90Days: number;
+  valueByCostLayer: StockBatchCostLayerDTO[];
+  expiringSoon: StockBatchResponseDTO[];
+};
+
 // --- Sales flow ---
 export type SalesOrderItemDTO = {
   itemId?: Id;
@@ -320,6 +415,8 @@ export type SalesOrderItemResponseDTO = {
   lineTotal?: number;
   warehouseName?: string;
   warehouseId?: number;
+  cogsAmount?: number;
+  fifoUnitCost?: number;
 };
 
 export type SalesOrderResponseDTO = {
@@ -329,6 +426,7 @@ export type SalesOrderResponseDTO = {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  customerAddress?: string;
   orderDate?: string; // date
   invoiceDueDate?: string; // date
   shippingAddress?: string;
@@ -344,6 +442,9 @@ export type SalesOrderResponseDTO = {
   bankAccountName?: string;
   debitAccountId?: Id;
   debitAccountName?: string;
+  debitAccountBalance?: number;
+  sufficientDebitBalance?: boolean;
+  debitBalanceShortage?: number;
   creditAccountId?: Id;
   creditAccountName?: string;
   salesInvoiceId?: Id;
@@ -378,6 +479,7 @@ export type ShipmentCreateDTO = {
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
+  customerPhone?: string;
   estimatedDeliveryDate?: string;
   deliveryAddress?: string;
   notes?: string;
@@ -394,6 +496,7 @@ export type ShipmentResponseDTO = {
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
+  customerPhone?: string;
   estimatedDeliveryDate?: string;
   deliveryAddress?: string;
   notes?: string;

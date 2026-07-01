@@ -395,6 +395,9 @@ function CreateReceiptForm({
       acceptedQty: number;
       rejectedQty: number;
       remarks?: string;
+      batchNo?: string;
+      lotNo?: string;
+      unitCost?: number;
     }>
   >([]);
   const [loading, setLoading] = useState(false);
@@ -417,6 +420,9 @@ function CreateReceiptForm({
       acceptedQty: item.quantity,
       rejectedQty: 0,
       remarks: "",
+      batchNo: "",
+      lotNo: "",
+      unitCost: item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
     }));
 
   const receivableOrders = useMemo(
@@ -467,6 +473,9 @@ function CreateReceiptForm({
                   acceptedQty: item.quantity,
                   rejectedQty: 0,
                   remarks: "",
+                  batchNo: "",
+                  lotNo: "",
+                  unitCost: item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
                 };
               }),
             );
@@ -623,15 +632,18 @@ function CreateReceiptForm({
               Enter received, accepted, and rejected quantities per line.
             </p>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[960px] text-sm">
+              <table className="w-full min-w-[1200px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     <th className="pb-3 pr-4">Item</th>
                     <th className="pb-3 pr-4">Warehouse</th>
+                    <th className="pb-3 pr-4 text-right">Unit cost</th>
                     <th className="pb-3 pr-4 text-right">Ordered</th>
                     <th className="pb-3 pr-4 text-right">Received</th>
                     <th className="pb-3 pr-4 text-right">Accepted</th>
                     <th className="pb-3 pr-4 text-right">Rejected</th>
+                    <th className="pb-3 pr-4">Batch</th>
+                    <th className="pb-3 pr-4">Lot</th>
                     <th className="pb-3">Remarks</th>
                   </tr>
                 </thead>
@@ -687,6 +699,9 @@ function CreateReceiptForm({
                             </SelectContent>
                           </Select>
                         </td>
+                        <td className="py-3 pr-4 text-right tabular-nums text-slate-600">
+                          {orderItem?.unitCost ?? orderItem?.unitPrice ?? "—"}
+                        </td>
                         <td className="py-3 pr-4 text-right tabular-nums">
                           {orderItem?.quantity || 0}
                         </td>
@@ -733,6 +748,28 @@ function CreateReceiptForm({
                               )
                             }
                             className="ml-auto w-24 rounded-lg text-right tabular-nums"
+                          />
+                        </td>
+                        <td className="py-3 pr-4">
+                          <Input
+                            type="text"
+                            value={item.batchNo || ""}
+                            onChange={(e) =>
+                              updateItem(idx, "batchNo", e.target.value)
+                            }
+                            placeholder="Batch no."
+                            className="min-w-[120px] rounded-lg"
+                          />
+                        </td>
+                        <td className="py-3 pr-4">
+                          <Input
+                            type="text"
+                            value={item.lotNo || ""}
+                            onChange={(e) =>
+                              updateItem(idx, "lotNo", e.target.value)
+                            }
+                            placeholder="Lot no."
+                            className="min-w-[100px] rounded-lg"
                           />
                         </td>
                         <td className="py-3">

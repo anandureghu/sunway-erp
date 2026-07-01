@@ -259,7 +259,11 @@ export function PurchaseOrderForm({
             ? "Update draft lines and supplier details before releasing the Purchase Order."
             : "Define supplier, dates, and lines for a new draft purchase order."
         }
-        backHref="/inventory/purchase"
+        backHref={
+          isEditMode && initialOrder?.id
+            ? `/inventory/purchase/orders/${initialOrder.id}`
+            : "/inventory/purchase/orders"
+        }
         actions={
           <Button
             type="button"

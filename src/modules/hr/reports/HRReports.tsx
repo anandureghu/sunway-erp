@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   Briefcase,
   ShieldAlert,
+  FileText,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
@@ -36,6 +37,7 @@ import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import ImmigrationExpiryReport from "./ImmigrationExpiryReport";
+import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
 // ── colour palette ────────────────────────────────────────────────────────────
 const COLORS = {
@@ -200,18 +202,25 @@ const IMMIGRATION_TAB = {
   label: "Immigration Expiry",
   icon: ShieldAlert,
 } as const;
+const HISTORY_TAB = {
+  id: "history",
+  label: "History",
+  icon: FileText,
+} as const;
 type TabId =
   | "workforce"
   | "department"
   | "breakdown"
   | "appraisal"
-  | "immigration";
+  | "immigration"
+  | "history";
 const ALL_TAB_IDS: TabId[] = [
   "workforce",
   "department",
   "breakdown",
   "appraisal",
   "immigration",
+  "history",
 ];
 
 // ── main component ────────────────────────────────────────────────────────────
@@ -227,6 +236,7 @@ export default function HRReports() {
       [];
     if (canHrReports) tabs.push(...ANALYTICS_TABS);
     if (canImmigration) tabs.push(IMMIGRATION_TAB);
+    tabs.push(HISTORY_TAB);
     return tabs;
   }, [canHrReports, canImmigration]);
 
@@ -1077,6 +1087,8 @@ export default function HRReports() {
 
       {/* ── IMMIGRATION EXPIRY TAB ── */}
       {tab === "immigration" && <ImmigrationExpiryReport />}
+
+      {tab === "history" && <HistoryTabPanel module="hr" />}
     </div>
   );
 }

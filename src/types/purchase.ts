@@ -166,6 +166,7 @@ export type PurchaseOrderItem = {
   otherUnitCost?: number;
   /** Applied unit cost (same as unitCost in API). */
   unitPrice: number;
+  unitCost?: number;
   discount: number;
   tax: number;
   total: number;

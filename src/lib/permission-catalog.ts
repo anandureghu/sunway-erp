@@ -59,5 +59,5 @@ export const INVENTORY_PERMISSION_MODULES: PermissionModuleRow[] = [
   { id: "INVENTORY_RECEIPT", label: "Goods Receipt", group: "Purchase", description: "Receiving against purchase orders" },
   // Inventory Settings  (/inventory/settings)
   { id: "INVENTORY_CATEGORY", label: "Categories", group: "Inventory Settings", description: "Item categories" },
-  { id: "INVENTORY_WAREHOUSE", label: "Warehouse", group: "Inventory Settings", description: "Warehouses & locations" },
+  { id: "INVENTORY_WAREHOUSE", label: "Warehouse", group: "Inventory Settings", description: "Warehouses, locations & dispatch carriers" },
 ];

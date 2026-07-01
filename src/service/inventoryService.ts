@@ -1,15 +1,22 @@
 import { apiClient } from "@/service/apiClient";
-import type { ItemCategory, Warehouse, Stock } from "@/types/inventory";
+import type { ItemCategory, Warehouse, Stock, DispatchCarrier } from "@/types/inventory";
 import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
   CategoryUpdateDTO,
+  DispatchCarrierCreateDTO,
+  DispatchCarrierResponseDTO,
+  DispatchCarrierUpdateDTO,
   ItemUpdateDTO,
   ItemResponseDTO,
   ItemStockAdjustPayload,
   ItemStockReceivePayload,
   ItemWarehouseStockRowDTO,
   InventoryReportSummaryDTO,
+  StockBatchInsightsDTO,
+  StockBatchMovementReportDTO,
+  StockBatchReportDTO,
+  StockBatchResponseDTO,
   WarehouseCreateDTO,
   WarehouseResponseDTO,
   WarehouseUpdateDTO,
@@ -135,6 +142,63 @@ export async function deleteWarehouse(id: Id | string) {
   await apiClient.delete(`/inventory/warehouses/${id}`);
 }
 
+function toCarrier(dto: DispatchCarrierResponseDTO): DispatchCarrier {
+  const status = normalizeStatus(dto.status);
+  return {
+    id: String(dto.id),
+    name: dto.name,
+    vehicleNumber: dto.vehicleNumber,
+    driverName: dto.driverName,
+    driverPhone: dto.driverPhone,
+    comments: dto.comments,
+    status: status === "inactive" ? "inactive" : "active",
+  };
+}
+
+// ---- Dispatch carriers ----
+export async function listCarriers(): Promise<DispatchCarrier[]> {
+  const res = await apiClient.get<DispatchCarrierResponseDTO[]>(
+    "/inventory/carriers",
+  );
+  return (res.data || []).map(toCarrier);
+}
+
+export async function listActiveCarriersForDispatch(): Promise<DispatchCarrier[]> {
+  const res = await apiClient.get<DispatchCarrierResponseDTO[]>(
+    "/sales/carriers",
+  );
+  return (res.data || []).map(toCarrier);
+}
+
+export async function createCarrier(payload: DispatchCarrierCreateDTO) {
+  const res = await apiClient.post<DispatchCarrierResponseDTO>(
+    "/inventory/carriers",
+    {
+      ...payload,
+      status: (payload.status || "active").toUpperCase(),
+    },
+  );
+  return toCarrier(res.data);
+}
+
+export async function updateCarrier(
+  id: Id | string,
+  payload: DispatchCarrierUpdateDTO,
+) {
+  const res = await apiClient.put<DispatchCarrierResponseDTO>(
+    `/inventory/carriers/${id}`,
+    {
+      ...payload,
+      status: (payload.status || "active").toUpperCase(),
+    },
+  );
+  return toCarrier(res.data);
+}
+
+export async function deleteCarrier(id: Id | string) {
+  await apiClient.delete(`/inventory/carriers/${id}`);
+}
+
 // ---- Reports ----
 export type InventoryReportSummaryQuery = {
   warehouseId?: number;
@@ -152,6 +216,70 @@ export async function getInventoryReportSummary(
         category: params?.category?.trim() || undefined,
       },
     },
+  );
+  return res.data;
+}
+
+export async function listItemBatches(
+  itemId: Id | string,
+  warehouseId?: number,
+): Promise<StockBatchResponseDTO[]> {
+  const res = await apiClient.get<StockBatchResponseDTO[]>(
+    `/inventory/items/${itemId}/batches`,
+    { params: { warehouseId } },
+  );
+  return res.data || [];
+}
+
+export type InventoryBatchReportQuery = {
+  warehouseId?: number;
+  itemId?: number;
+  batchNo?: string;
+};
+
+export async function getInventoryBatchReport(
+  params?: InventoryBatchReportQuery,
+): Promise<StockBatchReportDTO> {
+  const res = await apiClient.get<StockBatchReportDTO>(
+    "/inventory/reports/batches",
+    {
+      params: {
+        warehouseId: params?.warehouseId,
+        itemId: params?.itemId,
+        batchNo: params?.batchNo?.trim() || undefined,
+      },
+    },
+  );
+  return res.data;
+}
+
+export async function getItemBatchMovements(
+  itemId: Id | string,
+  params?: { warehouseId?: number; limit?: number },
+): Promise<StockBatchMovementReportDTO> {
+  const res = await apiClient.get<StockBatchMovementReportDTO>(
+    `/inventory/items/${itemId}/batch-movements`,
+    { params },
+  );
+  return res.data;
+}
+
+export async function getInventoryBatchMovements(
+  params?: InventoryBatchReportQuery & { limit?: number },
+): Promise<StockBatchMovementReportDTO> {
+  const res = await apiClient.get<StockBatchMovementReportDTO>(
+    "/inventory/reports/batch-movements",
+    { params },
+  );
+  return res.data;
+}
+
+export async function getInventoryBatchInsights(
+  params?: InventoryBatchReportQuery,
+): Promise<StockBatchInsightsDTO> {
+  const res = await apiClient.get<StockBatchInsightsDTO>(
+    "/inventory/reports/batch-insights",
+    { params },
   );
   return res.data;
 }

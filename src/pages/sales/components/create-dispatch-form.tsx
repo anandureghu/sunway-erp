@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import PhoneInput from "@/components/PhoneInput";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,7 +21,9 @@ import {
   createShipmentFromPicklist,
   getSalesOrderById,
 } from "@/service/salesFlowService";
+import { listActiveCarriersForDispatch } from "@/service/inventoryService";
 import { listCustomers } from "@/service/customerService";
+import type { DispatchCarrier } from "@/types/inventory";
 import type { Picklist } from "@/types/sales";
 import { SalesPageHeader } from "./sales-page-header";
 
@@ -40,6 +43,8 @@ export function CreateDispatchForm({
   const [selectedPicklistId, setSelectedPicklistId] = useState(
     initialPicklistId || "",
   );
+  const [selectedCarrierId, setSelectedCarrierId] = useState("");
+  const [carriers, setCarriers] = useState<DispatchCarrier[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const {
     register,
@@ -58,6 +63,12 @@ export function CreateDispatchForm({
   );
 
   useEffect(() => {
+    void listActiveCarriersForDispatch()
+      .then(setCarriers)
+      .catch(() => setCarriers([]));
+  }, []);
+
+  useEffect(() => {
     if (!initialPicklistId) return;
     setSelectedPicklistId(initialPicklistId);
     setValue("picklistId", initialPicklistId, { shouldValidate: true });
@@ -72,17 +83,27 @@ export function CreateDispatchForm({
       setValue("orderId", selectedPicklist.orderId || "");
 
       const currentTypedAddress = (getValues("deliveryAddress") || "").trim();
-      if (currentTypedAddress) return;
+      const currentCustomerPhone = (getValues("customerPhone") || "").trim();
 
       let preferredAddress = (order?.shippingAddress || "").trim();
-      if (!preferredAddress && selectedPicklist.orderId) {
+      let customerPhone = (order?.customerPhone || "").trim();
+
+      if (
+        (!preferredAddress || !customerPhone) &&
+        selectedPicklist.orderId
+      ) {
         try {
           const fullOrder = await getSalesOrderById(selectedPicklist.orderId);
-          preferredAddress = (fullOrder.shippingAddress || "").trim();
+          if (!preferredAddress) {
+            preferredAddress = (fullOrder.shippingAddress || "").trim();
+          }
+          if (!customerPhone) {
+            customerPhone = (fullOrder.customerPhone || "").trim();
+          }
           if (!preferredAddress && fullOrder.customerId) {
             const customers = await listCustomers();
             const customer = customers.find(
-              (c) => c.id === fullOrder.customerId,
+              (c) => String(c.id) === String(fullOrder.customerId),
             );
             preferredAddress = [
               customer?.address,
@@ -94,21 +115,22 @@ export function CreateDispatchForm({
               .filter(Boolean)
               .join(", ")
               .trim();
+            if (!customerPhone) {
+              customerPhone = (customer?.phone || "").trim();
+            }
           }
         } catch {
           // Keep form usable even if enrichment request fails.
         }
       }
-      if (!cancelled && preferredAddress) {
-        setValue("deliveryAddress", preferredAddress);
-      }
+
       if (!cancelled) {
-        setValue(
-          "notes",
-          [order?.customerName, order?.customerPhone]
-            .filter(Boolean)
-            .join(" | "),
-        );
+        if (!currentTypedAddress && preferredAddress) {
+          setValue("deliveryAddress", preferredAddress);
+        }
+        if (!currentCustomerPhone && customerPhone) {
+          setValue("customerPhone", customerPhone);
+        }
       }
     };
     void hydrateDispatchDefaults();
@@ -116,6 +138,20 @@ export function CreateDispatchForm({
       cancelled = true;
     };
   }, [getValues, selectedPicklist, setValue]);
+
+  const applyCarrierPreset = (carrierId: string) => {
+    setSelectedCarrierId(carrierId);
+    if (!carrierId || carrierId === "manual") {
+      return;
+    }
+    const carrier = carriers.find((c) => c.id === carrierId);
+    if (!carrier) return;
+    setValue("carrierName", carrier.name);
+    setValue("vehicleNumber", carrier.vehicleNumber || "");
+    setValue("driverName", carrier.driverName || "");
+    setValue("driverPhone", carrier.driverPhone || "");
+    setValue("notes", carrier.comments || "");
+  };
 
   const onSubmit = async (data: DispatchFormData) => {
     if (submitting) return;
@@ -127,6 +163,7 @@ export function CreateDispatchForm({
         vehicleNumber: data.vehicleNumber || undefined,
         driverName: data.driverName || undefined,
         driverPhone: data.driverPhone || undefined,
+        customerPhone: data.customerPhone || undefined,
         estimatedDeliveryDate: data.estimatedDeliveryDate || undefined,
         deliveryAddress: data.deliveryAddress || undefined,
         notes: data.notes || undefined,
@@ -149,7 +186,7 @@ export function CreateDispatchForm({
     <div className="p-4 sm:p-6 space-y-6">
       <SalesPageHeader
         title="Create Dispatch"
-        description="Turn a picked picklist into a shipment with carrier, tracking, and delivery details."
+        description="Turn a picked picklist into a shipment. Select a saved carrier to prefill driver and comment details."
         backHref="/inventory/sales/picklist"
         actions={
           <Button
@@ -167,11 +204,11 @@ export function CreateDispatchForm({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Dispatch Information</CardTitle>
+            <CardTitle>Dispatch information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedPicklist?.order && (
-              <div className="rounded-md border p-3 text-sm">
+              <div className="rounded-xl border bg-slate-50/80 p-3 text-sm">
                 <p>
                   <span className="text-muted-foreground">Order:</span>{" "}
                   {selectedPicklist.order.orderNo || "-"}
@@ -182,7 +219,8 @@ export function CreateDispatchForm({
                 </p>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="picklistId">Picklist *</Label>
                 <Select
@@ -211,8 +249,29 @@ export function CreateDispatchForm({
                   </p>
                 )}
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="deliveryAddress">Delivery Address *</Label>
+                <Label>Saved carrier</Label>
+                <Select
+                  value={selectedCarrierId || "manual"}
+                  onValueChange={applyCarrierPreset}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select carrier preset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Enter manually</SelectItem>
+                    {carriers.map((carrier) => (
+                      <SelectItem key={carrier.id} value={carrier.id}>
+                        {carrier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="deliveryAddress">Delivery address *</Label>
                 <Input id="deliveryAddress" {...register("deliveryAddress")} />
                 {errors.deliveryAddress && (
                   <p className="text-sm text-red-500">
@@ -220,26 +279,57 @@ export function CreateDispatchForm({
                   </p>
                 )}
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+
               <div className="space-y-2">
-                <Label htmlFor="carrierName">Carrier Name</Label>
+                <Label htmlFor="customerPhone">Customer phone</Label>
+                <Controller
+                  name="customerPhone"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <PhoneInput
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      invalid={!!fieldState.error}
+                    />
+                  )}
+                />
+                {errors.customerPhone && (
+                  <p className="text-sm text-rose-600">
+                    {errors.customerPhone.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="estimatedDeliveryDate">
+                  Estimated delivery date
+                </Label>
+                <Input
+                  id="estimatedDeliveryDate"
+                  type="date"
+                  {...register("estimatedDeliveryDate")}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="carrierName">Carrier name</Label>
                 <Input id="carrierName" {...register("carrierName")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="trackingNumber">Tracking Number</Label>
+                <Label htmlFor="trackingNumber">Tracking number</Label>
                 <Input id="trackingNumber" {...register("trackingNumber")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+                <Label htmlFor="vehicleNumber">Vehicle number</Label>
                 <Input id="vehicleNumber" {...register("vehicleNumber")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="driverName">Driver Name</Label>
+                <Label htmlFor="driverName">Driver name</Label>
                 <Input id="driverName" {...register("driverName")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="driverPhone">Driver Phone</Label>
+                <Label htmlFor="driverPhone">Driver phone</Label>
                 <Controller
                   name="driverPhone"
                   control={control}
@@ -258,20 +348,16 @@ export function CreateDispatchForm({
                   </p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="estimatedDeliveryDate">
-                  Estimated Delivery Date
-                </Label>
-                <Input
-                  id="estimatedDeliveryDate"
-                  type="date"
-                  {...register("estimatedDeliveryDate")}
-                />
-              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Input id="notes" {...register("notes")} />
+              <Label htmlFor="notes">Notes / comments</Label>
+              <Textarea
+                id="notes"
+                className="min-h-[100px]"
+                placeholder="Dispatch comments"
+                {...register("notes")}
+              />
             </div>
           </CardContent>
         </Card>
@@ -280,7 +366,7 @@ export function CreateDispatchForm({
             Cancel
           </Button>
           <Button type="submit" disabled={!selectedPicklistId || submitting}>
-            {submitting ? "Creating..." : "Create Dispatch"}
+            {submitting ? "Creating..." : "Create dispatch"}
           </Button>
         </div>
       </form>

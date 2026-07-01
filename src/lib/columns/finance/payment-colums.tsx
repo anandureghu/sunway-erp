@@ -29,15 +29,6 @@ export const PAYMENT_COLUMNS = ({
   archivingPaymentId?: number | null;
 }): ColumnDef<PaymentResponseDTO>[] => {
   const columns: ColumnDef<PaymentResponseDTO>[] = [
-    {
-      id: "slNo",
-      header: "SL no",
-      cell: ({ row }) => (
-        <span className="text-muted-foreground tabular-nums">
-          {row.index + 1}
-        </span>
-      ),
-    },
     { accessorKey: "paymentCode", header: "Code" },
   ];
 
@@ -62,7 +53,8 @@ export const PAYMENT_COLUMNS = ({
         const item = row.original;
         const amt = Number(row.getValue("amount"));
         const dir =
-          item.paymentDirection || (variant === "vendor" ? "VENDOR" : "CUSTOMER");
+          item.paymentDirection ||
+          (variant === "vendor" ? "VENDOR" : "CUSTOMER");
         if (dir === "VENDOR") {
           return <DebitAmount amount={amt} />;
         }
@@ -95,11 +87,14 @@ export const PAYMENT_COLUMNS = ({
       cell: ({ row }) => {
         const item = row.original;
         const dir =
-          item.paymentDirection || (variant === "vendor" ? "VENDOR" : "CUSTOMER");
+          item.paymentDirection ||
+          (variant === "vendor" ? "VENDOR" : "CUSTOMER");
         if (dir === "VENDOR") {
           const poLabel =
             item.purchaseOrderNumber ||
-            (item.purchaseOrderId != null ? `PO #${item.purchaseOrderId}` : null);
+            (item.purchaseOrderId != null
+              ? `PO #${item.purchaseOrderId}`
+              : null);
           if (!poLabel) {
             return <span className="text-muted-foreground">—</span>;
           }
@@ -151,7 +146,9 @@ export const PAYMENT_COLUMNS = ({
         const isPendingVendor =
           variant === "vendor" && method === "PENDING_VENDOR_PAYMENT";
         if (isPendingVendor) {
-          return <span className="text-muted-foreground text-xs">After confirm</span>;
+          return (
+            <span className="text-muted-foreground text-xs">After confirm</span>
+          );
         }
         const url = item.pdfUrl;
         const canUseDirect = url && !isDummyDocumentUrl(url);
@@ -206,13 +203,17 @@ export const PAYMENT_COLUMNS = ({
           return (
             <div data-no-row-nav onClick={(e) => e.stopPropagation()}>
               <Button size="sm" onClick={() => onConfirm(item)}>
-                {dir === "VENDOR" ? "Confirm vendor payment" : "Confirm payment"}
+                {dir === "VENDOR"
+                  ? "Confirm vendor payment"
+                  : "Confirm payment"}
               </Button>
             </div>
           );
         }
         if (item.archived) {
-          return <span className="text-muted-foreground text-xs">Archived</span>;
+          return (
+            <span className="text-muted-foreground text-xs">Archived</span>
+          );
         }
         if (canArchive) {
           return (

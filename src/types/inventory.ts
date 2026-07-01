@@ -151,3 +151,13 @@ export type ItemCategory = {
   createdAt: string;
   subCategories?: ItemCategory[]; // Nested subcategories
 };
+
+export type DispatchCarrier = {
+  id: string;
+  name: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  comments?: string;
+  status: "active" | "inactive";
+};

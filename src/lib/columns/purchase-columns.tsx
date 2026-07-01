@@ -23,6 +23,8 @@ import {
   CheckCircle,
   Send,
   Link2,
+  Download,
+  Mail,
   Archive,
   Loader2,
 } from "lucide-react";
@@ -30,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 
 export type PurchaseOrderColumnActions = {
   /** Navigate to full PO detail */
@@ -351,6 +354,8 @@ export const SUPPLIER_COLUMNS: ColumnDef<Supplier>[] = [
 export type PurchaseInvoiceColumnActions = {
   onViewDetails?: (inv: FinanceInvoice) => void;
   onOpenDocument?: (inv: FinanceInvoice) => void;
+  onDownload?: (inv: FinanceInvoice) => void;
+  onEmail?: (inv: FinanceInvoice) => void;
 };
 
 // Purchase Invoice Columns (API FinanceInvoice)
@@ -360,10 +365,7 @@ function purchaseInvoiceSupplierId(inv: FinanceInvoice): number | null {
 
 function purchaseInvoiceSupplierName(inv: FinanceInvoice): string | null {
   return (
-    inv.supplierName ??
-    inv.purchaseOrder?.supplierName ??
-    inv.toParty ??
-    null
+    inv.supplierName ?? inv.purchaseOrder?.supplierName ?? inv.toParty ?? null
   );
 }
 
@@ -372,17 +374,8 @@ export function createPurchaseInvoiceColumns(
   processingInvoiceId?: number | null,
   invoiceActions: PurchaseInvoiceColumnActions = {},
 ): ColumnDef<FinanceInvoice>[] {
-  const { onViewDetails, onOpenDocument } = invoiceActions;
+  const { onViewDetails, onOpenDocument, onDownload, onEmail } = invoiceActions;
   return [
-    {
-      id: "slNo",
-      header: "SL no",
-      cell: ({ row }) => (
-        <span className="text-muted-foreground tabular-nums">
-          {row.index + 1}
-        </span>
-      ),
-    },
     {
       accessorKey: "invoiceId",
       header: "Inv no",
@@ -483,6 +476,8 @@ export function createPurchaseInvoiceColumns(
       cell: ({ row }) => {
         const inv = row.original;
         const normalizedStatus = (inv.status || "").toUpperCase();
+        const isReceipt = isInvoiceReceiptView(inv.status);
+        const isGenerated = inv.documentSource === "GENERATED";
         const canArchive =
           !inv.archived &&
           (normalizedStatus === "PAID" || normalizedStatus === "CANCELLED");
@@ -507,10 +502,32 @@ export function createPurchaseInvoiceColumns(
                     }}
                   >
                     <Eye className="mr-2 h-4 w-4" />
-                    View details
+                    {isReceipt ? "View receipt" : "View invoice"}
                   </DropdownMenuItem>
                 )}
-                {onOpenDocument && (
+                {isGenerated && onDownload && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void onDownload(inv);
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {isReceipt ? "Download receipt" : "Download invoice"}
+                  </DropdownMenuItem>
+                )}
+                {isGenerated && onEmail && (
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void onEmail(inv);
+                    }}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    {isReceipt ? "Email receipt" : "Email invoice"}
+                  </DropdownMenuItem>
+                )}
+                {onOpenDocument && !isGenerated && (
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault();

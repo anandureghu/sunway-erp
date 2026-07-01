@@ -585,6 +585,9 @@ export function ReceiveItemTab({
                       {errors.costPrice.message}
                     </p>
                   )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A different cost creates a new batch layer; same batch and cost add to the existing layer.
+                  </p>
                 </div>
 
                 <div>
@@ -639,8 +642,8 @@ export function ReceiveItemTab({
         onOpenChange={setShowCreateItemDialog}
       >
         <DialogContent
-          className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
-          style={{ maxWidth: 760, maxHeight: "92vh", width: "calc(100vw - 32px)" }}
+          className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 sm:max-w-5xl [&>button]:hidden"
+          style={{ maxHeight: "92vh", width: "calc(100vw - 32px)" }}
         >
           {/* ── Top bar ── */}
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">

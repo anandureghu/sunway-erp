@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 import {
   Select,
   SelectContent,
@@ -29,7 +30,6 @@ import {
   Package,
   AlertTriangle,
   BarChart3,
-  Clock,
   RefreshCw,
   Loader2,
   Warehouse as WarehouseIcon,
@@ -55,15 +55,25 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  Area,
+  AreaChart,
 } from "recharts";
 import {
   getInventoryReportSummary,
+  getInventoryBatchReport,
+  getInventoryBatchInsights,
+  getInventoryBatchMovements,
   listCategories,
   listItems,
   listWarehouses,
   type InventoryReportSummaryQuery,
 } from "@/service/inventoryService";
-import type { InventoryReportSummaryDTO } from "@/service/erpApiTypes";
+import type {
+  InventoryReportSummaryDTO,
+  StockBatchInsightsDTO,
+  StockBatchMovementReportDTO,
+  StockBatchReportDTO,
+} from "@/service/erpApiTypes";
 import type { ItemCategory, Warehouse } from "@/types/inventory";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { listSalesOrders } from "@/service/salesFlowService";
@@ -72,6 +82,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { formatMoney } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
+import { ItemBatchReportsPanel } from "@/pages/inventory/inventory-item-detail/item-batch-reports-panel";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
@@ -91,6 +102,11 @@ const PIE_COLORS = [
 
 const VALUATION_COLOR = "hsl(142 76% 45%)";
 const COGS_COLOR = "hsl(38 92% 56%)";
+
+const batchTrendChartConfig = {
+  receiveQty: { label: "Received", color: "hsl(142 76% 45%)" },
+  issueQty: { label: "Issued", color: "hsl(0 78% 60%)" },
+} satisfies ChartConfig;
 
 const compactNumber = (n: number) => {
   if (!Number.isFinite(n)) return "0";
@@ -161,10 +177,20 @@ export default function InventoryReportsPage() {
 
   const [warehouseId, setWarehouseId] = useState<string>("all");
   const [categoryId, setCategoryId] = useState<string>("all");
+  const [itemIdFilter, setItemIdFilter] = useState<string>("all");
+  const [batchNoFilter, setBatchNoFilter] = useState("");
 
   const [summary, setSummary] = useState<InventoryReportSummaryDTO | null>(
     null,
   );
+  const [batchReport, setBatchReport] = useState<StockBatchReportDTO | null>(
+    null,
+  );
+  const [batchInsights, setBatchInsights] = useState<StockBatchInsightsDTO | null>(
+    null,
+  );
+  const [batchMovements, setBatchMovements] =
+    useState<StockBatchMovementReportDTO | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -185,6 +211,18 @@ export default function InventoryReportsPage() {
       category: cat,
     };
   }, [warehouseId, categoryId, categories]);
+
+  const batchQueryParams = useMemo(() => {
+    const wid =
+      warehouseId === "all" ? undefined : Number.parseInt(warehouseId, 10);
+    const iid =
+      itemIdFilter === "all" ? undefined : Number.parseInt(itemIdFilter, 10);
+    return {
+      warehouseId: Number.isFinite(wid as number) ? wid : undefined,
+      itemId: Number.isFinite(iid as number) ? iid : undefined,
+      batchNo: batchNoFilter.trim() || undefined,
+    };
+  }, [warehouseId, itemIdFilter, batchNoFilter]);
 
   const loadBaseline = useCallback(async () => {
     // Load each source independently so a permission a user lacks (e.g. only
@@ -222,8 +260,16 @@ export default function InventoryReportsPage() {
     setSummaryLoading(true);
     setLastError(null);
     try {
-      const data = await getInventoryReportSummary(summaryParams);
+      const [data, batches, insights, movements] = await Promise.all([
+        getInventoryReportSummary(summaryParams),
+        getInventoryBatchReport(batchQueryParams),
+        getInventoryBatchInsights(batchQueryParams),
+        getInventoryBatchMovements({ ...batchQueryParams, limit: 150 }),
+      ]);
       setSummary(data);
+      setBatchReport(batches);
+      setBatchInsights(insights);
+      setBatchMovements(movements);
     } catch (e: unknown) {
       console.error(e);
       const msg =
@@ -235,7 +281,7 @@ export default function InventoryReportsPage() {
     } finally {
       setSummaryLoading(false);
     }
-  }, [summaryParams]);
+  }, [summaryParams, batchQueryParams]);
 
   useEffect(() => {
     void loadBaseline();
@@ -525,8 +571,8 @@ export default function InventoryReportsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Filters</CardTitle>
           <CardDescription>
-            Warehouse and category filter the current stock snapshot. Date range
-            applies to turnover (sales-based COGS) only.
+            Warehouse and category filter the stock snapshot. Item and batch
+            number filter batch reports. Date range applies to turnover only.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -570,6 +616,32 @@ export default function InventoryReportsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
+              <Label>Item (batch reports)</Label>
+              <Select value={itemIdFilter} onValueChange={setItemIdFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All items" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All items</SelectItem>
+                  {items.map((i) => (
+                    <SelectItem key={i.id} value={String(i.id)}>
+                      {i.sku ? `${i.sku} — ` : ""}
+                      {i.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="batch-no-filter">Batch number</Label>
+              <Input
+                id="batch-no-filter"
+                placeholder="Search batch…"
+                value={batchNoFilter}
+                onChange={(e) => setBatchNoFilter(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="inv-turnover-from">Period from</Label>
               <Input
                 id="inv-turnover-from"
@@ -606,9 +678,13 @@ export default function InventoryReportsPage() {
       <Tabs defaultValue="valuation" className="space-y-4">
         <TabsList className="flex flex-wrap">
           <TabsTrigger value="valuation">Stock valuation</TabsTrigger>
+          <TabsTrigger value="batches">Batch stock</TabsTrigger>
+          <TabsTrigger value="analytics">Batch analytics</TabsTrigger>
+          <TabsTrigger value="movements">Movement history</TabsTrigger>
           <TabsTrigger value="turnover">Turnover</TabsTrigger>
-          <TabsTrigger value="ageing">Ageing &amp; expiry</TabsTrigger>
+          <TabsTrigger value="ageing">Expiry alerts</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="valuation" className="space-y-4">
@@ -792,6 +868,195 @@ export default function InventoryReportsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="batches" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch stock layers</CardTitle>
+              <CardDescription>
+                On-hand quantity and value at each batch unit cost (FIFO layers).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {summaryLoading ? (
+                <Skeleton className="h-48 w-full" />
+              ) : !batchReport?.batches?.length ? (
+                <EmptyState message="No batch stock for the current filters." />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                        <th className="pb-2 pr-3">Item</th>
+                        <th className="pb-2 pr-3">Batch</th>
+                        <th className="pb-2 pr-3">Warehouse</th>
+                        <th className="pb-2 pr-3 text-right">Qty</th>
+                        <th className="pb-2 pr-3 text-right">Unit cost</th>
+                        <th className="pb-2 pr-3 text-right">Value</th>
+                        <th className="pb-2 pr-3">Received</th>
+                        <th className="pb-2">Expiry</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {batchReport.batches.map((row) => (
+                        <tr key={row.id} className="border-b border-border/60">
+                          <td className="py-2 pr-3">
+                            <div className="font-medium">{row.itemName}</div>
+                            <div className="text-xs text-muted-foreground">{row.itemSku}</div>
+                          </td>
+                          <td className="py-2 pr-3 font-mono text-xs">{row.batchNo}</td>
+                          <td className="py-2 pr-3">{row.warehouseName}</td>
+                          <td className="py-2 pr-3 text-right tabular-nums">{row.quantityOnHand}</td>
+                          <td className="py-2 pr-3 text-right">
+                            <CurrencyAmount amount={row.unitCost} />
+                          </td>
+                          <td className="py-2 pr-3 text-right">
+                            <CurrencyAmount amount={row.lineValue} />
+                          </td>
+                          <td className="py-2 pr-3">{row.receivedAt ?? "—"}</td>
+                          <td className="py-2">{row.expiryDate ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                    <span>
+                      Total qty:{" "}
+                      <strong>{batchReport.totalQuantity}</strong>
+                    </span>
+                    <span>
+                      Total value:{" "}
+                      <CurrencyAmount
+                        amount={batchReport.totalValueAtCost}
+                        className="font-semibold"
+                      />
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-4">
+          <ItemBatchReportsPanel
+            key={`analytics-${batchQueryParams.warehouseId ?? "all"}-${batchQueryParams.itemId ?? "all"}-${batchQueryParams.batchNo ?? ""}`}
+            itemId={batchQueryParams.itemId ?? 0}
+            mode="company"
+            warehouseId={batchQueryParams.warehouseId}
+            filterItemId={batchQueryParams.itemId}
+            batchNo={batchQueryParams.batchNo}
+          />
+        </TabsContent>
+
+        <TabsContent value="movements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch movement history</CardTitle>
+              <CardDescription>
+                Recent receives, issues, transfers, and adjustments across FIFO
+                layers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {summaryLoading ? (
+                <Skeleton className="h-72 w-full" />
+              ) : !batchMovements?.movements?.length ? (
+                <EmptyState message="No batch movements for the current filters." />
+              ) : (
+                <div className="overflow-x-auto rounded-lg border max-h-[420px] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-muted/80 text-left text-xs uppercase text-muted-foreground backdrop-blur">
+                      <tr>
+                        <th className="p-3">Date</th>
+                        <th className="p-3">Type</th>
+                        <th className="p-3">Item</th>
+                        <th className="p-3">Batch</th>
+                        <th className="p-3">Warehouse</th>
+                        <th className="p-3 text-right">Qty</th>
+                        <th className="p-3 text-right">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {batchMovements.movements.map((m) => (
+                        <tr key={m.id} className="border-t">
+                          <td className="p-3 text-xs text-muted-foreground">
+                            {m.createdAt
+                              ? new Date(m.createdAt).toLocaleString()
+                              : "—"}
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="text-[10px] uppercase">
+                              {m.movementType.replace(/_/g, " ")}
+                            </Badge>
+                          </td>
+                          <td className="p-3">{m.itemName ?? "—"}</td>
+                          <td className="p-3 font-mono text-xs">{m.batchNo}</td>
+                          <td className="p-3">{m.warehouseName}</td>
+                          <td
+                            className={`p-3 text-right tabular-nums font-medium ${
+                              (m.quantity ?? 0) > 0
+                                ? "text-emerald-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {(m.quantity ?? 0) > 0 ? "+" : ""}
+                            {m.quantity}
+                          </td>
+                          <td className="p-3 text-right">
+                            <CurrencyAmount amount={Math.abs(m.lineValue ?? 0)} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Receive vs issue trend</CardTitle>
+              <CardDescription>Monthly batch movement volume</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {summaryLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : !batchMovements?.receiveTrend?.length ? (
+                <EmptyState message="No movement trend data yet." />
+              ) : (
+                <ChartContainer
+                  config={batchTrendChartConfig}
+                  className="h-64 w-full"
+                >
+                  <AreaChart data={batchMovements.receiveTrend}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="period" tickLine={false} axisLine={false} />
+                    <YAxis tickLine={false} axisLine={false} width={40} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Area
+                      type="monotone"
+                      dataKey="receiveQty"
+                      stackId="1"
+                      stroke="var(--color-receiveQty)"
+                      fill="var(--color-receiveQty)"
+                      fillOpacity={0.35}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="issueQty"
+                      stackId="2"
+                      stroke="var(--color-issueQty)"
+                      fill="var(--color-issueQty)"
+                      fillOpacity={0.35}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="turnover" className="space-y-4">
           <Card>
             <CardHeader>
@@ -911,21 +1176,100 @@ export default function InventoryReportsPage() {
         </TabsContent>
 
         <TabsContent value="ageing" className="space-y-4">
-          <Card className="border-dashed">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <MetricTile
+              label="Expiring ≤ 30 days"
+              value={`${batchInsights?.expiringWithin30Days ?? 0} units`}
+              highlight
+            />
+            <MetricTile
+              label="Expiring ≤ 60 days"
+              value={`${batchInsights?.expiringWithin60Days ?? 0} units`}
+            />
+            <MetricTile
+              label="Expiring ≤ 90 days"
+              value={`${batchInsights?.expiringWithin90Days ?? 0} units`}
+            />
+            <MetricTile
+              label="Value expiring ≤ 30 days"
+              value={
+                <CurrencyAmount
+                  amount={batchInsights?.valueExpiringWithin30Days ?? 0}
+                />
+              }
+            />
+            <MetricTile
+              label="Value expiring ≤ 60 days"
+              value={
+                <CurrencyAmount
+                  amount={batchInsights?.valueExpiringWithin60Days ?? 0}
+                />
+              }
+            />
+            <MetricTile
+              label="Value expiring ≤ 90 days"
+              value={
+                <CurrencyAmount
+                  amount={batchInsights?.valueExpiringWithin90Days ?? 0}
+                />
+              }
+            />
+          </div>
+          <Card>
             <CardHeader>
-              <CardTitle>Ageing &amp; expiry</CardTitle>
+              <CardTitle>Expiry alerts</CardTitle>
               <CardDescription>
-                Batch-level received dates and expiry are not stored on stock
-                rows yet.
+                Batch layers sorted by nearest expiry date.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <Clock className="h-14 w-14 text-muted-foreground/40" />
-              <p className="max-w-md text-sm text-muted-foreground">
-                When lot/batch metadata and expiry are captured per warehouse
-                stock line, this section can show value by age and expiry
-                status.
-              </p>
+            <CardContent>
+              {summaryLoading ? (
+                <Skeleton className="h-48 w-full" />
+              ) : !batchReport?.batches?.length ? (
+                <EmptyState message="No batch data for ageing analysis." />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                        <th className="pb-2 pr-3">Item</th>
+                        <th className="pb-2 pr-3">Batch</th>
+                        <th className="pb-2 pr-3 text-right">Qty</th>
+                        <th className="pb-2 pr-3 text-right">Value</th>
+                        <th className="pb-2 pr-3">Received</th>
+                        <th className="pb-2">Expiry</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {batchReport.batches
+                        .slice()
+                        .sort((a, b) => {
+                          const ae = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+                          const be = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+                          return ae - be;
+                        })
+                        .map((row) => (
+                          <tr key={`age-${row.id}`} className="border-b border-border/60">
+                            <td className="py-2 pr-3">{row.itemName}</td>
+                            <td className="py-2 pr-3 font-mono text-xs">{row.batchNo}</td>
+                            <td className="py-2 pr-3 text-right tabular-nums">{row.quantityOnHand}</td>
+                            <td className="py-2 pr-3 text-right">
+                              <CurrencyAmount amount={row.lineValue} />
+                            </td>
+                            <td className="py-2 pr-3">{row.receivedAt ?? "—"}</td>
+                            <td className="py-2">
+                              {row.expiryDate ? (
+                                <Badge variant="outline">{row.expiryDate}</Badge>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1045,6 +1389,10 @@ export default function InventoryReportsPage() {
               {format(parseISO(summary.generatedAt), "PPpp")}
             </p>
           ) : null}
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <HistoryTabPanel module="inventory" />
         </TabsContent>
       </Tabs>
     </div>

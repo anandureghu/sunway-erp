@@ -11,17 +11,20 @@ import {
   confirmSalesOrder,
   listSalesOrders,
 } from "@/service/salesFlowService";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import { CreateSalesOrderForm } from "./components/create-sales-order-form";
 import { SalesOrderDetailsDialog } from "./components/sales-order-details-dialog";
 import { SalesOrdersListView } from "./components/sales-orders-list-view";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
 import {
   ClipboardList,
-  CircleDollarSign,
+  CheckCircle2,
   Package,
   ShoppingBag,
 } from "lucide-react";
-import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 export default function SalesOrdersPage() {
   const { confirm } = useConfirmDialog();
@@ -31,8 +34,10 @@ export default function SalesOrdersPage() {
     (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [listTab, setListTab] = useState<"active" | "closed">("active");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new"),
   );
@@ -72,8 +77,16 @@ export default function SalesOrdersPage() {
 
   useEffect(() => {
     setStatusFilter("all");
-    setShowArchivedOnly(false);
+    setPaymentStatusFilter("all");
+    setRowSelection({});
   }, [listTab]);
+
+  const normalizePaymentStatusKey = useCallback((status?: string) => {
+    const normalized = (status || "UNPAID").trim().toUpperCase().replace(/\s+/g, "_");
+    if (normalized === "PARTIAL") return "PARTIALLY_PAID";
+    if (normalized === "PENDING") return "UNPAID";
+    return normalized || "UNPAID";
+  }, []);
 
   const isClosedOrder = useCallback(
     (o: SalesOrder) =>
@@ -93,9 +106,12 @@ export default function SalesOrdersPage() {
 
   const salesOrderKpis = useMemo((): KpiSummaryStat[] => {
     const draftCount = orders.filter((o) => o.status === "draft").length;
-    const openPipelineValue = orders
-      .filter((o) => !isClosedOrder(o))
-      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const confirmedOrdersCount = orders.filter(
+      (o) => !isClosedOrder(o) && o.status !== "draft",
+    ).length;
+    const completedOrdersCount = orders.filter(
+      (o) => o.status === "completed",
+    ).length;
     return [
       {
         label: "Total orders",
@@ -105,9 +121,9 @@ export default function SalesOrdersPage() {
         icon: Package,
       },
       {
-        label: "Open pipeline",
-        value: activeCount,
-        hint: "Excluding completed & cancelled",
+        label: "Confirmed orders",
+        value: confirmedOrdersCount,
+        hint: "Confirmed and in fulfillment",
         accent: "emerald",
         icon: ShoppingBag,
       },
@@ -119,14 +135,14 @@ export default function SalesOrdersPage() {
         icon: ClipboardList,
       },
       {
-        label: "Open order value",
-        value: <CurrencyAmount amount={openPipelineValue} />,
-        hint: "Sum of open order totals",
+        label: "Completed orders",
+        value: completedOrdersCount,
+        hint: "Fully fulfilled orders",
         accent: "violet",
-        icon: CircleDollarSign,
+        icon: CheckCircle2,
       },
     ];
-  }, [orders, activeCount, isClosedOrder]);
+  }, [orders, isClosedOrder]);
 
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -134,19 +150,28 @@ export default function SalesOrdersPage() {
       const inTab =
         listTab === "closed" ? isClosedOrder(order) : !isClosedOrder(order);
       if (!inTab) return false;
-      if (listTab === "closed") {
-        const isArchived = Boolean(order.archived);
-        if (showArchivedOnly ? !isArchived : isArchived) return false;
-      }
+      if (listTab === "closed" && order.archived) return false;
       const matchesSearch =
         !q ||
         order.orderNo.toLowerCase().includes(q) ||
         order.customerName.toLowerCase().includes(q);
       const matchesStatus =
         statusFilter === "all" || order.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesPaymentStatus =
+        paymentStatusFilter === "all" ||
+        normalizePaymentStatusKey(order.paymentStatus) ===
+          paymentStatusFilter.toUpperCase();
+      return matchesSearch && matchesStatus && matchesPaymentStatus;
     });
-  }, [orders, searchQuery, statusFilter, listTab, isClosedOrder, showArchivedOnly]);
+  }, [
+    orders,
+    searchQuery,
+    statusFilter,
+    paymentStatusFilter,
+    listTab,
+    isClosedOrder,
+    normalizePaymentStatusKey,
+  ]);
 
   const handleConfirmOrder = useCallback(
     async (id: string) => {
@@ -269,6 +294,44 @@ export default function SalesOrdersPage() {
     [orders, refreshOrders],
   );
 
+  const selectedOrderIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveOrders = useCallback(async () => {
+    if (selectedOrderIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Inventory Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "SALES_ORDER",
+        selectedOrderIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await refreshOrders();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to archive selected orders.",
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, refreshOrders, selectedOrderIds]);
+
   const handleViewDetails = useCallback(
     (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -350,15 +413,21 @@ export default function SalesOrdersPage() {
         closedCount={closedCount}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
-        showArchivedOnly={showArchivedOnly}
+        paymentStatusFilter={paymentStatusFilter}
         columns={columns}
+        enableBulkArchive={listTab === "closed"}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        selectedCount={selectedOrderIds.length}
+        onBulkArchive={handleBulkArchiveOrders}
+        bulkArchiving={bulkArchiving}
         onCreateNew={() => {
           setOrderToEdit(null);
           setShowCreateForm(true);
         }}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
-        onShowArchivedOnlyChange={setShowArchivedOnly}
+        onPaymentStatusChange={setPaymentStatusFilter}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}
       />

@@ -1,12 +1,13 @@
 import { AppTab } from "@/components/app-tab";
 import CategoriesMaster from "@/modules/inventory/settings/categories-master";
 import WarehouseMaster from "@/modules/inventory/settings/warehouse-master";
+import CarrierMaster from "@/modules/inventory/settings/carrier-master";
 import VendorsPage from "../admin/vendors/vendors-page";
 import CustomersPage from "../admin/customers/customers-page";
 
 import PermissionsTab from "@/components/permissions-tab";
 import { PageHeader } from "@/components/PageHeader";
-import { Building, List, Settings, Shield, Users } from "lucide-react";
+import { Building, List, Settings, Shield, Truck, Users } from "lucide-react";
 import { INVENTORY_PERMISSION_MODULES } from "@/lib/permission-catalog";
 import { useAuth } from "@/context/AuthContext";
 import { canManagePermissions } from "@/lib/permission-ui";
@@ -27,6 +28,12 @@ const InventorySettingsPage = () => {
       label: "Warehouse",
       element: () => <WarehouseMaster />,
       icon: <Building className="w-6 h-6" />,
+    },
+    {
+      value: "carriers",
+      label: "Carriers",
+      element: () => <CarrierMaster />,
+      icon: <Truck className="w-6 h-6" />,
     },
     {
       value: "customers",
@@ -61,7 +68,7 @@ const InventorySettingsPage = () => {
     <div className="space-y-6 p-6">
       <PageHeader
         title="Inventory Settings"
-        description="Configure master data for categories, warehouses, customers, and suppliers."
+        description="Configure master data for categories, warehouses, carriers, customers, and suppliers."
         variant="darkBlue"
         icon={<Settings className="w-6 h-6" />}
       />

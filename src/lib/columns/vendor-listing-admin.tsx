@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 interface VendorColumnsProps {
   onEdit: (vendor: Vendor) => void;
-  onDelete: (vendor: Vendor) => void;
+  onDeactivate: (vendor: Vendor) => void;
   onView?: (vendor: Vendor) => void;
   financeSettings?: boolean;
   role?: Role;
@@ -90,7 +90,7 @@ const approveVendor = (id: number, status: boolean) => {
 
 export const getVendorColumns = ({
   onEdit,
-  onDelete,
+  onDeactivate,
   onView,
   financeSettings = false,
   role,
@@ -247,15 +247,17 @@ export const getVendorColumns = ({
           >
             EDIT
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(vendor);
-            }}
-            className="bg-red-50 text-red-600 hover:bg-red-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
-          >
-            DELETE
-          </button>
+          {vendor.active !== false ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeactivate(vendor);
+              }}
+              className="bg-red-50 text-red-600 hover:bg-red-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
+            >
+              DEACTIVATE
+            </button>
+          ) : null}
         </div>
       );
     },

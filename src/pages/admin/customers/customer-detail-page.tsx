@@ -8,16 +8,19 @@ import { type Customer } from "@/types/customer";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { CustomerDialog } from "./customer-dialog";
 import { SalesPageHeader } from "@/pages/sales/components/sales-page-header";
-
-const SALES_CUSTOMERS_LIST = "/inventory/sales/customers";
-const ADMIN_CUSTOMERS_LIST = "/admin/customers";
+import { resolveCustomerListPath } from "@/lib/navigation-back";
+import {
+  formatCustomerCode,
+  isCustomerActive,
+  normalizeCustomerFromApi,
+} from "@/lib/customer-api";
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isSalesHub = pathname.includes("/inventory/sales/customers");
-  const listPath = isSalesHub ? SALES_CUSTOMERS_LIST : ADMIN_CUSTOMERS_LIST;
+  const listPath = resolveCustomerListPath(pathname);
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +29,7 @@ export default function CustomerDetailPage() {
   const fetchCustomer = async () => {
     try {
       const res = await apiClient.get(`/customers/${id}`);
-      setCustomer(res.data);
+      setCustomer(normalizeCustomerFromApi(res.data));
     } catch (err) {
       console.error("fetchCustomer:", err);
       toast.error("Failed to load customer");
@@ -35,14 +38,14 @@ export default function CustomerDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeactivate = async () => {
     try {
       await apiClient.delete(`/customers/${id}`);
-      toast.success("Customer deleted");
+      toast.success("Customer deactivated");
       navigate(listPath);
     } catch (err) {
       console.error(err);
-      toast.error("Error deleting customer");
+      toast.error("Error deactivating customer");
     }
   };
 
@@ -65,6 +68,7 @@ export default function CustomerDetailPage() {
     );
 
   const displayName = customer.customerName ?? customer.name ?? "Customer";
+  const customerActive = isCustomerActive(customer);
   const subtitle = [customer.contactPersonName, customer.email]
     .filter(Boolean)
     .join(" · ");
@@ -89,14 +93,16 @@ export default function CustomerDetailPage() {
               >
                 <Edit className="mr-2 h-4 w-4" /> Edit
               </Button>
-              <Button
-                size="lg"
-                variant="destructive"
-                className="shadow-md"
-                onClick={handleDelete}
-              >
-                <Trash className="mr-2 h-4 w-4" /> Delete
-              </Button>
+              {customerActive && (
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  className="shadow-md"
+                  onClick={handleDeactivate}
+                >
+                  <Trash className="mr-2 h-4 w-4" /> Deactivate
+                </Button>
+              )}
             </>
           }
         />
@@ -105,7 +111,7 @@ export default function CustomerDetailPage() {
           <div className="flex gap-3 items-center">
             <Button
               variant="ghost"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(listPath)}
               className="flex gap-1"
             >
               <ArrowLeft className="h-4 w-4" /> Back
@@ -118,9 +124,11 @@ export default function CustomerDetailPage() {
               <Edit className="h-4 w-4 mr-1" /> Edit
             </Button>
 
-            <Button variant="destructive" onClick={handleDelete}>
-              <Trash className="h-4 w-4 mr-1" /> Delete
-            </Button>
+            {customerActive && (
+              <Button variant="destructive" onClick={handleDeactivate}>
+                <Trash className="h-4 w-4 mr-1" /> Deactivate
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -134,8 +142,16 @@ export default function CustomerDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
+              <span className="font-semibold">Customer Code:</span>{" "}
+              {formatCustomerCode(customer.id)}
+            </p>
+            <p>
               <span className="font-semibold">Customer Name:</span>{" "}
               {displayName}
+            </p>
+            <p>
+              <span className="font-semibold">Status:</span>{" "}
+              {customerActive ? "Active" : "Inactive"}
             </p>
             <p>
               <span className="font-semibold">Contact Person:</span>{" "}

@@ -12,8 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { PageHeader } from "@/components/PageHeader";
@@ -56,7 +54,6 @@ export function PurchaseOrdersListView({
   kpiItems,
 }: Props) {
   const [tab, setTab] = useState<OrderTab>("open");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
 
   const openOrders = useMemo(
     () => orders.filter((o) => !isTerminalOrderStatus(o.status)),
@@ -66,10 +63,9 @@ export function PurchaseOrdersListView({
     () =>
       orders.filter((o) => {
         if (!isTerminalOrderStatus(o.status)) return false;
-        const archived = Boolean(o.archived);
-        return showArchivedOnly ? archived : !archived;
+        return !o.archived;
       }),
-    [orders, showArchivedOnly],
+    [orders],
   );
   const terminalUnarchivedCount = useMemo(
     () =>
@@ -81,7 +77,6 @@ export function PurchaseOrdersListView({
   const handleTabChange = (next: string) => {
     const value = next as OrderTab;
     setTab(value);
-    setShowArchivedOnly(false);
     if (value === "terminal") {
       if (
         statusFilter !== "all" &&
@@ -175,21 +170,6 @@ export function PurchaseOrdersListView({
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                    ) : null}
-                    {tab === "terminal" ? (
-                      <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                        <Switch
-                          id="show-archived-pos"
-                          checked={showArchivedOnly}
-                          onCheckedChange={setShowArchivedOnly}
-                        />
-                        <Label
-                          htmlFor="show-archived-pos"
-                          className="text-sm font-medium cursor-pointer"
-                        >
-                          Archived only
-                        </Label>
-                      </div>
                     ) : null}
                   </div>
                 </div>

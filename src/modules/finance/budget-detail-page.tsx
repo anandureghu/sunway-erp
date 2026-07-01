@@ -123,7 +123,7 @@ export default function BudgetDetailPage() {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
         <p className="text-muted-foreground">Budget not found</p>
-        <Button variant="outline" onClick={() => navigate(-1)}>
+        <Button variant="outline" onClick={() => navigate("/finance/ledger")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -134,7 +134,7 @@ export default function BudgetDetailPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/finance/ledger")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>

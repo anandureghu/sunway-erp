@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
 import { SalesPageHeader } from "./components/sales-page-header";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { resolveBackHref } from "@/lib/navigation-back";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
-import { isInvoicePaymentSettled } from "@/lib/invoice-status-filter";
+import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 /* =======================
@@ -59,6 +60,7 @@ const formatTemplate = (
 export default function InvoiceDetailPage() {
   const { alert } = useConfirmDialog();
   const { id } = useParams();
+  const location = useLocation();
   const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -82,7 +84,7 @@ export default function InvoiceDetailPage() {
   const isSales = invoice.type === "SALES";
   const order = isSales ? invoice.salesOrder : invoice.purchaseOrder;
   const items = order?.items ?? [];
-  const isPaid = isInvoicePaymentSettled(invoice.status);
+  const isPaid = isInvoiceReceiptView(invoice.status);
   const isReceiptView = isPaid;
   const termsAndConditions = (invoice.invoiceTerms || "")
     .split(/\r?\n/)
@@ -178,20 +180,26 @@ export default function InvoiceDetailPage() {
             : `Invoice ${safe(invoice.invoiceId)}`
         }
         description={invoiceHeaderDescription || undefined}
-        backHref={
-          isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices"
-        }
+        backHref={resolveBackHref(
+          location.state,
+          isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices",
+        )}
       />
 
       {/* ACTIONS */}
-      <div className="my-6 max-w-5xl mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <button
-          // onClick={() => window.print()}
-          className="rounded-xl py-4 text-lg font-semibold border bg-white"
-          style={{ borderColor: COLORS.gray200 }}
-        >
-          🖨️ Print
-        </button>
+      <div
+        className={`my-6 max-w-5xl mb-8 grid grid-cols-1 gap-4 ${
+          isReceiptView ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        }`}
+      >
+        {isReceiptView ? (
+          <button
+            className="rounded-xl py-4 text-lg font-semibold border bg-white"
+            style={{ borderColor: COLORS.gray200 }}
+          >
+            🖨️ Print
+          </button>
+        ) : null}
 
         <button
           onClick={handleDownloadPdf}

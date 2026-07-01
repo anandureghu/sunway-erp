@@ -10,6 +10,7 @@ import type { Customer } from "@/types/customer";
 import type { CustomerFormData } from "@/schema/customer";
 import { CustomerForm } from "./customer-form";
 import { X, Users } from "lucide-react";
+import { isCustomerActive } from "@/lib/customer-api";
 
 interface CustomerDialogProps {
   open: boolean;
@@ -101,7 +102,8 @@ export const CustomerDialog = ({
                 ? {
                     ...customer,
                     customerName: customer.name || customer.customerName || "",
-                    isActive: (customer as any).active ?? customer.isActive ?? true,
+                    country: customer.country ?? "",
+                    isActive: isCustomerActive(customer),
                   }
                 : null
             }

@@ -86,6 +86,9 @@ export type SalesOrder = {
   bankAccountName?: string;
   debitAccountId?: number;
   debitAccountName?: string;
+  debitAccountBalance?: number;
+  sufficientDebitBalance?: boolean;
+  debitBalanceShortage?: number;
   creditAccountId?: number;
   creditAccountName?: string;
 };
@@ -159,6 +162,7 @@ export type Dispatch = {
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
+  customerPhone?: string;
   status: DispatchStatus;
   estimatedDeliveryDate?: string;
   actualDeliveryDate?: string;

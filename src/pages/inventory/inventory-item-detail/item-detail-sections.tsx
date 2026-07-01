@@ -114,7 +114,7 @@ export function ItemDetailSections({
       : item.warehouse_name || (item.warehouse_id ? String(item.warehouse_id) : null);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <StockStatusBadge indicator={stockIndicator} />
         <div className="flex flex-wrap gap-2">
@@ -135,24 +135,24 @@ export function ItemDetailSections({
         </div>
       </div>
 
-      <ItemSectionCard
-        icon={<Package className="h-3.5 w-3.5 text-white" />}
-        title="Item image"
-        action={
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 rounded-lg text-xs"
-            onClick={onUpdateImage}
-          >
-            Change
-          </Button>
-        }
-      >
-        <div className="flex justify-center">
-          <div className="w-full max-w-md overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
-            <div className="flex aspect-[4/3] w-full items-center justify-center bg-white p-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
+        <ItemSectionCard
+          icon={<Package className="h-3.5 w-3.5 text-white" />}
+          title="Item image"
+          action={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-lg text-xs"
+              onClick={onUpdateImage}
+            >
+              Change
+            </Button>
+          }
+        >
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+            <div className="flex h-full min-h-[240px] w-full flex-1 items-center justify-center bg-white p-4">
               {item.imageUrl ? (
                 <img
                   key={`${item.imageUrl}-${imageNonce}`}
@@ -168,142 +168,142 @@ export function ItemDetailSections({
               )}
             </div>
           </div>
-        </div>
-      </ItemSectionCard>
+        </ItemSectionCard>
 
-      <ItemSectionCard
-        icon={<Tag className="h-3.5 w-3.5 text-white" />}
-        title="Basic information"
-      >
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <ItemDetailField label="Item ID" value={String(item.id)} mono />
-          <ItemDetailField label="SKU" value={item.sku} mono />
-          <ItemDetailField label="Item name" value={item.name} />
-          <ItemDetailField label="Brand" value={item.brand} />
-          <ItemDetailField label="Item type" value={item.type} />
-          <ItemDetailField
-            label="Description"
-            value={item.description?.trim() || null}
-            className="sm:col-span-2"
-          />
-        </div>
-      </ItemSectionCard>
-
-      <ItemSectionCard
-        icon={<Layers className="h-3.5 w-3.5 text-white" />}
-        title="Classification"
-      >
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <ItemDetailField label="Category" value={item.category} />
-          <ItemDetailField label="Sub category" value={item.subCategory} />
-          <ItemDetailField
-            label="Status"
-            value={
-              <Badge variant={statusMeta.variant} className="capitalize">
-                {statusMeta.label}
-              </Badge>
-            }
-          />
-          <ItemDetailField label="Barcode" value={item.barcode} mono />
-          <ItemDetailField label="Serial no." value={item.serialNo} mono />
-        </div>
-      </ItemSectionCard>
-
-      <ItemSectionCard
-        icon={<Package className="h-3.5 w-3.5 text-white" />}
-        title="Unit & warehouse"
-      >
-        {stockIndicator === "low_stock" && (
-          <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm text-amber-900">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            Available quantity is at or below reorder level. Consider restocking.
+        <ItemSectionCard
+          icon={<Tag className="h-3.5 w-3.5 text-white" />}
+          title="Basic information"
+        >
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <ItemDetailField label="Item ID" value={String(item.id)} mono />
+            <ItemDetailField label="SKU" value={item.sku} mono />
+            <ItemDetailField label="Item name" value={item.name} />
+            <ItemDetailField label="Brand" value={item.brand} />
+            <ItemDetailField label="Item type" value={item.type} />
+            <ItemDetailField
+              label="Description"
+              value={item.description?.trim() || null}
+              className="sm:col-span-2"
+            />
           </div>
-        )}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <ItemDetailField label="Unit" value={formatUnitLabel(unit)} />
-          <ItemDetailField
-            label="Warehouse"
-            value={
-              warehouseLabel ? (
-                item.warehouse_id ? (
-                  <Link
-                    to={`/inventory/warehouses/${item.warehouse_id}`}
-                    className="font-medium text-primary underline-offset-2 hover:underline"
-                  >
-                    {warehouseLabel}
-                  </Link>
-                ) : (
-                  warehouseLabel
-                )
-              ) : null
-            }
-          />
-          <ItemDetailField
-            label="Warehouse address"
-            value={item.warehouse_location}
-            className="sm:col-span-2"
-          />
-          <ItemDetailField label="Bin / location" value={item.location} />
-          <ItemDetailField label="Available" value={numVal(item.available)} />
-          <ItemDetailField label="Total quantity" value={numVal(item.quantity)} />
-          <ItemDetailField label="Reserved" value={numVal(item.reserved)} />
-          <ItemDetailField label="Date received" value={formatOptionalDate(item.dateReceived)} />
-          <ItemDetailField
-            label="Sale by date"
-            value={formatOptionalDate(item.expiryDate)}
-          />
-        </div>
-      </ItemSectionCard>
+        </ItemSectionCard>
 
-      <ItemSectionCard
-        icon={<DollarSign className="h-3.5 w-3.5 text-white" />}
-        title="Pricing"
-      >
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <ItemDetailField
-            label="Cost price"
-            value={
-              <span className="font-semibold tabular-nums">
-                <CurrencyAmount amount={item.costPrice} />
-              </span>
-            }
-          />
-          <ItemDetailField
-            label="Selling price"
-            value={
-              <span className="text-lg font-bold tabular-nums text-primary">
-                <CurrencyAmount amount={displaySellingPrice(item)} />
-              </span>
-            }
-          />
-          <ItemDetailField
-            label="Reorder level"
-            value={numVal(item.reorderLevel)}
-          />
-          <ItemDetailField label="Minimum stock" value={numVal(item.minimum)} />
-          <ItemDetailField label="Maximum stock" value={numVal(item.maximum)} />
-        </div>
-      </ItemSectionCard>
+        <ItemSectionCard
+          icon={<Layers className="h-3.5 w-3.5 text-white" />}
+          title="Classification"
+        >
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <ItemDetailField label="Category" value={item.category} />
+            <ItemDetailField label="Sub category" value={item.subCategory} />
+            <ItemDetailField
+              label="Status"
+              value={
+                <Badge variant={statusMeta.variant} className="capitalize">
+                  {statusMeta.label}
+                </Badge>
+              }
+            />
+            <ItemDetailField label="Barcode" value={item.barcode} mono />
+            <ItemDetailField label="Serial no." value={item.serialNo} mono />
+          </div>
+        </ItemSectionCard>
 
-      <ItemSectionCard
-        icon={<Tag className="h-3.5 w-3.5 text-white" />}
-        title="Record"
-      >
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <ItemDetailField
-            label="Stock level"
-            value={<StockStatusBadge indicator={stockIndicator} />}
-          />
-          <ItemDetailField
-            label="Created"
-            value={formatRecordTimestamp(item.createdAt)}
-          />
-          <ItemDetailField
-            label="Last updated"
-            value={formatRecordTimestamp(item.updatedAt)}
-          />
-        </div>
-      </ItemSectionCard>
+        <ItemSectionCard
+          icon={<Package className="h-3.5 w-3.5 text-white" />}
+          title="Unit & warehouse"
+        >
+          {stockIndicator === "low_stock" && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm text-amber-900">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              Available quantity is at or below reorder level. Consider restocking.
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <ItemDetailField label="Unit" value={formatUnitLabel(unit)} />
+            <ItemDetailField
+              label="Warehouse"
+              value={
+                warehouseLabel ? (
+                  item.warehouse_id ? (
+                    <Link
+                      to={`/inventory/warehouses/${item.warehouse_id}`}
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      {warehouseLabel}
+                    </Link>
+                  ) : (
+                    warehouseLabel
+                  )
+                ) : null
+              }
+            />
+            <ItemDetailField
+              label="Warehouse address"
+              value={item.warehouse_location}
+              className="sm:col-span-2"
+            />
+            <ItemDetailField label="Bin / location" value={item.location} />
+            <ItemDetailField label="Available" value={numVal(item.available)} />
+            <ItemDetailField label="Total quantity" value={numVal(item.quantity)} />
+            <ItemDetailField label="Reserved" value={numVal(item.reserved)} />
+            <ItemDetailField label="Date received" value={formatOptionalDate(item.dateReceived)} />
+            <ItemDetailField
+              label="Sale by date"
+              value={formatOptionalDate(item.expiryDate)}
+            />
+          </div>
+        </ItemSectionCard>
+
+        <ItemSectionCard
+          icon={<DollarSign className="h-3.5 w-3.5 text-white" />}
+          title="Pricing"
+        >
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <ItemDetailField
+              label="Cost price"
+              value={
+                <span className="font-semibold tabular-nums">
+                  <CurrencyAmount amount={item.costPrice} />
+                </span>
+              }
+            />
+            <ItemDetailField
+              label="Selling price"
+              value={
+                <span className="text-lg font-bold tabular-nums text-primary">
+                  <CurrencyAmount amount={displaySellingPrice(item)} />
+                </span>
+              }
+            />
+            <ItemDetailField
+              label="Reorder level"
+              value={numVal(item.reorderLevel)}
+            />
+            <ItemDetailField label="Minimum stock" value={numVal(item.minimum)} />
+            <ItemDetailField label="Maximum stock" value={numVal(item.maximum)} />
+          </div>
+        </ItemSectionCard>
+
+        <ItemSectionCard
+          icon={<Tag className="h-3.5 w-3.5 text-white" />}
+          title="Record"
+        >
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <ItemDetailField
+              label="Stock level"
+              value={<StockStatusBadge indicator={stockIndicator} />}
+            />
+            <ItemDetailField
+              label="Created"
+              value={formatRecordTimestamp(item.createdAt)}
+            />
+            <ItemDetailField
+              label="Last updated"
+              value={formatRecordTimestamp(item.updatedAt)}
+            />
+          </div>
+        </ItemSectionCard>
+      </div>
     </div>
   );
 }

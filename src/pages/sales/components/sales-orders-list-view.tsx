@@ -1,5 +1,6 @@
 import { Plus, Search, Filter, ListTodo, FileCheck } from "lucide-react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import type { RowSelectionState } from "@tanstack/react-table";
 import type { SalesOrder } from "@/types/sales";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
@@ -34,12 +34,18 @@ type Props = {
   closedCount: number;
   searchQuery: string;
   statusFilter: string;
-  showArchivedOnly: boolean;
+  paymentStatusFilter: string;
   columns: ColumnDef<SalesOrder>[];
+  enableBulkArchive?: boolean;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: (selection: RowSelectionState) => void;
+  selectedCount?: number;
+  onBulkArchive?: () => void;
+  bulkArchiving?: boolean;
   onCreateNew: () => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
-  onShowArchivedOnlyChange: (value: boolean) => void;
+  onPaymentStatusChange: (value: string) => void;
   onRowClick: (id: string) => void;
   kpiItems?: KpiSummaryStat[];
 };
@@ -54,12 +60,18 @@ export function SalesOrdersListView({
   closedCount,
   searchQuery,
   statusFilter,
-  showArchivedOnly,
+  paymentStatusFilter,
   columns,
+  enableBulkArchive = false,
+  rowSelection,
+  onRowSelectionChange,
+  selectedCount = 0,
+  onBulkArchive,
+  bulkArchiving = false,
   onCreateNew,
   onSearchChange,
   onStatusChange,
-  onShowArchivedOnlyChange,
+  onPaymentStatusChange,
   onRowClick,
   kpiItems,
 }: Props) {
@@ -72,7 +84,7 @@ export function SalesOrdersListView({
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
         title="Manage Sales Orders"
-        description="Review order pipeline, tabs for open vs completed work, and drill into any order."
+        description="Review confirmed and completed orders, filter by status, and drill into any order."
         backHref="/inventory/sales"
         variant="darkBlue"
         actions={
@@ -129,10 +141,10 @@ export function SalesOrdersListView({
                   <Filter className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Select value={statusFilter} onValueChange={onStatusChange}>
                     <SelectTrigger className="w-44 pl-8">
-                      <SelectValue placeholder="Filter by status" />
+                      <SelectValue placeholder="Order status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="all">All order status</SelectItem>
                       {listTab === "active" ? (
                         <>
                           <SelectItem value="draft">Draft</SelectItem>
@@ -150,26 +162,38 @@ export function SalesOrdersListView({
                     </SelectContent>
                   </Select>
                 </div>
-                {listTab === "closed" ? (
-                  <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                    <Switch
-                      id="show-archived-orders"
-                      checked={showArchivedOnly}
-                      onCheckedChange={onShowArchivedOnlyChange}
-                    />
-                    <Label
-                      htmlFor="show-archived-orders"
-                      className="text-sm font-medium cursor-pointer"
-                    >
-                      Archived only
-                    </Label>
-                  </div>
-                ) : null}
+                <div className="relative">
+                  <Filter className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Select
+                    value={paymentStatusFilter}
+                    onValueChange={onPaymentStatusChange}
+                  >
+                    <SelectTrigger className="w-48 pl-8">
+                      <SelectValue placeholder="Payment status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All payment status</SelectItem>
+                      <SelectItem value="unpaid">Unpaid</SelectItem>
+                      <SelectItem value="partially_paid">Partially paid</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </Tabs>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {enableBulkArchive ? (
+            <BulkActionBar
+              selectedCount={selectedCount}
+              onArchive={onBulkArchive}
+              onClear={() => onRowSelectionChange?.({})}
+              archiving={bulkArchiving}
+            />
+          ) : null}
           {loading ? (
             <div className="py-16 text-center text-muted-foreground">
               Loading sales orders...
@@ -181,10 +205,18 @@ export function SalesOrdersListView({
               {emptyMessage}
             </div>
           ) : (
-            <DataTable
+            <SelectableDataTable
               columns={columns}
               data={orders}
               onRowClick={(row) => onRowClick(row.original.id)}
+              enableRowSelection={enableBulkArchive}
+              rowSelection={rowSelection}
+              onRowSelectionChange={onRowSelectionChange}
+              getRowId={(row) => row.id}
+              isRowSelectable={(row) =>
+                (row.status === "completed" || row.status === "cancelled") &&
+                !row.archived
+              }
             />
           )}
         </CardContent>

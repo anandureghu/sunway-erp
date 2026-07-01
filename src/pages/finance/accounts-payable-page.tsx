@@ -11,7 +11,7 @@ import {
 } from "@/service/invoiceService";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import type { Row } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
@@ -33,12 +33,12 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import {
   invoiceMatchesStatusFilter,
   isInvoiceArchivedStatus,
+  isInvoiceReceiptView,
 } from "@/lib/invoice-status-filter";
+import { apiClient } from "@/service/apiClient";
 import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
@@ -54,13 +54,13 @@ interface AccountsPayableProps {
 
 function PayableInvoicesTab() {
   const { confirm } = useConfirmDialog();
+  const location = useLocation();
   const navigate = useNavigate();
   const [rows, setRows] = useState<FinanceInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
   );
@@ -96,10 +96,7 @@ function PayableInvoicesTab() {
       const matchesTab =
         listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
       if (!matchesTab) return false;
-      if (listTab === "archived") {
-        const isArchived = Boolean(invoice.archived);
-        if (showArchivedOnly ? !isArchived : isArchived) return false;
-      }
+      if (listTab === "archived" && invoice.archived) return false;
 
       const q = searchQuery.toLowerCase();
       const supplierId =
@@ -120,7 +117,7 @@ function PayableInvoicesTab() {
       );
       return matchesSearch && matchesStatus;
     });
-  }, [rows, listTab, searchQuery, statusFilter, showArchivedOnly]);
+  }, [rows, listTab, searchQuery, statusFilter]);
 
   const handleArchiveInvoice = useCallback(
     async (id: number) => {
@@ -156,9 +153,11 @@ function PayableInvoicesTab() {
 
   const handleViewInvoice = useCallback(
     (inv: FinanceInvoice) => {
-      navigate(`/inventory/purchase/invoices/${inv.id}`);
+      navigate(`/inventory/purchase/invoices/${inv.id}`, {
+        state: { backTo: location.pathname },
+      });
     },
-    [navigate],
+    [navigate, location.pathname],
   );
 
   const handleOpenInvoiceDocument = useCallback(async (inv: FinanceInvoice) => {
@@ -183,25 +182,61 @@ function PayableInvoicesTab() {
     }
   }, []);
 
+  const handleDownloadInvoice = useCallback(async (inv: FinanceInvoice) => {
+    try {
+      const url = await getInvoicePdfUrl(inv.id);
+      if (url && !url.includes("dummy.url")) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("PDF is not available for this invoice.");
+      }
+    } catch {
+      toast.error("Could not download invoice PDF.");
+    }
+  }, []);
+
+  const handleEmailInvoice = useCallback(async (inv: FinanceInvoice) => {
+    const isReceipt = isInvoiceReceiptView(inv.status);
+    try {
+      if (isReceipt) {
+        await apiClient.post(`/invoices/${inv.id}/receipt-email`);
+        toast.success("Receipt email sent.");
+      } else {
+        await apiClient.post(`/invoices/${inv.id}/email`);
+        toast.success("Invoice email sent.");
+      }
+    } catch {
+      toast.error(
+        isReceipt ? "Could not send receipt email." : "Could not send invoice email.",
+      );
+    }
+  }, []);
+
   const columns = useMemo(
     () =>
       createPurchaseInvoiceColumns(handleArchiveInvoice, processingInvoiceId, {
         onViewDetails: handleViewInvoice,
         onOpenDocument: handleOpenInvoiceDocument,
+        onDownload: handleDownloadInvoice,
+        onEmail: handleEmailInvoice,
       }),
     [
       handleArchiveInvoice,
       processingInvoiceId,
       handleViewInvoice,
       handleOpenInvoiceDocument,
+      handleDownloadInvoice,
+      handleEmailInvoice,
     ],
   );
 
   const handleRowClick = useCallback(
     (row: Row<FinanceInvoice>) => {
-      navigate(`/inventory/purchase/invoices/${row.original.id}`);
+      navigate(`/inventory/purchase/invoices/${row.original.id}`, {
+        state: { backTo: location.pathname },
+      });
     },
-    [navigate],
+    [navigate, location.pathname],
   );
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
@@ -255,7 +290,6 @@ function PayableInvoicesTab() {
         onValueChange={(v) => {
           setListTab(v as InvoiceListTab);
           setStatusFilter("all");
-          setShowArchivedOnly(false);
         }}
         className="w-full gap-4"
       >
@@ -309,21 +343,6 @@ function PayableInvoicesTab() {
                 )}
               </SelectContent>
             </Select>
-            {listTab === "archived" ? (
-              <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                <Switch
-                  id="ap-show-archived-invoices"
-                  checked={showArchivedOnly}
-                  onCheckedChange={setShowArchivedOnly}
-                />
-                <Label
-                  htmlFor="ap-show-archived-invoices"
-                  className="text-sm font-medium cursor-pointer whitespace-nowrap"
-                >
-                  Archived only
-                </Label>
-              </div>
-            ) : null}
           </div>
         </div>
       </Tabs>

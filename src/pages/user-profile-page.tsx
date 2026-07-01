@@ -91,7 +91,7 @@ const UserProfilePage = () => {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate(-1)}
+        onClick={() => navigate("/")}
         className="gap-1.5 text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />

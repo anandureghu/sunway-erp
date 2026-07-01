@@ -521,7 +521,11 @@ export function CreateSalesOrderForm({
             ? "Update draft lines, pricing, and delivery details before confirming."
             : "Add customer, lines, warehouses, and accounting defaults for a new draft order."
         }
-        backHref="/inventory/sales"
+        backHref={
+          isEditMode && initialOrder?.id
+            ? `/inventory/sales/orders/${initialOrder.id}`
+            : "/inventory/sales/orders"
+        }
         variant="darkBlue"
       />
 

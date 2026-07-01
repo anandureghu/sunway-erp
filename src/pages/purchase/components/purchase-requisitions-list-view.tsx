@@ -12,8 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import type { PurchaseRequisition } from "@/types/purchase";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { PageHeader } from "@/components/PageHeader";
@@ -56,25 +54,16 @@ export function PurchaseRequisitionsListView({
   kpiItems,
 }: Props) {
   const [tab, setTab] = useState<RequisitionTab>("active");
-  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
 
   const activeReqs = useMemo(
     () =>
-      requisitions.filter((r) => {
-        if (r.status === "converted") return false;
-        const archived = Boolean(r.archived);
-        return showArchivedOnly ? archived : !archived;
-      }),
-    [requisitions, showArchivedOnly],
+      requisitions.filter((r) => r.status !== "converted" && !r.archived),
+    [requisitions],
   );
   const convertedReqs = useMemo(
     () =>
-      requisitions.filter((r) => {
-        if (r.status !== "converted") return false;
-        const archived = Boolean(r.archived);
-        return showArchivedOnly ? archived : !archived;
-      }),
-    [requisitions, showArchivedOnly],
+      requisitions.filter((r) => r.status === "converted" && !r.archived),
+    [requisitions],
   );
   
   const activeUnarchivedCount = useMemo(
@@ -89,7 +78,6 @@ export function PurchaseRequisitionsListView({
   const handleTabChange = (next: string) => {
     const value = next as RequisitionTab;
     setTab(value);
-    setShowArchivedOnly(false);
     if (value === "converted" && statusFilter !== "all") {
       onStatusChange("all");
     } else if (value === "active" && statusFilter === "converted") {
@@ -171,16 +159,6 @@ export function PurchaseRequisitionsListView({
                       </SelectContent>
                     </Select>
                   ) : null}
-                  <div className="flex items-center gap-2 ml-4">
-                    <Switch
-                      id="show-archived"
-                      checked={showArchivedOnly}
-                      onCheckedChange={setShowArchivedOnly}
-                    />
-                    <Label htmlFor="show-archived" className="cursor-pointer">
-                      Archived only
-                    </Label>
-                  </div>
                 </div>
               </div>
 

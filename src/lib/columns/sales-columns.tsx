@@ -20,10 +20,12 @@ import {
   Truck,
   Loader2,
   Archive,
+  AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { StatusBadge } from "@/lib/status-badge";
 
 // Sales Order Columns
 export function createSalesOrderColumns(
@@ -65,6 +67,17 @@ export function createSalesOrderColumns(
       },
     },
     {
+      accessorKey: "invoiceDueDate",
+      header: "Invoice Due Date",
+      cell: ({ row }) => {
+        const date = row.original.invoiceDueDate;
+        if (!date) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      },
+    },
+    {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
@@ -88,6 +101,13 @@ export function createSalesOrderColumns(
       },
     },
     {
+      accessorKey: "paymentStatus",
+      header: "Payment Status",
+      cell: ({ row }) => (
+        <StatusBadge status={row.original.paymentStatus || "UNPAID"} />
+      ),
+    },
+    {
       accessorKey: "total",
       header: "Total Amount",
       cell: ({ row }) => {
@@ -100,7 +120,8 @@ export function createSalesOrderColumns(
       header: "Actions",
       cell: ({ row }) => {
         const order = row.original;
-        const canConfirm = order.status === "draft";
+        const canConfirm =
+          order.status === "draft" && order.sufficientDebitBalance !== false;
         const canCancel =
           order.status === "draft" || order.status === "confirmed";
         const canGeneratePicklist =
@@ -151,6 +172,13 @@ export function createSalesOrderColumns(
                       : "Confirm Order"}
                   </DropdownMenuItem>
                 )}
+                {order.status === "draft" &&
+                  order.sufficientDebitBalance === false && (
+                    <DropdownMenuItem disabled>
+                      <AlertTriangle className="mr-2 h-4 w-4 text-amber-600" />
+                      Insufficient balance
+                    </DropdownMenuItem>
+                  )}
                 {canGeneratePicklist && onGeneratePicklist && (
                   <>
                     <DropdownMenuSeparator />

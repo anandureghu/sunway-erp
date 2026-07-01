@@ -1,5 +1,9 @@
-import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { listItems, listWarehouses } from "@/service/inventoryService";
+import type { ItemResponseDTO, InventoryReportTotalsDTO } from "@/service/erpApiTypes";
+import {
+  listItems,
+  listWarehouses,
+  getInventoryReportSummary,
+} from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -8,10 +12,12 @@ export { filterItemsByQuery } from "@/lib/filter-items";
 export function useManageStocks() {
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [reportTotals, setReportTotals] = useState<InventoryReportTotalsDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   const loadData = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent === true;
@@ -20,12 +26,14 @@ export function useManageStocks() {
         setLoading(true);
       }
       setLoadError(null);
-      const [itemsList, warehousesList] = await Promise.all([
+      const [itemsList, warehousesList, reportSummary] = await Promise.all([
         listItems(),
         listWarehouses(),
+        getInventoryReportSummary(),
       ]);
       setItems(itemsList);
       setWarehouses(warehousesList);
+      setReportTotals(reportSummary.totals);
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { message?: string } } };
       const msg =
@@ -60,9 +68,11 @@ export function useManageStocks() {
         stock.name.toLowerCase().includes(q) ||
         stock.sku.toLowerCase().includes(q) ||
         (stock.barcode?.toLowerCase().includes(q) ?? false);
-      return matchesWarehouse && matchesSearch;
+      const matchesStatus =
+        selectedStatus === "all" || stock.status === selectedStatus;
+      return matchesWarehouse && matchesSearch && matchesStatus;
     });
-  }, [items, selectedWarehouse, searchQuery]);
+  }, [items, selectedWarehouse, searchQuery, selectedStatus]);
 
   const stats = useMemo(
     () => ({
@@ -70,13 +80,10 @@ export function useManageStocks() {
       lowStockItems: items.filter(
         (item) => item.available <= item.reorderLevel,
       ).length,
-      totalValue: items.reduce(
-        (sum, item) => sum + item.available * item.costPrice,
-        0,
-      ),
-      warehouseCount: warehouses.length,
+      onOrderCount: reportTotals?.totalOnOrder ?? 0,
+      onReserveCount: reportTotals?.totalReserved ?? 0,
     }),
-    [items, warehouses.length],
+    [items, reportTotals],
   );
 
   return {
@@ -89,6 +96,8 @@ export function useManageStocks() {
     setSelectedWarehouse,
     searchQuery,
     setSearchQuery,
+    selectedStatus,
+    setSelectedStatus,
     filteredStock,
     stats,
   };
