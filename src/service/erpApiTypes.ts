@@ -405,6 +405,7 @@ export type SalesOrderResponseDTO = {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
+  customerAddress?: string;
   orderDate?: string; // date
   invoiceDueDate?: string; // date
   shippingAddress?: string;
