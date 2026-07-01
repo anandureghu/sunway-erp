@@ -57,6 +57,27 @@ export type CategoryUpdateDTO = {
   status?: string;
 };
 
+export type DispatchCarrierResponseDTO = {
+  id: Id;
+  name: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  comments?: string;
+  status?: string;
+};
+
+export type DispatchCarrierCreateDTO = {
+  name: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
+  comments?: string;
+  status?: string;
+};
+
+export type DispatchCarrierUpdateDTO = DispatchCarrierCreateDTO;
+
 export type WarehouseResponseDTO = {
   id: Id;
 
@@ -458,6 +479,7 @@ export type ShipmentCreateDTO = {
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
+  customerPhone?: string;
   estimatedDeliveryDate?: string;
   deliveryAddress?: string;
   notes?: string;
@@ -474,6 +496,7 @@ export type ShipmentResponseDTO = {
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
+  customerPhone?: string;
   estimatedDeliveryDate?: string;
   deliveryAddress?: string;
   notes?: string;

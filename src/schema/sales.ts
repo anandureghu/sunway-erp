@@ -63,6 +63,7 @@ export const DISPATCH_SCHEMA = z.object({
   vehicleNumber: z.string().optional(),
   driverName: z.string().optional(),
   driverPhone: OPTIONAL_PHONE.optional().or(z.literal("")),
+  customerPhone: OPTIONAL_PHONE.optional().or(z.literal("")),
   estimatedDeliveryDate: z.string().optional(),
   deliveryAddress: z.string().min(1, "Delivery address is required"),
   trackingNumber: z.string().optional(),

@@ -162,6 +162,7 @@ export type Dispatch = {
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
+  customerPhone?: string;
   status: DispatchStatus;
   estimatedDeliveryDate?: string;
   actualDeliveryDate?: string;

@@ -1,9 +1,12 @@
 import { apiClient } from "@/service/apiClient";
-import type { ItemCategory, Warehouse, Stock } from "@/types/inventory";
+import type { ItemCategory, Warehouse, Stock, DispatchCarrier } from "@/types/inventory";
 import type {
   CategoryCreateDTO,
   CategoryResponseDTO,
   CategoryUpdateDTO,
+  DispatchCarrierCreateDTO,
+  DispatchCarrierResponseDTO,
+  DispatchCarrierUpdateDTO,
   ItemUpdateDTO,
   ItemResponseDTO,
   ItemStockAdjustPayload,
@@ -137,6 +140,63 @@ export async function getWarehouse(id: Id | string): Promise<Warehouse> {
 
 export async function deleteWarehouse(id: Id | string) {
   await apiClient.delete(`/inventory/warehouses/${id}`);
+}
+
+function toCarrier(dto: DispatchCarrierResponseDTO): DispatchCarrier {
+  const status = normalizeStatus(dto.status);
+  return {
+    id: String(dto.id),
+    name: dto.name,
+    vehicleNumber: dto.vehicleNumber,
+    driverName: dto.driverName,
+    driverPhone: dto.driverPhone,
+    comments: dto.comments,
+    status: status === "inactive" ? "inactive" : "active",
+  };
+}
+
+// ---- Dispatch carriers ----
+export async function listCarriers(): Promise<DispatchCarrier[]> {
+  const res = await apiClient.get<DispatchCarrierResponseDTO[]>(
+    "/inventory/carriers",
+  );
+  return (res.data || []).map(toCarrier);
+}
+
+export async function listActiveCarriersForDispatch(): Promise<DispatchCarrier[]> {
+  const res = await apiClient.get<DispatchCarrierResponseDTO[]>(
+    "/sales/carriers",
+  );
+  return (res.data || []).map(toCarrier);
+}
+
+export async function createCarrier(payload: DispatchCarrierCreateDTO) {
+  const res = await apiClient.post<DispatchCarrierResponseDTO>(
+    "/inventory/carriers",
+    {
+      ...payload,
+      status: (payload.status || "active").toUpperCase(),
+    },
+  );
+  return toCarrier(res.data);
+}
+
+export async function updateCarrier(
+  id: Id | string,
+  payload: DispatchCarrierUpdateDTO,
+) {
+  const res = await apiClient.put<DispatchCarrierResponseDTO>(
+    `/inventory/carriers/${id}`,
+    {
+      ...payload,
+      status: (payload.status || "active").toUpperCase(),
+    },
+  );
+  return toCarrier(res.data);
+}
+
+export async function deleteCarrier(id: Id | string) {
+  await apiClient.delete(`/inventory/carriers/${id}`);
 }
 
 // ---- Reports ----

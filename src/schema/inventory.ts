@@ -210,6 +210,15 @@ export const CATEGORY_SCHEMA = z.object({
   status: z.enum(["active", "inactive"]),
 });
 
+export const CARRIER_SCHEMA = z.object({
+  name: z.string().min(1, "Carrier name is required"),
+  vehicleNumber: z.string().optional(),
+  driverName: z.string().optional(),
+  driverPhone: OPTIONAL_PHONE.optional().or(z.literal("")),
+  comments: z.string().max(1000, "Comments must be 1000 characters or less").optional(),
+  status: z.enum(["active", "inactive"]),
+});
+
 // Export types from schemas
 export type ItemFormData = z.infer<typeof ITEM_SCHEMA>;
 export type ItemFormValues = z.infer<typeof ITEM_SCHEMA>;
@@ -218,3 +227,4 @@ export type ReceiveItemFormData = z.infer<typeof RECEIVE_ITEM_SCHEMA>;
 export type StockTransferFormData = z.infer<typeof STOCK_TRANSFER_SCHEMA>;
 export type StockAdjustmentFormData = z.infer<typeof STOCK_ADJUSTMENT_SCHEMA>;
 export type CategoryFormData = z.infer<typeof CATEGORY_SCHEMA>;
+export type CarrierFormData = z.infer<typeof CARRIER_SCHEMA>;

@@ -192,6 +192,7 @@ function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
     vehicleNumber: dto.vehicleNumber || undefined,
     driverName: dto.driverName || undefined,
     driverPhone: dto.driverPhone || undefined,
+    customerPhone: dto.customerPhone || undefined,
     estimatedDeliveryDate: dto.estimatedDeliveryDate || undefined,
     actualDeliveryDate: dto.deliveredAt || undefined,
     deliveryAddress: dto.deliveryAddress || "",
