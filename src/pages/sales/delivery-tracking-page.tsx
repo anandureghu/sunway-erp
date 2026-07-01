@@ -28,6 +28,8 @@ import {
   Circle,
   Package,
   Navigation,
+  ExternalLink,
+  Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Dispatch } from "@/types/sales";
@@ -58,8 +60,18 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { useAuth } from "@/context/AuthContext";
+import { buildPublicDeliveryTrackingUrl } from "@/service/publicDeliveryTrackingService";
+import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function DeliveryTrackingPage() {
+  const { company } = useAuth();
   const [searchParams] = useSearchParams();
   const selectedDispatchId = searchParams.get("dispatchId");
   const [searchQuery, setSearchQuery] = useState("");
@@ -382,6 +394,41 @@ export default function DeliveryTrackingPage() {
     setTrackingNotes(selectedDispatch.notes || "");
   }, [trackingDialogOpen, selectedDispatch]);
 
+  const getCustomerTrackingUrl = () => {
+    const companyCode = company?.companyCode?.trim();
+    if (!companyCode) {
+      return null;
+    }
+    const orderNumber =
+      selectedDispatch?.order?.orderNumber ||
+      selectedDispatch?.order?.orderNo ||
+      selectedDispatch?.dispatchNo;
+    return buildPublicDeliveryTrackingUrl(companyCode, { orderNumber });
+  };
+
+  const handleCopyTrackingLink = async () => {
+    const url = getCustomerTrackingUrl();
+    if (!url) {
+      toast.error("Set a company code in company settings before sharing the tracking link.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Customer tracking link copied.");
+    } catch {
+      toast.error("Unable to copy link. Copy it manually: " + url);
+    }
+  };
+
+  const handleOpenTrackingLink = () => {
+    const url = getCustomerTrackingUrl();
+    if (!url) {
+      toast.error("Set a company code in company settings before sharing the tracking link.");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
@@ -482,8 +529,8 @@ export default function DeliveryTrackingPage() {
           {selectedDispatch ? (
             <Card>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <CardTitle className="text-2xl">
                       {selectedDispatch.dispatchNo}
                     </CardTitle>
@@ -492,14 +539,46 @@ export default function DeliveryTrackingPage() {
                       {getDestination(selectedDispatch)}
                     </p>
                   </div>
-                  <Badge
-                    className={cn(
-                      "text-sm font-medium",
-                      getStatusDisplay(selectedDispatch.status).color,
-                    )}
-                  >
-                    {getStatusDisplay(selectedDispatch.status).label}
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleOpenTrackingLink}
+                            aria-label="Open customer tracking page"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Open customer tracking page</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopyTrackingLink}
+                            aria-label="Copy customer tracking link"
+                          >
+                            <Link2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Copy customer tracking link</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Badge
+                      className={cn(
+                        "text-sm font-medium",
+                        getStatusDisplay(selectedDispatch.status).color,
+                      )}
+                    >
+                      {getStatusDisplay(selectedDispatch.status).label}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="pt-3 flex flex-wrap gap-2">
                   {showDispatchAction && (

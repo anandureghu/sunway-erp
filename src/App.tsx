@@ -121,6 +121,7 @@ import { setGlobalSettingsView } from "@/store/uiSlice";
 import UserProfilePage from "@/pages/user-profile-page";
 import { ErrorBoundary } from "./components/error-boundary";
 import PublicInvoicePage from "./pages/public/public-invoice-page";
+import PublicDeliveryTrackingPage from "./pages/public/public-delivery-tracking-page";
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -593,6 +594,10 @@ export default function App() {
         <Route
           path="/public/invoices/:invoiceCode"
           element={<PublicInvoicePage />}
+        />
+        <Route
+          path="/public/track/:companyCode"
+          element={<PublicDeliveryTrackingPage />}
         />
 
         {/* 404 */}
