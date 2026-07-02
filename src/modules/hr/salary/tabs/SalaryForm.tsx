@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { NavLink, useOutletContext, useParams } from "react-router-dom";
+import { useOutletContext, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormRow } from "@/modules/hr/components/form-components";
@@ -8,10 +8,8 @@ import { isValidAmount, isValidDate } from "@/modules/hr/utils/validation";
 import { formatMoney } from "@/lib/utils";
 import { salaryService } from "@/service/salaryService";
 import type { RetirementCompensation } from "@/service/salaryService";
-import { payrollService } from "@/service/payrollService";
-import { downloadPayslipPdf } from "@/service/payslipService";
+import { currentJobService } from "@/service/currentJobService";
 import { timesheetService } from "@/service/timesheetService";
-import { Button } from "@/components/ui/button";
 import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
 import {
@@ -26,9 +24,7 @@ import {
   Wallet,
   ReceiptText,
   BadgePercent,
-  Download,
   Loader2,
-  ScrollText,
   CalendarDays,
   Award,
   ShieldAlert,
@@ -97,16 +93,6 @@ const INITIAL_STATE: SalaryFormState = {
 
 interface ValidationErrors {
   [key: string]: string;
-}
-
-interface PayrollHistoryRow {
-  payDate: string;
-  payrollCode: string;
-  payPeriodStart: string;
-  payPeriodEnd: string;
-  grossPay: string;
-  netPayable: string;
-  totalDeductions?: string | number;
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -319,9 +305,6 @@ export default function SalaryForm() {
   const [formData, setFormData] = useState<SalaryFormState>(INITIAL_STATE);
   const [exists, setExists] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
-  const [payrollHistory, setPayrollHistory] = useState<PayrollHistoryRow[]>([]);
-  const [loadingPayrollHistory, setLoadingPayrollHistory] = useState(false);
-  const [pdfLoadingCode, setPdfLoadingCode] = useState<string | null>(null);
 
   // End-of-service compensation (accrued gratuity). `enabled = false` means the
   // company policy is off (or the data needed to compute it is missing).
@@ -337,6 +320,15 @@ export default function SalaryForm() {
   const [salaryMonth, setSalaryMonth] = useState<string>(currentMonthIso);
   const [totalDaysWorked, setTotalDaysWorked] = useState<number | null>(null);
   const [loadingDaysWorked, setLoadingDaysWorked] = useState(false);
+
+  // Salary band (min/max) from the employee's job grade — used to flag a basic
+  // salary that exceeds the grade's maximum, or to note when no cap is set.
+  const [salaryBand, setSalaryBand] = useState<{
+    min: number | null;
+    max: number | null;
+    grade: string;
+    loaded: boolean;
+  }>({ min: null, max: null, grade: "", loaded: false });
 
   // ── validation ──────────────────────────────────────────────────────────────
   const validateForm = useCallback(
@@ -376,11 +368,57 @@ export default function SalaryForm() {
     [formData, validateForm],
   );
 
+  // ── job-grade salary band ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    currentJobService
+      .get(employeeId)
+      .then((job) => {
+        if (!mounted) return;
+        setSalaryBand({
+          min: job?.minSalary ?? null,
+          max: job?.maxSalary ?? null,
+          grade: job?.salaryGrade ?? "",
+          loaded: true,
+        });
+      })
+      .catch(() => {
+        if (mounted) setSalaryBand((p) => ({ ...p, loaded: true }));
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
+  const basicSalaryNum = Number(formData.basicSalary) || 0;
+  const maxSalary =
+    salaryBand.max != null && salaryBand.max > 0 ? salaryBand.max : null;
+  // True once we know the grade has no usable maximum configured.
+  const maxSalaryUnavailable = salaryBand.loaded && maxSalary == null;
+  const exceedsMaxSalary =
+    salaryBand.loaded && maxSalary != null && basicSalaryNum > maxSalary;
+
   // ── save handler ────────────────────────────────────────────────────────────
   const handleSaveSalary = useCallback(async () => {
     if (!employeeId) return;
     if (Object.keys(validateForm(formData)).length > 0)
       throw new Error("Please fix the validation errors");
+
+    // Enforce the job-grade salary cap when one is configured.
+    if (
+      salaryBand.loaded &&
+      salaryBand.max != null &&
+      salaryBand.max > 0 &&
+      (Number(formData.basicSalary) || 0) > salaryBand.max
+    ) {
+      const msg = `Basic salary exceeds the maximum of ${formatMoney(
+        String(salaryBand.max),
+        currencySymbol,
+      )}${salaryBand.grade ? ` for salary grade ${salaryBand.grade}` : ""}`;
+      toast.error(msg);
+      throw new Error(msg);
+    }
 
     const payload = {
       basicSalary: Number(formData.basicSalary) || 0,
@@ -414,7 +452,7 @@ export default function SalaryForm() {
       toast.error(err?.response?.data?.message || "Failed to save salary");
       throw err;
     }
-  }, [employeeId, exists, formData, validateForm]);
+  }, [employeeId, exists, formData, validateForm, salaryBand, currencySymbol]);
 
   // ── event listeners ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -595,27 +633,6 @@ export default function SalaryForm() {
         });
   };
 
-  useEffect(() => {
-    if (!employeeId) return;
-    let mounted = true;
-    setLoadingPayrollHistory(true);
-    payrollService
-      .getPayrollHistory(employeeId)
-      .then((res) => {
-        if (mounted)
-          setPayrollHistory((res?.data as PayrollHistoryRow[]) ?? []);
-      })
-      .catch(() => {
-        if (mounted) setPayrollHistory([]);
-      })
-      .finally(() => {
-        if (mounted) setLoadingPayrollHistory(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [employeeId]);
-
   // ── accrued end-of-service compensation ─────────────────────────────────────
   useEffect(() => {
     if (!employeeId) return;
@@ -641,19 +658,6 @@ export default function SalaryForm() {
       mounted = false;
     };
   }, [employeeId]);
-
-  const handlePayslipDownload = async (row: PayrollHistoryRow) => {
-    if (!employeeId) return;
-    setPdfLoadingCode(row.payrollCode);
-    try {
-      await downloadPayslipPdf(employeeId, row.payrollCode);
-      toast.success("Payslip downloaded");
-    } catch {
-      toast.error("Could not download payslip");
-    } finally {
-      setPdfLoadingCode(null);
-    }
-  };
 
   // pct of gross for breakdown bars
   const pct = (v: number) =>
@@ -720,6 +724,32 @@ export default function SalaryForm() {
                 {errors.basicSalary && (
                   <p className="text-xs text-rose-500 flex items-center gap-1">
                     <span>⚠</span> {errors.basicSalary}
+                  </p>
+                )}
+                {!errors.basicSalary && exceedsMaxSalary && (
+                  <p className="text-xs text-rose-500 flex items-center gap-1">
+                    <span>⚠</span> Basic salary exceeds the maximum of{" "}
+                    {formatMoney(String(maxSalary), currencySymbol)}
+                    {salaryBand.grade
+                      ? ` for salary grade ${salaryBand.grade}`
+                      : ""}
+                    .
+                  </p>
+                )}
+                {!exceedsMaxSalary && maxSalaryUnavailable && (
+                  <p className="text-xs text-amber-600 flex items-center gap-1">
+                    <span>ℹ</span> No maximum salary is set for this job grade —
+                    set the grade's range in Current Job to enforce a cap.
+                  </p>
+                )}
+                {!exceedsMaxSalary && !maxSalaryUnavailable && maxSalary != null && (
+                  <p className="text-[11px] text-slate-400">
+                    {salaryBand.grade ? `Grade ${salaryBand.grade} — ` : ""}
+                    maximum {formatMoney(String(maxSalary), currencySymbol)}
+                    {salaryBand.min != null && salaryBand.min > 0
+                      ? `, minimum ${formatMoney(String(salaryBand.min), currencySymbol)}`
+                      : ""}
+                    .
                   </p>
                 )}
               </div>
@@ -1190,116 +1220,6 @@ export default function SalaryForm() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-600 to-indigo-600 text-white">
-              <ScrollText className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm font-bold text-slate-900">
-                Payroll history
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Processed runs for this employee (full table on the Payroll
-                history tab).
-              </p>
-            </div>
-          </div>
-          <NavLink
-            to="payroll"
-            className="text-xs font-semibold text-violet-700 hover:text-violet-900 underline-offset-2 hover:underline shrink-0"
-          >
-            Open Payroll history →
-          </NavLink>
-        </div>
-        <div className="overflow-x-auto">
-          {loadingPayrollHistory ? (
-            <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading payroll…
-            </div>
-          ) : (
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50/80 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Code</th>
-                  <th className="px-4 py-3">Pay period</th>
-                  <th className="px-4 py-3">Pay date</th>
-                  <th className="px-4 py-3 text-right">Gross</th>
-                  <th className="px-4 py-3 text-right">Deductions</th>
-                  <th className="px-4 py-3 text-right">Net</th>
-                  <th className="px-4 py-3 w-14 text-center">PDF</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payrollHistory.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-10 text-center text-muted-foreground text-sm"
-                    >
-                      No payroll records yet. Runs appear here after payroll is
-                      generated from HR Settings → Payroll.
-                    </td>
-                  </tr>
-                ) : (
-                  payrollHistory.map((row) => (
-                    <tr
-                      key={row.payrollCode}
-                      className="border-t border-slate-100 hover:bg-slate-50/60"
-                    >
-                      <td className="px-4 py-2.5 font-mono text-xs text-blue-800">
-                        {row.payrollCode}
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-600 text-xs">
-                        {fmtPayrollDate(row.payPeriodStart)}
-                        {row.payPeriodEnd
-                          ? ` → ${fmtPayrollDate(row.payPeriodEnd)}`
-                          : ""}
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-600 text-xs">
-                        {fmtPayrollDate(row.payDate)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-slate-800">
-                        {formatMoney(row.grossPay, currencySymbol)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-rose-600">
-                        -
-                        {formatMoney(
-                          String(row.totalDeductions ?? 0),
-                          currencySymbol,
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-emerald-700">
-                        {formatMoney(row.netPayable, currencySymbol)}
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          title="Download payslip PDF"
-                          disabled={pdfLoadingCode === row.payrollCode}
-                          onClick={() => void handlePayslipDownload(row)}
-                        >
-                          {pdfLoadingCode === row.payrollCode ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Download className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
         </div>
       </div>
     </div>

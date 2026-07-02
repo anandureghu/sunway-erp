@@ -118,6 +118,17 @@ export default function LoansForm(): ReactElement {
   const [, setLoading] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
 
+  // One loan at a time: an employee with a persisted pending or active loan
+  // can't open another request (the backend enforces this too). Drafts (non-
+  // numeric ids) don't count, so the first request is still allowed.
+  const hasOpenLoan = loans.some(
+    (l) =>
+      /^\d+$/.test(l.id) &&
+      ["PENDING_APPROVAL", "ACTIVE"].includes(
+        (l.loanStatus || "").toUpperCase(),
+      ),
+  );
+
   const MAX_DEDUCTION_PCT = 0.3;
   const maxMonthlyDeduction = basicSalary * MAX_DEDUCTION_PCT;
   const computeMonthly = (amount: string | number, period: string | number) => {
@@ -138,6 +149,12 @@ export default function LoansForm(): ReactElement {
   };
 
   const handleAdd = useCallback(() => {
+    if (hasOpenLoan) {
+      toast.error(
+        "This employee already has a pending or active loan. Only one loan at a time is allowed.",
+      );
+      return;
+    }
     const gross = grossSalary || 0;
     const newLoan = {
       ...INITIAL_LOAN,
@@ -148,7 +165,7 @@ export default function LoansForm(): ReactElement {
     };
     setLoans((current) => [...current, newLoan]);
     setEditingId(newLoan.id);
-  }, [grossSalary]);
+  }, [grossSalary, hasOpenLoan]);
 
   const mapApiToForm = (api: any): LoansModel => ({
     id: String(api.id),
@@ -419,7 +436,13 @@ export default function LoansForm(): ReactElement {
           canCreateLoans ? (
             <Button
               onClick={handleAdd}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+              disabled={hasOpenLoan || editingId !== null}
+              title={
+                hasOpenLoan
+                  ? "This employee already has a pending or active loan. Only one loan at a time is allowed."
+                  : undefined
+              }
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="h-4 w-4" />
               Request Loan
@@ -465,6 +488,17 @@ export default function LoansForm(): ReactElement {
           color="rose"
         />
       </div>
+
+      {canCreateLoans && hasOpenLoan && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            This employee already has a pending or active loan. Only one loan at
+            a time is allowed — a new request can be made once the current loan
+            is rejected or fully repaid (closed).
+          </span>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">

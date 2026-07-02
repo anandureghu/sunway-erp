@@ -25,11 +25,20 @@ import {
   ArrowUpRight,
   Briefcase,
   ShieldAlert,
+  CalendarCheck,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Wallet,
+  Banknote,
   FileText,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
 import { appraisalService } from "@/service/appraisalService";
+import { leaveService } from "@/service/leaveService";
+import { loanService } from "@/service/loanService";
+import { formatMoney } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
 import { cn } from "@/lib/utils";
@@ -197,6 +206,18 @@ const ANALYTICS_TABS = [
   { id: "breakdown", label: "Workforce Breakdown", icon: Globe },
   { id: "appraisal", label: "Performance", icon: Award },
 ] as const;
+// Leave Approvals is gated by the LEAVES grant (approvers / HR / admin).
+const LEAVES_TAB = {
+  id: "leaves",
+  label: "Leave Approvals",
+  icon: CalendarCheck,
+} as const;
+// Loan Approvals is gated by the LOANS grant.
+const LOANS_TAB = {
+  id: "loans",
+  label: "Loan Approvals",
+  icon: Wallet,
+} as const;
 const IMMIGRATION_TAB = {
   id: "immigration",
   label: "Immigration Expiry",
@@ -212,6 +233,8 @@ type TabId =
   | "department"
   | "breakdown"
   | "appraisal"
+  | "leaves"
+  | "loans"
   | "immigration"
   | "history";
 const ALL_TAB_IDS: TabId[] = [
@@ -219,9 +242,97 @@ const ALL_TAB_IDS: TabId[] = [
   "department",
   "breakdown",
   "appraisal",
+  "leaves",
+  "loans",
   "immigration",
   "history",
 ];
+
+// One decided leave row from the company-wide approvals history.
+type LeaveApprovalRow = {
+  id: number;
+  employeeName: string;
+  leaveCode: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  dateReported: string;
+  returnDate: string;
+  totalDays: number;
+  leaveStatus: string; // APPROVED | COMPLETED | REJECTED
+};
+
+const LEAVE_STATUS_META: Record<
+  string,
+  { label: string; cls: string; icon: React.ElementType }
+> = {
+  APPROVED: {
+    label: "Approved",
+    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    icon: CheckCircle2,
+  },
+  COMPLETED: {
+    label: "Completed",
+    cls: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    icon: CalendarCheck,
+  },
+  REJECTED: {
+    label: "Rejected",
+    cls: "bg-rose-50 text-rose-700 border-rose-200",
+    icon: XCircle,
+  },
+};
+
+const fmtDay = (iso?: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+};
+
+// One decided loan row from the company-wide approvals history.
+type LoanApprovalRow = {
+  id: number;
+  loanCode: string;
+  loanType: string;
+  loanAmount: number;
+  monthlyDeduction: number;
+  balance: number;
+  status: string; // ACTIVE | CLOSED | REJECTED
+  startDate: string;
+  endDate: string;
+  employeeName: string;
+  currencySymbol?: string;
+};
+
+const LOAN_STATUS_META: Record<
+  string,
+  { label: string; cls: string; icon: React.ElementType }
+> = {
+  ACTIVE: {
+    label: "Active",
+    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    icon: CheckCircle2,
+  },
+  CLOSED: {
+    label: "Closed",
+    cls: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    icon: Banknote,
+  },
+  REJECTED: {
+    label: "Rejected",
+    cls: "bg-rose-50 text-rose-700 border-rose-200",
+    icon: XCircle,
+  },
+};
+
+const humanizeLoan = (t?: string) =>
+  (t ?? "—").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 // ── main component ────────────────────────────────────────────────────────────
 export default function HRReports() {
@@ -230,15 +341,19 @@ export default function HRReports() {
 
   const canHrReports = canView(permissions, "HR_REPORTS");
   const canImmigration = canView(permissions, "IMMIGRATION");
+  const canLeaves = canView(permissions, "LEAVES");
+  const canLoans = canView(permissions, "LOANS");
 
   const visibleTabs = useMemo(() => {
     const tabs: Array<{ id: TabId; label: string; icon: React.ElementType }> =
       [];
     if (canHrReports) tabs.push(...ANALYTICS_TABS);
+    if (canLeaves) tabs.push(LEAVES_TAB);
+    if (canLoans) tabs.push(LOANS_TAB);
     if (canImmigration) tabs.push(IMMIGRATION_TAB);
     tabs.push(HISTORY_TAB);
     return tabs;
-  }, [canHrReports, canImmigration]);
+  }, [canHrReports, canLeaves, canLoans, canImmigration]);
 
   const requestedTab = searchParams.get("tab") as TabId | null;
   const [tab, setTab] = useState<TabId>(
@@ -263,6 +378,14 @@ export default function HRReports() {
 
   const [loadingEmp, setLoadingEmp] = useState(true);
   const [loadingAppr, setLoadingAppr] = useState(false);
+
+  const [leaveApprovals, setLeaveApprovals] = useState<LeaveApprovalRow[]>([]);
+  const [loadingLeaves, setLoadingLeaves] = useState(false);
+  const [leaveSearch, setLeaveSearch] = useState("");
+
+  const [loanApprovals, setLoanApprovals] = useState<LoanApprovalRow[]>([]);
+  const [loadingLoans, setLoadingLoans] = useState(false);
+  const [loanSearch, setLoanSearch] = useState("");
 
   // ── fetch employees ─────────────────────────────────────────────────────────
   const fetchEmployees = async () => {
@@ -298,6 +421,42 @@ export default function HRReports() {
   useEffect(() => {
     if (tab === "appraisal") fetchAppraisals();
   }, [tab, appraisalYear]);
+
+  // ── fetch leave approvals ─────────────────────────────────────────────────────
+  const fetchLeaveApprovals = async () => {
+    setLoadingLeaves(true);
+    try {
+      const res = await leaveService.fetchLeaveApprovalsHistory();
+      setLeaveApprovals(
+        res.success ? ((res.data as LeaveApprovalRow[]) ?? []) : [],
+      );
+    } catch {
+      setLeaveApprovals([]);
+    } finally {
+      setLoadingLeaves(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === "leaves") fetchLeaveApprovals();
+  }, [tab]);
+
+  // ── fetch loan approvals ──────────────────────────────────────────────────────
+  const fetchLoanApprovals = async () => {
+    setLoadingLoans(true);
+    try {
+      const res = await loanService.fetchLoanApprovalsHistory();
+      setLoanApprovals((res.data as LoanApprovalRow[]) ?? []);
+    } catch {
+      setLoanApprovals([]);
+    } finally {
+      setLoadingLoans(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === "loans") fetchLoanApprovals();
+  }, [tab]);
 
   // ── workforce analytics ─────────────────────────────────────────────────────
   const statusData = useMemo(
@@ -345,6 +504,57 @@ export default function HRReports() {
     SELF_SUBMITTED: COLORS.amber,
     draft: COLORS.slate,
   };
+
+  // ── leave-approval analytics ──────────────────────────────────────────────────
+  const leaveApprovedCount = leaveApprovals.filter(
+    (l) => l.leaveStatus === "APPROVED",
+  ).length;
+  const leaveCompletedCount = leaveApprovals.filter(
+    (l) => l.leaveStatus === "COMPLETED",
+  ).length;
+  const leaveRejectedCount = leaveApprovals.filter(
+    (l) => l.leaveStatus === "REJECTED",
+  ).length;
+  // "Approvals done" = leaves that were approved (still active) or completed.
+  const leaveApprovalsDone = leaveApprovedCount + leaveCompletedCount;
+  const leaveDaysApproved = leaveApprovals
+    .filter(
+      (l) => l.leaveStatus === "APPROVED" || l.leaveStatus === "COMPLETED",
+    )
+    .reduce((sum, l) => sum + (Number(l.totalDays) || 0), 0);
+  const filteredLeaves = leaveSearch.trim()
+    ? leaveApprovals.filter((l) =>
+        [l.employeeName, l.leaveType, l.leaveStatus, l.leaveCode]
+          .join(" ")
+          .toLowerCase()
+          .includes(leaveSearch.toLowerCase()),
+      )
+    : leaveApprovals;
+
+  // ── loan-approval analytics ───────────────────────────────────────────────────
+  const loanActiveCount = loanApprovals.filter(
+    (l) => l.status === "ACTIVE",
+  ).length;
+  const loanClosedCount = loanApprovals.filter(
+    (l) => l.status === "CLOSED",
+  ).length;
+  const loanRejectedCount = loanApprovals.filter(
+    (l) => l.status === "REJECTED",
+  ).length;
+  // "Approvals done" = loans that were approved (active) or fully repaid (closed).
+  const loanApprovalsDone = loanActiveCount + loanClosedCount;
+  const loanAmountApproved = loanApprovals
+    .filter((l) => l.status === "ACTIVE" || l.status === "CLOSED")
+    .reduce((sum, l) => sum + (Number(l.loanAmount) || 0), 0);
+  const loanCurrency = loanApprovals[0]?.currencySymbol || "$";
+  const filteredLoans = loanSearch.trim()
+    ? loanApprovals.filter((l) =>
+        [l.employeeName, l.loanType, l.status, l.loanCode]
+          .join(" ")
+          .toLowerCase()
+          .includes(loanSearch.toLowerCase()),
+      )
+    : loanApprovals;
 
   // ── render ───────────────────────────────────────────────────────────────────
   return (
@@ -1084,6 +1294,323 @@ export default function HRReports() {
           )}
         </div>
       )}
+
+      {/* ── LEAVE APPROVALS TAB ── */}
+      {tab === "leaves" &&
+        (loadingLeaves ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* KPI row */}
+            <div className="mb-2">
+              <KpiSummaryStrip
+                className="lg:grid-cols-5"
+                items={[
+                  {
+                    label: "Approvals Done",
+                    value: leaveApprovalsDone,
+                    hint: "Approved + completed",
+                    accent: "violet",
+                    icon: CalendarCheck,
+                  },
+                  {
+                    label: "Active",
+                    value: leaveApprovedCount,
+                    hint: "Approved, not yet returned",
+                    accent: "emerald",
+                    icon: CheckCircle2,
+                  },
+                  {
+                    label: "Completed",
+                    value: leaveCompletedCount,
+                    hint: "Returned to office",
+                    accent: "sky",
+                    icon: CalendarCheck,
+                  },
+                  {
+                    label: "Rejected",
+                    value: leaveRejectedCount,
+                    hint: "Declined requests",
+                    accent: "rose",
+                    icon: XCircle,
+                  },
+                  {
+                    label: "Leave Days Approved",
+                    value: leaveDaysApproved,
+                    hint: "Across approved leaves",
+                    accent: "amber",
+                    icon: Clock,
+                  },
+                ]}
+              />
+            </div>
+
+            {/* List of approvals */}
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <SectionTitle
+                  icon={CalendarCheck}
+                  label="Leave Approvals"
+                  color="text-violet-600"
+                />
+                <div className="relative w-full max-w-xs">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={leaveSearch}
+                    onChange={(e) => setLeaveSearch(e.target.value)}
+                    placeholder="Search employee, type or status…"
+                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30"
+                  />
+                </div>
+              </div>
+
+              {filteredLeaves.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-14 text-slate-400">
+                  <CalendarCheck className="h-10 w-10 text-slate-200" />
+                  <p className="text-sm font-medium">
+                    {leaveApprovals.length === 0
+                      ? "No leave approvals yet"
+                      : "No approvals match your search"}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Employee
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Leave Type
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Period
+                        </th>
+                        <th className="py-2 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Days
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Applied On
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {filteredLeaves.map((l) => {
+                        const meta = LEAVE_STATUS_META[l.leaveStatus] ?? {
+                          label: l.leaveStatus,
+                          cls: "bg-slate-50 text-slate-600 border-slate-200",
+                          icon: Clock,
+                        };
+                        const StatusIcon = meta.icon;
+                        return (
+                          <tr key={l.id} className="hover:bg-slate-50/50">
+                            <td className="py-2.5 font-medium text-slate-800">
+                              {l.employeeName || "—"}
+                              {l.leaveCode && (
+                                <span className="ml-2 font-mono text-[11px] text-slate-400">
+                                  {l.leaveCode}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 text-slate-600">
+                              {l.leaveType || "—"}
+                            </td>
+                            <td className="py-2.5 text-slate-500 tabular-nums text-xs">
+                              {fmtDay(l.startDate)} → {fmtDay(l.endDate)}
+                            </td>
+                            <td className="py-2.5 text-center">
+                              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-50 px-2 text-xs font-bold text-blue-700">
+                                {l.totalDays ?? 0}
+                              </span>
+                            </td>
+                            <td className="py-2.5 text-slate-500 tabular-nums text-xs">
+                              {fmtDay(l.dateReported)}
+                            </td>
+                            <td className="py-2.5">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                                  meta.cls,
+                                )}
+                              >
+                                <StatusIcon className="h-3 w-3" />
+                                {meta.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+      {/* ── LOAN APPROVALS TAB ── */}
+      {tab === "loans" &&
+        (loadingLoans ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* KPI row */}
+            <div className="mb-2">
+              <KpiSummaryStrip
+                className="lg:grid-cols-5"
+                items={[
+                  {
+                    label: "Approvals Done",
+                    value: loanApprovalsDone,
+                    hint: "Active + closed",
+                    accent: "violet",
+                    icon: Wallet,
+                  },
+                  {
+                    label: "Active",
+                    value: loanActiveCount,
+                    hint: "Currently being repaid",
+                    accent: "emerald",
+                    icon: CheckCircle2,
+                  },
+                  {
+                    label: "Closed",
+                    value: loanClosedCount,
+                    hint: "Fully repaid",
+                    accent: "sky",
+                    icon: Banknote,
+                  },
+                  {
+                    label: "Rejected",
+                    value: loanRejectedCount,
+                    hint: "Declined requests",
+                    accent: "rose",
+                    icon: XCircle,
+                  },
+                  {
+                    label: "Amount Approved",
+                    value: formatMoney(String(loanAmountApproved), loanCurrency),
+                    hint: "Across approved loans",
+                    accent: "amber",
+                    icon: TrendingUp,
+                  },
+                ]}
+              />
+            </div>
+
+            {/* List of approvals */}
+            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <SectionTitle
+                  icon={Wallet}
+                  label="Loan Approvals"
+                  color="text-violet-600"
+                />
+                <div className="relative w-full max-w-xs">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={loanSearch}
+                    onChange={(e) => setLoanSearch(e.target.value)}
+                    placeholder="Search employee, type or status…"
+                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30"
+                  />
+                </div>
+              </div>
+
+              {filteredLoans.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-14 text-slate-400">
+                  <Wallet className="h-10 w-10 text-slate-200" />
+                  <p className="text-sm font-medium">
+                    {loanApprovals.length === 0
+                      ? "No loan approvals yet"
+                      : "No approvals match your search"}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Employee
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Loan Type
+                        </th>
+                        <th className="py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Amount
+                        </th>
+                        <th className="py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Monthly
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Start Date
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {filteredLoans.map((l) => {
+                        const meta = LOAN_STATUS_META[l.status] ?? {
+                          label: l.status,
+                          cls: "bg-slate-50 text-slate-600 border-slate-200",
+                          icon: Clock,
+                        };
+                        const StatusIcon = meta.icon;
+                        const sym = l.currencySymbol || loanCurrency;
+                        return (
+                          <tr key={l.id} className="hover:bg-slate-50/50">
+                            <td className="py-2.5 font-medium text-slate-800">
+                              {l.employeeName || "—"}
+                              {l.loanCode && (
+                                <span className="ml-2 font-mono text-[11px] text-slate-400">
+                                  {l.loanCode}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 text-slate-600">
+                              {humanizeLoan(l.loanType)}
+                            </td>
+                            <td className="py-2.5 text-right tabular-nums font-medium text-slate-800">
+                              {formatMoney(String(l.loanAmount ?? 0), sym)}
+                            </td>
+                            <td className="py-2.5 text-right tabular-nums text-slate-500">
+                              {formatMoney(String(l.monthlyDeduction ?? 0), sym)}
+                            </td>
+                            <td className="py-2.5 text-slate-500 tabular-nums text-xs">
+                              {fmtDay(l.startDate)}
+                            </td>
+                            <td className="py-2.5">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                                  meta.cls,
+                                )}
+                              >
+                                <StatusIcon className="h-3 w-3" />
+                                {meta.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
 
       {/* ── IMMIGRATION EXPIRY TAB ── */}
       {tab === "immigration" && <ImmigrationExpiryReport />}

@@ -13,7 +13,11 @@ import {
   Wallet,
   Download,
   Pencil,
+  LogIn,
+  CalendarCheck,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
@@ -50,6 +54,7 @@ function normalizeStatus(s: unknown): string {
   if (v === "APPROVED") return "Approved";
   if (v === "REJECTED") return "Rejected";
   if (v === "CANCELLED") return "Cancelled";
+  if (v === "COMPLETED") return "Completed";
   if (v === "PENDING") return "Pending";
   return s ? String(s) : "Pending";
 }
@@ -125,6 +130,16 @@ const STATUS_META: Record<
     cls: "bg-amber-50 text-amber-700 border-amber-200",
     icon: <Clock className="h-3 w-3" />,
   },
+  Completed: {
+    label: "Completed",
+    cls: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    icon: <CalendarCheck className="h-3 w-3" />,
+  },
+  Cancelled: {
+    label: "Cancelled",
+    cls: "bg-slate-50 text-slate-600 border-slate-200",
+    icon: <XCircle className="h-3 w-3" />,
+  },
 };
 
 const fmt = (iso: string) => {
@@ -137,6 +152,15 @@ const fmt = (iso: string) => {
         month: "short",
         year: "numeric",
       });
+};
+
+/** Add `n` days to an ISO date string, returning yyyy-MM-dd (for input min). */
+const addDays = (iso: string, n: number): string | undefined => {
+  if (!iso) return undefined;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return undefined;
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
 };
 
 type BalanceEntry = {
@@ -186,8 +210,46 @@ export default function LeavesHistory() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [balances, setBalances] = useState<BalanceEntry[]>([]);
+  // Bump to refetch history + balances (e.g. after confirming a return).
+  const [refreshKey, setRefreshKey] = useState(0);
+  // Return-confirmation modal: the approved leave being closed out, plus the
+  // single editable field (the date the employee resumed duties).
+  const [returnFor, setReturnFor] = useState<Row | null>(null);
+  const [reportedDate, setReportedDate] = useState("");
+  const [returnSubmitting, setReturnSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Open the return-confirmation modal for an approved leave.
+  const openReturn = (row: Row) => {
+    setReturnFor(row);
+    setReportedDate("");
+  };
+
+  // Earliest valid return is the day after the leave started.
+  const minReturnDate = returnFor ? addDays(returnFor.startDate, 1) : undefined;
+
+  const submitReturn = async () => {
+    if (!returnFor || !id) return;
+    if (!reportedDate) {
+      toast.error("Please select the reported-to-office date");
+      return;
+    }
+    setReturnSubmitting(true);
+    const res = await leaveService.confirmReturn(
+      Number(id),
+      returnFor.id,
+      reportedDate,
+    );
+    setReturnSubmitting(false);
+    if (!res.success) {
+      toast.error(res.message || "Failed to confirm return");
+      return;
+    }
+    toast.success("Return confirmed — leave balance updated");
+    setReturnFor(null);
+    setRefreshKey((k) => k + 1);
+  };
 
   // Edit a pending leave: jump to the leave form (the index tab) in edit mode,
   // pre-filled with this row's values (handed over via router state).
@@ -204,10 +266,12 @@ export default function LeavesHistory() {
   ) => {
     const today = new Date().toISOString().slice(0, 10);
 
-    // Compute days already used (approved) per type from history
+    // Days actually consumed per type. The balance is deducted only once the
+    // employee returns to office (status COMPLETED), so an approved-but-not-yet-
+    // returned leave is intentionally not counted as used here.
     const usedByType: Record<string, number> = {};
     rows.forEach((r) => {
-      if (r.leaveStatus === "Approved") {
+      if (r.leaveStatus === "Completed") {
         usedByType[r.leaveType] =
           (usedByType[r.leaveType] || 0) + (Number(r.totalDays) || 0);
       }
@@ -297,7 +361,7 @@ export default function LeavesHistory() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, refreshKey]);
 
   // Client-side filter
   const filtered = search.trim()
@@ -312,7 +376,10 @@ export default function LeavesHistory() {
   /* ── Derived stats ── */
   const totalApproved = rows.filter((r) => r.leaveStatus === "Approved").length;
   const totalPending = rows.filter((r) => r.leaveStatus === "Pending").length;
-  const totalDays = rows.reduce((s, r) => s + (Number(r.totalDays) || 0), 0);
+  // Days "used" = actually consumed = completed leaves only.
+  const totalDaysUsed = rows
+    .filter((r) => r.leaveStatus === "Completed")
+    .reduce((s, r) => s + (Number(r.totalDays) || 0), 0);
 
   return (
     <div className="space-y-5">
@@ -342,7 +409,7 @@ export default function LeavesHistory() {
         <StatCard
           icon={<TrendingUp className="h-4 w-4" />}
           label="Total Days Used"
-          value={totalDays}
+          value={totalDaysUsed}
           color="text-violet-600 bg-violet-50 border-violet-100"
           iconBg="bg-violet-100 text-violet-600"
         />
@@ -565,8 +632,9 @@ export default function LeavesHistory() {
                         )}
                       </Td>
                       <Td center>
-                        {/* Employees can edit a leave only while it's pending,
-                            i.e. before approval or rejection. */}
+                        {/* Pending → editable; Approved → confirm the return
+                            (records the reported-to-office date and deducts the
+                            actual days). Other states have no action. */}
                         {r.leaveStatus === "Pending" ? (
                           <Button
                             variant="ghost"
@@ -576,6 +644,16 @@ export default function LeavesHistory() {
                           >
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
+                          </Button>
+                        ) : r.leaveStatus === "Approved" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openReturn(r)}
+                            className="h-7 gap-1 rounded-lg text-xs text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                          >
+                            <LogIn className="h-3.5 w-3.5" />
+                            Confirm Return
                           </Button>
                         ) : (
                           <span className="text-slate-300">—</span>
@@ -610,11 +688,124 @@ export default function LeavesHistory() {
           </div>
         )}
       </div>
+
+      {/* ── Confirm-return modal ── */}
+      {returnFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => !returnSubmitting && setReturnFor(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                  <CalendarCheck className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Confirm Return
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {returnFor.leaveCode} · {returnFor.leaveType}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setReturnFor(null)}
+                disabled={returnSubmitting}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 px-5 py-4">
+              {/* Read-only leave details — only the return date is editable. */}
+              <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                <ReadOnlyField
+                  label="Start Date"
+                  value={fmt(returnFor.startDate)}
+                />
+                <ReadOnlyField label="End Date" value={fmt(returnFor.endDate)} />
+                <ReadOnlyField
+                  label="Planned Days"
+                  value={String(returnFor.totalDays ?? 0)}
+                />
+                <ReadOnlyField
+                  label="Weekends"
+                  value={returnFor.includeWeekends ? "Included" : "Excluded"}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  Reported to Office <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={reportedDate}
+                  min={minReturnDate}
+                  onChange={(e) => setReportedDate(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
+                />
+                <p className="text-[11px] text-slate-500">
+                  The day the employee resumed duties. The actual days taken are
+                  deducted from the balance — returning earlier or later than
+                  planned is fine.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-3.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReturnFor(null)}
+                disabled={returnSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => void submitReturn()}
+                disabled={returnSubmitting || !reportedDate}
+                className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                {returnSubmitting ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Confirming…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Confirm Return
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ── Small helpers ── */
+
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+        {label}
+      </p>
+      <p className="text-sm font-medium text-slate-700">{value}</p>
+    </div>
+  );
+}
 
 function Th({
   children,

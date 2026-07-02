@@ -1,18 +1,9 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useLayoutEffect,
-} from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { debounce } from "@/lib/debounce";
 import { apiClient } from "@/service/apiClient";
-import {
-  COUNTRIES,
-  flagEmoji,
-  getCountryByName,
-} from "@/lib/countries";
+import { COUNTRIES, getCountryByName } from "@/lib/countries";
+import CountryFlag from "@/components/CountryFlag";
 import { Globe, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -69,22 +60,10 @@ export default function CountrySelect({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const [activeIdx, setActiveIdx] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const selectedCountry = getCountryByName(value);
-
-  useLayoutEffect(() => {
-    if (open && wrapperRef.current) {
-      const rect = wrapperRef.current.getBoundingClientRect();
-      setDropdownStyle({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
-    }
-  }, [open, suggestions]);
 
   useEffect(() => {
     setQuery(value || "");
@@ -192,8 +171,8 @@ export default function CountrySelect({
     <div ref={wrapperRef} className="relative">
       <div className="relative">
         {selectedCountry ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base leading-none">
-            {flagEmoji(selectedCountry.iso2)}
+          <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 items-center text-base leading-none">
+            <CountryFlag iso2={selectedCountry.iso2} />
           </span>
         ) : (
           <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -213,11 +192,14 @@ export default function CountrySelect({
           placeholder={placeholder}
           disabled={disabled}
           className={cn(
-            "h-9 rounded-lg border-slate-200 pl-9 transition-colors",
+            "h-9 rounded-lg border-slate-200 transition-colors",
             "focus-visible:border-violet-400 focus-visible:ring-violet-400/30",
             "disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed",
             loading && "pr-9",
             className,
+            // Keep the icon's space last so a consumer-passed className (e.g. one
+            // with px-3) can't clobber the left padding and overlap the flag.
+            "pl-11",
           )}
         />
         {loading && (
@@ -226,10 +208,7 @@ export default function CountrySelect({
       </div>
 
       {open && suggestions.length > 0 && (
-        <ul
-          style={dropdownStyle}
-          className="fixed z-[9999] max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-2xl"
-        >
+        <ul className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-2xl">
           {suggestions.map((s, i) => (
             <li
               key={`${s.name}-${i}`}
@@ -246,9 +225,7 @@ export default function CountrySelect({
               )}
             >
               {s.iso2 ? (
-                <span className="text-base leading-none">
-                  {flagEmoji(s.iso2)}
-                </span>
+                <CountryFlag iso2={s.iso2} className="text-base leading-none" />
               ) : (
                 <Globe className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
               )}
@@ -259,10 +236,7 @@ export default function CountrySelect({
       )}
 
       {showEmpty && (
-        <ul
-          style={dropdownStyle}
-          className="fixed z-[9999] rounded-xl border border-slate-200 bg-white shadow-2xl"
-        >
+        <ul className="absolute left-0 right-0 top-full z-[9999] mt-1 rounded-xl border border-slate-200 bg-white shadow-2xl">
           <li className="flex items-center gap-2.5 px-3 py-3 text-sm text-slate-500">
             <Globe className="h-4 w-4 text-slate-400" />
             No countries found for &ldquo;{query}&rdquo;

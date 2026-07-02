@@ -184,6 +184,11 @@ export function AppSidebar() {
 
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
+  // Company (global) settings are visible to ADMIN / SUPER_ADMIN only. Even if
+  // the persisted view flag is somehow on for a non-admin, never render the
+  // settings view (or its toggle) for them.
+  const settingsView = globalSettingsView && isAdmin;
+
   const superAdminSections = [
     {
       title: "Platform Admin",
@@ -308,7 +313,7 @@ export function AppSidebar() {
         {/* ── Content ─────────────────────────────────────── */}
         <SidebarContent className="gap-0 px-3 py-3 group-data-[collapsible=icon]:px-1">
           {/* Dashboard link */}
-          {!globalSettingsView && (
+          {!settingsView && (
             <SidebarMenu className="mb-2">
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className="h-auto p-0">
@@ -337,7 +342,7 @@ export function AppSidebar() {
           )}
 
           {/* Global settings header */}
-          {globalSettingsView && (
+          {settingsView && (
             <div className="mb-3 flex items-center gap-3 rounded-xl border border-violet-100 bg-gradient-to-r from-violet-50 to-blue-50 px-3 py-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 shadow-sm">
                 <Settings className="h-4 w-4 text-white" />
@@ -349,7 +354,7 @@ export function AppSidebar() {
           )}
 
           {/* Main sections */}
-          {(globalSettingsView ? globalSettings : sidebarItems).map(
+          {(settingsView ? globalSettings : sidebarItems).map(
             (section) => (
             <Collapsible
               key={section.title}
@@ -543,7 +548,7 @@ export function AppSidebar() {
 
           {/* Super admin section */}
           {isSuperAdmin &&
-            !globalSettingsView &&
+            !settingsView &&
             superAdminSections.map((section) => (
               <Collapsible
                 key={section.title}
@@ -615,45 +620,47 @@ export function AppSidebar() {
             ))}
         </SidebarContent>
 
-        {/* ── Footer ──────────────────────────────────────── */}
-        <SidebarFooter className="border-t border-slate-100 bg-white p-3">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="h-auto p-0">
-                <Link
-                  to={
-                    globalSettingsView
-                      ? "/"
-                      : activeCompanyId != null
-                        ? `/settings/${activeCompanyId}`
-                        : "/"
-                  }
-                  onClick={() => dispatch(toggleGlobalSettingsView())}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                    globalSettingsView
-                      ? "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800",
-                  )}
-                >
-                  <span
+        {/* ── Footer — company settings toggle (ADMIN / SUPER_ADMIN only) ── */}
+        {isAdmin && (
+          <SidebarFooter className="border-t border-slate-100 bg-white p-3">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className="h-auto p-0">
+                  <Link
+                    to={
+                      settingsView
+                        ? "/"
+                        : activeCompanyId != null
+                          ? `/settings/${activeCompanyId}`
+                          : "/"
+                    }
+                    onClick={() => dispatch(toggleGlobalSettingsView())}
                     className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-lg",
-                      globalSettingsView ? "bg-violet-100" : "bg-slate-200",
+                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                      settingsView
+                        ? "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
+                        : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800",
                     )}
                   >
-                    {globalSettingsView ? (
-                      <ArrowLeft className="h-3.5 w-3.5 text-violet-600" />
-                    ) : (
-                      <Settings className="h-3.5 w-3.5 text-slate-500" />
-                    )}
-                  </span>
-                  <span>{globalSettingsView ? "Back to app" : "Settings"}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+                    <span
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-lg",
+                        settingsView ? "bg-violet-100" : "bg-slate-200",
+                      )}
+                    >
+                      {settingsView ? (
+                        <ArrowLeft className="h-3.5 w-3.5 text-violet-600" />
+                      ) : (
+                        <Settings className="h-3.5 w-3.5 text-slate-500" />
+                      )}
+                    </span>
+                    <span>{settingsView ? "Back to app" : "Settings"}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+        )}
 
         <SidebarRail />
       </div>

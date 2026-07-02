@@ -229,6 +229,24 @@ export const leaveService = {
     }
   },
 
+  /** Company-wide history of decided leaves (approved / completed / rejected). */
+  async fetchLeaveApprovalsHistory(): Promise<LeaveServiceResponse> {
+    try {
+      const response = await apiClient.get(`/leaves/approvals/history`);
+      return {
+        success: true,
+        data: normalizeArrayResponse(response.data, ["approvals"]),
+      };
+    } catch (error: unknown) {
+      console.error("fetchLeaveApprovalsHistory error:", error);
+      return {
+        success: false,
+        message: getErrorMessage(error, "Failed to load leave approvals"),
+        data: [],
+      };
+    }
+  },
+
   async approveLeave(leaveId: number): Promise<LeaveServiceResponse> {
     if (!leaveId || leaveId <= 0) {
       return { success: false, message: "Invalid leave ID" };
@@ -347,6 +365,41 @@ export const leaveService = {
       return {
         success: false,
         message: getErrorMessage(error, "Failed to update leave with document"),
+      };
+    }
+  },
+
+  /**
+   * Confirm an employee's return to office for an approved leave. The backend
+   * deducts the actual days taken (start → day before `reportedDate`) and moves
+   * the leave to COMPLETED. `reportedDate` is an ISO date string (yyyy-MM-dd).
+   */
+  async confirmReturn(
+    employeeId: number,
+    leaveId: number,
+    reportedDate: string
+  ): Promise<LeaveServiceResponse> {
+    if (!employeeId || employeeId <= 0) {
+      return { success: false, message: "Invalid employee ID" };
+    }
+    if (!leaveId || leaveId <= 0) {
+      return { success: false, message: "Invalid leave ID" };
+    }
+    if (!reportedDate) {
+      return { success: false, message: "Reported-to-office date is required" };
+    }
+
+    try {
+      const response = await apiClient.post(
+        `/employees/${employeeId}/leaves/${leaveId}/return`,
+        { reportedDate }
+      );
+      return { success: true, data: response.data };
+    } catch (error: unknown) {
+      console.error("confirmReturn error:", error);
+      return {
+        success: false,
+        message: getErrorMessage(error, "Failed to confirm return"),
       };
     }
   },

@@ -141,6 +141,7 @@ export function AddEmployeeModal({
 }) {
   const [form, setForm] = useState({
     firstName: "",
+    middleName: "",
     lastName: "",
     gender: "",
     prefix: "",
@@ -191,6 +192,7 @@ export function AddEmployeeModal({
     }
     const payload = {
       firstName: form.firstName,
+      middleName: form.middleName || undefined,
       lastName: form.lastName,
       gender: form.gender || undefined,
       prefix: form.prefix || undefined,
@@ -292,6 +294,17 @@ export function AddEmployeeModal({
                   name="firstName"
                   placeholder="John"
                   value={form.firstName}
+                  onChange={handleChange}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Middle name</label>
+                <input
+                  name="middleName"
+                  placeholder="(optional)"
+                  value={form.middleName}
                   onChange={handleChange}
                   className={inputCls}
                 />

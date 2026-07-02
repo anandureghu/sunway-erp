@@ -5,11 +5,11 @@ import {
   COUNTRIES,
   DEFAULT_COUNTRY,
   composePhone,
-  flagEmoji,
   getCountryByIso,
   parsePhone,
   type Country,
 } from "@/lib/countries";
+import CountryFlag from "@/components/CountryFlag";
 
 type Props = {
   /** Stored combined value, e.g. "+974 33001122" */
@@ -106,7 +106,7 @@ export default function PhoneInput({
           )}
           aria-label="Select country code"
         >
-          <span className="text-base leading-none">{flagEmoji(country.iso2)}</span>
+          <CountryFlag iso2={country.iso2} className="text-base leading-none" />
           <span className="tabular-nums">+{country.dial}</span>
           {!disabled && <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
         </button>
@@ -165,9 +165,10 @@ export default function PhoneInput({
                           "bg-violet-50/60 text-violet-700",
                       )}
                     >
-                      <span className="text-base leading-none">
-                        {flagEmoji(c.iso2)}
-                      </span>
+                      <CountryFlag
+                        iso2={c.iso2}
+                        className="text-base leading-none"
+                      />
                       <span className="flex-1 truncate">{c.name}</span>
                       <span className="tabular-nums text-slate-400">
                         +{c.dial}
