@@ -700,10 +700,18 @@ export interface GoodsReceiptResponseDTO {
   id: number;
   purchaseOrderId: number;
   receivedAt: string;
+  receivedById?: number | null;
+  receivedByName?: string | null;
+  inspectedById?: number | null;
+  inspectedByName?: string | null;
+  inspectedAt?: string | null;
+  authorizedById?: number | null;
+  authorizedByName?: string | null;
   documentPdfUrl?: string | null;
   items: Array<{
     itemId: number;
     warehouseId?: number;
+    warehouseName?: string | null;
     receivedQty: number;
     acceptedQty: number;
     rejectedQty: number;
@@ -748,6 +756,16 @@ function toGoodsReceipt(
         li.warehouseId != null && li.warehouseId !== undefined
           ? String(li.warehouseId)
           : orderItem?.warehouseId || "",
+      warehouse:
+        li.warehouseId != null || li.warehouseName
+          ? {
+              id: String(li.warehouseId ?? ""),
+              name: li.warehouseName || `Warehouse ${li.warehouseId}`,
+              location: "",
+              status: "active" as const,
+              createdAt: "",
+            }
+          : undefined,
       notes: li.remarks,
     };
   });
@@ -761,6 +779,16 @@ function toGoodsReceipt(
     documentPdfUrl: dto.documentPdfUrl ?? null,
     status: "completed" as const,
     items,
+    receivedBy:
+      dto.receivedById != null ? String(dto.receivedById) : undefined,
+    receivedByName: dto.receivedByName ?? undefined,
+    inspectedBy:
+      dto.inspectedById != null ? String(dto.inspectedById) : undefined,
+    inspectedByName: dto.inspectedByName ?? undefined,
+    inspectionDate: dto.inspectedAt ?? undefined,
+    authorizedBy:
+      dto.authorizedById != null ? String(dto.authorizedById) : undefined,
+    authorizedByName: dto.authorizedByName ?? undefined,
     createdAt: dto.receivedAt || "",
     updatedAt: dto.receivedAt || "",
   };

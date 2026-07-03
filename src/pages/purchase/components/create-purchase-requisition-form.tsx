@@ -838,6 +838,7 @@ export function CreatePurchaseRequisitionForm({
                   <table className="w-full text-sm">
                     <thead className="bg-muted">
                       <tr>
+                        <th className="p-2 text-left w-12">Sl No</th>
                         <th className="p-2 text-left">Item</th>
                         <th className="p-2 text-right w-24">Qty</th>
                         <th className="p-2 text-right w-28">Item cost</th>
@@ -853,8 +854,11 @@ export function CreatePurchaseRequisitionForm({
                       </tr>
                     </thead>
                     <tbody>
-                      {requisitionItems.map((row) => (
+                      {requisitionItems.map((row, index) => (
                         <tr key={row.id} className="border-t">
+                          <td className="p-2 align-middle tabular-nums text-muted-foreground">
+                            {index + 1}
+                          </td>
                           <td className="p-2 align-middle">
                             {purchaseLineItemName(row)}
                           </td>

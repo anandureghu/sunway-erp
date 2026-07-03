@@ -931,6 +931,7 @@ export default function PurchaseOrderDetailPage() {
                   <table className="w-full min-w-[720px] text-sm">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3 pr-4 w-12">Sl No</th>
                         <th className="pb-3 pr-4">Item</th>
                         <th className="pb-3 pr-4 text-right">Qty</th>
                         <th className="pb-3 pr-4 text-right">Item cost</th>
@@ -941,11 +942,14 @@ export default function PurchaseOrderDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {order.items.map((item) => (
+                      {order.items.map((item, index) => (
                         <tr
                           key={item.id}
                           className="border-b border-slate-100 last:border-0"
                         >
+                          <td className="py-3 pr-4 tabular-nums text-slate-500">
+                            {index + 1}
+                          </td>
                           <td className="py-3 pr-4 font-medium text-slate-900">
                             {purchaseLineItemName(item)}
                           </td>

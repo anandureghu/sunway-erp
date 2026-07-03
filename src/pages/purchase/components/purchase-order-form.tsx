@@ -403,6 +403,7 @@ export function PurchaseOrderForm({
               <table className="w-full text-sm min-w-[760px]">
                 <thead className="bg-muted/60">
                   <tr>
+                    <th className="text-left p-3 w-12">Sl No</th>
                     <th className="text-left p-3">Item</th>
                     <th className="text-right p-3 w-24">Qty</th>
                     <th className="text-right p-3 w-32">Unit Cost</th>
@@ -412,13 +413,16 @@ export function PurchaseOrderForm({
                   </tr>
                 </thead>
                 <tbody>
-                  {lines.map((line) => {
+                  {lines.map((line, index) => {
                     const applied =
                       line.otherUnitCost > 0
                         ? line.otherUnitCost
                         : line.unitCost;
                     return (
                       <tr key={line.id} className="border-t">
+                        <td className="p-3 align-middle tabular-nums text-muted-foreground">
+                          {index + 1}
+                        </td>
                         <td className="p-3 align-middle">{line.itemName}</td>
                         <td className="p-3 align-middle">
                           <Input

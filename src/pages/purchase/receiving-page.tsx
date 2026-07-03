@@ -638,6 +638,7 @@ function CreateReceiptForm({
               <table className="w-full min-w-[1200px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="pb-3 pr-4 w-12">Sl No</th>
                     <th className="pb-3 pr-4">Item</th>
                     <th className="pb-3 pr-4">Warehouse</th>
                     <th className="pb-3 pr-4 text-right">Unit cost</th>
@@ -664,6 +665,9 @@ function CreateReceiptForm({
                         key={idx}
                         className="border-b border-slate-100 last:border-0"
                       >
+                        <td className="py-3 pr-4 tabular-nums text-slate-500">
+                          {idx + 1}
+                        </td>
                         <td className="py-3 pr-4">
                           <p className="font-medium text-slate-900">
                             {orderItem

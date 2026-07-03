@@ -294,6 +294,8 @@ export type GoodsReceipt = {
   inspectedBy?: string;
   inspectedByName?: string;
   inspectionDate?: string;
+  authorizedBy?: string;
+  authorizedByName?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
