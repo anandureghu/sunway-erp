@@ -43,12 +43,20 @@ export default function SalaryShell() {
 
   const cancel = useCallback(() => {
     document.dispatchEvent(new CustomEvent("salary:cancel"));
-    setEditing(false);
   }, []);
 
   const save = useCallback(() => {
     document.dispatchEvent(new CustomEvent("salary:save"));
-    setEditing(false);
+  }, []);
+
+  useEffect(() => {
+    const exitEdit = () => setEditing(false);
+    window.addEventListener("salary:saved", exitEdit);
+    window.addEventListener("salary:cancelled", exitEdit);
+    return () => {
+      window.removeEventListener("salary:saved", exitEdit);
+      window.removeEventListener("salary:cancelled", exitEdit);
+    };
   }, []);
 
   return (

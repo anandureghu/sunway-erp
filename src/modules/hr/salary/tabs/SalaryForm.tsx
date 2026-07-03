@@ -448,6 +448,7 @@ export default function SalaryForm() {
       await api(employeeId, payload);
       toast.success(exists ? "Salary updated" : "Salary created");
       if (!exists) setExists(true);
+      window.dispatchEvent(new CustomEvent("salary:saved"));
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to save salary");
       throw err;
@@ -458,7 +459,7 @@ export default function SalaryForm() {
   useEffect(() => {
     const handleCancel = () => {
       setFormData(INITIAL_STATE);
-      cancelEdit();
+      window.dispatchEvent(new CustomEvent("salary:cancelled"));
     };
     document.addEventListener("salary:save", handleSaveSalary as EventListener);
     document.addEventListener("salary:cancel", handleCancel);

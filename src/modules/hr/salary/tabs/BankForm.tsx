@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import CountrySelect from "@/components/country-select";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 type SalaryCtx = { editing: boolean };
 
@@ -50,6 +51,16 @@ const SEED: BankModel = {
   accountNo: "",
   iban: "",
 };
+
+function validateBankForm(data: BankModel): ValidationErrors {
+  const errors: ValidationErrors = {};
+  if (!data.bankName?.trim()) errors.bankName = "Bank name is required";
+  if (!data.bankBranch?.trim()) errors.bankBranch = "Bank branch is required";
+  if (!data.accountType) errors.accountType = "Account type is required";
+  if (!data.accountNo?.trim()) errors.accountNo = "Account number is required";
+  if (!data.country?.trim()) errors.country = "Country is required";
+  return errors;
+}
 
 interface ValidationErrors {
   [key: string]: string;
@@ -274,6 +285,7 @@ const StatPill = ({
 // ── main form ─────────────────────────────────────────────────────────────────
 export default function BankForm() {
   const { editing } = useOutletContext<SalaryCtx>();
+  const { validationError } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
 
@@ -295,15 +307,7 @@ export default function BankForm() {
   const patch = <K extends keyof BankModel>(k: K, v: BankModel[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
 
-  const validateForm = (data: BankModel): ValidationErrors => {
-    const errors: ValidationErrors = {};
-    if (!data.bankName) errors.bankName = "Bank name is required";
-    if (!data.bankBranch) errors.bankBranch = "Bank branch is required";
-    if (!data.accountType) errors.accountType = "Account type is required";
-    if (!data.accountNo) errors.accountNo = "Account number is required";
-    if (!data.country) errors.country = "Country is required";
-    return errors;
-  };
+  const validateForm = validateBankForm;
 
   const errors = validateForm(draft);
 
@@ -311,20 +315,12 @@ export default function BankForm() {
   const handleSaveBank = useCallback(async () => {
     if (!employeeId) return;
 
-    const requiredFields = [
-      { field: "bankName", label: "Bank Name" },
-      { field: "bankBranch", label: "Bank Branch" },
-      { field: "accountType", label: "Account Type" },
-      { field: "accountNo", label: "Account No" },
-      { field: "country", label: "Country" },
-    ];
-
-    const missing = requiredFields.filter(
-      ({ field }) => !draft[field as keyof BankModel]?.toString().trim(),
-    );
-    if (missing.length > 0) {
-      toast.error(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
-      throw new Error("Missing required fields");
+    const fieldErrors = validateBankForm(draft);
+    if (Object.keys(fieldErrors).length > 0) {
+      await validationError({
+        messages: Object.values(fieldErrors).filter(Boolean),
+      });
+      throw new Error("Please fix validation errors");
     }
 
     const api = exists ? bankService.update : bankService.create;
@@ -333,13 +329,14 @@ export default function BankForm() {
       toast.success("Bank details saved");
       setSaved(draft);
       setExists(true);
+      window.dispatchEvent(new CustomEvent("salary:saved"));
     } catch (err: any) {
       toast.error(
         err?.response?.data?.message || "Failed to save bank details",
       );
       throw err;
     }
-  }, [employeeId, exists, draft]);
+  }, [employeeId, exists, draft, validationError]);
 
   // ── load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -376,7 +373,10 @@ export default function BankForm() {
 
   // ── events ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const onCancel = () => setDraft(saved);
+    const onCancel = () => {
+      setDraft(saved);
+      window.dispatchEvent(new CustomEvent("salary:cancelled"));
+    };
     document.addEventListener("salary:save", handleSaveBank as EventListener);
     document.addEventListener("salary:cancel", onCancel as EventListener);
     return () => {
@@ -386,7 +386,7 @@ export default function BankForm() {
       );
       document.removeEventListener("salary:cancel", onCancel as EventListener);
     };
-  }, [draft, saved, employeeId, exists, handleSaveBank]);
+  }, [saved, handleSaveBank]);
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
