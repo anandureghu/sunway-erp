@@ -23,6 +23,7 @@ export default function PurchaseInvoiceDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [invoice, setInvoice] = useState<FinanceInvoice | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!id) {
@@ -34,19 +35,50 @@ export default function PurchaseInvoiceDetailPage() {
       setLoading(false);
       return;
     }
+    let cancelled = false;
     setLoading(true);
     getInvoice(num)
-      .then((inv) => {
+      .then(async (inv) => {
+        if (cancelled) return;
         if (inv.type && inv.type !== "PURCHASE") {
           toast.message("This record is not a purchase invoice.");
         }
         setInvoice(inv);
+
+        const paid =
+          (inv.status || "").trim().toUpperCase() === "PAID" &&
+          inv.documentSource === "GENERATED";
+        if (paid) {
+          try {
+            // Ensures receipt PDF exists (separate from original invoice PDF).
+            const receiptUrl = await getInvoicePdfUrl(inv.id);
+            if (cancelled) return;
+            setPreviewUrl(receiptUrl);
+            setInvoice((prev) =>
+              prev ? { ...prev, receiptPdfUrl: receiptUrl } : prev,
+            );
+            return;
+          } catch {
+            /* fall through to stored URL */
+          }
+        }
+        if (!cancelled) {
+          setPreviewUrl(invoiceDocumentPreviewUrl(inv));
+        }
       })
       .catch(() => {
-        setInvoice(null);
-        toast.error("Could not load invoice");
+        if (!cancelled) {
+          setInvoice(null);
+          setPreviewUrl(null);
+          toast.error("Could not load invoice");
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) {
@@ -87,17 +119,19 @@ export default function PurchaseInvoiceDetailPage() {
     draft: "bg-gray-100 text-gray-800",
   };
 
-  const previewUrl = invoiceDocumentPreviewUrl(invoice);
   const externalOnly =
     invoice.documentSource === "EXTERNAL_LINK" &&
     invoice.externalDocumentUrl &&
     !previewUrl;
 
-  const openDocumentHref =
-    invoice.externalDocumentUrl || invoice.pdfUrl || undefined;
   const isPaid = isInvoiceReceiptView(invoice.status);
   const isGenerated = invoice.documentSource === "GENERATED";
   const showReceipt = isGenerated && isPaid;
+  const openDocumentHref =
+    invoice.externalDocumentUrl ||
+    (showReceipt ? invoice.receiptPdfUrl : null) ||
+    invoice.pdfUrl ||
+    undefined;
 
   const handleDownloadPdf = async () => {
     try {

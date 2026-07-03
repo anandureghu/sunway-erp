@@ -26,6 +26,8 @@ export interface FinanceInvoice {
   itemDescription?: string;
   notesRemarks?: string;
   pdfUrl?: string | null;
+  /** Receipt PDF after full payment (generated invoices only). */
+  receiptPdfUrl?: string | null;
   supplierInvoiceNumber?: string | null;
   documentSource?: InvoiceDocumentSource | null;
   externalDocumentUrl?: string | null;
