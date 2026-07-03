@@ -32,12 +32,20 @@ export default function CurrentJobLayout() {
 
   const cancelEdit = useCallback(() => {
     document.dispatchEvent(new CustomEvent("current-job:cancel"));
-    setEditing(false);
   }, []);
 
-  const saveEdit   = useCallback(() => {
+  const saveEdit = useCallback(() => {
     document.dispatchEvent(new CustomEvent("current-job:save"));
-    setEditing(false);
+  }, []);
+
+  useEffect(() => {
+    const exitEdit = () => setEditing(false);
+    window.addEventListener("current-job:saved", exitEdit);
+    window.addEventListener("current-job:cancelled", exitEdit);
+    return () => {
+      window.removeEventListener("current-job:saved", exitEdit);
+      window.removeEventListener("current-job:cancelled", exitEdit);
+    };
   }, []);
 
   return (

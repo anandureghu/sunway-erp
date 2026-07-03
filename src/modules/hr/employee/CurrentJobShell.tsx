@@ -29,6 +29,26 @@ export default function CurrentJobShell() {
     setSp(next, { replace: true });
   };
 
+  useEffect(() => {
+    const exitEdit = () => {
+      setSp((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("edit");
+        return next;
+      }, { replace: true });
+    };
+    window.addEventListener("current-job:saved", exitEdit);
+    window.addEventListener("current-job:cancelled", exitEdit);
+    window.addEventListener("contract:saved", exitEdit);
+    window.addEventListener("contract:cancelled", exitEdit);
+    return () => {
+      window.removeEventListener("current-job:saved", exitEdit);
+      window.removeEventListener("current-job:cancelled", exitEdit);
+      window.removeEventListener("contract:saved", exitEdit);
+      window.removeEventListener("contract:cancelled", exitEdit);
+    };
+  }, [setSp]);
+
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
       {/* Title bar */}
@@ -62,12 +82,10 @@ export default function CurrentJobShell() {
           onCancel={() => {
             try { document.dispatchEvent(new CustomEvent("current-job:cancel")); } catch {}
             try { document.dispatchEvent(new CustomEvent("contract:cancel")); } catch {}
-            setEditing(false);
           }}
           onSave={() => {
             try { document.dispatchEvent(new CustomEvent("current-job:save")); } catch {}
             try { document.dispatchEvent(new CustomEvent("contract:save")); } catch {}
-            setEditing(false);
           }}
         />
       </div>

@@ -15,6 +15,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  ValidationErrorDialog,
+  type ValidationErrorDialogProps,
+} from "@/components/ValidationErrorDialog";
 
 export type ConfirmDialogOptions = {
   title?: string;
@@ -27,6 +31,13 @@ export type ConfirmDialogOptions = {
 export type AlertDialogOptions = {
   title?: string;
   description: string;
+  okLabel?: string;
+};
+
+export type ValidationErrorDialogOptions = {
+  title?: string;
+  description?: string;
+  messages: string | string[];
   okLabel?: string;
 };
 
@@ -44,6 +55,7 @@ type ActiveDialog = {
 type ConfirmDialogContextValue = {
   confirm: (options: ConfirmDialogOptions | string) => Promise<boolean>;
   alert: (options: AlertDialogOptions | string) => Promise<void>;
+  validationError: (options: ValidationErrorDialogOptions) => Promise<void>;
 };
 
 const ConfirmDialogContext = createContext<ConfirmDialogContextValue | null>(
@@ -62,9 +74,29 @@ function normalizeAlertOptions(
   return typeof options === "string" ? { description: options } : options;
 }
 
+function normalizeValidationErrorOptions(
+  options: ValidationErrorDialogOptions,
+): Omit<ValidationErrorDialogProps, "open" | "onClose"> {
+  const messages = Array.isArray(options.messages)
+    ? options.messages.filter(Boolean)
+    : [options.messages].filter(Boolean);
+
+  return {
+    title: options.title,
+    description: options.description,
+    messages,
+    okLabel: options.okLabel,
+  };
+}
+
 export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<ActiveDialog | null>(null);
+  const [validationDialog, setValidationDialog] = useState<Omit<
+    ValidationErrorDialogProps,
+    "open" | "onClose"
+  > | null>(null);
   const resolveRef = useRef<((value: boolean) => void) | null>(null);
+  const validationResolveRef = useRef<(() => void) | null>(null);
 
   const close = useCallback((result: boolean) => {
     resolveRef.current?.(result);
@@ -102,8 +134,21 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const closeValidationError = useCallback(() => {
+    validationResolveRef.current?.();
+    validationResolveRef.current = null;
+    setValidationDialog(null);
+  }, []);
+
+  const validationError = useCallback((options: ValidationErrorDialogOptions) => {
+    return new Promise<void>((resolve) => {
+      validationResolveRef.current = resolve;
+      setValidationDialog(normalizeValidationErrorOptions(options));
+    });
+  }, []);
+
   return (
-    <ConfirmDialogContext.Provider value={{ confirm, alert }}>
+    <ConfirmDialogContext.Provider value={{ confirm, alert, validationError }}>
       {children}
       <Dialog
         open={dialog != null}
@@ -140,6 +185,14 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ValidationErrorDialog
+        open={validationDialog != null}
+        title={validationDialog?.title}
+        description={validationDialog?.description}
+        messages={validationDialog?.messages ?? []}
+        okLabel={validationDialog?.okLabel}
+        onClose={closeValidationError}
+      />
     </ConfirmDialogContext.Provider>
   );
 }

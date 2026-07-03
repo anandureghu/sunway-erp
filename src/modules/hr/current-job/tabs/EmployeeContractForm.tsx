@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
 import {
   contractService,
   type ContractApiPayload,
@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 /* ================= TYPES ================= */
 
@@ -245,10 +246,35 @@ function cleanObject<T extends Record<string, any>>(obj: T): T {
   ) as T;
 }
 
+function validateContractForm(data: ContractFormData): ValidationErrors {
+  const errors: ValidationErrors = {};
+
+  if (!data.staffName?.trim()) errors.staffName = "Staff name is required";
+  if (!data.contractType) errors.contractType = "Contract type is required";
+  if (!data.effectiveDate)
+    errors.effectiveDate = "Effective date is required";
+  if (!data.status) errors.status = "Status is required";
+
+  const validAllowances = data.salaryRows.filter(
+    (r) =>
+      r.customName.trim() !== "" &&
+      String(r.amount).trim() !== "" &&
+      Number(r.amount) > 0,
+  );
+  if (validAllowances.length === 0) {
+    errors.salaryRows =
+      "Please add at least one allowance with a name and amount greater than 0";
+  }
+
+  return errors;
+}
+
 /* ================= COMPONENT ================= */
 
 export default function EmployeeContractForm() {
   const { id } = useParams<{ id: string }>();
+  const { editing: externalEditing } = useOutletContext<{ editing: boolean }>();
+  const { validationError } = useConfirmDialog();
 
   const employeeId = (() => {
     if (!id || id.trim() === "") return undefined;
@@ -273,6 +299,7 @@ export default function EmployeeContractForm() {
   // onSave reads from this ref so it is never stale regardless of
   // when the closure was created.
   const latestFormDataRef = useRef<ContractFormData | null>(null);
+  const savedDataRef = useRef<ContractFormData | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -304,40 +331,38 @@ export default function EmployeeContractForm() {
     setFields,
     handleEdit,
     handleSave,
-    handleCancel,
   } = useEditableForm<ContractFormData>({
     initialData: initialFormData,
+    externalEditing,
     onSave: async () => {
       if (savingRef.current) return;
       savingRef.current = true;
 
       try {
-        // ─── FIX: always read from the ref, never from the closure ───
         const data = latestFormDataRef.current!;
         const validEmployeeId = employeeId as number;
 
         if (!validEmployeeId) {
-          toast.error("Invalid employee ID");
-          return;
+          savingRef.current = false;
+          await validationError({ messages: "Invalid employee ID" });
+          throw new Error("Please fix validation errors");
         }
 
         if (loadingContractRef.current) {
-          toast.error("Please wait — contract data is still loading");
-          return;
+          savingRef.current = false;
+          await validationError({
+            messages: "Please wait — contract data is still loading",
+          });
+          throw new Error("Please fix validation errors");
         }
 
-        // ─── FIX: frontend guard so user sees friendly errors immediately ───
-        if (!data.contractType) {
-          toast.error("Contract type is required");
-          return;
-        }
-        if (!data.status) {
-          toast.error("Status is required");
-          return;
-        }
-        if (!data.effectiveDate) {
-          toast.error("Effective date is required");
-          return;
+        const errors = validateContractForm(data);
+        if (Object.keys(errors).length > 0) {
+          savingRef.current = false;
+          await validationError({
+            messages: Object.values(errors).filter(Boolean),
+          });
+          throw new Error("Please fix validation errors");
         }
 
         const saveToday = new Date().toISOString().slice(0, 10);
@@ -373,13 +398,6 @@ export default function EmployeeContractForm() {
               note: r.note?.trim() || undefined,
             });
           });
-
-        if (allowances.length === 0) {
-          toast.error(
-            "Please add at least one allowance with a name and amount greater than 0",
-          );
-          return;
-        }
 
         const payload: ContractApiPayload = cleanObject({
           contractType: data.contractType,
@@ -424,8 +442,13 @@ export default function EmployeeContractForm() {
 
         await loadContract(validEmployeeId);
         toast.success("Contract saved successfully");
+        window.dispatchEvent(new CustomEvent("contract:saved"));
       } catch (err: any) {
-        toast.error(contractService.extractErrorMessage(err));
+        if (
+          !(err instanceof Error && err.message === "Please fix validation errors")
+        ) {
+          toast.error(contractService.extractErrorMessage(err));
+        }
         throw err;
       } finally {
         savingRef.current = false;
@@ -511,6 +534,7 @@ export default function EmployeeContractForm() {
           };
 
           latestFormDataRef.current = prePopulated;
+          savedDataRef.current = prePopulated;
           setFields(prePopulated);
           return;
         }
@@ -566,6 +590,7 @@ export default function EmployeeContractForm() {
 
         // ─── FIX: sync ref before setFields so onSave never reads stale data ───
         latestFormDataRef.current = loadedData;
+        savedDataRef.current = loadedData;
         setFields(loadedData);
       } catch (error) {
         console.error("Error loading contract:", error);
@@ -575,6 +600,14 @@ export default function EmployeeContractForm() {
     },
     [initialFormData, setFields],
   );
+
+  const handleFormCancel = useCallback(() => {
+    const restored = savedDataRef.current ?? initialFormData;
+    setFields(restored);
+    latestFormDataRef.current = restored;
+    setAttachmentFile(null);
+    window.dispatchEvent(new CustomEvent("contract:cancelled"));
+  }, [initialFormData, setFields]);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -587,7 +620,10 @@ export default function EmployeeContractForm() {
       handleEdit as EventListener,
     );
     document.addEventListener("contract:save", handleSave as EventListener);
-    document.addEventListener("contract:cancel", handleCancel as EventListener);
+    document.addEventListener(
+      "contract:cancel",
+      handleFormCancel as EventListener,
+    );
 
     return () => {
       document.removeEventListener(
@@ -600,24 +636,14 @@ export default function EmployeeContractForm() {
       );
       document.removeEventListener(
         "contract:cancel",
-        handleCancel as EventListener,
+        handleFormCancel as EventListener,
       );
     };
-  }, [handleEdit, handleSave, handleCancel]);
+  }, [handleEdit, handleSave, handleFormCancel]);
 
   /* ================= VALIDATION ================= */
 
-  const validateForm = (data: ContractFormData): ValidationErrors => {
-    const errors: ValidationErrors = {};
-    if (!data.staffName?.trim()) errors.staffName = "Staff name is required";
-    if (!data.contractType) errors.contractType = "Contract type is required";
-    if (!data.effectiveDate)
-      errors.effectiveDate = "Effective date is required";
-    if (!data.status) errors.status = "Status is required";
-    return errors;
-  };
-
-  const errors = validateForm(formData);
+  const errors = validateContractForm(formData);
 
   /* ================= ROW HELPERS ================= */
 
@@ -1038,6 +1064,12 @@ export default function EmployeeContractForm() {
               </div>
             )}
           </div>
+
+          {errors.salaryRows && (
+            <p className="mb-3 flex items-center gap-1 text-xs text-rose-500">
+              <span>⚠</span> {errors.salaryRows}
+            </p>
+          )}
 
           <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
             <table className="w-full text-sm">
