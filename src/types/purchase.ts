@@ -208,11 +208,16 @@ export type PurchaseOrder = {
   supplierName?: string;
   supplier?: Supplier;
   orderDate: string;
+  /** Required delivery date carried from the source PR. */
+  requiredDeliveryDate?: string;
+  /** @deprecated Prefer requiredDeliveryDate */
   expectedDate?: string;
   status: PurchaseOrderStatus;
   archived?: boolean;
   /** True after vendor payment is confirmed in Finance → AP → Vendor payments */
   vendorPaymentSettled?: boolean;
+  /** Linked purchase invoice payment status (UNPAID, PARTIALLY_PAID, PAID, …). */
+  paymentStatus?: string;
   purchaseInvoiceId?: number;
   vendorPaymentId?: number;
   items: PurchaseOrderItem[];
@@ -224,6 +229,9 @@ export type PurchaseOrder = {
   notes?: string;
   orderedBy?: string;
   orderedByName?: string;
+  /** Original PR requester, carried from the source PR. */
+  requestedById?: string;
+  requestedByName?: string;
   approvedBy?: string;
   approvedByName?: string;
   approvedDate?: string;

@@ -54,11 +54,12 @@ function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
 }
 
 function orderDeliveryLabel(order: PurchaseOrder): string {
-  if (order.expectedDate) {
+  const deliveryDate = order.requiredDeliveryDate || order.expectedDate;
+  if (deliveryDate) {
     try {
-      return format(new Date(order.expectedDate), "MMM d, yyyy");
+      return format(new Date(deliveryDate), "MMM d, yyyy");
     } catch {
-      return order.expectedDate;
+      return deliveryDate;
     }
   }
   if (order.orderDate) {

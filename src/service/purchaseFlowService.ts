@@ -150,6 +150,7 @@ export interface PurchaseOrderResponseDTO {
   supplierId?: number | null;
   supplierName?: string | null;
   orderDate: string;
+  requiredDeliveryDate?: string | null;
   status: string;
   archived?: boolean;
   totalAmount: number;
@@ -157,7 +158,10 @@ export interface PurchaseOrderResponseDTO {
   createdAt: string;
   createdById: number;
   createdByName: string;
+  requestedById?: number | null;
+  requestedByName?: string | null;
   vendorPaymentSettled?: boolean | null;
+  paymentStatus?: string | null;
   purchaseInvoiceId?: number | null;
   vendorPaymentId?: number | null;
 }
@@ -307,9 +311,16 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
         ? String(dto.supplierId)
         : "",
     orderDate: dto.orderDate || "",
+    requiredDeliveryDate: dto.requiredDeliveryDate || undefined,
+    expectedDate: dto.requiredDeliveryDate || undefined,
     status: (normalizeStatus(dto.status) as any) || "draft",
     archived: Boolean(dto.archived),
     vendorPaymentSettled: Boolean(dto.vendorPaymentSettled),
+    paymentStatus: (() => {
+      const raw = (dto.paymentStatus || "").trim().toUpperCase();
+      if (raw) return raw;
+      return dto.vendorPaymentSettled ? "PAID" : "UNPAID";
+    })(),
     purchaseInvoiceId: dto.purchaseInvoiceId ?? undefined,
     vendorPaymentId: dto.vendorPaymentId ?? undefined,
     items,
@@ -319,6 +330,11 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     total,
     orderedBy: String(dto.createdById || ""),
     orderedByName: dto.createdByName,
+    requestedById:
+      dto.requestedById != null && dto.requestedById !== undefined
+        ? String(dto.requestedById)
+        : undefined,
+    requestedByName: dto.requestedByName ?? undefined,
     supplierName: dto.supplierName ?? undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",

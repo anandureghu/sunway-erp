@@ -784,12 +784,21 @@ export default function PurchaseOrderDetailPage() {
                   }
                 />
                 <DetailField
-                  label="Expected date"
+                  label="Required Delivery Date"
                   value={
-                    order.expectedDate
-                      ? format(new Date(order.expectedDate), "MMM d, yyyy")
+                    order.requiredDeliveryDate || order.expectedDate
+                      ? format(
+                          new Date(
+                            order.requiredDeliveryDate || order.expectedDate!,
+                          ),
+                          "MMM d, yyyy",
+                        )
                       : null
                   }
+                />
+                <DetailField
+                  label="Requested by"
+                  value={order.requestedByName || null}
                 />
                 <DetailField
                   label="Source requisition"

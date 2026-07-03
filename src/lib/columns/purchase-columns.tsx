@@ -20,7 +20,6 @@ import {
   Trash2,
   FileText,
   Package,
-  CheckCircle,
   Send,
   Link2,
   Download,
@@ -33,6 +32,7 @@ import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
+import { StatusBadge } from "@/lib/status-badge";
 
 export type PurchaseOrderColumnActions = {
   /** Navigate to full PO detail */
@@ -97,8 +97,28 @@ export function createPurchaseOrderColumns(
       header: "Order Date",
       cell: ({ row }) => {
         const date = row.getValue("orderDate") as string;
-        return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+        return (
+          <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
+        );
       },
+    },
+    {
+      id: "requiredDeliveryDate",
+      header: "Required Delivery Date",
+      cell: ({ row }) => {
+        const date =
+          row.original.requiredDeliveryDate || row.original.expectedDate;
+        return (
+          <span>{date ? format(new Date(date), "MMM dd, yyyy") : "—"}</span>
+        );
+      },
+    },
+    {
+      accessorKey: "requestedByName",
+      header: "Requested by",
+      cell: ({ row }) => (
+        <span>{row.original.requestedByName || "—"}</span>
+      ),
     },
     {
       accessorKey: "status",
@@ -126,6 +146,17 @@ export function createPurchaseOrderColumns(
               .join(" ")}
           </Badge>
         );
+      },
+    },
+    {
+      accessorKey: "paymentStatus",
+      header: "Payment Status",
+      cell: ({ row }) => {
+        const order = row.original;
+        const status =
+          order.paymentStatus ||
+          (order.vendorPaymentSettled ? "PAID" : "UNPAID");
+        return <StatusBadge status={status} />;
       },
     },
     {
@@ -422,33 +453,10 @@ export function createPurchaseInvoiceColumns(
     },
     {
       accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = (row.getValue("status") as string) || "";
-        const key = status.toLowerCase();
-        const statusColors: Record<string, string> = {
-          draft: "bg-gray-100 text-gray-800",
-          unpaid: "bg-yellow-100 text-yellow-800",
-          pending: "bg-yellow-100 text-yellow-800",
-          paid: "bg-green-100 text-green-800",
-          partially_paid: "bg-blue-100 text-blue-800",
-          overdue: "bg-red-100 text-red-800",
-          cancelled: "bg-gray-100 text-gray-800",
-        };
-        return (
-          <Badge className={statusColors[key] || "bg-gray-100 text-gray-800"}>
-            {status
-              ? status
-                  .replace(/_/g, " ")
-                  .split(" ")
-                  .map(
-                    (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(),
-                  )
-                  .join(" ")
-              : "—"}
-          </Badge>
-        );
-      },
+      header: "Payment Status",
+      cell: ({ row }) => (
+        <StatusBadge status={String(row.getValue("status") ?? "UNPAID")} />
+      ),
     },
     {
       accessorKey: "amount",
@@ -656,10 +664,6 @@ export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] = [
             <DropdownMenuItem>
               <Eye className="mr-2 h-4 w-4" />
               View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Complete Inspection
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
