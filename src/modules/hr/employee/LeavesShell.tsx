@@ -35,9 +35,13 @@ export default function LeavesShell() {
   const isTimesheetTab = location.pathname.endsWith("/timesheet");
 
   useEffect(() => {
-    const onSaved = () => setEditing(false);
-    document.addEventListener("leaves:saved", onSaved as EventListener);
-    return () => document.removeEventListener("leaves:saved", onSaved as EventListener);
+    const exitEdit = () => setEditing(false);
+    window.addEventListener("leaves:saved", exitEdit);
+    window.addEventListener("leaves:cancelled", exitEdit);
+    return () => {
+      window.removeEventListener("leaves:saved", exitEdit);
+      window.removeEventListener("leaves:cancelled", exitEdit);
+    };
   }, []);
 
   return (
@@ -74,7 +78,6 @@ export default function LeavesShell() {
             onEdit={() => setEditing(true)}
             onCancel={() => {
               try { document.dispatchEvent(new CustomEvent("leaves:cancel")); } catch {}
-              setEditing(false);
             }}
             onSave={() => {
               try { document.dispatchEvent(new CustomEvent("leaves:save")); } catch {}
