@@ -36,8 +36,18 @@ export default function ProfileShell(): ReactElement {
   }, []);
 
   const startEdit = useCallback(() => { setEditing(true);  fire("profile:edit");   }, [fire]);
-  const save      = useCallback(() => { fire("profile:save");   setEditing(false); }, [fire]);
-  const cancel    = useCallback(() => { fire("profile:cancel"); setEditing(false); }, [fire]);
+  const save      = useCallback(() => { fire("profile:save"); }, [fire]);
+  const cancel    = useCallback(() => { fire("profile:cancel"); }, [fire]);
+
+  useEffect(() => {
+    const exitEdit = () => setEditing(false);
+    window.addEventListener("profile:saved", exitEdit);
+    window.addEventListener("profile:cancelled", exitEdit);
+    return () => {
+      window.removeEventListener("profile:saved", exitEdit);
+      window.removeEventListener("profile:cancelled", exitEdit);
+    };
+  }, []);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden" role="region" aria-label="Employee profile section">

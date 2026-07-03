@@ -117,7 +117,7 @@ function calculatePasswordStrength(
 }
 
 export default function ContactInfoForm() {
-  const { confirm } = useConfirmDialog();
+  const { confirm, validationError } = useConfirmDialog();
   const { editing, isAdmin } = useOutletContext<Ctx>();
 
   const [saved, setSaved] = useState(SEED);
@@ -214,29 +214,32 @@ export default function ContactInfoForm() {
 
   useEffect(() => {
     const onSave = async () => {
-      // Block saving on an invalid phone number.
+      const messages: string[] = [];
       const phoneValid = validatePhone(draft.phone, { required: true });
       const altValid = validatePhone(draft.altPhone, { required: false });
       const emailValid = validateEmail(draft.email, { required: true });
+
       if (!emailValid.valid) {
-        toast.error(emailValid.message ?? "Invalid email address");
-        return;
+        messages.push(emailValid.message ?? "Email address is required");
       }
       if (!phoneValid.valid) {
-        toast.error(phoneValid.message ?? "Invalid phone number");
-        return;
+        messages.push(phoneValid.message ?? "Phone number is required");
       }
       if (!altValid.valid) {
-        toast.error(`Alt. phone: ${altValid.message ?? "invalid"}`);
+        messages.push(`Alt. phone: ${altValid.message ?? "invalid"}`);
+      }
+
+      if (messages.length > 0) {
+        await validationError({ messages });
         return;
       }
 
       setSaved(draft);
-      if (!employeeId) return;
+      if (!employeeId) {
+        window.dispatchEvent(new CustomEvent("profile:saved"));
+        return;
+      }
 
-      // Addresses are persisted independently through their own inline
-      // Save/Update buttons — the page-level Save only handles contact details,
-      // so there is no longer a second, duplicate save of address records.
       try {
         await contactService.saveContactInfo(employeeId, {
           email: normalizeEmail(draft.email),
@@ -245,13 +248,17 @@ export default function ContactInfoForm() {
           notes: draft.notes || "",
         });
         toast.success("Contact information saved");
+        window.dispatchEvent(new CustomEvent("profile:saved"));
       } catch (err) {
         console.error("Failed to save contact info", err);
         toast.error("Failed to save contact info");
       }
     };
 
-    const onCancel = () => setDraft(saved);
+    const onCancel = () => {
+      setDraft(saved);
+      window.dispatchEvent(new CustomEvent("profile:cancelled"));
+    };
     const onEdit = () => setDraft(saved);
 
     document.addEventListener("profile:save", onSave as EventListener);
@@ -262,7 +269,7 @@ export default function ContactInfoForm() {
       document.removeEventListener("profile:cancel", onCancel as EventListener);
       document.removeEventListener("profile:edit", onEdit as EventListener);
     };
-  }, [draft, saved, employeeId]);
+  }, [draft, saved, employeeId, validationError]);
 
   const set = <K extends keyof ContactInfo>(k: K, v: ContactInfo[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
