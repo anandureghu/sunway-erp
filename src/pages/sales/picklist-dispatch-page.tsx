@@ -37,7 +37,7 @@ import {
 } from "@/components/kpi-summary-strip";
 
 export default function PicklistDispatchPage() {
-  const { confirm } = useConfirmDialog();
+  const { confirmCancel } = useConfirmDialog();
   const location = useLocation();
   const navState =
     (location.state as {
@@ -127,8 +127,9 @@ export default function PicklistDispatchPage() {
           }
         },
         async (id) => {
-          if (!(await confirm("Are you sure you want to cancel this picklist?")))
-            return;
+          const picklist = picklists.find((p) => p.id === id);
+          const label = picklist?.picklistNo || id;
+          if (!(await confirmCancel(`picklist ${label}`))) return;
           try {
             await cancelPicklist(id);
             toast.success("Picklist cancelled");
@@ -142,7 +143,7 @@ export default function PicklistDispatchPage() {
           setShowCreateDispatch(true);
         },
       ),
-    [loadData],
+    [loadData, picklists, confirmCancel],
   );
 
   const dispatchColumns = useMemo(
@@ -175,16 +176,22 @@ export default function PicklistDispatchPage() {
           await loadData();
         },
         async (id) => {
-          if (!(await confirm("Are you sure you want to cancel this shipment?")))
-            return;
-          await cancelShipment(id);
-          await loadData();
+          const shipment = dispatches.find((d) => d.id === id);
+          const label = shipment?.dispatchNo || id;
+          if (!(await confirmCancel(`shipment ${label}`))) return;
+          try {
+            await cancelShipment(id);
+            toast.success("Shipment cancelled");
+            await loadData();
+          } catch (e: any) {
+            toast.error(e?.message || "Failed to cancel shipment");
+          }
         },
         (id) => {
           navigate(`/inventory/sales/tracking?dispatchId=${id}`);
         },
       ),
-    [loadData, navigate],
+    [loadData, navigate, dispatches, confirmCancel],
   );
 
   const fulfillmentKpis = useMemo((): KpiSummaryStat[] => {

@@ -11,13 +11,21 @@ import { toast } from "sonner";
 import { SalesOrderDetailCards } from "./components/sales-order-detail-cards";
 import { SalesPageHeader } from "./components/sales-page-header";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const SalesOrdersDetailPage = () => {
   const { id } = useParams();
+  const { confirmCancel } = useConfirmDialog();
   const [so, setSo] = useState<SalesOrderResponseDTO | null>(null);
 
   const updateStatus = async (action: "confirm" | "cancel") => {
     if (!so) return;
+    if (
+      action === "cancel" &&
+      !(await confirmCancel(`order ${so.orderNumber || so.id}`))
+    ) {
+      return;
+    }
 
     try {
       await apiClient.post(`/sales/orders/${so.id}/${action}`);

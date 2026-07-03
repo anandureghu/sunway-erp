@@ -43,6 +43,11 @@ type ActiveDialog = {
 
 type ConfirmDialogContextValue = {
   confirm: (options: ConfirmDialogOptions | string) => Promise<boolean>;
+  /**
+   * Destructive cancel confirmation for records (orders, shipments, etc.).
+   * Pass a short label such as `order PO-1000` or `this shipment`.
+   */
+  confirmCancel: (entityLabel: string) => Promise<boolean>;
   alert: (options: AlertDialogOptions | string) => Promise<void>;
 };
 
@@ -87,6 +92,18 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const confirmCancel = useCallback(
+    (entityLabel: string) =>
+      confirm({
+        title: `Cancel ${entityLabel}?`,
+        description: `Are you sure you want to cancel ${entityLabel}? This cannot be undone.`,
+        confirmLabel: "Yes, cancel",
+        cancelLabel: "Keep",
+        variant: "destructive",
+      }),
+    [confirm],
+  );
+
   const alert = useCallback((options: AlertDialogOptions | string) => {
     const opts = normalizeAlertOptions(options);
     return new Promise<void>((resolve) => {
@@ -103,7 +120,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ConfirmDialogContext.Provider value={{ confirm, alert }}>
+    <ConfirmDialogContext.Provider value={{ confirm, confirmCancel, alert }}>
       {children}
       <Dialog
         open={dialog != null}

@@ -46,6 +46,7 @@ import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { cn } from "@/lib/utils";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const BASE = "/inventory/purchase";
 
@@ -131,6 +132,7 @@ export default function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { confirmCancel } = useConfirmDialog();
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,9 +143,8 @@ export default function PurchaseOrderDetailPage() {
   );
   const [assignSupplierId, setAssignSupplierId] = useState<string>("");
   const [assignLoading, setAssignLoading] = useState(false);
-  const [postingDialog, setPostingDialog] = useState<PostingDialogAction | null>(
-    null,
-  );
+  const [postingDialog, setPostingDialog] =
+    useState<PostingDialogAction | null>(null);
   const [postingPreview, setPostingPreview] =
     useState<PurchaseOrderPostingPreview | null>(null);
   const [postingPreviewLoading, setPostingPreviewLoading] = useState(false);
@@ -241,6 +242,12 @@ export default function PurchaseOrderDetailPage() {
   const openPostingDialog = useCallback(
     async (action: PostingDialogAction) => {
       if (!order) return;
+      if (
+        action === "cancel" &&
+        !(await confirmCancel(`order ${order.orderNo}`))
+      ) {
+        return;
+      }
       setPostingDialog(action);
       setPostingPreview(null);
       setPostingPreviewLoading(true);
@@ -258,7 +265,7 @@ export default function PurchaseOrderDetailPage() {
         setPostingPreviewLoading(false);
       }
     },
-    [order],
+    [order, confirmCancel],
   );
 
   useEffect(() => {
@@ -267,9 +274,7 @@ export default function PurchaseOrderDetailPage() {
     if (!action || !order || loading) return;
     navigate(location.pathname, { replace: true, state: null });
     if (action === "release" && !order.supplierId) {
-      toast.error(
-        "Assign a supplier before releasing this purchase order.",
-      );
+      toast.error("Assign a supplier before releasing this purchase order.");
       return;
     }
     if (
@@ -287,7 +292,16 @@ export default function PurchaseOrderDetailPage() {
       return;
     }
     void openPostingDialog(action);
-  }, [order?.id, order?.supplierId, loading, location.state, location.pathname, navigate, openPostingDialog, order]);
+  }, [
+    order?.id,
+    order?.supplierId,
+    loading,
+    location.state,
+    location.pathname,
+    navigate,
+    openPostingDialog,
+    order,
+  ]);
 
   const handleAssignSupplier = async () => {
     if (!order || !assignSupplierId) {
@@ -301,9 +315,7 @@ export default function PurchaseOrderDetailPage() {
       await load();
     } catch (e: any) {
       toast.error(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Failed to assign supplier",
+        e?.response?.data?.message || e?.message || "Failed to assign supplier",
       );
     } finally {
       setAssignLoading(false);
@@ -326,11 +338,9 @@ export default function PurchaseOrderDetailPage() {
       await load();
     } catch (e: any) {
       toast.error(
-        e?.response?.data?.message ||
-          e?.message ||
-          postingDialog === "release"
-            ? "Failed to release Purchase Order"
-            : "Failed to cancel",
+        e?.response?.data?.message || e?.message || postingDialog === "release"
+          ? "Failed to release Purchase Order"
+          : "Failed to cancel",
       );
     } finally {
       setActionLoading(false);
@@ -372,7 +382,10 @@ export default function PurchaseOrderDetailPage() {
           <div className="text-red-600 font-medium">
             {error || "Purchase order not found"}
           </div>
-          <Button variant="outline" onClick={() => navigate("/inventory/purchase/orders")}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/inventory/purchase/orders")}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go Back
           </Button>
@@ -392,7 +405,8 @@ export default function PurchaseOrderDetailPage() {
       active: order.supplier?.status === "active",
     });
   const vendorPaymentConfirmed = order.vendorPaymentSettled === true;
-  const canAssignSupplier = st === "draft" && (!hasSupplier || !supplierEligible);
+  const canAssignSupplier =
+    st === "draft" && (!hasSupplier || !supplierEligible);
   const canRelease = st === "draft" && supplierEligible;
   const canCancel = st === "draft" && !vendorPaymentConfirmed;
   const canReceive =
@@ -401,15 +415,11 @@ export default function PurchaseOrderDetailPage() {
     st === "partially_received" ||
     st === "approved";
   const isReleased =
-    st === "confirmed" ||
-    st === "partially_received" ||
-    st === "received";
+    st === "confirmed" || st === "partially_received" || st === "received";
   const hasPurchaseInvoice = order.purchaseInvoiceId != null;
   const reqId = order.requisitionId;
   const linkedRequisitionLabel =
-    order.requisitionNo ||
-    linkedRequisitionNo ||
-    (reqId ? `PR-${reqId}` : "");
+    order.requisitionNo || linkedRequisitionNo || (reqId ? `PR-${reqId}` : "");
   const supplierDisplayName =
     order.supplierName ||
     (order.supplier as { vendorName?: string })?.vendorName ||
@@ -505,9 +515,10 @@ export default function PurchaseOrderDetailPage() {
             <div className="mb-4">
               <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Release sends the order to the supplier and creates accounts payable
-                records. Chart of accounts balances change when vendor payment is
-                confirmed under Finance → Accounts payable → Vendor payments.
+                Release sends the order to the supplier and creates accounts
+                payable records. Chart of accounts balances change when vendor
+                payment is confirmed under Finance → Accounts payable → Vendor
+                payments.
               </p>
             </div>
 
@@ -647,14 +658,7 @@ export default function PurchaseOrderDetailPage() {
                   Record receipt
                 </Button>
               )}
-              {reqId && (
-                <Button variant="outline" asChild className="rounded-lg">
-                  <Link to={`${BASE}/requisitions/${reqId}`}>
-                    <Link2 className="mr-2 h-4 w-4" />
-                    {linkedRequisitionLabel || "View requisition"}
-                  </Link>
-                </Button>
-              )}
+
               {canCancel && (
                 <Button
                   variant="destructive"
@@ -675,7 +679,9 @@ export default function PurchaseOrderDetailPage() {
             <h2 className="text-sm font-semibold text-slate-900">
               Release preview
             </h2>
-            <p className="mt-1 text-sm text-slate-600">{releasePreview.summary}</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {releasePreview.summary}
+            </p>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">Order total</span>
@@ -768,7 +774,8 @@ export default function PurchaseOrderDetailPage() {
                   value={
                     <Badge
                       className={
-                        STATUS_COLORS[order.status] || "bg-gray-100 text-gray-800"
+                        STATUS_COLORS[order.status] ||
+                        "bg-gray-100 text-gray-800"
                       }
                     >
                       {formatStatus(order.status)}
@@ -825,7 +832,11 @@ export default function PurchaseOrderDetailPage() {
                     ) : null
                   }
                 />
-                <DetailField label="Notes" value={order.notes} className="sm:col-span-2" />
+                <DetailField
+                  label="Notes"
+                  value={order.notes}
+                  className="sm:col-span-2"
+                />
               </div>
             </div>
 
@@ -850,8 +861,8 @@ export default function PurchaseOrderDetailPage() {
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">
-                  No supplier assigned yet. Use Register supplier in Actions when
-                  this order is in draft status.
+                  No supplier assigned yet. Use Register supplier in Actions
+                  when this order is in draft status.
                 </p>
               )}
             </div>
@@ -871,7 +882,10 @@ export default function PurchaseOrderDetailPage() {
                 {order.tax > 0 && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Tax</span>
-                    <CurrencyAmount amount={order.tax} className="font-medium" />
+                    <CurrencyAmount
+                      amount={order.tax}
+                      className="font-medium"
+                    />
                   </div>
                 )}
                 {order.discount > 0 && (
@@ -923,7 +937,9 @@ export default function PurchaseOrderDetailPage() {
                             {item.quantity}
                           </td>
                           <td className="py-3 pr-4 text-right tabular-nums">
-                            <CurrencyAmount amount={item.actualItemPrice ?? 0} />
+                            <CurrencyAmount
+                              amount={item.actualItemPrice ?? 0}
+                            />
                           </td>
                           <td className="py-3 pr-4 text-right tabular-nums text-slate-500">
                             <CurrencyAmount amount={item.otherUnitCost ?? 0} />

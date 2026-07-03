@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 export default function SalesOrdersPage() {
-  const { confirm } = useConfirmDialog();
+  const { confirm, confirmCancel } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
@@ -218,7 +218,7 @@ export default function SalesOrdersPage() {
           `Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`,
         );
       }
-      if (!(await confirm(`Cancel order ${order.orderNo}? This cannot be undone.`))) {
+      if (!(await confirmCancel(`order ${order.orderNo}`))) {
         return;
       }
 
@@ -247,7 +247,7 @@ export default function SalesOrdersPage() {
         setActionState(null);
       }
     },
-    [orders, refreshOrders],
+    [orders, refreshOrders, confirmCancel],
   );
 
   const handleGeneratePicklist = useCallback(

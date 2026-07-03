@@ -48,6 +48,7 @@ import {
   markShipmentOutForDelivery,
   updateShipmentDetails,
 } from "@/service/salesFlowService";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { listItems } from "@/service/inventoryService";
 import { cn } from "@/lib/utils";
 import {
@@ -72,6 +73,7 @@ import {
 
 export default function DeliveryTrackingPage() {
   const { company } = useAuth();
+  const { confirmCancel } = useConfirmDialog();
   const [searchParams] = useSearchParams();
   const selectedDispatchId = searchParams.get("dispatchId");
   const [searchQuery, setSearchQuery] = useState("");
@@ -220,6 +222,10 @@ export default function DeliveryTrackingPage() {
       | "cancelled",
   ) => {
     if (!selectedDispatch || updatingStatus) return;
+    if (action === "cancelled") {
+      const label = selectedDispatch.dispatchNo || selectedDispatch.id;
+      if (!(await confirmCancel(`shipment ${label}`))) return;
+    }
     try {
       setUpdatingStatus(true);
       if (action === "dispatch") await dispatchShipment(selectedDispatch.id);
@@ -316,6 +322,10 @@ export default function DeliveryTrackingPage() {
   ): Promise<Dispatch["status"]> => {
     if (currentStatus === targetStatus) return currentStatus;
     if (targetStatus === "cancelled") {
+      const label = selectedDispatch?.dispatchNo || id;
+      if (!(await confirmCancel(`shipment ${label}`))) {
+        return currentStatus;
+      }
       await cancelShipment(id);
       return "cancelled";
     }
