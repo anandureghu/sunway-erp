@@ -307,7 +307,7 @@ export default function SalesOrdersPage() {
     if (selectedOrderIds.length === 0) return;
     if (
       !(await confirm(
-        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Inventory Reports → History.`,
+        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Operations and management Reports → History.`,
       ))
     ) {
       return;

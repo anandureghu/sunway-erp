@@ -294,7 +294,7 @@ export const getSidebarItems = async (
             ...(canView(permissions, "INVENTORY_STOCK")
               ? [
                   {
-                    title: "Inventory Reports",
+                    title: "Operations and management Reports",
                     url: "/inventory/reports",
                     icon: FileText,
                   },

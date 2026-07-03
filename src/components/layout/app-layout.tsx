@@ -13,9 +13,9 @@ const LayoutBody = () => {
     <>
       <AppSidebar />
       <SidebarEdgeHoverOpen />
-      <main className="ml-auto flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-auto bg-muted/30 transition-[max-width] duration-200 ease-linear md:peer-data-[state=expanded]:max-w-[calc(100vw-var(--sidebar-width))] md:peer-data-[state=collapsed]:max-w-full">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-muted/30 transition-[margin] duration-200 ease-linear">
         <Navbar />
-        <div key={company?.id ?? "no-company"} className="flex-1">
+        <div key={company?.id ?? "no-company"} className="min-w-0 flex-1">
           <Outlet />
         </div>
       </main>

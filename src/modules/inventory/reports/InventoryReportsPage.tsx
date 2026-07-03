@@ -533,7 +533,7 @@ export default function InventoryReportsPage() {
   return (
     <div className="space-y-6 p-6">
       <PageHeader
-        title="Inventory Reports"
+        title="Operations and management Reports"
         description={`${company?.companyName ?? "Company"} · stock valuation, turnover, and warehouse analytics`}
         variant="darkGreen"
         icon={<BarChart3 className="w-6 h-6" />}
