@@ -623,23 +623,42 @@ function toPostingPreview(
   dto: PurchaseOrderPostingPreviewDTO,
 ): PurchaseOrderPostingPreview {
   const action = dto.action === "cancel" ? "cancel" : "release";
+  const amount = Number(dto.amount ?? 0);
+  const debitBalanceBefore =
+    dto.debitBalanceBefore != null ? Number(dto.debitBalanceBefore) : undefined;
+  const creditBalanceBefore =
+    dto.creditBalanceBefore != null ? Number(dto.creditBalanceBefore) : undefined;
+  let debitBalanceAfter =
+    dto.debitBalanceAfter != null ? Number(dto.debitBalanceAfter) : undefined;
+  let creditBalanceAfter =
+    dto.creditBalanceAfter != null ? Number(dto.creditBalanceAfter) : undefined;
+
+  // Backend leaves release balances unchanged (COA updates on AP payment).
+  // Show the expected impact from the order total so users can preview the change.
+  if (
+    action === "release" &&
+    !dto.fundsAlreadyCommitted &&
+    amount > 0 &&
+    debitBalanceBefore != null &&
+    creditBalanceBefore != null
+  ) {
+    debitBalanceAfter = debitBalanceBefore - amount;
+    creditBalanceAfter = creditBalanceBefore + amount;
+  }
+
   return {
     action,
-    amount: Number(dto.amount ?? 0),
+    amount,
     debitAccountId: dto.debitAccountId ?? undefined,
     debitAccountCode: dto.debitAccountCode ?? undefined,
     debitAccountName: dto.debitAccountName ?? undefined,
-    debitBalanceBefore:
-      dto.debitBalanceBefore != null ? Number(dto.debitBalanceBefore) : undefined,
-    debitBalanceAfter:
-      dto.debitBalanceAfter != null ? Number(dto.debitBalanceAfter) : undefined,
+    debitBalanceBefore,
+    debitBalanceAfter,
     creditAccountId: dto.creditAccountId ?? undefined,
     creditAccountCode: dto.creditAccountCode ?? undefined,
     creditAccountName: dto.creditAccountName ?? undefined,
-    creditBalanceBefore:
-      dto.creditBalanceBefore != null ? Number(dto.creditBalanceBefore) : undefined,
-    creditBalanceAfter:
-      dto.creditBalanceAfter != null ? Number(dto.creditBalanceAfter) : undefined,
+    creditBalanceBefore,
+    creditBalanceAfter,
     sufficientFunds: Boolean(dto.sufficientFunds),
     insufficientFundsMessage: dto.insufficientFundsMessage ?? undefined,
     fundsAlreadyCommitted: dto.fundsAlreadyCommitted ?? undefined,
