@@ -309,7 +309,7 @@ export default function PurchaseInvoiceDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="ml-auto w-full max-w-md">
             <CardHeader>
               <CardTitle className="text-lg">Amounts</CardTitle>
             </CardHeader>
@@ -334,7 +334,7 @@ export default function PurchaseInvoiceDetailPage() {
                   </span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold border-t pt-2">
-                  <span>Total</span>
+                  <span>Total Due</span>
                   <span>
                     <CurrencyAmount amount={invoice.amount ?? 0} />
                   </span>

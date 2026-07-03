@@ -242,11 +242,18 @@ export default function PurchaseOrderDetailPage() {
   const openPostingDialog = useCallback(
     async (action: PostingDialogAction) => {
       if (!order) return;
-      if (
-        action === "cancel" &&
-        !(await confirmCancel(`order ${order.orderNo}`))
-      ) {
-        return;
+      if (action === "cancel") {
+        const hasLinkedPr = Boolean(order.requisitionId);
+        if (
+          !(await confirmCancel(`order ${order.orderNo}`, {
+            title: "Cancel purchase order?",
+            description: hasLinkedPr
+              ? "Are you sure you want to cancel this PO? The corresponding PR will also be cancelled."
+              : `Are you sure you want to cancel order ${order.orderNo}? This cannot be undone.`,
+          }))
+        ) {
+          return;
+        }
       }
       setPostingDialog(action);
       setPostingPreview(null);
@@ -331,7 +338,11 @@ export default function PurchaseOrderDetailPage() {
         toast.success("Purchase order released to supplier.");
       } else {
         await cancelPurchaseOrder(order.id);
-        toast.success("Purchase order cancelled.");
+        toast.success(
+          order.requisitionId
+            ? "Purchase order cancelled. The linked PR was also cancelled."
+            : "Purchase order cancelled.",
+        );
       }
       setPostingDialog(null);
       setPostingPreview(null);
@@ -855,7 +866,10 @@ export default function PurchaseOrderDetailPage() {
                       </span>
                     }
                   />
-                  <DetailField label="Code" value={order.supplier?.code} />
+                  <DetailField
+                    label="Supplier Code"
+                    value={order.supplier?.code}
+                  />
                   <DetailField label="Email" value={order.supplier?.email} />
                   <DetailField label="Phone" value={order.supplier?.phone} />
                 </div>
@@ -867,39 +881,41 @@ export default function PurchaseOrderDetailPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-sm font-semibold text-slate-900">
-                Totals
-              </h2>
-              <div className="max-w-md space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Subtotal</span>
-                  <CurrencyAmount
-                    amount={order.subtotal}
-                    className="font-medium"
-                  />
-                </div>
-                {order.tax > 0 && (
+            <div className="flex justify-end">
+              <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-slate-900">
+                  Totals
+                </h2>
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Tax</span>
+                    <span className="text-slate-500">Subtotal</span>
                     <CurrencyAmount
-                      amount={order.tax}
+                      amount={order.subtotal}
                       className="font-medium"
                     />
                   </div>
-                )}
-                {order.discount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Discount</span>
-                    <CurrencyAmount
-                      amount={order.discount}
-                      className="font-medium"
-                    />
+                  {order.tax > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Tax</span>
+                      <CurrencyAmount
+                        amount={order.tax}
+                        className="font-medium"
+                      />
+                    </div>
+                  )}
+                  {order.discount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Discount</span>
+                      <CurrencyAmount
+                        amount={order.discount}
+                        className="font-medium"
+                      />
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
+                    <span>Total Due</span>
+                    <CurrencyAmount amount={order.total} />
                   </div>
-                )}
-                <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
-                  <span>Total</span>
-                  <CurrencyAmount amount={order.total} />
                 </div>
               </div>
             </div>

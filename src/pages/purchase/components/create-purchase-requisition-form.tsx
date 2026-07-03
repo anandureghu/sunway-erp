@@ -1013,28 +1013,30 @@ export function CreatePurchaseRequisitionForm({
           </Card>
 
           {requisitionItems.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total estimated</span>
-                  <span>
-                    <CurrencyAmount amount={total} />
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (optional)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Instructions for approver"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex justify-end">
+              <Card className="w-full max-w-sm">
+                <CardHeader>
+                  <CardTitle>Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total Due</span>
+                    <span>
+                      <CurrencyAmount amount={total} />
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (optional)</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Instructions for approver"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           <div className="flex justify-end gap-4">

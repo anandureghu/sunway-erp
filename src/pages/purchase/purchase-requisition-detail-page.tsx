@@ -827,7 +827,7 @@ export default function PurchaseRequisitionDetailPage() {
                               colSpan={5}
                               className="px-4 py-3 text-right text-sm font-semibold text-slate-600"
                             >
-                              Total
+                              Total Due
                             </td>
                             <td className="px-4 py-3 text-right text-base font-bold text-slate-900">
                               <CurrencyAmount amount={requisition.totalAmount} />

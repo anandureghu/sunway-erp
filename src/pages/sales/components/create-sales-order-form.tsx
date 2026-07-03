@@ -875,7 +875,7 @@ export function CreateSalesOrderForm({
                   : "Tax is disabled at company level."}
               </p>
               <div className="flex justify-between text-base font-semibold border-t pt-3">
-                <span>Total</span>
+                <span>Total Due</span>
                 <span>
                   <CurrencyAmount amount={totals.total} />
                 </span>
@@ -884,19 +884,21 @@ export function CreateSalesOrderForm({
                 <Label>Notes</Label>
                 <Textarea placeholder="Internal notes" {...register("notes")} />
               </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={submitLoading || orderItems.length === 0}
-              >
-                {submitLoading
-                  ? isEditMode
-                    ? "Saving..."
-                    : "Creating..."
-                  : isEditMode
-                    ? "Save Changes"
-                    : "Create Sales Order"}
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={submitLoading || orderItems.length === 0}
+                >
+                  {submitLoading
+                    ? isEditMode
+                      ? "Saving..."
+                      : "Creating..."
+                    : isEditMode
+                      ? "Save Changes"
+                      : "Create Sales Order"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

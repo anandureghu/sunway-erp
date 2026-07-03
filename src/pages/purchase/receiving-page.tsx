@@ -264,7 +264,7 @@ export default function ReceivingPage() {
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="ready" className="gap-2">
                   <Package className="h-4 w-4" />
-                  Orders ready
+                  Ready Orders
                   <Badge variant="secondary" className="font-normal">
                     {ordersReadyForReceiving.length}
                   </Badge>
@@ -285,9 +285,7 @@ export default function ReceivingPage() {
                       ? "Search purchase orders..."
                       : "Search receipts..."
                   }
-                  value={
-                    activeTab === "ready" ? orderSearchQuery : searchQuery
-                  }
+                  value={activeTab === "ready" ? orderSearchQuery : searchQuery}
                   onChange={(e) =>
                     activeTab === "ready"
                       ? setOrderSearchQuery(e.target.value)
@@ -449,7 +447,10 @@ function CreateReceiptForm({
           listItems(),
           listWarehouses(),
         ]);
-        const enriched = enrichPurchaseOrdersWithVendors(ordersData, vendorsData);
+        const enriched = enrichPurchaseOrdersWithVendors(
+          ordersData,
+          vendorsData,
+        );
         setOrders(enriched);
         setCatalogItems(itemsData);
         setWarehouses(whData);
@@ -476,7 +477,8 @@ function CreateReceiptForm({
                   remarks: "",
                   batchNo: "",
                   lotNo: "",
-                  unitCost: item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
+                  unitCost:
+                    item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
                 };
               }),
             );
@@ -690,10 +692,7 @@ function CreateReceiptForm({
                               {warehouses
                                 .filter((w) => w.status === "active")
                                 .map((wh) => (
-                                  <SelectItem
-                                    key={wh.id}
-                                    value={String(wh.id)}
-                                  >
+                                  <SelectItem key={wh.id} value={String(wh.id)}>
                                     {wh.name}
                                   </SelectItem>
                                 ))}

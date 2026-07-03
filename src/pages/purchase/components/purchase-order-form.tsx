@@ -490,31 +490,35 @@ export function PurchaseOrderForm({
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between text-base font-semibold">
-            <span>Total</span>
-            <CurrencyAmount amount={totalAmount} />
-          </div>
-          <Button
-            type="button"
-            className="w-full"
-            onClick={() => void onSubmit()}
-            disabled={submitLoading || lines.length === 0}
-          >
-            {submitLoading
-              ? isEditMode
-                ? "Saving..."
-                : "Creating..."
-              : isEditMode
-                ? "Save Changes"
-                : "Create Purchase Order"}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex justify-end">
+        <Card className="w-full max-w-sm shadow-sm">
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between text-base font-semibold">
+              <span>Total Due</span>
+              <CurrencyAmount amount={totalAmount} />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void onSubmit()}
+                disabled={submitLoading || lines.length === 0}
+              >
+                {submitLoading
+                  ? isEditMode
+                    ? "Saving..."
+                    : "Creating..."
+                  : isEditMode
+                    ? "Save Changes"
+                    : "Create Purchase Order"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
