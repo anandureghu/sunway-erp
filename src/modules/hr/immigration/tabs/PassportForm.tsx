@@ -24,6 +24,7 @@ import {
   Info,
 } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 /* ================= TYPES ================= */
 
@@ -45,10 +46,42 @@ const EMPTY: PassportModel = {
   expireDate: "",
 };
 
+function validatePassportForm(
+  draft: PassportModel,
+  profileName: string,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!draft.passportNo?.trim()) {
+    errors.passportNo = "Passport number is required";
+  }
+  if (!(profileName || draft.nameAsPassport)?.trim()) {
+    errors.nameAsPassport = "Full name on passport is required";
+  }
+  if (!draft.issueCountry?.trim()) {
+    errors.issueCountry = "Issuing country is required";
+  }
+  if (!draft.nationality?.trim()) {
+    errors.nationality = "Nationality is required";
+  }
+  if (!draft.issueDate) {
+    errors.issueDate = "Issue date is required";
+  }
+  if (!draft.expireDate) {
+    errors.expireDate = "Expiration date is required";
+  } else if (
+    draft.issueDate &&
+    draft.expireDate <= draft.issueDate
+  ) {
+    errors.expireDate = "Expiration date must be after issue date";
+  }
+  return errors;
+}
+
 /* ================= COMPONENT ================= */
 
 export default function PassportForm(): ReactElement {
   const { editing, registerHandlers } = useOutletContext<ImmigrationCtx>();
+  const { validationError } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
@@ -166,16 +199,12 @@ export default function PassportForm(): ReactElement {
   const handleSave = useCallback(async (): Promise<boolean> => {
     if (!empId) return false;
 
-    if (!draft.passportNo || !draft.issueCountry || !(profileName || draft.nameAsPassport)) {
-      toast.error("Please fill all required fields");
+    const fieldErrors = validatePassportForm(draft, profileName);
+    if (Object.keys(fieldErrors).length > 0) {
+      await validationError({
+        messages: Object.values(fieldErrors).filter(Boolean),
+      });
       return false;
-    }
-
-    if (draft.issueDate && draft.expireDate) {
-      if (draft.expireDate <= draft.issueDate) {
-        toast.error("Expire date must be after issue date");
-        return false;
-      }
     }
 
     const payload: PassportPayload = {
@@ -214,7 +243,7 @@ export default function PassportForm(): ReactElement {
       toast.error(err?.response?.data?.message || "Failed to save passport");
       return false;
     }
-  }, [empId, draft, saved, profileName]);
+  }, [empId, draft, saved, profileName, validationError]);
 
   useEffect(() => {
     registerHandlers({

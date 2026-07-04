@@ -25,6 +25,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 interface SelectProps {
   value: string;
@@ -72,8 +73,42 @@ const DURATION_TYPES = [
 ];
 const VISA_STATUS = ["Active", "Expired", "Cancelled", "Pending"];
 
+function validateResidencePermitForm(
+  draft: ResidencePermitModel,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!draft.visaType?.trim()) errors.visaType = "Visa type is required";
+  if (!draft.permitIdNumber?.trim()) {
+    errors.permitIdNumber = "Permit ID number is required";
+  }
+  if (!draft.issuePlace?.trim()) errors.issuePlace = "Issue place is required";
+  if (!draft.durationType?.trim()) {
+    errors.durationType = "Duration type is required";
+  }
+  if (!draft.nationality?.trim()) errors.nationality = "Nationality is required";
+  if (!draft.issueAuthority?.trim()) {
+    errors.issueAuthority = "Issue authority is required";
+  }
+  if (!draft.visaDuration?.trim()) {
+    errors.visaDuration = "Visa duration is required";
+  }
+  if (!draft.occupation?.trim()) errors.occupation = "Occupation is required";
+  if (!draft.visaStatus?.trim()) errors.visaStatus = "Visa status is required";
+  if (!draft.startDate) errors.startDate = "Start date is required";
+  if (!draft.endDate) errors.endDate = "End date is required";
+  if (
+    draft.startDate &&
+    draft.endDate &&
+    draft.endDate <= draft.startDate
+  ) {
+    errors.endDate = "End date must be after start date";
+  }
+  return errors;
+}
+
 export default function ResidencePermitForm(): ReactElement {
   const { editing, registerHandlers } = useOutletContext<ImmigrationCtx>();
+  const { validationError } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
@@ -169,25 +204,11 @@ export default function ResidencePermitForm(): ReactElement {
   const handleSave = useCallback(async (): Promise<boolean> => {
     if (!empId) return false;
 
-    if (
-      !draft.visaType ||
-      !draft.permitIdNumber ||
-      !draft.issuePlace ||
-      !draft.durationType ||
-      !draft.nationality ||
-      !draft.issueAuthority ||
-      !draft.visaDuration ||
-      !draft.occupation ||
-      !draft.visaStatus ||
-      !draft.startDate ||
-      !draft.endDate
-    ) {
-      toast.error("Please fill all required fields");
-      return false;
-    }
-
-    if (draft.endDate <= draft.startDate) {
-      toast.error("End date must be after start date");
+    const fieldErrors = validateResidencePermitForm(draft);
+    if (Object.keys(fieldErrors).length > 0) {
+      await validationError({
+        messages: Object.values(fieldErrors).filter(Boolean),
+      });
       return false;
     }
 
@@ -244,7 +265,7 @@ export default function ResidencePermitForm(): ReactElement {
       );
       return false;
     }
-  }, [empId, draft, hasPermit]);
+  }, [empId, draft, hasPermit, validationError]);
 
   useEffect(() => {
     registerHandlers({
