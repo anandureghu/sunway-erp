@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
 import { useParams, useOutletContext } from "react-router-dom";
+import type { CurrentJobShellCtx } from "@/modules/hr/employee/CurrentJobShell";
 import {
   contractService,
   type ContractApiPayload,
@@ -273,7 +274,8 @@ function validateContractForm(data: ContractFormData): ValidationErrors {
 
 export default function EmployeeContractForm() {
   const { id } = useParams<{ id: string }>();
-  const { editing: externalEditing } = useOutletContext<{ editing: boolean }>();
+  const { editing: externalEditing, registerHandlers } =
+    useOutletContext<CurrentJobShellCtx>();
   const { validationError } = useConfirmDialog();
 
   const employeeId = (() => {
@@ -442,7 +444,6 @@ export default function EmployeeContractForm() {
 
         await loadContract(validEmployeeId);
         toast.success("Contract saved successfully");
-        window.dispatchEvent(new CustomEvent("contract:saved"));
       } catch (err: any) {
         if (
           !(err instanceof Error && err.message === "Please fix validation errors")
@@ -606,7 +607,6 @@ export default function EmployeeContractForm() {
     setFields(restored);
     latestFormDataRef.current = restored;
     setAttachmentFile(null);
-    window.dispatchEvent(new CustomEvent("contract:cancelled"));
   }, [initialFormData, setFields]);
 
   useEffect(() => {
@@ -614,32 +614,23 @@ export default function EmployeeContractForm() {
     loadContract(employeeId);
   }, [employeeId, loadContract]);
 
-  useEffect(() => {
-    document.addEventListener(
-      "contract:start-edit",
-      handleEdit as EventListener,
-    );
-    document.addEventListener("contract:save", handleSave as EventListener);
-    document.addEventListener(
-      "contract:cancel",
-      handleFormCancel as EventListener,
-    );
+  const shellSave = useCallback(async (): Promise<boolean> => {
+    try {
+      await handleSave();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [handleSave]);
 
-    return () => {
-      document.removeEventListener(
-        "contract:start-edit",
-        handleEdit as EventListener,
-      );
-      document.removeEventListener(
-        "contract:save",
-        handleSave as EventListener,
-      );
-      document.removeEventListener(
-        "contract:cancel",
-        handleFormCancel as EventListener,
-      );
-    };
-  }, [handleEdit, handleSave, handleFormCancel]);
+  useEffect(() => {
+    registerHandlers({
+      save: shellSave,
+      cancel: handleFormCancel,
+      beginEdit: handleEdit,
+    });
+    return () => registerHandlers(null);
+  }, [shellSave, handleFormCancel, handleEdit, registerHandlers]);
 
   /* ================= VALIDATION ================= */
 

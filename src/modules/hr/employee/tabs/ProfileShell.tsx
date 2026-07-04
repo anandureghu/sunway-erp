@@ -7,10 +7,15 @@ import EditUpdateButton from "@/components/EditUpdateButton";
 import { hrService } from "@/service/hr.service";
 import type { ReactElement } from "react";
 import type { Employee } from "@/types/hr";
+import {
+  useShellFormBridge,
+  type ShellFormHandlers,
+} from "@/modules/hr/hooks/use-shell-form-bridge";
 
 export interface ProfileCtx {
   editing: boolean;
-  setEditing?: (v: boolean) => void;
+  setEditing: (v: boolean) => void;
+  registerHandlers: (handlers: ShellFormHandlers | null) => void;
   isAdmin?: boolean;
 }
 
@@ -18,6 +23,7 @@ export default function ProfileShell(): ReactElement {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [emp, setEmp] = useState<Employee | null>(null);
+  const { registerHandlers, runBeginEdit, runSave, runCancel } = useShellFormBridge();
 
   useEffect(() => {
     let mounted = true;
@@ -31,23 +37,20 @@ export default function ProfileShell(): ReactElement {
 
   const [editing, setEditing] = useState(false);
 
-  const fire = useCallback((name: string) => {
-    document.dispatchEvent(new Event(name));
-  }, []);
+  const startEdit = useCallback(() => {
+    runBeginEdit();
+    setEditing(true);
+  }, [runBeginEdit]);
 
-  const startEdit = useCallback(() => { setEditing(true);  fire("profile:edit");   }, [fire]);
-  const save      = useCallback(() => { fire("profile:save"); }, [fire]);
-  const cancel    = useCallback(() => { fire("profile:cancel"); }, [fire]);
+  const handleSave = useCallback(async () => {
+    const ok = await runSave();
+    if (ok) setEditing(false);
+  }, [runSave]);
 
-  useEffect(() => {
-    const exitEdit = () => setEditing(false);
-    window.addEventListener("profile:saved", exitEdit);
-    window.addEventListener("profile:cancelled", exitEdit);
-    return () => {
-      window.removeEventListener("profile:saved", exitEdit);
-      window.removeEventListener("profile:cancelled", exitEdit);
-    };
-  }, []);
+  const handleCancel = useCallback(() => {
+    runCancel();
+    setEditing(false);
+  }, [runCancel]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden" role="region" aria-label="Employee profile section">
@@ -73,14 +76,21 @@ export default function ProfileShell(): ReactElement {
           module="EMPLOYEE_PROFILE"
           editing={editing}
           onEdit={startEdit}
-          onSave={save}
-          onCancel={cancel}
+          onSave={() => { void handleSave(); }}
+          onCancel={handleCancel}
         />
       </div>
 
       {/* Active tab content */}
       <div className="p-4" role="tabpanel">
-      <Outlet context={{ editing, setEditing, isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' } satisfies ProfileCtx & {isAdmin: boolean}} />
+        <Outlet
+          context={{
+            editing,
+            setEditing,
+            registerHandlers,
+            isAdmin: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
+          } satisfies ProfileCtx}
+        />
       </div>
     </div>
   );

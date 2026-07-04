@@ -1,15 +1,26 @@
 import { NavLink, Outlet, useParams, useSearchParams, useLocation, Link } from "react-router-dom";
 import { CalendarDays, BarChart2, Clock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
 import type { Employee } from "@/types/hr";
+import {
+  useShellFormBridge,
+  type ShellFormHandlers,
+} from "@/modules/hr/hooks/use-shell-form-bridge";
+
+export interface LeavesCtx {
+  editing: boolean;
+  setEditing: (val: boolean) => void;
+  registerHandlers: (handlers: ShellFormHandlers | null) => void;
+}
 
 export default function LeavesShell() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const [sp, setSp] = useSearchParams();
+  const { registerHandlers, runBeginEdit, runSave, runCancel } = useShellFormBridge();
 
   const [emp, setEmp] = useState<Employee | null>(null);
   const employeeTitle = emp
@@ -24,25 +35,30 @@ export default function LeavesShell() {
 
   const editing = sp.get("edit") === "1";
 
-  const setEditing = (val: boolean) => {
-    const next = new URLSearchParams(sp);
-    if (val) next.set("edit", "1");
-    else next.delete("edit");
-    setSp(next, { replace: true });
-  };
+  const setEditing = useCallback(
+    (val: boolean) => {
+      setSp((prev) => {
+        const next = new URLSearchParams(prev);
+        if (val) next.set("edit", "1");
+        else next.delete("edit");
+        return next;
+      }, { replace: true });
+    },
+    [setSp],
+  );
 
   const isHistoryTab   = location.pathname.endsWith("/history");
   const isTimesheetTab = location.pathname.endsWith("/timesheet");
 
-  useEffect(() => {
-    const exitEdit = () => setEditing(false);
-    window.addEventListener("leaves:saved", exitEdit);
-    window.addEventListener("leaves:cancelled", exitEdit);
-    return () => {
-      window.removeEventListener("leaves:saved", exitEdit);
-      window.removeEventListener("leaves:cancelled", exitEdit);
-    };
-  }, []);
+  const handleSave = useCallback(async () => {
+    const ok = await runSave();
+    if (ok) setEditing(false);
+  }, [runSave, setEditing]);
+
+  const handleCancel = useCallback(() => {
+    runCancel();
+    setEditing(false);
+  }, [runCancel, setEditing]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -75,20 +91,21 @@ export default function LeavesShell() {
             module="LEAVES"
             label="Request Leave"
             editing={editing}
-            onEdit={() => setEditing(true)}
-            onCancel={() => {
-              try { document.dispatchEvent(new CustomEvent("leaves:cancel")); } catch {}
+            onEdit={() => {
+              runBeginEdit();
+              setEditing(true);
             }}
-            onSave={() => {
-              try { document.dispatchEvent(new CustomEvent("leaves:save")); } catch {}
-            }}
+            onCancel={handleCancel}
+            onSave={() => { void handleSave(); }}
           />
         )}
       </div>
 
       {/* Body */}
       <div className="p-4">
-        <Outlet context={{ editing, setEditing }} />
+        <Outlet
+          context={{ editing, setEditing, registerHandlers } satisfies LeavesCtx}
+        />
       </div>
     </div>
   );

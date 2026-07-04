@@ -21,7 +21,7 @@ import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import CountrySelect from "@/components/country-select";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
-type SalaryCtx = { editing: boolean };
+import type { SalaryCtx } from "../SalaryShell";
 
 type BankModel = {
   location: string;
@@ -284,7 +284,7 @@ const StatPill = ({
 
 // ── main form ─────────────────────────────────────────────────────────────────
 export default function BankForm() {
-  const { editing } = useOutletContext<SalaryCtx>();
+  const { editing, registerHandlers } = useOutletContext<SalaryCtx>();
   const { validationError } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
@@ -312,15 +312,15 @@ export default function BankForm() {
   const errors = validateForm(draft);
 
   // ── save ──────────────────────────────────────────────────────────────────
-  const handleSaveBank = useCallback(async () => {
-    if (!employeeId) return;
+  const handleSaveBank = useCallback(async (): Promise<boolean> => {
+    if (!employeeId) return false;
 
     const fieldErrors = validateBankForm(draft);
     if (Object.keys(fieldErrors).length > 0) {
       await validationError({
         messages: Object.values(fieldErrors).filter(Boolean),
       });
-      throw new Error("Please fix validation errors");
+      return false;
     }
 
     const api = exists ? bankService.update : bankService.create;
@@ -329,14 +329,18 @@ export default function BankForm() {
       toast.success("Bank details saved");
       setSaved(draft);
       setExists(true);
-      window.dispatchEvent(new CustomEvent("salary:saved"));
+      return true;
     } catch (err: any) {
       toast.error(
         err?.response?.data?.message || "Failed to save bank details",
       );
-      throw err;
+      return false;
     }
   }, [employeeId, exists, draft, validationError]);
+
+  const handleCancelBank = useCallback(() => {
+    setDraft(saved);
+  }, [saved]);
 
   // ── load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -371,22 +375,10 @@ export default function BankForm() {
     };
   }, [employeeId]);
 
-  // ── events ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const onCancel = () => {
-      setDraft(saved);
-      window.dispatchEvent(new CustomEvent("salary:cancelled"));
-    };
-    document.addEventListener("salary:save", handleSaveBank as EventListener);
-    document.addEventListener("salary:cancel", onCancel as EventListener);
-    return () => {
-      document.removeEventListener(
-        "salary:save",
-        handleSaveBank as EventListener,
-      );
-      document.removeEventListener("salary:cancel", onCancel as EventListener);
-    };
-  }, [saved, handleSaveBank]);
+    registerHandlers({ save: handleSaveBank, cancel: handleCancelBank });
+    return () => registerHandlers(null);
+  }, [handleSaveBank, handleCancelBank, registerHandlers]);
 
   // ── render ────────────────────────────────────────────────────────────────
   return (

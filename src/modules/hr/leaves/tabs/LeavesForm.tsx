@@ -32,8 +32,9 @@ import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import type { LeavesCtx } from "@/modules/hr/employee/LeavesShell";
 
-type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
+type Ctx = LeavesCtx;
 
 type LeaveStatus = "Pending for Approval" | "Approved" | "Rejected";
 type LeaveType = string;
@@ -160,7 +161,7 @@ function leaveStatusMeta(status: string) {
 }
 
 export default function LeavesForm(): ReactElement {
-  const { editing } = useOutletContext<Ctx>();
+  const { editing, registerHandlers } = useOutletContext<Ctx>();
   const { validationError } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
@@ -370,9 +371,9 @@ export default function LeavesForm(): ReactElement {
   // could otherwise slip two identical leaves past the server overlap check.
   const submittingRef = useRef(false);
 
-  const handleSave = useCallback(async () => {
-    if (!employeeId) return;
-    if (submittingRef.current) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!employeeId) return false;
+    if (submittingRef.current) return false;
 
     const fieldErrors = validateLeaveForm(draft, {
       editingLeaveId,
@@ -385,7 +386,7 @@ export default function LeavesForm(): ReactElement {
       await validationError({
         messages: Object.values(fieldErrors).filter(Boolean),
       });
-      return;
+      return false;
     }
 
     setDocError(null);
@@ -415,7 +416,7 @@ export default function LeavesForm(): ReactElement {
               ? "Failed to update leave"
               : "Failed to apply leave"),
         );
-        return;
+        return false;
       }
 
       toast.success(
@@ -427,12 +428,10 @@ export default function LeavesForm(): ReactElement {
       setDocFile(null);
       setDocError(null);
 
-      window.dispatchEvent(new CustomEvent("leaves:saved"));
-
       if (editingLeaveId) {
         const base = location.pathname.replace(/\/+$/, "");
         navigate(`${base}/history`);
-        return;
+        return true;
       }
 
       leaveService
@@ -447,9 +446,11 @@ export default function LeavesForm(): ReactElement {
             setPreview(normalizePreview(res.data));
           }
         });
+      return true;
     } catch (err) {
       console.error("Save leave failed", err);
       toast.error("An unexpected error occurred");
+      return false;
     } finally {
       submittingRef.current = false;
     }
@@ -469,25 +470,12 @@ export default function LeavesForm(): ReactElement {
     else setDraft(SEED);
     setDocFile(null);
     setDocError(null);
-    window.dispatchEvent(new CustomEvent("leaves:cancelled"));
   }, [saved]);
 
-  /* Listen to shell-level save/cancel events so top Edit/Update buttons control the form */
   useEffect(() => {
-    const onSaveEvent = () => {
-      void handleSave();
-    };
-    const onCancelEvent = () => handleCancel();
-    document.addEventListener("leaves:save", onSaveEvent as EventListener);
-    document.addEventListener("leaves:cancel", onCancelEvent as EventListener);
-    return () => {
-      document.removeEventListener("leaves:save", onSaveEvent as EventListener);
-      document.removeEventListener(
-        "leaves:cancel",
-        onCancelEvent as EventListener,
-      );
-    };
-  }, [handleSave, handleCancel]);
+    registerHandlers({ save: handleSave, cancel: handleCancel });
+    return () => registerHandlers(null);
+  }, [handleSave, handleCancel, registerHandlers]);
 
   const availBal = preview ? (preview.availableBalance ?? 0) : 0;
   const daysReq = preview

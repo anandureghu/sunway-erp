@@ -223,7 +223,7 @@ const SectionHeading = ({
 // ── main component ────────────────────────────────────────────────────────────
 export default function EmployeeProfileForm() {
   const { id } = useParams<{ id: string }>();
-  const { editing } = useOutletContext<ProfileCtx>();
+  const { editing, registerHandlers } = useOutletContext<ProfileCtx>();
   const { validationError } = useConfirmDialog();
   const { user: currentUser } = useAuth();
   const isAdmin = ["ADMIN", "SUPER_ADMIN", "HR"].includes(
@@ -338,13 +338,13 @@ export default function EmployeeProfileForm() {
     [id],
   );
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (): Promise<boolean> => {
     const fieldErrors = validateEmployeeProfile(draft);
     if (Object.keys(fieldErrors).length > 0) {
       await validationError({
         messages: Object.values(fieldErrors).filter(Boolean),
       });
-      return;
+      return false;
     }
 
     try {
@@ -372,36 +372,24 @@ export default function EmployeeProfileForm() {
         /* no-op */
       }
 
-      window.dispatchEvent(new CustomEvent("profile:saved"));
+      return true;
     } catch {
-      /* handled inside persistChanges */
+      return false;
     }
   }, [draft, persistChanges, id, validationError]);
 
   const handleCancel = useCallback(() => {
     setDraft(saved);
-    window.dispatchEvent(new CustomEvent("profile:cancelled"));
   }, [saved]);
 
   useEffect(() => {
-    const onEdit = () => {
-      setDraft(saved);
-    };
-    const onSave = () => {
-      void handleSave();
-    };
-    const onCancel = () => {
-      handleCancel();
-    };
-    document.addEventListener("profile:edit", onEdit);
-    document.addEventListener("profile:save", onSave);
-    document.addEventListener("profile:cancel", onCancel);
-    return () => {
-      document.removeEventListener("profile:edit", onEdit);
-      document.removeEventListener("profile:save", onSave);
-      document.removeEventListener("profile:cancel", onCancel);
-    };
-  }, [saved, handleSave, handleCancel]);
+    registerHandlers({
+      save: handleSave,
+      cancel: handleCancel,
+      beginEdit: () => setDraft(saved),
+    });
+    return () => registerHandlers(null);
+  }, [saved, handleSave, handleCancel, registerHandlers]);
 
   const uploadImage = async (
     file: File,

@@ -27,11 +27,6 @@ import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 /* ================= TYPES ================= */
 
-type ImmigrationEvent =
-  | "immigration:save"
-  | "immigration:cancel"
-  | "immigration:edit";
-
 type PassportModel = {
   passportNo: string;
   issueCountry: string;
@@ -53,7 +48,7 @@ const EMPTY: PassportModel = {
 /* ================= COMPONENT ================= */
 
 export default function PassportForm(): ReactElement {
-  const { editing } = useOutletContext<ImmigrationCtx>();
+  const { editing, registerHandlers } = useOutletContext<ImmigrationCtx>();
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
@@ -168,18 +163,18 @@ export default function PassportForm(): ReactElement {
   const handleEdit = useCallback(() => setDraft(saved), [saved]);
   const handleCancel = useCallback(() => setDraft(saved), [saved]);
 
-  const handleSave = useCallback(async () => {
-    if (!empId) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!empId) return false;
 
     if (!draft.passportNo || !draft.issueCountry || !(profileName || draft.nameAsPassport)) {
       toast.error("Please fill all required fields");
-      return;
+      return false;
     }
 
     if (draft.issueDate && draft.expireDate) {
       if (draft.expireDate <= draft.issueDate) {
         toast.error("Expire date must be after issue date");
-        return;
+        return false;
       }
     }
 
@@ -214,30 +209,21 @@ export default function PassportForm(): ReactElement {
         setSaved(model);
         setDraft(model);
       }
+      return true;
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to save passport");
+      return false;
     }
   }, [empId, draft, saved, profileName]);
 
-  /* ================= EVENTS ================= */
-
   useEffect(() => {
-    const handlers: Record<ImmigrationEvent, () => void> = {
-      "immigration:edit": handleEdit,
-      "immigration:save": handleSave,
-      "immigration:cancel": handleCancel,
-    };
-
-    Object.entries(handlers).forEach(([e, h]) =>
-      document.addEventListener(e, h as EventListener),
-    );
-
-    return () => {
-      Object.entries(handlers).forEach(([e, h]) =>
-        document.removeEventListener(e, h as EventListener),
-      );
-    };
-  }, [handleEdit, handleSave, handleCancel]);
+    registerHandlers({
+      save: handleSave,
+      cancel: handleCancel,
+      beginEdit: handleEdit,
+    });
+    return () => registerHandlers(null);
+  }, [handleSave, handleCancel, handleEdit, registerHandlers]);
 
   /* ================= RENDER HELPERS ================= */
 

@@ -154,7 +154,7 @@ export default function CurrentJobForm() {
   const { validationError } = useConfirmDialog();
   const companyId = company?.id ? Number(company.id) : null;
 
-  const { editing: externalEditing } = useOutletContext<CurrentJobCtx>();
+  const { editing: externalEditing, registerHandlers } = useOutletContext<CurrentJobCtx>();
 
   const {
     editing,
@@ -276,8 +276,6 @@ export default function CurrentJobForm() {
         if (fresh) {
           applyServerResponse(fresh);
         }
-
-        window.dispatchEvent(new CustomEvent("current-job:saved"));
       } catch (err: any) {
         toast.error(currentJobService.extractErrorMessage(err));
         savingRef.current = false;
@@ -318,7 +316,6 @@ export default function CurrentJobForm() {
 
   const handleFormCancel = useCallback(() => {
     setFields(savedDataRef.current);
-    window.dispatchEvent(new CustomEvent("current-job:cancelled"));
   }, [setFields]);
 
   /* ================= LOAD JOB CODES ================= */
@@ -405,34 +402,23 @@ export default function CurrentJobForm() {
     };
   }, [employeeId, applyServerResponse]);
 
-  /* ================= EVENT BRIDGE ================= */
+  const shellSave = useCallback(async (): Promise<boolean> => {
+    try {
+      await handleSave();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [handleSave]);
 
   useEffect(() => {
-    document.addEventListener(
-      "current-job:start-edit",
-      handleEdit as EventListener,
-    );
-    document.addEventListener("current-job:save", handleSave as EventListener);
-    document.addEventListener(
-      "current-job:cancel",
-      handleFormCancel as EventListener,
-    );
-
-    return () => {
-      document.removeEventListener(
-        "current-job:start-edit",
-        handleEdit as EventListener,
-      );
-      document.removeEventListener(
-        "current-job:save",
-        handleSave as EventListener,
-      );
-      document.removeEventListener(
-        "current-job:cancel",
-        handleFormCancel as EventListener,
-      );
-    };
-  }, [handleEdit, handleSave, handleFormCancel]);
+    registerHandlers({
+      save: shellSave,
+      cancel: handleFormCancel,
+      beginEdit: handleEdit,
+    });
+    return () => registerHandlers(null);
+  }, [shellSave, handleFormCancel, handleEdit, registerHandlers]);
 
   /* ================= VALIDATION ================= */
 

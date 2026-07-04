@@ -34,12 +34,7 @@ import type { Company } from "@/types/company";
 import { cn } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
-interface SalaryCtx {
-  editing: boolean;
-  startEdit: () => void;
-  cancelEdit: () => void;
-  saveEdit: () => void;
-}
+import type { SalaryCtx } from "../SalaryShell";
 
 type BenefitType = "ALLOWANCE" | "COMPANY_PROVIDED";
 
@@ -297,7 +292,7 @@ const BreakdownLine = ({
 
 // ── main form ─────────────────────────────────────────────────────────────────
 export default function SalaryForm() {
-  const { editing, cancelEdit, saveEdit } = useOutletContext<SalaryCtx>();
+  const { editing, registerHandlers } = useOutletContext<SalaryCtx>();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
   const { user } = useAuth();
@@ -400,10 +395,9 @@ export default function SalaryForm() {
     salaryBand.loaded && maxSalary != null && basicSalaryNum > maxSalary;
 
   // ── save handler ────────────────────────────────────────────────────────────
-  const handleSaveSalary = useCallback(async () => {
-    if (!employeeId) return;
-    if (Object.keys(validateForm(formData)).length > 0)
-      throw new Error("Please fix the validation errors");
+  const handleSaveSalary = useCallback(async (): Promise<boolean> => {
+    if (!employeeId) return false;
+    if (Object.keys(validateForm(formData)).length > 0) return false;
 
     // Enforce the job-grade salary cap when one is configured.
     if (
@@ -417,7 +411,7 @@ export default function SalaryForm() {
         currencySymbol,
       )}${salaryBand.grade ? ` for salary grade ${salaryBand.grade}` : ""}`;
       toast.error(msg);
-      throw new Error(msg);
+      return false;
     }
 
     const payload = {
@@ -448,29 +442,21 @@ export default function SalaryForm() {
       await api(employeeId, payload);
       toast.success(exists ? "Salary updated" : "Salary created");
       if (!exists) setExists(true);
-      window.dispatchEvent(new CustomEvent("salary:saved"));
+      return true;
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to save salary");
-      throw err;
+      return false;
     }
   }, [employeeId, exists, formData, validateForm, salaryBand, currencySymbol]);
 
-  // ── event listeners ─────────────────────────────────────────────────────────
+  const handleCancelSalary = useCallback(() => {
+    setFormData(INITIAL_STATE);
+  }, []);
+
   useEffect(() => {
-    const handleCancel = () => {
-      setFormData(INITIAL_STATE);
-      window.dispatchEvent(new CustomEvent("salary:cancelled"));
-    };
-    document.addEventListener("salary:save", handleSaveSalary as EventListener);
-    document.addEventListener("salary:cancel", handleCancel);
-    return () => {
-      document.removeEventListener(
-        "salary:save",
-        handleSaveSalary as EventListener,
-      );
-      document.removeEventListener("salary:cancel", handleCancel);
-    };
-  }, [formData, saveEdit, cancelEdit, employeeId, exists, handleSaveSalary]);
+    registerHandlers({ save: handleSaveSalary, cancel: handleCancelSalary });
+    return () => registerHandlers(null);
+  }, [handleSaveSalary, handleCancelSalary, registerHandlers]);
 
   // ── load data ────────────────────────────────────────────────────────────────
   useEffect(() => {
