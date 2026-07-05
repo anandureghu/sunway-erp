@@ -1,4 +1,5 @@
-import type { Invoice } from "@/types/sales";
+import type { Invoice, SalesOrderItem } from "@/types/sales";
+import type { PurchaseOrderItem } from "@/types/purchase";
 import { cn } from "@/lib/utils";
 import {
   formatInvoiceDate,
@@ -17,6 +18,39 @@ type InvoiceDocumentPreviewProps = {
   id?: string;
   className?: string;
 };
+
+type InvoiceLineItem = SalesOrderItem | PurchaseOrderItem;
+
+function lineDiscountLabel(item: InvoiceLineItem): string {
+  if ("discountPercent" in item && item.discountPercent != null) {
+    return `${item.discountPercent}%`;
+  }
+  if (item.discount > 0) {
+    return `${item.discount}%`;
+  }
+  return "—";
+}
+
+function lineAmount(item: InvoiceLineItem): number | undefined {
+  if ("lineTotal" in item && typeof item.lineTotal === "number") {
+    return item.lineTotal;
+  }
+  return item.total;
+}
+
+function lineUnitPrice(item: InvoiceLineItem): number | undefined {
+  if ("unitCost" in item && item.unitCost != null) {
+    return item.unitCost;
+  }
+  return item.unitPrice;
+}
+
+function lineExtraDescription(item: InvoiceLineItem): string | undefined {
+  if ("notes" in item && item.notes?.trim()) {
+    return item.notes.trim();
+  }
+  return undefined;
+}
 
 export function InvoiceDocumentPreview({
   invoice,
@@ -51,7 +85,7 @@ export function InvoiceDocumentPreview({
     ? safeInvoiceValue(invoice.salesOrder?.customerPhone)
     : "";
   const partyAddress = isSales
-    ? safeInvoiceValue(invoice.salesOrder?.customerAddress)
+    ? safeInvoiceValue(invoice.salesOrder?.shippingAddress)
     : "";
   const brandSub =
     invoice.invoiceHeaderSubtitle ||
@@ -224,11 +258,9 @@ export function InvoiceDocumentPreview({
               </tr>
             </thead>
             <tbody>
-              {items.map((item, index) => {
-                const discount =
-                  item.discountPercent != null
-                    ? `${item.discountPercent}%`
-                    : "—";
+              {(items as InvoiceLineItem[]).map((item, index) => {
+                const discount = lineDiscountLabel(item);
+                const extraDescription = lineExtraDescription(item);
                 return (
                   <tr
                     key={index}
@@ -241,10 +273,9 @@ export function InvoiceDocumentPreview({
                       <div className="font-semibold text-slate-900">
                         {safeInvoiceValue(item.itemName)}
                       </div>
-                      {"itemDescription" in item &&
-                        item.itemDescription && (
+                      {extraDescription && (
                           <div className="mt-0.5 text-[10px] text-slate-500">
-                            {String(item.itemDescription)}
+                            {extraDescription}
                           </div>
                         )}
                     </td>
@@ -252,16 +283,13 @@ export function InvoiceDocumentPreview({
                       {safeInvoiceValue(item.quantity)}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right">
-                      {invoiceMoney(
-                        item.unitPrice ?? ("unitCost" in item ? item.unitCost : undefined),
-                        currencyCode,
-                      )}
+                      {invoiceMoney(lineUnitPrice(item), currencyCode)}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right">
                       {discount}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right font-bold text-slate-900">
-                      {invoiceMoney(item.lineTotal, currencyCode)}
+                      {invoiceMoney(lineAmount(item), currencyCode)}
                     </td>
                   </tr>
                 );
