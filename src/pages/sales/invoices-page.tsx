@@ -121,7 +121,7 @@ export default function InvoicesPage({
     if (selectedInvoiceIds.length === 0) return;
     if (
       !(await confirm(
-        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Finance Reports → History.`,
+        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Operations and management Reports → History.`,
       ))
     ) {
       return;

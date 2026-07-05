@@ -28,6 +28,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { archivePurchaseRequisition } from "@/service/purchaseFlowService";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import { useModulePermission } from "@/hooks/use-module-permission";
 import { InventoryModule } from "@/lib/module-permissions";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
@@ -57,6 +61,8 @@ export default function PurchaseRequisitionsPage() {
     action: ReviewActionType;
   } | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
 
   useEffect(() => {
     const wantsCreate = location.pathname.includes("/new");
@@ -327,6 +333,44 @@ export default function PurchaseRequisitionsPage() {
     [requisitions, refreshRequisitions, confirm],
   );
 
+  const selectedRequisitionIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveRequisitions = useCallback(async () => {
+    if (selectedRequisitionIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedRequisitionIds.length} selected requisition(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "PURCHASE_REQUISITION",
+        selectedRequisitionIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await refreshRequisitions();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to archive selected requisitions.",
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, refreshRequisitions, selectedRequisitionIds]);
+
   const columns: ColumnDef<PurchaseRequisition>[] = useMemo(
     () =>
       createPurchaseRequisitionColumns({
@@ -390,6 +434,12 @@ export default function PurchaseRequisitionsPage() {
       searchQuery={searchQuery}
       statusFilter={statusFilter}
       columns={columns}
+      enableBulkArchive={canDelete}
+      rowSelection={rowSelection}
+      onRowSelectionChange={setRowSelection}
+      selectedCount={selectedRequisitionIds.length}
+      onBulkArchive={handleBulkArchiveRequisitions}
+      bulkArchiving={bulkArchiving}
       onCreateNew={() => navigate("/inventory/purchase/requisitions/new")}
       showCreateButton={canCreate}
       onSearchChange={setSearchQuery}

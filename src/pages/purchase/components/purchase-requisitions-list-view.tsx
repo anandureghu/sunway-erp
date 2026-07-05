@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, ListTodo, FileCheck } from "lucide-react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseRequisition } from "@/types/purchase";
-import type { ColumnDef, Row } from "@tanstack/react-table";
+import type { ColumnDef, Row, RowSelectionState } from "@tanstack/react-table";
 import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
@@ -27,6 +28,12 @@ type Props = {
   searchQuery: string;
   statusFilter: string;
   columns: ColumnDef<PurchaseRequisition>[];
+  enableBulkArchive?: boolean;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: (selection: RowSelectionState) => void;
+  selectedCount?: number;
+  onBulkArchive?: () => void;
+  bulkArchiving?: boolean;
   onCreateNew: () => void;
   showCreateButton?: boolean;
   onSearchChange: (value: string) => void;
@@ -45,6 +52,12 @@ export function PurchaseRequisitionsListView({
   searchQuery,
   statusFilter,
   columns,
+  enableBulkArchive = false,
+  rowSelection,
+  onRowSelectionChange,
+  selectedCount = 0,
+  onBulkArchive,
+  bulkArchiving = false,
   onCreateNew,
   showCreateButton = true,
   onSearchChange,
@@ -78,6 +91,7 @@ export function PurchaseRequisitionsListView({
   const handleTabChange = (next: string) => {
     const value = next as RequisitionTab;
     setTab(value);
+    onRowSelectionChange?.({});
     if (value === "converted" && statusFilter !== "all") {
       onStatusChange("all");
     } else if (value === "active" && statusFilter === "converted") {
@@ -163,17 +177,32 @@ export function PurchaseRequisitionsListView({
               </div>
 
               <TabsContent value="active" className="mt-4">
-                <DataTable
+                <SelectableDataTable
                   columns={columns}
                   data={activeReqs}
                   onRowClick={onRowClick}
                 />
               </TabsContent>
-              <TabsContent value="converted" className="mt-4">
-                <DataTable
+              <TabsContent value="converted" className="mt-4 space-y-4">
+                {enableBulkArchive ? (
+                  <BulkActionBar
+                    selectedCount={selectedCount}
+                    onArchive={onBulkArchive}
+                    onClear={() => onRowSelectionChange?.({})}
+                    archiving={bulkArchiving}
+                  />
+                ) : null}
+                <SelectableDataTable
                   columns={columns}
                   data={convertedReqs}
                   onRowClick={onRowClick}
+                  enableRowSelection={enableBulkArchive}
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={onRowSelectionChange}
+                  getRowId={(row) => row.id}
+                  isRowSelectable={(row) =>
+                    row.status === "converted" && !row.archived
+                  }
                 />
               </TabsContent>
             </Tabs>

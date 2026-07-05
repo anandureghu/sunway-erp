@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
@@ -45,6 +46,10 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -64,6 +69,8 @@ function PayableInvoicesTab() {
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
   );
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -118,6 +125,43 @@ function PayableInvoicesTab() {
       return matchesSearch && matchesStatus;
     });
   }, [rows, listTab, searchQuery, statusFilter]);
+
+  const selectedInvoiceIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveInvoices = useCallback(async () => {
+    if (selectedInvoiceIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "PURCHASE_INVOICE",
+        selectedInvoiceIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      load();
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to archive selected invoices.";
+      toast.error(message);
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, load, selectedInvoiceIds]);
 
   const handleArchiveInvoice = useCallback(
     async (id: number) => {
@@ -290,6 +334,7 @@ function PayableInvoicesTab() {
         onValueChange={(v) => {
           setListTab(v as InvoiceListTab);
           setStatusFilter("all");
+          setRowSelection({});
         }}
         className="w-full gap-4"
       >
@@ -351,11 +396,31 @@ function PayableInvoicesTab() {
           Loading invoices…
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          onRowClick={handleRowClick}
-        />
+        <div className="space-y-4">
+          {listTab === "archived" ? (
+            <BulkActionBar
+              selectedCount={selectedInvoiceIds.length}
+              onArchive={handleBulkArchiveInvoices}
+              onClear={() => setRowSelection({})}
+              archiving={bulkArchiving}
+            />
+          ) : null}
+          <SelectableDataTable
+            columns={columns}
+            data={filtered}
+            onRowClick={handleRowClick}
+            enableRowSelection={listTab === "archived"}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            getRowId={(row) => String(row.id)}
+            isRowSelectable={(row) => {
+              const status = (row.status || "").toUpperCase();
+              return (
+                (status === "PAID" || status === "CANCELLED") && !row.archived
+              );
+            }}
+          />
+        </div>
       )}
     </div>
   );

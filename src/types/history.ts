@@ -56,12 +56,31 @@ export const HISTORY_ENTITY_LABELS: Record<HistoryEntityType, string> = {
   BUDGET_DISTRIBUTION: "Budget distributions",
 };
 
+/** Backend module each entity type belongs to (must match HistoryEntityType.java). */
+export const HISTORY_TYPE_MODULE: Record<HistoryEntityType, HistoryModule> = {
+  SALES_ORDER: "inventory",
+  PURCHASE_ORDER: "inventory",
+  PURCHASE_REQUISITION: "inventory",
+  STOCK_VARIANCE: "inventory",
+  SALES_INVOICE: "finance",
+  CUSTOMER_PAYMENT: "finance",
+  PURCHASE_INVOICE: "finance",
+  VENDOR_PAYMENT: "finance",
+  JOURNAL_ENTRY: "finance",
+  TRANSACTION: "finance",
+  BUDGET_DISTRIBUTION: "finance",
+};
+
 export const HISTORY_MODULE_TYPES: Record<HistoryModule, HistoryEntityType[]> = {
   inventory: [
     "SALES_ORDER",
     "PURCHASE_ORDER",
     "PURCHASE_REQUISITION",
     "STOCK_VARIANCE",
+    "SALES_INVOICE",
+    "PURCHASE_INVOICE",
+    "CUSTOMER_PAYMENT",
+    "VENDOR_PAYMENT",
   ],
   finance: [
     "SALES_INVOICE",

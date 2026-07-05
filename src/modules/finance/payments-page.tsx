@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,10 @@ import { ConfirmPaymentDialog } from "./confirm-payment-dialog";
 import { useNavigate } from "react-router-dom";
 import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 
 type PaymentListTab = "outstanding" | "archived";
 
@@ -41,6 +46,8 @@ export default function PaymentsPage({
     useState<PaymentResponseDTO | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
 
   const directionParam = variant === "vendor" ? "VENDOR" : "CUSTOMER";
 
@@ -230,6 +237,46 @@ export default function PaymentsPage({
     [variant],
   );
 
+  const selectedPaymentIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchivePayments = useCallback(async () => {
+    if (selectedPaymentIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedPaymentIds.length} selected payment(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const historyType =
+        variant === "vendor" ? "VENDOR_PAYMENT" : "CUSTOMER_PAYMENT";
+      const result = await bulkArchiveHistoryRecords(
+        historyType,
+        selectedPaymentIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await fetchPayments();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error ? err.message : "Failed to archive selected payments."),
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, fetchPayments, selectedPaymentIds, variant]);
+
   const columns = useMemo(
     () =>
       PAYMENT_COLUMNS({
@@ -304,6 +351,7 @@ export default function PaymentsPage({
         value={listTab}
         onValueChange={(v) => {
           setListTab(v as PaymentListTab);
+          setRowSelection({});
         }}
         className="w-full gap-4"
       >
@@ -347,7 +395,27 @@ export default function PaymentsPage({
             : "No completed payments match your search."}
         </div>
       ) : (
-        <DataTable data={filteredPayments} columns={columns} />
+        <div className="space-y-4">
+          {listTab === "archived" ? (
+            <BulkActionBar
+              selectedCount={selectedPaymentIds.length}
+              onArchive={handleBulkArchivePayments}
+              onClear={() => setRowSelection({})}
+              archiving={bulkArchiving}
+            />
+          ) : null}
+          <SelectableDataTable
+            data={filteredPayments}
+            columns={columns}
+            enableRowSelection={listTab === "archived"}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            getRowId={(row) => String(row.id)}
+            isRowSelectable={(row) =>
+              isPaymentArchivedTab(row, variant) && !row.archived
+            }
+          />
+        </div>
       )}
 
       <PaymentDialog

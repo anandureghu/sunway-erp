@@ -32,6 +32,7 @@ import type {
 import {
   HISTORY_ENTITY_LABELS,
   HISTORY_MODULE_TYPES,
+  HISTORY_TYPE_MODULE,
 } from "@/types/history";
 
 type HistoryTabPanelProps = {
@@ -78,7 +79,7 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
     setLoading(true);
     try {
       const response = await listHistoryRecords({
-        module,
+        module: HISTORY_TYPE_MODULE[entityType],
         type: entityType,
         page,
         size: 20,
@@ -96,7 +97,7 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [entityType, module, page, search]);
+  }, [entityType, page, search]);
 
   useEffect(() => {
     void loadHistory();

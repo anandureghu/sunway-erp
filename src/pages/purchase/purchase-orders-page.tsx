@@ -11,6 +11,10 @@ import {
   archivePurchaseOrder,
   listPurchaseOrders,
 } from "@/service/purchaseFlowService";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import type { Row } from "@tanstack/react-table";
 import { PurchaseOrdersListView } from "./components/purchase-orders-list-view";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
@@ -40,6 +44,8 @@ export default function PurchaseOrdersPage() {
     id: string;
     type: "archive";
   } | null>(null);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
 
   const refreshOrders = useCallback(async () => {
     setLoading(true);
@@ -239,6 +245,44 @@ export default function PurchaseOrdersPage() {
     [orders, refreshOrders, confirm],
   );
 
+  const selectedOrderIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveOrders = useCallback(async () => {
+    if (selectedOrderIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "PURCHASE_ORDER",
+        selectedOrderIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await refreshOrders();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to archive selected orders.",
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, refreshOrders, selectedOrderIds]);
+
   const handleEdit = useCallback(
     (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -318,6 +362,12 @@ export default function PurchaseOrdersPage() {
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         columns={columns}
+        enableBulkArchive
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        selectedCount={selectedOrderIds.length}
+        onBulkArchive={handleBulkArchiveOrders}
+        bulkArchiving={bulkArchiving}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
         onRowClick={handleRowClick}

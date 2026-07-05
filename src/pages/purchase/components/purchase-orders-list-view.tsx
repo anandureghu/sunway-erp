@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, ListTodo, FileCheck } from "lucide-react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseOrder } from "@/types/purchase";
-import type { ColumnDef, Row } from "@tanstack/react-table";
+import type { ColumnDef, Row, RowSelectionState } from "@tanstack/react-table";
 import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
@@ -27,6 +28,12 @@ type Props = {
   searchQuery: string;
   statusFilter: string;
   columns: ColumnDef<PurchaseOrder>[];
+  enableBulkArchive?: boolean;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: (selection: RowSelectionState) => void;
+  selectedCount?: number;
+  onBulkArchive?: () => void;
+  bulkArchiving?: boolean;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onRowClick: (row: Row<PurchaseOrder>) => void;
@@ -47,6 +54,12 @@ export function PurchaseOrdersListView({
   searchQuery,
   statusFilter,
   columns,
+  enableBulkArchive = false,
+  rowSelection,
+  onRowSelectionChange,
+  selectedCount = 0,
+  onBulkArchive,
+  bulkArchiving = false,
   onSearchChange,
   onStatusChange,
   onRowClick,
@@ -77,6 +90,7 @@ export function PurchaseOrdersListView({
   const handleTabChange = (next: string) => {
     const value = next as OrderTab;
     setTab(value);
+    onRowSelectionChange?.({});
     if (value === "terminal") {
       if (
         statusFilter !== "all" &&
@@ -174,17 +188,33 @@ export function PurchaseOrdersListView({
                   </div>
                 </div>
                 <TabsContent value="open" className="mt-4">
-                  <DataTable
+                  <SelectableDataTable
                     columns={columns}
                     data={openOrders}
                     onRowClick={onRowClick}
                   />
                 </TabsContent>
-                <TabsContent value="terminal" className="mt-4">
-                  <DataTable
+                <TabsContent value="terminal" className="mt-4 space-y-4">
+                  {enableBulkArchive ? (
+                    <BulkActionBar
+                      selectedCount={selectedCount}
+                      onArchive={onBulkArchive}
+                      onClear={() => onRowSelectionChange?.({})}
+                      archiving={bulkArchiving}
+                    />
+                  ) : null}
+                  <SelectableDataTable
                     columns={columns}
                     data={terminalOrders}
                     onRowClick={onRowClick}
+                    enableRowSelection={enableBulkArchive}
+                    rowSelection={rowSelection}
+                    onRowSelectionChange={onRowSelectionChange}
+                    getRowId={(row) => row.id}
+                    isRowSelectable={(row) =>
+                      (row.status === "received" || row.status === "cancelled") &&
+                      !row.archived
+                    }
                   />
                 </TabsContent>
               </Tabs>
