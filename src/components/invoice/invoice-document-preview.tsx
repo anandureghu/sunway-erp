@@ -200,25 +200,25 @@ export function InvoiceDocumentPreview({
           <div className="mb-3 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-500">
             Line Items
           </div>
-          <table className="w-full border-collapse border border-slate-200 text-[13px]">
+          <table className="invoice-document-lines w-full border-collapse border border-slate-200 text-[13px] [&_thead]:bg-blue-800 [&_thead_tr]:border-0 [&_thead_th]:bg-transparent [&_thead_th]:font-bold [&_thead_th]:text-white [&_thead_th]:uppercase">
             <thead>
-              <tr className="bg-blue-800 text-white">
-                <th className="w-10 px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.06em]">
+              <tr>
+                <th className="w-10 px-3 py-2.5 text-center text-[10px] tracking-[0.06em]">
                   #
                 </th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.06em]">
+                <th className="px-3 py-2.5 text-left text-[10px] tracking-[0.06em]">
                   Description
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.06em]">
+                <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
                   Qty
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.06em]">
+                <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
                   Unit
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.06em]">
+                <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
                   Discount
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.06em]">
+                <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
                   Amount
                 </th>
               </tr>
