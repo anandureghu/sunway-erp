@@ -5,12 +5,15 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 type StockStatsCardsProps = {
   totalItems: number;
   lowStockItems: number;
   onOrderCount: number;
   onReserveCount: number;
+  activeFilter: string | null;
+  onFilter: (key: string) => void;
 };
 
 export function StockStatsCards({
@@ -18,26 +21,38 @@ export function StockStatsCards({
   lowStockItems,
   onOrderCount,
   onReserveCount,
+  activeFilter,
+  onFilter,
 }: StockStatsCardsProps) {
   const hasLow = lowStockItems > 0;
 
   return (
     <KpiSummaryStrip
       items={[
-        {
-          label: "SKU lines",
-          value: totalItems.toLocaleString(),
-          hint: "Active catalog items",
-          accent: "sky",
-          icon: Package,
-        },
-        {
-          label: "Low stock",
-          value: lowStockItems.toLocaleString(),
-          hint: hasLow ? "Needs reorder attention" : "All above reorder level",
-          accent: "amber",
-          icon: AlertTriangle,
-        },
+        kpiFilterItem(
+          {
+            label: "SKU lines",
+            value: totalItems.toLocaleString(),
+            hint: "Active catalog items",
+            accent: "sky",
+            icon: Package,
+          },
+          "all",
+          activeFilter,
+          onFilter,
+        ),
+        kpiFilterItem(
+          {
+            label: "Low stock",
+            value: lowStockItems.toLocaleString(),
+            hint: hasLow ? "Needs reorder attention" : "All above reorder level",
+            accent: "amber",
+            icon: AlertTriangle,
+          },
+          "low_stock",
+          activeFilter,
+          onFilter,
+        ),
         {
           label: "On Order",
           value: onOrderCount.toLocaleString(),
@@ -45,13 +60,18 @@ export function StockStatsCards({
           accent: "emerald",
           icon: ShoppingCart,
         },
-        {
-          label: "On Reserve",
-          value: onReserveCount.toLocaleString(),
-          hint: "From confirmed sales orders",
-          accent: "violet",
-          icon: PackageCheck,
-        },
+        kpiFilterItem(
+          {
+            label: "On Reserve",
+            value: onReserveCount.toLocaleString(),
+            hint: "From confirmed sales orders",
+            accent: "violet",
+            icon: PackageCheck,
+          },
+          "on_reserve",
+          activeFilter,
+          onFilter,
+        ),
       ]}
     />
   );

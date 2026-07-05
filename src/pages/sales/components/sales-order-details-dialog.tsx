@@ -126,7 +126,7 @@ export function SalesOrderDetailsDialog({ open, order, onOpenChange }: Props) {
                       <div className="text-right">Quantity</div>
                       <div className="text-right">Unit Price</div>
                       <div className="text-right">Discount</div>
-                      <div className="text-right">Total</div>
+                      <div className="text-right">Total Due</div>
                     </div>
                     {order.items.map((item) => (
                       <div

@@ -766,6 +766,7 @@ export default function PurchaseRequisitionDetailPage() {
                   <table className="w-full min-w-[640px] text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 w-12">Sl No</th>
                         <th className="px-4 py-3">Item</th>
                         <th className="px-4 py-3 text-right">Qty</th>
                         <th className="px-4 py-3 text-right">Item cost</th>
@@ -783,6 +784,9 @@ export default function PurchaseRequisitionDetailPage() {
                             idx % 2 === 1 && "bg-slate-50/30",
                           )}
                         >
+                          <td className="px-4 py-3 tabular-nums text-slate-500">
+                            {idx + 1}
+                          </td>
                           <td className="px-4 py-3">
                             <p className="font-medium text-slate-900">
                               {purchaseLineItemName(item)}
@@ -824,10 +828,10 @@ export default function PurchaseRequisitionDetailPage() {
                         <tfoot>
                           <tr className="bg-slate-50">
                             <td
-                              colSpan={5}
+                              colSpan={6}
                               className="px-4 py-3 text-right text-sm font-semibold text-slate-600"
                             >
-                              Total
+                              Total Due
                             </td>
                             <td className="px-4 py-3 text-right text-base font-bold text-slate-900">
                               <CurrencyAmount amount={requisition.totalAmount} />

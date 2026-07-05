@@ -43,6 +43,7 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
   return (
@@ -54,11 +55,12 @@ function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
 }
 
 function orderDeliveryLabel(order: PurchaseOrder): string {
-  if (order.expectedDate) {
+  const deliveryDate = order.requiredDeliveryDate || order.expectedDate;
+  if (deliveryDate) {
     try {
-      return format(new Date(order.expectedDate), "MMM d, yyyy");
+      return format(new Date(deliveryDate), "MMM d, yyyy");
     } catch {
-      return order.expectedDate;
+      return deliveryDate;
     }
   }
   if (order.orderDate) {
@@ -83,6 +85,10 @@ export default function ReceivingPage() {
   const [receipts, setReceipts] = useState<GoodsReceipt[]>([]);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [activeTab, setActiveTab] = useState<ReceivingListTab>("ready");
+  const [receiptStatusFilter, setReceiptStatusFilter] = useState<
+    "all" | "completed" | "open"
+  >("all");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -142,12 +148,19 @@ export default function ReceivingPage() {
 
   const filteredReceipts = useMemo(() => {
     return receipts.filter((receipt) => {
-      return (
+      const matchesSearch =
         receipt.receiptNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        receipt.order?.orderNo.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+        receipt.order?.orderNo.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesSearch) return false;
+      if (receiptStatusFilter === "completed") {
+        return receipt.status === "completed";
+      }
+      if (receiptStatusFilter === "open") {
+        return receipt.status !== "completed" && receipt.status !== "cancelled";
+      }
+      return true;
     });
-  }, [receipts, searchQuery]);
+  }, [receipts, searchQuery, receiptStatusFilter]);
 
   // Get orders ready for receiving (ordered or partially received) with search filter
   const ordersReadyForReceiving = useMemo(() => {
@@ -175,6 +188,28 @@ export default function ReceivingPage() {
     return filtered;
   }, [orders, orderSearchQuery]);
 
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "ready":
+        setActiveTab("ready");
+        setReceiptStatusFilter("all");
+        break;
+      case "completed":
+        setActiveTab("receipts");
+        setReceiptStatusFilter("completed");
+        break;
+      case "open":
+        setActiveTab("receipts");
+        setReceiptStatusFilter("open");
+        break;
+      default:
+        setActiveTab("receipts");
+        setReceiptStatusFilter("all");
+        break;
+    }
+  }, []);
+
   const receivingKpis = useMemo((): KpiSummaryStat[] => {
     const receiptsTotal = receipts.length;
     const readyPo = ordersReadyForReceiving.length;
@@ -185,36 +220,56 @@ export default function ReceivingPage() {
       (r) => r.status !== "completed" && r.status !== "cancelled",
     ).length;
     return [
-      {
-        label: "Goods receipts",
-        value: receiptsTotal,
-        hint: "Recorded against Purchase Orders",
-        accent: "sky",
-        icon: ClipboardList,
-      },
-      {
-        label: "Purchase Orders ready",
-        value: readyPo,
-        hint: "Eligible to receive now",
-        accent: "orange",
-        icon: Package,
-      },
-      {
-        label: "Completed Goods Receipts",
-        value: completedGrn,
-        hint: "Inspection closed",
-        accent: "emerald",
-        icon: CheckCircle2,
-      },
-      {
-        label: "Open Goods Receipts",
-        value: openGrn,
-        hint: "Pending or in progress",
-        accent: "violet",
-        icon: Truck,
-      },
+      kpiFilterItem(
+        {
+          label: "Goods receipts",
+          value: receiptsTotal,
+          hint: "Recorded against Purchase Orders",
+          accent: "sky",
+          icon: ClipboardList,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Purchase Orders ready",
+          value: readyPo,
+          hint: "Eligible to receive now",
+          accent: "orange",
+          icon: Package,
+        },
+        "ready",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Completed Goods Receipts",
+          value: completedGrn,
+          hint: "Inspection closed",
+          accent: "emerald",
+          icon: CheckCircle2,
+        },
+        "completed",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Open Goods Receipts",
+          value: openGrn,
+          hint: "Pending or in progress",
+          accent: "violet",
+          icon: Truck,
+        },
+        "open",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [receipts, ordersReadyForReceiving]);
+  }, [receipts, ordersReadyForReceiving, kpiFilter, applyKpiFilter]);
 
   if (showCreateForm) {
     return (
@@ -256,14 +311,18 @@ export default function ReceivingPage() {
         <CardHeader className="pb-3">
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as ReceivingListTab)}
+            onValueChange={(value) => {
+              setActiveTab(value as ReceivingListTab);
+              setKpiFilter(null);
+              setReceiptStatusFilter("all");
+            }}
             className="w-full gap-4"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="ready" className="gap-2">
                   <Package className="h-4 w-4" />
-                  Orders ready
+                  Ready Orders
                   <Badge variant="secondary" className="font-normal">
                     {ordersReadyForReceiving.length}
                   </Badge>
@@ -284,9 +343,7 @@ export default function ReceivingPage() {
                       ? "Search purchase orders..."
                       : "Search receipts..."
                   }
-                  value={
-                    activeTab === "ready" ? orderSearchQuery : searchQuery
-                  }
+                  value={activeTab === "ready" ? orderSearchQuery : searchQuery}
                   onChange={(e) =>
                     activeTab === "ready"
                       ? setOrderSearchQuery(e.target.value)
@@ -448,7 +505,10 @@ function CreateReceiptForm({
           listItems(),
           listWarehouses(),
         ]);
-        const enriched = enrichPurchaseOrdersWithVendors(ordersData, vendorsData);
+        const enriched = enrichPurchaseOrdersWithVendors(
+          ordersData,
+          vendorsData,
+        );
         setOrders(enriched);
         setCatalogItems(itemsData);
         setWarehouses(whData);
@@ -475,7 +535,8 @@ function CreateReceiptForm({
                   remarks: "",
                   batchNo: "",
                   lotNo: "",
-                  unitCost: item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
+                  unitCost:
+                    item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
                 };
               }),
             );
@@ -635,6 +696,7 @@ function CreateReceiptForm({
               <table className="w-full min-w-[1200px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="pb-3 pr-4 w-12">Sl No</th>
                     <th className="pb-3 pr-4">Item</th>
                     <th className="pb-3 pr-4">Warehouse</th>
                     <th className="pb-3 pr-4 text-right">Unit cost</th>
@@ -661,6 +723,9 @@ function CreateReceiptForm({
                         key={idx}
                         className="border-b border-slate-100 last:border-0"
                       >
+                        <td className="py-3 pr-4 tabular-nums text-slate-500">
+                          {idx + 1}
+                        </td>
                         <td className="py-3 pr-4">
                           <p className="font-medium text-slate-900">
                             {orderItem
@@ -689,10 +754,7 @@ function CreateReceiptForm({
                               {warehouses
                                 .filter((w) => w.status === "active")
                                 .map((wh) => (
-                                  <SelectItem
-                                    key={wh.id}
-                                    value={String(wh.id)}
-                                  >
+                                  <SelectItem key={wh.id} value={String(wh.id)}>
                                     {wh.name}
                                   </SelectItem>
                                 ))}

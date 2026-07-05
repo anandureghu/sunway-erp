@@ -150,6 +150,7 @@ export interface PurchaseOrderResponseDTO {
   supplierId?: number | null;
   supplierName?: string | null;
   orderDate: string;
+  requiredDeliveryDate?: string | null;
   status: string;
   archived?: boolean;
   totalAmount: number;
@@ -157,7 +158,10 @@ export interface PurchaseOrderResponseDTO {
   createdAt: string;
   createdById: number;
   createdByName: string;
+  requestedById?: number | null;
+  requestedByName?: string | null;
   vendorPaymentSettled?: boolean | null;
+  paymentStatus?: string | null;
   purchaseInvoiceId?: number | null;
   vendorPaymentId?: number | null;
 }
@@ -307,9 +311,16 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
         ? String(dto.supplierId)
         : "",
     orderDate: dto.orderDate || "",
+    requiredDeliveryDate: dto.requiredDeliveryDate || undefined,
+    expectedDate: dto.requiredDeliveryDate || undefined,
     status: (normalizeStatus(dto.status) as any) || "draft",
     archived: Boolean(dto.archived),
     vendorPaymentSettled: Boolean(dto.vendorPaymentSettled),
+    paymentStatus: (() => {
+      const raw = (dto.paymentStatus || "").trim().toUpperCase();
+      if (raw) return raw;
+      return dto.vendorPaymentSettled ? "PAID" : "UNPAID";
+    })(),
     purchaseInvoiceId: dto.purchaseInvoiceId ?? undefined,
     vendorPaymentId: dto.vendorPaymentId ?? undefined,
     items,
@@ -319,6 +330,11 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     total,
     orderedBy: String(dto.createdById || ""),
     orderedByName: dto.createdByName,
+    requestedById:
+      dto.requestedById != null && dto.requestedById !== undefined
+        ? String(dto.requestedById)
+        : undefined,
+    requestedByName: dto.requestedByName ?? undefined,
     supplierName: dto.supplierName ?? undefined,
     createdAt: dto.createdAt || "",
     updatedAt: dto.createdAt || "",
@@ -607,23 +623,42 @@ function toPostingPreview(
   dto: PurchaseOrderPostingPreviewDTO,
 ): PurchaseOrderPostingPreview {
   const action = dto.action === "cancel" ? "cancel" : "release";
+  const amount = Number(dto.amount ?? 0);
+  const debitBalanceBefore =
+    dto.debitBalanceBefore != null ? Number(dto.debitBalanceBefore) : undefined;
+  const creditBalanceBefore =
+    dto.creditBalanceBefore != null ? Number(dto.creditBalanceBefore) : undefined;
+  let debitBalanceAfter =
+    dto.debitBalanceAfter != null ? Number(dto.debitBalanceAfter) : undefined;
+  let creditBalanceAfter =
+    dto.creditBalanceAfter != null ? Number(dto.creditBalanceAfter) : undefined;
+
+  // Backend leaves release balances unchanged (COA updates on AP payment).
+  // Show the expected impact from the order total so users can preview the change.
+  if (
+    action === "release" &&
+    !dto.fundsAlreadyCommitted &&
+    amount > 0 &&
+    debitBalanceBefore != null &&
+    creditBalanceBefore != null
+  ) {
+    debitBalanceAfter = debitBalanceBefore - amount;
+    creditBalanceAfter = creditBalanceBefore + amount;
+  }
+
   return {
     action,
-    amount: Number(dto.amount ?? 0),
+    amount,
     debitAccountId: dto.debitAccountId ?? undefined,
     debitAccountCode: dto.debitAccountCode ?? undefined,
     debitAccountName: dto.debitAccountName ?? undefined,
-    debitBalanceBefore:
-      dto.debitBalanceBefore != null ? Number(dto.debitBalanceBefore) : undefined,
-    debitBalanceAfter:
-      dto.debitBalanceAfter != null ? Number(dto.debitBalanceAfter) : undefined,
+    debitBalanceBefore,
+    debitBalanceAfter,
     creditAccountId: dto.creditAccountId ?? undefined,
     creditAccountCode: dto.creditAccountCode ?? undefined,
     creditAccountName: dto.creditAccountName ?? undefined,
-    creditBalanceBefore:
-      dto.creditBalanceBefore != null ? Number(dto.creditBalanceBefore) : undefined,
-    creditBalanceAfter:
-      dto.creditBalanceAfter != null ? Number(dto.creditBalanceAfter) : undefined,
+    creditBalanceBefore,
+    creditBalanceAfter,
     sufficientFunds: Boolean(dto.sufficientFunds),
     insufficientFundsMessage: dto.insufficientFundsMessage ?? undefined,
     fundsAlreadyCommitted: dto.fundsAlreadyCommitted ?? undefined,
@@ -684,10 +719,18 @@ export interface GoodsReceiptResponseDTO {
   id: number;
   purchaseOrderId: number;
   receivedAt: string;
+  receivedById?: number | null;
+  receivedByName?: string | null;
+  inspectedById?: number | null;
+  inspectedByName?: string | null;
+  inspectedAt?: string | null;
+  authorizedById?: number | null;
+  authorizedByName?: string | null;
   documentPdfUrl?: string | null;
   items: Array<{
     itemId: number;
     warehouseId?: number;
+    warehouseName?: string | null;
     receivedQty: number;
     acceptedQty: number;
     rejectedQty: number;
@@ -732,6 +775,16 @@ function toGoodsReceipt(
         li.warehouseId != null && li.warehouseId !== undefined
           ? String(li.warehouseId)
           : orderItem?.warehouseId || "",
+      warehouse:
+        li.warehouseId != null || li.warehouseName
+          ? {
+              id: String(li.warehouseId ?? ""),
+              name: li.warehouseName || `Warehouse ${li.warehouseId}`,
+              location: "",
+              status: "active" as const,
+              createdAt: "",
+            }
+          : undefined,
       notes: li.remarks,
     };
   });
@@ -745,6 +798,16 @@ function toGoodsReceipt(
     documentPdfUrl: dto.documentPdfUrl ?? null,
     status: "completed" as const,
     items,
+    receivedBy:
+      dto.receivedById != null ? String(dto.receivedById) : undefined,
+    receivedByName: dto.receivedByName ?? undefined,
+    inspectedBy:
+      dto.inspectedById != null ? String(dto.inspectedById) : undefined,
+    inspectedByName: dto.inspectedByName ?? undefined,
+    inspectionDate: dto.inspectedAt ?? undefined,
+    authorizedBy:
+      dto.authorizedById != null ? String(dto.authorizedById) : undefined,
+    authorizedByName: dto.authorizedByName ?? undefined,
     createdAt: dto.receivedAt || "",
     updatedAt: dto.receivedAt || "",
   };

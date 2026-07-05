@@ -220,9 +220,7 @@ export function CreatePurchaseRequisitionForm({
           }
           setRequestedDate(toDateInputValue(pr.requestedDate));
           setRequiredDeliveryDate(
-            toDateInputValue(
-              pr.requiredDeliveryDate || pr.requiredDate,
-            ),
+            toDateInputValue(pr.requiredDeliveryDate || pr.requiredDate),
           );
           setProjectCode(pr.projectCode ?? "");
           setRequisitionDescription(pr.requisitionDescription ?? "");
@@ -406,7 +404,11 @@ export function CreatePurchaseRequisitionForm({
       );
       return;
     }
-    if (debitAccountId && creditAccountId && debitAccountId === creditAccountId) {
+    if (
+      debitAccountId &&
+      creditAccountId &&
+      debitAccountId === creditAccountId
+    ) {
       toast.error("Debit and credit accounts must be different.");
       return;
     }
@@ -486,9 +488,10 @@ export function CreatePurchaseRequisitionForm({
 
     setSubmitError(null);
 
-    const savePromise = isEditMode && requisitionId
-      ? updatePurchaseRequisition(requisitionId, payload)
-      : createPurchaseRequisition(payload);
+    const savePromise =
+      isEditMode && requisitionId
+        ? updatePurchaseRequisition(requisitionId, payload)
+        : createPurchaseRequisition(payload);
 
     savePromise
       .then(async (saved) => {
@@ -550,7 +553,9 @@ export function CreatePurchaseRequisitionForm({
       <PageHeader
         variant="darkGreen"
         title={
-          isEditMode ? "Edit purchase requisition" : "Create purchase requisition"
+          isEditMode
+            ? "Edit purchase requisition"
+            : "Create purchase requisition"
         }
         description={
           isEditMode
@@ -623,7 +628,9 @@ export function CreatePurchaseRequisitionForm({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{reviewerFeedback}</p>
+                <p className="text-sm whitespace-pre-wrap">
+                  {reviewerFeedback}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -633,9 +640,8 @@ export function CreatePurchaseRequisitionForm({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Supplier is assigned on the purchase order after this requisition
-                is approved. GL accounts use company purchase defaults (Global
-                Settings → Default Accounts).
+                Supplier is assigned on the purchase order after this
+                requisition is approved.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -656,7 +662,9 @@ export function CreatePurchaseRequisitionForm({
                     id="requiredDeliveryDate"
                     type="date"
                     value={requiredDeliveryDate}
-                    min={isEditMode ? undefined : format(new Date(), "yyyy-MM-dd")}
+                    min={
+                      isEditMode ? undefined : format(new Date(), "yyyy-MM-dd")
+                    }
                     onChange={(e) => setRequiredDeliveryDate(e.target.value)}
                     required
                   />
@@ -798,7 +806,9 @@ export function CreatePurchaseRequisitionForm({
                     step="1"
                     value={itemQuantity}
                     onChange={(e) =>
-                      setItemQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))
+                      setItemQuantity(
+                        Math.max(1, parseInt(e.target.value, 10) || 1),
+                      )
                     }
                   />
                 </div>
@@ -838,6 +848,7 @@ export function CreatePurchaseRequisitionForm({
                   <table className="w-full text-sm">
                     <thead className="bg-muted">
                       <tr>
+                        <th className="p-2 text-left w-12">Sl No</th>
                         <th className="p-2 text-left">Item</th>
                         <th className="p-2 text-right w-24">Qty</th>
                         <th className="p-2 text-right w-28">Item cost</th>
@@ -853,8 +864,11 @@ export function CreatePurchaseRequisitionForm({
                       </tr>
                     </thead>
                     <tbody>
-                      {requisitionItems.map((row) => (
+                      {requisitionItems.map((row, index) => (
                         <tr key={row.id} className="border-t">
+                          <td className="p-2 align-middle tabular-nums text-muted-foreground">
+                            {index + 1}
+                          </td>
                           <td className="p-2 align-middle">
                             {purchaseLineItemName(row)}
                           </td>
@@ -1013,28 +1027,30 @@ export function CreatePurchaseRequisitionForm({
           </Card>
 
           {requisitionItems.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total estimated</span>
-                  <span>
-                    <CurrencyAmount amount={total} />
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (optional)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Instructions for approver"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex justify-end">
+              <Card className="w-full max-w-sm">
+                <CardHeader>
+                  <CardTitle>Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total Due</span>
+                    <span>
+                      <CurrencyAmount amount={total} />
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (optional)</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Instructions for approver"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           <div className="flex justify-end gap-4">

@@ -32,12 +32,15 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
     "HR Reports": FileText,
     "Immigration Expiry": ShieldAlert,
     "HR Settings": Settings,
+    "Operations and management Reports": FileText,
+    "Inventory Reports": FileText,
     "Inventory Report": FileText,
     "Inventory (Stocks)": BarChart3,
     Sales: DollarSign,
     Purchase: ShoppingCart,
     "Inventory Settings": Settings,
     "Finance Reports": BarChart3,
+    "Finance Report": BarChart3,
     "Accounts Receivable": FileText,
     "Accounts Payable": Wallet,
     "General Ledger": FileText,
@@ -50,36 +53,41 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
 // Description mapping for modules
 const getModuleDescription = (title: string): string => {
   const descriptions: Record<string, string> = {
-    "Employee Overview": "Employee Life-Cycle Management.",
-    "HR Reports": "Detail HR Reports.",
+    "Employee Overview":
+      "Manage employee lifecycle management from hiring to retirement",
+    "Employee Payroll":
+      "Administer employee Compensation and payroll processes",
+    "HR Reports":
+      "Manage Operations and management Reports on HR metrics and performance",
     "Immigration Expiry":
       "Passports and residence permits that are expired or expiring soon.",
     "HR Settings":
-      "Configure HR setting - Job code, leave policies, system permissions, and appraisal, Public Holidays.",
-    "Inventory Report":
-      "Real-time stock reports, valuation analysis, and movement tracking.",
+      "Configure leave types, establish HR policies, define job codes, set up departments, manage system roles, manage appraisals and control system permissions",
     "Inventory (Stocks)":
-      "Manage stock levels, warehouses, and inventory adjustments.",
+      "Manage Stocks levels, perform Inventory Adjustments and, receive goods.",
     Sales:
-      "Sales orders, invoicing, customer management, and revenue tracking.",
+      "Handle Sales transactions, manage sales invoices and maintain customer information. Perform order fulfillment and track shipments",
     Purchase:
-      "Purchase orders, supplier management, and procurement workflows.",
+      "Execute the procurement workflow, including purchase requisitions, purchase orders, receiving goods, viewing and matching invoices, and processing payment receipts.",
+    "Operations and management Reports": "Operations and management reports",
+    "Inventory Reports": "Operations and management reports",
+    "Inventory Report": "Operations and management reports",
     "Inventory Settings":
-      "Configure categories, units, warehouses, and inventory parameters.",
-    "Finance Reports":
-      "Financial statements, P&L, balance sheets, and cash flow analysis.",
+      "Configure item categories and warehouses, manage suppliers and customers and set system permissions",
     "Accounts Receivable":
-      "Customer invoices, payments received, and aging reports.",
+      "View sales invoices and record customer payments",
     "Accounts Payable":
-      "Supplier bills, payment processing, and payables management.",
+      "Manage Supplier invoices and process vendor payments",
     "General Ledger":
-      "Chart of accounts, journal entries, and financial transactions.",
-    "Employee Payroll":
-      "Salary processing, deductions, tax calculations, and payslips.",
+      "Maintain chart of accounts, process manual journal Entries, view transactions, create and distribution budget",
+    "Finance Reports":
+      "Generate operations and management reports related to finance performances",
+    "Finance Report":
+      "Generate operations and management reports related to finance performances",
     "Finance Settings":
-      "Configure fiscal periods, currencies, tax rates, and accounting rules.",
+      "Setup accounting periods, approve suppliers, configure debit/credit accounts for transactions and system permissions",
   };
-  return descriptions[title] || "Employee Compensations – Generate Payroll.";
+  return descriptions[title] || "Open this module to continue.";
 };
 
 // System theme configuration
@@ -129,11 +137,11 @@ const getSystemTheme = (title: string) => {
 // System subtitle mapping
 const getSystemSubtitle = (title: string): string => {
   if (title.toLowerCase().includes("hr")) {
-    return "Complete human resource and payroll management";
+    return "Human resource and payroll management";
   } else if (title.toLowerCase().includes("inventory")) {
-    return "Advanced inventory and supply chain management";
+    return "Inventory and supply chain management";
   } else if (title.toLowerCase().includes("finance")) {
-    return "Complete financial management and accounting";
+    return "Financial management and accounting";
   }
   return "Business management solutions";
 };
@@ -196,8 +204,8 @@ const Dashboard = () => {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading your modules...</p>
+          <Loader2 className="h-7 w-7 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-sm text-gray-600">Loading your modules...</p>
         </div>
       </div>
     );
@@ -211,14 +219,14 @@ const Dashboard = () => {
         title="Sunway ERP"
         description="Comprehensive Business Management Solution"
         variant="default"
-        icon={<Building className="w-6 h-6" />}
+        icon={<Building className="w-5 h-5" />}
       />
 
       {/* Fallback when no modules are available */}
       {sidebarItems.length === 0 && (
         <div className="mb-6">
           <Card>
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">
+            <CardContent className="py-6 text-center text-xs text-muted-foreground">
               No modules available for this company or your current permissions.
             </CardContent>
           </Card>
@@ -242,17 +250,17 @@ const Dashboard = () => {
               >
                 <div
                   className={cn(
-                    "w-12 h-12 rounded-lg flex items-center justify-center",
+                    "w-10 h-10 rounded-lg flex items-center justify-center",
                     theme.iconBg,
                   )}
                 >
-                  <item.icon className="w-6 h-6 text-white" />
+                  <item.icon className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className={cn("text-2xl font-semibold", theme.textColor)}>
+                  <h2 className={cn("text-xl font-semibold", theme.textColor)}>
                     Sunway {item.title} System
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1 capitalize">
+                  <p className="text-xs text-gray-600 mt-1 capitalize">
                     {systemSubtitle}
                   </p>
                 </div>
@@ -280,14 +288,14 @@ const Dashboard = () => {
                         <div className="flex items-start gap-3">
                           <div className={cn("p-2 rounded-lg", theme.bgColor)}>
                             <ModuleIcon
-                              className={cn("w-5 h-5", theme.textColor)}
+                              className={cn("w-4 h-4", theme.textColor)}
                             />
                           </div>
                           <div className="flex-1">
-                            <CardTitle className="text-lg font-semibold mb-2">
+                            <CardTitle className="text-base font-semibold mb-2">
                               {subItem.title}
                             </CardTitle>
-                            <CardDescription className="text-sm">
+                            <CardDescription className="text-xs">
                               {description}
                             </CardDescription>
                           </div>
@@ -296,7 +304,7 @@ const Dashboard = () => {
                       <CardContent className="pt-0">
                         <div
                           className={cn(
-                            "w-full rounded-md font-medium text-center py-2 px-4",
+                            "w-full rounded-md font-medium text-center py-2 px-4 text-xs",
                             theme.buttonBg,
                             theme.buttonText,
                           )}

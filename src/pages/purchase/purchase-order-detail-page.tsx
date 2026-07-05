@@ -46,6 +46,7 @@ import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { cn } from "@/lib/utils";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const BASE = "/inventory/purchase";
 
@@ -131,6 +132,7 @@ export default function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { confirmCancel } = useConfirmDialog();
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,9 +143,8 @@ export default function PurchaseOrderDetailPage() {
   );
   const [assignSupplierId, setAssignSupplierId] = useState<string>("");
   const [assignLoading, setAssignLoading] = useState(false);
-  const [postingDialog, setPostingDialog] = useState<PostingDialogAction | null>(
-    null,
-  );
+  const [postingDialog, setPostingDialog] =
+    useState<PostingDialogAction | null>(null);
   const [postingPreview, setPostingPreview] =
     useState<PurchaseOrderPostingPreview | null>(null);
   const [postingPreviewLoading, setPostingPreviewLoading] = useState(false);
@@ -241,6 +242,19 @@ export default function PurchaseOrderDetailPage() {
   const openPostingDialog = useCallback(
     async (action: PostingDialogAction) => {
       if (!order) return;
+      if (action === "cancel") {
+        const hasLinkedPr = Boolean(order.requisitionId);
+        if (
+          !(await confirmCancel(`order ${order.orderNo}`, {
+            title: "Cancel purchase order?",
+            description: hasLinkedPr
+              ? "Are you sure you want to cancel this PO? The corresponding PR will also be cancelled."
+              : `Are you sure you want to cancel order ${order.orderNo}? This cannot be undone.`,
+          }))
+        ) {
+          return;
+        }
+      }
       setPostingDialog(action);
       setPostingPreview(null);
       setPostingPreviewLoading(true);
@@ -258,7 +272,7 @@ export default function PurchaseOrderDetailPage() {
         setPostingPreviewLoading(false);
       }
     },
-    [order],
+    [order, confirmCancel],
   );
 
   useEffect(() => {
@@ -267,9 +281,7 @@ export default function PurchaseOrderDetailPage() {
     if (!action || !order || loading) return;
     navigate(location.pathname, { replace: true, state: null });
     if (action === "release" && !order.supplierId) {
-      toast.error(
-        "Assign a supplier before releasing this purchase order.",
-      );
+      toast.error("Assign a supplier before releasing this purchase order.");
       return;
     }
     if (
@@ -287,7 +299,16 @@ export default function PurchaseOrderDetailPage() {
       return;
     }
     void openPostingDialog(action);
-  }, [order?.id, order?.supplierId, loading, location.state, location.pathname, navigate, openPostingDialog, order]);
+  }, [
+    order?.id,
+    order?.supplierId,
+    loading,
+    location.state,
+    location.pathname,
+    navigate,
+    openPostingDialog,
+    order,
+  ]);
 
   const handleAssignSupplier = async () => {
     if (!order || !assignSupplierId) {
@@ -301,9 +322,7 @@ export default function PurchaseOrderDetailPage() {
       await load();
     } catch (e: any) {
       toast.error(
-        e?.response?.data?.message ||
-          e?.message ||
-          "Failed to assign supplier",
+        e?.response?.data?.message || e?.message || "Failed to assign supplier",
       );
     } finally {
       setAssignLoading(false);
@@ -319,18 +338,20 @@ export default function PurchaseOrderDetailPage() {
         toast.success("Purchase order released to supplier.");
       } else {
         await cancelPurchaseOrder(order.id);
-        toast.success("Purchase order cancelled.");
+        toast.success(
+          order.requisitionId
+            ? "Purchase order cancelled. The linked PR was also cancelled."
+            : "Purchase order cancelled.",
+        );
       }
       setPostingDialog(null);
       setPostingPreview(null);
       await load();
     } catch (e: any) {
       toast.error(
-        e?.response?.data?.message ||
-          e?.message ||
-          postingDialog === "release"
-            ? "Failed to release Purchase Order"
-            : "Failed to cancel",
+        e?.response?.data?.message || e?.message || postingDialog === "release"
+          ? "Failed to release Purchase Order"
+          : "Failed to cancel",
       );
     } finally {
       setActionLoading(false);
@@ -372,7 +393,10 @@ export default function PurchaseOrderDetailPage() {
           <div className="text-red-600 font-medium">
             {error || "Purchase order not found"}
           </div>
-          <Button variant="outline" onClick={() => navigate("/inventory/purchase/orders")}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/inventory/purchase/orders")}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go Back
           </Button>
@@ -392,7 +416,8 @@ export default function PurchaseOrderDetailPage() {
       active: order.supplier?.status === "active",
     });
   const vendorPaymentConfirmed = order.vendorPaymentSettled === true;
-  const canAssignSupplier = st === "draft" && (!hasSupplier || !supplierEligible);
+  const canAssignSupplier =
+    st === "draft" && (!hasSupplier || !supplierEligible);
   const canRelease = st === "draft" && supplierEligible;
   const canCancel = st === "draft" && !vendorPaymentConfirmed;
   const canReceive =
@@ -401,15 +426,11 @@ export default function PurchaseOrderDetailPage() {
     st === "partially_received" ||
     st === "approved";
   const isReleased =
-    st === "confirmed" ||
-    st === "partially_received" ||
-    st === "received";
+    st === "confirmed" || st === "partially_received" || st === "received";
   const hasPurchaseInvoice = order.purchaseInvoiceId != null;
   const reqId = order.requisitionId;
   const linkedRequisitionLabel =
-    order.requisitionNo ||
-    linkedRequisitionNo ||
-    (reqId ? `PR-${reqId}` : "");
+    order.requisitionNo || linkedRequisitionNo || (reqId ? `PR-${reqId}` : "");
   const supplierDisplayName =
     order.supplierName ||
     (order.supplier as { vendorName?: string })?.vendorName ||
@@ -505,9 +526,8 @@ export default function PurchaseOrderDetailPage() {
             <div className="mb-4">
               <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Release sends the order to the supplier and creates accounts payable
-                records. Chart of accounts balances change when vendor payment is
-                confirmed under Finance → Accounts payable → Vendor payments.
+                Release sends the order to the supplier and creates accounts
+                payable records.
               </p>
             </div>
 
@@ -647,14 +667,7 @@ export default function PurchaseOrderDetailPage() {
                   Record receipt
                 </Button>
               )}
-              {reqId && (
-                <Button variant="outline" asChild className="rounded-lg">
-                  <Link to={`${BASE}/requisitions/${reqId}`}>
-                    <Link2 className="mr-2 h-4 w-4" />
-                    {linkedRequisitionLabel || "View requisition"}
-                  </Link>
-                </Button>
-              )}
+
               {canCancel && (
                 <Button
                   variant="destructive"
@@ -675,7 +688,9 @@ export default function PurchaseOrderDetailPage() {
             <h2 className="text-sm font-semibold text-slate-900">
               Release preview
             </h2>
-            <p className="mt-1 text-sm text-slate-600">{releasePreview.summary}</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {releasePreview.summary}
+            </p>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">Order total</span>
@@ -768,7 +783,8 @@ export default function PurchaseOrderDetailPage() {
                   value={
                     <Badge
                       className={
-                        STATUS_COLORS[order.status] || "bg-gray-100 text-gray-800"
+                        STATUS_COLORS[order.status] ||
+                        "bg-gray-100 text-gray-800"
                       }
                     >
                       {formatStatus(order.status)}
@@ -784,12 +800,21 @@ export default function PurchaseOrderDetailPage() {
                   }
                 />
                 <DetailField
-                  label="Expected date"
+                  label="Required Delivery Date"
                   value={
-                    order.expectedDate
-                      ? format(new Date(order.expectedDate), "MMM d, yyyy")
+                    order.requiredDeliveryDate || order.expectedDate
+                      ? format(
+                          new Date(
+                            order.requiredDeliveryDate || order.expectedDate!,
+                          ),
+                          "MMM d, yyyy",
+                        )
                       : null
                   }
+                />
+                <DetailField
+                  label="Requested by"
+                  value={order.requestedByName || null}
                 />
                 <DetailField
                   label="Source requisition"
@@ -816,7 +841,11 @@ export default function PurchaseOrderDetailPage() {
                     ) : null
                   }
                 />
-                <DetailField label="Notes" value={order.notes} className="sm:col-span-2" />
+                <DetailField
+                  label="Notes"
+                  value={order.notes}
+                  className="sm:col-span-2"
+                />
               </div>
             </div>
 
@@ -825,7 +854,11 @@ export default function PurchaseOrderDetailPage() {
                 Supplier
               </h2>
               {hasSupplier && supplierDisplayName ? (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  <DetailField
+                    label="Supplier Code"
+                    value={order.supplier?.code}
+                  />
                   <DetailField
                     label="Name"
                     value={
@@ -835,48 +868,52 @@ export default function PurchaseOrderDetailPage() {
                       </span>
                     }
                   />
-                  <DetailField label="Code" value={order.supplier?.code} />
-                  <DetailField label="Email" value={order.supplier?.email} />
                   <DetailField label="Phone" value={order.supplier?.phone} />
+                  <DetailField label="Email" value={order.supplier?.email} />
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">
-                  No supplier assigned yet. Use Register supplier in Actions when
-                  this order is in draft status.
+                  No supplier assigned yet. Use Register supplier in Actions
+                  when this order is in draft status.
                 </p>
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-sm font-semibold text-slate-900">
-                Totals
-              </h2>
-              <div className="max-w-md space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Subtotal</span>
-                  <CurrencyAmount
-                    amount={order.subtotal}
-                    className="font-medium"
-                  />
-                </div>
-                {order.tax > 0 && (
+            <div className="flex justify-end">
+              <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-sm font-semibold text-slate-900">
+                  Totals
+                </h2>
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Tax</span>
-                    <CurrencyAmount amount={order.tax} className="font-medium" />
-                  </div>
-                )}
-                {order.discount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Discount</span>
+                    <span className="text-slate-500">Subtotal</span>
                     <CurrencyAmount
-                      amount={order.discount}
+                      amount={order.subtotal}
                       className="font-medium"
                     />
                   </div>
-                )}
-                <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
-                  <span>Total</span>
-                  <CurrencyAmount amount={order.total} />
+                  {order.tax > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Tax</span>
+                      <CurrencyAmount
+                        amount={order.tax}
+                        className="font-medium"
+                      />
+                    </div>
+                  )}
+                  {order.discount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Discount</span>
+                      <CurrencyAmount
+                        amount={order.discount}
+                        className="font-medium"
+                      />
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
+                    <span>Total Due</span>
+                    <CurrencyAmount amount={order.total} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -892,6 +929,7 @@ export default function PurchaseOrderDetailPage() {
                   <table className="w-full min-w-[720px] text-sm">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        <th className="pb-3 pr-4 w-12">Sl No</th>
                         <th className="pb-3 pr-4">Item</th>
                         <th className="pb-3 pr-4 text-right">Qty</th>
                         <th className="pb-3 pr-4 text-right">Item cost</th>
@@ -902,11 +940,14 @@ export default function PurchaseOrderDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {order.items.map((item) => (
+                      {order.items.map((item, index) => (
                         <tr
                           key={item.id}
                           className="border-b border-slate-100 last:border-0"
                         >
+                          <td className="py-3 pr-4 tabular-nums text-slate-500">
+                            {index + 1}
+                          </td>
                           <td className="py-3 pr-4 font-medium text-slate-900">
                             {purchaseLineItemName(item)}
                           </td>
@@ -914,7 +955,9 @@ export default function PurchaseOrderDetailPage() {
                             {item.quantity}
                           </td>
                           <td className="py-3 pr-4 text-right tabular-nums">
-                            <CurrencyAmount amount={item.actualItemPrice ?? 0} />
+                            <CurrencyAmount
+                              amount={item.actualItemPrice ?? 0}
+                            />
                           </td>
                           <td className="py-3 pr-4 text-right tabular-nums text-slate-500">
                             <CurrencyAmount amount={item.otherUnitCost ?? 0} />

@@ -29,10 +29,11 @@ import {
   CircleCheckBig,
   CircleSlash2,
 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { normalizePhone } from "@/lib/countries";
@@ -99,6 +100,7 @@ const WarehouseMaster = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -254,6 +256,21 @@ const WarehouseMaster = () => {
     return { total, active, inactive };
   }, [warehouses]);
 
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "active":
+        setStatusFilter("active");
+        break;
+      case "inactive":
+        setStatusFilter("inactive");
+        break;
+      default:
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
+
   const filteredWarehouses = useMemo(() => {
     return warehouses.filter((wh) => {
       const matchesSearch =
@@ -301,27 +318,42 @@ const WarehouseMaster = () => {
       <div className="mb-6">
         <KpiSummaryStrip
           items={[
-            {
-              label: "Total Warehouses",
-              value: stats.total,
-              hint: "Total active locations",
-              accent: "sky",
-              icon: WarehouseIcon,
-            },
-            {
-              label: "Active",
-              value: stats.active,
-              hint: "Currently in use",
-              accent: "emerald",
-              icon: CircleCheckBig,
-            },
-            {
-              label: "Inactive",
-              value: stats.inactive,
-              hint: "Disabled locations",
-              accent: "rose",
-              icon: CircleSlash2,
-            },
+            kpiFilterItem(
+              {
+                label: "Total Warehouses",
+                value: stats.total,
+                hint: "Total active locations",
+                accent: "sky",
+                icon: WarehouseIcon,
+              },
+              "all",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Active",
+                value: stats.active,
+                hint: "Currently in use",
+                accent: "emerald",
+                icon: CircleCheckBig,
+              },
+              "active",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Inactive",
+                value: stats.inactive,
+                hint: "Disabled locations",
+                accent: "rose",
+                icon: CircleSlash2,
+              },
+              "inactive",
+              kpiFilter,
+              applyKpiFilter,
+            ),
           ]}
         />
       </div>
@@ -338,7 +370,13 @@ const WarehouseMaster = () => {
           />
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setKpiFilter(null);
+            }}
+          >
             <SelectTrigger className="w-[140px] rounded-xl border-slate-200 text-[13px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>

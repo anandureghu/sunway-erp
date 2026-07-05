@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 export default function SuppliersPage() {
   const { confirm } = useConfirmDialog();
@@ -36,6 +37,7 @@ export default function SuppliersPage() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -116,10 +118,34 @@ export default function SuppliersPage() {
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "active" && vendor.active !== false) ||
-      (statusFilter === "inactive" && vendor.active === false);
+      (statusFilter === "inactive" && vendor.active === false) ||
+      (statusFilter === "approved" &&
+        vendor.approved === true &&
+        vendor.rejected !== true) ||
+      (statusFilter === "pending" &&
+        vendor.approved !== true &&
+        vendor.rejected !== true);
 
     return matchesSearch && matchesStatus;
   });
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "active":
+        setStatusFilter("active");
+        break;
+      case "approved":
+        setStatusFilter("approved");
+        break;
+      case "pending":
+        setStatusFilter("pending");
+        break;
+      default:
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
 
   const supplierKpis = useMemo((): KpiSummaryStat[] => {
     const total = vendors.length;
@@ -127,36 +153,56 @@ export default function SuppliersPage() {
     const approved = vendors.filter((v) => v.approved && !v.rejected).length;
     const withEmail = vendors.filter((v) => (v.email || "").trim()).length;
     return [
-      {
-        label: "Total suppliers",
-        value: total,
-        hint: "Vendor master rows",
-        accent: "sky",
-        icon: Building2,
-      },
-      {
-        label: "Active",
-        value: active,
-        hint: "Available on Purchase Orders",
-        accent: "emerald",
-        icon: Users,
-      },
-      {
-        label: "Approved",
-        value: approved,
-        hint: "Passed onboarding checks",
-        accent: "violet",
-        icon: ShieldCheck,
-      },
-      {
-        label: "Pending for Approval",
-        value: withEmail,
-        hint: "Contacts on file",
-        accent: "amber",
-        icon: Mail,
-      },
+      kpiFilterItem(
+        {
+          label: "Total suppliers",
+          value: total,
+          hint: "Vendor master rows",
+          accent: "sky",
+          icon: Building2,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Active",
+          value: active,
+          hint: "Available on Purchase Orders",
+          accent: "emerald",
+          icon: Users,
+        },
+        "active",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Approved",
+          value: approved,
+          hint: "Passed onboarding checks",
+          accent: "violet",
+          icon: ShieldCheck,
+        },
+        "approved",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Pending for Approval",
+          value: withEmail,
+          hint: "Contacts on file",
+          accent: "amber",
+          icon: Mail,
+        },
+        "pending",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [vendors]);
+  }, [vendors, kpiFilter, applyKpiFilter]);
 
   if (loading) {
     return (
@@ -201,13 +247,18 @@ export default function SuppliersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => {
+              setStatusFilter(v);
+              setKpiFilter(null);
+            }}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">Active only</SelectItem>
                 <SelectItem value="inactive">Inactive only</SelectItem>
+                <SelectItem value="approved">Approved only</SelectItem>
+                <SelectItem value="pending">Pending approval</SelectItem>
                 <SelectItem value="all">All statuses</SelectItem>
               </SelectContent>
             </Select>

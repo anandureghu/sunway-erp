@@ -151,11 +151,13 @@
  *   • @media (min-width: 768px) matches exactly the `md:block` breakpoint used
  *     to show the peer div, so it never fires on mobile (where the sidebar is a
  *     Sheet drawer and the peer div is display:none).
- *   • `var(--sidebar-width, 13rem)` reads the value set inline by SidebarProvider.
+ *   • `var(--sidebar-width, 18rem)` reads the value set inline by SidebarProvider.
+ *   • The peer spacer is width 0 (marker only). Do not also give it sidebar
+ *     width or main is offset twice and the layout collapses.
  */
 @media (min-width: 768px) {
   .peer[data-state="expanded"] ~ main {
-    margin-left: var(--sidebar-width, 13rem);
+    margin-left: var(--sidebar-width, 18rem);
   }
   .peer[data-state="collapsed"] ~ main {
     margin-left: 0;

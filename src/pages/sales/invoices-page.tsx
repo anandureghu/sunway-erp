@@ -43,6 +43,7 @@ import {
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -62,6 +63,7 @@ export default function InvoicesPage({
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
@@ -108,6 +110,29 @@ export default function InvoicesPage({
     });
   }, [invoices, listTab, searchQuery, statusFilter]);
 
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    setRowSelection({});
+    switch (key) {
+      case "paid":
+        setListTab("archived");
+        setStatusFilter("Paid");
+        break;
+      case "unpaid":
+        setListTab("outstanding");
+        setStatusFilter("Unpaid");
+        break;
+      case "overdue":
+        setListTab("outstanding");
+        setStatusFilter("Overdue");
+        break;
+      default:
+        setListTab("outstanding");
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
+
   const selectedInvoiceIds = useMemo(
     () =>
       Object.entries(rowSelection)
@@ -121,7 +146,7 @@ export default function InvoicesPage({
     if (selectedInvoiceIds.length === 0) return;
     if (
       !(await confirm(
-        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Finance Reports → History.`,
+        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Operations and management Reports → History.`,
       ))
     ) {
       return;
@@ -248,36 +273,56 @@ export default function InvoicesPage({
       (inv) => norm(inv.status) === "OVERDUE",
     ).length;
     return [
-      {
-        label: "Total invoices",
-        value: visibleInvoices.length,
-        hint: "Sales invoices loaded",
-        accent: "sky",
-        icon: FileText,
-      },
-      {
-        label: "Unpaid",
-        value: unpaid,
-        hint: "Awaiting payment",
-        accent: "orange",
-        icon: Wallet,
-      },
-      {
-        label: "Paid",
-        value: paid,
-        hint: "Fully settled",
-        accent: "emerald",
-        icon: CheckCircle2,
-      },
-      {
-        label: "Overdue",
-        value: overdue,
-        hint: "Past due — needs collection",
-        accent: "rose",
-        icon: AlertTriangle,
-      },
+      kpiFilterItem(
+        {
+          label: "Total invoices",
+          value: visibleInvoices.length,
+          hint: "Sales invoices loaded",
+          accent: "sky",
+          icon: FileText,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Unpaid",
+          value: unpaid,
+          hint: "Awaiting payment",
+          accent: "orange",
+          icon: Wallet,
+        },
+        "unpaid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Paid",
+          value: paid,
+          hint: "Fully settled",
+          accent: "emerald",
+          icon: CheckCircle2,
+        },
+        "paid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Overdue",
+          value: overdue,
+          hint: "Past due — needs collection",
+          accent: "rose",
+          icon: AlertTriangle,
+        },
+        "overdue",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [invoices]);
+  }, [invoices, kpiFilter, applyKpiFilter]);
 
   const isFinancePage = useMemo(() => {
     return location.pathname.includes("/finance/receivable");
@@ -302,6 +347,7 @@ export default function InvoicesPage({
           setListTab(v as InvoiceListTab);
           setStatusFilter("all");
           setRowSelection({});
+          setKpiFilter(null);
         }}
         className="w-full gap-4"
       >
@@ -332,7 +378,10 @@ export default function InvoicesPage({
                 className="pl-8 w-64"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => {
+              setStatusFilter(v);
+              setKpiFilter(null);
+            }}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Payment status" />
               </SelectTrigger>

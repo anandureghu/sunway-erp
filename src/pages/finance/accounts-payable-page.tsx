@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
@@ -45,6 +46,11 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { kpiFilterItem } from "@/lib/kpi-filter";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -64,6 +70,9 @@ function PayableInvoicesTab() {
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
   );
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -118,6 +127,66 @@ function PayableInvoicesTab() {
       return matchesSearch && matchesStatus;
     });
   }, [rows, listTab, searchQuery, statusFilter]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    setRowSelection({});
+    switch (key) {
+      case "paid":
+        setListTab("archived");
+        setStatusFilter("Paid");
+        break;
+      case "unpaid":
+        setListTab("outstanding");
+        setStatusFilter("Unpaid");
+        break;
+      case "overdue":
+        setListTab("outstanding");
+        setStatusFilter("Overdue");
+        break;
+      default:
+        setListTab("outstanding");
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
+
+  const selectedInvoiceIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveInvoices = useCallback(async () => {
+    if (selectedInvoiceIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "PURCHASE_INVOICE",
+        selectedInvoiceIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      load();
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to archive selected invoices.";
+      toast.error(message);
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, load, selectedInvoiceIds]);
 
   const handleArchiveInvoice = useCallback(
     async (id: number) => {
@@ -249,36 +318,56 @@ function PayableInvoicesTab() {
       (inv) => norm(inv.status) === "OVERDUE",
     ).length;
     return [
-      {
-        label: "Total invoices",
-        value: rows.length,
-        hint: "Purchase invoices loaded",
-        accent: "sky",
-        icon: FileText,
-      },
-      {
-        label: "Unpaid",
-        value: unpaid,
-        hint: "Awaiting payment",
-        accent: "orange",
-        icon: Wallet,
-      },
-      {
-        label: "Paid",
-        value: paid,
-        hint: "Fully settled",
-        accent: "emerald",
-        icon: CheckCircle2,
-      },
-      {
-        label: "Overdue",
-        value: overdue,
-        hint: "Past due — needs payment",
-        accent: "rose",
-        icon: AlertTriangle,
-      },
+      kpiFilterItem(
+        {
+          label: "Total invoices",
+          value: rows.length,
+          hint: "Purchase invoices loaded",
+          accent: "sky",
+          icon: FileText,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Unpaid",
+          value: unpaid,
+          hint: "Awaiting payment",
+          accent: "orange",
+          icon: Wallet,
+        },
+        "unpaid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Paid",
+          value: paid,
+          hint: "Fully settled",
+          accent: "emerald",
+          icon: CheckCircle2,
+        },
+        "paid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Overdue",
+          value: overdue,
+          hint: "Past due — needs payment",
+          accent: "rose",
+          icon: AlertTriangle,
+        },
+        "overdue",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [rows]);
+  }, [rows, kpiFilter, applyKpiFilter]);
 
   return (
     <div className="space-y-4">
@@ -290,6 +379,8 @@ function PayableInvoicesTab() {
         onValueChange={(v) => {
           setListTab(v as InvoiceListTab);
           setStatusFilter("all");
+          setRowSelection({});
+          setKpiFilter(null);
         }}
         className="w-full gap-4"
       >
@@ -320,7 +411,10 @@ function PayableInvoicesTab() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => {
+              setStatusFilter(v);
+              setKpiFilter(null);
+            }}>
               <SelectTrigger className="w-full sm:w-44">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -351,11 +445,31 @@ function PayableInvoicesTab() {
           Loading invoices…
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          onRowClick={handleRowClick}
-        />
+        <div className="space-y-4">
+          {listTab === "archived" ? (
+            <BulkActionBar
+              selectedCount={selectedInvoiceIds.length}
+              onArchive={handleBulkArchiveInvoices}
+              onClear={() => setRowSelection({})}
+              archiving={bulkArchiving}
+            />
+          ) : null}
+          <SelectableDataTable
+            columns={columns}
+            data={filtered}
+            onRowClick={handleRowClick}
+            enableRowSelection={listTab === "archived"}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            getRowId={(row) => String(row.id)}
+            isRowSelectable={(row) => {
+              const status = (row.status || "").toUpperCase();
+              return (
+                (status === "PAID" || status === "CANCELLED") && !row.archived
+              );
+            }}
+          />
+        </div>
       )}
     </div>
   );

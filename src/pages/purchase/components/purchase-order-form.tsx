@@ -403,6 +403,7 @@ export function PurchaseOrderForm({
               <table className="w-full text-sm min-w-[760px]">
                 <thead className="bg-muted/60">
                   <tr>
+                    <th className="text-left p-3 w-12">Sl No</th>
                     <th className="text-left p-3">Item</th>
                     <th className="text-right p-3 w-24">Qty</th>
                     <th className="text-right p-3 w-32">Unit Cost</th>
@@ -412,13 +413,16 @@ export function PurchaseOrderForm({
                   </tr>
                 </thead>
                 <tbody>
-                  {lines.map((line) => {
+                  {lines.map((line, index) => {
                     const applied =
                       line.otherUnitCost > 0
                         ? line.otherUnitCost
                         : line.unitCost;
                     return (
                       <tr key={line.id} className="border-t">
+                        <td className="p-3 align-middle tabular-nums text-muted-foreground">
+                          {index + 1}
+                        </td>
                         <td className="p-3 align-middle">{line.itemName}</td>
                         <td className="p-3 align-middle">
                           <Input
@@ -490,31 +494,35 @@ export function PurchaseOrderForm({
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between text-base font-semibold">
-            <span>Total</span>
-            <CurrencyAmount amount={totalAmount} />
-          </div>
-          <Button
-            type="button"
-            className="w-full"
-            onClick={() => void onSubmit()}
-            disabled={submitLoading || lines.length === 0}
-          >
-            {submitLoading
-              ? isEditMode
-                ? "Saving..."
-                : "Creating..."
-              : isEditMode
-                ? "Save Changes"
-                : "Create Purchase Order"}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex justify-end">
+        <Card className="w-full max-w-sm shadow-sm">
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between text-base font-semibold">
+              <span>Total Due</span>
+              <CurrencyAmount amount={totalAmount} />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void onSubmit()}
+                disabled={submitLoading || lines.length === 0}
+              >
+                {submitLoading
+                  ? isEditMode
+                    ? "Saving..."
+                    : "Creating..."
+                  : isEditMode
+                    ? "Save Changes"
+                    : "Create Purchase Order"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

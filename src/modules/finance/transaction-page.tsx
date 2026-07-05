@@ -1,26 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { ReceiptText } from "lucide-react";
 import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
 import type { TransactionResponseDTO } from "@/types/transactions";
+import type { HistoryEntityType } from "@/types/history";
 import { GlTabPanel } from "@/components/finance/gl-tab-panel";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import {
+  bulkArchiveHistoryRecords,
+} from "@/service/historyService";
 
-type TransactionListTab = "active" | "archived";
+const BUDGET_DISTRIBUTION_TYPE = "BUDGET_DISTRIBUTION";
+
+function historyTypeForTransaction(tx: TransactionResponseDTO): HistoryEntityType {
+  return (tx.transactionType ?? "").toUpperCase() === BUDGET_DISTRIBUTION_TYPE
+    ? "BUDGET_DISTRIBUTION"
+    : "TRANSACTION";
+}
 
 export default function TransactionPage({ companyId }: { companyId: number }) {
   const { confirm } = useConfirmDialog();
   const [txList, setTxList] = useState<TransactionResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [listTab, setListTab] = useState<TransactionListTab>("active");
   const [archivingId, setArchivingId] = useState<number | null>(null);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -92,34 +102,23 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
         setArchivingId(null);
       }
     },
-    [],
+    [confirm],
   );
 
   const columns = useMemo(
     () =>
       TRANSACTION_COLUMNS({
         onSourceSave: handleSourceSave,
-        onArchive: listTab === "active" ? handleArchive : undefined,
+        onArchive: handleArchive,
         archivingId,
       }),
-    [archivingId, handleArchive, listTab],
-  );
-
-  const activeCount = useMemo(
-    () => txList.filter((tx) => !tx.archived).length,
-    [txList],
-  );
-  const archivedCount = useMemo(
-    () => txList.filter((tx) => tx.archived).length,
-    [txList],
+    [archivingId, handleArchive],
   );
 
   const filteredTx = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return txList.filter((tx) => {
-      const matchesTab =
-        listTab === "archived" ? Boolean(tx.archived) : !tx.archived;
-      if (!matchesTab) return false;
+      if (tx.archived) return false;
       if (!q) return true;
       const haystack = [
         tx.transactionCode,
@@ -135,7 +134,77 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [txList, searchQuery, listTab]);
+  }, [txList, searchQuery]);
+
+  const selectedTransactions = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => filteredTx.find((tx) => String(tx.id) === id))
+        .filter((tx): tx is TransactionResponseDTO => tx != null),
+    [filteredTx, rowSelection],
+  );
+
+  const handleBulkArchive = useCallback(async () => {
+    if (selectedTransactions.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedTransactions.length} selected transaction(s)? They will move to Finance Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const grouped = selectedTransactions.reduce<
+        Partial<Record<HistoryEntityType, number[]>>
+      >((acc, tx) => {
+        const type = historyTypeForTransaction(tx);
+        acc[type] = [...(acc[type] ?? []), tx.id];
+        return acc;
+      }, {});
+
+      const results = await Promise.all(
+        Object.entries(grouped).map(([type, ids]) =>
+          bulkArchiveHistoryRecords(type as HistoryEntityType, ids ?? []),
+        ),
+      );
+
+      const succeeded = results.reduce(
+        (sum, result) => sum + (result.succeeded?.length ?? 0),
+        0,
+      );
+      const failed = results.reduce(
+        (sum, result) => sum + (result.failed?.length ?? 0),
+        0,
+      );
+
+      if (succeeded > 0 && failed === 0) {
+        toast.success(
+          `${succeeded} record${succeeded === 1 ? "" : "s"} processed successfully.`,
+        );
+      } else if (succeeded > 0 && failed > 0) {
+        toast.success(`${succeeded} succeeded, ${failed} failed.`);
+      } else if (failed > 0) {
+        toast.error(`${failed} record(s) failed to archive.`);
+      } else {
+        toast.error("No records processed.");
+      }
+
+      setRowSelection({});
+      await load();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error
+            ? err.message
+            : "Failed to archive selected transactions."),
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, load, selectedTransactions]);
 
   return (
     <GlTabPanel
@@ -146,29 +215,24 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
       onSearchChange={setSearchQuery}
       loading={loading}
       loadingMessage="Loading transactions…"
-      toolbarExtra={
-        <Tabs
-          value={listTab}
-          onValueChange={(value) => setListTab(value as TransactionListTab)}
-        >
-          <TabsList>
-            <TabsTrigger value="active" className="gap-2">
-              Active
-              <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
-                {activeCount}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2">
-              Archived
-              <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
-                {archivedCount}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      }
     >
-      <DataTable data={filteredTx} columns={columns} />
+      <div className="space-y-4">
+        <BulkActionBar
+          selectedCount={selectedTransactions.length}
+          onArchive={handleBulkArchive}
+          onClear={() => setRowSelection({})}
+          archiving={bulkArchiving}
+        />
+        <SelectableDataTable
+          data={filteredTx}
+          columns={columns}
+          enableRowSelection
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          getRowId={(row) => String(row.id)}
+          isRowSelectable={(row) => !row.archived}
+        />
+      </div>
     </GlTabPanel>
   );
 }

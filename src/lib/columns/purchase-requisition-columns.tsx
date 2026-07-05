@@ -98,7 +98,7 @@ export function createPurchaseRequisitionColumns(
     },
     {
       id: "requiredDelivery",
-      header: "Required delivery",
+      header: "Required Delivery Date",
       cell: ({ row }) => {
         const date =
           row.original.requiredDeliveryDate || row.original.requiredDate;

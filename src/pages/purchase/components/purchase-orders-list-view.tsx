@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, ListTodo, FileCheck } from "lucide-react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,12 +14,14 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseOrder } from "@/types/purchase";
-import type { ColumnDef, Row } from "@tanstack/react-table";
+import type { ColumnDef, Row, RowSelectionState } from "@tanstack/react-table";
 import { PageHeader } from "@/components/PageHeader";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+
+type OrderTab = "open" | "terminal";
 
 type Props = {
   loading: boolean;
@@ -26,15 +29,21 @@ type Props = {
   orders: PurchaseOrder[];
   searchQuery: string;
   statusFilter: string;
+  listTab?: OrderTab;
+  onListTabChange?: (tab: OrderTab) => void;
   columns: ColumnDef<PurchaseOrder>[];
+  enableBulkArchive?: boolean;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: (selection: RowSelectionState) => void;
+  selectedCount?: number;
+  onBulkArchive?: () => void;
+  bulkArchiving?: boolean;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onRowClick: (row: Row<PurchaseOrder>) => void;
   onRetry: () => void;
   kpiItems?: KpiSummaryStat[];
 };
-
-type OrderTab = "open" | "terminal";
 
 function isTerminalOrderStatus(status: string): boolean {
   return status === "received" || status === "cancelled";
@@ -47,13 +56,27 @@ export function PurchaseOrdersListView({
   searchQuery,
   statusFilter,
   columns,
+  enableBulkArchive = false,
+  rowSelection,
+  onRowSelectionChange,
+  selectedCount = 0,
+  onBulkArchive,
+  bulkArchiving = false,
   onSearchChange,
   onStatusChange,
   onRowClick,
   onRetry,
   kpiItems,
+  listTab: listTabProp,
+  onListTabChange,
 }: Props) {
-  const [tab, setTab] = useState<OrderTab>("open");
+  const [internalTab, setInternalTab] = useState<OrderTab>("open");
+  const tab = listTabProp ?? internalTab;
+
+  const setTab = (value: OrderTab) => {
+    if (onListTabChange) onListTabChange(value);
+    else setInternalTab(value);
+  };
 
   const openOrders = useMemo(
     () => orders.filter((o) => !isTerminalOrderStatus(o.status)),
@@ -77,6 +100,7 @@ export function PurchaseOrdersListView({
   const handleTabChange = (next: string) => {
     const value = next as OrderTab;
     setTab(value);
+    onRowSelectionChange?.({});
     if (value === "terminal") {
       if (
         statusFilter !== "all" &&
@@ -174,17 +198,33 @@ export function PurchaseOrdersListView({
                   </div>
                 </div>
                 <TabsContent value="open" className="mt-4">
-                  <DataTable
+                  <SelectableDataTable
                     columns={columns}
                     data={openOrders}
                     onRowClick={onRowClick}
                   />
                 </TabsContent>
-                <TabsContent value="terminal" className="mt-4">
-                  <DataTable
+                <TabsContent value="terminal" className="mt-4 space-y-4">
+                  {enableBulkArchive ? (
+                    <BulkActionBar
+                      selectedCount={selectedCount}
+                      onArchive={onBulkArchive}
+                      onClear={() => onRowSelectionChange?.({})}
+                      archiving={bulkArchiving}
+                    />
+                  ) : null}
+                  <SelectableDataTable
                     columns={columns}
                     data={terminalOrders}
                     onRowClick={onRowClick}
+                    enableRowSelection={enableBulkArchive}
+                    rowSelection={rowSelection}
+                    onRowSelectionChange={onRowSelectionChange}
+                    getRowId={(row) => row.id}
+                    isRowSelectable={(row) =>
+                      (row.status === "received" || row.status === "cancelled") &&
+                      !row.archived
+                    }
                   />
                 </TabsContent>
               </Tabs>

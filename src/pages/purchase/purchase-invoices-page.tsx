@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { toast } from "sonner";
 import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
+import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
@@ -46,6 +51,7 @@ import {
 } from "@/lib/invoice-status-filter";
 import { apiClient } from "@/service/apiClient";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -68,6 +74,9 @@ export default function PurchaseInvoicesPage() {
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
   );
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -96,6 +105,7 @@ export default function PurchaseInvoicesPage() {
   );
 
   const filteredInvoices = useMemo(() => {
+    const norm = (s?: string) => (s || "").toUpperCase().replace(/\s+/g, "_");
     return rows.filter((invoice) => {
       const inCompletedByStatus = isInvoiceArchivedStatus(invoice.status);
       const matchesTab =
@@ -110,11 +120,75 @@ export default function PurchaseInvoicesPage() {
         (invoice.supplierInvoiceNumber?.toLowerCase().includes(q) ?? false);
       const matchesStatus = invoiceMatchesStatusFilter(
         invoice.status,
-        statusFilter,
+        statusFilter === "attention" ? "all" : statusFilter,
       );
-      return matchesSearch && matchesStatus;
+      const matchesAttention =
+        statusFilter !== "attention" ||
+        norm(invoice.status) === "OVERDUE" ||
+        norm(invoice.status) === "DRAFT";
+      return matchesSearch && matchesStatus && matchesAttention;
     });
   }, [rows, listTab, searchQuery, statusFilter]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    setRowSelection({});
+    switch (key) {
+      case "paid":
+        setListTab("archived");
+        setStatusFilter("Paid");
+        break;
+      case "unpaid":
+        setListTab("outstanding");
+        setStatusFilter("Unpaid");
+        break;
+      case "attention":
+        setListTab("outstanding");
+        setStatusFilter("attention");
+        break;
+      default:
+        setListTab("outstanding");
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
+
+  const selectedInvoiceIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveInvoices = useCallback(async () => {
+    if (selectedInvoiceIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedInvoiceIds.length} selected invoice(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "PURCHASE_INVOICE",
+        selectedInvoiceIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      load();
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to archive selected invoices.";
+      toast.error(message);
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, load, selectedInvoiceIds]);
 
   const handleArchiveInvoice = useCallback(
     async (id: number) => {
@@ -239,36 +313,56 @@ export default function PurchaseInvoicesPage() {
     ).length;
     const draft = visible.filter((inv) => norm(inv.status) === "DRAFT").length;
     return [
-      {
-        label: "Total invoices",
-        value: visible.length,
-        hint: "Supplier invoices on file",
-        accent: "sky",
-        icon: FileText,
-      },
-      {
-        label: "Unpaid",
-        value: unpaid,
-        hint: "Awaiting disbursement",
-        accent: "orange",
-        icon: Wallet,
-      },
-      {
-        label: "Paid",
-        value: paid,
-        hint: "Cash-applied",
-        accent: "emerald",
-        icon: CheckCircle2,
-      },
-      {
-        label: "Attention",
-        value: overdue + draft,
-        hint: `${overdue} overdue · ${draft} draft`,
-        accent: "rose",
-        icon: AlertTriangle,
-      },
+      kpiFilterItem(
+        {
+          label: "Total invoices",
+          value: visible.length,
+          hint: "Supplier invoices on file",
+          accent: "sky",
+          icon: FileText,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Unpaid",
+          value: unpaid,
+          hint: "Awaiting disbursement",
+          accent: "orange",
+          icon: Wallet,
+        },
+        "unpaid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Paid",
+          value: paid,
+          hint: "Cash-applied",
+          accent: "emerald",
+          icon: CheckCircle2,
+        },
+        "paid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Attention",
+          value: overdue + draft,
+          hint: `${overdue} overdue · ${draft} draft`,
+          accent: "rose",
+          icon: AlertTriangle,
+        },
+        "attention",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [rows]);
+  }, [rows, kpiFilter, applyKpiFilter]);
 
   const handleRowClick = useCallback(
     (row: Row<FinanceInvoice>) => {
@@ -308,6 +402,8 @@ export default function PurchaseInvoicesPage() {
             onValueChange={(v) => {
               setListTab(v as InvoiceListTab);
               setStatusFilter("all");
+              setRowSelection({});
+              setKpiFilter(null);
             }}
             className="w-full gap-4"
           >
@@ -338,7 +434,10 @@ export default function PurchaseInvoicesPage() {
                     className="pl-8 w-64"
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setKpiFilter(null);
+                }}>
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -365,17 +464,37 @@ export default function PurchaseInvoicesPage() {
             </div>
           </Tabs>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {loading ? (
             <div className="py-10 text-center text-muted-foreground">
               Loading…
             </div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={filteredInvoices}
-              onRowClick={handleRowClick}
-            />
+            <>
+              {listTab === "archived" ? (
+                <BulkActionBar
+                  selectedCount={selectedInvoiceIds.length}
+                  onArchive={handleBulkArchiveInvoices}
+                  onClear={() => setRowSelection({})}
+                  archiving={bulkArchiving}
+                />
+              ) : null}
+              <SelectableDataTable
+                columns={columns}
+                data={filteredInvoices}
+                onRowClick={handleRowClick}
+                enableRowSelection={listTab === "archived"}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                getRowId={(row) => String(row.id)}
+                isRowSelectable={(row) => {
+                  const status = (row.status || "").toUpperCase();
+                  return (
+                    (status === "PAID" || status === "CANCELLED") && !row.archived
+                  );
+                }}
+              />
+            </>
           )}
         </CardContent>
       </Card>

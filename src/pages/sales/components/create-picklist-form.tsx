@@ -299,7 +299,7 @@ export function CreatePicklistForm({
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Total</p>
+                    <p className="text-muted-foreground">Total Due</p>
                     <p className="font-semibold">
                       {formatAmount(selectedOrder.total)}
                     </p>

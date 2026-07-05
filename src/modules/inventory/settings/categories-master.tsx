@@ -37,10 +37,11 @@ import {
   CircleSlash2,
   X,
 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
@@ -48,6 +49,7 @@ const CategoriesMaster = () => {
   const { confirm } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(
@@ -283,6 +285,21 @@ const CategoriesMaster = () => {
     return { total, active, inactive };
   }, [categories]);
 
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "active":
+        setStatusFilter("active");
+        break;
+      case "inactive":
+        setStatusFilter("inactive");
+        break;
+      default:
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
+
   const filteredCategories = useMemo(() => {
     return [
       ...categories.map((cat) => ({
@@ -352,27 +369,42 @@ const CategoriesMaster = () => {
       <div className="mb-6">
         <KpiSummaryStrip
           items={[
-            {
-              label: "Total Categories",
-              value: stats.total,
-              hint: "Total item categories",
-              accent: "sky",
-              icon: Layers3,
-            },
-            {
-              label: "Active",
-              value: stats.active,
-              hint: "Currently in use",
-              accent: "emerald",
-              icon: CircleCheckBig,
-            },
-            {
-              label: "Inactive",
-              value: stats.inactive,
-              hint: "Disabled categories",
-              accent: "rose",
-              icon: CircleSlash2,
-            },
+            kpiFilterItem(
+              {
+                label: "Total Categories",
+                value: stats.total,
+                hint: "Total item categories",
+                accent: "sky",
+                icon: Layers3,
+              },
+              "all",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Active",
+                value: stats.active,
+                hint: "Currently in use",
+                accent: "emerald",
+                icon: CircleCheckBig,
+              },
+              "active",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Inactive",
+                value: stats.inactive,
+                hint: "Disabled categories",
+                accent: "rose",
+                icon: CircleSlash2,
+              },
+              "inactive",
+              kpiFilter,
+              applyKpiFilter,
+            ),
           ]}
         />
       </div>
@@ -389,7 +421,13 @@ const CategoriesMaster = () => {
           />
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setKpiFilter(null);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>

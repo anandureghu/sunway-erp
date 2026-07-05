@@ -14,20 +14,17 @@ import {
   ClipboardCheck,
   LayoutGrid,
   ListOrdered,
-  Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import {
   getGoodsReceiptById,
   getGoodsReceiptPdfUrl,
-  getGoodsReceiptsByPurchaseOrder,
   getPurchaseOrder,
   getPurchaseRequisition,
 } from "@/service/purchaseFlowService";
 import type { GoodsReceipt } from "@/types/purchase";
 import { toast } from "sonner";
 import { PurchasePageHeader } from "./components/purchase-page-header";
-import type { RelatedGrRef } from "./components/related-purchase-documents";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { cn } from "@/lib/utils";
 
@@ -110,9 +107,7 @@ function KpiTile({
   );
 }
 
-function receiptItemName(
-  item: GoodsReceipt["items"][number],
-): string {
+function receiptItemName(item: GoodsReceipt["items"][number]): string {
   return purchaseLineItemName(
     item.orderItem ?? {
       itemId: item.itemId,
@@ -128,7 +123,6 @@ export default function GoodsReceiptDetailPage() {
   const [receipt, setReceipt] = useState<GoodsReceipt | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
   const [linkedRequisitionId, setLinkedRequisitionId] = useState<
     string | undefined
   >(undefined);
@@ -156,7 +150,6 @@ export default function GoodsReceiptDetailPage() {
         setLinkedRequisitionId(undefined);
         setLinkedRequisitionNo(null);
         setLinkedPurchaseOrderNo(null);
-        setLinkedReceipts([]);
 
         const foundReceipt = await getGoodsReceiptById(id);
         if (cancelled) return;
@@ -182,14 +175,13 @@ export default function GoodsReceiptDetailPage() {
 
         if (foundReceipt.orderId) {
           try {
-            const po = poFromReceipt ?? (await getPurchaseOrder(foundReceipt.orderId));
+            const po =
+              poFromReceipt ?? (await getPurchaseOrder(foundReceipt.orderId));
             if (!cancelled) {
               setLinkedPurchaseOrderNo(po.orderNo);
               reqId = reqId ?? po.requisitionId;
               reqNo = reqNo ?? po.requisitionNo ?? null;
-              setReceipt((prev) =>
-                prev ? { ...prev, order: po } : prev,
-              );
+              setReceipt((prev) => (prev ? { ...prev, order: po } : prev));
             }
           } catch {
             /* ignore */
@@ -233,28 +225,6 @@ export default function GoodsReceiptDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!receipt?.orderId) {
-      setLinkedReceipts([]);
-      return;
-    }
-    let cancelled = false;
-    getGoodsReceiptsByPurchaseOrder(receipt.orderId)
-      .then((list) => {
-        if (!cancelled) {
-          setLinkedReceipts(
-            list.map((r) => ({ id: r.id, receiptNo: r.receiptNo })),
-          );
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLinkedReceipts([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [receipt?.orderId]);
-
-  useEffect(() => {
     setReceiptPdfUrl(receipt?.documentPdfUrl ?? null);
   }, [receipt?.documentPdfUrl, receipt?.id]);
 
@@ -293,7 +263,10 @@ export default function GoodsReceiptDetailPage() {
           <div className="font-medium text-red-600">
             {error || "Goods receipt not found"}
           </div>
-          <Button variant="outline" onClick={() => navigate(`${BASE}/receiving`)}>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`${BASE}/receiving`)}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go Back
           </Button>
@@ -321,66 +294,29 @@ export default function GoodsReceiptDetailPage() {
     (sum, item) => sum + item.rejectedQuantity,
     0,
   );
-  const hasRelated =
-    Boolean(linkedRequisitionId) ||
-    Boolean(receipt.orderId) ||
-    linkedReceipts.length > 0;
-
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    setPdfLoading(true);
+    try {
+      const url = await getGoodsReceiptPdfUrl(receipt.id);
+      setReceiptPdfUrl(url);
+      setReceipt((prev) => (prev ? { ...prev, documentPdfUrl: url } : prev));
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { message?: string } }; message?: string })
+          ?.response?.data?.message ||
+        (e as { message?: string })?.message ||
+        "Failed to generate goods receipt PDF";
+      toast.error(msg);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   return (
     <>
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .print-content, .print-content * { visibility: visible; }
-          .print-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 20px;
-          }
-          .no-print { display: none !important; }
-          .print-header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 20px;
-          }
-          .print-section { margin-bottom: 20px; page-break-inside: avoid; }
-          .print-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-          }
-          .print-table th, .print-table td {
-            border: 1px solid #000;
-            padding: 8px;
-            text-align: left;
-          }
-          .print-table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-          }
-          .print-signature {
-            margin-top: 50px;
-            display: flex;
-            justify-content: space-between;
-          }
-          .print-signature div {
-            width: 200px;
-            border-top: 1px solid #000;
-            padding-top: 5px;
-            text-align: center;
-          }
-        }
-      `}</style>
-
-      <div className="space-y-5 p-6 print-content">
-        <div className="no-print">
+      <div className="space-y-5 p-6">
+        <div>
           <PurchasePageHeader
             title={receipt.receiptNo}
             description="Receiving and quality inspection details for this goods receipt."
@@ -390,10 +326,11 @@ export default function GoodsReceiptDetailPage() {
                 <Button
                   size="lg"
                   className="bg-white text-slate-900 hover:bg-white/90"
-                  onClick={handlePrint}
+                  onClick={() => void handlePrint()}
+                  disabled={pdfLoading}
                 >
                   <Printer className="mr-2 h-4 w-4" />
-                  Print certificate
+                  {pdfLoading ? "Generating…" : "Print certificate"}
                 </Button>
                 <Badge
                   className={
@@ -407,7 +344,7 @@ export default function GoodsReceiptDetailPage() {
           />
         </div>
 
-        <div className="no-print space-y-5">
+        <div className="space-y-5">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiTile
               icon={<Calendar className="h-4 w-4 text-emerald-600" />}
@@ -456,15 +393,6 @@ export default function GoodsReceiptDetailPage() {
                 Inspection items
                 {receipt.items.length > 0 ? ` (${receipt.items.length})` : ""}
               </TabsTrigger>
-              {hasRelated && (
-                <TabsTrigger
-                  value="related"
-                  className="gap-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                >
-                  <Link2 className="h-4 w-4" />
-                  Related
-                </TabsTrigger>
-              )}
               <TabsTrigger
                 value="document"
                 className="gap-1.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
@@ -480,7 +408,10 @@ export default function GoodsReceiptDetailPage() {
                   Receipt information
                 </h2>
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  <DetailField label="Receipt number" value={receipt.receiptNo} />
+                  <DetailField
+                    label="Receipt number"
+                    value={receipt.receiptNo}
+                  />
                   <DetailField
                     label="Status"
                     value={
@@ -543,14 +474,35 @@ export default function GoodsReceiptDetailPage() {
                   />
                   <DetailField
                     label="Inspected by"
-                    value={receipt.inspectedByName}
+                    value={
+                      receipt.inspectedByName ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-slate-400" />
+                          {receipt.inspectedByName}
+                        </span>
+                      ) : null
+                    }
                   />
                   <DetailField
                     label="Inspection date"
                     value={
                       receipt.inspectionDate
-                        ? format(new Date(receipt.inspectionDate), "MMM d, yyyy")
+                        ? format(
+                            new Date(receipt.inspectionDate),
+                            "MMM d, yyyy",
+                          )
                         : null
+                    }
+                  />
+                  <DetailField
+                    label="Authorized by"
+                    value={
+                      receipt.authorizedByName ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-slate-400" />
+                          {receipt.authorizedByName}
+                        </span>
+                      ) : null
                     }
                   />
                   <DetailField
@@ -595,16 +547,16 @@ export default function GoodsReceiptDetailPage() {
             </TabsContent>
 
             <TabsContent value="items" className="mt-0">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm print-section">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="mb-4 text-sm font-semibold text-slate-900">
                   Quality inspection items
                 </h2>
                 {receipt.items.length > 0 ? (
-                  <>
-                    <div className="no-print overflow-x-auto">
+                  <div className="overflow-x-auto">
                       <table className="w-full min-w-[880px] text-sm">
                         <thead>
                           <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <th className="pb-3 pr-4 w-12">Sl No</th>
                             <th className="pb-3 pr-4">Item</th>
                             <th className="pb-3 pr-4 text-right">Ordered</th>
                             <th className="pb-3 pr-4 text-right">Received</th>
@@ -615,11 +567,14 @@ export default function GoodsReceiptDetailPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {receipt.items.map((item) => (
+                          {receipt.items.map((item, index) => (
                             <tr
                               key={item.id}
                               className="border-b border-slate-100 last:border-0"
                             >
+                              <td className="py-3 pr-4 tabular-nums text-slate-500">
+                                {index + 1}
+                              </td>
                               <td className="py-3 pr-4">
                                 <p className="font-medium text-slate-900">
                                   {receiptItemName(item)}
@@ -672,133 +627,23 @@ export default function GoodsReceiptDetailPage() {
                                 </Badge>
                               </td>
                               <td className="py-3 text-slate-700">
-                                {item.warehouse?.name || item.warehouseId || "—"}
+                                {item.warehouse?.name ||
+                                  (item.warehouseId
+                                    ? `Warehouse ${item.warehouseId}`
+                                    : "—")}
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                    </div>
-
-                    <table className="print-table hidden print:table">
-                      <thead>
-                        <tr>
-                          <th>Item</th>
-                          <th>SKU</th>
-                          <th>Ordered</th>
-                          <th>Received</th>
-                          <th>Accepted</th>
-                          <th>Rejected</th>
-                          <th>Quality Status</th>
-                          <th>Warehouse</th>
-                          <th>Batch/Lot</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {receipt.items.map((item) => (
-                          <tr key={item.id}>
-                            <td>{receiptItemName(item)}</td>
-                            <td>{item.item?.sku || "—"}</td>
-                            <td className="text-center">{item.orderedQuantity}</td>
-                            <td className="text-center">{item.receivedQuantity}</td>
-                            <td className="text-center">{item.acceptedQuantity}</td>
-                            <td className="text-center">{item.rejectedQuantity}</td>
-                            <td className="text-center">
-                              {formatLabel(item.qualityStatus)}
-                            </td>
-                            <td>
-                              {item.warehouse?.name || item.warehouseId || "—"}
-                            </td>
-                            <td>
-                              {item.batchNo || item.lotNo
-                                ? `${item.batchNo || ""}${item.batchNo && item.lotNo ? "/" : ""}${item.lotNo || ""}`
-                                : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </>
+                  </div>
                 ) : (
-                  <p className="text-sm text-slate-500">No items in this receipt</p>
+                  <p className="text-sm text-slate-500">
+                    No items in this receipt
+                  </p>
                 )}
               </div>
             </TabsContent>
-
-            {hasRelated && (
-              <TabsContent value="related" className="mt-0">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="mb-1 text-sm font-semibold text-slate-900">
-                    Linked procurement documents
-                  </h2>
-                  <p className="mb-5 text-sm text-slate-500">
-                    Upstream requisition and purchase order for this receipt.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {linkedRequisitionId && (
-                      <Link
-                        to={`${BASE}/requisitions/${linkedRequisitionId}`}
-                        className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-emerald-200 hover:bg-emerald-50/50"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
-                          <FileText className="h-5 w-5 text-emerald-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Requisition
-                          </p>
-                          <p className="truncate font-semibold text-slate-900">
-                            {linkedRequisitionLabel}
-                          </p>
-                        </div>
-                      </Link>
-                    )}
-
-                    {receipt.orderId && (
-                      <Link
-                        to={`${BASE}/orders/${receipt.orderId}`}
-                        className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-violet-200 hover:bg-violet-50/50"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
-                          <ShoppingCart className="h-5 w-5 text-violet-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Purchase order
-                          </p>
-                          <p className="truncate font-semibold text-slate-900">
-                            {linkedPurchaseOrderLabel}
-                          </p>
-                        </div>
-                      </Link>
-                    )}
-
-                    {linkedReceipts.map((gr) => (
-                      <Link
-                        key={gr.id}
-                        to={`${BASE}/receiving/${gr.id}`}
-                        className={cn(
-                          "group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-blue-200 hover:bg-blue-50/50",
-                          gr.id === receipt.id && "border-blue-300 bg-blue-50/60",
-                        )}
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm">
-                          <Package className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Goods receipt
-                          </p>
-                          <p className="truncate font-semibold text-slate-900">
-                            {gr.receiptNo}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-            )}
 
             <TabsContent value="document" className="mt-0">
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -807,7 +652,12 @@ export default function GoodsReceiptDetailPage() {
                 </h2>
                 {receiptPdfUrl ? (
                   <div className="space-y-3">
-                    <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-lg"
+                      asChild
+                    >
                       <a href={receiptPdfUrl} target="_blank" rel="noreferrer">
                         Open in new tab
                       </a>
@@ -834,51 +684,6 @@ export default function GoodsReceiptDetailPage() {
               </div>
             </TabsContent>
           </Tabs>
-        </div>
-
-        <div className="print-header hidden print:block">
-          <h1 className="mb-2 text-3xl font-bold">GOODS RECEIPT CERTIFICATE</h1>
-          <h2 className="text-xl font-semibold">
-            Receipt No: {receipt.receiptNo}
-          </h2>
-          <p className="mt-2 text-sm">
-            Date:{" "}
-            {receipt.receiptDate
-              ? format(new Date(receipt.receiptDate), "MMMM dd, yyyy")
-              : "N/A"}
-          </p>
-        </div>
-
-        <div className="print-signature hidden print:flex print-section">
-          <div>
-            <p className="font-semibold">Received By:</p>
-            <p className="mt-8">
-              {receipt.receivedByName || "________________"}
-            </p>
-            <p className="mt-2 text-sm">
-              Date:{" "}
-              {receipt.receiptDate
-                ? format(new Date(receipt.receiptDate), "MMM dd, yyyy")
-                : "________________"}
-            </p>
-          </div>
-          <div>
-            <p className="font-semibold">Inspected By:</p>
-            <p className="mt-8">
-              {receipt.inspectedByName || "________________"}
-            </p>
-            <p className="mt-2 text-sm">
-              Date:{" "}
-              {receipt.inspectionDate
-                ? format(new Date(receipt.inspectionDate), "MMM dd, yyyy")
-                : "________________"}
-            </p>
-          </div>
-          <div>
-            <p className="font-semibold">Authorized By:</p>
-            <p className="mt-8">________________</p>
-            <p className="mt-2 text-sm">Date: ________________</p>
-          </div>
         </div>
       </div>
     </>

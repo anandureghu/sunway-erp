@@ -150,6 +150,11 @@ function isUsableDocumentUrl(url?: string | null): boolean {
 }
 
 export function invoiceDocumentPreviewUrl(inv: FinanceInvoice): string | null {
+  // Fully paid → prefer receipt PDF; unpaid → original invoice PDF.
+  const status = (inv.status || "").trim().toUpperCase();
+  if (status === "PAID" && isUsableDocumentUrl(inv.receiptPdfUrl)) {
+    return inv.receiptPdfUrl!;
+  }
   if (isUsableDocumentUrl(inv.pdfUrl)) return inv.pdfUrl!;
   if (inv.externalDocumentUrl?.toLowerCase().includes(".pdf")) {
     return inv.externalDocumentUrl;

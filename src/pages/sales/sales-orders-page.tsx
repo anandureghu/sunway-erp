@@ -25,9 +25,10 @@ import {
   Package,
   ShoppingBag,
 } from "lucide-react";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 export default function SalesOrdersPage() {
-  const { confirm } = useConfirmDialog();
+  const { confirm, confirmCancel } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(
@@ -38,6 +39,7 @@ export default function SalesOrdersPage() {
   const [listTab, setListTab] = useState<"active" | "closed">("active");
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new"),
   );
@@ -79,7 +81,32 @@ export default function SalesOrdersPage() {
     setStatusFilter("all");
     setPaymentStatusFilter("all");
     setRowSelection({});
+    setKpiFilter(null);
   }, [listTab]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    setRowSelection({});
+    setPaymentStatusFilter("all");
+    switch (key) {
+      case "draft":
+        setListTab("active");
+        setStatusFilter("draft");
+        break;
+      case "completed":
+        setListTab("closed");
+        setStatusFilter("completed");
+        break;
+      case "confirmed":
+        setListTab("active");
+        setStatusFilter("all");
+        break;
+      default:
+        setListTab("active");
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
 
   const normalizePaymentStatusKey = useCallback((status?: string) => {
     const normalized = (status || "UNPAID").trim().toUpperCase().replace(/\s+/g, "_");
@@ -113,36 +140,56 @@ export default function SalesOrdersPage() {
       (o) => o.status === "completed",
     ).length;
     return [
-      {
-        label: "Total orders",
-        value: orders.length,
-        hint: "All sales orders in scope",
-        accent: "sky",
-        icon: Package,
-      },
-      {
-        label: "Confirmed orders",
-        value: confirmedOrdersCount,
-        hint: "Confirmed and in fulfillment",
-        accent: "emerald",
-        icon: ShoppingBag,
-      },
-      {
-        label: "Draft",
-        value: draftCount,
-        hint: "Awaiting confirmation",
-        accent: "amber",
-        icon: ClipboardList,
-      },
-      {
-        label: "Completed orders",
-        value: completedOrdersCount,
-        hint: "Fully fulfilled orders",
-        accent: "violet",
-        icon: CheckCircle2,
-      },
+      kpiFilterItem(
+        {
+          label: "Total orders",
+          value: orders.length,
+          hint: "All sales orders in scope",
+          accent: "sky",
+          icon: Package,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Confirmed orders",
+          value: confirmedOrdersCount,
+          hint: "Confirmed and in fulfillment",
+          accent: "emerald",
+          icon: ShoppingBag,
+        },
+        "confirmed",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Draft",
+          value: draftCount,
+          hint: "Awaiting confirmation",
+          accent: "amber",
+          icon: ClipboardList,
+        },
+        "draft",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Completed orders",
+          value: completedOrdersCount,
+          hint: "Fully fulfilled orders",
+          accent: "violet",
+          icon: CheckCircle2,
+        },
+        "completed",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [orders, isClosedOrder]);
+  }, [orders, isClosedOrder, kpiFilter, applyKpiFilter]);
 
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -218,7 +265,7 @@ export default function SalesOrdersPage() {
           `Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`,
         );
       }
-      if (!(await confirm(`Cancel order ${order.orderNo}? This cannot be undone.`))) {
+      if (!(await confirmCancel(`order ${order.orderNo}`))) {
         return;
       }
 
@@ -247,7 +294,7 @@ export default function SalesOrdersPage() {
         setActionState(null);
       }
     },
-    [orders, refreshOrders],
+    [orders, refreshOrders, confirmCancel],
   );
 
   const handleGeneratePicklist = useCallback(
@@ -307,7 +354,7 @@ export default function SalesOrdersPage() {
     if (selectedOrderIds.length === 0) return;
     if (
       !(await confirm(
-        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Inventory Reports → History.`,
+        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Operations and management Reports → History.`,
       ))
     ) {
       return;
@@ -408,7 +455,10 @@ export default function SalesOrdersPage() {
         error={loadError}
         orders={filteredOrders}
         listTab={listTab}
-        onListTabChange={setListTab}
+        onListTabChange={(tab) => {
+          setListTab(tab);
+          setKpiFilter(null);
+        }}
         activeCount={activeCount}
         closedCount={closedCount}
         searchQuery={searchQuery}
@@ -426,8 +476,14 @@ export default function SalesOrdersPage() {
           setShowCreateForm(true);
         }}
         onSearchChange={setSearchQuery}
-        onStatusChange={setStatusFilter}
-        onPaymentStatusChange={setPaymentStatusFilter}
+        onStatusChange={(value) => {
+          setStatusFilter(value);
+          setKpiFilter(null);
+        }}
+        onPaymentStatusChange={(value) => {
+          setPaymentStatusFilter(value);
+          setKpiFilter(null);
+        }}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}
       />

@@ -261,9 +261,9 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar className="border-r border-slate-200/80 bg-white">
+    <Sidebar className="border-r border-slate-200/80 bg-white overflow-hidden">
       <div
-        className="relative flex h-full min-h-0 w-full flex-col"
+        className="relative flex h-full min-h-0 w-full min-w-0 max-w-full flex-col overflow-hidden"
         onMouseLeave={handlePointerLeaveSidebar}
       >
         {/* ── Header ──────────────────────────────────────── */}
@@ -383,28 +383,31 @@ export function AppSidebar() {
                         return (
                           <SidebarMenuSub
                             key={item.title}
-                            className="border-none"
+                            className="mx-0 translate-x-0 border-none px-0"
                           >
                             <SidebarMenuItem>
                               {item.url == null ? (
                                 <div
-                                  className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 opacity-50 select-none"
+                                  className="flex min-w-0 cursor-not-allowed items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 opacity-50 select-none"
                                   title="Company context not loaded yet"
                                 >
                                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                                     <item.icon className="h-3.5 w-3.5" />
                                   </span>
-                                  <span className="truncate">{item.title}</span>
+                                  <span className="min-w-0 flex-1 break-words leading-snug">
+                                    {item.title}
+                                  </span>
                                 </div>
                               ) : (
                                 <SidebarMenuButton
                                   asChild
-                                  className="h-auto p-0"
+                                  className="h-auto min-w-0 p-0"
                                 >
                                   <Link
                                     to={item.url}
+                                    title={item.title}
                                     className={cn(
-                                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                                      "flex min-w-0 w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
                                       active
                                         ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
                                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
@@ -420,7 +423,7 @@ export function AppSidebar() {
                                     >
                                       <item.icon className="h-3.5 w-3.5" />
                                     </span>
-                                    <span className="truncate">
+                                    <span className="min-w-0 flex-1 break-words leading-snug">
                                       {item.title}
                                     </span>
                                   </Link>
@@ -577,17 +580,18 @@ export function AppSidebar() {
                           return (
                             <SidebarMenuSub
                               key={item.title}
-                              className="border-none"
+                              className="mx-0 translate-x-0 border-none px-0"
                             >
                               <SidebarMenuItem>
                                 <SidebarMenuButton
                                   asChild
-                                  className="h-auto p-0"
+                                  className="h-auto min-w-0 p-0"
                                 >
                                   <Link
                                     to={item.url}
+                                    title={item.title}
                                     className={cn(
-                                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                                      "flex min-w-0 w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
                                       active
                                         ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
                                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
@@ -603,7 +607,7 @@ export function AppSidebar() {
                                     >
                                       <item.icon className="h-3.5 w-3.5" />
                                     </span>
-                                    <span className="truncate">
+                                    <span className="min-w-0 flex-1 break-words leading-snug">
                                       {item.title}
                                     </span>
                                   </Link>

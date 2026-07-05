@@ -11,6 +11,10 @@ import {
   archivePurchaseOrder,
   listPurchaseOrders,
 } from "@/service/purchaseFlowService";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import type { Row } from "@tanstack/react-table";
 import { PurchaseOrdersListView } from "./components/purchase-orders-list-view";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
@@ -23,6 +27,9 @@ import {
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PurchaseOrderForm } from "./components/purchase-order-form";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { kpiFilterItem } from "@/lib/kpi-filter";
+
+type OrderTab = "open" | "terminal";
 
 export default function PurchaseOrdersPage() {
   const location = useLocation();
@@ -40,6 +47,10 @@ export default function PurchaseOrdersPage() {
     id: string;
     type: "archive";
   } | null>(null);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [listTab, setListTab] = useState<OrderTab>("open");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
 
   const refreshOrders = useCallback(async () => {
     setLoading(true);
@@ -73,6 +84,29 @@ export default function PurchaseOrdersPage() {
     void refreshOrders();
   }, [refreshOrders]);
 
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    setRowSelection({});
+    switch (key) {
+      case "draft":
+        setListTab("open");
+        setStatusFilter("draft");
+        break;
+      case "terminal":
+        setListTab("terminal");
+        setStatusFilter("all");
+        break;
+      case "open":
+        setListTab("open");
+        setStatusFilter("all");
+        break;
+      default:
+        setListTab("open");
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
+
   const purchaseOrderKpis = useMemo((): KpiSummaryStat[] => {
     const terminal = (status: string) => {
       const s = (status || "").toLowerCase();
@@ -88,37 +122,56 @@ export default function PurchaseOrdersPage() {
       .filter((o) => !terminal(o.status))
       .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     return [
-      {
-        label: "Total Purchase Orders",
-        value: orders.length,
-        hint: "All purchase orders loaded",
-        accent: "sky",
-        icon: ShoppingCart,
-      },
-      
-      {
-        label: "Draft Purchase Orders",
-        value: draftCount,
-        hint: "Awaiting release to supplier",
-        accent: "amber",
-        icon: ClipboardList,
-      },
-      {
-        label: "Completed or cancelled POs",
-        value: terminalCount,
-        hint: "Fully received or cancelled",
-        accent: "emerald",
-        icon: Package,
-      },
-      {
-        label: "Open commitment",
-        value: <CurrencyAmount amount={openCommitment} />,
-        hint: "Sum of open Purchase Order totals",
-        accent: "violet",
-        icon: CircleDollarSign,
-      },
+      kpiFilterItem(
+        {
+          label: "Total Purchase Orders",
+          value: orders.length,
+          hint: "All purchase orders loaded",
+          accent: "sky",
+          icon: ShoppingCart,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Draft Purchase Orders",
+          value: draftCount,
+          hint: "Awaiting release to supplier",
+          accent: "amber",
+          icon: ClipboardList,
+        },
+        "draft",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Completed or cancelled POs",
+          value: terminalCount,
+          hint: "Fully received or cancelled",
+          accent: "emerald",
+          icon: Package,
+        },
+        "terminal",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Open commitment",
+          value: <CurrencyAmount amount={openCommitment} />,
+          hint: "Sum of open Purchase Order totals",
+          accent: "violet",
+          icon: CircleDollarSign,
+        },
+        "open",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [orders]);
+  }, [orders, kpiFilter, applyKpiFilter]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -239,6 +292,44 @@ export default function PurchaseOrdersPage() {
     [orders, refreshOrders, confirm],
   );
 
+  const selectedOrderIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchiveOrders = useCallback(async () => {
+    if (selectedOrderIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedOrderIds.length} selected order(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "PURCHASE_ORDER",
+        selectedOrderIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await refreshOrders();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to archive selected orders.",
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, refreshOrders, selectedOrderIds]);
+
   const handleEdit = useCallback(
     (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -318,8 +409,23 @@ export default function PurchaseOrdersPage() {
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         columns={columns}
+        enableBulkArchive
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        selectedCount={selectedOrderIds.length}
+        onBulkArchive={handleBulkArchiveOrders}
+        bulkArchiving={bulkArchiving}
+        listTab={listTab}
+        onListTabChange={(tab) => {
+          setListTab(tab);
+          setKpiFilter(null);
+          setRowSelection({});
+        }}
         onSearchChange={setSearchQuery}
-        onStatusChange={setStatusFilter}
+        onStatusChange={(value) => {
+          setStatusFilter(value);
+          setKpiFilter(null);
+        }}
         onRowClick={handleRowClick}
         onRetry={() => void refreshOrders()}
         kpiItems={purchaseOrderKpis}

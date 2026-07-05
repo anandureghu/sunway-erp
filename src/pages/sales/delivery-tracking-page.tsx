@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ import {
   markShipmentOutForDelivery,
   updateShipmentDetails,
 } from "@/service/salesFlowService";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { listItems } from "@/service/inventoryService";
 import { cn } from "@/lib/utils";
 import {
@@ -60,6 +61,7 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useAuth } from "@/context/AuthContext";
 import { buildPublicDeliveryTrackingUrl } from "@/service/publicDeliveryTrackingService";
 import { toast } from "sonner";
@@ -72,9 +74,14 @@ import {
 
 export default function DeliveryTrackingPage() {
   const { company } = useAuth();
+  const { confirmCancel } = useConfirmDialog();
   const [searchParams] = useSearchParams();
   const selectedDispatchId = searchParams.get("dispatchId");
   const [searchQuery, setSearchQuery] = useState("");
+  const [dispatchStatusFilter, setDispatchStatusFilter] = useState<
+    "all" | "created" | "in_motion" | "delivered"
+  >("all");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [selectedDispatch, setSelectedDispatch] = useState<Dispatch | null>(
     null,
   );
@@ -135,14 +142,44 @@ export default function DeliveryTrackingPage() {
   const filteredDispatches = useMemo(() => {
     return dispatches.filter((dispatch) => {
       const q = searchQuery.toLowerCase();
-      return (
+      const matchesSearch =
         dispatch.dispatchNo.toLowerCase().includes(q) ||
         dispatch.trackingNumber?.toLowerCase().includes(q) ||
         dispatch.order?.orderNo.toLowerCase().includes(q) ||
-        dispatch.order?.customerName.toLowerCase().includes(q)
-      );
+        dispatch.order?.customerName.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+      if (dispatchStatusFilter === "created") {
+        return dispatch.status === "created";
+      }
+      if (dispatchStatusFilter === "in_motion") {
+        return ["dispatched", "in_transit", "out_for_delivery"].includes(
+          dispatch.status,
+        );
+      }
+      if (dispatchStatusFilter === "delivered") {
+        return dispatch.status === "delivered";
+      }
+      return true;
     });
-  }, [dispatches, searchQuery]);
+  }, [dispatches, searchQuery, dispatchStatusFilter]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "created":
+        setDispatchStatusFilter("created");
+        break;
+      case "in_motion":
+        setDispatchStatusFilter("in_motion");
+        break;
+      case "delivered":
+        setDispatchStatusFilter("delivered");
+        break;
+      default:
+        setDispatchStatusFilter("all");
+        break;
+    }
+  }, []);
 
   const trackingKpis = useMemo((): KpiSummaryStat[] => {
     const total = dispatches.length;
@@ -154,36 +191,56 @@ export default function DeliveryTrackingPage() {
       ["dispatched", "in_transit", "out_for_delivery"].includes(d.status),
     ).length;
     return [
-      {
-        label: "Shipments",
-        value: total,
-        hint: "All tracked dispatches",
-        accent: "sky",
-        icon: Truck,
-      },
-      {
-        label: "Pending dispatch",
-        value: pendingDispatch,
-        hint: "Awaiting carrier release",
-        accent: "amber",
-        icon: Package,
-      },
-      {
-        label: "In motion",
-        value: inMotion,
-        hint: "On road or out for delivery",
-        accent: "violet",
-        icon: Navigation,
-      },
-      {
-        label: "Delivered",
-        value: delivered,
-        hint: "Confirmed customer receipt",
-        accent: "emerald",
-        icon: CheckCircle2,
-      },
+      kpiFilterItem(
+        {
+          label: "Shipments",
+          value: total,
+          hint: "All tracked dispatches",
+          accent: "sky",
+          icon: Truck,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Pending dispatch",
+          value: pendingDispatch,
+          hint: "Awaiting carrier release",
+          accent: "amber",
+          icon: Package,
+        },
+        "created",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "In motion",
+          value: inMotion,
+          hint: "On road or out for delivery",
+          accent: "violet",
+          icon: Navigation,
+        },
+        "in_motion",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Delivered",
+          value: delivered,
+          hint: "Confirmed customer receipt",
+          accent: "emerald",
+          icon: CheckCircle2,
+        },
+        "delivered",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [dispatches]);
+  }, [dispatches, kpiFilter, applyKpiFilter]);
 
   useEffect(() => {
     if (!selectedDispatchId || dispatches.length === 0) return;
@@ -220,6 +277,10 @@ export default function DeliveryTrackingPage() {
       | "cancelled",
   ) => {
     if (!selectedDispatch || updatingStatus) return;
+    if (action === "cancelled") {
+      const label = selectedDispatch.dispatchNo || selectedDispatch.id;
+      if (!(await confirmCancel(`shipment ${label}`))) return;
+    }
     try {
       setUpdatingStatus(true);
       if (action === "dispatch") await dispatchShipment(selectedDispatch.id);
@@ -316,6 +377,10 @@ export default function DeliveryTrackingPage() {
   ): Promise<Dispatch["status"]> => {
     if (currentStatus === targetStatus) return currentStatus;
     if (targetStatus === "cancelled") {
+      const label = selectedDispatch?.dispatchNo || id;
+      if (!(await confirmCancel(`shipment ${label}`))) {
+        return currentStatus;
+      }
       await cancelShipment(id);
       return "cancelled";
     }

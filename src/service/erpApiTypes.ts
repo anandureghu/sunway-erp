@@ -465,6 +465,7 @@ export type PicklistResponseDTO = {
   createdAt?: string;
   items?: PicklistItemDTO[];
   warehouseId?: number;
+  warehouseName?: string;
   warehouse?: Warehouse;
 };
 
