@@ -122,14 +122,31 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
   };
 }
 
+function toWarehouseSummary(
+  warehouseId?: number | string | null,
+  warehouseName?: string | null,
+): Picklist["warehouse"] | undefined {
+  if (!warehouseName && warehouseId == null) return undefined;
+  return {
+    id: warehouseId != null ? String(warehouseId) : "",
+    name: warehouseName || `Warehouse ${warehouseId}`,
+    location: "",
+    status: "active",
+    createdAt: "",
+  };
+}
+
 function toPicklist(dto: PicklistResponseDTO): Picklist {
+  const warehouse =
+    dto.warehouse ??
+    toWarehouseSummary(dto.warehouseId, dto.warehouseName);
   const items: PicklistItem[] = (dto.items || []).map((li, idx) => ({
     id: `pli-${dto.id}-${idx}`,
     picklistId: String(dto.id),
     orderItemId: "",
     itemId: li.itemId || 0,
     quantity: Number(li.quantity || 0),
-    warehouse: dto.warehouse,
+    warehouse,
     warehouseId: dto.warehouseId,
   }));
 
@@ -143,7 +160,7 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     picklistNo: dto.picklistNumber || `PL-${dto.id}`,
     orderId: String(dto.salesOrderId || ""),
     warehouseId: dto.warehouseId ? String(dto.warehouseId) : "",
-    warehouse: dto.warehouse,
+    warehouse,
     status,
     items,
     assignedTo: undefined,
@@ -391,21 +408,46 @@ export function attachOrderAndItems(
 
   const picklistsEnriched = picklists.map((p) => {
     const order = orderById.get(p.orderId);
-    // Try to get warehouseId from order items if available
+    const enrichedItems = p.items.map((pli) => ({
+      ...pli,
+      item: itemById.get(Number(pli.itemId)),
+    }));
+
     let warehouseId = p.warehouseId || "";
-    if (!warehouseId && order && order.items.length > 0) {
-      const itemWithWarehouse = order.items.find((item) => item.warehouseId);
-      warehouseId = itemWithWarehouse?.warehouseId?.toString() || "";
+    let warehouse = p.warehouse;
+
+    const orderLineWithWarehouse = order?.items.find(
+      (item) => item.warehouseId || item.warehouseName,
+    );
+    if (!warehouseId && orderLineWithWarehouse?.warehouseId) {
+      warehouseId = String(orderLineWithWarehouse.warehouseId);
+    }
+    if (!warehouse && orderLineWithWarehouse?.warehouseName) {
+      warehouse = toWarehouseSummary(
+        orderLineWithWarehouse.warehouseId ?? warehouseId,
+        orderLineWithWarehouse.warehouseName,
+      );
+    }
+    if (!warehouse) {
+      const stockItem = enrichedItems.find((pli) => pli.item?.warehouse_name)
+        ?.item;
+      if (stockItem?.warehouse_name) {
+        warehouse = toWarehouseSummary(
+          stockItem.warehouse_id,
+          stockItem.warehouse_name,
+        );
+        if (!warehouseId && stockItem.warehouse_id) {
+          warehouseId = String(stockItem.warehouse_id);
+        }
+      }
     }
 
     return {
       ...p,
       warehouseId,
+      warehouse,
       order,
-      items: p.items.map((pli) => ({
-        ...pli,
-        item: itemById.get(Number(pli.itemId)),
-      })),
+      items: enrichedItems,
     };
   });
 

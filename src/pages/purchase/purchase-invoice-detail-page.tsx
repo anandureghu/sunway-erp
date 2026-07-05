@@ -12,17 +12,24 @@ import {
 } from "@/service/invoiceService";
 import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
+import type { Invoice } from "@/types/sales";
 import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { resolveBackHref } from "@/lib/navigation-back";
 import { PurchasePageHeader } from "./components/purchase-page-header";
+import { InvoiceDocumentPreview } from "@/components/invoice/invoice-document-preview";
+import {
+  formatInvoiceDate,
+  safeInvoiceValue,
+} from "@/lib/invoice-document-utils";
 
 export default function PurchaseInvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const [invoice, setInvoice] = useState<FinanceInvoice | null>(null);
+  const [documentInvoice, setDocumentInvoice] = useState<Invoice | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -44,6 +51,16 @@ export default function PurchaseInvoiceDetailPage() {
           toast.message("This record is not a purchase invoice.");
         }
         setInvoice(inv);
+        if (inv.documentSource === "GENERATED") {
+          try {
+            const full = await apiClient.get<Invoice>(`/invoices/${num}`);
+            if (!cancelled) setDocumentInvoice(full.data);
+          } catch {
+            if (!cancelled) setDocumentInvoice(null);
+          }
+        } else if (!cancelled) {
+          setDocumentInvoice(null);
+        }
 
         const paid =
           (inv.status || "").trim().toUpperCase() === "PAID" &&
@@ -166,6 +183,81 @@ export default function PurchaseInvoiceDetailPage() {
       );
     }
   };
+
+  if (isGenerated && documentInvoice) {
+    const orderNo =
+      documentInvoice.orderNumber ||
+      documentInvoice.purchaseOrder?.orderNumber;
+    return (
+      <div className="space-y-6 bg-slate-100 p-4 sm:p-6">
+        <PurchasePageHeader
+          title={documentInvoice.invoiceId}
+          description={[
+            orderNo ? `PO ${orderNo}` : null,
+            documentInvoice.toParty,
+            documentInvoice.dueDate
+              ? `Due ${formatInvoiceDate(documentInvoice.dueDate)}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+          backHref={resolveBackHref(
+            location.state,
+            "/inventory/purchase/invoices",
+          )}
+          actions={
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => void handleDownloadPdf()}
+              >
+                {showReceipt ? "Download receipt" : "Download invoice"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => void handleEmailDocument()}
+              >
+                {showReceipt ? "Email receipt" : "Email invoice"}
+              </Button>
+              {openDocumentHref && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                  asChild
+                >
+                  <a
+                    href={openDocumentHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open PDF
+                  </a>
+                </Button>
+              )}
+              <Badge
+                className={statusColors[statusRaw] || "bg-gray-100 text-gray-800"}
+              >
+                {safeInvoiceValue(invoice.status)}
+              </Badge>
+            </>
+          }
+        />
+
+        <InvoiceDocumentPreview
+          invoice={documentInvoice}
+          currencyCode={documentInvoice.currencyCode}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
