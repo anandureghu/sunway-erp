@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useEditableForm } from "@/modules/hr/hooks/use-editable-form";
 import { useParams } from "react-router-dom";
 import {
@@ -47,6 +47,7 @@ import {
 import { cn } from "@/lib/utils";
 import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 import { useAuth } from "@/context/AuthContext";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { CurrentJobCtx } from "../CurrentJobLayout";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
@@ -78,6 +79,36 @@ const INITIAL_DATA: CurrentJob = {
   contractStartDate: "",
   contractEndDate: "",
 };
+
+function mapServerToForm(res: any): CurrentJob {
+  const resData = res as any;
+  return {
+    jobCode: resData.job?.code ?? "",
+    jobTitle: resData.job?.title ?? "",
+    jobLevel: resData.job?.level ?? "",
+    salaryGrade: resData.job?.salaryGrade ?? "",
+    minSalary: resData.job?.minSalary ?? null,
+    maxSalary: resData.job?.maxSalary ?? null,
+    departmentCode: resData.department?.code ?? "",
+    departmentName: resData.department?.name ?? "",
+    divisionId: resData.department?.divisionId ?? null,
+    divisionCode: resData.department?.divisionCode ?? "",
+    divisionName: resData.department?.divisionName ?? "",
+    startDate: resData.startDate ?? "",
+    effectiveFrom: resData.effectiveFrom ?? "",
+    expectedEndDate: resData.expectedEndDate ?? "",
+    workLocation: resData.workLocation ?? "",
+    workCity: resData.workCity ?? "",
+    workCountry: resData.workCountry ?? "",
+    employmentCategory: resData.employmentCategory ?? "",
+    employmentType: resData.employmentType ?? "",
+    reportingManagerId: resData.reportingManagerId ?? null,
+    reportingManagerName: resData.reportingManagerName ?? "",
+    reportingManagerEmployeeNo: resData.reportingManagerEmployeeNo ?? "",
+    contractStartDate: resData.contractStartDate ?? "",
+    contractEndDate: resData.contractEndDate ?? "",
+  };
+}
 
 interface ValidationErrors {
   [key: string]: string;
@@ -117,19 +148,21 @@ export default function CurrentJobForm() {
     [],
   );
   const savingRef = useRef(false);
+  const savedDataRef = useRef<CurrentJob>(INITIAL_DATA);
 
   const { company } = useAuth();
+  const { validationError } = useConfirmDialog();
   const companyId = company?.id ? Number(company.id) : null;
 
-  const { editing: externalEditing } = useOutletContext<CurrentJobCtx>();
+  const { editing: externalEditing, registerHandlers } = useOutletContext<CurrentJobCtx>();
 
   const {
     editing,
     formData,
     updateField,
+    setFields,
     handleEdit,
     handleSave,
-    handleCancel,
   } = useEditableForm<CurrentJob>({
     initialData: INITIAL_DATA,
     externalEditing,
@@ -140,6 +173,9 @@ export default function CurrentJobForm() {
       const errors = validateForm(data);
       if (Object.keys(errors).length > 0) {
         savingRef.current = false;
+        await validationError({
+          messages: Object.values(errors).filter(Boolean),
+        });
         throw new Error("Please fix validation errors");
       }
 
@@ -240,8 +276,6 @@ export default function CurrentJobForm() {
         if (fresh) {
           applyServerResponse(fresh);
         }
-
-        window.dispatchEvent(new CustomEvent("current-job:saved"));
       } catch (err: any) {
         toast.error(currentJobService.extractErrorMessage(err));
         savingRef.current = false;
@@ -254,47 +288,35 @@ export default function CurrentJobForm() {
 
   /* ================= HELPERS ================= */
 
-  const applyServerResponse = (res: any) => {
-    const resData = res as any;
-    updateField("jobCode")(resData.job?.code ?? "");
-    updateField("jobTitle")(resData.job?.title ?? "");
-    updateField("jobLevel")(resData.job?.level ?? "");
-    updateField("salaryGrade")(resData.job?.salaryGrade ?? "");
-    updateField("minSalary")(resData.job?.minSalary ?? null);
-    updateField("maxSalary")(resData.job?.maxSalary ?? null);
+  const applyServerResponse = useCallback(
+    (res: any) => {
+      const mapped = mapServerToForm(res);
+      setFields(mapped);
+      savedDataRef.current = mapped;
 
-    updateField("departmentCode")(resData.department?.code ?? "");
-    updateField("departmentName")(resData.department?.name ?? "");
-    const divisionId = resData.department?.divisionId ?? null;
-    updateField("divisionId")(divisionId);
-    updateField("divisionCode")(resData.department?.divisionCode ?? "");
-    updateField("divisionName")(resData.department?.divisionName ?? "");
+      const deptId = (res as any).department?.id;
+      if (deptId) {
+        void loadDivisionsForDepartment(deptId);
+      } else {
+        setDepartmentDivisions([]);
+      }
+    },
+    [setFields],
+  );
 
-    const deptId = resData.department?.id;
-    if (deptId) {
-      void loadDivisionsForDepartment(deptId);
-    } else {
-      setDepartmentDivisions([]);
+  const loadDivisionsForDepartment = async (departmentId: number) => {
+    setLoadingDivisions(true);
+    try {
+      const divisions = await fetchDivisionsByDepartment(departmentId);
+      setDepartmentDivisions(divisions);
+    } finally {
+      setLoadingDivisions(false);
     }
-
-    updateField("startDate")(res.startDate ?? "");
-    updateField("effectiveFrom")(res.effectiveFrom ?? "");
-    updateField("expectedEndDate")(res.expectedEndDate ?? "");
-
-    updateField("workLocation")(res.workLocation ?? "");
-    updateField("workCity")(res.workCity ?? "");
-    updateField("workCountry")(res.workCountry ?? "");
-
-    updateField("employmentCategory")(res.employmentCategory ?? "");
-    updateField("employmentType")(res.employmentType ?? "");
-    updateField("reportingManagerId")(res.reportingManagerId ?? null);
-    updateField("reportingManagerName")(res.reportingManagerName ?? "");
-    updateField("reportingManagerEmployeeNo")(
-      res.reportingManagerEmployeeNo ?? "",
-    );
-    updateField("contractStartDate")(res.contractStartDate ?? "");
-    updateField("contractEndDate")(res.contractEndDate ?? "");
   };
+
+  const handleFormCancel = useCallback(() => {
+    setFields(savedDataRef.current);
+  }, [setFields]);
 
   /* ================= LOAD JOB CODES ================= */
 
@@ -378,36 +400,25 @@ export default function CurrentJobForm() {
     return () => {
       mounted = false;
     };
-  }, [employeeId, updateField]);
+  }, [employeeId, applyServerResponse]);
 
-  /* ================= EVENT BRIDGE ================= */
+  const shellSave = useCallback(async (): Promise<boolean> => {
+    try {
+      await handleSave();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [handleSave]);
 
   useEffect(() => {
-    document.addEventListener(
-      "current-job:start-edit",
-      handleEdit as EventListener,
-    );
-    document.addEventListener("current-job:save", handleSave as EventListener);
-    document.addEventListener(
-      "current-job:cancel",
-      handleCancel as EventListener,
-    );
-
-    return () => {
-      document.removeEventListener(
-        "current-job:start-edit",
-        handleEdit as EventListener,
-      );
-      document.removeEventListener(
-        "current-job:save",
-        handleSave as EventListener,
-      );
-      document.removeEventListener(
-        "current-job:cancel",
-        handleCancel as EventListener,
-      );
-    };
-  }, [handleEdit, handleSave, handleCancel]);
+    registerHandlers({
+      save: shellSave,
+      cancel: handleFormCancel,
+      beginEdit: handleEdit,
+    });
+    return () => registerHandlers(null);
+  }, [shellSave, handleFormCancel, handleEdit, registerHandlers]);
 
   /* ================= VALIDATION ================= */
 
@@ -475,16 +486,6 @@ export default function CurrentJobForm() {
         updateField("minSalary")(selectedJob.minSalary ?? null);
         updateField("maxSalary")(selectedJob.maxSalary ?? null);
       }
-    }
-  };
-
-  const loadDivisionsForDepartment = async (departmentId: number) => {
-    setLoadingDivisions(true);
-    try {
-      const divisions = await fetchDivisionsByDepartment(departmentId);
-      setDepartmentDivisions(divisions);
-    } finally {
-      setLoadingDivisions(false);
     }
   };
 

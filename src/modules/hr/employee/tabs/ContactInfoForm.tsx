@@ -35,11 +35,7 @@ import { validatePhone, normalizePhone } from "@/lib/countries";
 import { normalizeEmail, validateEmail } from "@/lib/email";
 import { toast } from "sonner";
 
-type Ctx = {
-  editing: boolean;
-  setEditing?: (v: boolean) => void;
-  isAdmin?: boolean;
-};
+import type { ProfileCtx } from "./ProfileShell";
 
 type Address = {
   id: string;
@@ -117,8 +113,8 @@ function calculatePasswordStrength(
 }
 
 export default function ContactInfoForm() {
-  const { confirm } = useConfirmDialog();
-  const { editing, isAdmin } = useOutletContext<Ctx>();
+  const { confirm, validationError } = useConfirmDialog();
+  const { editing, isAdmin, registerHandlers } = useOutletContext<ProfileCtx>();
 
   const [saved, setSaved] = useState(SEED);
   const [draft, setDraft] = useState(SEED);
@@ -212,57 +208,58 @@ export default function ContactInfoForm() {
     };
   }, [employeeId]);
 
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    const messages: string[] = [];
+    const phoneValid = validatePhone(draft.phone, { required: true });
+    const altValid = validatePhone(draft.altPhone, { required: false });
+    const emailValid = validateEmail(draft.email, { required: true });
+
+    if (!emailValid.valid) {
+      messages.push(emailValid.message ?? "Email address is required");
+    }
+    if (!phoneValid.valid) {
+      messages.push(phoneValid.message ?? "Phone number is required");
+    }
+    if (!altValid.valid) {
+      messages.push(`Alt. phone: ${altValid.message ?? "invalid"}`);
+    }
+
+    if (messages.length > 0) {
+      await validationError({ messages });
+      return false;
+    }
+
+    setSaved(draft);
+    if (!employeeId) return true;
+
+    try {
+      await contactService.saveContactInfo(employeeId, {
+        email: normalizeEmail(draft.email),
+        phone: normalizePhone(draft.phone),
+        altPhone: draft.altPhone ? normalizePhone(draft.altPhone) : undefined,
+        notes: draft.notes || "",
+      });
+      toast.success("Contact information saved");
+      return true;
+    } catch (err) {
+      console.error("Failed to save contact info", err);
+      toast.error("Failed to save contact info");
+      return false;
+    }
+  }, [draft, employeeId, validationError]);
+
+  const handleCancel = useCallback(() => {
+    setDraft(saved);
+  }, [saved]);
+
   useEffect(() => {
-    const onSave = async () => {
-      // Block saving on an invalid phone number.
-      const phoneValid = validatePhone(draft.phone, { required: true });
-      const altValid = validatePhone(draft.altPhone, { required: false });
-      const emailValid = validateEmail(draft.email, { required: true });
-      if (!emailValid.valid) {
-        toast.error(emailValid.message ?? "Invalid email address");
-        return;
-      }
-      if (!phoneValid.valid) {
-        toast.error(phoneValid.message ?? "Invalid phone number");
-        return;
-      }
-      if (!altValid.valid) {
-        toast.error(`Alt. phone: ${altValid.message ?? "invalid"}`);
-        return;
-      }
-
-      setSaved(draft);
-      if (!employeeId) return;
-
-      // Addresses are persisted independently through their own inline
-      // Save/Update buttons — the page-level Save only handles contact details,
-      // so there is no longer a second, duplicate save of address records.
-      try {
-        await contactService.saveContactInfo(employeeId, {
-          email: normalizeEmail(draft.email),
-          phone: normalizePhone(draft.phone),
-          altPhone: draft.altPhone ? normalizePhone(draft.altPhone) : undefined,
-          notes: draft.notes || "",
-        });
-        toast.success("Contact information saved");
-      } catch (err) {
-        console.error("Failed to save contact info", err);
-        toast.error("Failed to save contact info");
-      }
-    };
-
-    const onCancel = () => setDraft(saved);
-    const onEdit = () => setDraft(saved);
-
-    document.addEventListener("profile:save", onSave as EventListener);
-    document.addEventListener("profile:cancel", onCancel as EventListener);
-    document.addEventListener("profile:edit", onEdit as EventListener);
-    return () => {
-      document.removeEventListener("profile:save", onSave as EventListener);
-      document.removeEventListener("profile:cancel", onCancel as EventListener);
-      document.removeEventListener("profile:edit", onEdit as EventListener);
-    };
-  }, [draft, saved, employeeId]);
+    registerHandlers({
+      save: handleSave,
+      cancel: handleCancel,
+      beginEdit: () => setDraft(saved),
+    });
+    return () => registerHandlers(null);
+  }, [handleSave, handleCancel, saved, registerHandlers]);
 
   const set = <K extends keyof ContactInfo>(k: K, v: ContactInfo[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));

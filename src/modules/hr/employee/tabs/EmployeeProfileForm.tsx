@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { FormRow, FormField } from "@/modules/hr/components/form-components";
@@ -21,6 +21,8 @@ import { useAuth } from "@/context/AuthContext";
 import roleService from "@/service/roleService";
 import { cn } from "@/lib/utils";
 import CountrySelect from "@/components/country-select";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import type { ProfileCtx } from "./ProfileShell";
 
 type Prefix = "" | "Mr." | "Mrs." | "Ms." | "Miss" | "Dr.";
 
@@ -97,6 +99,13 @@ const getInitials = (first?: string, last?: string) => {
   const l = (last ?? "").trim()[0] ?? "";
   return (f + l).toUpperCase() || "?";
 };
+
+function validateEmployeeProfile(data: EmpProfile): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!data.firstName?.trim()) errors.firstName = "First name is required";
+  if (!data.lastName?.trim()) errors.lastName = "Last name is required";
+  return errors;
+}
 
 const getStatusMeta = (status?: string) => {
   switch (status) {
@@ -214,16 +223,16 @@ const SectionHeading = ({
 // ── main component ────────────────────────────────────────────────────────────
 export default function EmployeeProfileForm() {
   const { id } = useParams<{ id: string }>();
-  const isNew = !id;
+  const { editing, registerHandlers } = useOutletContext<ProfileCtx>();
+  const { validationError } = useConfirmDialog();
   const { user: currentUser } = useAuth();
   const isAdmin = ["ADMIN", "SUPER_ADMIN", "HR"].includes(
     (currentUser?.role ?? "").toUpperCase(),
   );
 
-  const [editing, setEditing] = useState<boolean>(isNew);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState<EmpProfile>(NEW_EMP);
   const [draft, setDraft] = useState<EmpProfile>(NEW_EMP);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageHover, setImageHover] = useState(false);
   const [, setPendingFile] = useState<File | null>(null);
   const [companyRoleOptions, setCompanyRoleOptions] = useState<
@@ -265,7 +274,6 @@ export default function EmployeeProfileForm() {
           const merged = mapEmployeeToProfile(emp);
           setSaved(merged);
           setDraft(merged);
-          setEditing(false);
         }
       } catch (err) {
         console.error("Failed to load employee:", err);
@@ -330,12 +338,18 @@ export default function EmployeeProfileForm() {
     [id],
   );
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    const fieldErrors = validateEmployeeProfile(draft);
+    if (Object.keys(fieldErrors).length > 0) {
+      await validationError({
+        messages: Object.values(fieldErrors).filter(Boolean),
+      });
+      return false;
+    }
+
     try {
       await persistChanges(draft);
 
-      // Refetch so role + designation reflect the canonical server state
-      // (and stay consistent anywhere the employee is re-read).
       let next = draft;
       if (id) {
         try {
@@ -349,7 +363,6 @@ export default function EmployeeProfileForm() {
 
       setSaved(next);
       setDraft(next);
-      setEditing(false);
 
       try {
         window.dispatchEvent(
@@ -358,36 +371,25 @@ export default function EmployeeProfileForm() {
       } catch {
         /* no-op */
       }
+
+      return true;
     } catch {
-      /* handled inside */
+      return false;
     }
-  }, [draft, persistChanges, id]);
+  }, [draft, persistChanges, id, validationError]);
 
   const handleCancel = useCallback(() => {
     setDraft(saved);
-    setEditing(false);
   }, [saved]);
 
   useEffect(() => {
-    const onEdit = () => {
-      setDraft(saved);
-      setEditing(true);
-    };
-    const onSave = () => {
-      void handleSave();
-    };
-    const onCancel = () => {
-      handleCancel();
-    };
-    document.addEventListener("profile:edit", onEdit);
-    document.addEventListener("profile:save", onSave);
-    document.addEventListener("profile:cancel", onCancel);
-    return () => {
-      document.removeEventListener("profile:edit", onEdit);
-      document.removeEventListener("profile:save", onSave);
-      document.removeEventListener("profile:cancel", onCancel);
-    };
-  }, [saved, handleSave, handleCancel]);
+    registerHandlers({
+      save: handleSave,
+      cancel: handleCancel,
+      beginEdit: () => setDraft(saved),
+    });
+    return () => registerHandlers(null);
+  }, [saved, handleSave, handleCancel, registerHandlers]);
 
   const uploadImage = async (
     file: File,
@@ -411,6 +413,7 @@ export default function EmployeeProfileForm() {
   const fullName = [draft.prefix, draft.firstName, draft.lastName]
     .filter(Boolean)
     .join(" ");
+  const errors = validateEmployeeProfile(draft);
 
   return (
     <div className="bg-slate-50/60 min-h-screen space-y-5">
@@ -536,7 +539,7 @@ export default function EmployeeProfileForm() {
             </StyledSelect>
           </FormField>
 
-          <FormField label="First Name" required>
+          <FormField label="First Name" required error={errors.firstName}>
             <IconInput
               icon={<User className="h-4 w-4" />}
               disabled={!editing}
@@ -556,7 +559,7 @@ export default function EmployeeProfileForm() {
             />
           </FormField>
 
-          <FormField label="Last Name" required>
+          <FormField label="Last Name" required error={errors.lastName}>
             <IconInput
               icon={<User className="h-4 w-4" />}
               disabled={!editing}

@@ -5,12 +5,14 @@ import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
 import { Wrench, Hourglass, GraduationCap } from "lucide-react";
 import EditUpdateButton from "@/components/EditUpdateButton";
+import {
+  useShellFormBridge,
+  type ShellFormHandlers,
+} from "@/modules/hr/hooks/use-shell-form-bridge";
 
 export interface CurrentJobCtx {
-  editing:    boolean;
-  startEdit:  () => void;
-  cancelEdit: () => void;
-  saveEdit:   () => void;
+  editing: boolean;
+  registerHandlers: (handlers: ShellFormHandlers | null) => void;
 }
 
 export default function CurrentJobLayout() {
@@ -18,6 +20,7 @@ export default function CurrentJobLayout() {
   const navigate   = useNavigate();
   const [emp, setEmp] = useState<Employee | null>(null);
   const [editing, setEditing] = useState(false);
+  const { registerHandlers, runBeginEdit, runSave, runCancel } = useShellFormBridge();
 
   useEffect(() => {
     let mounted = true;
@@ -25,20 +28,20 @@ export default function CurrentJobLayout() {
     return () => { mounted = false; };
   }, [id]);
 
-  const startEdit  = useCallback(() => {
+  const startEdit = useCallback(() => {
+    runBeginEdit();
     setEditing(true);
-    document.dispatchEvent(new CustomEvent("current-job:start-edit"));
-  }, []);
+  }, [runBeginEdit]);
 
-  const cancelEdit = useCallback(() => {
-    document.dispatchEvent(new CustomEvent("current-job:cancel"));
-    setEditing(false);
-  }, []);
+  const handleSave = useCallback(async () => {
+    const ok = await runSave();
+    if (ok) setEditing(false);
+  }, [runSave]);
 
-  const saveEdit   = useCallback(() => {
-    document.dispatchEvent(new CustomEvent("current-job:save"));
+  const handleCancel = useCallback(() => {
+    runCancel();
     setEditing(false);
-  }, []);
+  }, [runCancel]);
 
   return (
     <div className="p-4">
@@ -62,15 +65,15 @@ export default function CurrentJobLayout() {
                 module="CURRENT_JOB"
                 editing={editing}
                 onEdit={startEdit}
-                onCancel={cancelEdit}
-                onSave={saveEdit}
+                onCancel={handleCancel}
+                onSave={() => { void handleSave(); }}
               />
             </div>
           </div>
 
           {/* Tab content — pass editing state via Outlet context */}
           <div className="p-4">
-            <Outlet context={{ editing, startEdit, cancelEdit, saveEdit } satisfies CurrentJobCtx} />
+            <Outlet context={{ editing, registerHandlers } satisfies CurrentJobCtx} />
           </div>
 
           {/* Back to Search */}

@@ -5,18 +5,22 @@ import { useState, useCallback, useEffect } from "react";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
 import EditUpdateButton from "@/components/EditUpdateButton";
+import {
+  useShellFormBridge,
+  type ShellFormHandlers,
+} from "@/modules/hr/hooks/use-shell-form-bridge";
 
-interface SalaryCtx {
+export interface SalaryCtx {
   editing: boolean;
-  startEdit: () => void;
-  cancelEdit: () => void;
-  saveEdit: () => void;
+  registerHandlers: (handlers: ShellFormHandlers | null) => void;
 }
 
 export default function SalaryShell() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const isPayrollHistoryTab = /\/salary\/payroll\/?$/.test(location.pathname);
+  const { registerHandlers, runSave, runCancel } = useShellFormBridge();
+
   const [emp, setEmp] = useState<Employee | null>(null);
   const title = emp
     ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})`
@@ -38,18 +42,17 @@ export default function SalaryShell() {
 
   const startEdit = useCallback(() => {
     setEditing(true);
-    document.dispatchEvent(new CustomEvent("salary:start-edit"));
   }, []);
 
-  const cancel = useCallback(() => {
-    document.dispatchEvent(new CustomEvent("salary:cancel"));
-    setEditing(false);
-  }, []);
+  const handleSave = useCallback(async () => {
+    const ok = await runSave();
+    if (ok) setEditing(false);
+  }, [runSave]);
 
-  const save = useCallback(() => {
-    document.dispatchEvent(new CustomEvent("salary:save"));
+  const handleCancel = useCallback(() => {
+    runCancel();
     setEditing(false);
-  }, []);
+  }, [runCancel]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -80,14 +83,13 @@ export default function SalaryShell() {
           />
         </div>
 
-        {/* ✅ module="SALARY" — Payroll history tab is read-only */}
         {!isPayrollHistoryTab ? (
           <EditUpdateButton
             module="SALARY"
             editing={editing}
             onEdit={startEdit}
-            onCancel={cancel}
-            onSave={save}
+            onCancel={handleCancel}
+            onSave={() => { void handleSave(); }}
           />
         ) : null}
       </div>
@@ -95,14 +97,7 @@ export default function SalaryShell() {
       {/* Active tab content */}
       <div className="p-4">
         <Outlet
-          context={
-            {
-              editing,
-              startEdit,
-              cancelEdit: cancel,
-              saveEdit: save,
-            } satisfies SalaryCtx
-          }
+          context={{ editing, registerHandlers } satisfies SalaryCtx}
         />
       </div>
     </div>
