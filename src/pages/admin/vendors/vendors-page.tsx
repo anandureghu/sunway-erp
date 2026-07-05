@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import type { Vendor } from "@/types/vendor";
 import { apiClient } from "@/service/apiClient";
@@ -21,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import { Users } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
@@ -35,6 +36,7 @@ export default function VendorsPage({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [vendorTypeFilter, setVendorTypeFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -116,6 +118,28 @@ export default function VendorsPage({
     const is1099 = vendors.filter((v) => Boolean(v.is1099Vendor)).length;
     return { total, active, inactive, is1099 };
   }, [vendors]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "active":
+        setStatusFilter("active");
+        setVendorTypeFilter("all");
+        break;
+      case "inactive":
+        setStatusFilter("inactive");
+        setVendorTypeFilter("all");
+        break;
+      case "1099":
+        setStatusFilter("all");
+        setVendorTypeFilter("1099");
+        break;
+      default:
+        setStatusFilter("all");
+        setVendorTypeFilter("all");
+        break;
+    }
+  }, []);
 
   // Get unique countries for filter
   const countries = useMemo(() => {
@@ -200,34 +224,54 @@ export default function VendorsPage({
       <div className="mb-6">
         <KpiSummaryStrip
           items={[
-            {
-              label: "Total Suppliers",
-              value: stats.total,
-              hint: "Vendor master rows",
-              accent: "sky",
-              icon: Users,
-            },
-            {
-              label: "Active",
-              value: stats.active,
-              hint: "Available on Purchase Orders",
-              accent: "emerald",
-              icon: Users,
-            },
-            {
-              label: "Inactive",
-              value: stats.inactive,
-              hint: "Disabled vendors",
-              accent: "rose",
-              icon: Users,
-            },
-            {
-              label: "1099 Vendors",
-              value: stats.is1099,
-              hint: "Contractor accounts",
-              accent: "orange",
-              icon: Users,
-            },
+            kpiFilterItem(
+              {
+                label: "Total Suppliers",
+                value: stats.total,
+                hint: "Vendor master rows",
+                accent: "sky",
+                icon: Users,
+              },
+              "all",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Active",
+                value: stats.active,
+                hint: "Available on Purchase Orders",
+                accent: "emerald",
+                icon: Users,
+              },
+              "active",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Inactive",
+                value: stats.inactive,
+                hint: "Disabled vendors",
+                accent: "rose",
+                icon: Users,
+              },
+              "inactive",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "1099 Vendors",
+                value: stats.is1099,
+                hint: "Contractor accounts",
+                accent: "orange",
+                icon: Users,
+              },
+              "1099",
+              kpiFilter,
+              applyKpiFilter,
+            ),
           ]}
         />
       </div>
@@ -244,7 +288,13 @@ export default function VendorsPage({
           />
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setKpiFilter(null);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
@@ -267,7 +317,13 @@ export default function VendorsPage({
               ))}
             </SelectContent>
           </Select>
-          <Select value={vendorTypeFilter} onValueChange={setVendorTypeFilter}>
+          <Select
+            value={vendorTypeFilter}
+            onValueChange={(value) => {
+              setVendorTypeFilter(value);
+              setKpiFilter(null);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All Suppliers" />
             </SelectTrigger>

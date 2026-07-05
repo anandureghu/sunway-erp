@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import type { Customer } from "@/types/customer";
 import { apiClient } from "@/service/apiClient";
@@ -16,6 +16,7 @@ import { CustomerDialog } from "./customer-dialog";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getParentPath } from "@/lib/utils";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ export default function CustomersPage() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
@@ -104,6 +106,21 @@ export default function CustomersPage() {
     const inactive = total - active;
     return { total, active, inactive };
   }, [customers]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "active":
+        setStatusFilter("active");
+        break;
+      case "inactive":
+        setStatusFilter("inactive");
+        break;
+      default:
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
 
   // Get unique countries for filter
   const countries = useMemo(() => {
@@ -229,27 +246,42 @@ export default function CustomersPage() {
       <div className="mb-6">
         <KpiSummaryStrip
           items={[
-            {
-              label: "Total Customers",
-              value: stats.total,
-              hint: "Customer master rows",
-              accent: "sky",
-              icon: Users,
-            },
-            {
-              label: "Active",
-              value: stats.active,
-              hint: "Currently active",
-              accent: "emerald",
-              icon: Users,
-            },
-            {
-              label: "Inactive",
-              value: stats.inactive,
-              hint: "Disabled accounts",
-              accent: "rose",
-              icon: Users,
-            },
+            kpiFilterItem(
+              {
+                label: "Total Customers",
+                value: stats.total,
+                hint: "Customer master rows",
+                accent: "sky",
+                icon: Users,
+              },
+              "all",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Active",
+                value: stats.active,
+                hint: "Currently active",
+                accent: "emerald",
+                icon: Users,
+              },
+              "active",
+              kpiFilter,
+              applyKpiFilter,
+            ),
+            kpiFilterItem(
+              {
+                label: "Inactive",
+                value: stats.inactive,
+                hint: "Disabled accounts",
+                accent: "rose",
+                icon: Users,
+              },
+              "inactive",
+              kpiFilter,
+              applyKpiFilter,
+            ),
           ]}
         />
       </div>
@@ -279,7 +311,13 @@ export default function CustomersPage() {
             value={phoneFilter}
             onChange={(e) => setPhoneFilter(e.target.value)}
           />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setKpiFilter(null);
+            }}
+          >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>

@@ -21,12 +21,16 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 
+type OrderTab = "open" | "terminal";
+
 type Props = {
   loading: boolean;
   error: string | null;
   orders: PurchaseOrder[];
   searchQuery: string;
   statusFilter: string;
+  listTab?: OrderTab;
+  onListTabChange?: (tab: OrderTab) => void;
   columns: ColumnDef<PurchaseOrder>[];
   enableBulkArchive?: boolean;
   rowSelection?: RowSelectionState;
@@ -40,8 +44,6 @@ type Props = {
   onRetry: () => void;
   kpiItems?: KpiSummaryStat[];
 };
-
-type OrderTab = "open" | "terminal";
 
 function isTerminalOrderStatus(status: string): boolean {
   return status === "received" || status === "cancelled";
@@ -65,8 +67,16 @@ export function PurchaseOrdersListView({
   onRowClick,
   onRetry,
   kpiItems,
+  listTab: listTabProp,
+  onListTabChange,
 }: Props) {
-  const [tab, setTab] = useState<OrderTab>("open");
+  const [internalTab, setInternalTab] = useState<OrderTab>("open");
+  const tab = listTabProp ?? internalTab;
+
+  const setTab = (value: OrderTab) => {
+    if (onListTabChange) onListTabChange(value);
+    else setInternalTab(value);
+  };
 
   const openOrders = useMemo(
     () => orders.filter((o) => !isTerminalOrderStatus(o.status)),

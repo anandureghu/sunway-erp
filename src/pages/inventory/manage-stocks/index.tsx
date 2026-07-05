@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ArrowRightLeft, LayoutGrid, Package, PackagePlus } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReceiveItemTab } from "./components/receive-item-tab";
 import { StockListTab } from "./components/stock-list-tab";
@@ -34,9 +34,30 @@ export default function ManageStocks() {
     setSearchQuery,
     selectedStatus,
     setSelectedStatus,
+    setStockKpiFilter,
     filteredStock,
     stats,
   } = useManageStocks();
+
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
+
+  const applyStockKpiFilter = useCallback(
+    (key: string) => {
+      setKpiFilter(key);
+      switch (key) {
+        case "low_stock":
+          setStockKpiFilter("low_stock");
+          break;
+        case "on_reserve":
+          setStockKpiFilter("on_reserve");
+          break;
+        default:
+          setStockKpiFilter("all");
+          break;
+      }
+    },
+    [setStockKpiFilter],
+  );
 
   return (
     <div className="min-h-full bg-gradient-to-b from-slate-50/90 via-background to-background dark:from-muted/15">
@@ -54,6 +75,8 @@ export default function ManageStocks() {
           lowStockItems={stats.lowStockItems}
           onOrderCount={stats.onOrderCount}
           onReserveCount={stats.onReserveCount}
+          activeFilter={kpiFilter}
+          onFilter={applyStockKpiFilter}
         />
 
         <Card className="overflow-hidden border-border/80 shadow-md p-0">
@@ -116,7 +139,11 @@ export default function ManageStocks() {
                     selectedWarehouse={selectedWarehouse}
                     onSelectedWarehouseChange={setSelectedWarehouse}
                     selectedStatus={selectedStatus}
-                    onSelectedStatusChange={setSelectedStatus}
+                    onSelectedStatusChange={(value) => {
+                      setSelectedStatus(value);
+                      setKpiFilter(null);
+                      setStockKpiFilter("all");
+                    }}
                     warehouses={warehouses}
                     loading={loading}
                     loadError={loadError}

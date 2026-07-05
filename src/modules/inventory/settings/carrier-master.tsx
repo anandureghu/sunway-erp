@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 const icls =
   "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
@@ -43,6 +44,7 @@ export default function CarrierMaster() {
   const [editing, setEditing] = useState<DispatchCarrier | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
 
   const {
     register,
@@ -158,6 +160,21 @@ export default function CarrierMaster() {
 
   const activeCount = carriers.filter((c) => c.status === "active").length;
 
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "active":
+        setStatusFilter("active");
+        break;
+      case "inactive":
+        setStatusFilter("inactive");
+        break;
+      default:
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       <SecondaryPageHeader
@@ -174,27 +191,42 @@ export default function CarrierMaster() {
 
       <KpiSummaryStrip
         items={[
-          {
-            label: "Total carriers",
-            value: carriers.length,
-            hint: "Saved dispatch presets",
-            accent: "blue",
-            icon: Truck,
-          },
-          {
-            label: "Active",
-            value: activeCount,
-            hint: "Available in dispatch form",
-            accent: "emerald",
-            icon: CircleCheckBig,
-          },
-          {
-            label: "Inactive",
-            value: carriers.length - activeCount,
-            hint: "Hidden from dispatch picker",
-            accent: "slate",
-            icon: CircleSlash2,
-          },
+          kpiFilterItem(
+            {
+              label: "Total carriers",
+              value: carriers.length,
+              hint: "Saved dispatch presets",
+              accent: "blue",
+              icon: Truck,
+            },
+            "all",
+            kpiFilter,
+            applyKpiFilter,
+          ),
+          kpiFilterItem(
+            {
+              label: "Active",
+              value: activeCount,
+              hint: "Available in dispatch form",
+              accent: "emerald",
+              icon: CircleCheckBig,
+            },
+            "active",
+            kpiFilter,
+            applyKpiFilter,
+          ),
+          kpiFilterItem(
+            {
+              label: "Inactive",
+              value: carriers.length - activeCount,
+              hint: "Hidden from dispatch picker",
+              accent: "slate",
+              icon: CircleSlash2,
+            },
+            "inactive",
+            kpiFilter,
+            applyKpiFilter,
+          ),
         ]}
       />
 
@@ -208,7 +240,13 @@ export default function CarrierMaster() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+            setKpiFilter(null);
+          }}
+        >
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>

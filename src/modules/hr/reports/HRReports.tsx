@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   PieChart,
   Pie,
@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import ImmigrationExpiryReport from "./ImmigrationExpiryReport";
 import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
@@ -382,10 +383,14 @@ export default function HRReports() {
   const [leaveApprovals, setLeaveApprovals] = useState<LeaveApprovalRow[]>([]);
   const [loadingLeaves, setLoadingLeaves] = useState(false);
   const [leaveSearch, setLeaveSearch] = useState("");
+  const [leaveStatusFilter, setLeaveStatusFilter] = useState<string>("all");
+  const [leaveKpiFilter, setLeaveKpiFilter] = useState<string | null>(null);
 
   const [loanApprovals, setLoanApprovals] = useState<LoanApprovalRow[]>([]);
   const [loadingLoans, setLoadingLoans] = useState(false);
   const [loanSearch, setLoanSearch] = useState("");
+  const [loanStatusFilter, setLoanStatusFilter] = useState<string>("all");
+  const [loanKpiFilter, setLoanKpiFilter] = useState<string | null>(null);
 
   // ── fetch employees ─────────────────────────────────────────────────────────
   const fetchEmployees = async () => {
@@ -522,14 +527,58 @@ export default function HRReports() {
       (l) => l.leaveStatus === "APPROVED" || l.leaveStatus === "COMPLETED",
     )
     .reduce((sum, l) => sum + (Number(l.totalDays) || 0), 0);
-  const filteredLeaves = leaveSearch.trim()
-    ? leaveApprovals.filter((l) =>
-        [l.employeeName, l.leaveType, l.leaveStatus, l.leaveCode]
-          .join(" ")
-          .toLowerCase()
-          .includes(leaveSearch.toLowerCase()),
-      )
-    : leaveApprovals;
+  const filteredLeaves = useMemo(() => {
+    let rows = leaveApprovals;
+    switch (leaveStatusFilter) {
+      case "approvals_done":
+        rows = rows.filter(
+          (l) =>
+            l.leaveStatus === "APPROVED" || l.leaveStatus === "COMPLETED",
+        );
+        break;
+      case "approved":
+        rows = rows.filter((l) => l.leaveStatus === "APPROVED");
+        break;
+      case "completed":
+        rows = rows.filter((l) => l.leaveStatus === "COMPLETED");
+        break;
+      case "rejected":
+        rows = rows.filter((l) => l.leaveStatus === "REJECTED");
+        break;
+      default:
+        break;
+    }
+    const q = leaveSearch.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((l) =>
+      [l.employeeName, l.leaveType, l.leaveStatus, l.leaveCode]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [leaveApprovals, leaveSearch, leaveStatusFilter]);
+
+  const applyLeaveKpiFilter = useCallback((key: string) => {
+    setLeaveKpiFilter(key);
+    switch (key) {
+      case "approved":
+        setLeaveStatusFilter("approved");
+        break;
+      case "completed":
+        setLeaveStatusFilter("completed");
+        break;
+      case "rejected":
+        setLeaveStatusFilter("rejected");
+        break;
+      case "approvals_done":
+      case "leave_days":
+        setLeaveStatusFilter("approvals_done");
+        break;
+      default:
+        setLeaveStatusFilter("all");
+        break;
+    }
+  }, []);
 
   // ── loan-approval analytics ───────────────────────────────────────────────────
   const loanActiveCount = loanApprovals.filter(
@@ -547,14 +596,58 @@ export default function HRReports() {
     .filter((l) => l.status === "ACTIVE" || l.status === "CLOSED")
     .reduce((sum, l) => sum + (Number(l.loanAmount) || 0), 0);
   const loanCurrency = loanApprovals[0]?.currencySymbol || "$";
-  const filteredLoans = loanSearch.trim()
-    ? loanApprovals.filter((l) =>
-        [l.employeeName, l.loanType, l.status, l.loanCode]
-          .join(" ")
-          .toLowerCase()
-          .includes(loanSearch.toLowerCase()),
-      )
-    : loanApprovals;
+  const filteredLoans = useMemo(() => {
+    let rows = loanApprovals;
+    switch (loanStatusFilter) {
+      case "approvals_done":
+      case "amount_approved":
+        rows = rows.filter(
+          (l) => l.status === "ACTIVE" || l.status === "CLOSED",
+        );
+        break;
+      case "active":
+        rows = rows.filter((l) => l.status === "ACTIVE");
+        break;
+      case "closed":
+        rows = rows.filter((l) => l.status === "CLOSED");
+        break;
+      case "rejected":
+        rows = rows.filter((l) => l.status === "REJECTED");
+        break;
+      default:
+        break;
+    }
+    const q = loanSearch.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((l) =>
+      [l.employeeName, l.loanType, l.status, l.loanCode]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [loanApprovals, loanSearch, loanStatusFilter]);
+
+  const applyLoanKpiFilter = useCallback((key: string) => {
+    setLoanKpiFilter(key);
+    switch (key) {
+      case "active":
+        setLoanStatusFilter("active");
+        break;
+      case "closed":
+        setLoanStatusFilter("closed");
+        break;
+      case "rejected":
+        setLoanStatusFilter("rejected");
+        break;
+      case "approvals_done":
+      case "amount_approved":
+        setLoanStatusFilter("approvals_done");
+        break;
+      default:
+        setLoanStatusFilter("all");
+        break;
+    }
+  }, []);
 
   // ── render ───────────────────────────────────────────────────────────────────
   return (
@@ -1308,41 +1401,66 @@ export default function HRReports() {
               <KpiSummaryStrip
                 className="lg:grid-cols-5"
                 items={[
-                  {
-                    label: "Approvals Done",
-                    value: leaveApprovalsDone,
-                    hint: "Approved + completed",
-                    accent: "violet",
-                    icon: CalendarCheck,
-                  },
-                  {
-                    label: "Active",
-                    value: leaveApprovedCount,
-                    hint: "Approved, not yet returned",
-                    accent: "emerald",
-                    icon: CheckCircle2,
-                  },
-                  {
-                    label: "Completed",
-                    value: leaveCompletedCount,
-                    hint: "Returned to office",
-                    accent: "sky",
-                    icon: CalendarCheck,
-                  },
-                  {
-                    label: "Rejected",
-                    value: leaveRejectedCount,
-                    hint: "Declined requests",
-                    accent: "rose",
-                    icon: XCircle,
-                  },
-                  {
-                    label: "Leave Days Approved",
-                    value: leaveDaysApproved,
-                    hint: "Across approved leaves",
-                    accent: "amber",
-                    icon: Clock,
-                  },
+                  kpiFilterItem(
+                    {
+                      label: "Approvals Done",
+                      value: leaveApprovalsDone,
+                      hint: "Approved + completed",
+                      accent: "violet",
+                      icon: CalendarCheck,
+                    },
+                    "approvals_done",
+                    leaveKpiFilter,
+                    applyLeaveKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Active",
+                      value: leaveApprovedCount,
+                      hint: "Approved, not yet returned",
+                      accent: "emerald",
+                      icon: CheckCircle2,
+                    },
+                    "approved",
+                    leaveKpiFilter,
+                    applyLeaveKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Completed",
+                      value: leaveCompletedCount,
+                      hint: "Returned to office",
+                      accent: "sky",
+                      icon: CalendarCheck,
+                    },
+                    "completed",
+                    leaveKpiFilter,
+                    applyLeaveKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Rejected",
+                      value: leaveRejectedCount,
+                      hint: "Declined requests",
+                      accent: "rose",
+                      icon: XCircle,
+                    },
+                    "rejected",
+                    leaveKpiFilter,
+                    applyLeaveKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Leave Days Approved",
+                      value: leaveDaysApproved,
+                      hint: "Across approved leaves",
+                      accent: "amber",
+                      icon: Clock,
+                    },
+                    "leave_days",
+                    leaveKpiFilter,
+                    applyLeaveKpiFilter,
+                  ),
                 ]}
               />
             </div>
@@ -1467,41 +1585,66 @@ export default function HRReports() {
               <KpiSummaryStrip
                 className="lg:grid-cols-5"
                 items={[
-                  {
-                    label: "Approvals Done",
-                    value: loanApprovalsDone,
-                    hint: "Active + closed",
-                    accent: "violet",
-                    icon: Wallet,
-                  },
-                  {
-                    label: "Active",
-                    value: loanActiveCount,
-                    hint: "Currently being repaid",
-                    accent: "emerald",
-                    icon: CheckCircle2,
-                  },
-                  {
-                    label: "Closed",
-                    value: loanClosedCount,
-                    hint: "Fully repaid",
-                    accent: "sky",
-                    icon: Banknote,
-                  },
-                  {
-                    label: "Rejected",
-                    value: loanRejectedCount,
-                    hint: "Declined requests",
-                    accent: "rose",
-                    icon: XCircle,
-                  },
-                  {
-                    label: "Amount Approved",
-                    value: formatMoney(String(loanAmountApproved), loanCurrency),
-                    hint: "Across approved loans",
-                    accent: "amber",
-                    icon: TrendingUp,
-                  },
+                  kpiFilterItem(
+                    {
+                      label: "Approvals Done",
+                      value: loanApprovalsDone,
+                      hint: "Active + closed",
+                      accent: "violet",
+                      icon: Wallet,
+                    },
+                    "approvals_done",
+                    loanKpiFilter,
+                    applyLoanKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Active",
+                      value: loanActiveCount,
+                      hint: "Currently being repaid",
+                      accent: "emerald",
+                      icon: CheckCircle2,
+                    },
+                    "active",
+                    loanKpiFilter,
+                    applyLoanKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Closed",
+                      value: loanClosedCount,
+                      hint: "Fully repaid",
+                      accent: "sky",
+                      icon: Banknote,
+                    },
+                    "closed",
+                    loanKpiFilter,
+                    applyLoanKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Rejected",
+                      value: loanRejectedCount,
+                      hint: "Declined requests",
+                      accent: "rose",
+                      icon: XCircle,
+                    },
+                    "rejected",
+                    loanKpiFilter,
+                    applyLoanKpiFilter,
+                  ),
+                  kpiFilterItem(
+                    {
+                      label: "Amount Approved",
+                      value: formatMoney(String(loanAmountApproved), loanCurrency),
+                      hint: "Across approved loans",
+                      accent: "amber",
+                      icon: TrendingUp,
+                    },
+                    "amount_approved",
+                    loanKpiFilter,
+                    applyLoanKpiFilter,
+                  ),
                 ]}
               />
             </div>

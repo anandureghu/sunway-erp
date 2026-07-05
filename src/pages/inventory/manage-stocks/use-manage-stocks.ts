@@ -18,6 +18,9 @@ export function useManageStocks() {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [stockKpiFilter, setStockKpiFilter] = useState<
+    "all" | "low_stock" | "on_reserve"
+  >("all");
 
   const loadData = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent === true;
@@ -70,9 +73,14 @@ export function useManageStocks() {
         (stock.barcode?.toLowerCase().includes(q) ?? false);
       const matchesStatus =
         selectedStatus === "all" || stock.status === selectedStatus;
-      return matchesWarehouse && matchesSearch && matchesStatus;
+      const matchesKpi =
+        stockKpiFilter === "all" ||
+        (stockKpiFilter === "low_stock" &&
+          stock.available <= stock.reorderLevel) ||
+        (stockKpiFilter === "on_reserve" && stock.reserved > 0);
+      return matchesWarehouse && matchesSearch && matchesStatus && matchesKpi;
     });
-  }, [items, selectedWarehouse, searchQuery, selectedStatus]);
+  }, [items, selectedWarehouse, searchQuery, selectedStatus, stockKpiFilter]);
 
   const stats = useMemo(
     () => ({
@@ -98,6 +106,8 @@ export function useManageStocks() {
     setSearchQuery,
     selectedStatus,
     setSelectedStatus,
+    stockKpiFilter,
+    setStockKpiFilter,
     filteredStock,
     stats,
   };

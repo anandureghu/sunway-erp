@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import {
   Select,
@@ -39,6 +40,7 @@ export default function CustomersPage() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [phoneFilter, setPhoneFilter] = useState("");
   const [codeFilter, setCodeFilter] = useState("");
 
@@ -126,11 +128,30 @@ export default function CustomersPage() {
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "active" && active) ||
-        (statusFilter === "inactive" && !active);
+        (statusFilter === "inactive" && !active) ||
+        (statusFilter === "with_email" && Boolean((customer.email || "").trim()));
 
       return matchesSearch && matchesPhone && matchesCode && matchesStatus;
     });
   }, [customers, searchQuery, phoneFilter, codeFilter, statusFilter]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "active":
+        setStatusFilter("active");
+        break;
+      case "inactive":
+        setStatusFilter("inactive");
+        break;
+      case "with_email":
+        setStatusFilter("with_email");
+        break;
+      default:
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
 
   const customerKpis = useMemo((): KpiSummaryStat[] => {
     const total = customers.length;
@@ -138,36 +159,56 @@ export default function CustomersPage() {
     const withEmail = customers.filter((c) => (c.email || "").trim()).length;
     const inactive = Math.max(0, total - active);
     return [
-      {
-        label: "Total customers",
-        value: total,
-        hint: "Sales buyer accounts",
-        accent: "sky",
-        icon: Users,
-      },
-      {
-        label: "Active",
-        value: active,
-        hint: "Enabled for ordering",
-        accent: "emerald",
-        icon: UserCheck,
-      },
-      {
-        label: "With email",
-        value: withEmail,
-        hint: "Reachable for invoicing",
-        accent: "violet",
-        icon: Mail,
-      },
-      {
-        label: "Inactive",
-        value: inactive,
-        hint: "Deactivated accounts",
-        accent: "amber",
-        icon: UserX,
-      },
+      kpiFilterItem(
+        {
+          label: "Total customers",
+          value: total,
+          hint: "Sales buyer accounts",
+          accent: "sky",
+          icon: Users,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Active",
+          value: active,
+          hint: "Enabled for ordering",
+          accent: "emerald",
+          icon: UserCheck,
+        },
+        "active",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "With email",
+          value: withEmail,
+          hint: "Reachable for invoicing",
+          accent: "violet",
+          icon: Mail,
+        },
+        "with_email",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Inactive",
+          value: inactive,
+          hint: "Deactivated accounts",
+          accent: "amber",
+          icon: UserX,
+        },
+        "inactive",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [customers]);
+  }, [customers, kpiFilter, applyKpiFilter]);
 
   if (loading) {
     return (
@@ -224,7 +265,13 @@ export default function CustomersPage() {
               value={phoneFilter}
               onChange={(e) => setPhoneFilter(e.target.value)}
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setKpiFilter(null);
+              }}
+            >
               <SelectTrigger className="w-full lg:w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>

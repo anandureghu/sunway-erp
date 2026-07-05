@@ -527,9 +527,7 @@ export default function PurchaseOrderDetailPage() {
               <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Release sends the order to the supplier and creates accounts
-                payable records. Chart of accounts balances change when vendor
-                payment is confirmed under Finance → Accounts payable → Vendor
-                payments.
+                payable records.
               </p>
             </div>
 
@@ -856,7 +854,11 @@ export default function PurchaseOrderDetailPage() {
                 Supplier
               </h2>
               {hasSupplier && supplierDisplayName ? (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  <DetailField
+                    label="Supplier Code"
+                    value={order.supplier?.code}
+                  />
                   <DetailField
                     label="Name"
                     value={
@@ -866,12 +868,8 @@ export default function PurchaseOrderDetailPage() {
                       </span>
                     }
                   />
-                  <DetailField
-                    label="Supplier Code"
-                    value={order.supplier?.code}
-                  />
-                  <DetailField label="Email" value={order.supplier?.email} />
                   <DetailField label="Phone" value={order.supplier?.phone} />
+                  <DetailField label="Email" value={order.supplier?.email} />
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">

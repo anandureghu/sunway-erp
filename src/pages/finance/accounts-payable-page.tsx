@@ -46,6 +46,7 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 import {
   bulkArchiveHistoryRecords,
   summarizeBulkActionResult,
@@ -71,6 +72,7 @@ function PayableInvoicesTab() {
   );
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -125,6 +127,29 @@ function PayableInvoicesTab() {
       return matchesSearch && matchesStatus;
     });
   }, [rows, listTab, searchQuery, statusFilter]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    setRowSelection({});
+    switch (key) {
+      case "paid":
+        setListTab("archived");
+        setStatusFilter("Paid");
+        break;
+      case "unpaid":
+        setListTab("outstanding");
+        setStatusFilter("Unpaid");
+        break;
+      case "overdue":
+        setListTab("outstanding");
+        setStatusFilter("Overdue");
+        break;
+      default:
+        setListTab("outstanding");
+        setStatusFilter("all");
+        break;
+    }
+  }, []);
 
   const selectedInvoiceIds = useMemo(
     () =>
@@ -293,36 +318,56 @@ function PayableInvoicesTab() {
       (inv) => norm(inv.status) === "OVERDUE",
     ).length;
     return [
-      {
-        label: "Total invoices",
-        value: rows.length,
-        hint: "Purchase invoices loaded",
-        accent: "sky",
-        icon: FileText,
-      },
-      {
-        label: "Unpaid",
-        value: unpaid,
-        hint: "Awaiting payment",
-        accent: "orange",
-        icon: Wallet,
-      },
-      {
-        label: "Paid",
-        value: paid,
-        hint: "Fully settled",
-        accent: "emerald",
-        icon: CheckCircle2,
-      },
-      {
-        label: "Overdue",
-        value: overdue,
-        hint: "Past due — needs payment",
-        accent: "rose",
-        icon: AlertTriangle,
-      },
+      kpiFilterItem(
+        {
+          label: "Total invoices",
+          value: rows.length,
+          hint: "Purchase invoices loaded",
+          accent: "sky",
+          icon: FileText,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Unpaid",
+          value: unpaid,
+          hint: "Awaiting payment",
+          accent: "orange",
+          icon: Wallet,
+        },
+        "unpaid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Paid",
+          value: paid,
+          hint: "Fully settled",
+          accent: "emerald",
+          icon: CheckCircle2,
+        },
+        "paid",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Overdue",
+          value: overdue,
+          hint: "Past due — needs payment",
+          accent: "rose",
+          icon: AlertTriangle,
+        },
+        "overdue",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [rows]);
+  }, [rows, kpiFilter, applyKpiFilter]);
 
   return (
     <div className="space-y-4">
@@ -335,6 +380,7 @@ function PayableInvoicesTab() {
           setListTab(v as InvoiceListTab);
           setStatusFilter("all");
           setRowSelection({});
+          setKpiFilter(null);
         }}
         className="w-full gap-4"
       >
@@ -365,7 +411,10 @@ function PayableInvoicesTab() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(v) => {
+              setStatusFilter(v);
+              setKpiFilter(null);
+            }}>
               <SelectTrigger className="w-full sm:w-44">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>

@@ -21,12 +21,16 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 
+type RequisitionTab = "active" | "converted";
+
 type Props = {
   loading: boolean;
   error: string | null;
   requisitions: PurchaseRequisition[];
   searchQuery: string;
   statusFilter: string;
+  listTab?: RequisitionTab;
+  onListTabChange?: (tab: RequisitionTab) => void;
   columns: ColumnDef<PurchaseRequisition>[];
   enableBulkArchive?: boolean;
   rowSelection?: RowSelectionState;
@@ -42,8 +46,6 @@ type Props = {
   onRowClick: (row: Row<PurchaseRequisition>) => void;
   kpiItems?: KpiSummaryStat[];
 };
-
-type RequisitionTab = "active" | "converted";
 
 export function PurchaseRequisitionsListView({
   loading,
@@ -65,8 +67,16 @@ export function PurchaseRequisitionsListView({
   onRetry,
   onRowClick,
   kpiItems,
+  listTab: listTabProp,
+  onListTabChange,
 }: Props) {
-  const [tab, setTab] = useState<RequisitionTab>("active");
+  const [internalTab, setInternalTab] = useState<RequisitionTab>("active");
+  const tab = listTabProp ?? internalTab;
+
+  const setTab = (value: RequisitionTab) => {
+    if (onListTabChange) onListTabChange(value);
+    else setInternalTab(value);
+  };
 
   const activeReqs = useMemo(
     () =>

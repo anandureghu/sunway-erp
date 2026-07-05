@@ -35,6 +35,7 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { kpiFilterItem } from "@/lib/kpi-filter";
 
 export default function PicklistDispatchPage() {
   const { confirmCancel } = useConfirmDialog();
@@ -61,6 +62,13 @@ export default function PicklistDispatchPage() {
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [picklistStatusFilter, setPicklistStatusFilter] = useState<
+    "all" | "created" | "picked"
+  >("all");
+  const [dispatchStatusFilter, setDispatchStatusFilter] = useState<
+    "all" | "active"
+  >("all");
+  const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const navigate = useNavigate();
   const initialSalesOrderId = navState?.salesOrderId || "";
 
@@ -194,6 +202,48 @@ export default function PicklistDispatchPage() {
     [loadData, navigate, dispatches, confirmCancel],
   );
 
+  const filteredPicklists = useMemo(() => {
+    if (picklistStatusFilter === "created") {
+      return picklists.filter((p) => p.status === "created");
+    }
+    if (picklistStatusFilter === "picked") {
+      return picklists.filter((p) => p.status === "picked");
+    }
+    return picklists;
+  }, [picklists, picklistStatusFilter]);
+
+  const filteredDispatches = useMemo(() => {
+    if (dispatchStatusFilter === "active") {
+      return dispatches.filter(
+        (d) => !["delivered", "cancelled", "failed_delivery"].includes(d.status),
+      );
+    }
+    return dispatches;
+  }, [dispatches, dispatchStatusFilter]);
+
+  const applyKpiFilter = useCallback((key: string) => {
+    setKpiFilter(key);
+    switch (key) {
+      case "awaiting":
+        setActiveTab("picklists");
+        setPicklistStatusFilter("created");
+        break;
+      case "picked":
+        setActiveTab("picklists");
+        setPicklistStatusFilter("picked");
+        break;
+      case "active":
+        setActiveTab("dispatches");
+        setDispatchStatusFilter("active");
+        break;
+      default:
+        setActiveTab("picklists");
+        setPicklistStatusFilter("all");
+        setDispatchStatusFilter("all");
+        break;
+    }
+  }, []);
+
   const fulfillmentKpis = useMemo((): KpiSummaryStat[] => {
     const awaitingPick = picklists.filter((p) => p.status === "created").length;
     const pickedReady = picklists.filter((p) => p.status === "picked").length;
@@ -202,36 +252,56 @@ export default function PicklistDispatchPage() {
       (d) => !["delivered", "cancelled", "failed_delivery"].includes(d.status),
     ).length;
     return [
-      {
-        label: "Picklists",
-        value: picklists.length,
-        hint: "Warehouse documents",
-        accent: "sky",
-        icon: ClipboardList,
-      },
-      {
-        label: "Awaiting pick",
-        value: awaitingPick,
-        hint: "Still in CREATED status",
-        accent: "orange",
-        icon: Package,
-      },
-      {
-        label: "Picked ready",
-        value: pickedReady,
-        hint: "Eligible for shipment",
-        accent: "emerald",
-        icon: Truck,
-      },
-      {
-        label: "Active shipments",
-        value: activeShipments,
-        hint: `${shipmentsTotal} total · in-flight logistics`,
-        accent: "violet",
-        icon: Radar,
-      },
+      kpiFilterItem(
+        {
+          label: "Picklists",
+          value: picklists.length,
+          hint: "Warehouse documents",
+          accent: "sky",
+          icon: ClipboardList,
+        },
+        "all",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Awaiting pick",
+          value: awaitingPick,
+          hint: "Still in CREATED status",
+          accent: "orange",
+          icon: Package,
+        },
+        "awaiting",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Picked ready",
+          value: pickedReady,
+          hint: "Eligible for shipment",
+          accent: "emerald",
+          icon: Truck,
+        },
+        "picked",
+        kpiFilter,
+        applyKpiFilter,
+      ),
+      kpiFilterItem(
+        {
+          label: "Active shipments",
+          value: activeShipments,
+          hint: `${shipmentsTotal} total · in-flight logistics`,
+          accent: "violet",
+          icon: Radar,
+        },
+        "active",
+        kpiFilter,
+        applyKpiFilter,
+      ),
     ];
-  }, [picklists, dispatches]);
+  }, [picklists, dispatches, kpiFilter, applyKpiFilter]);
 
   if (showCreatePicklist) {
     return (
@@ -296,7 +366,15 @@ export default function PicklistDispatchPage() {
         <KpiSummaryStrip items={fulfillmentKpis} />
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value);
+          setKpiFilter(null);
+          setPicklistStatusFilter("all");
+          setDispatchStatusFilter("all");
+        }}
+      >
         <TabsList>
           <StyledTabsTrigger value="picklists">
             <Package className="mr-2 h-4 w-4" />
@@ -318,7 +396,7 @@ export default function PicklistDispatchPage() {
           ) : (
             <DataTable
               columns={picklistColumns}
-              data={picklists}
+              data={filteredPicklists}
               onRowClick={(row) =>
                 navigate(`/inventory/sales/picklist/${row.original.id}`)
               }
@@ -334,7 +412,7 @@ export default function PicklistDispatchPage() {
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
-            <DataTable columns={dispatchColumns} data={dispatches} />
+            <DataTable columns={dispatchColumns} data={filteredDispatches} />
           )}
         </TabsContent>
       </Tabs>
