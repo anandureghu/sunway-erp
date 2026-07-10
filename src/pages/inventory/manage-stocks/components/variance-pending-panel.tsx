@@ -152,6 +152,7 @@ export function VariancePendingPanel({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">SL No.</TableHead>
                   <TableHead>Item</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>From</TableHead>
@@ -162,8 +163,11 @@ export function VariancePendingPanel({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => (
+                {rows.map((row, idx) => (
                   <TableRow key={row.id}>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {idx + 1}
+                    </TableCell>
                     <TableCell>
                       <div className="font-medium">{row.itemName}</div>
                       <div className="text-xs text-muted-foreground">
