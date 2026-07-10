@@ -262,17 +262,34 @@ export default function App() {
                 </ModuleAccessGate>
               }
             />
-            <Route
-              path="reports"
-              element={
-                <ModuleAccessGate
-                  module={InventoryModule.STOCK}
-                  title="Inventory reports access denied"
-                >
-                  <InventoryReportsPage />
-                </ModuleAccessGate>
-              }
-            />
+            <Route path="reports">
+              <Route
+                index
+                element={<Navigate to="operations" replace />}
+              />
+              <Route
+                path="operations"
+                element={
+                  <ModuleAccessGate
+                    module={InventoryModule.STOCK}
+                    title="Inventory reports access denied"
+                  >
+                    <InventoryReportsPage />
+                  </ModuleAccessGate>
+                }
+              />
+              <Route
+                path="management"
+                element={
+                  <ModuleAccessGate
+                    module={InventoryModule.STOCK}
+                    title="Inventory reports access denied"
+                  >
+                    <InventoryReportsPage />
+                  </ModuleAccessGate>
+                }
+              />
+            </Route>
             <Route
               path="sales"
               element={

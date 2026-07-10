@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/card";
 import {
   BarChart3,
+  ClipboardList,
+  LineChart,
   Users,
   FileText,
   Settings,
@@ -32,6 +34,8 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
     "HR Reports": FileText,
     "Immigration Expiry": ShieldAlert,
     "HR Settings": Settings,
+    "Operations Reports": ClipboardList,
+    "Management Reports": LineChart,
     "Operations and management Reports": FileText,
     "Inventory Reports": FileText,
     "Inventory Report": FileText,
@@ -69,6 +73,10 @@ const getModuleDescription = (title: string): string => {
       "Handle Sales transactions, manage sales invoices and maintain customer information. Perform order fulfillment and track shipments",
     Purchase:
       "Execute the procurement workflow, including purchase requisitions, purchase orders, receiving goods, viewing and matching invoices, and processing payment receipts.",
+    "Operations Reports":
+      "Day-to-day stock health — movements, batches, low stock, and expiry alerts",
+    "Management Reports":
+      "Valuation, turnover, and capital concentration for leadership",
     "Operations and management Reports": "Operations and management reports",
     "Inventory Reports": "Operations and management reports",
     "Inventory Report": "Operations and management reports",

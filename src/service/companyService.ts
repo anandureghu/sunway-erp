@@ -8,7 +8,8 @@ import {
   Package,
   ShoppingCart,
   Receipt,
-  FileText,
+  ClipboardList,
+  LineChart,
   DollarSign,
   Wallet,
   Landmark,
@@ -294,9 +295,14 @@ export const getSidebarItems = async (
             ...(canView(permissions, "INVENTORY_STOCK")
               ? [
                   {
-                    title: "Operations and management Reports",
-                    url: "/inventory/reports",
-                    icon: FileText,
+                    title: "Operations Reports",
+                    url: "/inventory/reports/operations",
+                    icon: ClipboardList,
+                  },
+                  {
+                    title: "Management Reports",
+                    url: "/inventory/reports/management",
+                    icon: LineChart,
                   },
                 ]
               : []),
