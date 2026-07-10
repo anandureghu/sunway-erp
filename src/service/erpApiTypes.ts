@@ -434,6 +434,8 @@ export type SalesOrderResponseDTO = {
   status?: string;
   archived?: boolean;
   paymentStatus?: string;
+  /** Remaining balance on the linked sales invoice, when partially paid. */
+  outstandingAmount?: number;
   subtotalAmount?: number;
   discountAmount?: number;
   taxAmount?: number;

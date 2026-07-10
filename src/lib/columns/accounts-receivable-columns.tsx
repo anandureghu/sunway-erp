@@ -87,9 +87,27 @@ export function createSalesInvoiceColumns(
     {
       accessorKey: "status",
       header: "Payment Status",
-      cell: ({ row }) => (
-        <StatusBadge status={String(row.getValue("status") ?? "")} />
-      ),
+      cell: ({ row }) => {
+        const status = String(row.getValue("status") ?? "");
+        const invoice = row.original;
+        const remaining = invoice.outstanding ?? invoice.openAmount;
+        const isPartial = status.toUpperCase() === "PARTIALLY_PAID";
+        return (
+          <div className="space-y-0.5">
+            <StatusBadge status={status} />
+            {isPartial && remaining != null && (
+              <div className="text-xs text-muted-foreground">
+                Remaining:{" "}
+                {invoice.type === "SALES" ? (
+                  <CreditAmount amount={remaining} className="inline" />
+                ) : (
+                  <DebitAmount amount={remaining} className="inline" />
+                )}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "total",

@@ -125,6 +125,27 @@ export async function attachSupplierDocument(
   }
 }
 
+export async function matchVendorInvoice(
+  invoiceId: number,
+  vendorInvoiceNumber: string,
+  file: File | null,
+): Promise<FinanceInvoice> {
+  const formData = new FormData();
+  formData.append("vendorInvoiceNumber", vendorInvoiceNumber);
+  if (file) {
+    formData.append("file", file);
+  }
+  try {
+    const res = await apiClient.post<FinanceInvoice>(
+      `/invoices/${invoiceId}/match-vendor-invoice`,
+      formData,
+    );
+    return res.data;
+  } catch (err: unknown) {
+    throw new Error(invoiceApiError(err, "Failed to match vendor invoice"));
+  }
+}
+
 export async function previewPdfText(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);

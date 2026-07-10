@@ -104,6 +104,16 @@ export function ConfirmPaymentDialog({
                 <span className="font-medium">{payment.salesOrderNumber}</span>
               </p>
             )}
+            {isVendor && (
+              <p>
+                <span className="text-muted-foreground">
+                  Vendor invoice code:{" "}
+                </span>
+                <span className="font-medium">
+                  {payment.supplierInvoiceNumber || "Not matched"}
+                </span>
+              </p>
+            )}
             <p>
               <span className="text-muted-foreground">Invoice total: </span>
               <CurrencyAmount amount={invoiceTotal} className="font-medium inline" />

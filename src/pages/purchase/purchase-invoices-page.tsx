@@ -33,6 +33,7 @@ import {
   listPurchaseInvoices,
 } from "@/service/invoiceService";
 import { RegisterSupplierInvoiceDialog } from "@/pages/purchase/components/register-supplier-invoice-dialog";
+import { MatchVendorInvoiceDialog } from "@/pages/purchase/components/match-vendor-invoice-dialog";
 import { PageHeader } from "@/components/PageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { toast } from "sonner";
@@ -69,6 +70,9 @@ export default function PurchaseInvoicesPage() {
   const [rows, setRows] = useState<FinanceInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [matchingInvoice, setMatchingInvoice] = useState<FinanceInvoice | null>(
+    null,
+  );
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
@@ -290,6 +294,12 @@ export default function PurchaseInvoicesPage() {
         onOpenDocument: handleOpenInvoiceDocument,
         onDownload: handleDownloadInvoice,
         onEmail: handleEmailInvoice,
+        onMatchVendorInvoice: setMatchingInvoice,
+        onViewMatchedInvoice: (inv) => {
+          if (inv.vendorInvoiceDocumentUrl) {
+            window.open(inv.vendorInvoiceDocumentUrl, "_blank", "noopener,noreferrer");
+          }
+        },
       }),
     [
       handleArchiveInvoice,
@@ -503,6 +513,15 @@ export default function PurchaseInvoicesPage() {
         open={registerOpen}
         onOpenChange={setRegisterOpen}
         onCreated={load}
+      />
+
+      <MatchVendorInvoiceDialog
+        invoice={matchingInvoice}
+        open={matchingInvoice != null}
+        onOpenChange={(open) => {
+          if (!open) setMatchingInvoice(null);
+        }}
+        onMatched={load}
       />
     </div>
   );

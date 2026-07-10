@@ -162,6 +162,7 @@ export interface PurchaseOrderResponseDTO {
   requestedByName?: string | null;
   vendorPaymentSettled?: boolean | null;
   paymentStatus?: string | null;
+  outstandingAmount?: number | null;
   purchaseInvoiceId?: number | null;
   vendorPaymentId?: number | null;
 }
@@ -321,6 +322,8 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
       if (raw) return raw;
       return dto.vendorPaymentSettled ? "PAID" : "UNPAID";
     })(),
+    outstandingAmount:
+      dto.outstandingAmount != null ? Number(dto.outstandingAmount) : undefined,
     purchaseInvoiceId: dto.purchaseInvoiceId ?? undefined,
     vendorPaymentId: dto.vendorPaymentId ?? undefined,
     items,

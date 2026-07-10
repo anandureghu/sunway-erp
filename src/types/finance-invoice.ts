@@ -31,6 +31,9 @@ export interface FinanceInvoice {
   supplierInvoiceNumber?: string | null;
   documentSource?: InvoiceDocumentSource | null;
   externalDocumentUrl?: string | null;
+  /** Vendor's own invoice document attached via "Match Vendor Invoice". */
+  vendorInvoiceDocumentUrl?: string | null;
+  vendorInvoiceMatchedAt?: string | null;
   type?: "SALES" | "PURCHASE";
   orderId?: number | null;
   orderNumber?: string | null;

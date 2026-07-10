@@ -216,6 +216,16 @@ export function InvoiceDocumentPreview({
                   <div className="mt-1 text-[13px] font-semibold text-slate-900">
                     {orderNumber}
                   </div>
+                  {!isSales && invoice.supplierInvoiceNumber && (
+                    <>
+                      <div className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+                        Vendor Invoice #
+                      </div>
+                      <div className="mt-1 text-[13px] font-semibold text-slate-900">
+                        {invoice.supplierInvoiceNumber}
+                      </div>
+                    </>
+                  )}
                   <div className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
                     Paid Date
                   </div>

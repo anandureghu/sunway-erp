@@ -67,6 +67,8 @@ export type SalesOrder = {
   status: SalesOrderStatus;
   archived?: boolean;
   paymentStatus?: string;
+  /** Remaining balance on the linked sales invoice, when partially paid. */
+  outstandingAmount?: number;
   items: SalesOrderItem[];
   subtotal: number;
   tax: number;
@@ -280,6 +282,7 @@ export type Invoice = {
 
   itemDescription?: string;
   notesRemarks?: string;
+  supplierInvoiceNumber?: string | null;
 
   gracePeriod?: number;
   interestRate?: number;

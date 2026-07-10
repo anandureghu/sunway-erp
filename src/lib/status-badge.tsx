@@ -61,6 +61,9 @@ const STATUS_PALETTE: Record<string, string> = {
 
   // —— Neutral / info ——
   REVISED: "border-transparent bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-100",
+  /** Invoice balance was written off (e.g. rejected/returned goods), not paid in cash. */
+  ADJUSTED: "border-transparent bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-100",
+  adjusted: "border-transparent bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-100",
   CONFIRMED_ALT: "border-transparent bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-100",
   CONFIRMED_ORDER: "border-transparent bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-100",
   confirmed_so: "border-transparent bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-100",

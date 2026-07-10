@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, CheckSquare } from "lucide-react";
 import { format } from "date-fns";
 import {
   getInvoice,
@@ -19,6 +19,7 @@ import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { resolveBackHref } from "@/lib/navigation-back";
 import { PurchasePageHeader } from "./components/purchase-page-header";
 import { InvoiceDocumentPreview } from "@/components/invoice/invoice-document-preview";
+import { MatchVendorInvoiceDialog } from "./components/match-vendor-invoice-dialog";
 import {
   formatInvoiceDate,
   safeInvoiceValue,
@@ -32,6 +33,7 @@ export default function PurchaseInvoiceDetailPage() {
   const [documentInvoice, setDocumentInvoice] = useState<Invoice | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [matchDialogOpen, setMatchDialogOpen] = useState(false);
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -247,6 +249,15 @@ export default function PurchaseInvoiceDetailPage() {
               >
                 {safeInvoiceValue(invoice.status)}
               </Badge>
+              {statusRaw === "partially_paid" && (
+                <span className="text-sm text-white/80">
+                  Remaining:{" "}
+                  <CurrencyAmount
+                    amount={invoice.outstanding ?? invoice.openAmount ?? 0}
+                    className="inline text-white"
+                  />
+                </span>
+              )}
             </>
           }
         />
@@ -326,6 +337,15 @@ export default function PurchaseInvoiceDetailPage() {
                 .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
                 .join(" ")}
             </Badge>
+            {statusRaw === "partially_paid" && (
+              <span className="text-sm text-white/80">
+                Remaining:{" "}
+                <CurrencyAmount
+                  amount={invoice.outstanding ?? invoice.openAmount ?? 0}
+                  className="inline text-white"
+                />
+              </span>
+            )}
           </>
         }
       />
@@ -435,6 +455,57 @@ export default function PurchaseInvoiceDetailPage() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Vendor invoice matching</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckSquare
+                  className={`h-4 w-4 ${
+                    invoice.vendorInvoiceDocumentUrl
+                      ? "text-emerald-600"
+                      : "text-slate-300"
+                  }`}
+                />
+                <p className="text-sm font-medium">
+                  {invoice.vendorInvoiceDocumentUrl
+                    ? `Matched${
+                        invoice.vendorInvoiceMatchedAt
+                          ? " on " +
+                            format(
+                              new Date(invoice.vendorInvoiceMatchedAt),
+                              "MMM dd, yyyy",
+                            )
+                          : ""
+                      }`
+                    : "Not matched"}
+                </p>
+              </div>
+              {invoice.vendorInvoiceDocumentUrl && (
+                <a
+                  href={invoice.vendorInvoiceDocumentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline underline-offset-2"
+                >
+                  View matched document
+                </a>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setMatchDialogOpen(true)}
+              >
+                <CheckSquare className="mr-2 h-4 w-4" />
+                {invoice.vendorInvoiceDocumentUrl
+                  ? "Re-match vendor invoice"
+                  : "Match Vendor Invoice"}
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="ml-auto w-full max-w-md">
             <CardHeader>
               <CardTitle className="text-lg">Amounts</CardTitle>
@@ -478,6 +549,17 @@ export default function PurchaseInvoiceDetailPage() {
           </Card>
         </div>
       </div>
+
+      <MatchVendorInvoiceDialog
+        invoice={invoice}
+        open={matchDialogOpen}
+        onOpenChange={setMatchDialogOpen}
+        onMatched={() => {
+          getInvoice(invoice.id)
+            .then(setInvoice)
+            .catch(() => undefined);
+        }}
+      />
     </div>
   );
 }

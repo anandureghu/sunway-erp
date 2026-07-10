@@ -87,6 +87,8 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     status: (normalizeStatus(dto.status) as any) || "draft",
     archived: Boolean(dto.archived),
     paymentStatus: normalizePaymentStatus(rawPaymentStatus),
+    outstandingAmount:
+      dto.outstandingAmount != null ? Number(dto.outstandingAmount) : undefined,
     items,
     subtotal,
     tax,

@@ -26,6 +26,7 @@ import {
   Mail,
   Archive,
   Loader2,
+  CheckSquare,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
@@ -116,9 +117,7 @@ export function createPurchaseOrderColumns(
     {
       accessorKey: "requestedByName",
       header: "Requested by",
-      cell: ({ row }) => (
-        <span>{row.original.requestedByName || "—"}</span>
-      ),
+      cell: ({ row }) => <span>{row.original.requestedByName || "—"}</span>,
     },
     {
       accessorKey: "status",
@@ -156,7 +155,21 @@ export function createPurchaseOrderColumns(
         const status =
           order.paymentStatus ||
           (order.vendorPaymentSettled ? "PAID" : "UNPAID");
-        return <StatusBadge status={status} />;
+        const isPartial = status.toUpperCase() === "PARTIALLY_PAID";
+        return (
+          <div className="space-y-0.5">
+            <StatusBadge status={status} />
+            {isPartial && order.outstandingAmount != null && (
+              <div className="text-xs text-muted-foreground">
+                Remaining:{" "}
+                <CurrencyAmount
+                  amount={order.outstandingAmount}
+                  className="inline"
+                />
+              </div>
+            )}
+          </div>
+        );
       },
     },
     {
@@ -387,6 +400,8 @@ export type PurchaseInvoiceColumnActions = {
   onOpenDocument?: (inv: FinanceInvoice) => void;
   onDownload?: (inv: FinanceInvoice) => void;
   onEmail?: (inv: FinanceInvoice) => void;
+  onMatchVendorInvoice?: (inv: FinanceInvoice) => void;
+  onViewMatchedInvoice?: (inv: FinanceInvoice) => void;
 };
 
 // Purchase Invoice Columns (API FinanceInvoice)
@@ -405,7 +420,14 @@ export function createPurchaseInvoiceColumns(
   processingInvoiceId?: number | null,
   invoiceActions: PurchaseInvoiceColumnActions = {},
 ): ColumnDef<FinanceInvoice>[] {
-  const { onViewDetails, onOpenDocument, onDownload, onEmail } = invoiceActions;
+  const {
+    onViewDetails,
+    onOpenDocument,
+    onDownload,
+    onEmail,
+    onMatchVendorInvoice,
+    onViewMatchedInvoice,
+  } = invoiceActions;
   return [
     {
       accessorKey: "invoiceId",
@@ -454,9 +476,30 @@ export function createPurchaseInvoiceColumns(
     {
       accessorKey: "status",
       header: "Payment Status",
-      cell: ({ row }) => (
-        <StatusBadge status={String(row.getValue("status") ?? "UNPAID")} />
-      ),
+      cell: ({ row }) => {
+        const status = String(row.getValue("status") ?? "UNPAID");
+        const remaining = row.original.outstanding ?? row.original.openAmount;
+        const isPartial = status.toUpperCase() === "PARTIALLY_PAID";
+        return (
+          <div className="space-y-0.5">
+            <span
+              title={
+                status.toUpperCase() === "ADJUSTED"
+                  ? "Balance written off due to rejected/returned goods — not paid in cash"
+                  : undefined
+              }
+            >
+              <StatusBadge status={status} />
+            </span>
+            {isPartial && remaining != null && (
+              <div className="text-xs text-muted-foreground">
+                Remaining:{" "}
+                <CurrencyAmount amount={remaining} className="inline" />
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "amount",
@@ -467,15 +510,15 @@ export function createPurchaseInvoiceColumns(
       },
     },
     {
-      id: "doc",
-      header: "Document",
+      id: "vendorInvoiceCode",
+      header: "Vendor Invoice Code",
       cell: ({ row }) => {
-        const src = row.original.documentSource;
-        if (src === "SUPPLIER_UPLOAD")
-          return <span className="text-xs">PDF</span>;
-        if (src === "EXTERNAL_LINK")
-          return <span className="text-xs">Link</span>;
-        return <span className="text-xs text-muted-foreground">Generated</span>;
+        const code = row.original.supplierInvoiceNumber;
+        return code ? (
+          <span className="font-mono text-xs">{code}</span>
+        ) : (
+          <span className="text-xs text-amber-600">Not matched</span>
+        );
       },
     },
     {
@@ -546,6 +589,33 @@ export function createPurchaseInvoiceColumns(
                     Open document
                   </DropdownMenuItem>
                 )}
+                {onMatchVendorInvoice && (
+                  <>
+                    <DropdownMenuSeparator />
+                    {inv.vendorInvoiceDocumentUrl && onViewMatchedInvoice && (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          onViewMatchedInvoice(inv);
+                        }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View matched invoice
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        onMatchVendorInvoice(inv);
+                      }}
+                    >
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      {inv.vendorInvoiceDocumentUrl || inv.supplierInvoiceNumber
+                        ? "Re-match vendor invoice"
+                        : "Match Vendor Invoice"}
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {canArchive && onArchive && (
                   <>
                     <DropdownMenuSeparator />
@@ -604,9 +674,7 @@ export function createGoodsReceiptColumns(
       accessorKey: "receiptNo",
       header: "Receipt No",
       cell: ({ row }) => {
-        return (
-          <span className="font-medium">{row.getValue("receiptNo")}</span>
-        );
+        return <span className="font-medium">{row.getValue("receiptNo")}</span>;
       },
     },
     {

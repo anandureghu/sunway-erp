@@ -218,6 +218,8 @@ export type PurchaseOrder = {
   vendorPaymentSettled?: boolean;
   /** Linked purchase invoice payment status (UNPAID, PARTIALLY_PAID, PAID, …). */
   paymentStatus?: string;
+  /** Remaining balance on the linked purchase invoice, when partially paid. */
+  outstandingAmount?: number;
   purchaseInvoiceId?: number;
   vendorPaymentId?: number;
   items: PurchaseOrderItem[];

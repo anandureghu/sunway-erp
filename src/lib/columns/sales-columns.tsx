@@ -103,9 +103,21 @@ export function createSalesOrderColumns(
     {
       accessorKey: "paymentStatus",
       header: "Payment Status",
-      cell: ({ row }) => (
-        <StatusBadge status={row.original.paymentStatus || "UNPAID"} />
-      ),
+      cell: ({ row }) => {
+        const status = row.original.paymentStatus || "UNPAID";
+        const remaining = row.original.outstandingAmount;
+        const isPartial = status.toUpperCase() === "PARTIALLY_PAID";
+        return (
+          <div className="space-y-0.5">
+            <StatusBadge status={status} />
+            {isPartial && remaining != null && (
+              <div className="text-xs text-muted-foreground">
+                Remaining: <CurrencyAmount amount={remaining} className="inline" />
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "total",

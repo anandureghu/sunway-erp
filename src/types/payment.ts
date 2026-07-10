@@ -31,6 +31,8 @@ export interface PaymentResponseDTO {
   invoiceOutstanding?: number | string | null;
   /** Total on linked invoice (confirm dialog). */
   invoiceTotal?: number | string | null;
+  /** Vendor's own invoice number recorded via "Match Vendor Invoice", when present. */
+  supplierInvoiceNumber?: string | null;
 
   createdAt: string;
 }

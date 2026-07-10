@@ -137,6 +137,22 @@ export const PAYMENT_COLUMNS = ({
         );
       },
     },
+    ...(variant === "vendor"
+      ? [
+          {
+            id: "vendorInvoiceCode",
+            header: "Vendor Invoice Code",
+            cell: ({ row }: { row: { original: PaymentResponseDTO } }) => {
+              const code = row.original.supplierInvoiceNumber;
+              return code ? (
+                <span className="font-mono text-sm">{code}</span>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       id: "receiptPdf",
       header: "Receipt PDF",
