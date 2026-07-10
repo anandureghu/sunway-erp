@@ -197,7 +197,8 @@ export function CreatePicklistForm({
                           o.status === "confirmed" || o.status === "completed";
                         const isPaid = o.paymentStatus === "PAID";
                         const hasActivePicklist = picklists.some(
-                          (pl) => pl.orderId === o.id && pl.status !== "cancelled",
+                          (pl) =>
+                            pl.orderId === o.id && pl.status !== "cancelled",
                         );
                         return eligibleStatus && isPaid && !hasActivePicklist;
                       })
@@ -290,7 +291,9 @@ export function CreatePicklistForm({
                   <div>
                     <p className="text-muted-foreground">Subtotal</p>
                     <p className="font-medium">
-                      <CurrencyAmount amount={selectedOrder.subtotalAmount ?? 0} />
+                      <CurrencyAmount
+                        amount={selectedOrder.subtotalAmount ?? 0}
+                      />
                     </p>
                   </div>
                   <div>
@@ -361,12 +364,12 @@ export function CreatePicklistForm({
               </CardContent>
             </Card>
             <input type="hidden" {...register("assignedTo")} />
-            <div className="flex gap-4">
+            <div className="flex gap-4 justify-end items-center">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onCancel}
-                className="flex-1"
+                className="w-fit"
               >
                 Cancel
               </Button>
@@ -379,7 +382,7 @@ export function CreatePicklistForm({
                   !selectedOrder ||
                   selectedOrder.items.length === 0
                 }
-                className="flex-1"
+                className="w-fit"
               >
                 {submitting ? "Generating..." : "Generate Picklist"}
               </Button>
