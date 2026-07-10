@@ -115,9 +115,7 @@ export default function PurchaseOrdersPage() {
     const draftCount = orders.filter(
       (o) => (o.status || "").toLowerCase() === "draft",
     ).length;
-    const terminalCount = orders.filter((o) =>
-      terminal(o.status),
-    ).length;
+    const terminalCount = orders.filter((o) => terminal(o.status)).length;
     const openCommitment = orders
       .filter((o) => !terminal(o.status))
       .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
@@ -148,7 +146,7 @@ export default function PurchaseOrdersPage() {
       ),
       kpiFilterItem(
         {
-          label: "Completed or cancelled POs",
+          label: "Completed or cancelled",
           value: terminalCount,
           hint: "Fully received or cancelled",
           accent: "emerald",

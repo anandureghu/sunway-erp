@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ShoppingBag,
   ShoppingCart,
   FileText,
   Package,
@@ -138,14 +137,6 @@ export default function SalesLandingPage() {
       cta: "Open Orders",
       icon: ShoppingCart,
       tone: "text-blue-600 bg-blue-100",
-    },
-    {
-      title: "Create New Sales Order",
-      description: "Start a new order with customer, items, and pricing.",
-      to: "/inventory/sales/orders/new",
-      cta: "Create Order",
-      icon: ShoppingBag,
-      tone: "text-emerald-600 bg-emerald-100",
     },
     {
       title: "Sales Invoices",

@@ -14,7 +14,6 @@ import {
   Users,
   Receipt,
   Clock,
-  ClipboardCheck,
   ArrowRight,
   ClipboardList,
 } from "lucide-react";
@@ -152,15 +151,7 @@ export default function PurchaseLandingPage() {
       icon: ClipboardList,
       tone: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-950/50",
     },
-    {
-      title: "Create New requisition",
-      description:
-        "Create a requisition",
-      to: "/inventory/purchase/requisitions/new",
-      cta: "Create requisition",
-      icon: ClipboardCheck,
-      tone: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50",
-    },
+
     {
       title: "Manage Purchase Orders",
       description: "Track Purchase Orders, statuses, and supplier commitments.",

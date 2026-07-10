@@ -479,6 +479,9 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
         <Table>
           <TableHeader className="bg-slate-50">
             <TableRow>
+              <TableHead className="font-semibold text-slate-600 w-12">
+                SL No.
+              </TableHead>
               <TableHead className="font-semibold text-slate-600">Staff Name</TableHead>
               <TableHead className="font-semibold text-slate-600">Role</TableHead>
               <TableHead className="font-semibold text-slate-600">Scope</TableHead>
@@ -492,7 +495,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
           <TableBody>
             {displayed.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <KeyRound className="h-12 w-12 text-slate-300" />
                     <p className="text-slate-500 font-medium">
@@ -505,7 +508,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
                 </TableCell>
               </TableRow>
             ) : (
-              pageItems.map((p) => {
+              pageItems.map((p, index) => {
                 const cnt = countActiveCaps(p.caps);
                 const pct = TOTAL_CAPS
                   ? Math.round((cnt / TOTAL_CAPS) * 100)
@@ -515,6 +518,9 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
                     key={p.id}
                     className={`hover:bg-slate-50/50 ${!p.active ? "opacity-50" : ""}`}
                   >
+                    <TableCell className="text-muted-foreground text-sm font-medium tabular-nums">
+                      {pageIndex * pageSize + index + 1}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {p.staffName ? (

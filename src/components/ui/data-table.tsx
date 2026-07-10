@@ -18,6 +18,24 @@ type DataTableProps<TData> = {
 
   // 👇 optional, only needed if you want sub-rows
   getSubRows?: (row: TData) => TData[] | undefined;
+  hideSlNo?: boolean;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SL_NO_COLUMN: ColumnDef<any, any> = {
+  id: "slNo",
+  header: "SL No.",
+  enableSorting: false,
+  cell: ({ row, table }) => {
+    const visualIndex = table
+      .getRowModel()
+      .rows.findIndex((r) => r.id === row.id);
+    return (
+      <span className="text-muted-foreground text-sm font-medium tabular-nums">
+        {visualIndex + 1}
+      </span>
+    );
+  },
 };
 
 export function DataTable<TData>({
@@ -25,13 +43,22 @@ export function DataTable<TData>({
   data,
   onRowClick,
   getSubRows,
+  hideSlNo = false,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
 
+  const allColumns = React.useMemo(
+    () =>
+      hideSlNo
+        ? columns
+        : ([SL_NO_COLUMN, ...columns] as ColumnDef<TData, any>[]),
+    [columns, hideSlNo],
+  );
+
   const table = useReactTable({
     data,
-    columns,
+    columns: allColumns,
     state: { sorting, expanded },
     onSortingChange: setSorting,
     onExpandedChange: setExpanded,
@@ -132,7 +159,7 @@ export function DataTable<TData>({
             <tr>
               <td
                 className="px-4 py-6 text-center text-gray-500"
-                colSpan={columns.length}
+                colSpan={allColumns.length}
               >
                 No rows
               </td>
