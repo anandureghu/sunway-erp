@@ -241,7 +241,7 @@ export function createPurchaseOrderColumns(
                 {canReceive && onReceiveGoods && (
                   <DropdownMenuItem onClick={() => onReceiveGoods(order.id)}>
                     <Package className="mr-2 h-4 w-4" />
-                    Record receipt
+                    Start inspection
                   </DropdownMenuItem>
                 )}
 
@@ -575,99 +575,148 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<FinanceInvoice>[] =
   createPurchaseInvoiceColumns();
 
 // Goods Receipt Columns
-export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] = [
-  {
-    accessorKey: "receiptNo",
-    header: "Receipt No",
-    cell: ({ row }) => {
-      return <span className="font-medium">{row.getValue("receiptNo")}</span>;
+export type GoodsReceiptColumnActions = {
+  onOpenReceipt?: (id: string) => void;
+  onArchive?: (id: string) => void;
+  processingReceiptId?: string | null;
+};
+
+const GOODS_RECEIPT_STATUS_COLORS: Record<string, string> = {
+  pending_inspection: "bg-yellow-100 text-yellow-800",
+  inspected: "bg-green-100 text-green-800",
+};
+
+function goodsReceiptStatusLabel(status: string): string {
+  return status
+    .replace(/_/g, " ")
+    .split(" ")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ");
+}
+
+export function createGoodsReceiptColumns(
+  actions: GoodsReceiptColumnActions = {},
+): ColumnDef<GoodsReceipt>[] {
+  const { onOpenReceipt, onArchive, processingReceiptId } = actions;
+
+  return [
+    {
+      accessorKey: "receiptNo",
+      header: "Receipt No",
+      cell: ({ row }) => {
+        return (
+          <span className="font-medium">{row.getValue("receiptNo")}</span>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "order.orderNo",
-    header: "Purchase Order",
-    cell: ({ row }) => {
-      return <span>{row.original.order?.orderNo || "N/A"}</span>;
+    {
+      accessorKey: "order.orderNo",
+      header: "Purchase Order",
+      cell: ({ row }) => {
+        return <span>{row.original.order?.orderNo || "N/A"}</span>;
+      },
     },
-  },
-  {
-    accessorKey: "receiptDate",
-    header: "Receipt Date",
-    cell: ({ row }) => {
-      const date = row.getValue("receiptDate") as string;
-      return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+    {
+      accessorKey: "receiptDate",
+      header: "Receipt Date",
+      cell: ({ row }) => {
+        const date = row.getValue("receiptDate") as string;
+        return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+      },
     },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      const statusColors: Record<string, string> = {
-        pending: "bg-gray-100 text-gray-800",
-        in_progress: "bg-yellow-100 text-yellow-800",
-        completed: "bg-green-100 text-green-800",
-        cancelled: "bg-red-100 text-red-800",
-      };
-      return (
-        <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
-          {status
-            .replace("_", " ")
-            .split(" ")
-            .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-            .join(" ")}
-        </Badge>
-      );
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        return (
+          <Badge
+            className={
+              GOODS_RECEIPT_STATUS_COLORS[status] || "bg-gray-100 text-gray-800"
+            }
+          >
+            {goodsReceiptStatusLabel(status)}
+          </Badge>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "items",
-    header: "Items",
-    cell: ({ row }) => {
-      return <span>{row.original.items.length} items</span>;
+    {
+      accessorKey: "items",
+      header: "Items",
+      cell: ({ row }) => {
+        return <span>{row.original.items.length} items</span>;
+      },
     },
-  },
-  {
-    id: "receiptPdf",
-    header: "Receipt PDF",
-    cell: ({ row }) => {
-      const url = row.original.documentPdfUrl;
-      if (!url) {
-        return <span className="text-muted-foreground text-sm">—</span>;
-      }
-      return (
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-primary text-sm underline"
-          onClick={(e) => e.stopPropagation()}
-        >
-          Open
-        </a>
-      );
+    {
+      id: "receiptPdf",
+      header: "Receipt PDF",
+      cell: ({ row }) => {
+        const url = row.original.documentPdfUrl;
+        if (!url) {
+          return <span className="text-muted-foreground text-sm">—</span>;
+        }
+        return (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary text-sm underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Open
+          </a>
+        );
+      },
     },
-  },
-  {
-    id: "actions",
-    cell: () => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>
-              <Eye className="mr-2 h-4 w-4" />
-              View Details
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const receipt = row.original;
+        const canArchive = receipt.status === "inspected" && !receipt.archived;
+        const isProcessing = processingReceiptId === receipt.id;
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {onOpenReceipt && (
+                  <DropdownMenuItem onClick={() => onOpenReceipt(receipt.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </DropdownMenuItem>
+                )}
+                {canArchive && onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={isProcessing}
+                      onClick={() => onArchive(receipt.id)}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="mr-2 h-4 w-4" />
+                      )}
+                      {isProcessing ? "Archiving..." : "Archive"}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
     },
-  },
-];
+  ];
+}
+
+// Backward compatibility - export default columns without handlers
+export const GOODS_RECEIPT_COLUMNS: ColumnDef<GoodsReceipt>[] =
+  createGoodsReceiptColumns();

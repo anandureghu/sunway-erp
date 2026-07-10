@@ -240,11 +240,7 @@ export type PurchaseOrder = {
 };
 
 // Goods Receipt Types
-export type GoodsReceiptStatus =
-  | "pending"
-  | "in_progress"
-  | "completed"
-  | "cancelled";
+export type GoodsReceiptStatus = "pending_inspection" | "inspected";
 
 export type QualityInspectionStatus =
   | "pending"
@@ -263,19 +259,25 @@ export type GoodsReceiptItem = {
   id: string;
   receiptId: string;
   orderItemId: string;
+  /** The exact purchase order line this was received against. */
+  purchaseOrderItemId?: string;
   orderItem?: PurchaseOrderItem;
   itemId: number;
   item?: PurchaseItemRef;
+  /** Snapshot, at receive time, of the PO line's remaining orderable quantity. */
   orderedQuantity: number;
   receivedQuantity: number;
-  acceptedQuantity: number;
-  rejectedQuantity: number;
+  acceptedQuantity?: number;
+  rejectedQuantity?: number;
   qualityStatus: QualityInspectionStatus;
   batchNo?: string;
   lotNo?: string;
   expiryDate?: string;
-  warehouseId: string;
+  warehouseId?: string;
   warehouse?: Warehouse;
+  unitCost?: number;
+  /** Set once this line's accepted quantity has been posted to inventory. */
+  stockedAt?: string | null;
   notes?: string;
 };
 
@@ -288,6 +290,7 @@ export type GoodsReceipt = {
   /** Backend-generated goods receipt PDF (public URL). */
   documentPdfUrl?: string | null;
   status: GoodsReceiptStatus;
+  archived?: boolean;
   items: GoodsReceiptItem[];
   receivedBy?: string;
   receivedByName?: string;

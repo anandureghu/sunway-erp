@@ -704,20 +704,38 @@ export interface GoodsReceiptCreateDTO {
   purchaseOrderId: number;
   items: Array<{
     itemId: number;
-    warehouseId: number;
+    /** Precise PO line to receive against; required when an item appears on more than one line. */
+    purchaseOrderItemId?: number;
     receivedQty: number;
+    remarks?: string;
+  }>;
+}
+
+export interface InspectionConfirmDTO {
+  items: Array<{
+    goodsReceiptItemId: number;
     acceptedQty: number;
     rejectedQty: number;
     remarks?: string;
+  }>;
+}
+
+export interface StockPostingDTO {
+  items: Array<{
+    goodsReceiptItemId: number;
+    warehouseId: number;
     batchNo?: string;
     lotNo?: string;
     unitCost?: number;
+    expiryDate?: string;
   }>;
 }
 
 export interface GoodsReceiptResponseDTO {
   id: number;
   purchaseOrderId: number;
+  status: "PENDING_INSPECTION" | "INSPECTED";
+  archived: boolean;
   receivedAt: string;
   receivedById?: number | null;
   receivedByName?: string | null;
@@ -728,33 +746,53 @@ export interface GoodsReceiptResponseDTO {
   authorizedByName?: string | null;
   documentPdfUrl?: string | null;
   items: Array<{
+    id: number;
     itemId: number;
+    purchaseOrderItemId?: number | null;
+    orderedQuantity: number;
     warehouseId?: number;
     warehouseName?: string | null;
     receivedQty: number;
-    acceptedQty: number;
-    rejectedQty: number;
+    acceptedQty?: number | null;
+    rejectedQty?: number | null;
     remarks?: string;
     batchNo?: string;
     lotNo?: string;
     unitCost?: number;
+    stockedAt?: string | null;
   }>;
 }
 
 import type { GoodsReceipt, GoodsReceiptItem } from "@/types/purchase";
 
+function toQualityStatus(
+  status: GoodsReceiptResponseDTO["status"],
+  acceptedQty?: number | null,
+  rejectedQty?: number | null,
+): GoodsReceiptItem["qualityStatus"] {
+  if (status === "PENDING_INSPECTION" || acceptedQty == null) {
+    return "pending";
+  }
+  return (rejectedQty ?? 0) > 0 ? "partial" : "passed";
+}
+
 function toGoodsReceipt(
   dto: GoodsReceiptResponseDTO,
   order?: PurchaseOrder,
 ): GoodsReceipt {
-  const items: GoodsReceiptItem[] = (dto.items || []).map((li, idx) => {
+  const items: GoodsReceiptItem[] = (dto.items || []).map((li) => {
     const orderItem = order?.items.find(
       (oi) => String(oi.itemId) === String(li.itemId),
     );
     return {
-      id: `gri-${dto.id}-${idx}`,
+      id: String(li.id),
       receiptId: String(dto.id),
-      orderItemId: orderItem?.id || `poi-${dto.purchaseOrderId}-${idx}`,
+      orderItemId:
+        li.purchaseOrderItemId != null
+          ? String(li.purchaseOrderItemId)
+          : orderItem?.id || `poi-${dto.purchaseOrderId}-${li.id}`,
+      purchaseOrderItemId:
+        li.purchaseOrderItemId != null ? String(li.purchaseOrderItemId) : undefined,
       orderItem: orderItem,
       itemId: li.itemId,
       item: orderItem
@@ -766,15 +804,13 @@ function toGoodsReceipt(
               undefined,
           }
         : undefined,
-      orderedQuantity: orderItem?.quantity || 0,
+      orderedQuantity: Number(li.orderedQuantity ?? orderItem?.quantity ?? 0),
       receivedQuantity: Number(li.receivedQty || 0),
-      acceptedQuantity: Number(li.acceptedQty || 0),
-      rejectedQuantity: Number(li.rejectedQty || 0),
-      qualityStatus: (li.rejectedQty > 0 ? "partial" : "passed") as any,
+      acceptedQuantity: li.acceptedQty != null ? Number(li.acceptedQty) : undefined,
+      rejectedQuantity: li.rejectedQty != null ? Number(li.rejectedQty) : undefined,
+      qualityStatus: toQualityStatus(dto.status, li.acceptedQty, li.rejectedQty),
       warehouseId:
-        li.warehouseId != null && li.warehouseId !== undefined
-          ? String(li.warehouseId)
-          : orderItem?.warehouseId || "",
+        li.warehouseId != null ? String(li.warehouseId) : undefined,
       warehouse:
         li.warehouseId != null || li.warehouseName
           ? {
@@ -785,6 +821,8 @@ function toGoodsReceipt(
               createdAt: "",
             }
           : undefined,
+      unitCost: li.unitCost,
+      stockedAt: li.stockedAt ?? null,
       notes: li.remarks,
     };
   });
@@ -796,7 +834,8 @@ function toGoodsReceipt(
     order: order,
     receiptDate: dto.receivedAt || "",
     documentPdfUrl: dto.documentPdfUrl ?? null,
-    status: "completed" as const,
+    status: dto.status === "INSPECTED" ? "inspected" : "pending_inspection",
+    archived: dto.archived,
     items,
     receivedBy:
       dto.receivedById != null ? String(dto.receivedById) : undefined,
@@ -827,7 +866,11 @@ export async function getGoodsReceiptPdfUrl(
 }
 
 // --- Goods Receipts ---
-export async function createGoodsReceipt(payload: GoodsReceiptCreateDTO) {
+
+/** Intake step: logs what physically arrived against a PO, pending inspection. */
+export async function createGoodsReceiptForInspection(
+  payload: GoodsReceiptCreateDTO,
+) {
   const res = await apiClient.post<GoodsReceiptResponseDTO>(
     "/purchase/receipts",
     payload,
@@ -840,6 +883,65 @@ export async function createGoodsReceipt(payload: GoodsReceiptCreateDTO) {
     console.warn("Could not fetch order for receipt:", e);
   }
   return toGoodsReceipt(res.data, order);
+}
+
+/** QA sign-off: confirms accepted/rejected quantities per line. */
+export async function confirmGoodsReceiptInspection(
+  receiptId: string | number,
+  payload: InspectionConfirmDTO,
+) {
+  const res = await apiClient.post<GoodsReceiptResponseDTO>(
+    `/purchase/receipts/${receiptId}/confirm-inspection`,
+    payload,
+  );
+  let order: PurchaseOrder | undefined;
+  try {
+    order = await getPurchaseOrder(res.data.purchaseOrderId);
+  } catch (e) {
+    console.warn("Could not fetch order for receipt:", e);
+  }
+  return toGoodsReceipt(res.data, order);
+}
+
+/** Posts an inspected line's accepted quantity into a warehouse stock batch. */
+export async function postGoodsReceiptItemsToStock(
+  receiptId: string | number,
+  payload: StockPostingDTO,
+) {
+  const res = await apiClient.post<GoodsReceiptResponseDTO>(
+    `/purchase/receipts/${receiptId}/post-stock`,
+    payload,
+  );
+  let order: PurchaseOrder | undefined;
+  try {
+    order = await getPurchaseOrder(res.data.purchaseOrderId);
+  } catch (e) {
+    console.warn("Could not fetch order for receipt:", e);
+  }
+  return toGoodsReceipt(res.data, order);
+}
+
+/** Inspected, non-archived receipts with at least one accepted line not yet posted to stock. */
+export async function listInspectedReceiptsAwaitingStock(
+  orders?: PurchaseOrder[],
+): Promise<GoodsReceipt[]> {
+  const res = await apiClient.get<GoodsReceiptResponseDTO[]>(
+    "/purchase/receipts/awaiting-stock",
+  );
+  const orderById = new Map(
+    (orders ?? []).map((order) => [String(order.id), order]),
+  );
+  return (res.data || []).map((dto) => {
+    const order = orderById.get(String(dto.purchaseOrderId));
+    return toGoodsReceipt(dto, order);
+  });
+}
+
+export async function archiveGoodsReceipt(id: string | number) {
+  const res = await apiClient.post<GoodsReceiptResponseDTO>(
+    `/purchase/receipts/${id}/archive`,
+  );
+  return toGoodsReceipt(res.data);
 }
 
 export async function listGoodsReceipts(

@@ -370,7 +370,7 @@ export default function PurchaseOrdersPage() {
         processingOrderId: actionState?.id ?? null,
         processingAction: actionState?.type ?? null,
         onReceiveGoods: (orderId) =>
-          navigate("/inventory/purchase/receiving", {
+          navigate("/inventory/purchase/inspection", {
             state: { openReceiveForOrderId: orderId },
           }),
         onViewRequisition: (reqId) =>

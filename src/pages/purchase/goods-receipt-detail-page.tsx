@@ -31,10 +31,8 @@ import { cn } from "@/lib/utils";
 const BASE = "/inventory/purchase";
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
+  pending_inspection: "bg-yellow-100 text-yellow-800",
+  inspected: "bg-green-100 text-green-800",
 };
 
 const QUALITY_COLORS: Record<string, string> = {
@@ -265,7 +263,7 @@ export default function GoodsReceiptDetailPage() {
           </div>
           <Button
             variant="outline"
-            onClick={() => navigate(`${BASE}/receiving`)}
+            onClick={() => navigate(`${BASE}/inspection`)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Go Back
@@ -287,11 +285,11 @@ export default function GoodsReceiptDetailPage() {
     0,
   );
   const totalAccepted = receipt.items.reduce(
-    (sum, item) => sum + item.acceptedQuantity,
+    (sum, item) => sum + (item.acceptedQuantity ?? 0),
     0,
   );
   const totalRejected = receipt.items.reduce(
-    (sum, item) => sum + item.rejectedQuantity,
+    (sum, item) => sum + (item.rejectedQuantity ?? 0),
     0,
   );
   const handlePrint = async () => {
@@ -319,8 +317,8 @@ export default function GoodsReceiptDetailPage() {
         <div>
           <PurchasePageHeader
             title={receipt.receiptNo}
-            description="Receiving and quality inspection details for this goods receipt."
-            backHref={`${BASE}/receiving`}
+            description="Inspection and stock posting details for this goods receipt."
+            backHref={`${BASE}/inspection`}
             actions={
               <>
                 <Button
@@ -339,6 +337,11 @@ export default function GoodsReceiptDetailPage() {
                 >
                   {formatLabel(receipt.status)}
                 </Badge>
+                {receipt.archived && (
+                  <Badge className="bg-slate-200 text-slate-700">
+                    Archived
+                  </Badge>
+                )}
               </>
             }
           />
@@ -611,10 +614,10 @@ export default function GoodsReceiptDetailPage() {
                                 {item.receivedQuantity}
                               </td>
                               <td className="py-3 pr-4 text-right font-medium tabular-nums text-green-700">
-                                {item.acceptedQuantity}
+                                {item.acceptedQuantity ?? "—"}
                               </td>
                               <td className="py-3 pr-4 text-right font-medium tabular-nums text-red-700">
-                                {item.rejectedQuantity}
+                                {item.rejectedQuantity ?? "—"}
                               </td>
                               <td className="py-3 pr-4 text-center">
                                 <Badge

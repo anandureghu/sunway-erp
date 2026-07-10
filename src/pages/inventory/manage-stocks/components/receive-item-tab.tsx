@@ -20,38 +20,28 @@ import {
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { receiveItemStock } from "@/service/inventoryService";
 import {
-  getPurchaseOrder,
-  listPurchaseOrders,
+  listInspectedReceiptsAwaitingStock,
+  postGoodsReceiptItemsToStock,
 } from "@/service/purchaseFlowService";
-import type { PurchaseOrder, PurchaseOrderItem } from "@/types/purchase";
+import type { GoodsReceipt, GoodsReceiptItem } from "@/types/purchase";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { PackageCheck, Plus, X } from "lucide-react";
+import { PackageCheck, Plus, X, PackageSearch, Boxes } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import CreateItemForm from "../../item-form";
 import { filterItemsByQuery } from "../use-manage-stocks";
 import { ItemSearchCombobox } from "./item-search-combobox";
 
-const RECEIVABLE_PO_STATUSES = new Set([
-  "confirmed",
-  "ordered",
-  "approved",
-  "partially_received",
-]);
-
-function isReceivablePurchaseOrder(status?: string): boolean {
-  return RECEIVABLE_PO_STATUSES.has((status ?? "").toLowerCase());
-}
-
-function findInventoryItemForPoLine(
+function findInventoryItemForItemId(
   items: ItemResponseDTO[],
-  poLine: PurchaseOrderItem,
+  itemId: number,
   preferredWarehouseId?: string,
 ): ItemResponseDTO | null {
-  const matches = items.filter((i) => i.id === poLine.itemId);
+  const matches = items.filter((i) => i.id === itemId);
   if (matches.length === 0) return null;
   if (preferredWarehouseId) {
     const warehouseMatch = matches.find(
@@ -77,6 +67,15 @@ function getRequestErrorMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
   return "Failed to receive stock";
 }
+
+/** Lines on an awaiting-stock receipt that still need a warehouse/batch posting. */
+function awaitingStockLines(receipt: GoodsReceipt): GoodsReceiptItem[] {
+  return receipt.items.filter(
+    (line) => (line.acceptedQuantity ?? 0) > 0 && !line.stockedAt,
+  );
+}
+
+type ReceiveMode = "po" | "freeform";
 
 type ReceiveItemTabProps = {
   items: ItemResponseDTO[];
@@ -104,36 +103,33 @@ export function ReceiveItemTab({
     },
   });
 
+  const [mode, setMode] = useState<ReceiveMode>("po");
   const [selectedItem, setSelectedItem] = useState<ItemResponseDTO | null>(
     null,
   );
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [showCreateItemDialog, setShowCreateItemDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [selectedPurchaseOrder, setSelectedPurchaseOrder] =
-    useState<PurchaseOrder | null>(null);
-  const [selectedPoLineIndex, setSelectedPoLineIndex] = useState(0);
-  const [loadingPoDetails, setLoadingPoDetails] = useState(false);
+  const [awaitingStockReceipts, setAwaitingStockReceipts] = useState<
+    GoodsReceipt[]
+  >([]);
+  const [selectedReceipt, setSelectedReceipt] = useState<GoodsReceipt | null>(
+    null,
+  );
+  const [selectedLineId, setSelectedLineId] = useState<string>("");
+  const [loadingReceipts, setLoadingReceipts] = useState(false);
   const selectedWarehouseId = watch("warehouseId");
 
-  const receivablePurchaseOrders = useMemo(
-    () => purchaseOrders.filter((po) => isReceivablePurchaseOrder(po.status)),
-    [purchaseOrders],
-  );
+  const refreshAwaitingStock = () => {
+    setLoadingReceipts(true);
+    listInspectedReceiptsAwaitingStock()
+      .then((data) => setAwaitingStockReceipts(data))
+      .catch(() => setAwaitingStockReceipts([]))
+      .finally(() => setLoadingReceipts(false));
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    listPurchaseOrders()
-      .then((data) => {
-        if (!cancelled) setPurchaseOrders(data);
-      })
-      .catch(() => {
-        if (!cancelled) setPurchaseOrders([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+    refreshAwaitingStock();
   }, []);
 
   const searchResults = useMemo(() => {
@@ -160,95 +156,64 @@ export function ReceiveItemTab({
 
   const quantityOnHand = stockRowForSelection?.quantity ?? null;
 
-  const applyPoLineToForm = (poLine: PurchaseOrderItem) => {
-    const inventoryItem = findInventoryItemForPoLine(
+  const selectedReceiptLines = useMemo(
+    () => (selectedReceipt ? awaitingStockLines(selectedReceipt) : []),
+    [selectedReceipt],
+  );
+
+  const applyGrLineToForm = (line: GoodsReceiptItem) => {
+    const inventoryItem = findInventoryItemForItemId(
       items,
-      poLine,
+      line.itemId,
       selectedWarehouseId,
     );
     if (!inventoryItem) {
       toast.error(
-        `Item "${poLine.itemName ?? poLine.itemId}" was not found in inventory`,
+        `Item "${line.item?.name ?? line.itemId}" was not found in inventory`,
       );
       return;
     }
 
     setSelectedItem(inventoryItem);
     setValue("itemId", inventoryItem.id.toString(), { shouldValidate: true });
-    setValue("warehouseId", String(inventoryItem.warehouse_id), {
+    setValue(
+      "warehouseId",
+      inventoryItem.warehouse_id != null ? String(inventoryItem.warehouse_id) : "",
+      { shouldValidate: true },
+    );
+    setValue("quantityReceived", line.acceptedQuantity ?? 0, {
       shouldValidate: true,
     });
 
-    const remainingQty = Math.max(
-      poLine.quantity - (poLine.receivedQuantity ?? 0),
-      0,
-    );
-    setValue(
-      "quantityReceived",
-      remainingQty > 0 ? remainingQty : poLine.quantity,
-      { shouldValidate: true },
-    );
-
     const costPrice =
-      poLine.unitPrice ??
-      poLine.otherUnitCost ??
-      poLine.actualItemPrice ??
-      inventoryItem.costPrice;
+      line.unitCost ?? line.orderItem?.unitCost ?? inventoryItem.costPrice;
     if (costPrice != null) {
       setValue("costPrice", Number(costPrice), { shouldValidate: true });
     }
-
-    const unitPrice = inventoryItem.sellingPrice ?? poLine.unitPrice;
-    if (unitPrice != null) {
-      setValue("unitPrice", Number(unitPrice), { shouldValidate: true });
-    }
+    setValue("batchNo", line.batchNo ?? "");
+    setValue("serialNo", line.lotNo ?? "");
 
     setItemSearchQuery(inventoryItem.name);
   };
 
-  const handlePurchaseOrderChange = async (orderNo: string) => {
-    setValue("referenceNo", orderNo);
-
-    let po =
-      receivablePurchaseOrders.find((p) => p.orderNo === orderNo) ?? null;
-    if (!po) return;
-
-    setSelectedPurchaseOrder(po);
-
-    if (!po.items?.length) {
-      setLoadingPoDetails(true);
-      try {
-        po = await getPurchaseOrder(po.id);
-        setPurchaseOrders((prev) =>
-          prev.map((existing) => (existing.id === po!.id ? po! : existing)),
-        );
-        setSelectedPurchaseOrder(po);
-      } catch {
-        toast.error("Failed to load purchase order details");
-        return;
-      } finally {
-        setLoadingPoDetails(false);
-      }
+  const handleReceiptChange = (receiptId: string) => {
+    const receipt = awaitingStockReceipts.find((r) => r.id === receiptId) ?? null;
+    setSelectedReceipt(receipt);
+    setSelectedLineId("");
+    setSelectedItem(null);
+    setItemSearchQuery("");
+    if (!receipt) return;
+    const lines = awaitingStockLines(receipt);
+    if (lines.length > 0) {
+      setSelectedLineId(lines[0].id);
+      applyGrLineToForm(lines[0]);
     }
-
-    if (!po.items?.length) {
-      toast.error("Selected purchase order has no line items");
-      return;
-    }
-
-    const matchingLineIndex =
-      selectedItem != null
-        ? po.items.findIndex((line) => line.itemId === selectedItem.id)
-        : -1;
-    const lineIndex = matchingLineIndex >= 0 ? matchingLineIndex : 0;
-    setSelectedPoLineIndex(lineIndex);
-    applyPoLineToForm(po.items[lineIndex]);
   };
 
-  const handlePoLineChange = (lineIndex: number) => {
-    if (!selectedPurchaseOrder?.items?.[lineIndex]) return;
-    setSelectedPoLineIndex(lineIndex);
-    applyPoLineToForm(selectedPurchaseOrder.items[lineIndex]);
+  const handleLineChange = (lineId: string) => {
+    setSelectedLineId(lineId);
+    const line = selectedReceiptLines.find((l) => l.id === lineId);
+    if (line) applyGrLineToForm(line);
   };
 
   const handleItemSelect = (item: ItemResponseDTO) => {
@@ -258,45 +223,60 @@ export function ReceiveItemTab({
       shouldValidate: true,
     });
     setItemSearchQuery("");
+  };
 
-    if (selectedPurchaseOrder?.items?.length) {
-      const matchingLineIndex = selectedPurchaseOrder.items.findIndex(
-        (line) => line.itemId === item.id,
-      );
-      if (matchingLineIndex >= 0) {
-        setSelectedPoLineIndex(matchingLineIndex);
-        applyPoLineToForm(selectedPurchaseOrder.items[matchingLineIndex]);
-      }
-    }
+  const resetForm = () => {
+    reset({
+      receivedDate: format(new Date(), "yyyy-MM-dd"),
+      quantityReceived: 0,
+      itemId: "",
+      warehouseId: "",
+      referenceNo: "",
+    });
+    setSelectedItem(null);
+    setSelectedReceipt(null);
+    setSelectedLineId("");
+    setItemSearchQuery("");
   };
 
   const onReceiveItem = async (data: ReceiveItemFormData) => {
     setSubmitting(true);
     try {
-      await receiveItemStock(data.itemId, {
-        quantityReceived: data.quantityReceived,
-        receivedDate: data.receivedDate,
-        expiryDate: data.expiryDate || undefined,
-        batchNo: data.batchNo,
-        serialNo: data.serialNo,
-        referenceNo: data.referenceNo,
-        warehouseId: Number(data.warehouseId),
-        costPrice: data.costPrice,
-        unitPrice: data.unitPrice,
-      });
-      toast.success("Stock received");
+      if (mode === "po") {
+        if (!selectedReceipt || !selectedLineId) {
+          toast.error("Select a confirmed-inspection receipt and line first.");
+          return;
+        }
+        await postGoodsReceiptItemsToStock(selectedReceipt.id, {
+          items: [
+            {
+              goodsReceiptItemId: Number(selectedLineId),
+              warehouseId: Number(data.warehouseId),
+              batchNo: data.batchNo,
+              lotNo: data.serialNo,
+              unitCost: data.costPrice,
+              expiryDate: data.expiryDate || undefined,
+            },
+          ],
+        });
+        toast.success("Stock received");
+        refreshAwaitingStock();
+      } else {
+        await receiveItemStock(data.itemId, {
+          quantityReceived: data.quantityReceived,
+          receivedDate: data.receivedDate,
+          expiryDate: data.expiryDate || undefined,
+          batchNo: data.batchNo,
+          serialNo: data.serialNo,
+          referenceNo: data.referenceNo,
+          warehouseId: Number(data.warehouseId),
+          costPrice: data.costPrice,
+          unitPrice: data.unitPrice,
+        });
+        toast.success("Stock received");
+      }
       await onStockUpdated();
-      reset({
-        receivedDate: format(new Date(), "yyyy-MM-dd"),
-        quantityReceived: 0,
-        itemId: "",
-        warehouseId: "",
-        referenceNo: "",
-      });
-      setSelectedItem(null);
-      setSelectedPurchaseOrder(null);
-      setSelectedPoLineIndex(0);
-      setItemSearchQuery("");
+      resetForm();
     } catch (e: unknown) {
       toast.error(getRequestErrorMessage(e));
     } finally {
@@ -306,6 +286,41 @@ export function ReceiveItemTab({
 
   return (
     <div className="space-y-6 mt-6">
+      <div className="inline-flex rounded-lg border bg-muted p-1">
+        <button
+          type="button"
+          onClick={() => {
+            setMode("po");
+            resetForm();
+          }}
+          className={cn(
+            "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            mode === "po"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <PackageSearch className="h-4 w-4" />
+          Receive against Purchase Order
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMode("freeform");
+            resetForm();
+          }}
+          className={cn(
+            "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            mode === "freeform"
+              ? "bg-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Boxes className="h-4 w-4" />
+          Receive without reference
+        </button>
+      </div>
+
       <form onSubmit={handleSubmit(onReceiveItem)} className="space-y-6">
         <Card>
           <CardHeader>
@@ -315,101 +330,108 @@ export function ReceiveItemTab({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Reference No. (Purchase Order)
-              </label>
-              <Select
-                value={watch("referenceNo") || ""}
-                onValueChange={handlePurchaseOrderChange}
-                disabled={loadingPoDetails}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      loadingPoDetails
-                        ? "Loading purchase order…"
-                        : "Select Purchase Order number"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {receivablePurchaseOrders.map((po) => (
-                    <SelectItem key={po.id} value={po.orderNo}>
-                      {po.orderNo}
-                      {po.supplierName ? ` — ${po.supplierName}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedPurchaseOrder && selectedPurchaseOrder.items.length > 1 && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  PO Line Item
-                </label>
-                <Select
-                  value={String(selectedPoLineIndex)}
-                  onValueChange={(value) =>
-                    handlePoLineChange(Number.parseInt(value, 10))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select line item" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedPurchaseOrder.items.map((line, index) => (
-                      <SelectItem key={line.id} value={String(index)}>
-                        {line.itemName ?? `Item #${line.itemId}`} — Qty{" "}
-                        {line.quantity}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="relative">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">
-                  Item Code / SKU / Barcode
-                </span>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  onClick={() => setShowCreateItemDialog(true)}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add New Item
-                </Button>
-              </div>
-              <ItemSearchCombobox
-                label=""
-                query={itemSearchQuery}
-                onQueryChange={setItemSearchQuery}
-                results={searchResults}
-                onSelect={handleItemSelect}
-                hiddenInputProps={register("itemId")}
-                errorText={errors.itemId?.message}
-              />
-              {itemSearchQuery.length > 0 && searchResults.length === 0 && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    No items found.{" "}
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateItemDialog(true)}
-                      className="font-semibold underline hover:text-blue-900"
-                    >
-                      Click here to create a new item
-                    </button>
+            {mode === "po" ? (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Reference No. (Goods Receipt)
+                  </label>
+                  <Select
+                    value={selectedReceipt?.id || ""}
+                    onValueChange={handleReceiptChange}
+                    disabled={loadingReceipts}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          loadingReceipts
+                            ? "Loading confirmed receipts…"
+                            : awaitingStockReceipts.length === 0
+                              ? "No confirmed-inspection receipts awaiting stock"
+                              : "Select goods receipt"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {awaitingStockReceipts.map((receipt) => (
+                        <SelectItem key={receipt.id} value={receipt.id}>
+                          {receipt.receiptNo} — {receipt.order?.orderNo ?? receipt.orderId}
+                          {receipt.order
+                            ? ` — ${receipt.order.supplierName ?? receipt.order.supplier?.name ?? ""}`
+                            : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Only receipts with confirmed inspection outcomes are listed
+                    here, capped at their accepted quantity.
                   </p>
                 </div>
-              )}
-            </div>
+
+                {selectedReceipt && selectedReceiptLines.length > 1 && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Receipt Line Item
+                    </label>
+                    <Select value={selectedLineId} onValueChange={handleLineChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select line item" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedReceiptLines.map((line) => (
+                          <SelectItem key={line.id} value={line.id}>
+                            {line.item?.name ?? `Item #${line.itemId}`} — Accepted{" "}
+                            {line.acceptedQuantity}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="relative">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">
+                    Item Code / SKU / Barcode
+                  </span>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={() => setShowCreateItemDialog(true)}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add New Item
+                  </Button>
+                </div>
+                <ItemSearchCombobox
+                  label=""
+                  query={itemSearchQuery}
+                  onQueryChange={setItemSearchQuery}
+                  results={searchResults}
+                  onSelect={handleItemSelect}
+                  hiddenInputProps={register("itemId")}
+                  errorText={errors.itemId?.message}
+                />
+                {itemSearchQuery.length > 0 && searchResults.length === 0 && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-800">
+                      No items found.{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateItemDialog(true)}
+                        className="font-semibold underline hover:text-blue-900"
+                      >
+                        Click here to create a new item
+                      </button>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {selectedItem && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -507,17 +529,19 @@ export function ReceiveItemTab({
                   </div>
                 )}
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Received Date
-                  </label>
-                  <Input type="date" {...register("receivedDate")} />
-                  {errors.receivedDate && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.receivedDate.message}
-                    </p>
-                  )}
-                </div>
+                {mode === "freeform" && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Received Date
+                    </label>
+                    <Input type="date" {...register("receivedDate")} />
+                    {errors.receivedDate && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {errors.receivedDate.message}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
@@ -538,10 +562,10 @@ export function ReceiveItemTab({
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    Serial No.
+                    {mode === "po" ? "Lot No." : "Serial No."}
                   </label>
                   <Input
-                    placeholder="Serial number"
+                    placeholder={mode === "po" ? "Lot number" : "Serial number"}
                     {...register("serialNo")}
                   />
                 </div>
@@ -555,6 +579,7 @@ export function ReceiveItemTab({
                     step="0.01"
                     min="0"
                     placeholder="Enter quantity"
+                    disabled={mode === "po"}
                     {...register("quantityReceived", {
                       valueAsNumber: true,
                     })}
@@ -565,7 +590,9 @@ export function ReceiveItemTab({
                     </p>
                   )}
                   <p className="text-sm text-gray-600 mt-2">
-                    Unit: {selectedItem.unitMeasure}
+                    {mode === "po"
+                      ? "Fixed to the accepted quantity from inspection."
+                      : `Unit: ${selectedItem.unitMeasure}`}
                   </p>
                 </div>
 
@@ -590,23 +617,25 @@ export function ReceiveItemTab({
                   </p>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Unit Price
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Enter unit price"
-                    {...register("unitPrice", { valueAsNumber: true })}
-                  />
-                  {errors.unitPrice && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.unitPrice.message}
-                    </p>
-                  )}
-                </div>
+                {mode === "freeform" && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Unit Price
+                    </label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Enter unit price"
+                      {...register("unitPrice", { valueAsNumber: true })}
+                    />
+                    {errors.unitPrice && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {errors.unitPrice.message}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -614,13 +643,7 @@ export function ReceiveItemTab({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  reset();
-                  setSelectedItem(null);
-                  setSelectedPurchaseOrder(null);
-                  setSelectedPoLineIndex(0);
-                  setItemSearchQuery("");
-                }}
+                onClick={resetForm}
                 disabled={submitting}
               >
                 Cancel
@@ -628,7 +651,9 @@ export function ReceiveItemTab({
               <Button
                 type="submit"
                 className="bg-green-600 hover:bg-green-700"
-                disabled={submitting}
+                disabled={
+                  submitting || (mode === "po" && !selectedLineId) || !selectedItem
+                }
               >
                 {submitting ? "Saving…" : "Receive Item"}
               </Button>

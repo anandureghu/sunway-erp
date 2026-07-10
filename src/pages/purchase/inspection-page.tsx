@@ -1,33 +1,39 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GOODS_RECEIPT_COLUMNS } from "@/lib/columns/purchase-columns";
+import { createGoodsReceiptColumns } from "@/lib/columns/purchase-columns";
 import {
   Plus,
   Search,
   ClipboardCheck,
   Package,
-  Truck,
   CheckCircle2,
   ClipboardList,
+  Hourglass,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import {
   listPurchaseOrders,
   listGoodsReceipts,
+  createGoodsReceiptForInspection,
+  confirmGoodsReceiptInspection,
+  archiveGoodsReceipt,
 } from "@/service/purchaseFlowService";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import type { GoodsReceipt, PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
-import type { Row } from "@tanstack/react-table";
-import { listItems, listWarehouses } from "@/service/inventoryService";
-import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import type { Warehouse } from "@/types/inventory";
+import type { Row, RowSelectionState } from "@tanstack/react-table";
 import { listVendors } from "@/service/vendorService";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
@@ -44,6 +50,7 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
   return (
@@ -73,41 +80,49 @@ function orderDeliveryLabel(order: PurchaseOrder): string {
   return "No date set";
 }
 
-type ReceivingListTab = "ready" | "receipts";
+type InspectionListTab = "ready" | "pending" | "inspected";
 
-export default function ReceivingPage() {
+export default function InspectionPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { confirm } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState("");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showStartForm, setShowStartForm] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  const [inspectingReceipt, setInspectingReceipt] = useState<GoodsReceipt | null>(
+    null,
+  );
   const [receipts, setReceipts] = useState<GoodsReceipt[]>([]);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
-  const [activeTab, setActiveTab] = useState<ReceivingListTab>("ready");
-  const [receiptStatusFilter, setReceiptStatusFilter] = useState<
-    "all" | "completed" | "open"
-  >("all");
+  const [activeTab, setActiveTab] = useState<InspectionListTab>("ready");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
 
   const handleRowClick = useCallback(
     (row: Row<GoodsReceipt>) => {
       const receipt = row.original;
-      navigate(`/inventory/purchase/receiving/${receipt.id}`);
+      if (receipt.status === "pending_inspection") {
+        setInspectingReceipt(receipt);
+        return;
+      }
+      navigate(`/inventory/purchase/inspection/${receipt.id}`);
     },
     [navigate],
   );
 
-  // Deep-link from PO list/detail: open receipt form for a PO
+  // Deep-link from PO list/detail: open the start-inspection form for a PO
   useEffect(() => {
     const st = location.state as { openReceiveForOrderId?: string } | null;
     const oid = st?.openReceiveForOrderId;
     if (oid) {
       setSelectedOrderId(oid);
-      setShowCreateForm(true);
+      setShowStartForm(true);
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, location.pathname, navigate]);
@@ -128,12 +143,12 @@ export default function ReceivingPage() {
       const allReceipts = await listGoodsReceipts(enriched);
       setReceipts(allReceipts);
     } catch (e: any) {
-      console.error("Error loading receiving data:", e);
+      console.error("Error loading inspection data:", e);
       const errorMessage =
         e?.response?.data?.message ||
         e?.response?.data?.error ||
         e?.message ||
-        "Failed to load receiving data.";
+        "Failed to load inspection data.";
       setLoadError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -146,24 +161,37 @@ export default function ReceivingPage() {
     void refreshData();
   }, [refreshData]);
 
-  const filteredReceipts = useMemo(() => {
-    return receipts.filter((receipt) => {
-      const matchesSearch =
-        receipt.receiptNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        receipt.order?.orderNo.toLowerCase().includes(searchQuery.toLowerCase());
-      if (!matchesSearch) return false;
-      if (receiptStatusFilter === "completed") {
-        return receipt.status === "completed";
-      }
-      if (receiptStatusFilter === "open") {
-        return receipt.status !== "completed" && receipt.status !== "cancelled";
-      }
-      return true;
-    });
-  }, [receipts, searchQuery, receiptStatusFilter]);
+  const pendingReceipts = useMemo(
+    () => receipts.filter((r) => r.status === "pending_inspection"),
+    [receipts],
+  );
+  const inspectedReceipts = useMemo(
+    () => receipts.filter((r) => r.status === "inspected"),
+    [receipts],
+  );
 
-  // Get orders ready for receiving (ordered or partially received) with search filter
-  const ordersReadyForReceiving = useMemo(() => {
+  const filteredPendingReceipts = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    if (!q) return pendingReceipts;
+    return pendingReceipts.filter(
+      (r) =>
+        r.receiptNo.toLowerCase().includes(q) ||
+        r.order?.orderNo.toLowerCase().includes(q),
+    );
+  }, [pendingReceipts, searchQuery]);
+
+  const filteredInspectedReceipts = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    if (!q) return inspectedReceipts;
+    return inspectedReceipts.filter(
+      (r) =>
+        r.receiptNo.toLowerCase().includes(q) ||
+        r.order?.orderNo.toLowerCase().includes(q),
+    );
+  }, [inspectedReceipts, searchQuery]);
+
+  // Purchase orders still needing (further) goods to be logged for inspection
+  const ordersReadyForInspection = useMemo(() => {
     let filtered = orders.filter((order) => {
       const status = order.status?.toLowerCase();
       return (
@@ -174,7 +202,6 @@ export default function ReceivingPage() {
       );
     });
 
-    // Apply search filter if provided
     if (orderSearchQuery.trim()) {
       const query = orderSearchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -190,40 +217,29 @@ export default function ReceivingPage() {
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
+    setRowSelection({});
     switch (key) {
       case "ready":
         setActiveTab("ready");
-        setReceiptStatusFilter("all");
         break;
-      case "completed":
-        setActiveTab("receipts");
-        setReceiptStatusFilter("completed");
+      case "pending":
+        setActiveTab("pending");
         break;
-      case "open":
-        setActiveTab("receipts");
-        setReceiptStatusFilter("open");
+      case "inspected":
+        setActiveTab("inspected");
         break;
       default:
-        setActiveTab("receipts");
-        setReceiptStatusFilter("all");
+        setActiveTab("ready");
         break;
     }
   }, []);
 
-  const receivingKpis = useMemo((): KpiSummaryStat[] => {
-    const receiptsTotal = receipts.length;
-    const readyPo = ordersReadyForReceiving.length;
-    const completedGrn = receipts.filter(
-      (r) => r.status === "completed",
-    ).length;
-    const openGrn = receipts.filter(
-      (r) => r.status !== "completed" && r.status !== "cancelled",
-    ).length;
+  const inspectionKpis = useMemo((): KpiSummaryStat[] => {
     return [
       kpiFilterItem(
         {
           label: "Goods receipts",
-          value: receiptsTotal,
+          value: receipts.length,
           hint: "Recorded against Purchase Orders",
           accent: "sky",
           icon: ClipboardList,
@@ -234,9 +250,9 @@ export default function ReceivingPage() {
       ),
       kpiFilterItem(
         {
-          label: "Purchase Orders ready",
-          value: readyPo,
-          hint: "Eligible to receive now",
+          label: "Ready for inspection",
+          value: ordersReadyForInspection.length,
+          hint: "Purchase orders eligible to log receipts",
           accent: "orange",
           icon: Package,
         },
@@ -246,38 +262,143 @@ export default function ReceivingPage() {
       ),
       kpiFilterItem(
         {
-          label: "Completed Goods Receipts",
-          value: completedGrn,
-          hint: "Inspection closed",
-          accent: "emerald",
-          icon: CheckCircle2,
+          label: "Pending inspection",
+          value: pendingReceipts.length,
+          hint: "Awaiting accept/reject decision",
+          accent: "violet",
+          icon: Hourglass,
         },
-        "completed",
+        "pending",
         kpiFilter,
         applyKpiFilter,
       ),
       kpiFilterItem(
         {
-          label: "Open Goods Receipts",
-          value: openGrn,
-          hint: "Pending or in progress",
-          accent: "violet",
-          icon: Truck,
+          label: "Inspected",
+          value: inspectedReceipts.length,
+          hint: "Inspection closed",
+          accent: "emerald",
+          icon: CheckCircle2,
         },
-        "open",
+        "inspected",
         kpiFilter,
         applyKpiFilter,
       ),
     ];
-  }, [receipts, ordersReadyForReceiving, kpiFilter, applyKpiFilter]);
+  }, [
+    receipts,
+    ordersReadyForInspection,
+    pendingReceipts,
+    inspectedReceipts,
+    kpiFilter,
+    applyKpiFilter,
+  ]);
 
-  if (showCreateForm) {
+  const selectedReceiptIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleArchiveReceipt = useCallback(
+    async (id: string) => {
+      const receipt = receipts.find((r) => r.id === id);
+      if (!receipt) return toast.error("Goods receipt not found");
+      if (receipt.status !== "inspected") {
+        return toast.error("Only inspected goods receipts can be archived.");
+      }
+      if (!(await confirm(`Archive receipt ${receipt.receiptNo}?`))) return;
+      setArchivingId(id);
+      try {
+        await archiveGoodsReceipt(id);
+        toast.success("Goods receipt archived successfully");
+        void refreshData();
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to archive goods receipt",
+        );
+      } finally {
+        setArchivingId(null);
+      }
+    },
+    [receipts, confirm, refreshData],
+  );
+
+  const handleBulkArchiveReceipts = useCallback(async () => {
+    if (selectedReceiptIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedReceiptIds.length} selected receipt(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "GOODS_RECEIPT",
+        selectedReceiptIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await refreshData();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to archive selected receipts.",
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, refreshData, selectedReceiptIds]);
+
+  const inspectedColumns = useMemo(
+    () =>
+      createGoodsReceiptColumns({
+        onOpenReceipt: (id) => navigate(`/inventory/purchase/inspection/${id}`),
+        onArchive: handleArchiveReceipt,
+        processingReceiptId: archivingId,
+      }),
+    [navigate, handleArchiveReceipt, archivingId],
+  );
+
+  const pendingColumns = useMemo(
+    () =>
+      createGoodsReceiptColumns({
+        onOpenReceipt: (id) => {
+          const receipt = pendingReceipts.find((r) => r.id === id);
+          if (receipt) setInspectingReceipt(receipt);
+        },
+      }),
+    [pendingReceipts],
+  );
+
+  if (showStartForm) {
     return (
-      <CreateReceiptForm
-        onCancel={() => setShowCreateForm(false)}
+      <StartInspectionForm
+        onCancel={() => setShowStartForm(false)}
         orderId={selectedOrderId}
         onSuccess={() => {
-          setShowCreateForm(false);
+          setShowStartForm(false);
+          void refreshData();
+        }}
+      />
+    );
+  }
+
+  if (inspectingReceipt) {
+    return (
+      <InspectForm
+        receipt={inspectingReceipt}
+        onCancel={() => setInspectingReceipt(null)}
+        onSuccess={() => {
+          setInspectingReceipt(null);
           void refreshData();
         }}
       />
@@ -287,24 +408,24 @@ export default function ReceivingPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
-        title="Receiving & quality inspection"
-        description="Receive goods against released Purchase Orders and record inspection outcomes."
+        title="Quality inspection"
+        description="Confirm inspection outcomes on goods received against released Purchase Orders."
         backHref="/inventory/purchase"
         variant="darkGreen"
         actions={
           <Button
             size="lg"
             className="bg-white text-slate-900 hover:bg-white/90"
-            onClick={() => setShowCreateForm(true)}
+            onClick={() => setShowStartForm(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Create Receipt
+            Start Inspection
           </Button>
         }
       />
 
       {!ordersLoading && !loadError ? (
-        <KpiSummaryStrip items={receivingKpis} />
+        <KpiSummaryStrip items={inspectionKpis} />
       ) : null}
 
       <Card>
@@ -312,9 +433,9 @@ export default function ReceivingPage() {
           <Tabs
             value={activeTab}
             onValueChange={(value) => {
-              setActiveTab(value as ReceivingListTab);
+              setActiveTab(value as InspectionListTab);
               setKpiFilter(null);
-              setReceiptStatusFilter("all");
+              setRowSelection({});
             }}
             className="w-full gap-4"
           >
@@ -322,16 +443,23 @@ export default function ReceivingPage() {
               <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
                 <TabsTrigger value="ready" className="gap-2">
                   <Package className="h-4 w-4" />
-                  Ready Orders
+                  Ready for inspection
                   <Badge variant="secondary" className="font-normal">
-                    {ordersReadyForReceiving.length}
+                    {ordersReadyForInspection.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="receipts" className="gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  Goods receipts
+                <TabsTrigger value="pending" className="gap-2">
+                  <Hourglass className="h-4 w-4" />
+                  Pending inspection
                   <Badge variant="secondary" className="font-normal">
-                    {receipts.length}
+                    {pendingReceipts.length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="inspected" className="gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Inspected
+                  <Badge variant="secondary" className="font-normal">
+                    {inspectedReceipts.length}
                   </Badge>
                 </TabsTrigger>
               </TabsList>
@@ -358,7 +486,7 @@ export default function ReceivingPage() {
         <CardContent>
           {loadError ? (
             <div className="py-10 text-center text-red-600">
-              <p className="font-medium">Error loading receiving data</p>
+              <p className="font-medium">Error loading inspection data</p>
               <p className="mt-1 text-sm">{loadError}</p>
               <Button
                 variant="outline"
@@ -374,15 +502,15 @@ export default function ReceivingPage() {
               <div className="py-10 text-center text-muted-foreground">
                 Loading orders...
               </div>
-            ) : ordersReadyForReceiving.length === 0 ? (
+            ) : ordersReadyForInspection.length === 0 ? (
               <div className="py-10 text-center text-muted-foreground">
                 {orderSearchQuery.trim()
                   ? `No purchase orders found matching "${orderSearchQuery}"`
-                  : "No purchase orders ready for receiving"}
+                  : "No purchase orders ready for inspection"}
               </div>
             ) : (
               <div className="space-y-2">
-                {ordersReadyForReceiving.map((order) => (
+                {ordersReadyForInspection.map((order) => (
                   <div
                     key={order.id}
                     className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50"
@@ -399,32 +527,63 @@ export default function ReceivingPage() {
                       size="sm"
                       onClick={() => {
                         setSelectedOrderId(order.id);
-                        setShowCreateForm(true);
+                        setShowStartForm(true);
                       }}
                     >
                       <ClipboardCheck className="mr-2 h-4 w-4" />
-                      Receive Goods
+                      Start Inspection
                     </Button>
                   </div>
                 ))}
               </div>
             )
+          ) : activeTab === "pending" ? (
+            receiptsLoading ? (
+              <div className="py-10 text-center text-muted-foreground">
+                Loading receipts...
+              </div>
+            ) : filteredPendingReceipts.length === 0 ? (
+              <div className="py-10 text-center text-muted-foreground">
+                {searchQuery.trim()
+                  ? `No receipts found matching "${searchQuery}"`
+                  : "No receipts pending inspection"}
+              </div>
+            ) : (
+              <DataTable
+                columns={pendingColumns}
+                data={filteredPendingReceipts}
+                onRowClick={handleRowClick}
+              />
+            )
           ) : receiptsLoading ? (
             <div className="py-10 text-center text-muted-foreground">
               Loading receipts...
             </div>
-          ) : filteredReceipts.length === 0 ? (
+          ) : filteredInspectedReceipts.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">
               {searchQuery.trim()
                 ? `No receipts found matching "${searchQuery}"`
-                : "No goods receipts found"}
+                : "No inspected goods receipts found"}
             </div>
           ) : (
-            <DataTable
-              columns={GOODS_RECEIPT_COLUMNS}
-              data={filteredReceipts}
-              onRowClick={handleRowClick}
-            />
+            <div className="space-y-4">
+              <BulkActionBar
+                selectedCount={selectedReceiptIds.length}
+                onArchive={handleBulkArchiveReceipts}
+                onClear={() => setRowSelection({})}
+                archiving={bulkArchiving}
+              />
+              <SelectableDataTable
+                columns={inspectedColumns}
+                data={filteredInspectedReceipts}
+                onRowClick={handleRowClick}
+                enableRowSelection
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                getRowId={(row) => row.id}
+                isRowSelectable={(row) => !row.archived}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
@@ -432,7 +591,7 @@ export default function ReceivingPage() {
   );
 }
 
-function CreateReceiptForm({
+function StartInspectionForm({
   onCancel,
   orderId,
   onSuccess,
@@ -447,39 +606,20 @@ function CreateReceiptForm({
   const [receiptItems, setReceiptItems] = useState<
     Array<{
       itemId: number;
-      warehouseId: number;
+      purchaseOrderItemId: number;
       receivedQty: number;
-      acceptedQty: number;
-      rejectedQty: number;
       remarks?: string;
-      batchNo?: string;
-      lotNo?: string;
-      unitCost?: number;
     }>
   >([]);
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
-  const [catalogItems, setCatalogItems] = useState<ItemResponseDTO[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-
-  const defaultWarehouseIdForItem = (itemId: number) => {
-    const it = catalogItems.find((i) => Number(i.id) === itemId);
-    if (it?.warehouse_id != null) return Number(it.warehouse_id);
-    const first = warehouses.find((w) => w.status === "active");
-    return first ? Number(first.id) : 0;
-  };
 
   const buildReceiptLines = (order: PurchaseOrder) =>
     order.items.map((item) => ({
       itemId: Number(item.itemId),
-      warehouseId: defaultWarehouseIdForItem(Number(item.itemId)),
+      purchaseOrderItemId: Number(item.id),
       receivedQty: item.quantity,
-      acceptedQty: item.quantity,
-      rejectedQty: 0,
       remarks: "",
-      batchNo: "",
-      lotNo: "",
-      unitCost: item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
     }));
 
   const receivableOrders = useMemo(
@@ -499,47 +639,20 @@ function CreateReceiptForm({
   useEffect(() => {
     (async () => {
       try {
-        const [ordersData, vendorsData, itemsData, whData] = await Promise.all([
+        const [ordersData, vendorsData] = await Promise.all([
           listPurchaseOrders(),
           listVendors(),
-          listItems(),
-          listWarehouses(),
         ]);
         const enriched = enrichPurchaseOrdersWithVendors(
           ordersData,
           vendorsData,
         );
         setOrders(enriched);
-        setCatalogItems(itemsData);
-        setWarehouses(whData);
         if (orderId) {
           const order = enriched.find((o) => o.id === orderId);
           if (order) {
             setSelectedOrder(order);
-            setReceiptItems(
-              order.items.map((item) => {
-                const iid = Number(item.itemId);
-                const it = itemsData.find((i) => Number(i.id) === iid);
-                const whId =
-                  it?.warehouse_id != null
-                    ? Number(it.warehouse_id)
-                    : whData.find((w) => w.status === "active")
-                      ? Number(whData.find((w) => w.status === "active")!.id)
-                      : 0;
-                return {
-                  itemId: iid,
-                  warehouseId: whId,
-                  receivedQty: item.quantity,
-                  acceptedQty: item.quantity,
-                  rejectedQty: 0,
-                  remarks: "",
-                  batchNo: "",
-                  lotNo: "",
-                  unitCost:
-                    item.unitCost ?? item.unitPrice ?? item.otherUnitCost,
-                };
-              }),
-            );
+            setReceiptItems(buildReceiptLines(order));
           }
         }
       } catch (e: any) {
@@ -558,50 +671,38 @@ function CreateReceiptForm({
       toast.error("Please add items to receive");
       return;
     }
-    if (receiptItems.some((r) => !r.warehouseId || r.warehouseId <= 0)) {
-      toast.error("Select a warehouse for each receipt line.");
+    if (receiptItems.some((r) => r.receivedQty < 0)) {
+      toast.error("Received quantity cannot be negative.");
       return;
     }
 
     setLoading(true);
     try {
-      const { createGoodsReceipt } =
-        await import("@/service/purchaseFlowService");
-      await createGoodsReceipt({
+      await createGoodsReceiptForInspection({
         purchaseOrderId: Number(selectedOrder.id),
         items: receiptItems,
       });
-      toast.success("Goods receipt created successfully!");
+      toast.success("Logged for inspection successfully!");
       onSuccess();
     } catch (error: any) {
-      console.error("Error creating goods receipt:", error);
+      console.error("Error logging goods receipt:", error);
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to create goods receipt",
+          "Failed to log goods receipt",
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const updateItem = (index: number, field: string, value: number | string) => {
+  const updateItem = (
+    index: number,
+    field: "receivedQty" | "remarks",
+    value: number | string,
+  ) => {
     const updated = [...receiptItems];
-    if (field === "warehouseId") {
-      updated[index] = { ...updated[index], warehouseId: Number(value) };
-    } else {
-      updated[index] = { ...updated[index], [field]: value };
-    }
-    // Auto-calculate accepted + rejected = received
-    if (field === "receivedQty") {
-      const received = Number(value);
-      const rejected = updated[index].rejectedQty || 0;
-      updated[index].acceptedQty = Math.max(0, received - rejected);
-    } else if (field === "rejectedQty") {
-      const rejected = Number(value);
-      const received = updated[index].receivedQty || 0;
-      updated[index].acceptedQty = Math.max(0, received - rejected);
-    }
+    updated[index] = { ...updated[index], [field]: value } as (typeof updated)[number];
     setReceiptItems(updated);
   };
 
@@ -615,8 +716,8 @@ function CreateReceiptForm({
     <div className="space-y-5 p-6">
       <PageHeader
         variant="darkGreen"
-        title="Create goods receipt"
-        description="Select a released purchase order and enter quantities accepted or rejected per line."
+        title="Start inspection"
+        description="Select a released purchase order and log what physically arrived, pending inspection."
         onBack={onCancel}
         actions={
           <Button
@@ -637,7 +738,7 @@ function CreateReceiptForm({
             Purchase order
           </h2>
           <p className="mb-4 text-sm text-slate-500">
-            Choose a released purchase order to receive against.
+            Choose a released purchase order to log a receipt against.
           </p>
           <Select
             value={selectedOrder?.id || ""}
@@ -690,22 +791,18 @@ function CreateReceiptForm({
               Receipt items
             </h2>
             <p className="mb-4 text-sm text-slate-500">
-              Enter received, accepted, and rejected quantities per line.
+              Enter the quantity that physically arrived per line. Warehouse,
+              batch, lot and cost are entered later, once inspection is
+              confirmed, from Inventory (Stocks) → Receive goods.
             </p>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1200px] text-sm">
+              <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     <th className="pb-3 pr-4 w-12">Sl No</th>
                     <th className="pb-3 pr-4">Item</th>
-                    <th className="pb-3 pr-4">Warehouse</th>
-                    <th className="pb-3 pr-4 text-right">Unit cost</th>
                     <th className="pb-3 pr-4 text-right">Ordered</th>
                     <th className="pb-3 pr-4 text-right">Received</th>
-                    <th className="pb-3 pr-4 text-right">Accepted</th>
-                    <th className="pb-3 pr-4 text-right">Rejected</th>
-                    <th className="pb-3 pr-4">Batch</th>
-                    <th className="pb-3 pr-4">Lot</th>
                     <th className="pb-3">Remarks</th>
                   </tr>
                 </thead>
@@ -714,10 +811,6 @@ function CreateReceiptForm({
                     const orderItem = selectedOrder.items.find(
                       (oi) => Number(oi.itemId) === item.itemId,
                     );
-                    const catalogItem = catalogItems.find(
-                      (ci) => Number(ci.id) === item.itemId,
-                    );
-                    const itemSku = catalogItem?.sku || null;
                     return (
                       <tr
                         key={idx}
@@ -732,37 +825,6 @@ function CreateReceiptForm({
                               ? purchaseLineItemName(orderItem)
                               : `Item #${item.itemId}`}
                           </p>
-                          {itemSku ? (
-                            <p className="text-xs text-slate-500">
-                              SKU: {itemSku}
-                            </p>
-                          ) : null}
-                        </td>
-                        <td className="py-3 pr-4 min-w-[180px]">
-                          <Select
-                            value={
-                              item.warehouseId ? String(item.warehouseId) : ""
-                            }
-                            onValueChange={(v) =>
-                              updateItem(idx, "warehouseId", v)
-                            }
-                          >
-                            <SelectTrigger className="h-9 rounded-lg">
-                              <SelectValue placeholder="Warehouse" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {warehouses
-                                .filter((w) => w.status === "active")
-                                .map((wh) => (
-                                  <SelectItem key={wh.id} value={String(wh.id)}>
-                                    {wh.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="py-3 pr-4 text-right tabular-nums text-slate-600">
-                          {orderItem?.unitCost ?? orderItem?.unitPrice ?? "—"}
                         </td>
                         <td className="py-3 pr-4 text-right tabular-nums">
                           {orderItem?.quantity || 0}
@@ -780,58 +842,6 @@ function CreateReceiptForm({
                               )
                             }
                             className="ml-auto w-24 rounded-lg text-right tabular-nums"
-                          />
-                        </td>
-                        <td className="py-3 pr-4">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={item.acceptedQty}
-                            onChange={(e) =>
-                              updateItem(
-                                idx,
-                                "acceptedQty",
-                                Number(e.target.value),
-                              )
-                            }
-                            className="ml-auto w-24 rounded-lg text-right tabular-nums"
-                          />
-                        </td>
-                        <td className="py-3 pr-4">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={item.rejectedQty}
-                            onChange={(e) =>
-                              updateItem(
-                                idx,
-                                "rejectedQty",
-                                Number(e.target.value),
-                              )
-                            }
-                            className="ml-auto w-24 rounded-lg text-right tabular-nums"
-                          />
-                        </td>
-                        <td className="py-3 pr-4">
-                          <Input
-                            type="text"
-                            value={item.batchNo || ""}
-                            onChange={(e) =>
-                              updateItem(idx, "batchNo", e.target.value)
-                            }
-                            placeholder="Batch no."
-                            className="min-w-[120px] rounded-lg"
-                          />
-                        </td>
-                        <td className="py-3 pr-4">
-                          <Input
-                            type="text"
-                            value={item.lotNo || ""}
-                            onChange={(e) =>
-                              updateItem(idx, "lotNo", e.target.value)
-                            }
-                            placeholder="Lot no."
-                            className="min-w-[100px] rounded-lg"
                           />
                         </td>
                         <td className="py-3">
@@ -868,7 +878,230 @@ function CreateReceiptForm({
             className={cn("rounded-lg", loading && "opacity-80")}
             disabled={!selectedOrder || receiptItems.length === 0 || loading}
           >
-            {loading ? "Creating…" : "Create receipt"}
+            {loading ? "Logging…" : "Log for inspection"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+type InspectLine = {
+  goodsReceiptItemId: number;
+  itemLabel: string;
+  orderedQuantity: number;
+  receivedQty: number;
+  acceptedQty: number;
+  rejectedQty: number;
+  remarks?: string;
+};
+
+function InspectForm({
+  receipt,
+  onCancel,
+  onSuccess,
+}: {
+  receipt: GoodsReceipt;
+  onCancel: () => void;
+  onSuccess: () => void;
+}) {
+  const [lines, setLines] = useState<InspectLine[]>(() =>
+    receipt.items.map((item) => ({
+      goodsReceiptItemId: Number(item.id),
+      itemLabel: item.item?.name || `Item #${item.itemId}`,
+      orderedQuantity: item.orderedQuantity,
+      receivedQty: item.receivedQuantity,
+      acceptedQty: item.receivedQuantity,
+      rejectedQty: 0,
+      remarks: item.notes || "",
+    })),
+  );
+  const [loading, setLoading] = useState(false);
+
+  const updateLine = (
+    index: number,
+    field: "acceptedQty" | "rejectedQty" | "remarks",
+    value: number | string,
+  ) => {
+    const updated = [...lines];
+    const line = { ...updated[index] };
+    if (field === "acceptedQty") {
+      const accepted = Math.max(0, Math.min(line.receivedQty, Number(value)));
+      line.acceptedQty = accepted;
+      line.rejectedQty = line.receivedQty - accepted;
+    } else if (field === "rejectedQty") {
+      const rejected = Math.max(0, Math.min(line.receivedQty, Number(value)));
+      line.rejectedQty = rejected;
+      line.acceptedQty = line.receivedQty - rejected;
+    } else {
+      line.remarks = value as string;
+    }
+    updated[index] = line;
+    setLines(updated);
+  };
+
+  const isValid = lines.every(
+    (line) => line.acceptedQty + line.rejectedQty === line.receivedQty,
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValid) {
+      toast.error(
+        "Accepted + rejected must equal received quantity for every line.",
+      );
+      return;
+    }
+    setLoading(true);
+    try {
+      await confirmGoodsReceiptInspection(receipt.id, {
+        items: lines.map((line) => ({
+          goodsReceiptItemId: line.goodsReceiptItemId,
+          acceptedQty: line.acceptedQty,
+          rejectedQty: line.rejectedQty,
+          remarks: line.remarks,
+        })),
+      });
+      toast.success("Inspection confirmed successfully!");
+      onSuccess();
+    } catch (error: any) {
+      console.error("Error confirming inspection:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to confirm inspection",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5 p-6">
+      <PageHeader
+        variant="darkGreen"
+        title={`Inspect ${receipt.receiptNo}`}
+        description={`Purchase order ${receipt.order?.orderNo || receipt.orderId}. Confirm accepted and rejected quantities per line.`}
+        onBack={onCancel}
+        actions={
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+        }
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">
+            Inspection items
+          </h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Accepted + rejected must always equal the received quantity.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <th className="pb-3 pr-4 w-12">Sl No</th>
+                  <th className="pb-3 pr-4">Item</th>
+                  <th className="pb-3 pr-4 text-right">Ordered</th>
+                  <th className="pb-3 pr-4 text-right">Received</th>
+                  <th className="pb-3 pr-4 text-right">Accepted</th>
+                  <th className="pb-3 pr-4 text-right">Rejected</th>
+                  <th className="pb-3">Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((line, idx) => {
+                  const lineValid =
+                    line.acceptedQty + line.rejectedQty === line.receivedQty;
+                  return (
+                    <tr
+                      key={line.goodsReceiptItemId}
+                      className="border-b border-slate-100 last:border-0"
+                    >
+                      <td className="py-3 pr-4 tabular-nums text-slate-500">
+                        {idx + 1}
+                      </td>
+                      <td className="py-3 pr-4 font-medium text-slate-900">
+                        {line.itemLabel}
+                      </td>
+                      <td className="py-3 pr-4 text-right tabular-nums">
+                        {line.orderedQuantity}
+                      </td>
+                      <td className="py-3 pr-4 text-right tabular-nums">
+                        {line.receivedQty}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Input
+                          type="number"
+                          min="0"
+                          max={line.receivedQty}
+                          value={line.acceptedQty}
+                          onChange={(e) =>
+                            updateLine(idx, "acceptedQty", e.target.value)
+                          }
+                          className={cn(
+                            "ml-auto w-24 rounded-lg text-right tabular-nums",
+                            !lineValid && "border-red-400",
+                          )}
+                        />
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Input
+                          type="number"
+                          min="0"
+                          max={line.receivedQty}
+                          value={line.rejectedQty}
+                          onChange={(e) =>
+                            updateLine(idx, "rejectedQty", e.target.value)
+                          }
+                          className={cn(
+                            "ml-auto w-24 rounded-lg text-right tabular-nums",
+                            !lineValid && "border-red-400",
+                          )}
+                        />
+                      </td>
+                      <td className="py-3">
+                        <Input
+                          type="text"
+                          value={line.remarks || ""}
+                          onChange={(e) =>
+                            updateLine(idx, "remarks", e.target.value)
+                          }
+                          placeholder="Optional notes"
+                          className="min-w-[160px] rounded-lg"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-lg"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className={cn("rounded-lg", loading && "opacity-80")}
+            disabled={!isValid || loading}
+          >
+            {loading ? "Confirming…" : "Confirm inspection"}
           </Button>
         </div>
       </form>

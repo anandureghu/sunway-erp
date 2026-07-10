@@ -22,7 +22,7 @@ import GoodsReceiptDetailPage from "./pages/purchase/goods-receipt-detail-page";
 import PurchaseRequisitionDetailPage from "./pages/purchase/purchase-requisition-detail-page";
 import SuppliersPage from "./pages/purchase/suppliers-page";
 import PurchaseInvoicesPage from "./pages/purchase/purchase-invoices-page";
-import ReceivingPage from "./pages/purchase/receiving-page";
+import InspectionPage from "./pages/purchase/inspection-page";
 import PurchaseRequisitionsPage from "./pages/purchase/purchase-requisitions-page";
 import EditPurchaseRequisitionPage from "./pages/purchase/edit-purchase-requisition-page";
 import { PermissionProtectedRoute as PrivateRoute } from "./components/protected-route";
@@ -122,6 +122,13 @@ import UserProfilePage from "@/pages/user-profile-page";
 import { ErrorBoundary } from "./components/error-boundary";
 import PublicInvoicePage from "./pages/public/public-invoice-page";
 import PublicDeliveryTrackingPage from "./pages/public/public-delivery-tracking-page";
+import { useParams } from "react-router-dom";
+
+/** Bookmarked-link redirect: /inventory/purchase/receiving/:id -> .../inspection/:id */
+function RedirectToInspectionDetail() {
+  const { id } = useParams();
+  return <Navigate to={`/inventory/purchase/inspection/${id}`} replace />;
+}
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -410,14 +417,22 @@ export default function App() {
             />
             <Route
               path="purchase/receiving"
+              element={<Navigate to="/inventory/purchase/inspection" replace />}
+            />
+            <Route
+              path="purchase/receiving/:id"
+              element={<RedirectToInspectionDetail />}
+            />
+            <Route
+              path="purchase/inspection"
               element={
                 <ModuleAccessGate module={InventoryModule.RECEIPT}>
-                  <ReceivingPage />
+                  <InspectionPage />
                 </ModuleAccessGate>
               }
             />
             <Route
-              path="purchase/receiving/:id"
+              path="purchase/inspection/:id"
               element={
                 <ModuleAccessGate module={InventoryModule.RECEIPT}>
                   <GoodsReceiptDetailPage />

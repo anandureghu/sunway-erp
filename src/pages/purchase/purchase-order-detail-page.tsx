@@ -360,7 +360,7 @@ export default function PurchaseOrderDetailPage() {
 
   const handleReceive = () => {
     if (!order) return;
-    navigate("/inventory/purchase/receiving", {
+    navigate("/inventory/purchase/inspection", {
       state: { openReceiveForOrderId: order.id },
     });
   };
@@ -664,7 +664,7 @@ export default function PurchaseOrderDetailPage() {
                   className="rounded-lg"
                 >
                   <Package className="mr-2 h-4 w-4" />
-                  Record receipt
+                  Start inspection
                 </Button>
               )}
 
