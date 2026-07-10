@@ -21,9 +21,9 @@ import { SalesOrdersListView } from "./components/sales-orders-list-view";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
 import {
   ClipboardList,
-  CheckCircle2,
   Package,
   ShoppingBag,
+  Wallet,
 } from "lucide-react";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 
@@ -93,9 +93,10 @@ export default function SalesOrdersPage() {
         setListTab("active");
         setStatusFilter("draft");
         break;
-      case "completed":
-        setListTab("closed");
-        setStatusFilter("completed");
+      case "partially_paid":
+        setListTab("active");
+        setStatusFilter("all");
+        setPaymentStatusFilter("PARTIALLY_PAID");
         break;
       case "confirmed":
         setListTab("active");
@@ -136,8 +137,8 @@ export default function SalesOrdersPage() {
     const confirmedOrdersCount = orders.filter(
       (o) => !isClosedOrder(o) && o.status !== "draft",
     ).length;
-    const completedOrdersCount = orders.filter(
-      (o) => o.status === "completed",
+    const partiallyPaidCount = orders.filter(
+      (o) => normalizePaymentStatusKey(o.paymentStatus) === "PARTIALLY_PAID",
     ).length;
     return [
       kpiFilterItem(
@@ -178,18 +179,18 @@ export default function SalesOrdersPage() {
       ),
       kpiFilterItem(
         {
-          label: "Completed orders",
-          value: completedOrdersCount,
-          hint: "Fully fulfilled orders",
-          accent: "violet",
-          icon: CheckCircle2,
+          label: "Partially paid",
+          value: partiallyPaidCount,
+          hint: "Orders with partial payment",
+          accent: "orange",
+          icon: Wallet,
         },
-        "completed",
+        "partially_paid",
         kpiFilter,
         applyKpiFilter,
       ),
     ];
-  }, [orders, isClosedOrder, kpiFilter, applyKpiFilter]);
+  }, [orders, isClosedOrder, kpiFilter, applyKpiFilter, normalizePaymentStatusKey]);
 
   const filteredOrders = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -203,7 +204,9 @@ export default function SalesOrdersPage() {
         order.orderNo.toLowerCase().includes(q) ||
         order.customerName.toLowerCase().includes(q);
       const matchesStatus =
-        statusFilter === "all" || order.status === statusFilter;
+        kpiFilter === "confirmed"
+          ? order.status !== "draft"
+          : statusFilter === "all" || order.status === statusFilter;
       const matchesPaymentStatus =
         paymentStatusFilter === "all" ||
         normalizePaymentStatusKey(order.paymentStatus) ===
@@ -218,6 +221,7 @@ export default function SalesOrdersPage() {
     listTab,
     isClosedOrder,
     normalizePaymentStatusKey,
+    kpiFilter,
   ]);
 
   const handleConfirmOrder = useCallback(
