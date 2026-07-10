@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { SalesPageHeader } from "./components/sales-page-header";
@@ -201,29 +202,21 @@ const PicklistDetailPage = () => {
                           {orderLine?.warehouseName || "-"}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          {orderLine?.unitPrice != null
-                            ? Number(orderLine.unitPrice).toLocaleString(
-                                undefined,
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                },
-                              )
-                            : "-"}
+                          {orderLine?.unitPrice != null ? (
+                            <CurrencyAmount amount={orderLine.unitPrice} />
+                          ) : (
+                            "-"
+                          )}
                         </td>
                         <td className="px-3 py-2 text-right font-medium">
                           {item.quantity}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          {orderLine?.lineTotal != null
-                            ? Number(orderLine.lineTotal).toLocaleString(
-                                undefined,
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                },
-                              )
-                            : "-"}
+                          {orderLine?.lineTotal != null ? (
+                            <CurrencyAmount amount={orderLine.lineTotal} />
+                          ) : (
+                            "-"
+                          )}
                         </td>
                       </tr>
                     );

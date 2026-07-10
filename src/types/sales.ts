@@ -125,6 +125,7 @@ export type Picklist = {
   warehouseId: string;
   warehouse?: Warehouse;
   status: PicklistStatus;
+  archived?: boolean;
   items: PicklistItem[];
   assignedTo?: string;
   startTime?: string;

@@ -323,6 +323,8 @@ export function createPicklistColumns(
   onMarkPicked?: (id: string) => void,
   onCancel?: (id: string) => void,
   onCreateDispatch?: (id: string) => void,
+  onArchive?: (id: string) => void,
+  processingPicklistId?: string | null,
 ): ColumnDef<Picklist>[] {
   return [
     {
@@ -381,6 +383,10 @@ export function createPicklistColumns(
         const canMarkPicked = picklist.status === "created";
         const canCancel = picklist.status === "created";
         const canCreateDispatch = picklist.status === "picked";
+        const canArchive =
+          !picklist.archived &&
+          (picklist.status === "picked" || picklist.status === "cancelled");
+        const isProcessing = processingPicklistId === picklist.id;
 
         return (
           <div onClick={(e) => e.stopPropagation()}>
@@ -423,6 +429,22 @@ export function createPicklistColumns(
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Cancel Picklist
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {canArchive && onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={isProcessing}
+                      onClick={() => onArchive(picklist.id)}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="mr-2 h-4 w-4" />
+                      )}
+                      {isProcessing ? "Archiving..." : "Archive"}
                     </DropdownMenuItem>
                   </>
                 )}

@@ -3,10 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Package, Truck, Plus, ClipboardList, Radar } from "lucide-react";
 import { DataTable } from "@/components/datatable";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { toast } from "sonner";
+import type { RowSelectionState } from "@tanstack/react-table";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { Dispatch, Picklist, SalesOrder } from "@/types/sales";
 import {
@@ -15,6 +18,7 @@ import {
 } from "@/lib/columns/sales-columns";
 import {
   attachOrderAndItems,
+  archivePicklist,
   cancelPicklist,
   cancelShipment,
   dispatchShipment,
@@ -27,6 +31,10 @@ import {
   markShipmentInTransit,
   markShipmentOutForDelivery,
 } from "@/service/salesFlowService";
+import {
+  bulkArchiveHistoryRecords,
+  summarizeBulkActionResult,
+} from "@/service/historyService";
 import { listItems } from "@/service/inventoryService";
 import { CreateDispatchForm } from "./components/create-dispatch-form";
 import { CreatePicklistForm } from "./components/create-picklist-form";
@@ -38,7 +46,7 @@ import {
 import { kpiFilterItem } from "@/lib/kpi-filter";
 
 export default function PicklistDispatchPage() {
-  const { confirmCancel } = useConfirmDialog();
+  const { confirm, confirmCancel } = useConfirmDialog();
   const location = useLocation();
   const navState =
     (location.state as {
@@ -69,6 +77,11 @@ export default function PicklistDispatchPage() {
     "all" | "active"
   >("all");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [archivingPicklistId, setArchivingPicklistId] = useState<
+    string | null
+  >(null);
   const navigate = useNavigate();
   const initialSalesOrderId = navState?.salesOrderId || "";
 
@@ -122,6 +135,67 @@ export default function PicklistDispatchPage() {
     void loadData();
   }, [loadData]);
 
+  const handleArchivePicklist = useCallback(
+    async (id: string) => {
+      const picklist = picklists.find((p) => p.id === id);
+      const label = picklist?.picklistNo || id;
+      if (!(await confirm(`Archive picklist ${label}?`))) return;
+      setArchivingPicklistId(id);
+      try {
+        await archivePicklist(id);
+        toast.success("Picklist archived successfully");
+        await loadData();
+      } catch (e: any) {
+        toast.error(
+          e?.response?.data?.message ||
+            e?.message ||
+            "Failed to archive picklist",
+        );
+      } finally {
+        setArchivingPicklistId(null);
+      }
+    },
+    [picklists, confirm, loadData],
+  );
+
+  const selectedPicklistIds = useMemo(
+    () =>
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [rowSelection],
+  );
+
+  const handleBulkArchivePicklists = useCallback(async () => {
+    if (selectedPicklistIds.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${selectedPicklistIds.length} selected picklist(s)? They will move to Operations and management Reports → History.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await bulkArchiveHistoryRecords(
+        "PICKLIST",
+        selectedPicklistIds,
+      );
+      toast.success(summarizeBulkActionResult(result));
+      setRowSelection({});
+      await loadData();
+    } catch (e: any) {
+      toast.error(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Failed to archive selected picklists.",
+      );
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, loadData, selectedPicklistIds]);
+
   const picklistColumns = useMemo(
     () =>
       createPicklistColumns(
@@ -150,8 +224,16 @@ export default function PicklistDispatchPage() {
           setInitialPicklistId(id);
           setShowCreateDispatch(true);
         },
+        handleArchivePicklist,
+        archivingPicklistId,
       ),
-    [loadData, picklists, confirmCancel],
+    [
+      loadData,
+      picklists,
+      confirmCancel,
+      handleArchivePicklist,
+      archivingPicklistId,
+    ],
   );
 
   const dispatchColumns = useMemo(
@@ -223,6 +305,7 @@ export default function PicklistDispatchPage() {
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
+    setRowSelection({});
     switch (key) {
       case "awaiting":
         setActiveTab("picklists");
@@ -373,6 +456,7 @@ export default function PicklistDispatchPage() {
           setKpiFilter(null);
           setPicklistStatusFilter("all");
           setDispatchStatusFilter("all");
+          setRowSelection({});
         }}
       >
         <TabsList>
@@ -394,13 +478,29 @@ export default function PicklistDispatchPage() {
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
-            <DataTable
-              columns={picklistColumns}
-              data={filteredPicklists}
-              onRowClick={(row) =>
-                navigate(`/inventory/sales/picklist/${row.original.id}`)
-              }
-            />
+            <div className="space-y-4">
+              <BulkActionBar
+                selectedCount={selectedPicklistIds.length}
+                onArchive={handleBulkArchivePicklists}
+                onClear={() => setRowSelection({})}
+                archiving={bulkArchiving}
+              />
+              <SelectableDataTable
+                columns={picklistColumns}
+                data={filteredPicklists}
+                onRowClick={(row) =>
+                  navigate(`/inventory/sales/picklist/${row.original.id}`)
+                }
+                enableRowSelection
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                getRowId={(row) => row.id}
+                isRowSelectable={(row) =>
+                  !row.archived &&
+                  (row.status === "picked" || row.status === "cancelled")
+                }
+              />
+            </div>
           )}
         </TabsContent>
 

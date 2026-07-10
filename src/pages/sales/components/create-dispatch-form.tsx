@@ -88,10 +88,7 @@ export function CreateDispatchForm({
       let preferredAddress = (order?.shippingAddress || "").trim();
       let customerPhone = (order?.customerPhone || "").trim();
 
-      if (
-        (!preferredAddress || !customerPhone) &&
-        selectedPicklist.orderId
-      ) {
+      if ((!preferredAddress || !customerPhone) && selectedPicklist.orderId) {
         try {
           const fullOrder = await getSalesOrderById(selectedPicklist.orderId);
           if (!preferredAddress) {
@@ -187,7 +184,7 @@ export function CreateDispatchForm({
       <SalesPageHeader
         title="Create Dispatch"
         description="Turn a picked picklist into a shipment. Select a saved carrier to prefill driver and comment details."
-        backHref="/inventory/sales/picklist"
+        backHref="/inventory/sales"
         actions={
           <Button
             size="lg"

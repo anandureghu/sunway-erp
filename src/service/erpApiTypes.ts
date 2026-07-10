@@ -462,6 +462,7 @@ export type PicklistResponseDTO = {
   picklistNumber?: string;
   salesOrderId?: Id;
   status?: string;
+  archived?: boolean;
   createdAt?: string;
   items?: PicklistItemDTO[];
   warehouseId?: number;

@@ -162,6 +162,7 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     warehouseId: dto.warehouseId ? String(dto.warehouseId) : "",
     warehouse,
     status,
+    archived: dto.archived ?? false,
     items,
     assignedTo: undefined,
     startTime: undefined,
@@ -308,6 +309,13 @@ export async function markPicklistPicked(id: Id | string) {
 export async function cancelPicklist(id: Id | string) {
   const res = await apiClient.post<PicklistResponseDTO>(
     `/warehouse/picklists/${id}/cancel`,
+  );
+  return toPicklist(res.data);
+}
+
+export async function archivePicklist(id: Id | string) {
+  const res = await apiClient.post<PicklistResponseDTO>(
+    `/warehouse/picklists/${id}/archive`,
   );
   return toPicklist(res.data);
 }

@@ -23,6 +23,7 @@ import {
 import type { Picklist, SalesOrder } from "@/types/sales";
 import type { Warehouse } from "@/types/inventory";
 import { SalesPageHeader } from "./sales-page-header";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type Props = {
   onCancel: () => void;
@@ -111,14 +112,6 @@ export function CreatePicklistForm({
     }
   }, [selectedOrder, setValue, watch]);
 
-  const formatAmount = (value?: number) => {
-    const amount = Number(value || 0);
-    return amount.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const orderLineWarehouseIds = selectedOrder
     ? (Array.from(
         new Set(
@@ -179,7 +172,7 @@ export function CreatePicklistForm({
       <SalesPageHeader
         title="Generate Picklist"
         description="Select a paid, confirmed sales order and confirm the warehouse so pick lines can be prepared."
-        backHref="/inventory/sales/picklist"
+        backHref="/inventory/sales"
       />
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
@@ -199,7 +192,15 @@ export function CreatePicklistForm({
                   </SelectTrigger>
                   <SelectContent>
                     {salesOrders
-                      .filter((o) => o.status === "confirmed")
+                      .filter((o) => {
+                        const eligibleStatus =
+                          o.status === "confirmed" || o.status === "completed";
+                        const isPaid = o.paymentStatus === "PAID";
+                        const hasActivePicklist = picklists.some(
+                          (pl) => pl.orderId === o.id && pl.status !== "cancelled",
+                        );
+                        return eligibleStatus && isPaid && !hasActivePicklist;
+                      })
                       .map((order) => (
                         <SelectItem key={order.id} value={order.id}>
                           {order.orderNo} - {order.customerName}
@@ -289,19 +290,19 @@ export function CreatePicklistForm({
                   <div>
                     <p className="text-muted-foreground">Subtotal</p>
                     <p className="font-medium">
-                      {formatAmount(selectedOrder.subtotalAmount)}
+                      <CurrencyAmount amount={selectedOrder.subtotalAmount ?? 0} />
                     </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Tax</p>
                     <p className="font-medium">
-                      {formatAmount(selectedOrder.taxAmount)}
+                      <CurrencyAmount amount={selectedOrder.taxAmount ?? 0} />
                     </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Total Due</p>
                     <p className="font-semibold">
-                      {formatAmount(selectedOrder.total)}
+                      <CurrencyAmount amount={selectedOrder.total ?? 0} />
                     </p>
                   </div>
                 </CardContent>
@@ -345,13 +346,13 @@ export function CreatePicklistForm({
                           {item.quantity}
                         </div>
                         <div className="col-span-2 text-right">
-                          {formatAmount(item.unitPrice)}
+                          <CurrencyAmount amount={item.unitPrice ?? 0} />
                         </div>
                         <div className="col-span-2">
                           {item.warehouseName || "-"}
                         </div>
                         <div className="col-span-2 text-right">
-                          {formatAmount(item.total)}
+                          <CurrencyAmount amount={item.total ?? 0} />
                         </div>
                       </div>
                     ))}
