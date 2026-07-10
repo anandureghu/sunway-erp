@@ -31,8 +31,10 @@ import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import type { LeavesCtx } from "@/modules/hr/employee/LeavesShell";
 
-type Ctx = { editing: boolean; setEditing?: (b: boolean) => void };
+type Ctx = LeavesCtx;
 
 type LeaveStatus = "Pending for Approval" | "Approved" | "Rejected";
 type LeaveType = string;
@@ -92,6 +94,50 @@ const SEED: LeaveRecord = {
   delegateId: null,
 };
 
+function validateLeaveForm(
+  data: LeaveRecord,
+  opts: {
+    editingLeaveId: number | null;
+    needsDoc: boolean;
+    hasDoc: boolean;
+  },
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (!data.leaveType?.trim()) errors.leaveType = "Leave type is required";
+  if (!data.startDate) errors.startDate = "Start date is required";
+  if (!data.endDate) errors.endDate = "End date is required";
+
+  if (
+    !opts.editingLeaveId &&
+    data.startDate &&
+    data.startDate < today
+  ) {
+    errors.startDate = "Leave cannot be requested for a past date";
+  }
+
+  if (
+    data.startDate &&
+    data.endDate &&
+    data.endDate < data.startDate
+  ) {
+    errors.endDate = "End date must be on or after the start date";
+  }
+
+  if (data.returnDate && data.endDate && data.returnDate <= data.endDate) {
+    errors.returnDate =
+      "Reporting to Office date must be after the End Date";
+  }
+
+  if (!opts.editingLeaveId && opts.needsDoc && !opts.hasDoc) {
+    errors.document =
+      "A supporting document (e.g. medical certificate) is required for Sick Leave";
+  }
+
+  return errors;
+}
+
 /** Exited employees should not appear as delegate options. */
 function isExited(status?: string | null): boolean {
   if (!status) return false;
@@ -115,7 +161,8 @@ function leaveStatusMeta(status: string) {
 }
 
 export default function LeavesForm(): ReactElement {
-  const { editing } = useOutletContext<Ctx>();
+  const { editing, registerHandlers } = useOutletContext<Ctx>();
+  const { validationError } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -324,56 +371,35 @@ export default function LeavesForm(): ReactElement {
   // could otherwise slip two identical leaves past the server overlap check.
   const submittingRef = useRef(false);
 
-  const handleSave = useCallback(() => {
-    if (!employeeId) return;
-    if (submittingRef.current) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!employeeId) return false;
+    if (submittingRef.current) return false;
 
-    // Validate required fields before sending
-    if (!draft.leaveType || !draft.startDate || !draft.endDate) {
-      toast.error("Please fill in Leave Type, Start Date, and End Date");
-      return;
+    const fieldErrors = validateLeaveForm(draft, {
+      editingLeaveId,
+      needsDoc,
+      hasDoc: !!docFile,
+    });
+
+    if (Object.keys(fieldErrors).length > 0) {
+      if (fieldErrors.document) setDocError(fieldErrors.document);
+      await validationError({
+        messages: Object.values(fieldErrors).filter(Boolean),
+      });
+      return false;
     }
 
-    // A leave can't start in the past (mirrors the backend rule). Editing an
-    // already-started pending leave is the only case that may pre-date today.
-    if (!editingLeaveId && draft.startDate < new Date().toISOString().slice(0, 10)) {
-      toast.error("Leave cannot be requested for a past date");
-      return;
-    }
+    setDocError(null);
 
-    // The return-to-office date is optional, but if set it must be after the
-    // leave ends (mirrors the backend rule).
-    if (draft.returnDate && draft.returnDate <= draft.endDate) {
-      toast.error("Reporting to Office date must be after the End Date");
-      return;
-    }
-
-    // IMPORTANT: Do NOT send leaveStatus to backend
-    // New leave requests should always be PENDING by default
-    // Only HR/Department managers can approve via the approval panel
     const payload = {
       leaveType: draft.leaveType,
       startDate: draft.startDate,
       endDate: draft.endDate,
       includeWeekends: draft.includeWeekends,
-      // Leave status is intentionally omitted so the backend sets it to PENDING.
-      // Optional delegation — colleague covering during the leave
       delegateId: draft.delegateId ?? undefined,
-      // Optional date the employee returns to the office after the leave.
       returnDate: draft.returnDate || undefined,
     };
 
-    // Validate: sick leave requires a document (only for brand-new requests —
-    // an existing leave being edited already carries its document).
-    if (!editingLeaveId && needsDoc && !docFile) {
-      setDocError(
-        "A supporting document (e.g. medical certificate) is required for Sick Leave.",
-      );
-      return;
-    }
-
-    // Editing an existing pending leave → update it. Otherwise create a new one;
-    // when a document is attached, create AND upload in a single multipart call.
     submittingRef.current = true;
     const submit = editingLeaveId
       ? leaveService.updateLeave(employeeId, editingLeaveId, payload)
@@ -381,59 +407,53 @@ export default function LeavesForm(): ReactElement {
         ? leaveService.applyLeaveWithDocument(employeeId, payload, docFile)
         : leaveService.applyLeave(employeeId, payload);
 
-    submit
-      .then((result) => {
-        // Service never throws — check the success flag explicitly
-        if (!result.success) {
-          toast.error(
-            result.message ||
-              (editingLeaveId
-                ? "Failed to update leave"
-                : "Failed to apply leave"),
-          );
-          return;
-        }
-
-        toast.success(
-          editingLeaveId
-            ? "Leave updated successfully"
-            : "Leave applied successfully",
+    try {
+      const result = await submit;
+      if (!result.success) {
+        toast.error(
+          result.message ||
+            (editingLeaveId
+              ? "Failed to update leave"
+              : "Failed to apply leave"),
         );
-        setSaved(draft);
-        setDocFile(null);
-        setDocError(null);
+        return false;
+      }
 
-        // Signal the shell to exit edit mode (LeavesShell listens for "leaves:saved")
-        document.dispatchEvent(new Event("leaves:saved"));
+      toast.success(
+        editingLeaveId
+          ? "Leave updated successfully"
+          : "Leave applied successfully",
+      );
+      setSaved(draft);
+      setDocFile(null);
+      setDocError(null);
 
-        // After an edit, return to the Leave History list.
-        if (editingLeaveId) {
-          const base = location.pathname.replace(/\/+$/, "");
-          navigate(`${base}/history`);
-          return;
-        }
+      if (editingLeaveId) {
+        const base = location.pathname.replace(/\/+$/, "");
+        navigate(`${base}/history`);
+        return true;
+      }
 
-        // Refresh preview after successful apply
-        leaveService
-          .previewLeave(
-            employeeId,
-            draft.leaveType,
-            draft.startDate,
-            draft.endDate,
-          )
-          .then((res) => {
-            if (res.success && res.data) {
-              setPreview(normalizePreview(res.data));
-            }
-          });
-      })
-      .catch((err) => {
-        console.error("Save leave failed", err);
-        toast.error("An unexpected error occurred");
-      })
-      .finally(() => {
-        submittingRef.current = false;
-      });
+      leaveService
+        .previewLeave(
+          employeeId,
+          draft.leaveType,
+          draft.startDate,
+          draft.endDate,
+        )
+        .then((res) => {
+          if (res.success && res.data) {
+            setPreview(normalizePreview(res.data));
+          }
+        });
+      return true;
+    } catch (err) {
+      console.error("Save leave failed", err);
+      toast.error("An unexpected error occurred");
+      return false;
+    } finally {
+      submittingRef.current = false;
+    }
   }, [
     draft,
     employeeId,
@@ -442,33 +462,31 @@ export default function LeavesForm(): ReactElement {
     editingLeaveId,
     navigate,
     location.pathname,
+    validationError,
   ]);
 
   const handleCancel = useCallback(() => {
     if (saved) setDraft(saved);
     else setDraft(SEED);
+    setDocFile(null);
+    setDocError(null);
   }, [saved]);
 
-  /* Listen to shell-level save/cancel events so top Edit/Update buttons control the form */
   useEffect(() => {
-    const onSaveEvent = () => handleSave();
-    const onCancelEvent = () => handleCancel();
-    document.addEventListener("leaves:save", onSaveEvent as EventListener);
-    document.addEventListener("leaves:cancel", onCancelEvent as EventListener);
-    return () => {
-      document.removeEventListener("leaves:save", onSaveEvent as EventListener);
-      document.removeEventListener(
-        "leaves:cancel",
-        onCancelEvent as EventListener,
-      );
-    };
-  }, [handleSave, handleCancel]);
+    registerHandlers({ save: handleSave, cancel: handleCancel });
+    return () => registerHandlers(null);
+  }, [handleSave, handleCancel, registerHandlers]);
 
   const availBal = preview ? (preview.availableBalance ?? 0) : 0;
   const daysReq = preview
     ? (preview.totalDays ?? draft.totalDays)
     : draft.totalDays;
   const balAfter = preview ? (preview.remainingAfter ?? 0) : 0;
+  const errors = validateLeaveForm(draft, {
+    editingLeaveId,
+    needsDoc,
+    hasDoc: !!docFile,
+  });
 
   return (
     <div className="bg-slate-50/60 min-h-screen space-y-5">
@@ -513,7 +531,7 @@ export default function LeavesForm(): ReactElement {
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Leave Type */}
-          <Field label="Leave Type" required>
+          <Field label="Leave Type" required error={errors.leaveType}>
             <div className="relative">
               <Layers className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <select
@@ -573,7 +591,7 @@ export default function LeavesForm(): ReactElement {
           accent="from-emerald-500 to-teal-600"
         />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Field label="Start Date" required>
+          <Field label="Start Date" required error={errors.startDate}>
             <div className="relative">
               <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -587,7 +605,7 @@ export default function LeavesForm(): ReactElement {
             </div>
           </Field>
 
-          <Field label="End Date" required>
+          <Field label="End Date" required error={errors.endDate}>
             <div className="relative">
               <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -600,7 +618,7 @@ export default function LeavesForm(): ReactElement {
             </div>
           </Field>
 
-          <Field label="Reporting to Office">
+          <Field label="Reporting to Office" error={errors.returnDate}>
             <div className="relative">
               <UserCheck className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -903,10 +921,10 @@ export default function LeavesForm(): ReactElement {
             </button>
           )}
 
-          {docError && (
+          {(docError || errors.document) && (
             <div className="mt-3 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              {docError}
+              {docError || errors.document}
             </div>
           )}
         </div>
@@ -1027,10 +1045,12 @@ function Field({
   label,
   required,
   children,
+  error,
 }: {
   label: string;
   required?: boolean;
   children: React.ReactNode;
+  error?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -1039,6 +1059,11 @@ function Field({
         {required && <span className="text-rose-500 ml-0.5">*</span>}
       </Label>
       {children}
+      {error && (
+        <p className="flex items-center gap-1 text-xs text-rose-500">
+          <span>⚠</span> {error}
+        </p>
+      )}
     </div>
   );
 }

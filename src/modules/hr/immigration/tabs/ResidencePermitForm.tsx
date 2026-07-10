@@ -25,6 +25,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 interface SelectProps {
   value: string;
@@ -33,11 +34,6 @@ interface SelectProps {
   disabled?: boolean;
   label: string;
 }
-
-type ImmigrationEvent =
-  | "immigration:save"
-  | "immigration:cancel"
-  | "immigration:edit";
 
 // Replace/ensure model type + seed use permitIdNumber
 type ResidencePermitModel = {
@@ -77,8 +73,42 @@ const DURATION_TYPES = [
 ];
 const VISA_STATUS = ["Active", "Expired", "Cancelled", "Pending"];
 
+function validateResidencePermitForm(
+  draft: ResidencePermitModel,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!draft.visaType?.trim()) errors.visaType = "Visa type is required";
+  if (!draft.permitIdNumber?.trim()) {
+    errors.permitIdNumber = "Permit ID number is required";
+  }
+  if (!draft.issuePlace?.trim()) errors.issuePlace = "Issue place is required";
+  if (!draft.durationType?.trim()) {
+    errors.durationType = "Duration type is required";
+  }
+  if (!draft.nationality?.trim()) errors.nationality = "Nationality is required";
+  if (!draft.issueAuthority?.trim()) {
+    errors.issueAuthority = "Issue authority is required";
+  }
+  if (!draft.visaDuration?.trim()) {
+    errors.visaDuration = "Visa duration is required";
+  }
+  if (!draft.occupation?.trim()) errors.occupation = "Occupation is required";
+  if (!draft.visaStatus?.trim()) errors.visaStatus = "Visa status is required";
+  if (!draft.startDate) errors.startDate = "Start date is required";
+  if (!draft.endDate) errors.endDate = "End date is required";
+  if (
+    draft.startDate &&
+    draft.endDate &&
+    draft.endDate <= draft.startDate
+  ) {
+    errors.endDate = "End date must be after start date";
+  }
+  return errors;
+}
+
 export default function ResidencePermitForm(): ReactElement {
-  const { editing } = useOutletContext<ImmigrationCtx>();
+  const { editing, registerHandlers } = useOutletContext<ImmigrationCtx>();
+  const { validationError } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
@@ -171,34 +201,19 @@ export default function ResidencePermitForm(): ReactElement {
   const handleEdit = useCallback(() => setDraft(saved), [saved]);
   const handleCancel = useCallback(() => setDraft(saved), [saved]);
 
-  const handleSave = useCallback(async () => {
-    if (!empId) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!empId) return false;
 
-    // Validation
-    if (
-      !draft.visaType ||
-      !draft.permitIdNumber ||
-      !draft.issuePlace ||
-      !draft.durationType ||
-      !draft.nationality ||
-      !draft.issueAuthority ||
-      !draft.visaDuration ||
-      !draft.occupation ||
-      !draft.visaStatus ||
-      !draft.startDate ||
-      !draft.endDate
-    ) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-
-    if (draft.endDate <= draft.startDate) {
-      toast.error("End date must be after start date");
-      return;
+    const fieldErrors = validateResidencePermitForm(draft);
+    if (Object.keys(fieldErrors).length > 0) {
+      await validationError({
+        messages: Object.values(fieldErrors).filter(Boolean),
+      });
+      return false;
     }
 
     const payload: ResidencePermitPayload = {
-      permitIdNumber: draft.permitIdNumber, // ✅ REQUIRED
+      permitIdNumber: draft.permitIdNumber,
       visaType: draft.visaType,
       durationType: draft.durationType,
       visaDuration: draft.visaDuration,
@@ -239,6 +254,7 @@ export default function ResidencePermitForm(): ReactElement {
         setDraft(model);
         setDocumentUrl(fresh.documentUrl ?? null);
       }
+      return true;
     } catch (err: any) {
       console.error(
         "ResidencePermitForm -> save failed:",
@@ -247,28 +263,18 @@ export default function ResidencePermitForm(): ReactElement {
       toast.error(
         err?.response?.data?.message || err?.message || "Failed to save permit",
       );
+      return false;
     }
-  }, [empId, draft, saved]);
+  }, [empId, draft, hasPermit, validationError]);
 
   useEffect(() => {
-    const eventHandlers: Record<ImmigrationEvent, () => void> = {
-      "immigration:edit": handleEdit,
-      "immigration:save": () => {
-        void handleSave();
-      },
-      "immigration:cancel": handleCancel,
-    };
-
-    Object.entries(eventHandlers).forEach(([event, handler]) => {
-      document.addEventListener(event, handler as EventListener);
+    registerHandlers({
+      save: handleSave,
+      cancel: handleCancel,
+      beginEdit: handleEdit,
     });
-
-    return () => {
-      Object.entries(eventHandlers).forEach(([event, handler]) => {
-        document.removeEventListener(event, handler as EventListener);
-      });
-    };
-  }, [handleEdit, handleSave, handleCancel]);
+    return () => registerHandlers(null);
+  }, [handleSave, handleCancel, handleEdit, registerHandlers]);
 
   const patch = useCallback(
     <K extends keyof ResidencePermitModel>(k: K, v: ResidencePermitModel[K]) =>

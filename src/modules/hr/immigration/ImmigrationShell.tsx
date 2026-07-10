@@ -6,16 +6,20 @@ import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
 import type { ReactElement } from "react";
 import type { Employee } from "@/types/hr";
+import {
+  useShellFormBridge,
+  type ShellFormHandlers,
+} from "@/modules/hr/hooks/use-shell-form-bridge";
 
 export interface ImmigrationCtx {
   editing: boolean;
+  registerHandlers: (handlers: ShellFormHandlers | null) => void;
 }
-
-type ImmigrationEvent = "immigration:edit" | "immigration:save" | "immigration:cancel";
 
 export default function ImmigrationShell(): ReactElement {
   const { id } = useParams<{ id: string }>();
   const [emp, setEmp] = useState<Employee | null>(null);
+  const { registerHandlers, runBeginEdit, runSave, runCancel } = useShellFormBridge();
 
   const title = emp
     ? `Immigration Services - ${emp.firstName} ${emp.lastName}${emp.employeeNo ? ` (${emp.employeeNo})` : ""}`
@@ -29,13 +33,20 @@ export default function ImmigrationShell(): ReactElement {
 
   const [editing, setEditing] = useState(false);
 
-  const fire = useCallback((name: ImmigrationEvent) => {
-    try { document.dispatchEvent(new CustomEvent(name)); } catch { document.dispatchEvent(new Event(name)); }
-  }, []);
+  const startEdit = useCallback(() => {
+    runBeginEdit();
+    setEditing(true);
+  }, [runBeginEdit]);
 
-  const startEdit  = useCallback(() => { setEditing(true);  fire("immigration:edit");   }, [fire]);
-  const save       = useCallback(() => { fire("immigration:save");   setEditing(false); }, [fire]);
-  const cancel     = useCallback(() => { fire("immigration:cancel"); setEditing(false); }, [fire]);
+  const handleSave = useCallback(async () => {
+    const ok = await runSave();
+    if (ok) setEditing(false);
+  }, [runSave]);
+
+  const handleCancel = useCallback(() => {
+    runCancel();
+    setEditing(false);
+  }, [runCancel]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden" role="region" aria-label="Immigration information section">
@@ -61,14 +72,14 @@ export default function ImmigrationShell(): ReactElement {
           module="IMMIGRATION"
           editing={editing}
           onEdit={startEdit}
-          onSave={save}
-          onCancel={cancel}
+          onSave={() => { void handleSave(); }}
+          onCancel={handleCancel}
         />
       </div>
 
       {/* Tab content */}
       <div className="p-4" role="tabpanel">
-        <Outlet context={{ editing } satisfies ImmigrationCtx} />
+        <Outlet context={{ editing, registerHandlers } satisfies ImmigrationCtx} />
       </div>
     </div>
   );

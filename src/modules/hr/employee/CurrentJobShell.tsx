@@ -1,10 +1,20 @@
 import { NavLink, Outlet, useParams, useSearchParams, Link } from "react-router-dom";
 import { BriefcaseBusiness, GraduationCap, Hourglass, FileText, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { hrService } from "@/service/hr.service";
 import EditUpdateButton from "@/components/EditUpdateButton";
 import type { Employee } from "@/types/hr";
+import {
+  useShellFormBridge,
+  type ShellFormHandlers,
+} from "@/modules/hr/hooks/use-shell-form-bridge";
+
+export interface CurrentJobShellCtx {
+  editing: boolean;
+  setEditing: (val: boolean) => void;
+  registerHandlers: (handlers: ShellFormHandlers | null) => void;
+}
 
 export default function CurrentJobShell() {
   const { id } = useParams<{ id: string }>();
@@ -20,14 +30,35 @@ export default function CurrentJobShell() {
   }, [id]);
 
   const [sp, setSp] = useSearchParams();
+  const { registerHandlers, runBeginEdit, runSave, runCancel } = useShellFormBridge();
   const editing = sp.get("edit") === "1";
 
-  const setEditing = (val: boolean) => {
-    const next = new URLSearchParams(sp);
-    if (val) next.set("edit", "1");
-    else next.delete("edit");
-    setSp(next, { replace: true });
-  };
+  const setEditing = useCallback(
+    (val: boolean) => {
+      setSp((prev) => {
+        const next = new URLSearchParams(prev);
+        if (val) next.set("edit", "1");
+        else next.delete("edit");
+        return next;
+      }, { replace: true });
+    },
+    [setSp],
+  );
+
+  const handleEdit = useCallback(() => {
+    runBeginEdit();
+    setEditing(true);
+  }, [runBeginEdit, setEditing]);
+
+  const handleSave = useCallback(async () => {
+    const ok = await runSave();
+    if (ok) setEditing(false);
+  }, [runSave, setEditing]);
+
+  const handleCancel = useCallback(() => {
+    runCancel();
+    setEditing(false);
+  }, [runCancel, setEditing]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -54,26 +85,16 @@ export default function CurrentJobShell() {
         <EditUpdateButton
           module="CURRENT_JOB"
           editing={editing}
-          onEdit={() => {
-            try { document.dispatchEvent(new CustomEvent("current-job:start-edit")); } catch {}
-            try { document.dispatchEvent(new CustomEvent("contract:start-edit")); } catch {}
-            setEditing(true);
-          }}
-          onCancel={() => {
-            try { document.dispatchEvent(new CustomEvent("current-job:cancel")); } catch {}
-            try { document.dispatchEvent(new CustomEvent("contract:cancel")); } catch {}
-            setEditing(false);
-          }}
-          onSave={() => {
-            try { document.dispatchEvent(new CustomEvent("current-job:save")); } catch {}
-            try { document.dispatchEvent(new CustomEvent("contract:save")); } catch {}
-            setEditing(false);
-          }}
+          onEdit={handleEdit}
+          onCancel={handleCancel}
+          onSave={() => { void handleSave(); }}
         />
       </div>
 
       <div className="p-4">
-        <Outlet context={{ editing, setEditing }} />
+        <Outlet
+          context={{ editing, setEditing, registerHandlers } satisfies CurrentJobShellCtx}
+        />
       </div>
     </div>
   );
