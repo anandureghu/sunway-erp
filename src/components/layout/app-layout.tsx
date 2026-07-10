@@ -5,6 +5,7 @@ import { EmployeeSelectionProvider } from "@/context/employee-selection";
 import Navbar from "../navbar";
 import { SidebarEdgeHoverOpen } from "@/components/sidebar-edge-hover-open";
 import { useAuth } from "@/context/AuthContext";
+import { AssistantSidebar } from "@/components/assistant/assistant-sidebar";
 
 const LayoutBody = () => {
   const { company } = useAuth();
@@ -19,6 +20,7 @@ const LayoutBody = () => {
           <Outlet />
         </div>
       </main>
+      <AssistantSidebar />
     </>
   );
 };
