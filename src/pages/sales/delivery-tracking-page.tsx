@@ -8,13 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -90,7 +83,6 @@ export default function DeliveryTrackingPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
-  const [trackingStatus, setTrackingStatus] = useState<string>("created");
   const [trackingCarrierName, setTrackingCarrierName] = useState("");
   const [trackingNumberInput, setTrackingNumberInput] = useState("");
   const [trackingDriverName, setTrackingDriverName] = useState("");
@@ -316,36 +308,9 @@ export default function DeliveryTrackingPage() {
       notes: selectedDispatch.notes || undefined,
     });
 
-    let workingStatus = selectedDispatch.status;
-    const currentIndex = statusOrder.includes(workingStatus as any)
-      ? statusOrder.indexOf(workingStatus as any)
-      : -1;
-    const targetIndex = statusOrder.includes(trackingStatus as any)
-      ? statusOrder.indexOf(trackingStatus as any)
-      : -1;
-
-    if (
-      targetIndex > currentIndex &&
-      !["failed_delivery", "cancelled"].includes(trackingStatus)
-    ) {
-      for (let i = currentIndex + 1; i <= targetIndex; i += 1) {
-        workingStatus = await applyStatusTransition(
-          selectedDispatch.id,
-          workingStatus,
-          statusOrder[i],
-        );
-      }
-    } else if (trackingStatus !== workingStatus) {
-      workingStatus = await applyStatusTransition(
-        selectedDispatch.id,
-        workingStatus,
-        trackingStatus as any,
-      );
-    }
-
     if (trackingLocation || trackingNotes) {
       await addShipmentTrackingEvent(selectedDispatch.id, {
-        status: workingStatus.toUpperCase(),
+        status: selectedDispatch.status.toUpperCase(),
         location: trackingLocation || undefined,
         notes: trackingNotes || undefined,
         eventAt: new Date().toISOString(),
@@ -360,72 +325,6 @@ export default function DeliveryTrackingPage() {
     setTrackingLocation("");
     setTrackingNotes("");
     await refreshSelectedDispatch();
-  };
-
-  const statusOrder = [
-    "created",
-    "dispatched",
-    "in_transit",
-    "out_for_delivery",
-    "delivered",
-  ] as const;
-
-  const applyStatusTransition = async (
-    id: string,
-    currentStatus: Dispatch["status"],
-    targetStatus: Dispatch["status"],
-  ): Promise<Dispatch["status"]> => {
-    if (currentStatus === targetStatus) return currentStatus;
-    if (targetStatus === "cancelled") {
-      const label = selectedDispatch?.dispatchNo || id;
-      if (!(await confirmCancel(`shipment ${label}`))) {
-        return currentStatus;
-      }
-      await cancelShipment(id);
-      return "cancelled";
-    }
-    if (targetStatus === "failed_delivery") {
-      await markShipmentFailedDelivery(
-        id,
-        trackingNotes || "Marked failed from tracking update",
-      );
-      return "failed_delivery";
-    }
-    if (targetStatus === "dispatched" && currentStatus === "created") {
-      await dispatchShipment(id);
-      return "dispatched";
-    }
-    if (targetStatus === "in_transit") {
-      if (currentStatus === "created") {
-        await dispatchShipment(id);
-      }
-      await markShipmentInTransit(id);
-      return "in_transit";
-    }
-    if (targetStatus === "out_for_delivery") {
-      if (currentStatus === "created") await dispatchShipment(id);
-      if (currentStatus === "created" || currentStatus === "dispatched") {
-        await markShipmentInTransit(id);
-      }
-      await markShipmentOutForDelivery(id);
-      return "out_for_delivery";
-    }
-    if (targetStatus === "delivered") {
-      if (currentStatus === "created") await dispatchShipment(id);
-      if (currentStatus === "created" || currentStatus === "dispatched") {
-        await markShipmentInTransit(id);
-      }
-      if (
-        currentStatus === "created" ||
-        currentStatus === "dispatched" ||
-        currentStatus === "in_transit"
-      ) {
-        await markShipmentOutForDelivery(id);
-      }
-      await markShipmentDelivered(id);
-      return "delivered";
-    }
-    return currentStatus;
   };
 
   const showDispatchAction = selectedDispatch?.status === "created";
@@ -445,7 +344,6 @@ export default function DeliveryTrackingPage() {
 
   useEffect(() => {
     if (!trackingDialogOpen || !selectedDispatch) return;
-    setTrackingStatus(selectedDispatch.status);
     setTrackingCarrierName(selectedDispatch.carrierName || "");
     setTrackingNumberInput(selectedDispatch.trackingNumber || "");
     setTrackingDriverName(selectedDispatch.driverName || "");
@@ -835,29 +733,13 @@ export default function DeliveryTrackingPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Tracking</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Edit shipment details and optionally log a checkpoint note at
+              the current status ({getStatusDisplay(selectedDispatch?.status || "created").label}
+              ). Use the status buttons above to progress the shipment.
+            </p>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="tracking-status">Status</Label>
-              <Select value={trackingStatus} onValueChange={setTrackingStatus}>
-                <SelectTrigger id="tracking-status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="created">Created</SelectItem>
-                  <SelectItem value="dispatched">Dispatched</SelectItem>
-                  <SelectItem value="in_transit">In Transit</SelectItem>
-                  <SelectItem value="out_for_delivery">
-                    Out For Delivery
-                  </SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="failed_delivery">
-                    Failed Delivery
-                  </SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="tracking-carrier">Carrier Name</Label>
