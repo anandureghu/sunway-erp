@@ -54,15 +54,15 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
 const getModuleDescription = (title: string): string => {
   const descriptions: Record<string, string> = {
     "Employee Overview":
-      "Manage employee lifecycle management from hiring to retirement",
+      "Manage employee lifecycle from hiring to retirement",
     "Employee Payroll":
-      "Administer employee Compensation and payroll processes",
+      "Process compensation, generate payroll runs, and manage deductions",
     "HR Reports":
-      "Manage Operations and management Reports on HR metrics and performance",
+      "Operations and management reports for workforce insights",
     "Immigration Expiry":
       "Passports and residence permits that are expired or expiring soon.",
     "HR Settings":
-      "Configure leave types, establish HR policies, define job codes, set up departments, manage system roles, manage appraisals and control system permissions",
+      "Configure leave types. establish HR policies, define job codes, manage system roles and appraisals, control system permissions",
     "Inventory (Stocks)":
       "Manage Stocks levels, perform Inventory Adjustments and, receive goods.",
     Sales:
