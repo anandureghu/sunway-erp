@@ -190,15 +190,25 @@ export default function InspectionPage() {
     );
   }, [inspectedReceipts, searchQuery]);
 
+  // Purchase orders that already have a receipt awaiting inspection - excluded
+  // from "ready for inspection" so a second, overlapping intake can't be
+  // started against the same PO while one is still unresolved.
+  const orderIdsWithPendingInspection = useMemo(
+    () => new Set(pendingReceipts.map((r) => r.orderId)),
+    [pendingReceipts],
+  );
+
   // Purchase orders still needing (further) goods to be logged for inspection
   const ordersReadyForInspection = useMemo(() => {
     let filtered = orders.filter((order) => {
       const status = order.status?.toLowerCase();
-      return (
+      const isReceivableStatus =
         status === "ordered" ||
         status === "partially_received" ||
         status === "approved" ||
-        status === "confirmed"
+        status === "confirmed";
+      return (
+        isReceivableStatus && !orderIdsWithPendingInspection.has(order.id)
       );
     });
 
@@ -213,7 +223,7 @@ export default function InspectionPage() {
     }
 
     return filtered;
-  }, [orders, orderSearchQuery]);
+  }, [orders, orderSearchQuery, orderIdsWithPendingInspection]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -384,6 +394,7 @@ export default function InspectionPage() {
       <StartInspectionForm
         onCancel={() => setShowStartForm(false)}
         orderId={selectedOrderId}
+        excludeOrderIds={orderIdsWithPendingInspection}
         onSuccess={() => {
           setShowStartForm(false);
           void refreshData();
@@ -594,10 +605,12 @@ export default function InspectionPage() {
 function StartInspectionForm({
   onCancel,
   orderId,
+  excludeOrderIds,
   onSuccess,
 }: {
   onCancel: () => void;
   orderId: string;
+  excludeOrderIds?: Set<string>;
   onSuccess: () => void;
 }) {
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(
@@ -626,14 +639,18 @@ function StartInspectionForm({
     () =>
       orders.filter((o) => {
         const status = o.status?.toLowerCase();
-        return (
+        const isReceivableStatus =
           status === "ordered" ||
           status === "approved" ||
           status === "partially_received" ||
-          status === "confirmed"
-        );
+          status === "confirmed";
+        // Keep the order visible if it's the one this form was deep-linked to
+        // open for, even if it also has a pending inspection outstanding.
+        const isExcluded =
+          excludeOrderIds?.has(o.id) && o.id !== orderId;
+        return isReceivableStatus && !isExcluded;
       }),
-    [orders],
+    [orders, excludeOrderIds, orderId],
   );
 
   useEffect(() => {
@@ -829,7 +846,7 @@ function StartInspectionForm({
                         <td className="py-3 pr-4 text-right tabular-nums">
                           {orderItem?.quantity || 0}
                         </td>
-                        <td className="py-3 pr-4">
+                        <td className="py-3 pr-4 text-right">
                           <Input
                             type="number"
                             min="0"
@@ -912,7 +929,10 @@ function InspectForm({
       orderedQuantity: item.orderedQuantity,
       receivedQty: item.receivedQuantity,
       acceptedQty: item.receivedQuantity,
-      rejectedQty: 0,
+      // Nothing physically arrived for this line - default to writing off the
+      // full remaining ordered quantity as rejected/short-shipped, editable
+      // down to 0 if the inspector wants to leave it open for a later receipt.
+      rejectedQty: item.receivedQuantity === 0 ? item.orderedQuantity : 0,
       remarks: item.notes || "",
     })),
   );
@@ -930,9 +950,22 @@ function InspectForm({
       line.acceptedQty = accepted;
       line.rejectedQty = line.receivedQty - accepted;
     } else if (field === "rejectedQty") {
-      const rejected = Math.max(0, Math.min(line.receivedQty, Number(value)));
-      line.rejectedQty = rejected;
-      line.acceptedQty = line.receivedQty - rejected;
+      if (line.receivedQty === 0) {
+        // Nothing received - "rejected" here means writing off up to the full
+        // remaining ordered quantity, not bounded by receivedQty (which is 0).
+        line.rejectedQty = Math.max(
+          0,
+          Math.min(line.orderedQuantity, Number(value)),
+        );
+        line.acceptedQty = 0;
+      } else {
+        const rejected = Math.max(
+          0,
+          Math.min(line.receivedQty, Number(value)),
+        );
+        line.rejectedQty = rejected;
+        line.acceptedQty = line.receivedQty - rejected;
+      }
     } else {
       line.remarks = value as string;
     }
@@ -940,9 +973,14 @@ function InspectForm({
     setLines(updated);
   };
 
-  const isValid = lines.every(
-    (line) => line.acceptedQty + line.rejectedQty === line.receivedQty,
-  );
+  const isLineValid = (line: InspectLine) =>
+    line.receivedQty === 0
+      ? line.acceptedQty === 0 &&
+        line.rejectedQty >= 0 &&
+        line.rejectedQty <= line.orderedQuantity
+      : line.acceptedQty + line.rejectedQty === line.receivedQty;
+
+  const isValid = lines.every(isLineValid);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1002,7 +1040,9 @@ function InspectForm({
             Inspection items
           </h2>
           <p className="mb-4 text-sm text-slate-500">
-            Accepted + rejected must always equal the received quantity.
+            Accepted + rejected must always equal the received quantity. If
+            nothing was received, the rejected quantity defaults to the full
+            ordered quantity and accepted stays at 0.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
@@ -1019,8 +1059,7 @@ function InspectForm({
               </thead>
               <tbody>
                 {lines.map((line, idx) => {
-                  const lineValid =
-                    line.acceptedQty + line.rejectedQty === line.receivedQty;
+                  const lineValid = isLineValid(line);
                   return (
                     <tr
                       key={line.goodsReceiptItemId}
@@ -1038,12 +1077,13 @@ function InspectForm({
                       <td className="py-3 pr-4 text-right tabular-nums">
                         {line.receivedQty}
                       </td>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 pr-4 text-right">
                         <Input
                           type="number"
                           min="0"
                           max={line.receivedQty}
                           value={line.acceptedQty}
+                          disabled={line.receivedQty === 0}
                           onChange={(e) =>
                             updateLine(idx, "acceptedQty", e.target.value)
                           }
@@ -1053,11 +1093,15 @@ function InspectForm({
                           )}
                         />
                       </td>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 pr-4 text-right">
                         <Input
                           type="number"
                           min="0"
-                          max={line.receivedQty}
+                          max={
+                            line.receivedQty === 0
+                              ? line.orderedQuantity
+                              : line.receivedQty
+                          }
                           value={line.rejectedQty}
                           onChange={(e) =>
                             updateLine(idx, "rejectedQty", e.target.value)
