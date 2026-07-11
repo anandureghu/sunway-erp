@@ -1,12 +1,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import type { Warehouse } from "@/types/inventory";
-import { ClipboardList, Clock, History, Sparkles } from "lucide-react";
+import { ClipboardList, Clock, History, Sparkles, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { VarianceFormPanel } from "./variance-form-panel";
 import { VarianceHistoryPanel } from "./variance-history-panel";
 import { VariancePendingPanel } from "./variance-pending-panel";
+import { VarianceSentBackPanel } from "./variance-sent-back-panel";
 
 type VarianceTabProps = {
   items: ItemResponseDTO[];
@@ -39,7 +40,7 @@ export function VarianceTab({
       />
 
       <Tabs defaultValue="new" className="space-y-6">
-        <TabsList className="grid w-full max-w-xl grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="new" className="gap-2">
             <ClipboardList className="h-4 w-4" />
             New variance
@@ -47,6 +48,10 @@ export function VarianceTab({
           <TabsTrigger value="pending" className="gap-2">
             <Clock className="h-4 w-4" />
             Pending
+          </TabsTrigger>
+          <TabsTrigger value="sent-back" className="gap-2">
+            <Undo2 className="h-4 w-4" />
+            Sent back
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
             <History className="h-4 w-4" />
@@ -66,6 +71,15 @@ export function VarianceTab({
           <VariancePendingPanel
             refreshKey={refreshKey}
             onUpdated={handleApproved}
+          />
+        </TabsContent>
+
+        <TabsContent value="sent-back" className="mt-0 outline-none">
+          <VarianceSentBackPanel
+            items={items}
+            warehouses={warehouses}
+            refreshKey={refreshKey}
+            onResubmitted={handleSubmitted}
           />
         </TabsContent>
 

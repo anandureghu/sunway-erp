@@ -137,7 +137,8 @@ export const STOCK_ADJUSTMENT_SCHEMA = z
     adjustmentMode: z.enum(["delta", "set", "transfer"]),
     adjustmentQuantity: z.number().optional(),
     newQuantity: z.number().min(0).optional(),
-    transferQuantity: z.number().min(0.01).optional(),
+    // Validated in superRefine for transfers only — avoid rejecting 0/empty on delta/set.
+    transferQuantity: z.number().optional(),
     reason: z.string().min(1, "Reason is required"),
     adjustmentType: z.enum([
       "damaged",
