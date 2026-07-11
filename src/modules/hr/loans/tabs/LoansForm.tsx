@@ -52,6 +52,7 @@ type LoansModel = {
   grossPay: string;
   deductionAmount: string;
   netPay: string;
+  rejectionComment: string;
 };
 
 function validateLoan(loan: LoansModel): boolean {
@@ -85,6 +86,7 @@ const INITIAL_LOAN: LoansModel = {
   grossPay: "0",
   deductionAmount: "0",
   netPay: "0",
+  rejectionComment: "",
 };
 
 export default function LoansForm(): ReactElement {
@@ -184,6 +186,7 @@ export default function LoansForm(): ReactElement {
     deductionAmount:
       api.deductionAmount != null ? String(api.deductionAmount) : "0",
     netPay: api.netPay != null ? String(api.netPay) : "0",
+    rejectionComment: api.rejectionComment ?? "",
   });
 
   const mapFormToPayload = (f: LoansModel): LoanPayload => ({
@@ -1082,6 +1085,18 @@ export default function LoansForm(): ReactElement {
                           </p>
                         </div>
                       )}
+
+                      {loan.loanStatus?.toUpperCase() === "REJECTED" &&
+                        loan.rejectionComment && (
+                          <div className="bg-rose-50 rounded-xl p-6 border border-rose-100">
+                            <h4 className="text-lg font-semibold text-rose-800 mb-2">
+                              Reason for rejection
+                            </h4>
+                            <p className="text-rose-700 whitespace-pre-wrap">
+                              {loan.rejectionComment}
+                            </p>
+                          </div>
+                        )}
 
                       <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
                         <Button

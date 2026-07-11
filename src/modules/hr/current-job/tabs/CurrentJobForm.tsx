@@ -1078,7 +1078,7 @@ export default function CurrentJobForm() {
 /* ================= UI HELPERS ================= */
 
 const fieldCls =
-  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
+  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
 
 function SectionHeading({
   icon,

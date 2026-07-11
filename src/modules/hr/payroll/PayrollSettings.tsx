@@ -388,7 +388,7 @@ export default function PayrollSettings() {
                   onChange={(e) =>
                     setPayInput((p) => ({ ...p, [key]: e.target.value }))
                   }
-                  className="pl-9 h-9 text-sm border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                  className="pl-9 h-9 text-sm border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
                 />
               </div>
             </div>
@@ -433,7 +433,7 @@ export default function PayrollSettings() {
                   value={empSearch}
                   onChange={(e) => setEmpSearch(e.target.value)}
                   placeholder="Search employees…"
-                  className="pl-9 h-9 text-sm border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                  className="pl-9 h-9 text-sm border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
                 />
               </div>
 

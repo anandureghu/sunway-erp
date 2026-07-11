@@ -406,7 +406,7 @@ export default function BankForm() {
                 <div className="relative">
                   <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50"
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
                     disabled={!editing}
                     value={draft.bankName}
                     onChange={(e) => patch("bankName", e.target.value)}
@@ -419,7 +419,7 @@ export default function BankForm() {
                 <div className="relative">
                   <Landmark className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 uppercase"
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 uppercase"
                     disabled={!editing}
                     value={draft.bankShortName}
                     onChange={(e) =>
@@ -437,7 +437,7 @@ export default function BankForm() {
                 <div className="relative">
                   <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50"
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
                     disabled={!editing}
                     value={draft.bankBranch}
                     onChange={(e) => patch("bankBranch", e.target.value)}
@@ -460,7 +460,7 @@ export default function BankForm() {
                 <div className="relative">
                   <CreditCard className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <select
-                    className="h-9 w-full rounded-lg border-slate-200 border pl-9 pr-3 text-sm focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed"
+                    className="h-9 w-full rounded-lg border-slate-200 border pl-9 pr-3 text-sm focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed"
                     disabled={!editing}
                     value={draft.accountType}
                     onChange={(e) => patch("accountType", e.target.value)}
@@ -479,7 +479,7 @@ export default function BankForm() {
                 <div className="relative">
                   <Hash className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 font-mono"
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 font-mono"
                     disabled={!editing}
                     value={draft.accountNo}
                     onChange={(e) => patch("accountNo", e.target.value)}
@@ -492,7 +492,7 @@ export default function BankForm() {
                 <div className="relative">
                   <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 font-mono uppercase"
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 font-mono uppercase"
                     disabled={!editing}
                     value={draft.iban}
                     onChange={(e) =>
@@ -517,7 +517,7 @@ export default function BankForm() {
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50"
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
                     disabled={!editing}
                     value={draft.city}
                     onChange={(e) => patch("city", e.target.value)}
@@ -530,7 +530,7 @@ export default function BankForm() {
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50"
+                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
                     disabled={!editing}
                     value={draft.state}
                     onChange={(e) => patch("state", e.target.value)}
@@ -561,7 +561,7 @@ export default function BankForm() {
               <div className="relative">
                 <FileText className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Textarea
-                  className="min-h-[90px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 resize-none disabled:bg-slate-50"
+                  className="min-h-[90px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 resize-none disabled:bg-slate-50"
                   disabled={!editing}
                   value={draft.remarks}
                   onChange={(e) => patch("remarks", e.target.value)}

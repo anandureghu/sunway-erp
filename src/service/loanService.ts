@@ -45,11 +45,17 @@ export const loanService = {
     return apiClient.delete(`${BASE}/${employeeId}/loans/${loanId}`);
   },
 
-  // Approve / reject a pending loan (requires LOANS.APPROVE permission on the BE)
-  decideLoan(employeeId: number, loanId: number, approve: boolean) {
+  // Approve / reject a pending loan (requires LOANS.APPROVE permission on the BE).
+  // On reject, `comment` records why it was declined.
+  decideLoan(
+    employeeId: number,
+    loanId: number,
+    approve: boolean,
+    comment?: string,
+  ) {
     return apiClient.post<Loan>(
       `${BASE}/${employeeId}/loans/${loanId}/decision`,
-      { approve },
+      { approve, comment },
     );
   },
 

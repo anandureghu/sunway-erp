@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import type { Employee } from "@/types/hr";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { TablePagination, usePagination } from "@/components/table-pagination";
+import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog";
 
 interface PendingLeave {
   id: number;
@@ -165,6 +166,7 @@ export default function LeaveApprovalPanel() {
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<PendingLeave | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
   const [justApproved, setJustApproved] = useState<Set<number>>(new Set());
@@ -286,7 +288,8 @@ export default function LeaveApprovalPanel() {
     }
   };
 
-  const handleReject = async (leave: PendingLeave) => {
+  // Opens the reason dialog; the actual reject happens in confirmReject.
+  const handleReject = (leave: PendingLeave) => {
     const employeeId = Number(leave.employeeId);
     const leaveId = Number(leave.leaveId);
 
@@ -300,16 +303,24 @@ export default function LeaveApprovalPanel() {
       return;
     }
 
-    setRejectingId(leave.id);
+    setRejectTarget(leave);
+  };
 
+  const confirmReject = async (comment: string) => {
+    const leave = rejectTarget;
+    if (!leave) return;
+    const leaveId = Number(leave.leaveId);
+
+    setRejectingId(leave.id);
     try {
-      const res = await leaveService.rejectLeave(leaveId);
+      const res = await leaveService.rejectLeave(leaveId, comment || undefined);
 
       if (!res.success) {
         toast.error(res.message || "Failed to reject leave");
         return;
       }
 
+      setRejectTarget(null);
       toast.success(`Leave rejected for ${leave.employeeName}`);
       setJustRejected((prev) => new Set(prev).add(leave.id));
 
@@ -500,7 +511,7 @@ export default function LeaveApprovalPanel() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search employee or leave type..."
-            className="pl-9 h-9 text-sm border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+            className="pl-9 h-9 text-sm border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
           />
         </div>
 
@@ -780,6 +791,16 @@ export default function LeaveApprovalPanel() {
           </div>
         </div>
       )}
+
+      <RejectReasonDialog
+        open={!!rejectTarget}
+        subject={
+          rejectTarget ? `leave for ${rejectTarget.employeeName}` : undefined
+        }
+        loading={rejectingId != null && rejectingId === rejectTarget?.id}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+      />
     </div>
   );
 }

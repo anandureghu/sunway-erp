@@ -125,11 +125,6 @@ function validateLeaveForm(
     errors.endDate = "End date must be on or after the start date";
   }
 
-  if (data.returnDate && data.endDate && data.returnDate <= data.endDate) {
-    errors.returnDate =
-      "Reporting to Office date must be after the End Date";
-  }
-
   if (!opts.editingLeaveId && opts.needsDoc && !opts.hasDoc) {
     errors.document =
       "A supporting document (e.g. medical certificate) is required for Sick Leave";
@@ -538,7 +533,7 @@ export default function LeavesForm(): ReactElement {
                 disabled={!editing || loadingTypes}
                 className={cn(
                   "h-9 w-full appearance-none rounded-lg border border-slate-200 pl-9 pr-8 text-sm bg-white",
-                  "focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30 transition-colors",
+                  "focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20 transition-colors",
                   (!editing || loadingTypes) &&
                     "bg-slate-50 text-slate-600 cursor-not-allowed",
                 )}
@@ -616,23 +611,6 @@ export default function LeavesForm(): ReactElement {
                 className={cn(iCls, "pl-9")}
               />
             </div>
-          </Field>
-
-          <Field label="Reporting to Office" error={errors.returnDate}>
-            <div className="relative">
-              <UserCheck className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                disabled={!editing}
-                value={draft.returnDate}
-                min={draft.endDate || undefined}
-                onChange={(e) => patch("returnDate", e.target.value)}
-                className={cn(iCls, "pl-9")}
-              />
-            </div>
-            <p className="mt-1 text-[11px] text-slate-400">
-              Date the employee heads back to the office (after the leave ends).
-            </p>
           </Field>
 
           <Field label="Applied On">
@@ -721,7 +699,7 @@ export default function LeavesForm(): ReactElement {
                 disabled={!editing || loadingColleagues || colleagues.length === 0}
                 className={cn(
                   "h-9 w-full appearance-none rounded-lg border border-slate-200 pl-9 pr-8 text-sm bg-white",
-                  "focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30 transition-colors",
+                  "focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20 transition-colors",
                   (!editing || loadingColleagues || colleagues.length === 0) &&
                     "bg-slate-50 text-slate-600 cursor-not-allowed",
                 )}
@@ -992,7 +970,7 @@ export default function LeavesForm(): ReactElement {
 /* ================= UI HELPERS ================= */
 
 const iCls =
-  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
+  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
 
 function ChevronIcon() {
   return (

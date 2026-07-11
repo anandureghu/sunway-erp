@@ -32,6 +32,7 @@ import {
   Wallet,
   Banknote,
   FileText,
+  History,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
@@ -47,6 +48,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import ImmigrationExpiryReport from "./ImmigrationExpiryReport";
+import EmployeeTimeSheets from "./EmployeeTimeSheets";
+import AttendanceHistory from "./AttendanceHistory";
 import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
 // ── colour palette ────────────────────────────────────────────────────────────
@@ -207,10 +210,24 @@ const ANALYTICS_TABS = [
   { id: "breakdown", label: "Workforce Breakdown", icon: Globe },
   { id: "appraisal", label: "Performance", icon: Award },
 ] as const;
+// Employee Time Sheets (monthly worked days that feed payroll) — shown with the
+// workforce analytics under the HR_REPORTS grant.
+const ATTENDANCE_TAB = {
+  id: "attendance",
+  label: "Employee Time Sheets",
+  icon: Clock,
+} as const;
+// Attendance History — filter a month + employee code to see days worked, with
+// pagination and month archiving. Also under the HR_REPORTS grant.
+const ATTENDANCE_HISTORY_TAB = {
+  id: "attendance-history",
+  label: "Attendance History",
+  icon: History,
+} as const;
 // Leave Approvals is gated by the LEAVES grant (approvers / HR / admin).
 const LEAVES_TAB = {
   id: "leaves",
-  label: "Leave Approvals",
+  label: "Employee Attendance & Leave Management",
   icon: CalendarCheck,
 } as const;
 // Loan Approvals is gated by the LOANS grant.
@@ -234,6 +251,8 @@ type TabId =
   | "department"
   | "breakdown"
   | "appraisal"
+  | "attendance"
+  | "attendance-history"
   | "leaves"
   | "loans"
   | "immigration"
@@ -243,6 +262,8 @@ const ALL_TAB_IDS: TabId[] = [
   "department",
   "breakdown",
   "appraisal",
+  "attendance",
+  "attendance-history",
   "leaves",
   "loans",
   "immigration",
@@ -261,6 +282,7 @@ type LeaveApprovalRow = {
   returnDate: string;
   totalDays: number;
   leaveStatus: string; // APPROVED | COMPLETED | REJECTED
+  rejectionComment?: string;
 };
 
 const LEAVE_STATUS_META: Record<
@@ -309,6 +331,7 @@ type LoanApprovalRow = {
   endDate: string;
   employeeName: string;
   currencySymbol?: string;
+  rejectionComment?: string;
 };
 
 const LOAN_STATUS_META: Record<
@@ -349,6 +372,8 @@ export default function HRReports() {
     const tabs: Array<{ id: TabId; label: string; icon: React.ElementType }> =
       [];
     if (canHrReports) tabs.push(...ANALYTICS_TABS);
+    if (canHrReports) tabs.push(ATTENDANCE_TAB);
+    if (canHrReports) tabs.push(ATTENDANCE_HISTORY_TAB);
     if (canLeaves) tabs.push(LEAVES_TAB);
     if (canLoans) tabs.push(LOANS_TAB);
     if (canImmigration) tabs.push(IMMIGRATION_TAB);
@@ -1479,7 +1504,7 @@ export default function HRReports() {
                     value={leaveSearch}
                     onChange={(e) => setLeaveSearch(e.target.value)}
                     placeholder="Search employee, type or status…"
-                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30"
+                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
                   />
                 </div>
               </div>
@@ -1515,6 +1540,9 @@ export default function HRReports() {
                         </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Status
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Comments
                         </th>
                       </tr>
                     </thead>
@@ -1560,6 +1588,18 @@ export default function HRReports() {
                                 <StatusIcon className="h-3 w-3" />
                                 {meta.label}
                               </span>
+                            </td>
+                            <td className="py-2.5">
+                              {l.rejectionComment ? (
+                                <span
+                                  title={l.rejectionComment}
+                                  className="block max-w-[220px] truncate text-xs text-rose-600"
+                                >
+                                  {l.rejectionComment}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300">—</span>
+                              )}
                             </td>
                           </tr>
                         );
@@ -1663,7 +1703,7 @@ export default function HRReports() {
                     value={loanSearch}
                     onChange={(e) => setLoanSearch(e.target.value)}
                     placeholder="Search employee, type or status…"
-                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30"
+                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
                   />
                 </div>
               </div>
@@ -1699,6 +1739,9 @@ export default function HRReports() {
                         </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Status
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Comments
                         </th>
                       </tr>
                     </thead>
@@ -1744,6 +1787,18 @@ export default function HRReports() {
                                 {meta.label}
                               </span>
                             </td>
+                            <td className="py-2.5">
+                              {l.rejectionComment ? (
+                                <span
+                                  title={l.rejectionComment}
+                                  className="block max-w-[220px] truncate text-xs text-rose-600"
+                                >
+                                  {l.rejectionComment}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300">—</span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
@@ -1754,6 +1809,12 @@ export default function HRReports() {
             </div>
           </div>
         ))}
+
+      {/* ── EMPLOYEE TIME SHEETS TAB ── */}
+      {tab === "attendance" && <EmployeeTimeSheets />}
+
+      {/* ── ATTENDANCE HISTORY TAB ── */}
+      {tab === "attendance-history" && <AttendanceHistory />}
 
       {/* ── IMMIGRATION EXPIRY TAB ── */}
       {tab === "immigration" && <ImmigrationExpiryReport />}
