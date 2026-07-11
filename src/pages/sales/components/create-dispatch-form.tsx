@@ -21,8 +21,8 @@ import {
   createShipmentFromPicklist,
   getSalesOrderById,
 } from "@/service/salesFlowService";
-import { listActiveCarriersForDispatch } from "@/service/inventoryService";
 import { listCustomers } from "@/service/customerService";
+import SelectCarrier from "@/components/select-carrier";
 import type { DispatchCarrier } from "@/types/inventory";
 import type { Picklist } from "@/types/sales";
 import { SalesPageHeader } from "./sales-page-header";
@@ -44,7 +44,7 @@ export function CreateDispatchForm({
     initialPicklistId || "",
   );
   const [selectedCarrierId, setSelectedCarrierId] = useState("");
-  const [carriers, setCarriers] = useState<DispatchCarrier[]>([]);
+  const [selectedVehicleNumber, setSelectedVehicleNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const {
     register,
@@ -61,12 +61,6 @@ export function CreateDispatchForm({
     () => picklists.find((pl) => pl.id === selectedPicklistId),
     [picklists, selectedPicklistId],
   );
-
-  useEffect(() => {
-    void listActiveCarriersForDispatch()
-      .then(setCarriers)
-      .catch(() => setCarriers([]));
-  }, []);
 
   useEffect(() => {
     if (!initialPicklistId) return;
@@ -136,15 +130,14 @@ export function CreateDispatchForm({
     };
   }, [getValues, selectedPicklist, setValue]);
 
-  const applyCarrierPreset = (carrierId: string) => {
-    setSelectedCarrierId(carrierId);
-    if (!carrierId || carrierId === "manual") {
-      return;
-    }
-    const carrier = carriers.find((c) => c.id === carrierId);
-    if (!carrier) return;
-    setValue("carrierName", carrier.name);
+  const applyCarrierPreset = (carrier: DispatchCarrier) => {
+    setSelectedCarrierId(carrier.id);
+    setSelectedVehicleNumber(carrier.vehicleNumber || "");
+    setValue("carrierName", carrier.name, { shouldValidate: true });
     setValue("vehicleNumber", carrier.vehicleNumber || "");
+    // Driver fields are only pre-filled as a starting point — they stay
+    // independently editable below since the actual driver can vary per
+    // shipment even for the same carrier.
     setValue("driverName", carrier.driverName || "");
     setValue("driverPhone", carrier.driverPhone || "");
     setValue("notes", carrier.comments || "");
@@ -248,23 +241,15 @@ export function CreateDispatchForm({
               </div>
 
               <div className="space-y-2">
-                <Label>Saved carrier</Label>
-                <Select
-                  value={selectedCarrierId || "manual"}
-                  onValueChange={applyCarrierPreset}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select carrier preset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">Enter manually</SelectItem>
-                    {carriers.map((carrier) => (
-                      <SelectItem key={carrier.id} value={carrier.id}>
-                        {carrier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SelectCarrier
+                  value={selectedCarrierId}
+                  onSelect={applyCarrierPreset}
+                />
+                {errors.carrierName && (
+                  <p className="text-sm text-red-500">
+                    {errors.carrierName.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -310,16 +295,18 @@ export function CreateDispatchForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="carrierName">Carrier name</Label>
-                <Input id="carrierName" {...register("carrierName")} />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="trackingNumber">Tracking number</Label>
                 <Input id="trackingNumber" {...register("trackingNumber")} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vehicleNumber">Vehicle number</Label>
-                <Input id="vehicleNumber" {...register("vehicleNumber")} />
+                <Input
+                  id="vehicleNumber"
+                  value={selectedVehicleNumber}
+                  placeholder="From selected carrier"
+                  disabled
+                  readOnly
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="driverName">Driver name</Label>
