@@ -1034,7 +1034,7 @@ export default function ContactInfoForm() {
             value={draft.notes}
             onChange={(e) => set("notes", e.target.value)}
             placeholder="Enter any additional notes or remarks…"
-            className="min-h-[100px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 resize-none disabled:bg-slate-50"
+            className="min-h-[100px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 resize-none disabled:bg-slate-50"
           />
         </div>
       </div>
@@ -1045,7 +1045,7 @@ export default function ContactInfoForm() {
 /* ── UI helpers ── */
 
 const iCls =
-  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
+  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
 
 function SectionHead({
   icon,

@@ -117,6 +117,28 @@ export default function ResidencePermitForm(): ReactElement {
   const [draft, setDraft] = useState<ResidencePermitModel>(SEED);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // Nationality is taken from the employee's profile, not typed.
+  const [profileNationality, setProfileNationality] = useState("");
+
+  useEffect(() => {
+    if (!empId) return;
+    let mounted = true;
+    import("@/service/hr.service")
+      .then((m) => m.hrService.getEmployee(String(empId)))
+      .then((emp) => {
+        if (!mounted || !emp) return;
+        const nat = ((emp as { nationality?: string }).nationality ?? "").trim();
+        if (nat) {
+          setProfileNationality(nat);
+          setDraft((d) => ({ ...d, nationality: nat }));
+          setSaved((s) => ({ ...s, nationality: nat }));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [empId]);
 
   useEffect(() => {
     let mounted = true;
@@ -217,7 +239,7 @@ export default function ResidencePermitForm(): ReactElement {
       visaType: draft.visaType,
       durationType: draft.durationType,
       visaDuration: draft.visaDuration,
-      nationality: draft.nationality,
+      nationality: profileNationality || draft.nationality,
       occupation: draft.occupation,
       issuePlace: draft.issuePlace,
       issueAuthority: draft.issueAuthority,
@@ -265,7 +287,7 @@ export default function ResidencePermitForm(): ReactElement {
       );
       return false;
     }
-  }, [empId, draft, hasPermit, validationError]);
+  }, [empId, draft, hasPermit, profileNationality, validationError]);
 
   useEffect(() => {
     registerHandlers({
@@ -527,12 +549,16 @@ export default function ResidencePermitForm(): ReactElement {
                   label="Nationality"
                   required
                   icon={<MapPin className="h-4 w-4" />}
-                  hint="Citizenship country"
+                  hint={
+                    profileNationality
+                      ? "Taken from the employee profile"
+                      : "Citizenship country"
+                  }
                 >
                   <CountrySelect
-                    value={draft.nationality}
+                    value={profileNationality || draft.nationality}
                     onChange={(v) => patch("nationality", v)}
-                    disabled={!editing}
+                    disabled={!editing || !!profileNationality}
                     placeholder="Select country..."
                   />
                 </FormField>
