@@ -89,8 +89,9 @@ export default function PassportForm(): ReactElement {
   const [draft, setDraft] = useState<PassportModel>(EMPTY);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  // The name on the passport is taken from the employee's profile, not typed.
+  // Name and nationality are taken from the employee's profile, not typed.
   const [profileName, setProfileName] = useState("");
+  const [profileNationality, setProfileNationality] = useState("");
 
   useEffect(() => {
     if (!empId) return;
@@ -103,16 +104,24 @@ export default function PassportForm(): ReactElement {
           firstName?: string;
           middleName?: string;
           lastName?: string;
+          nationality?: string;
         };
         const name = [e.firstName, e.middleName, e.lastName]
           .filter(Boolean)
           .join(" ")
           .trim()
           .toUpperCase();
-        if (!name) return;
-        setProfileName(name);
-        setDraft((d) => ({ ...d, nameAsPassport: name }));
-        setSaved((s) => ({ ...s, nameAsPassport: name }));
+        if (name) {
+          setProfileName(name);
+          setDraft((d) => ({ ...d, nameAsPassport: name }));
+          setSaved((s) => ({ ...s, nameAsPassport: name }));
+        }
+        const nat = (e.nationality ?? "").trim();
+        if (nat) {
+          setProfileNationality(nat);
+          setDraft((d) => ({ ...d, nationality: nat }));
+          setSaved((s) => ({ ...s, nationality: nat }));
+        }
       })
       .catch(() => {});
     return () => {
@@ -211,7 +220,7 @@ export default function PassportForm(): ReactElement {
       passportNo: draft.passportNo,
       nameAsPassport: profileName || draft.nameAsPassport,
       issueCountry: draft.issueCountry,
-      nationality: draft.nationality,
+      nationality: profileNationality || draft.nationality,
       issueDate: draft.issueDate,
       expiryDate: draft.expireDate,
     };
@@ -243,7 +252,7 @@ export default function PassportForm(): ReactElement {
       toast.error(err?.response?.data?.message || "Failed to save passport");
       return false;
     }
-  }, [empId, draft, saved, profileName, validationError]);
+  }, [empId, draft, saved, profileName, profileNationality, validationError]);
 
   useEffect(() => {
     registerHandlers({
@@ -510,13 +519,15 @@ export default function PassportForm(): ReactElement {
                   icon={<Globe className="h-4 w-4" />}
                 >
                   <CountrySelect
-                    disabled={!editing}
-                    value={draft.nationality}
+                    disabled={!editing || !!profileNationality}
+                    value={profileNationality || draft.nationality}
                     onChange={(v) => patch("nationality", v)}
                     placeholder="Select country..."
                   />
                   <p className="text-xs text-slate-500 mt-1.5">
-                    Citizenship status
+                    {profileNationality
+                      ? "Taken from the employee profile"
+                      : "Citizenship status"}
                   </p>
                 </FormField>
               </div>

@@ -16,6 +16,7 @@ import { formatMoney } from "@/lib/utils";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { TablePagination, usePagination } from "@/components/table-pagination";
+import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog";
 
 export default function LoanApprovalPanel() {
   const { permissions, permissionsLoading } = useAuth();
@@ -23,6 +24,9 @@ export default function LoanApprovalPanel() {
   const [pending, setPending] = useState<PendingLoanApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [decidingId, setDecidingId] = useState<number | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<PendingLoanApproval | null>(
+    null,
+  );
 
   const {
     pageItems,
@@ -72,16 +76,18 @@ export default function LoanApprovalPanel() {
   const handleDecision = async (
     loan: PendingLoanApproval,
     approve: boolean,
+    comment?: string,
   ) => {
     setDecidingId(loan.id);
     try {
-      await loanService.decideLoan(loan.employeeId, loan.id, approve);
+      await loanService.decideLoan(loan.employeeId, loan.id, approve, comment);
       toast.success(
         approve
           ? `Loan ${loan.loanCode} approved`
           : `Loan ${loan.loanCode} rejected`,
       );
       setPending((prev) => prev.filter((l) => l.id !== loan.id));
+      setRejectTarget(null);
     } catch (err: any) {
       console.error("LoanApprovalPanel -> decision failed", err);
       const status = err?.response?.status;
@@ -93,6 +99,10 @@ export default function LoanApprovalPanel() {
     } finally {
       setDecidingId(null);
     }
+  };
+
+  const confirmReject = (comment: string) => {
+    if (rejectTarget) void handleDecision(rejectTarget, false, comment || undefined);
   };
 
   if (permissionsLoading) {
@@ -218,7 +228,7 @@ export default function LoanApprovalPanel() {
                           size="sm"
                           variant="outline"
                           disabled={busy}
-                          onClick={() => handleDecision(loan, false)}
+                          onClick={() => setRejectTarget(loan)}
                           className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
                         >
                           <X className="h-4 w-4" />
@@ -243,6 +253,14 @@ export default function LoanApprovalPanel() {
           </div>
         </div>
       )}
+
+      <RejectReasonDialog
+        open={!!rejectTarget}
+        subject={rejectTarget ? `loan ${rejectTarget.loanCode}` : undefined}
+        loading={decidingId != null && decidingId === rejectTarget?.id}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+      />
     </div>
   );
 }

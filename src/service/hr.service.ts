@@ -124,7 +124,8 @@
     const form = new FormData();
     form.append("file", file);
 
-    const res = await apiClient.post<{ url: string }>(
+    // The endpoint returns the updated employee; its imageUrl is the public URL.
+    const res = await apiClient.post<{ imageUrl?: string; url?: string }>(
       `/employees/${employeeId}/upload-image`,
       form,
       {
@@ -132,7 +133,7 @@
       }
     );
 
-    return res.data.url + '?t=' + Date.now();
+    return res.data.imageUrl ?? res.data.url ?? "";
   }
 
   /* =====================================================

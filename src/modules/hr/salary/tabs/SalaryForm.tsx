@@ -217,7 +217,7 @@ const BenefitRow = ({
           <Label className="text-xs text-muted-foreground">
             Allowance Amount
           </Label>
-          <div className="flex h-9 overflow-hidden rounded-lg border border-violet-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
+          <div className="flex h-9 overflow-hidden rounded-lg border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
             <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-2.5 text-xs font-semibold text-violet-700">
               {currencySymbol}
             </span>
@@ -369,12 +369,27 @@ export default function SalaryForm() {
     let mounted = true;
     currentJobService
       .get(employeeId)
-      .then((job) => {
+      .then((res) => {
         if (!mounted) return;
+        // The current-job response nests the grade band under `job`
+        // (EmployeeCurrentJobResponseDTO.JobInfo). Read that first, and fall
+        // back to any top-level fields for safety.
+        const r = (res ?? {}) as {
+          job?: {
+            minSalary?: number | null;
+            maxSalary?: number | null;
+            salaryGrade?: string | null;
+          };
+          minSalary?: number | null;
+          maxSalary?: number | null;
+          salaryGrade?: string | null;
+        };
+        const rawMin = r.job?.minSalary ?? r.minSalary ?? null;
+        const rawMax = r.job?.maxSalary ?? r.maxSalary ?? null;
         setSalaryBand({
-          min: job?.minSalary ?? null,
-          max: job?.maxSalary ?? null,
-          grade: job?.salaryGrade ?? "",
+          min: rawMin != null ? Number(rawMin) : null,
+          max: rawMax != null ? Number(rawMax) : null,
+          grade: r.job?.salaryGrade ?? r.salaryGrade ?? "",
           loaded: true,
         });
       })
@@ -389,10 +404,18 @@ export default function SalaryForm() {
   const basicSalaryNum = Number(formData.basicSalary) || 0;
   const maxSalary =
     salaryBand.max != null && salaryBand.max > 0 ? salaryBand.max : null;
+  const minSalary =
+    salaryBand.min != null && salaryBand.min > 0 ? salaryBand.min : null;
   // True once we know the grade has no usable maximum configured.
   const maxSalaryUnavailable = salaryBand.loaded && maxSalary == null;
   const exceedsMaxSalary =
     salaryBand.loaded && maxSalary != null && basicSalaryNum > maxSalary;
+  // Below the grade's floor (only checked once an amount is entered).
+  const belowMinSalary =
+    salaryBand.loaded &&
+    minSalary != null &&
+    basicSalaryNum > 0 &&
+    basicSalaryNum < minSalary;
 
   // ── save handler ────────────────────────────────────────────────────────────
   const handleSaveSalary = useCallback(async (): Promise<boolean> => {
@@ -408,6 +431,22 @@ export default function SalaryForm() {
     ) {
       const msg = `Basic salary exceeds the maximum of ${formatMoney(
         String(salaryBand.max),
+        currencySymbol,
+      )}${salaryBand.grade ? ` for salary grade ${salaryBand.grade}` : ""}`;
+      toast.error(msg);
+      return false;
+    }
+
+    // Enforce the job-grade salary floor when one is configured.
+    if (
+      salaryBand.loaded &&
+      salaryBand.min != null &&
+      salaryBand.min > 0 &&
+      (Number(formData.basicSalary) || 0) > 0 &&
+      (Number(formData.basicSalary) || 0) < salaryBand.min
+    ) {
+      const msg = `Basic salary is below the minimum of ${formatMoney(
+        String(salaryBand.min),
         currencySymbol,
       )}${salaryBand.grade ? ` for salary grade ${salaryBand.grade}` : ""}`;
       toast.error(msg);
@@ -693,7 +732,7 @@ export default function SalaryForm() {
                 <Label className="text-xs font-semibold text-slate-700">
                   Monthly Basic Salary <span className="text-rose-500">*</span>
                 </Label>
-                <div className="flex h-12 overflow-hidden rounded-xl border border-violet-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
+                <div className="flex h-12 overflow-hidden rounded-xl border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
                   <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-3 text-sm font-bold text-violet-700">
                     {currencySymbol}
                   </span>
@@ -723,13 +762,26 @@ export default function SalaryForm() {
                     .
                   </p>
                 )}
+                {!errors.basicSalary && !exceedsMaxSalary && belowMinSalary && (
+                  <p className="text-xs text-rose-500 flex items-center gap-1">
+                    <span>⚠</span> Basic salary is below the minimum of{" "}
+                    {formatMoney(String(minSalary), currencySymbol)}
+                    {salaryBand.grade
+                      ? ` for salary grade ${salaryBand.grade}`
+                      : ""}
+                    .
+                  </p>
+                )}
                 {!exceedsMaxSalary && maxSalaryUnavailable && (
                   <p className="text-xs text-amber-600 flex items-center gap-1">
                     <span>ℹ</span> No maximum salary is set for this job grade —
                     set the grade's range in Current Job to enforce a cap.
                   </p>
                 )}
-                {!exceedsMaxSalary && !maxSalaryUnavailable && maxSalary != null && (
+                {!exceedsMaxSalary &&
+                  !belowMinSalary &&
+                  !maxSalaryUnavailable &&
+                  maxSalary != null && (
                   <p className="text-[11px] text-slate-400">
                     {salaryBand.grade ? `Grade ${salaryBand.grade} — ` : ""}
                     maximum {formatMoney(String(maxSalary), currencySymbol)}
@@ -802,7 +854,7 @@ export default function SalaryForm() {
                   <Label className="text-xs text-muted-foreground">
                     Allowance Amount
                   </Label>
-                  <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30">
+                  <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
                     <span className="flex shrink-0 items-center border-r border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-500">
                       {currencySymbol}
                     </span>
@@ -958,7 +1010,7 @@ export default function SalaryForm() {
                   value={formData.effectiveFrom}
                   onChange={(e) => updateField("effectiveFrom")(e.target.value)}
                   disabled={!editing}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
                 />
                 {errors.effectiveFrom && (
                   <p className="text-xs text-rose-500">
@@ -981,7 +1033,7 @@ export default function SalaryForm() {
                   value={formData.effectiveTo}
                   onChange={(e) => updateField("effectiveTo")(e.target.value)}
                   disabled={!editing}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
                 />
                 {errors.effectiveTo && (
                   <p className="text-xs text-rose-500">{errors.effectiveTo}</p>
@@ -1007,7 +1059,7 @@ export default function SalaryForm() {
                   type="month"
                   value={salaryMonth}
                   onChange={(e) => setSalaryMonth(e.target.value)}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30"
+                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
                 />
                 <p className="text-[10px] text-muted-foreground">
                   Defaults to the current month. Drives the days-worked figure below.

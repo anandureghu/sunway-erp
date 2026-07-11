@@ -161,7 +161,7 @@ const StyledSelect = ({
     onChange={onChange}
     className={cn(
       "h-9 w-full rounded-lg border border-slate-200 px-3 text-sm",
-      "focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30",
+      "focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20",
       "transition-all bg-white",
       disabled && "bg-slate-50 text-slate-500 cursor-not-allowed",
     )}
@@ -182,7 +182,7 @@ const IconInput = ({
     <Input
       {...props}
       className={cn(
-        "h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-400 focus-visible:ring-violet-400/30",
+        "h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20",
         props.disabled && "bg-slate-50 text-slate-600",
         props.className,
       )}
@@ -426,10 +426,15 @@ export default function EmployeeProfileForm() {
           {/* Avatar — pulled up to overlap the banner */}
           <div className="relative shrink-0 mb-3 w-fit">
             <div
-              className="relative h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-lg cursor-pointer"
-              onMouseEnter={() => setImageHover(true)}
+              className={cn(
+                "relative h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-lg",
+                editing && "cursor-pointer",
+              )}
+              onMouseEnter={() => editing && setImageHover(true)}
               onMouseLeave={() => setImageHover(false)}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (editing) fileInputRef.current?.click();
+              }}
             >
               {draft.photoUrl ? (
                 <img
@@ -442,22 +447,28 @@ export default function EmployeeProfileForm() {
                   {initials}
                 </div>
               )}
-              <div
-                className={cn(
-                  "absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200",
-                  imageHover ? "opacity-100" : "opacity-0",
-                )}
-              >
-                <Camera className="h-5 w-5 text-white" />
-              </div>
+              {/* Camera overlay only while editing */}
+              {editing && (
+                <div
+                  className={cn(
+                    "absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200",
+                    imageHover ? "opacity-100" : "opacity-0",
+                  )}
+                >
+                  <Camera className="h-5 w-5 text-white" />
+                </div>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md hover:shadow-lg transition-shadow"
-            >
-              <Upload className="h-3.5 w-3.5" />
-            </button>
+            {/* Upload button only while editing */}
+            {editing && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md hover:shadow-lg transition-shadow"
+              >
+                <Upload className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Name + meta — always below the banner */}
@@ -748,8 +759,10 @@ export default function EmployeeProfileForm() {
         accept="image/*"
         className="hidden"
         onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
+          const input = e.target;
+          const file = input.files?.[0];
+          // Only allow changing the photo while the form is in edit mode.
+          if (file && editing) {
             if (id) {
               const url = await uploadImage(file, Number(id));
               set("photoUrl", url);
@@ -762,6 +775,8 @@ export default function EmployeeProfileForm() {
               toast.success("Photo selected successfully!");
             }
           }
+          // Allow re-selecting the same file to fire onChange again.
+          input.value = "";
         }}
       />
     </div>

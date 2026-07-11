@@ -264,13 +264,18 @@ export const leaveService = {
     }
   },
 
-  async rejectLeave(leaveId: number): Promise<LeaveServiceResponse> {
+  async rejectLeave(
+    leaveId: number,
+    comment?: string,
+  ): Promise<LeaveServiceResponse> {
     if (!leaveId || leaveId <= 0) {
       return { success: false, message: "Invalid leave ID" };
     }
 
     try {
-      const response = await apiClient.post(`/leaves/${leaveId}/reject`);
+      const response = await apiClient.post(`/leaves/${leaveId}/reject`, {
+        comment,
+      });
       return { success: true, data: response.data };
     } catch (error: unknown) {
       console.error("rejectLeave error:", error);

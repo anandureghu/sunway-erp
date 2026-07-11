@@ -35,6 +35,7 @@ type Row = {
   totalDays: number;
   includeWeekends: boolean;
   supportingDocumentUrl: string;
+  rejectionComment: string;
 };
 
 /** Safely extract an array from any API response shape.
@@ -107,6 +108,7 @@ function normalizeToArray(data: unknown): Row[] {
         r.supporting_document_url ??
         r.documentUrl ??
         "",
+      rejectionComment: r.rejectionComment ?? r.rejection_comment ?? "",
     } as Row;
   });
 }
@@ -501,7 +503,7 @@ export default function LeavesHistory() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by type or status…"
-              className="h-8 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/30 transition-colors"
+              className="h-8 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-300/20 transition-colors"
             />
           </div>
         </div>
@@ -518,6 +520,7 @@ export default function LeavesHistory() {
                 <Th>Applied On</Th>
                 <Th center>Days</Th>
                 <Th>Status</Th>
+                <Th>Comments</Th>
                 <Th center>Document</Th>
                 <Th center>Actions</Th>
               </tr>
@@ -614,6 +617,18 @@ export default function LeavesHistory() {
                           {statusMeta.icon}
                           {statusMeta.label}
                         </span>
+                      </Td>
+                      <Td>
+                        {r.rejectionComment ? (
+                          <span
+                            title={r.rejectionComment}
+                            className="block max-w-[220px] truncate text-xs text-rose-600"
+                          >
+                            {r.rejectionComment}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
                       </Td>
                       <Td center>
                         {r.supportingDocumentUrl ? (
