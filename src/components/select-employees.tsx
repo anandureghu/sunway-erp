@@ -8,7 +8,7 @@ import {
 } from "./ui/select";
 import { Label } from "./ui/label";
 import { fetchEmployees } from "@/service/employeeService";
-import type { User } from "@/types/hr";
+import type { Employee } from "@/types/hr";
 
 const SelectEmployees = ({
   onChange,
@@ -21,7 +21,7 @@ const SelectEmployees = ({
   label?: string;
   placeholder?: string;
 }) => {
-  const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
 
   useEffect(() => {
     fetchEmployees().then((data) => {
@@ -38,14 +38,19 @@ const SelectEmployees = ({
         </SelectTrigger>
 
         <SelectContent>
-          {employees.map((d: User) => (
-            <SelectItem key={d.id} value={d.id.toString()}>
-              <div>
-                <h2 className="font-semibold">{d.fullName}</h2>
-                <h4 className="font-sm text-gray-500">ID: {d.id}</h4>
-              </div>
-            </SelectItem>
-          ))}
+          {employees.map((d) => {
+            const fullName =
+              [d.firstName, d.lastName].filter(Boolean).join(" ") ||
+              `Employee #${d.id}`;
+            return (
+              <SelectItem key={d.id} value={String(d.id)}>
+                <div>
+                  <h2 className="font-semibold">{fullName}</h2>
+                  <h4 className="font-sm text-gray-500">ID: {d.id}</h4>
+                </div>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
     </>

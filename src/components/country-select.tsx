@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { debounce } from "@/lib/debounce";
 import { apiClient } from "@/service/apiClient";
@@ -6,6 +7,7 @@ import { COUNTRIES, getCountryByName } from "@/lib/countries";
 import CountryFlag from "@/components/CountryFlag";
 import { Globe, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 
 type Suggestion = {
   name: string;
@@ -64,6 +66,16 @@ export default function CountrySelect({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const selectedCountry = getCountryByName(value);
+  const showList = open && suggestions.length > 0;
+  const showEmptyList =
+    open &&
+    !loading &&
+    suggestions.length === 0 &&
+    query.trim().length >= minChars;
+  const position = useAnchoredPosition(
+    wrapperRef,
+    showList || showEmptyList,
+  );
 
   useEffect(() => {
     setQuery(value || "");
@@ -161,12 +173,6 @@ export default function CountrySelect({
     }
   }
 
-  const showEmpty =
-    open &&
-    !loading &&
-    suggestions.length === 0 &&
-    query.trim().length >= minChars;
-
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
@@ -207,42 +213,54 @@ export default function CountrySelect({
         )}
       </div>
 
-      {open && suggestions.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-2xl">
-          {suggestions.map((s, i) => (
-            <li
-              key={`${s.name}-${i}`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectSuggestion(s);
-              }}
-              onMouseEnter={() => setActiveIdx(i)}
-              className={cn(
-                "flex cursor-pointer items-center gap-2.5 px-3 py-2.5 text-sm transition-colors",
-                i === activeIdx
-                  ? "bg-violet-50 text-violet-700"
-                  : "text-slate-700 hover:bg-violet-50 hover:text-violet-700",
-              )}
-            >
-              {s.iso2 ? (
-                <CountryFlag iso2={s.iso2} className="text-base leading-none" />
-              ) : (
-                <Globe className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
-              )}
-              {s.name}
-            </li>
-          ))}
-        </ul>
-      )}
+      {showList &&
+        position &&
+        createPortal(
+          <ul
+            style={{ ...position.style, marginTop: 4 }}
+            className="z-[9999] max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-2xl"
+          >
+            {suggestions.map((s, i) => (
+              <li
+                key={`${s.name}-${i}`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  selectSuggestion(s);
+                }}
+                onMouseEnter={() => setActiveIdx(i)}
+                className={cn(
+                  "flex cursor-pointer items-center gap-2.5 px-3 py-2.5 text-sm transition-colors",
+                  i === activeIdx
+                    ? "bg-violet-50 text-violet-700"
+                    : "text-slate-700 hover:bg-violet-50 hover:text-violet-700",
+                )}
+              >
+                {s.iso2 ? (
+                  <CountryFlag iso2={s.iso2} className="text-base leading-none" />
+                ) : (
+                  <Globe className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
+                )}
+                {s.name}
+              </li>
+            ))}
+          </ul>,
+          position.container,
+        )}
 
-      {showEmpty && (
-        <ul className="absolute left-0 right-0 top-full z-[9999] mt-1 rounded-xl border border-slate-200 bg-white shadow-2xl">
-          <li className="flex items-center gap-2.5 px-3 py-3 text-sm text-slate-500">
-            <Globe className="h-4 w-4 text-slate-400" />
-            No countries found for &ldquo;{query}&rdquo;
-          </li>
-        </ul>
-      )}
+      {showEmptyList &&
+        position &&
+        createPortal(
+          <ul
+            style={{ ...position.style, marginTop: 4 }}
+            className="z-[9999] rounded-xl border border-slate-200 bg-white shadow-2xl"
+          >
+            <li className="flex items-center gap-2.5 px-3 py-3 text-sm text-slate-500">
+              <Globe className="h-4 w-4 text-slate-400" />
+              No countries found for &ldquo;{query}&rdquo;
+            </li>
+          </ul>,
+          position.container,
+        )}
     </div>
   );
 }
