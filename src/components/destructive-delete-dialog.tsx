@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,9 @@ type DestructiveDeleteDialogProps = {
   requireDeleteAll?: boolean;
   onConfirm: () => void | Promise<void>;
   confirming?: boolean;
+  /** When provided, shows a "Download CSV backup" button. Downloading does not close the dialog or trigger delete. */
+  onExport?: () => void | Promise<void>;
+  exporting?: boolean;
 };
 
 export function DestructiveDeleteDialog({
@@ -33,6 +37,8 @@ export function DestructiveDeleteDialog({
   requireDeleteAll = false,
   onConfirm,
   confirming = false,
+  onExport,
+  exporting = false,
 }: DestructiveDeleteDialogProps) {
   const [confirmText, setConfirmText] = useState("");
 
@@ -56,6 +62,19 @@ export function DestructiveDeleteDialog({
               `You are about to permanently delete ${count} archived ${entityLabel.toLowerCase()}. This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
+        {onExport ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
+            disabled={exporting}
+            onClick={() => void onExport()}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {exporting ? "Preparing CSV…" : "Download CSV backup"}
+          </Button>
+        ) : null}
         {requireDeleteAll ? (
           <div className="space-y-2">
             <Label htmlFor="delete-confirm">
