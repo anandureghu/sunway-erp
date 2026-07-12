@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PhoneInput from "@/components/PhoneInput";
+import SelectCarrier from "@/components/select-carrier";
 import { normalizePhone } from "@/lib/countries";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -83,6 +84,7 @@ export default function DeliveryTrackingPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+  const [trackingCarrierId, setTrackingCarrierId] = useState("");
   const [trackingCarrierName, setTrackingCarrierName] = useState("");
   const [trackingNumberInput, setTrackingNumberInput] = useState("");
   const [trackingDriverName, setTrackingDriverName] = useState("");
@@ -317,6 +319,7 @@ export default function DeliveryTrackingPage() {
       });
     }
     setTrackingDialogOpen(false);
+    setTrackingCarrierId("");
     setTrackingCarrierName("");
     setTrackingNumberInput("");
     setTrackingDriverName("");
@@ -344,6 +347,7 @@ export default function DeliveryTrackingPage() {
 
   useEffect(() => {
     if (!trackingDialogOpen || !selectedDispatch) return;
+    setTrackingCarrierId("");
     setTrackingCarrierName(selectedDispatch.carrierName || "");
     setTrackingNumberInput(selectedDispatch.trackingNumber || "");
     setTrackingDriverName(selectedDispatch.driverName || "");
@@ -742,12 +746,13 @@ export default function DeliveryTrackingPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="tracking-carrier">Carrier Name</Label>
-                <Input
-                  id="tracking-carrier"
-                  value={trackingCarrierName}
-                  onChange={(e) => setTrackingCarrierName(e.target.value)}
-                  placeholder="Carrier name"
+                <SelectCarrier
+                  value={trackingCarrierId}
+                  onSelect={(carrier) => {
+                    setTrackingCarrierId(carrier.id);
+                    setTrackingCarrierName(carrier.name);
+                  }}
+                  label="Carrier"
                 />
               </div>
               <div className="space-y-2">

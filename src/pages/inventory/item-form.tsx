@@ -36,6 +36,7 @@ import {
 import SelectWarehouse from "@/components/select-warehouse";
 import { ItemSectionCard } from "@/components/inventory/item-section-card";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import { cn } from "@/lib/utils";
 
 // Field wrapper
 function F({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
@@ -302,10 +303,12 @@ function CreateItemForm({
             {errors.brand && <p className="text-[11px] text-rose-400 mt-1">{errors.brand.message}</p>}
           </F>
 
-          <F label="Item Type">
-            <Input placeholder="e.g., Raw Material, Finished Good" {...register("itemType")} className={icls} />
-            {errors.itemType && <p className="text-[11px] text-rose-400 mt-1">{errors.itemType.message}</p>}
-          </F>
+          <div className="col-span-2">
+            <F label="Item Type">
+              <Input placeholder="e.g., Raw Material, Finished Good" {...register("itemType")} className={icls} />
+              {errors.itemType && <p className="text-[11px] text-rose-400 mt-1">{errors.itemType.message}</p>}
+            </F>
+          </div>
 
           <div className={descriptionSpan}>
             <F label="Description">
@@ -456,12 +459,12 @@ function CreateItemForm({
 
           {editMode && watch("dateReceived") ? (
             <F label="Date Received">
-              <Input type="date" {...register("dateReceived")} className={icls} disabled />
+              <Input type="date" {...register("dateReceived")} className={cn(icls, "min-w-[9.5rem]")} disabled />
             </F>
           ) : null}
 
           <F label="Sale by Date">
-            <Input type="date" {...register("expiryDate")} className={icls} />
+            <Input type="date" {...register("expiryDate")} className={cn(icls, "min-w-[9.5rem]")} />
             <p className="text-[11px] text-slate-400 mt-1">Optional</p>
           </F>
         </div>

@@ -23,7 +23,11 @@ import {
   type StockAdjustmentFormData,
 } from "@/schema/inventory";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { createStockVariance } from "@/service/stockVarianceService";
+import {
+  createStockVariance,
+  resubmitStockVariance,
+  type StockVariance,
+} from "@/service/stockVarianceService";
 import type { Warehouse } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -35,10 +39,11 @@ import {
   RotateCcw,
   Search,
   Sparkles,
+  Undo2,
   Warehouse as WarehouseIcon,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { filterItemsByQuery } from "../use-manage-stocks";
@@ -64,12 +69,17 @@ type VarianceFormPanelProps = {
   items: ItemResponseDTO[];
   warehouses: Warehouse[];
   onSubmitted: () => Promise<void>;
+  /** When set, the form edits and resubmits this sent-back variance instead of creating a new one. */
+  editing?: StockVariance;
+  onCancelEdit?: () => void;
 };
 
 export function VarianceFormPanel({
   items,
   warehouses,
   onSubmitted,
+  editing,
+  onCancelEdit,
 }: VarianceFormPanelProps) {
   const {
     register,
@@ -121,6 +131,35 @@ export function VarianceFormPanel({
       ? currentQuantity + (adjustmentQuantity || 0)
       : null;
 
+  // Pre-fill the form when editing a sent-back variance for resubmission.
+  useEffect(() => {
+    if (!editing) return;
+    const matchingItem = items.find((i) => i.id === editing.itemId) ?? null;
+    setVarianceItem(matchingItem);
+    const isEditingTransfer = editing.varianceType === "transfer";
+    reset({
+      itemId: String(editing.itemId),
+      warehouseId: String(editing.fromWarehouseId),
+      toWarehouseId: editing.toWarehouseId ? String(editing.toWarehouseId) : "",
+      adjustmentType: editing.varianceType as StockAdjustmentFormData["adjustmentType"],
+      adjustmentMode: (isEditingTransfer
+        ? "transfer"
+        : editing.adjustmentMode === "set"
+          ? "set"
+          : "delta") as StockAdjustmentFormData["adjustmentMode"],
+      adjustmentQuantity: editing.adjustmentQuantity ?? undefined,
+      newQuantity: editing.quantityAfter ?? undefined,
+      // Only set transfer qty for transfers — 0 fails zod min(0.01) and blocks resubmit silently.
+      transferQuantity: isEditingTransfer
+        ? (editing.transferQuantity ?? undefined)
+        : undefined,
+      reason: editing.reason,
+      notes: editing.notes ?? "",
+      adjustmentDate: editing.varianceDate,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+
   const handleItemSelect = (item: ItemResponseDTO) => {
     setVarianceItem(item);
     setValue("itemId", item.id.toString());
@@ -147,7 +186,7 @@ export function VarianceFormPanel({
 
     setSubmitting(true);
     try {
-      await createStockVariance({
+      const payload = {
         itemId: Number(data.itemId),
         warehouseId: Number(data.warehouseId),
         toWarehouseId:
@@ -172,9 +211,15 @@ export function VarianceFormPanel({
         reason: data.reason,
         notes: data.notes,
         varianceDate: data.adjustmentDate,
-      });
+      };
 
-      toast.success("Variance submitted for approval");
+      if (editing) {
+        await resubmitStockVariance(editing.id, payload);
+        toast.success("Variance resubmitted for approval");
+      } else {
+        await createStockVariance(payload);
+        toast.success("Variance submitted for approval");
+      }
       await onSubmitted();
       reset({
         adjustmentDate: format(new Date(), "yyyy-MM-dd"),
@@ -211,6 +256,17 @@ export function VarianceFormPanel({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {editing ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-300/60 bg-amber-500/[0.08] p-4">
+          <Undo2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">
+              Sent back by {editing.sentBackByName ?? "an approver"}
+            </p>
+            <p className="text-sm text-amber-800/90">{editing.sentBackReason}</p>
+          </div>
+        </div>
+      ) : null}
       <Card className="overflow-hidden border-border/80 shadow-md">
         <CardHeader className="border-b border-border/60 bg-muted/30 pb-4">
           <div className="flex items-center gap-2">
@@ -575,26 +631,41 @@ export function VarianceFormPanel({
           <Separator />
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleReset}
-              disabled={submitting}
-              className="gap-2"
-            >
-              <X className="h-4 w-4" />
-              Clear
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleReset}
-              disabled={submitting}
-              className="gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Start over
-            </Button>
+            {editing && onCancelEdit ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onCancelEdit}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleReset}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
+            {!editing && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleReset}
+                disabled={submitting}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Start over
+              </Button>
+            )}
             <Button
               type="submit"
               size="lg"
@@ -602,11 +673,15 @@ export function VarianceFormPanel({
               className="gap-2 shadow-md"
             >
               {submitting ? (
-                "Submitting…"
+                editing ? (
+                  "Resubmitting…"
+                ) : (
+                  "Submitting…"
+                )
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  Submit for approval
+                  {editing ? "Resubmit for approval" : "Submit for approval"}
                 </>
               )}
             </Button>

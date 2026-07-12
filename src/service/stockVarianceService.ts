@@ -2,7 +2,7 @@ import { apiClient } from "@/service/apiClient";
 
 export type StockVariance = {
   id: number;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "sent_back";
   varianceType: string;
   adjustmentMode: string;
   itemId: number;
@@ -29,6 +29,10 @@ export type StockVariance = {
   rejectedById?: number | null;
   rejectedByName?: string | null;
   rejectedAt?: string | null;
+  sentBackById?: number | null;
+  sentBackByName?: string | null;
+  sentBackAt?: string | null;
+  sentBackReason?: string | null;
   archived?: boolean;
 };
 
@@ -89,6 +93,35 @@ export async function approveStockVariance(id: number): Promise<StockVariance> {
 export async function rejectStockVariance(id: number): Promise<StockVariance> {
   const res = await apiClient.post<StockVariance>(
     `/inventory/variances/${id}/reject`,
+  );
+  return res.data;
+}
+
+export async function sendBackStockVariance(
+  id: number,
+  reason: string,
+): Promise<StockVariance> {
+  const res = await apiClient.post<StockVariance>(
+    `/inventory/variances/${id}/send-back`,
+    { reason },
+  );
+  return res.data;
+}
+
+export async function listSentBackStockVariances(): Promise<StockVariance[]> {
+  const res = await apiClient.get<StockVariance[]>(
+    "/inventory/variances/sent-back",
+  );
+  return res.data || [];
+}
+
+export async function resubmitStockVariance(
+  id: number,
+  payload: StockVarianceCreatePayload,
+): Promise<StockVariance> {
+  const res = await apiClient.put<StockVariance>(
+    `/inventory/variances/${id}/resubmit`,
+    payload,
   );
   return res.data;
 }

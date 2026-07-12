@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { downloadCsv } from "@/lib/csv-export";
 import {
   bulkDeleteHistoryRecords,
   deleteAllHistoryRecords,
@@ -60,6 +61,7 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exportingAll, setExportingAll] = useState(false);
 
   const selectedIds = useMemo(
     () =>
@@ -146,6 +148,62 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
     ],
     [],
   );
+
+  const CSV_HEADER = [
+    "ID",
+    "Type",
+    "Reference No",
+    "Status",
+    "Party / Details",
+    "Amount",
+    "Created At",
+    "Archived At",
+  ];
+
+  const toCsvRow = (record: HistoryRecord): string[] => [
+    String(record.id),
+    HISTORY_ENTITY_LABELS[record.type] ?? record.type,
+    record.referenceNo ?? "",
+    record.status ?? "",
+    record.partyName ?? "",
+    typeof record.amount === "number" ? String(record.amount) : "",
+    formatDate(record.createdAt),
+    formatDate(record.archivedAt),
+  ];
+
+  const handleExportSelected = () => {
+    const selected = rows.filter((row) => selectedIds.includes(row.id));
+    if (selected.length === 0) return;
+    downloadCsv(
+      [CSV_HEADER, ...selected.map(toCsvRow)],
+      `${entityLabel.toLowerCase().replace(/\s+/g, "-")}-backup`,
+    );
+  };
+
+  const handleExportAll = async () => {
+    if (!entityType || totalElements === 0) return;
+    setExportingAll(true);
+    try {
+      const response = await listHistoryRecords({
+        module: HISTORY_TYPE_MODULE[entityType],
+        type: entityType,
+        page: 0,
+        size: totalElements,
+        search: search.trim() || undefined,
+      });
+      downloadCsv(
+        [CSV_HEADER, ...response.content.map(toCsvRow)],
+        `${entityLabel.toLowerCase().replace(/\s+/g, "-")}-backup-all`,
+      );
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to prepare CSV backup.";
+      toast.error(message);
+    } finally {
+      setExportingAll(false);
+    }
+  };
 
   const handleDeleteSelected = async () => {
     if (!entityType || selectedIds.length === 0) return;
@@ -286,6 +344,7 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
         entityLabel={entityLabel}
         onConfirm={handleDeleteSelected}
         confirming={deleting}
+        onExport={handleExportSelected}
       />
 
       <DestructiveDeleteDialog
@@ -298,6 +357,8 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
         description={`This will permanently delete all ${totalElements} archived ${entityLabel.toLowerCase()}. This action cannot be undone.`}
         onConfirm={handleDeleteAll}
         confirming={deleting}
+        onExport={handleExportAll}
+        exporting={exportingAll}
       />
     </div>
   );

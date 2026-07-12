@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -10,6 +11,7 @@ import {
   type Country,
 } from "@/lib/countries";
 import CountryFlag from "@/components/CountryFlag";
+import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 
 type Props = {
   /** Stored combined value, e.g. "+974 33001122" */
@@ -44,6 +46,7 @@ export default function PhoneInput({
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const country = getCountryByIso(iso) ?? DEFAULT_COUNTRY;
+  const position = useAnchoredPosition(wrapperRef, open && !disabled);
 
   // Re-sync local state when the value changes from outside (e.g. data load).
   useEffect(() => {
@@ -75,11 +78,12 @@ export default function PhoneInput({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return COUNTRIES;
+    const qDigits = q.replace(/\D/g, "");
     return COUNTRIES.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.dial.includes(q.replace(/\D/g, "")) ||
-        c.iso2.toLowerCase().includes(q),
+        c.iso2.toLowerCase().includes(q) ||
+        (qDigits.length > 0 && c.dial.includes(qDigits)),
     );
   }, [search]);
 
@@ -125,17 +129,23 @@ export default function PhoneInput({
       </div>
 
       {/* Country dropdown */}
-      {open && !disabled && (
-        <>
-          {/* click-away backdrop */}
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={() => {
-              setOpen(false);
-              setSearch("");
-            }}
-          />
-          <div className="absolute z-[9999] mt-1 w-72 max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-2xl">
+      {open &&
+        !disabled &&
+        position &&
+        createPortal(
+          <>
+            {/* click-away backdrop */}
+            <div
+              className="fixed inset-0 z-[9998]"
+              onClick={() => {
+                setOpen(false);
+                setSearch("");
+              }}
+            />
+            <div
+              style={{ ...position.style, width: undefined, marginTop: 4 }}
+              className="z-[9999] w-72 max-w-[90vw] rounded-xl border border-slate-200 bg-white shadow-2xl"
+            >
             <div className="border-b border-slate-100 p-2">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -178,9 +188,10 @@ export default function PhoneInput({
                 ))
               )}
             </ul>
-          </div>
-        </>
-      )}
+            </div>
+          </>,
+          position.container,
+        )}
     </div>
   );
 }
