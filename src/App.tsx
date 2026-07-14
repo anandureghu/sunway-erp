@@ -54,7 +54,7 @@ import ForgotPasswordResetPage from "./pages/auth/forgot-password-reset-page";
 import VerifyOtpPage from "./pages/auth/verify-otp-page";
 import ResetPasswordPage from "./pages/auth/reset-password";
 import NotFound from "./pages/not-found";
-import DashboardPage from "./pages/dashboard";
+import HomePage from "./pages/home-page";
 import AccountsReceivablePage from "./pages/finance/accounts-receivable-page";
 import EmployeesPage from "./pages/employees-page";
 
@@ -142,7 +142,7 @@ export default function App() {
         >
           <Route
             index
-            element={<DashboardPage />}
+            element={<HomePage />}
           />
           <Route path="profile" element={<UserProfilePage />} />
 

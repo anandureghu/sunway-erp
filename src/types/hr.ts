@@ -42,6 +42,8 @@ export const EMPLOYEE_STATUS_OPTIONS: { value: EmployeeStatus; label: string }[]
 export interface Employee {
   userId: any;
   id?: string;
+  /** Linked HR employee record id (from JWT / profile) */
+  employeeId?: string;
   employeeNo?: string;
   firstName?: string;
   middleName?: string;

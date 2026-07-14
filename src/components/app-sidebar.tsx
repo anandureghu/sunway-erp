@@ -312,7 +312,7 @@ export function AppSidebar() {
 
         {/* ── Content ─────────────────────────────────────── */}
         <SidebarContent className="gap-0 px-3 py-3 group-data-[collapsible=icon]:px-1">
-          {/* Dashboard link */}
+          {/* Home link */}
           {!settingsView && (
             <SidebarMenu className="mb-2">
               <SidebarMenuItem>
@@ -334,7 +334,7 @@ export function AppSidebar() {
                     >
                       <Home className="h-3.5 w-3.5" />
                     </span>
-                    <span>Dashboard</span>
+                    <span>Home</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
