@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "@/lib/status-badge";
-import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
+import { TotalAmount, PaidAmount, RemainingAmount, CreditNoteAppliedAmount } from "@/components/accounting-amount";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 
 export type SalesInvoiceColumnActions = {
@@ -89,24 +89,7 @@ export function createSalesInvoiceColumns(
       header: "Payment Status",
       cell: ({ row }) => {
         const status = String(row.getValue("status") ?? "");
-        const invoice = row.original;
-        const remaining = invoice.outstanding ?? invoice.openAmount;
-        const isPartial = status.toUpperCase() === "PARTIALLY_PAID";
-        return (
-          <div className="space-y-0.5">
-            <StatusBadge status={status} />
-            {isPartial && remaining != null && (
-              <div className="text-xs text-muted-foreground">
-                Remaining:{" "}
-                {invoice.type === "SALES" ? (
-                  <CreditAmount amount={remaining} className="inline" />
-                ) : (
-                  <DebitAmount amount={remaining} className="inline" />
-                )}
-              </div>
-            )}
-          </div>
-        );
+        return <StatusBadge status={status} />;
       },
     },
     {
@@ -121,11 +104,35 @@ export function createSalesInvoiceColumns(
         if (total == null) {
           return <span className="text-muted-foreground">—</span>;
         }
-        return type === "SALES" ? (
-          <CreditAmount amount={total} />
-        ) : (
-          <DebitAmount amount={total} />
+        return <TotalAmount amount={total} />;
+      },
+    },
+    {
+      id: "paidAmount",
+      header: "Paid Amount",
+      cell: ({ row }) => {
+        const invoice = row.original;
+        const paid = invoice.paidAmount ?? 0;
+        const creditApplied = invoice.creditAppliedAmount ?? 0;
+        return (
+          <div className="space-y-0.5">
+            <PaidAmount amount={paid} />
+            {creditApplied > 0 && (
+              <div className="text-xs text-muted-foreground">
+                incl. <CreditNoteAppliedAmount amount={creditApplied} className="inline" /> credit
+              </div>
+            )}
+          </div>
         );
+      },
+    },
+    {
+      id: "remainderDue",
+      header: "Remainder Due",
+      cell: ({ row }) => {
+        const invoice = row.original;
+        const remaining = invoice.outstanding ?? invoice.openAmount ?? 0;
+        return <RemainingAmount amount={remaining} />;
       },
     },
     {

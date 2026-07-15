@@ -92,14 +92,21 @@ export default function PaymentsPage({
   const submitConfirmPayment = useCallback(
     async (
       payment: PaymentResponseDTO,
-      payload: { amount: number; paymentMethod?: string },
+      payload: { amount: number; paymentMethod?: string; applyCreditAmount?: number },
     ) => {
       try {
-        const body: { amount: number; paymentMethod?: string } = {
+        const body: {
+          amount: number;
+          paymentMethod?: string;
+          applyCreditAmount?: number;
+        } = {
           amount: payload.amount,
         };
-        if (variant === "vendor" && payload.paymentMethod) {
+        if (payload.paymentMethod) {
           body.paymentMethod = payload.paymentMethod;
+        }
+        if (payload.applyCreditAmount) {
+          body.applyCreditAmount = payload.applyCreditAmount;
         }
         const res = await apiClient.post<PaymentResponseDTO>(
           `/finance/payments/${payment.id}/confirm`,
@@ -137,7 +144,11 @@ export default function PaymentsPage({
   );
 
   const handleConfirmWithAmount = useCallback(
-    async (payload: { amount: number; paymentMethod?: string }) => {
+    async (payload: {
+      amount: number;
+      paymentMethod?: string;
+      applyCreditAmount?: number;
+    }) => {
       if (!confirmPayment) return;
       setConfirming(true);
       try {

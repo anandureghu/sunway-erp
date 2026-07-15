@@ -8,6 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
@@ -30,12 +37,14 @@ export default function CreateCreditNoteDialog({ onCreated }: Props) {
   const [invoiceId, setInvoiceId] = useState("");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
+  const [applyImmediately, setApplyImmediately] = useState("true");
 
   useEffect(() => {
     if (!open) {
       setInvoiceId("");
       setAmount("");
       setReason("");
+      setApplyImmediately("true");
     }
   }, [open]);
 
@@ -47,6 +56,7 @@ export default function CreateCreditNoteDialog({ onCreated }: Props) {
         amount: Number(amount),
         reason,
         creditDate: new Date().toISOString().split("T")[0],
+        applyImmediately: applyImmediately === "true",
       });
       toast.success("Credit note created");
       setOpen(false);
@@ -163,6 +173,25 @@ export default function CreateCreditNoteDialog({ onCreated }: Props) {
                       className="h-10 pl-9 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                    Application
+                  </label>
+                  <Select value={applyImmediately} onValueChange={setApplyImmediately}>
+                    <SelectTrigger className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">
+                        Apply immediately to this invoice
+                      </SelectItem>
+                      <SelectItem value="false">
+                        Keep as available credit for future payments
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

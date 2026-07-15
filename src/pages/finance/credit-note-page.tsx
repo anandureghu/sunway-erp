@@ -31,7 +31,13 @@ const CreditNotePage = () => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return creditNotes;
     return creditNotes.filter((note) =>
-      [note.creditNoteNumber, note.customerName, note.status, note.referenceNumber]
+      [
+        note.creditNoteNumber,
+        note.customerName,
+        note.supplierName,
+        note.status,
+        note.referenceNumber,
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()

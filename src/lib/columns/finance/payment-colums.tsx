@@ -1,7 +1,14 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import type { PaymentResponseDTO, PaymentsPageVariant } from "@/types/payment";
 import { Badge } from "@/components/ui/badge";
-import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
+import {
+  CreditAmount,
+  DebitAmount,
+  TotalAmount,
+  PaidAmount,
+  RemainingAmount,
+  CreditNoteAppliedAmount,
+} from "@/components/accounting-amount";
 import { Button } from "@/components/ui/button";
 import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
 import {
@@ -62,6 +69,47 @@ export const PAYMENT_COLUMNS = ({
       },
     },
     {
+      id: "invoiceTotal",
+      header: "Total",
+      cell: ({ row }) => {
+        const total = row.original.invoiceTotal;
+        if (total == null) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return <TotalAmount amount={Number(total)} />;
+      },
+    },
+    {
+      id: "invoicePaidAmount",
+      header: "Paid Amount",
+      cell: ({ row }) => {
+        const item = row.original;
+        const paid = Number(item.invoicePaidAmount ?? 0);
+        const creditApplied = Number(item.invoiceCreditAppliedAmount ?? 0);
+        return (
+          <div className="space-y-0.5">
+            <PaidAmount amount={paid} />
+            {creditApplied > 0 && (
+              <div className="text-xs text-muted-foreground">
+                incl. <CreditNoteAppliedAmount amount={creditApplied} className="inline" /> credit
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "invoiceRemainderDue",
+      header: "Remainder Due",
+      cell: ({ row }) => {
+        const remaining = row.original.invoiceOutstanding;
+        if (remaining == null) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return <RemainingAmount amount={Number(remaining)} />;
+      },
+    },
+    {
       accessorKey: "paymentMethod",
       header: "Method",
       cell: ({ row }) => {
@@ -79,6 +127,17 @@ export const PAYMENT_COLUMNS = ({
       cell: ({ row }) => {
         const date = row.getValue("effectiveDate") as string;
         return new Date(date).toLocaleDateString();
+      },
+    },
+    {
+      id: "creditApplied",
+      header: "Credit Applied",
+      cell: ({ row }) => {
+        const applied = Number(row.original.creditAppliedAmount ?? 0);
+        if (!applied) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return <CreditNoteAppliedAmount amount={applied} />;
       },
     },
     {

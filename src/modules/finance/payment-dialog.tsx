@@ -7,11 +7,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import type { CreatePaymentDTO, PaymentResponseDTO } from "@/types/payment";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { toISO } from "@/lib/utils";
+import { PAYMENT_METHODS } from "@/lib/payment-method-label";
 import {
   DollarSign,
   Calendar,
@@ -39,7 +47,7 @@ export function PaymentDialog({
   const [form, setForm] = useState<CreatePaymentDTO>({
     companyId,
     amount: 0,
-    paymentMethod: "",
+    paymentMethod: "BANK_TRANSFER",
     effectiveDate: "",
     notes: "",
     invoiceId: "",
@@ -53,7 +61,7 @@ export function PaymentDialog({
       setForm({
         companyId,
         amount: data.amount,
-        paymentMethod: data.paymentMethod,
+        paymentMethod: data.paymentMethod || "BANK_TRANSFER",
         effectiveDate: toISO(data.effectiveDate),
         notes: "",
         invoiceId: data.invoiceId ?? "",
@@ -151,17 +159,21 @@ export function PaymentDialog({
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                       Payment method
                     </label>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300">
-                        <CreditCard className="h-[15px] w-[15px]" />
-                      </span>
-                      <Input
-                        value={form.paymentMethod}
-                        onChange={(e) => update("paymentMethod", e.target.value)}
-                        placeholder="BANK_TRANSFER, CASH"
-                        className="h-10 pl-9 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
-                      />
-                    </div>
+                    <Select
+                      value={form.paymentMethod}
+                      onValueChange={(value) => update("paymentMethod", value)}
+                    >
+                      <SelectTrigger className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]">
+                        <SelectValue placeholder="Select method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_METHODS.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-1.5">

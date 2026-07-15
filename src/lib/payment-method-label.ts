@@ -1,4 +1,4 @@
-export const VENDOR_PAYMENT_METHODS = [
+export const PAYMENT_METHODS = [
   { value: "CASH", label: "Cash" },
   { value: "CARD", label: "Card" },
   { value: "BANK_TRANSFER", label: "Bank transfer" },
@@ -10,7 +10,7 @@ export const VENDOR_PAYMENT_METHODS = [
 export function formatPaymentMethodLabel(method?: string | null): string {
   if (!method) return "—";
   const code = method.trim().toUpperCase();
-  const found = VENDOR_PAYMENT_METHODS.find((m) => m.value === code);
+  const found = PAYMENT_METHODS.find((m) => m.value === code);
   if (found) return found.label;
   switch (code) {
     case "PENDING_VENDOR_PAYMENT":
