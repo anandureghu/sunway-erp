@@ -169,11 +169,12 @@ export function EmployeeDialog({
     resolver: zodResolver(createEmployeeSchema),
     defaultValues: {
       firstName: "",
+      middleName: "",
       lastName: "",
       email: "",
       username: "",
       password: "",
-      role: "",
+      role: "Admin",
     },
   });
 
@@ -188,10 +189,13 @@ export function EmployeeDialog({
       .then((roles) => {
         if (!cancelled) {
           setCompanyRoles(roles);
-          if (mode === "create" && presetRole) {
-            const match = roles.find(
-              (r) => r.name.toLowerCase() === presetRole.toLowerCase(),
-            );
+          if (mode === "create") {
+            const match =
+              (presetRole &&
+                roles.find(
+                  (r) => r.name.toLowerCase() === presetRole.toLowerCase(),
+                )) ||
+              roles.find((r) => r.name.toLowerCase() === "admin");
             if (match) {
               form.setValue("role", match.name);
             }
@@ -258,6 +262,7 @@ export function EmployeeDialog({
     if (open && mode === "edit" && employee) {
       form.reset({
         firstName: employee.firstName,
+        middleName: employee.middleName ?? "",
         lastName: employee.lastName,
         email: employee.email,
         username: employee.username,
@@ -270,11 +275,12 @@ export function EmployeeDialog({
     if (open && mode === "create") {
       form.reset({
         firstName: "",
+        middleName: "",
         lastName: "",
         email: "",
         username: "",
         password: "",
-        role: "",
+        role: "Admin",
       });
     }
   }, [open, employee, mode]);
@@ -303,6 +309,7 @@ export function EmployeeDialog({
 
     const payload = {
       firstName: values.firstName,
+      middleName: values.middleName || undefined,
       lastName: values.lastName,
       email: values.email || undefined,
       username: values.username,
@@ -456,6 +463,29 @@ export function EmployeeDialog({
 
                   <FormField
                     control={form.control}
+                    name="middleName"
+                    render={({ field, fieldState }) => (
+                      <FormItem className="space-y-0">
+                        <Field
+                          label="Middle name"
+                          icon={<User className="h-[15px] w-[15px]" />}
+                          error={fieldState.error?.message}
+                        >
+                          <FormControl>
+                            <Input
+                              placeholder="Optional"
+                              {...field}
+                              value={field.value ?? ""}
+                              className={fieldClass()}
+                            />
+                          </FormControl>
+                        </Field>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="lastName"
                     render={({ field, fieldState }) => (
                       <FormItem className="space-y-0">
@@ -578,8 +608,12 @@ export function EmployeeDialog({
                       <FormItem className="space-y-0">
                         <Field
                           label="Username"
-                          badge="auto-generated"
-                          hint="Generated from name — you can edit this"
+                          badge={mode === "create" ? "auto-generated" : undefined}
+                          hint={
+                            mode === "create"
+                              ? "Generated from name — you can edit this"
+                              : "Username can't be changed after the account is created"
+                          }
                           icon={<AtSign className="h-[15px] w-[15px]" />}
                           error={fieldState.error?.message}
                         >
@@ -587,7 +621,8 @@ export function EmployeeDialog({
                             <Input
                               placeholder="j.doe"
                               {...field}
-                              className={fieldClass()}
+                              disabled={mode === "edit"}
+                              className={fieldClass(true, mode === "edit")}
                             />
                           </FormControl>
                         </Field>

@@ -17,10 +17,7 @@ export const COMPANY_SCHEMA = z.object({
     .min(1, { message: "Company number must be a positive number" })
     .optional(),
 
-  noOfEmployees: z
-    .number()
-    .min(1, { message: "Number of employees must be a positive number" })
-    .optional(),
+  industry: z.string().optional(),
 
   computerCard: z.string().optional(),
   street: z.string().optional(),

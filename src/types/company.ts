@@ -20,6 +20,10 @@ export interface Company {
   inventoryEnabled: boolean;
   currency?: Currency;
   companyCode: string;
+  industry?: string | null;
+  active?: boolean;
+  /** Live count of ACTIVE employees, computed server-side. */
+  employeeCount?: number;
   isTaxActive?: boolean;
   taxRate?: number;
   defaultSalesDebitAccountId?: number | null;
