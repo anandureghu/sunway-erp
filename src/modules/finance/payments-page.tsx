@@ -6,13 +6,15 @@ import { BulkActionBar } from "@/components/bulk-action-bar";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 
 import type { PaymentResponseDTO, PaymentsPageVariant } from "@/types/payment";
 import { PAYMENT_COLUMNS } from "@/lib/columns/finance/payment-colums";
 import { PaymentDialog } from "./payment-dialog";
+import { OtherPaymentDialog } from "./other-payment-dialog";
 import { ConfirmPaymentDialog } from "./confirm-payment-dialog";
 import { useNavigate } from "react-router-dom";
 import { isPaymentArchivedTab } from "@/lib/payment-tab-utils";
@@ -48,8 +50,10 @@ export default function PaymentsPage({
   const [confirming, setConfirming] = useState(false);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [otherPaymentOpen, setOtherPaymentOpen] = useState(false);
 
-  const directionParam = variant === "vendor" ? "VENDOR" : "CUSTOMER";
+  const directionParam =
+    variant === "vendor" ? "VENDOR" : variant === "other" ? "OTHER" : "CUSTOMER";
 
   const fetchPayments = useCallback(async () => {
     if (!companyId) {
@@ -119,7 +123,9 @@ export default function PaymentsPage({
         toast.success(
           variant === "vendor"
             ? "Vendor payment confirmed"
-            : "Payment confirmed",
+            : variant === "other"
+              ? "Expense payment confirmed"
+              : "Payment confirmed",
         );
         setConfirmOpen(false);
         setConfirmPayment(null);
@@ -343,6 +349,8 @@ export default function PaymentsPage({
         String(p.supplierId ?? "").includes(q) ||
         (p.supplierName?.toLowerCase().includes(q) ?? false) ||
         (p.paymentMethod?.toLowerCase().includes(q) ?? false) ||
+        (p.expenseCategory?.toLowerCase().includes(q) ?? false) ||
+        (p.payee?.toLowerCase().includes(q) ?? false) ||
         String(p.amount ?? "")
           .toLowerCase()
           .includes(q);
@@ -385,12 +393,22 @@ export default function PaymentsPage({
             <div className="relative w-full max-w-md min-w-[12rem] sm:flex-1 lg:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search code, invoice, PO, supplier, method…"
+                placeholder={
+                  variant === "other"
+                    ? "Search code, category, paid to, method…"
+                    : "Search code, invoice, PO, supplier, method…"
+                }
                 className="pl-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            {variant === "other" && (
+              <Button onClick={() => setOtherPaymentOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add expense payment
+              </Button>
+            )}
           </div>
         </div>
       </Tabs>
@@ -407,7 +425,7 @@ export default function PaymentsPage({
         </div>
       ) : (
         <div className="space-y-4">
-          {listTab === "archived" ? (
+          {listTab === "archived" && variant !== "other" ? (
             <BulkActionBar
               selectedCount={selectedPaymentIds.length}
               onArchive={handleBulkArchivePayments}
@@ -418,7 +436,7 @@ export default function PaymentsPage({
           <SelectableDataTable
             data={filteredPayments}
             columns={columns}
-            enableRowSelection={listTab === "archived"}
+            enableRowSelection={listTab === "archived" && variant !== "other"}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             getRowId={(row) => String(row.id)}
@@ -429,13 +447,22 @@ export default function PaymentsPage({
         </div>
       )}
 
-      <PaymentDialog
-        open={open}
-        onOpenChange={setOpen}
-        data={selected}
-        companyId={companyId}
-        onSuccess={handleDialogSuccess}
-      />
+      {variant === "other" ? (
+        <OtherPaymentDialog
+          open={otherPaymentOpen}
+          onOpenChange={setOtherPaymentOpen}
+          companyId={companyId}
+          onSuccess={(created) => setPayments((prev) => [created, ...prev])}
+        />
+      ) : (
+        <PaymentDialog
+          open={open}
+          onOpenChange={setOpen}
+          data={selected}
+          companyId={companyId}
+          onSuccess={handleDialogSuccess}
+        />
+      )}
 
       <ConfirmPaymentDialog
         open={confirmOpen}

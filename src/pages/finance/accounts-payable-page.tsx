@@ -31,6 +31,7 @@ import {
   FileCheck,
   AlertTriangle,
   CheckCircle2,
+  Receipt,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -491,6 +492,14 @@ const AccountsPayablePage = () => {
       icon: <Wallet className="w-6 h-6" />,
       element: ({ companyId }: AccountsPayableProps) => (
         <PaymentsPage companyId={companyId || 0} variant="vendor" />
+      ),
+    },
+    {
+      value: "other-payments",
+      label: "Other Payments",
+      icon: <Receipt className="w-6 h-6" />,
+      element: ({ companyId }: AccountsPayableProps) => (
+        <PaymentsPage companyId={companyId || 0} variant="other" />
       ),
     },
   ];

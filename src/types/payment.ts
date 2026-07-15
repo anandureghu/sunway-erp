@@ -1,5 +1,5 @@
 /** Which finance list this row belongs to (filters API). */
-export type PaymentsPageVariant = "customer" | "vendor";
+export type PaymentsPageVariant = "customer" | "vendor" | "other";
 
 export interface PaymentResponseDTO {
   id: number;
@@ -43,6 +43,10 @@ export interface PaymentResponseDTO {
   availableCreditAmount?: number | string | null;
   /** Portion of this payment covered by an applied credit note rather than cash. */
   creditAppliedAmount?: number | string | null;
+  /** Set for OTHER-direction (ad-hoc expense) payments. */
+  expenseCategory?: string | null;
+  /** Set for OTHER-direction (ad-hoc expense) payments: who the expense was paid to. */
+  payee?: string | null;
 
   createdAt: string;
 }
@@ -54,6 +58,15 @@ export interface CreatePaymentDTO {
   effectiveDate: string;
   notes?: string;
   invoiceId?: string | null; // optional
+}
+
+export interface CreateOtherPaymentDTO {
+  companyId: number;
+  expenseCategory: string;
+  payee?: string;
+  amount: number | string;
+  effectiveDate: string;
+  notes?: string;
 }
 
 export interface ConfirmPaymentPayload {

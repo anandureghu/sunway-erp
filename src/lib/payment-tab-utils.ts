@@ -9,14 +9,16 @@ const PENDING_CUSTOMER = "PENDING_REQUEST";
 /** Vendor payables awaiting confirmation. */
 const PENDING_VENDOR = "PENDING_VENDOR_PAYMENT";
 
+/** Ad-hoc expense payments awaiting confirmation. */
+const PENDING_OTHER = "PENDING_OTHER_PAYMENT";
+
 function normalizedDirection(
   p: PaymentResponseDTO,
   variant: PaymentsPageVariant,
 ): string {
-  return String(
-    p.paymentDirection ??
-      (variant === "vendor" ? "VENDOR" : "CUSTOMER"),
-  ).toUpperCase();
+  const fallback =
+    variant === "vendor" ? "VENDOR" : variant === "other" ? "OTHER" : "CUSTOMER";
+  return String(p.paymentDirection ?? fallback).toUpperCase();
 }
 
 /** Payment still needs Confirm action (Outstanding tab). */
@@ -25,9 +27,10 @@ export function isPaymentPendingConfirmation(
   variant: PaymentsPageVariant,
 ): boolean {
   const method = (p.paymentMethod || "").toUpperCase().trim();
-  return normalizedDirection(p, variant) === "VENDOR"
-    ? method === PENDING_VENDOR
-    : method === PENDING_CUSTOMER;
+  const direction = normalizedDirection(p, variant);
+  if (direction === "VENDOR") return method === PENDING_VENDOR;
+  if (direction === "OTHER") return method === PENDING_OTHER;
+  return method === PENDING_CUSTOMER;
 }
 
 /**

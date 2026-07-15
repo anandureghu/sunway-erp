@@ -21,6 +21,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import type { PaymentResponseDTO, PaymentsPageVariant } from "@/types/payment";
 import { PAYMENT_METHODS } from "@/lib/payment-method-label";
+import { formatExpenseCategoryLabel } from "@/lib/expense-category-label";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 function parseAmount(value: string | number | null | undefined): number {
@@ -53,6 +54,7 @@ export function ConfirmPaymentDialog({
   const [creditAmountInput, setCreditAmountInput] = useState("");
 
   const isVendor = variant === "vendor";
+  const isOther = variant === "other" || Boolean(payment?.expenseCategory);
 
   const outstanding = useMemo(() => {
     if (!payment) return 0;
@@ -154,14 +156,35 @@ export function ConfirmPaymentDialog({
                 </span>
               </p>
             )}
-            <p>
-              <span className="text-muted-foreground">Invoice total: </span>
-              <CurrencyAmount amount={invoiceTotal} className="font-medium inline" />
-            </p>
-            <p>
-              <span className="text-muted-foreground">Outstanding: </span>
-              <CurrencyAmount amount={outstanding} className="font-semibold inline" />
-            </p>
+            {isOther ? (
+              <>
+                <p>
+                  <span className="text-muted-foreground">Category: </span>
+                  <span className="font-medium">
+                    {formatExpenseCategoryLabel(payment.expenseCategory)}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Paid to: </span>
+                  <span className="font-medium">{payment.payee || "—"}</span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Amount: </span>
+                  <CurrencyAmount amount={outstanding} className="font-semibold inline" />
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  <span className="text-muted-foreground">Invoice total: </span>
+                  <CurrencyAmount amount={invoiceTotal} className="font-medium inline" />
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Outstanding: </span>
+                  <CurrencyAmount amount={outstanding} className="font-semibold inline" />
+                </p>
+              </>
+            )}
           </div>
 
           {maxApplicableCredit > 0 && (
