@@ -168,3 +168,16 @@ export function generateUsername(firstName: string, lastName: string): string {
   if (!firstName || !lastName) return "";
   return (firstName.substring(0, 1) + "." + lastName).toLowerCase();
 }
+
+/** Human-readable byte size, e.g. formatBytes(45000000) -> "42.9 MB". */
+export function formatBytes(bytes?: number | null): string {
+  if (bytes == null || Number.isNaN(bytes)) return "—";
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const exponent = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  const value = bytes / Math.pow(1024, exponent);
+  return `${exponent === 0 ? value : value.toFixed(1)} ${units[exponent]}`;
+}

@@ -80,6 +80,12 @@ export const getAllCompanies = async () => {
   }
 };
 
+/** Forces a fresh database-storage estimate for a company (SUPER_ADMIN only). */
+export const recalculateCompanyStorage = async (companyId: number | string) => {
+  const res = await apiClient.post(`/companies/${companyId}/storage-usage/recalculate`);
+  return res.data;
+};
+
 /**
  * Check if user has permission to view a module
  *

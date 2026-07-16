@@ -1,6 +1,7 @@
 import { Ban, Pencil, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/lib/status-badge";
+import { formatBytes } from "@/lib/utils";
 import type { Company } from "@/types/company";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -32,6 +33,16 @@ export const getCompanyColumns = ({
     accessorKey: "industry",
     header: "Industry",
     cell: ({ getValue }) => (getValue() as string | null) || "—",
+  },
+  {
+    accessorKey: "cloudStorageBytes",
+    header: "Cloud Storage",
+    cell: ({ getValue }) => formatBytes(getValue<number>()),
+  },
+  {
+    accessorKey: "databaseStorageBytes",
+    header: "Database Storage",
+    cell: ({ getValue }) => formatBytes(getValue<number>()),
   },
   {
     accessorKey: "city",

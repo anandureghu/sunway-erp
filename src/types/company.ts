@@ -24,6 +24,10 @@ export interface Company {
   active?: boolean;
   /** Live count of ACTIVE employees, computed server-side. */
   employeeCount?: number;
+  /** Storage usage, populated for SUPER_ADMIN only. */
+  cloudStorageBytes?: number;
+  databaseStorageBytes?: number;
+  storageCalculatedAt?: string | null;
   isTaxActive?: boolean;
   taxRate?: number;
   defaultSalesDebitAccountId?: number | null;
