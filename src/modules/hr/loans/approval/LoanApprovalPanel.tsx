@@ -174,6 +174,7 @@ export default function LoanApprovalPanel() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
+                <th className="px-4 py-3 text-left w-12">Sl No.</th>
                 <th className="px-4 py-3 text-left">Loan Code</th>
                 <th className="px-4 py-3 text-left">Employee</th>
                 <th className="px-4 py-3 text-left">Type</th>
@@ -185,11 +186,14 @@ export default function LoanApprovalPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {pageItems.map((loan) => {
+              {pageItems.map((loan, index) => {
                 const currency = loan.currencySymbol ?? loan.currencyCode ?? "";
                 const busy = decidingId === loan.id;
                 return (
                   <tr key={loan.id} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-3 text-slate-500 tabular-nums">
+                      {pageIndex * pageSize + index + 1}
+                    </td>
                     <td className="px-4 py-3 font-semibold text-slate-800">
                       {loan.loanCode}
                     </td>

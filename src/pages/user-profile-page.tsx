@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   ArrowLeft,
   XCircle,
   UserCircle,
@@ -13,9 +20,14 @@ import {
   Pencil,
   Camera,
   Upload,
-  Hash,
   KeyRound,
-  Building2,
+  Briefcase,
+  Mail,
+  Phone,
+  IdCard,
+  MoreHorizontal,
+  Globe,
+  RefreshCw,
 } from 'lucide-react';
 import { getProfile, type ProfileResponse } from '@/service/userService';
 import { hrService } from '@/service/hr.service';
@@ -25,11 +37,50 @@ import { ProfileOverviewTab } from './profile/ProfileOverviewTab';
 import { SecurityTab } from './profile/SecurityTab';
 import { EditProfileTab } from './profile/EditProfileTab';
 
+/** One inline contact item in the bar below the banner. */
+const ContactItem = ({
+  icon: Icon,
+  value,
+  href,
+}: {
+  icon: React.ElementType;
+  value?: string | null;
+  href?: string;
+}) => {
+  if (!value) return null;
+  const inner = (
+    <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+      <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+      <span className="truncate">{value}</span>
+    </span>
+  );
+  return href ? (
+    <a href={href} className="transition-colors hover:text-blue-600">
+      {inner}
+    </a>
+  ) : (
+    inner
+  );
+};
+
+/** One labelled column in the meta strip. */
+const MetaCol = ({ label, value }: { label: string; value?: string | null }) => (
+  <div className="min-w-0">
+    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+    <p className="mt-0.5 truncate text-sm font-medium text-slate-700" title={value ?? undefined}>
+      {value || '—'}
+    </p>
+  </div>
+);
+
 const UserProfilePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [designation, setDesignation] = useState<string | null>(null);
+  const [nationality, setNationality] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageHover, setImageHover] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -61,6 +112,24 @@ const UserProfilePage = () => {
       .finally(() => setLoading(false));
   }, [user?.id]);
 
+  // Enrich the banner with the employee's job title + nationality (not carried
+  // by the lightweight profile payload).
+  useEffect(() => {
+    if (!profile?.employeeId) return;
+    let mounted = true;
+    hrService
+      .getEmployee(profile.employeeId)
+      .then((emp: any) => {
+        if (!mounted || !emp) return;
+        setDesignation(emp.designation ?? emp.companyRole ?? null);
+        setNationality(emp.nationality ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [profile?.employeeId]);
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -85,162 +154,192 @@ const UserProfilePage = () => {
   const initials  = getInitials(profile.fullName, profile.username);
   const roleLabel = profile.role?.replace(/_/g, ' ') ?? 'User';
   const canUploadPhoto = !!profile.employeeId;
+  const jobTitle = designation ?? profile.companyRole ?? null;
+
+  const memberSince = (() => {
+    if (!profile.createdAt) return undefined;
+    const d = new Date(profile.createdAt);
+    return Number.isNaN(d.getTime())
+      ? undefined
+      : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  })();
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 px-4 py-6">
+    <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 duration-500 animate-in fade-in-50">
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate("/")}
+        onClick={() => navigate('/')}
         className="gap-1.5 text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
         Back
       </Button>
 
-      {/* Hero card — mirrors the employee profile header */}
-      <Card className="overflow-hidden border-0 shadow-lg">
-        <div className="relative flex flex-col gap-4 bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 px-6 py-5 sm:flex-row sm:items-center">
-          {/* Decorative pattern */}
+      {/* Banner profile card */}
+      <Card className="overflow-hidden border shadow-sm">
+        {/* Cover banner with avatar + identity */}
+        <div className="relative h-44 bg-gradient-to-r from-slate-900 via-violet-800 to-blue-700 sm:h-48">
           <div
-            className="pointer-events-none absolute inset-0 opacity-15"
+            className="pointer-events-none absolute inset-0 opacity-20"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }}
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
 
-          {/* Avatar with upload (when linked to an employee) */}
-          <div className="relative z-10 w-fit shrink-0">
-            <div
-              className={cn(
-                'relative h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-lg',
-                canUploadPhoto && 'cursor-pointer',
-              )}
-              onMouseEnter={() => setImageHover(true)}
-              onMouseLeave={() => setImageHover(false)}
-              onClick={() => canUploadPhoto && fileInputRef.current?.click()}
-            >
-              {profile.imageUrl ? (
-                <img
-                  src={profile.imageUrl}
-                  alt={profile.fullName ?? profile.username}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full select-none items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-2xl font-bold text-white">
-                  {initials}
-                </div>
-              )}
+          <div className="absolute inset-0 flex items-center gap-5 px-6 sm:px-8">
+            {/* Avatar with upload */}
+            <div className="relative shrink-0">
+              <div
+                className={cn(
+                  'relative h-24 w-24 overflow-hidden rounded-full border-4 border-white shadow-xl sm:h-28 sm:w-28',
+                  canUploadPhoto && 'cursor-pointer',
+                )}
+                onMouseEnter={() => setImageHover(true)}
+                onMouseLeave={() => setImageHover(false)}
+                onClick={() => canUploadPhoto && fileInputRef.current?.click()}
+              >
+                {profile.imageUrl ? (
+                  <img
+                    src={profile.imageUrl}
+                    alt={profile.fullName ?? profile.username}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full select-none items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-3xl font-bold text-white">
+                    {initials}
+                  </div>
+                )}
+                {canUploadPhoto && (
+                  <div
+                    className={cn(
+                      'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200',
+                      imageHover || uploadingImage ? 'opacity-100' : 'opacity-0',
+                    )}
+                  >
+                    {uploadingImage ? (
+                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    ) : (
+                      <Camera className="h-5 w-5 text-white" />
+                    )}
+                  </div>
+                )}
+              </div>
               {canUploadPhoto && (
-                <div
-                  className={cn(
-                    'absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200',
-                    imageHover || uploadingImage ? 'opacity-100' : 'opacity-0',
-                  )}
-                >
-                  {uploadingImage ? (
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  ) : (
-                    <Camera className="h-5 w-5 text-white" />
-                  )}
-                </div>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md ring-2 ring-white transition-shadow hover:shadow-lg"
+                    aria-label="Upload profile photo"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSelected}
+                  />
+                </>
               )}
             </div>
-            {canUploadPhoto && (
-              <>
+
+            {/* Name, badge & title */}
+            <div className="min-w-0 flex-1 pb-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="truncate text-2xl font-bold leading-tight text-white drop-shadow-sm sm:text-[26px]">
+                  {profile.fullName ?? profile.username}
+                </h1>
+                {nationality && (
+                  <span className="inline-flex items-center gap-1 rounded bg-emerald-500 px-1.5 py-0.5 text-[11px] font-bold uppercase text-white shadow-sm">
+                    <Globe className="h-3 w-3" />
+                    {nationality.slice(0, 12)}
+                  </span>
+                )}
+              </div>
+              {jobTitle && (
+                <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-white/85">
+                  <Briefcase className="h-3.5 w-3.5" />
+                  {jobTitle}
+                </p>
+              )}
+              <p className="mt-0.5 text-xs text-white/70">@{profile.username}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact bar */}
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-b border-slate-100 bg-card px-6 py-3.5 sm:px-8">
+          <ContactItem icon={Mail} value={profile.email} href={profile.email ? `mailto:${profile.email}` : undefined} />
+          <ContactItem icon={Phone} value={profile.phoneNo} href={profile.phoneNo ? `tel:${profile.phoneNo}` : undefined} />
+          <ContactItem icon={IdCard} value={profile.employeeNo} />
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold',
+              roleBadgeClass(profile.role),
+            )}
+            title="System role — your access level across the application"
+          >
+            <KeyRound className="h-3 w-3" />
+            {roleLabel}
+          </span>
+
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md ring-2 ring-white transition-shadow hover:shadow-lg"
-                  aria-label="Upload profile photo"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                  aria-label="Profile actions"
                 >
-                  <Upload className="h-3.5 w-3.5" />
+                  <MoreHorizontal className="h-5 w-5" />
                 </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageSelected}
-                />
-              </>
-            )}
-          </div>
-
-          {/* Name, roles & meta */}
-          <div className="relative z-10 flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold leading-tight text-white">
-                {profile.fullName ?? profile.username}
-              </h1>
-              <p className="mt-0.5 text-sm text-violet-100">@{profile.username}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {profile.employeeNo && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-white/15 px-2 py-0.5 font-mono text-xs font-medium text-white ring-1 ring-white/25">
-                    <Hash className="h-3 w-3" />
-                    {profile.employeeNo}
-                  </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {profile.employeeId && (
+                  <DropdownMenuItem onClick={() => setActiveTab('edit')} className="gap-2">
+                    <Pencil className="h-4 w-4" /> Edit Profile
+                  </DropdownMenuItem>
                 )}
-                {profile.companyRole && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-md border border-sky-100 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700"
-                    title="Company role — the role configured for this person within the company"
-                  >
-                    <ShieldCheck className="h-3 w-3" />
-                    {profile.companyRole}
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold',
-                    roleBadgeClass(profile.role),
-                  )}
-                  title="System role — your access level across the application"
-                >
-                  <KeyRound className="h-3 w-3" />
-                  {roleLabel}
-                </span>
-              </div>
-            </div>
-
-            {/* Company / Department meta */}
-            <div className="flex shrink-0 flex-wrap gap-x-6 gap-y-2">
-              {profile.companyName && (
-                <div>
-                  <p className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-violet-200">
-                    <Building2 className="h-3 w-3" /> Company
-                  </p>
-                  <p className="text-sm font-semibold text-white">{profile.companyName}</p>
-                </div>
-              )}
-              {profile.departmentName && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-violet-200">
-                    Department
-                  </p>
-                  <p className="text-sm font-semibold text-white">{profile.departmentName}</p>
-                </div>
-              )}
-            </div>
+                <DropdownMenuItem onClick={() => setActiveTab('security')} className="gap-2">
+                  <ShieldCheck className="h-4 w-4" /> Security
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.location.reload()} className="gap-2">
+                  <RefreshCw className="h-4 w-4" /> Refresh
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        </div>
+
+        {/* Meta strip */}
+        <div className="grid grid-cols-2 gap-4 bg-card px-6 py-4 sm:grid-cols-4 sm:px-8">
+          <MetaCol label="Business Unit" value={profile.companyName} />
+          <MetaCol label="Department" value={profile.departmentName} />
+          <MetaCol label="Company Role" value={profile.companyRole} />
+          <MetaCol label="Member Since" value={memberSince} />
         </div>
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
-        <TabsList className="h-10 rounded-xl bg-muted/60 p-1">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="h-auto w-full justify-start gap-6 rounded-none border-b bg-transparent p-0">
           <TabsTrigger
             value="overview"
-            className="gap-1.5 rounded-lg px-4 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-3 pt-2 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
             <UserCircle className="h-4 w-4" />
-            Profile Overview
+            Overview
           </TabsTrigger>
 
           {profile.employeeId && (
             <TabsTrigger
               value="edit"
-              className="gap-1.5 rounded-lg px-4 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              className="gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-3 pt-2 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               <Pencil className="h-4 w-4" />
               Edit Profile
@@ -249,7 +348,7 @@ const UserProfilePage = () => {
 
           <TabsTrigger
             value="security"
-            className="gap-1.5 rounded-lg px-4 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            className="gap-1.5 rounded-none border-b-2 border-transparent px-1 pb-3 pt-2 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
           >
             <ShieldCheck className="h-4 w-4" />
             Security
@@ -264,7 +363,7 @@ const UserProfilePage = () => {
           <TabsContent value="edit" className="mt-4">
             <EditProfileTab
               profile={profile}
-              onSaved={(updated) => setProfile((prev) => prev ? { ...prev, ...updated } : prev)}
+              onSaved={(updated) => setProfile((prev) => (prev ? { ...prev, ...updated } : prev))}
             />
           </TabsContent>
         )}

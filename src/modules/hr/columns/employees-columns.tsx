@@ -55,6 +55,16 @@ type Cell<T> = CellContext<T, unknown>;
 // ── column definitions ────────────────────────────────────────────────────────
 export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
   {
+    id: "slNo",
+    header: "Sl No.",
+    enableSorting: false,
+    cell: ({ row }: Cell<Employee>) => (
+      <span className="text-xs text-muted-foreground tabular-nums">
+        {row.index + 1}
+      </span>
+    ),
+  },
+  {
     id: "employee",
     header: "Employee",
     enableSorting: false,

@@ -25,6 +25,11 @@ import {
   ChevronDown,
   DollarSign,
   TrendingUp,
+  FileText,
+  CalendarCheck,
+  Wallet,
+  Share2,
+  Building2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -543,35 +548,50 @@ function JobCodesTab({
       />
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            {total} job code{total === 1 ? "" : "s"}
+            {q.trim() && ` · filtered`}
+          </p>
+        </div>
         <Table>
-          <TableHeader className="bg-slate-50">
+          <TableHeader className="bg-white">
             <TableRow>
-              <TableHead className="font-semibold text-slate-600">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500 w-16">
+                Sl No.
+              </TableHead>
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Job Code
               </TableHead>
-              <TableHead className="font-semibold text-slate-600">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Job Title
               </TableHead>
-              <TableHead className="font-semibold text-slate-600">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Job Level
               </TableHead>
-              <TableHead className="font-semibold text-slate-600">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Salary Grade
               </TableHead>
-              <TableHead className="font-semibold text-slate-600">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Salary Range
               </TableHead>
-              <TableHead className="font-semibold text-slate-600">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Status
               </TableHead>
-              <TableHead className="font-semibold text-slate-600 text-right">
+              <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500 text-right">
                 Actions
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pageItems.map((j) => (
-              <TableRow key={j.id} className="hover:bg-slate-50/50">
+            {pageItems.map((j, i) => (
+              <TableRow
+                key={j.id}
+                className={`border-b border-slate-100 transition-colors hover:bg-slate-50/60 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}
+              >
+                <TableCell className="text-slate-500 tabular-nums">
+                  {pageIndex * pageSize + i + 1}
+                </TableCell>
                 <TableCell>
                   <code className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-md">
                     {j.code}
@@ -647,7 +667,7 @@ function JobCodesTab({
             ))}
             {!filtered.length && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={8} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
                     <Briefcase className="h-12 w-12 text-slate-300" />
                     <p className="text-slate-500 font-medium">
@@ -1317,26 +1337,29 @@ function PermissionsTab({
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="font-semibold text-slate-600">
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   Role Name
                 </TableHead>
-                <TableHead className="font-semibold text-slate-600">
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   Type
                 </TableHead>
-                <TableHead className="font-semibold text-slate-600">
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   Description
                 </TableHead>
-                <TableHead className="font-semibold text-slate-600">
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   Permission Rules
                 </TableHead>
-                <TableHead className="font-semibold text-slate-600 text-right">
+                <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500 text-right">
                   Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {roles.map((r) => (
-                <TableRow key={r.id} className="hover:bg-slate-50/50">
+              {roles.map((r, i) => (
+                <TableRow
+                  key={r.id}
+                  className={`border-b border-slate-100 transition-colors hover:bg-slate-50/60 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}
+                >
                   <TableCell>
                     <Badge
                       className={`${ROLE_STYLES[r.name]?.bg || "bg-gray-100"} ${ROLE_STYLES[r.name]?.color || "text-gray-700"} border ${ROLE_STYLES[r.name]?.border || "border-gray-200"}`}
@@ -1498,28 +1521,28 @@ function PermissionsTab({
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-600">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Staff Name
                   </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Role
                   </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Scope
                   </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Email
                   </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Phone
                   </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Access
                   </TableHead>
-                  <TableHead className="font-semibold text-slate-600">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Status
                   </TableHead>
-                  <TableHead className="font-semibold text-slate-600 text-right">
+                  <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500 text-right">
                     Options
                   </TableHead>
                 </TableRow>
@@ -2039,15 +2062,19 @@ export default function HRSettingsPage() {
     );
   }
 
+  const tabIcon = (Icon: React.ElementType) => <Icon className="h-4 w-4" />;
+
   const tabsList = [
     {
       value: "leaves",
       label: "Leave Types",
+      icon: tabIcon(Calendar),
       element: () => <LeaveCustomizationForm />,
     },
     {
       value: "hr-policies",
       label: "HR Policies",
+      icon: tabIcon(FileText),
       element: () => <HrPoliciesForm />,
     },
     ...(canApproveLeaves
@@ -2055,6 +2082,7 @@ export default function HRSettingsPage() {
           {
             value: "leave-approvals",
             label: "Leave Approvals",
+            icon: tabIcon(CalendarCheck),
             element: () => <LeaveApprovalPanel />,
           },
         ]
@@ -2064,6 +2092,7 @@ export default function HRSettingsPage() {
           {
             value: "loan-approvals",
             label: "Loan Approvals",
+            icon: tabIcon(Wallet),
             element: () => <LoanApprovalPanel />,
           },
         ]
@@ -2071,21 +2100,25 @@ export default function HRSettingsPage() {
     {
       value: "jobs",
       label: "Job Codes",
+      icon: tabIcon(Briefcase),
       element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} />,
     },
     {
       value: "social",
       label: "Social",
+      icon: tabIcon(Share2),
       element: () => <SocialSettingsPage hrSettings />,
     },
     {
       value: "department",
       label: "Department",
+      icon: tabIcon(Building2),
       element: () => <DepartmentListPage hrSettings />,
     },
     {
       value: "roles",
       label: "Roles",
+      icon: tabIcon(Users),
       element: () => <SettingsRolesPage hrSettings />,
     },
     // Permissions is system-security config — restrict to ADMIN/SUPER_ADMIN.
@@ -2096,11 +2129,17 @@ export default function HRSettingsPage() {
           {
             value: "permissions",
             label: "Permissions",
+            icon: tabIcon(KeyRound),
             element: () => <PermissionsTab roles={roles} setRoles={setRoles} />,
           },
         ]
       : []),
-    { value: "appraisal", label: "Appraisal", element: () => <AppraisalTab /> },
+    {
+      value: "appraisal",
+      label: "Appraisal",
+      icon: tabIcon(Star),
+      element: () => <AppraisalTab />,
+    },
   ];
 
   const tabParam = searchParams.get("tab");

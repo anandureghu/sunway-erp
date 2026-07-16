@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ShieldAlert, FileText, Contact2, Landmark, ChevronRight } from "lucide-react";
+import { ShieldAlert, FileText, Contact2, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   immigrationService,
@@ -97,73 +97,87 @@ export default function ImmigrationExpiryReport() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="grid grid-cols-[140px_1fr_1fr_130px_150px_40px] gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          <div>Document</div>
-          <div>Employee</div>
-          <div>Number</div>
-          <div>Expiry</div>
-          <div>Status</div>
-          <div />
-        </div>
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="min-w-[900px]">
+          <div className="grid grid-cols-[1.4fr_110px_130px_1fr_120px_130px_100px] gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <div>Employee Name</div>
+            <div>Emp. Code</div>
+            <div>Document</div>
+            <div>Doc. Code</div>
+            <div>Expiry Date</div>
+            <div>Days Left</div>
+            <div>Status</div>
+          </div>
 
-        {loading ? (
-          <div className="px-4 py-10 text-center text-sm text-slate-400">
-            Loading…
-          </div>
-        ) : items.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <FileText className="mx-auto mb-2 h-10 w-10 text-slate-300" />
-            <p className="text-sm text-slate-500">
-              Nothing expiring in this window.
-            </p>
-          </div>
-        ) : (
-          items.map((it) => (
-            <Link
-              key={`${it.documentType}-${it.employeeId}-${it.documentNumber}`}
-              to={`/hr/employees/${it.employeeId}/immigration${
-                it.documentType === "RESIDENCE_PERMIT" ? "/residence-permit" : ""
-              }`}
-              className="grid grid-cols-[140px_1fr_1fr_130px_150px_40px] items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm last:border-0 hover:bg-slate-50"
-            >
-              <div className="flex items-center gap-2 text-slate-600">
-                {it.documentType === "RESIDENCE_PERMIT" ? (
-                  <Landmark className="h-4 w-4 text-indigo-500" />
-                ) : (
-                  <Contact2 className="h-4 w-4 text-emerald-500" />
-                )}
-                <span className="text-xs font-medium">
-                  {it.documentType === "RESIDENCE_PERMIT"
-                    ? "Residence"
-                    : "Passport"}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-medium text-slate-800">
-                  {it.employeeName || "—"}
-                </p>
-                {it.employeeCode && (
-                  <p className="truncate text-xs text-slate-400">
-                    {it.employeeCode}
-                  </p>
-                )}
-              </div>
-              <div className="truncate font-mono text-xs text-slate-600">
-                {it.documentNumber}
-              </div>
-              <div className="text-slate-600">{it.expiryDate}</div>
-              <div>
-                <span
-                  className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusBadge(it)}`}
+          {loading ? (
+            <div className="px-4 py-10 text-center text-sm text-slate-400">
+              Loading…
+            </div>
+          ) : items.length === 0 ? (
+            <div className="px-4 py-12 text-center">
+              <FileText className="mx-auto mb-2 h-10 w-10 text-slate-300" />
+              <p className="text-sm text-slate-500">
+                Nothing expiring in this window.
+              </p>
+            </div>
+          ) : (
+            items.map((it) => {
+              const expired = it.status === "EXPIRED" || it.daysRemaining < 0;
+              return (
+                <Link
+                  key={`${it.documentType}-${it.employeeId}-${it.documentNumber}`}
+                  to={`/hr/employees/${it.employeeId}/immigration${
+                    it.documentType === "RESIDENCE_PERMIT"
+                      ? "/residence-permit"
+                      : ""
+                  }`}
+                  className="grid grid-cols-[1.4fr_110px_130px_1fr_120px_130px_100px] items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm last:border-0 hover:bg-slate-50"
                 >
-                  {daysLabel(it.daysRemaining)}
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-slate-300" />
-            </Link>
-          ))
-        )}
+                  <div className="truncate font-medium text-slate-800">
+                    {it.employeeName || "—"}
+                  </div>
+                  <div className="truncate font-mono text-xs text-slate-500">
+                    {it.employeeCode || "—"}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    {it.documentType === "RESIDENCE_PERMIT" ? (
+                      <Landmark className="h-4 w-4 shrink-0 text-indigo-500" />
+                    ) : (
+                      <Contact2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    )}
+                    <span className="text-xs font-medium">
+                      {it.documentType === "RESIDENCE_PERMIT"
+                        ? "Residence"
+                        : "Passport"}
+                    </span>
+                  </div>
+                  <div className="truncate font-mono text-xs text-slate-600">
+                    {it.documentNumber}
+                  </div>
+                  <div className="text-xs text-slate-600">{it.expiryDate}</div>
+                  <div>
+                    <span
+                      className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusBadge(it)}`}
+                    >
+                      {daysLabel(it.daysRemaining)}
+                    </span>
+                  </div>
+                  <div>
+                    <span
+                      className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                        expired
+                          ? "border-rose-200 bg-rose-50 text-rose-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {expired ? "Expired" : "Active"}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
