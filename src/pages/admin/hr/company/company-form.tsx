@@ -12,12 +12,20 @@ import PhoneInput from "@/components/PhoneInput";
 import CountrySelect from "@/components/country-select";
 import SelectCurrency from "@/components/select-currency";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { type CompanyFormData, COMPANY_SCHEMA } from "@/schema/company";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import type { Company } from "@/types/company";
 import { hasAnyRole } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
+import { INDUSTRY_OPTIONS } from "@/lib/industry-options";
 
 interface CompanyFormProps {
   onSubmit: (
@@ -56,6 +64,7 @@ const normalizeCompanyDefaults = (
   return {
     companyName: toOptionalString(values.companyName) ?? "",
     companyCode: toOptionalString(values.companyCode),
+    industry: toOptionalString(values.industry),
     computerCard: toOptionalString(values.computerCard),
     street: toOptionalString(values.street),
     city: toOptionalString(values.city),
@@ -63,7 +72,6 @@ const normalizeCompanyDefaults = (
     country: toOptionalString(values.country),
     phoneNo: toOptionalString(values.phoneNo),
     crNo: toOptionalNumber(values.crNo),
-    noOfEmployees: toOptionalNumber(values.noOfEmployees),
     currencyId: toOptionalNumber(currencyIdFromValues),
     hrEnabled: values.hrEnabled,
     financeEnabled: values.financeEnabled,
@@ -122,9 +130,9 @@ export const CompanyForm = ({
     resolver: zodResolver(COMPANY_SCHEMA),
     defaultValues: {
       companyName: "",
-      noOfEmployees: undefined,
       crNo: undefined,
       companyCode: "",
+      industry: "",
       computerCard: "",
       street: "",
       city: "",
@@ -140,9 +148,9 @@ export const CompanyForm = ({
     if (normalizedDefaults) {
       form.reset({
         companyName: "",
-        noOfEmployees: undefined,
         crNo: undefined,
         companyCode: "",
+        industry: "",
         computerCard: "",
         street: "",
         city: "",
@@ -229,22 +237,24 @@ export const CompanyForm = ({
 
           <FormField
             control={form.control}
-            name="noOfEmployees"
+            name="industry"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>No. of Employees</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="250"
-                    {...field}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value ? Number(e.target.value) : undefined,
-                      )
-                    }
-                  />
-                </FormControl>
+                <FormLabel>Industry</FormLabel>
+                <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {INDUSTRY_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -295,7 +305,7 @@ export const CompanyForm = ({
             name="state"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>State</FormLabel>
+                <FormLabel>State/Region</FormLabel>
                 <FormControl>
                   <Input placeholder="Kerala" {...field} />
                 </FormControl>

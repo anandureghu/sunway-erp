@@ -17,7 +17,8 @@ import { type Company } from "@/types/company";
 import {
   ArrowLeft,
   Edit,
-  Trash2,
+  Ban,
+  RotateCcw,
   Building2,
   MapPin,
   Phone,
@@ -44,6 +45,7 @@ import { EmployeeDialog } from "../admin/hr/employee/employee-dialog";
 import type { Employee } from "@/types/hr";
 import { useAppSelector } from "@/store/store";
 import { hasAnyRole } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 
 // ── Modules edit dialog ──────────────────────────────────────────────────────
 
@@ -81,6 +83,7 @@ function ModulesDialog({
         crNo: company.crNo,
         noOfEmployees: company.noOfEmployees,
         companyCode: company.companyCode,
+        industry: company.industry,
         computerCard: company.computerCard,
         street: company.street,
         city: company.city,
@@ -302,14 +305,25 @@ export default function CompanyDetailPage() {
       });
   };
 
-  const handleDelete = async () => {
+  const handleDeactivate = async () => {
     try {
       await apiClient.delete(`/companies/${id}`);
-      toast.success("Company deleted");
-      navigate("/admin/companies");
+      toast.success("Company deactivated");
+      navigate("/admin/company");
     } catch (err) {
       console.error(err);
-      toast.error("Error deleting company");
+      toast.error(getApiErrorMessage(err, "Error deactivating company"));
+    }
+  };
+
+  const handleReactivate = async () => {
+    try {
+      const res = await apiClient.put(`/companies/${id}/reactivate`);
+      toast.success("Company reactivated");
+      setCompany(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, "Error reactivating company"));
     }
   };
 
@@ -354,7 +368,12 @@ export default function CompanyDetailPage() {
 
   const infoFields = [
     { icon: Hash, label: "Company No", value: company.crNo || "—" },
-    { icon: Users, label: "Employees", value: company.noOfEmployees || "—" },
+    {
+      icon: Users,
+      label: "Number of employees:",
+      value: company.employeeCount ?? 0,
+    },
+    { icon: Briefcase, label: "Industry", value: company.industry || "—" },
     { icon: Phone, label: "Phone", value: company.phoneNo || "—" },
     {
       icon: CreditCard,
@@ -373,12 +392,19 @@ export default function CompanyDetailPage() {
       label: "Currency Country",
       value: company.currency?.countryName || "—",
     },
+    {
+      icon: CalendarDays,
+      label: "On Boarded Date",
+      value: company.createdAt
+        ? new Date(company.createdAt).toLocaleDateString()
+        : "—",
+    },
   ];
 
   const addressFields = [
     { label: "Street", value: company.street || "—" },
     { label: "City", value: company.city || "—" },
-    { label: "State", value: company.state || "—" },
+    { label: "State/Region", value: company.state || "—" },
     { label: "Country", value: company.country || "—" },
   ];
 
@@ -472,15 +498,27 @@ export default function CompanyDetailPage() {
               Edit
             </Button>
             {!globalSettingsView && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDelete}
-                className="h-9 rounded-xl bg-red-500/80 hover:bg-red-500 gap-1.5"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </Button>
+              company.active === false ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleReactivate}
+                  className="h-9 rounded-xl bg-emerald-500/80 text-white hover:bg-emerald-500 gap-1.5"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reactivate
+                </Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeactivate}
+                  className="h-9 rounded-xl bg-red-500/80 hover:bg-red-500 gap-1.5"
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                  Deactivate
+                </Button>
+              )
             )}
           </div>
         </div>

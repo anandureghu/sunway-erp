@@ -16,8 +16,10 @@ export const CREDIT_NOTE_COLUMNS: ColumnDef<CreditNote>[] = [
       format(new Date(row.original.creditNoteDate), "dd MMM yyyy"),
   },
   {
-    accessorKey: "customerName",
-    header: "Customer",
+    id: "party",
+    header: "Customer / Supplier",
+    cell: ({ row }) =>
+      row.original.customerName ?? row.original.supplierName ?? "—",
   },
   {
     accessorKey: "status",

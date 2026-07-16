@@ -23,6 +23,10 @@ export interface FinanceInvoice {
   taxAmount?: number;
   openAmount?: number;
   outstanding?: number;
+  /** Sum of confirmed payments applied to this invoice (cash collected, excludes credit notes). */
+  paidAmount?: number;
+  /** Portion of `amount` written off this invoice via applied credit notes. */
+  creditAppliedAmount?: number;
   itemDescription?: string;
   notesRemarks?: string;
   pdfUrl?: string | null;

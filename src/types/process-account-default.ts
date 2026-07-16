@@ -3,7 +3,8 @@ export type AccountingProcessCode =
   | "STOCK_VARIANCE"
   | "END_OF_SERVICE"
   | "EMPLOYEE_TICKET_PAYMENT"
-  | "PAYROLL";
+  | "PAYROLL"
+  | "OTHER_PAYMENT";
 
 export interface ProcessAccountDefault {
   id?: number;

@@ -34,6 +34,7 @@ export const ACCOUNTING_PROCESS_LABELS: Record<AccountingProcessCode, string> =
     END_OF_SERVICE: "End of service payment",
     EMPLOYEE_TICKET_PAYMENT: "Employee ticket payment",
     PAYROLL: "Payroll",
+    OTHER_PAYMENT: "Other payments",
   };
 
 /** Processes that post a debit only (no credit account). */

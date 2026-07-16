@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { TotalAmount, PaidAmount, RemainingAmount, CreditNoteAppliedAmount } from "@/components/accounting-amount";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { StatusBadge } from "@/lib/status-badge";
 
@@ -478,26 +479,16 @@ export function createPurchaseInvoiceColumns(
       header: "Payment Status",
       cell: ({ row }) => {
         const status = String(row.getValue("status") ?? "UNPAID");
-        const remaining = row.original.outstanding ?? row.original.openAmount;
-        const isPartial = status.toUpperCase() === "PARTIALLY_PAID";
         return (
-          <div className="space-y-0.5">
-            <span
-              title={
-                status.toUpperCase() === "ADJUSTED"
-                  ? "Balance written off due to rejected/returned goods — not paid in cash"
-                  : undefined
-              }
-            >
-              <StatusBadge status={status} />
-            </span>
-            {isPartial && remaining != null && (
-              <div className="text-xs text-muted-foreground">
-                Remaining:{" "}
-                <CurrencyAmount amount={remaining} className="inline" />
-              </div>
-            )}
-          </div>
+          <span
+            title={
+              status.toUpperCase() === "ADJUSTED"
+                ? "Balance written off due to rejected/returned goods — not paid in cash"
+                : undefined
+            }
+          >
+            <StatusBadge status={status} />
+          </span>
         );
       },
     },
@@ -506,7 +497,33 @@ export function createPurchaseInvoiceColumns(
       header: "Total",
       cell: ({ row }) => {
         const amount = row.original.amount ?? 0;
-        return <CurrencyAmount amount={amount} className="font-semibold" />;
+        return <TotalAmount amount={amount} />;
+      },
+    },
+    {
+      id: "paidAmount",
+      header: "Paid Amount",
+      cell: ({ row }) => {
+        const paid = row.original.paidAmount ?? 0;
+        const creditApplied = row.original.creditAppliedAmount ?? 0;
+        return (
+          <div className="space-y-0.5">
+            <PaidAmount amount={paid} />
+            {creditApplied > 0 && (
+              <div className="text-xs text-muted-foreground">
+                incl. <CreditNoteAppliedAmount amount={creditApplied} className="inline" /> credit
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "remainderDue",
+      header: "Remainder Due",
+      cell: ({ row }) => {
+        const remaining = row.original.outstanding ?? row.original.openAmount ?? 0;
+        return <RemainingAmount amount={remaining} />;
       },
     },
     {

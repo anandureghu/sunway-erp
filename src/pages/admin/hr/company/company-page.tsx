@@ -1,5 +1,5 @@
 // src/pages/admin/companies/CompanyListPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import type { Company } from "@/types/company";
 import { apiClient } from "@/service/apiClient";
@@ -7,7 +7,14 @@ import { toast } from "sonner";
 import { getCompanyColumns } from "@/lib/columns/company-listing-admin";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyDialog } from "./company-dialog";
 import { EmployeeDialog } from "../employee/employee-dialog";
@@ -15,17 +22,27 @@ import { CompanyAdminSetupDialog } from "./company-admin-setup-dialog";
 import { AssignExistingUserDialog } from "./assign-existing-user-dialog";
 import { useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { getApiErrorMessage } from "@/lib/api-error-message";
+import { PageHeader } from "@/components/PageHeader";
+
+type StatusFilter = "all" | "active" | "inactive";
 
 export default function CompanyListPage() {
+  const { confirm } = useConfirmDialog();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Company | null>(null);
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [empDialogOpen, setEmpDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [newCompanyForAdmin, setNewCompanyForAdmin] = useState<Company | null>(null);
+  const [newCompanyForAdmin, setNewCompanyForAdmin] = useState<Company | null>(
+    null,
+  );
 
   const fetchCompanies = async () => {
     try {
@@ -61,14 +78,36 @@ export default function CompanyListPage() {
     setOpen(true);
   };
 
-  const handleDelete = async (company: Company) => {
+  const handleDeactivate = async (company: Company) => {
+    if (
+      !(await confirm(
+        `Deactivate "${company.companyName}"? Its users will no longer be able to log in until reactivated.`,
+      ))
+    ) {
+      return;
+    }
     try {
       await apiClient.delete(`/companies/${company.id}`);
-      toast.success(`Deleted ${company.companyName}`);
-      setCompanies((prev) => prev.filter((c) => c.id !== company.id));
+      toast.success(`"${company.companyName}" deactivated`);
+      setCompanies((prev) =>
+        prev.map((c) => (c.id === company.id ? { ...c, active: false } : c)),
+      );
     } catch (err) {
-      console.error("Delete failed:", err);
-      toast.error("Failed to delete company");
+      console.error("Deactivate failed:", err);
+      toast.error(getApiErrorMessage(err, "Failed to deactivate company"));
+    }
+  };
+
+  const handleReactivate = async (company: Company) => {
+    try {
+      const res = await apiClient.put(`/companies/${company.id}/reactivate`);
+      toast.success(`"${company.companyName}" reactivated`);
+      setCompanies((prev) =>
+        prev.map((c) => (c.id === company.id ? res.data : c)),
+      );
+    } catch (err) {
+      console.error("Reactivate failed:", err);
+      toast.error(getApiErrorMessage(err, "Failed to reactivate company"));
     }
   };
 
@@ -79,9 +118,26 @@ export default function CompanyListPage() {
     navigate(`/companies/${company.id}`);
   };
 
+  const filteredCompanies = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return companies.filter((company) => {
+      const active = company.active !== false;
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && active) ||
+        (statusFilter === "inactive" && !active);
+      const matchesSearch =
+        !q ||
+        company.companyName?.toLowerCase().includes(q) ||
+        company.companyCode?.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [companies, searchQuery, statusFilter]);
+
   const columns = getCompanyColumns({
     onEdit: handleEdit,
-    onDelete: handleDelete,
+    onDeactivate: handleDeactivate,
+    onReactivate: handleReactivate,
   });
 
   const handleAdminSetupComplete = () => {
@@ -99,17 +155,39 @@ export default function CompanyListPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Companies</h1>
+      <PageHeader
+        title="Companies"
+        variant="darkBlue"
+        description="Manage every company tenant in this system"
+        icon={<Building2 className="h-5 w-5 text-white" />}
+      />
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by company name..."
-                className="pl-10"
-              />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by company name or code..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+              >
+                <SelectTrigger className="w-full sm:w-44">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="active">Active only</SelectItem>
+                  <SelectItem value="inactive">Inactive only</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button
               onClick={() => {
@@ -125,7 +203,7 @@ export default function CompanyListPage() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={companies}
+            data={filteredCompanies}
             onRowClick={handleRowClick}
           />
         </CardContent>
