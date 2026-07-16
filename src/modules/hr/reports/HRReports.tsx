@@ -33,8 +33,12 @@ import {
   Banknote,
   FileText,
   History,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 import { hrService } from "@/service/hr.service";
 import { appraisalService } from "@/service/appraisalService";
 import { leaveService } from "@/service/leaveService";
@@ -206,9 +210,7 @@ const CUSTOM_TOOLTIP = ({ active, payload }: any) => {
 // immigration view still reaches it (and the backend scopes the rows).
 const ANALYTICS_TABS = [
   { id: "workforce", label: "Workforce Overview", icon: Users },
-  { id: "department", label: "Department Headcount", icon: Building2 },
-  { id: "breakdown", label: "Workforce Breakdown", icon: Globe },
-  { id: "appraisal", label: "Performance", icon: Award },
+  { id: "appraisal", label: "Employee Performance", icon: Award },
 ] as const;
 // Employee Time Sheets (monthly worked days that feed payroll) — shown with the
 // workforce analytics under the HR_REPORTS grant.
@@ -227,7 +229,7 @@ const ATTENDANCE_HISTORY_TAB = {
 // Leave Approvals is gated by the LEAVES grant (approvers / HR / admin).
 const LEAVES_TAB = {
   id: "leaves",
-  label: "Employee Attendance & Leave Management",
+  label: "Leave Approvals",
   icon: CalendarCheck,
 } as const;
 // Loan Approvals is gated by the LOANS grant.
@@ -248,8 +250,6 @@ const HISTORY_TAB = {
 } as const;
 type TabId =
   | "workforce"
-  | "department"
-  | "breakdown"
   | "appraisal"
   | "attendance"
   | "attendance-history"
@@ -259,8 +259,6 @@ type TabId =
   | "history";
 const ALL_TAB_IDS: TabId[] = [
   "workforce",
-  "department",
-  "breakdown",
   "appraisal",
   "attendance",
   "attendance-history",
@@ -410,12 +408,16 @@ export default function HRReports() {
   const [leaveSearch, setLeaveSearch] = useState("");
   const [leaveStatusFilter, setLeaveStatusFilter] = useState<string>("all");
   const [leaveKpiFilter, setLeaveKpiFilter] = useState<string | null>(null);
+  const [leaveArchivedView, setLeaveArchivedView] = useState(false);
+  const [leaveBusyId, setLeaveBusyId] = useState<number | null>(null);
 
   const [loanApprovals, setLoanApprovals] = useState<LoanApprovalRow[]>([]);
   const [loadingLoans, setLoadingLoans] = useState(false);
   const [loanSearch, setLoanSearch] = useState("");
   const [loanStatusFilter, setLoanStatusFilter] = useState<string>("all");
   const [loanKpiFilter, setLoanKpiFilter] = useState<string | null>(null);
+  const [loanArchivedView, setLoanArchivedView] = useState(false);
+  const [loanBusyId, setLoanBusyId] = useState<number | null>(null);
 
   // ── fetch employees ─────────────────────────────────────────────────────────
   const fetchEmployees = async () => {
@@ -453,10 +455,10 @@ export default function HRReports() {
   }, [tab, appraisalYear]);
 
   // ── fetch leave approvals ─────────────────────────────────────────────────────
-  const fetchLeaveApprovals = async () => {
+  const fetchLeaveApprovals = async (archived: boolean) => {
     setLoadingLeaves(true);
     try {
-      const res = await leaveService.fetchLeaveApprovalsHistory();
+      const res = await leaveService.fetchLeaveApprovalsHistory(archived);
       setLeaveApprovals(
         res.success ? ((res.data as LeaveApprovalRow[]) ?? []) : [],
       );
@@ -468,14 +470,29 @@ export default function HRReports() {
   };
 
   useEffect(() => {
-    if (tab === "leaves") fetchLeaveApprovals();
-  }, [tab]);
+    if (tab === "leaves") fetchLeaveApprovals(leaveArchivedView);
+  }, [tab, leaveArchivedView]);
+
+  const handleArchiveLeave = async (id: number, archived: boolean) => {
+    setLeaveBusyId(id);
+    try {
+      const res = await leaveService.archiveLeave(id, archived);
+      if (!res.success) {
+        toast.error(res.message || "Failed to update leave");
+        return;
+      }
+      toast.success(archived ? "Leave archived" : "Leave restored");
+      setLeaveApprovals((prev) => prev.filter((l) => l.id !== id));
+    } finally {
+      setLeaveBusyId(null);
+    }
+  };
 
   // ── fetch loan approvals ──────────────────────────────────────────────────────
-  const fetchLoanApprovals = async () => {
+  const fetchLoanApprovals = async (archived: boolean) => {
     setLoadingLoans(true);
     try {
-      const res = await loanService.fetchLoanApprovalsHistory();
+      const res = await loanService.fetchLoanApprovalsHistory(archived);
       setLoanApprovals((res.data as LoanApprovalRow[]) ?? []);
     } catch {
       setLoanApprovals([]);
@@ -485,8 +502,21 @@ export default function HRReports() {
   };
 
   useEffect(() => {
-    if (tab === "loans") fetchLoanApprovals();
-  }, [tab]);
+    if (tab === "loans") fetchLoanApprovals(loanArchivedView);
+  }, [tab, loanArchivedView]);
+
+  const handleArchiveLoan = async (id: number, archived: boolean) => {
+    setLoanBusyId(id);
+    try {
+      await loanService.archiveLoan(id, archived);
+      toast.success(archived ? "Loan archived" : "Loan restored");
+      setLoanApprovals((prev) => prev.filter((l) => l.id !== id));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to update loan");
+    } finally {
+      setLoanBusyId(null);
+    }
+  };
 
   // ── workforce analytics ─────────────────────────────────────────────────────
   const statusData = useMemo(
@@ -583,6 +613,8 @@ export default function HRReports() {
     );
   }, [leaveApprovals, leaveSearch, leaveStatusFilter]);
 
+  const leavePg = usePagination(filteredLeaves, 10);
+
   const applyLeaveKpiFilter = useCallback((key: string) => {
     setLeaveKpiFilter(key);
     switch (key) {
@@ -651,6 +683,8 @@ export default function HRReports() {
         .includes(q),
     );
   }, [loanApprovals, loanSearch, loanStatusFilter]);
+
+  const loanPg = usePagination(filteredLoans, 10);
 
   const applyLoanKpiFilter = useCallback((key: string) => {
     setLoanKpiFilter(key);
@@ -731,7 +765,7 @@ export default function HRReports() {
             {/* KPI cards */}
             <div className="mb-6">
               <KpiSummaryStrip
-                className="lg:grid-cols-5"
+                className="lg:grid-cols-6"
                 items={[
                   {
                     label: "Total Employees",
@@ -739,6 +773,13 @@ export default function HRReports() {
                     hint: "Total workforce",
                     accent: "violet",
                     icon: Users,
+                  },
+                  {
+                    label: "Departments",
+                    value: deptData.length,
+                    hint: "Active departments",
+                    accent: "sky",
+                    icon: Building2,
                   },
                   {
                     label: "Active",
@@ -946,49 +987,9 @@ export default function HRReports() {
           </div>
         ))}
 
-      {/* ── DEPARTMENT HEADCOUNT TAB ── */}
-      {tab === "department" &&
-        (loadingEmp ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-          </div>
-        ) : (
+      {/* ── DEPARTMENT HEADCOUNT (under Workforce Overview) ── */}
+      {tab === "workforce" && !loadingEmp && (
           <div className="space-y-5">
-            <div className="mb-6">
-              <KpiSummaryStrip
-                items={[
-                  {
-                    label: "Total Employees",
-                    value: employees.length,
-                    hint: "Total workforce",
-                    accent: "violet",
-                    icon: Users,
-                  },
-                  {
-                    label: "Departments",
-                    value: deptData.length,
-                    hint: "Active departments",
-                    accent: "sky",
-                    icon: Building2,
-                  },
-                  {
-                    label: "Active",
-                    value: employees.filter((e) => e.status === "Active").length,
-                    hint: "Currently active",
-                    accent: "emerald",
-                    icon: UserCheck,
-                  },
-                  {
-                    label: "On Leave",
-                    value: employees.filter((e) => e.status === "On Leave").length,
-                    hint: "Currently away",
-                    accent: "amber",
-                    icon: Clock,
-                  },
-                ]}
-              />
-            </div>
-
             <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
               <SectionTitle
                 icon={Building2}
@@ -1052,117 +1053,11 @@ export default function HRReports() {
               </div>
             )}
           </div>
-        ))}
+        )}
 
-      {/* ── WORKFORCE BREAKDOWN TAB ── */}
-      {tab === "breakdown" &&
-        (loadingEmp ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-          </div>
-        ) : (
+      {/* ── WORKFORCE BREAKDOWN (under Workforce Overview) ── */}
+      {tab === "workforce" && !loadingEmp && (
           <div className="space-y-5">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={Users}
-                  label="Employee Status"
-                  color="text-violet-600"
-                />
-                <div className="flex items-center gap-6">
-                  <ResponsiveContainer width="50%" height={180}>
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        innerRadius={40}
-                      >
-                        {statusData.map((entry) => (
-                          <Cell
-                            key={entry.name}
-                            fill={STATUS_COLOR[entry.name] || COLORS.slate}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex-1 space-y-2.5">
-                    {statusData.map((s) => (
-                      <div key={s.name} className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
-                          style={{
-                            backgroundColor:
-                              STATUS_COLOR[s.name] || COLORS.slate,
-                          }}
-                        />
-                        <span className="text-sm text-slate-700 flex-1">
-                          {s.name}
-                        </span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">
-                          {s.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={Users}
-                  label="Gender Distribution"
-                  color="text-blue-600"
-                />
-                <div className="flex items-center gap-4">
-                  <ResponsiveContainer width="50%" height={180}>
-                    <PieChart>
-                      <Pie
-                        data={genderData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        innerRadius={40}
-                      >
-                        {genderData.map((entry, i) => (
-                          <Cell
-                            key={entry.name}
-                            fill={PALETTE[i % PALETTE.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex-1 space-y-2.5">
-                    {genderData.map((g, i) => (
-                      <div key={g.name} className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
-                          style={{
-                            backgroundColor: PALETTE[i % PALETTE.length],
-                          }}
-                        />
-                        <span className="text-sm text-slate-700 flex-1">
-                          {g.name}
-                        </span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">
-                          {g.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
                 <SectionTitle
@@ -1215,9 +1110,9 @@ export default function HRReports() {
               </div>
             </div>
           </div>
-        ))}
+        )}
 
-      {/* ── APPRAISAL / PERFORMANCE TAB ── */}
+      {/* ── EMPLOYEE PERFORMANCE TAB ── */}
       {tab === "appraisal" && (
         <div className="space-y-5">
           {/* Year selector */}
@@ -1495,17 +1390,35 @@ export default function HRReports() {
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <SectionTitle
                   icon={CalendarCheck}
-                  label="Leave Approvals"
+                  label={leaveArchivedView ? "Archived Leaves" : "Leave Approvals"}
                   color="text-violet-600"
                 />
-                <div className="relative w-full max-w-xs">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={leaveSearch}
-                    onChange={(e) => setLeaveSearch(e.target.value)}
-                    placeholder="Search employee, type or status…"
-                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
-                  />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
+                    {([false, true] as const).map((arch) => (
+                      <button
+                        key={String(arch)}
+                        onClick={() => setLeaveArchivedView(arch)}
+                        className={cn(
+                          "rounded-md px-2.5 py-1 font-semibold transition-all",
+                          leaveArchivedView === arch
+                            ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-800",
+                        )}
+                      >
+                        {arch ? "Archived" : "Active"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative w-full max-w-xs">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={leaveSearch}
+                      onChange={(e) => setLeaveSearch(e.target.value)}
+                      placeholder="Search employee, type or status…"
+                      className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1523,6 +1436,9 @@ export default function HRReports() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100">
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-12">
+                          Sl No.
+                        </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Employee
                         </th>
@@ -1544,10 +1460,13 @@ export default function HRReports() {
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Comments
                         </th>
+                        <th className="py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredLeaves.map((l) => {
+                    <tbody>
+                      {leavePg.pageItems.map((l, i) => {
                         const meta = LEAVE_STATUS_META[l.leaveStatus] ?? {
                           label: l.leaveStatus,
                           cls: "bg-slate-50 text-slate-600 border-slate-200",
@@ -1555,14 +1474,32 @@ export default function HRReports() {
                         };
                         const StatusIcon = meta.icon;
                         return (
-                          <tr key={l.id} className="hover:bg-slate-50/50">
-                            <td className="py-2.5 font-medium text-slate-800">
-                              {l.employeeName || "—"}
-                              {l.leaveCode && (
-                                <span className="ml-2 font-mono text-[11px] text-slate-400">
-                                  {l.leaveCode}
-                                </span>
-                              )}
+                          <tr
+                            key={l.id}
+                            className={cn(
+                              "border-b border-slate-100 transition-colors hover:bg-slate-50/60",
+                              i % 2 === 0 ? "bg-white" : "bg-slate-50/30",
+                            )}
+                          >
+                            <td className="py-2.5 pl-3 text-slate-500 tabular-nums">
+                              {leavePg.pageIndex * leavePg.pageSize + i + 1}
+                            </td>
+                            <td className="py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
+                                  {(l.employeeName?.[0] ?? "?").toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-slate-800 truncate">
+                                    {l.employeeName || "—"}
+                                  </p>
+                                  {l.leaveCode && (
+                                    <p className="font-mono text-[10px] text-slate-400 truncate">
+                                      {l.leaveCode}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className="py-2.5 text-slate-600">
                               {l.leaveType || "—"}
@@ -1601,11 +1538,39 @@ export default function HRReports() {
                                 <span className="text-slate-300">—</span>
                               )}
                             </td>
+                            <td className="py-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleArchiveLeave(l.id, !leaveArchivedView)
+                                }
+                                disabled={leaveBusyId === l.id}
+                                title={
+                                  leaveArchivedView ? "Unarchive" : "Archive"
+                                }
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                              >
+                                {leaveArchivedView ? (
+                                  <ArchiveRestore className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Archive className="h-3.5 w-3.5" />
+                                )}
+                                {leaveArchivedView ? "Restore" : "Archive"}
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
+                  <TablePagination
+                    total={leavePg.total}
+                    pageIndex={leavePg.pageIndex}
+                    pageSize={leavePg.pageSize}
+                    pageCount={leavePg.pageCount}
+                    onPageChange={leavePg.setPageIndex}
+                    onPageSizeChange={leavePg.setPageSize}
+                  />
                 </div>
               )}
             </div>
@@ -1694,17 +1659,36 @@ export default function HRReports() {
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <SectionTitle
                   icon={Wallet}
-                  label="Loan Approvals"
+                  label={loanArchivedView ? "Archived Loans" : "Loan Approvals"}
                   color="text-violet-600"
                 />
-                <div className="relative w-full max-w-xs">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={loanSearch}
-                    onChange={(e) => setLoanSearch(e.target.value)}
-                    placeholder="Search employee, type or status…"
-                    className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
-                  />
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="inline-flex rounded-lg border border-slate-200 p-0.5">
+                    {([false, true] as const).map((arch) => (
+                      <button
+                        key={String(arch)}
+                        type="button"
+                        onClick={() => setLoanArchivedView(arch)}
+                        className={cn(
+                          "rounded-md px-3 py-1 text-xs font-semibold transition",
+                          loanArchivedView === arch
+                            ? "bg-violet-600 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-700",
+                        )}
+                      >
+                        {arch ? "Archived" : "Active"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative w-full max-w-xs">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={loanSearch}
+                      onChange={(e) => setLoanSearch(e.target.value)}
+                      placeholder="Search employee, type or status…"
+                      className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1722,6 +1706,9 @@ export default function HRReports() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100">
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-12">
+                          Sl No.
+                        </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Employee
                         </th>
@@ -1743,10 +1730,13 @@ export default function HRReports() {
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Comments
                         </th>
+                        <th className="py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {filteredLoans.map((l) => {
+                    <tbody>
+                      {loanPg.pageItems.map((l, i) => {
                         const meta = LOAN_STATUS_META[l.status] ?? {
                           label: l.status,
                           cls: "bg-slate-50 text-slate-600 border-slate-200",
@@ -1755,14 +1745,32 @@ export default function HRReports() {
                         const StatusIcon = meta.icon;
                         const sym = l.currencySymbol || loanCurrency;
                         return (
-                          <tr key={l.id} className="hover:bg-slate-50/50">
-                            <td className="py-2.5 font-medium text-slate-800">
-                              {l.employeeName || "—"}
-                              {l.loanCode && (
-                                <span className="ml-2 font-mono text-[11px] text-slate-400">
-                                  {l.loanCode}
-                                </span>
-                              )}
+                          <tr
+                            key={l.id}
+                            className={cn(
+                              "border-b border-slate-100 transition-colors hover:bg-slate-50/60",
+                              i % 2 === 0 ? "bg-white" : "bg-slate-50/30",
+                            )}
+                          >
+                            <td className="py-2.5 pl-3 text-slate-500 tabular-nums">
+                              {loanPg.pageIndex * loanPg.pageSize + i + 1}
+                            </td>
+                            <td className="py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
+                                  {(l.employeeName?.[0] ?? "?").toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-slate-800 truncate">
+                                    {l.employeeName || "—"}
+                                  </p>
+                                  {l.loanCode && (
+                                    <p className="font-mono text-[10px] text-slate-400 truncate">
+                                      {l.loanCode}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
                             </td>
                             <td className="py-2.5 text-slate-600">
                               {humanizeLoan(l.loanType)}
@@ -1799,11 +1807,39 @@ export default function HRReports() {
                                 <span className="text-slate-300">—</span>
                               )}
                             </td>
+                            <td className="py-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleArchiveLoan(l.id, !loanArchivedView)
+                                }
+                                disabled={loanBusyId === l.id}
+                                title={
+                                  loanArchivedView ? "Unarchive" : "Archive"
+                                }
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                              >
+                                {loanArchivedView ? (
+                                  <ArchiveRestore className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Archive className="h-3.5 w-3.5" />
+                                )}
+                                {loanArchivedView ? "Restore" : "Archive"}
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
+                  <TablePagination
+                    total={loanPg.total}
+                    pageIndex={loanPg.pageIndex}
+                    pageSize={loanPg.pageSize}
+                    pageCount={loanPg.pageCount}
+                    onPageChange={loanPg.setPageIndex}
+                    onPageSizeChange={loanPg.setPageSize}
+                  />
                 </div>
               )}
             </div>

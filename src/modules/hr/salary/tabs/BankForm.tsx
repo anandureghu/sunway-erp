@@ -131,6 +131,15 @@ const Field = ({
 );
 
 // ── virtual bank card ─────────────────────────────────────────────────────────
+// Turn an account-type code (e.g. "SAVINGS_ACCOUNT") into a readable name.
+const formatAccountType = (val?: string) =>
+  !val
+    ? ""
+    : val
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
 const BankCard = ({ data }: { data: BankModel }) => {
   const hasData = !!(data.bankName || data.accountNo || data.accountType);
 
@@ -207,34 +216,38 @@ const BankCard = ({ data }: { data: BankModel }) => {
         {maskAccount(data.accountNo)}
       </p>
 
-      {/* Bottom row */}
+      {/* Bottom row — Account Type and IBAN stacked one below the other */}
       <div className="relative flex items-end justify-between">
-        <div>
-          <p
-            className={cn(
-              "text-[9px] uppercase tracking-widest mb-0.5",
-              hasData ? "text-white/40" : "text-slate-400",
-            )}
-          >
-            Account Type
-          </p>
-          <p
-            className={cn(
-              "text-sm font-semibold",
-              hasData ? "text-white" : "text-slate-400",
-            )}
-          >
-            {data.accountType || "—"}
-          </p>
-        </div>
-        {data.iban && (
-          <div className="text-right">
-            <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5">
-              IBAN
+        <div className="space-y-2.5">
+          <div>
+            <p
+              className={cn(
+                "text-[9px] uppercase tracking-widest mb-0.5",
+                hasData ? "text-white/40" : "text-slate-400",
+              )}
+            >
+              Account Type
             </p>
-            <p className="text-xs font-mono text-white/70">{data.iban}</p>
+            <p
+              className={cn(
+                "text-sm font-semibold",
+                hasData ? "text-white" : "text-slate-400",
+              )}
+            >
+              {formatAccountType(data.accountType) || "—"}
+            </p>
           </div>
-        )}
+          {data.iban && (
+            <div>
+              <p className="text-[9px] uppercase tracking-widest text-white/40 mb-0.5">
+                IBAN
+              </p>
+              <p className="text-xs font-mono text-white/70 break-all">
+                {data.iban}
+              </p>
+            </div>
+          )}
+        </div>
         {/* Network logo placeholder */}
         <div className="flex gap-1">
           <div
@@ -599,7 +612,7 @@ export default function BankForm() {
             <StatPill
               icon={<CreditCard className="h-4 w-4 text-emerald-600" />}
               label="Account Type"
-              value={draft.accountType}
+              value={formatAccountType(draft.accountType)}
               accent="border-emerald-100 bg-emerald-50/50"
             />
             <StatPill

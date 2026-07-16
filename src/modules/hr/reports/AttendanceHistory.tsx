@@ -203,58 +203,84 @@ export default function AttendanceHistory() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    {[
-                      "Employee",
-                      "Department",
-                      "Days Worked",
-                      "Days Recorded",
-                      "Total Hours",
-                    ].map((h, i) => (
-                      <th
-                        key={h}
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {totalElements} employee{totalElements === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      {[
+                        "Sl No.",
+                        "Employee",
+                        "Department",
+                        "Days Worked",
+                        "Days Recorded",
+                        "Total Hours",
+                      ].map((h, i) => (
+                        <th
+                          key={h}
+                          className={cn(
+                            "px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                            i >= 3 ? "text-right" : "text-left",
+                          )}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr
+                        key={r.employeeId}
                         className={cn(
-                          "py-2 text-xs font-semibold uppercase tracking-wide text-slate-500",
-                          i >= 2 ? "text-right" : "text-left",
+                          "border-b border-slate-100 transition-colors hover:bg-slate-50/60",
+                          i % 2 === 0 ? "bg-white" : "bg-slate-50/30",
                         )}
                       >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {rows.map((r) => (
-                    <tr key={r.employeeId} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 font-medium text-slate-800">
-                        {r.employeeName || "—"}
-                        {r.employeeNo && (
-                          <span className="ml-2 font-mono text-[11px] text-slate-400">
-                            {r.employeeNo}
+                        <td className="px-4 py-3 text-xs tabular-nums text-slate-500">
+                          {page * PAGE_SIZE + i + 1}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
+                              {(r.employeeName?.[0] ?? "?").toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-800 truncate">
+                                {r.employeeName || "—"}
+                              </p>
+                              {r.employeeNo && (
+                                <p className="text-[10px] font-mono text-slate-400 truncate">
+                                  {r.employeeNo}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500">
+                          {r.department || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">
+                            {r.daysPresent}
                           </span>
-                        )}
-                      </td>
-                      <td className="py-2.5 text-slate-500">
-                        {r.department || "—"}
-                      </td>
-                      <td className="py-2.5 text-right">
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">
-                          {r.daysPresent}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums text-slate-500">
-                        {r.daysRecorded}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums font-medium text-slate-800">
-                        {r.totalHours}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-500">
+                          {r.daysRecorded}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-800">
+                          {r.totalHours}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Server-side pagination */}

@@ -573,6 +573,7 @@ export default function LeaveApprovalPanel() {
               <thead>
                 <tr className="border-b border-slate-100">
                   {[
+                    "Sl No.",
                     "Employee",
                     "Leave Type",
                     "Period",
@@ -586,6 +587,7 @@ export default function LeaveApprovalPanel() {
                       key={header}
                       className={cn(
                         "px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                        header === "Sl No." && "w-12",
                         header === "Days" ||
                           header === "Document" ||
                           header === "Action"
@@ -622,6 +624,10 @@ export default function LeaveApprovalPanel() {
                         "hover:bg-slate-50/60",
                       )}
                     >
+                      <td className="px-4 py-3 text-xs tabular-nums text-slate-500">
+                        {pageIndex * pageSize + index + 1}
+                      </td>
+
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">

@@ -366,98 +366,120 @@ export default function EmployeeTimeSheets() {
               : "No employees match your search."}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  {[
-                    "Employee",
-                    "Status Today",
-                    "In",
-                    "Out",
-                    "Hours Today",
-                    "Days Worked",
-                    "Total Hours",
-                  ].map((h, i) => (
-                    <th
-                      key={h}
-                      className={cn(
-                        "py-2 text-xs font-semibold uppercase tracking-wide text-slate-500",
-                        i >= 4 ? "text-right" : "text-left",
-                      )}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {pageItems.map((r) => {
-                  const meta =
-                    TODAY_META[r.todayStatus] ?? TODAY_META.NOT_CHECKED_IN;
-                  return (
-                    <tr
-                      key={r.employeeId}
-                      onClick={() => setSelected(r)}
-                      className="cursor-pointer hover:bg-slate-50/70"
-                    >
-                      <td className="py-2.5 font-medium text-slate-800">
-                        {r.employeeName || "—"}
-                        {r.employeeNo && (
-                          <span className="ml-2 font-mono text-[11px] text-slate-400">
-                            {r.employeeNo}
-                          </span>
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {total} employee{total === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    {[
+                      "Sl No.",
+                      "Employee",
+                      "Status Today",
+                      "In",
+                      "Out",
+                      "Hours Today",
+                      "Days Worked",
+                      "Total Hours",
+                    ].map((h, i) => (
+                      <th
+                        key={h}
+                        className={cn(
+                          "px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                          i >= 5 ? "text-right" : "text-left",
                         )}
-                        {r.department && (
-                          <span className="block text-[11px] text-slate-400">
-                            {r.department}
-                          </span>
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map((r, i) => {
+                    const meta =
+                      TODAY_META[r.todayStatus] ?? TODAY_META.NOT_CHECKED_IN;
+                    return (
+                      <tr
+                        key={r.employeeId}
+                        onClick={() => setSelected(r)}
+                        className={cn(
+                          "cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50/60",
+                          i % 2 === 0 ? "bg-white" : "bg-slate-50/30",
                         )}
-                      </td>
-                      <td className="py-2.5">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
-                            meta.cls,
-                          )}
-                        >
+                      >
+                        <td className="px-4 py-3 text-xs tabular-nums text-slate-500">
+                          {pageIndex * pageSize + i + 1}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
+                              {(r.employeeName?.[0] ?? "?").toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-800 truncate">
+                                {r.employeeName || "—"}
+                              </p>
+                              <p className="text-[10px] font-mono text-slate-400 truncate">
+                                {r.employeeNo || `EMP-${r.employeeId}`}
+                                {r.department ? ` · ${r.department}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
                           <span
-                            className={cn("h-1.5 w-1.5 rounded-full", meta.dot)}
-                          />
-                          {meta.label}
-                        </span>
-                      </td>
-                      <td className="py-2.5 tabular-nums text-slate-600">
-                        {fmtTime(r.todayCheckIn)}
-                      </td>
-                      <td className="py-2.5 tabular-nums text-slate-600">
-                        {fmtTime(r.todayCheckOut)}
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums text-slate-600">
-                        {r.todayHours ? `${r.todayHours} h` : "—"}
-                      </td>
-                      <td className="py-2.5 text-right">
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">
-                          {r.daysPresent}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-right tabular-nums font-medium text-slate-800">
-                        {r.totalHours}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                              meta.cls,
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "h-1.5 w-1.5 rounded-full",
+                                meta.dot,
+                              )}
+                            />
+                            {meta.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 tabular-nums text-slate-600">
+                          {fmtTime(r.todayCheckIn)}
+                        </td>
+                        <td className="px-4 py-3 tabular-nums text-slate-600">
+                          {fmtTime(r.todayCheckOut)}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-600">
+                          {r.todayHours ? `${r.todayHours} h` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">
+                            {r.daysPresent}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-800">
+                          {r.totalHours}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-            <TablePagination
-              total={total}
-              pageIndex={pageIndex}
-              pageSize={pageSize}
-              pageCount={pageCount}
-              onPageChange={setPageIndex}
-              onPageSizeChange={setPageSize}
-            />
+            <div className="border-t border-slate-100 px-3">
+              <TablePagination
+                total={total}
+                pageIndex={pageIndex}
+                pageSize={pageSize}
+                pageCount={pageCount}
+                onPageChange={setPageIndex}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
           </div>
         )}
       </div>

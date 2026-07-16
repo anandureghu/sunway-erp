@@ -67,8 +67,17 @@ export const loanService = {
 
   // Company-wide history of decided loans (active / closed / rejected) for the
   // HR Reports "Loan Approvals" view.
-  fetchLoanApprovalsHistory() {
-    return apiClient.get<PendingLoanApproval[]>("/loans/approvals-history");
+  fetchLoanApprovalsHistory(archived = false) {
+    return apiClient.get<PendingLoanApproval[]>("/loans/approvals-history", {
+      params: { archived },
+    });
+  },
+
+  // Archive / unarchive a decided loan (drops from / returns to the active list).
+  archiveLoan(loanId: number, archived = true) {
+    return apiClient.post<Loan>(`/loans/${loanId}/archive`, null, {
+      params: { archived },
+    });
   },
 };
 

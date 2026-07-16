@@ -66,7 +66,7 @@ const getModuleDescription = (title: string): string => {
     "Immigration Expiry":
       "Passports and residence permits that are expired or expiring soon.",
     "HR Settings":
-      "Configure leave types. establish HR policies, define job codes, manage system roles and appraisals, control system permissions",
+      "Configure leave types.Establish HR policies, define job codes, manage system roles and appraisals, control system permissions",
     "Inventory (Stocks)":
       "Manage Stocks levels, perform Inventory Adjustments and, receive goods.",
     Sales:

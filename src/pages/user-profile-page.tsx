@@ -16,6 +16,8 @@ import {
   Hash,
   KeyRound,
   Building2,
+  Briefcase,
+  CalendarDays,
 } from 'lucide-react';
 import { getProfile, type ProfileResponse } from '@/service/userService';
 import { hrService } from '@/service/hr.service';
@@ -86,8 +88,23 @@ const UserProfilePage = () => {
   const roleLabel = profile.role?.replace(/_/g, ' ') ?? 'User';
   const canUploadPhoto = !!profile.employeeId;
 
+  const memberSince = (() => {
+    if (!profile.createdAt) return undefined;
+    const d = new Date(profile.createdAt);
+    return Number.isNaN(d.getTime())
+      ? undefined
+      : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  })();
+
+  const metaItems: { icon: typeof Building2; label: string; value?: string | null }[] = [
+    { icon: Building2,    label: 'Company',      value: profile.companyName },
+    { icon: Briefcase,    label: 'Department',   value: profile.departmentName },
+    { icon: KeyRound,     label: 'Role',         value: profile.companyRole ?? roleLabel },
+    { icon: CalendarDays, label: 'Member Since', value: memberSince },
+  ];
+
   return (
-    <div className="mx-auto max-w-4xl space-y-5 px-4 py-6">
+    <div className="mx-auto max-w-4xl space-y-5 px-4 py-6 duration-500 animate-in fade-in-50">
       <Button
         variant="ghost"
         size="sm"
@@ -167,62 +184,72 @@ const UserProfilePage = () => {
             )}
           </div>
 
-          {/* Name, roles & meta */}
-          <div className="relative z-10 flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold leading-tight text-white">
-                {profile.fullName ?? profile.username}
-              </h1>
-              <p className="mt-0.5 text-sm text-violet-100">@{profile.username}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {profile.employeeNo && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-white/15 px-2 py-0.5 font-mono text-xs font-medium text-white ring-1 ring-white/25">
-                    <Hash className="h-3 w-3" />
-                    {profile.employeeNo}
-                  </span>
-                )}
-                {profile.companyRole && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-md border border-sky-100 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700"
-                    title="Company role — the role configured for this person within the company"
-                  >
-                    <ShieldCheck className="h-3 w-3" />
-                    {profile.companyRole}
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold',
-                    roleBadgeClass(profile.role),
-                  )}
-                  title="System role — your access level across the application"
-                >
-                  <KeyRound className="h-3 w-3" />
-                  {roleLabel}
+          {/* Name & roles */}
+          <div className="relative z-10 min-w-0 flex-1">
+            <h1 className="truncate text-xl font-bold leading-tight text-white">
+              {profile.fullName ?? profile.username}
+            </h1>
+            <p className="mt-0.5 text-sm text-violet-100">@{profile.username}</p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              {profile.employeeNo && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-white/15 px-2 py-0.5 font-mono text-xs font-medium text-white ring-1 ring-white/25 backdrop-blur-sm">
+                  <Hash className="h-3 w-3" />
+                  {profile.employeeNo}
                 </span>
-              </div>
-            </div>
-
-            {/* Company / Department meta */}
-            <div className="flex shrink-0 flex-wrap gap-x-6 gap-y-2">
-              {profile.companyName && (
-                <div>
-                  <p className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-violet-200">
-                    <Building2 className="h-3 w-3" /> Company
-                  </p>
-                  <p className="text-sm font-semibold text-white">{profile.companyName}</p>
-                </div>
               )}
-              {profile.departmentName && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-violet-200">
-                    Department
-                  </p>
-                  <p className="text-sm font-semibold text-white">{profile.departmentName}</p>
-                </div>
+              {profile.companyRole && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-md bg-white/90 px-2 py-0.5 text-xs font-semibold text-sky-700 shadow-sm"
+                  title="Company role — the role configured for this person within the company"
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  {profile.companyRole}
+                </span>
               )}
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold shadow-sm',
+                  roleBadgeClass(profile.role),
+                )}
+                title="System role — your access level across the application"
+              >
+                <KeyRound className="h-3 w-3" />
+                {roleLabel}
+              </span>
             </div>
           </div>
+        </div>
+
+        {/* Clean meta strip */}
+        <div className="grid grid-cols-2 bg-card sm:grid-cols-4">
+          {metaItems.map((m, i) => {
+            const Icon = m.icon;
+            return (
+              <div
+                key={m.label}
+                className={cn(
+                  'flex items-center gap-2.5 px-5 py-3.5',
+                  'border-border/60',
+                  i % 2 === 1 && 'border-l',
+                  i >= 2 && 'border-t',
+                  'sm:border-t-0 sm:border-l',
+                  i === 0 && 'sm:border-l-0',
+                )}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50">
+                  <Icon className="h-4 w-4 text-violet-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {m.label}
+                  </p>
+                  <p className="truncate text-sm font-semibold text-foreground" title={m.value ?? undefined}>
+                    {m.value || '—'}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Card>
 

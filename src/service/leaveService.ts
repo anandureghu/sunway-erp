@@ -230,9 +230,13 @@ export const leaveService = {
   },
 
   /** Company-wide history of decided leaves (approved / completed / rejected). */
-  async fetchLeaveApprovalsHistory(): Promise<LeaveServiceResponse> {
+  async fetchLeaveApprovalsHistory(
+    archived = false,
+  ): Promise<LeaveServiceResponse> {
     try {
-      const response = await apiClient.get(`/leaves/approvals/history`);
+      const response = await apiClient.get(`/leaves/approvals/history`, {
+        params: { archived },
+      });
       return {
         success: true,
         data: normalizeArrayResponse(response.data, ["approvals"]),
@@ -243,6 +247,25 @@ export const leaveService = {
         success: false,
         message: getErrorMessage(error, "Failed to load leave approvals"),
         data: [],
+      };
+    }
+  },
+
+  async archiveLeave(
+    leaveId: number,
+    archived = true,
+  ): Promise<LeaveServiceResponse> {
+    try {
+      const response = await apiClient.post(
+        `/leaves/${leaveId}/archive`,
+        null,
+        { params: { archived } },
+      );
+      return { success: true, data: response.data };
+    } catch (error: unknown) {
+      return {
+        success: false,
+        message: getErrorMessage(error, "Failed to archive leave"),
       };
     }
   },
