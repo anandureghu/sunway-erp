@@ -128,6 +128,28 @@ export function createSalesOrderColumns(
       },
     },
     {
+      id: "paidAmount",
+      header: "Paid Amount",
+      cell: ({ row }) => {
+        const order = row.original;
+        const total = Number(order.total ?? 0);
+        const outstanding = Number(order.outstandingAmount ?? total);
+        const paid = total - outstanding;
+        if (paid <= 0) return <span className="text-muted-foreground">—</span>;
+        return <CurrencyAmount amount={paid} className="text-emerald-600 font-medium" />;
+      },
+    },
+    {
+      id: "dueAmount",
+      header: "Due Amount",
+      cell: ({ row }) => {
+        const order = row.original;
+        const outstanding = Number(order.outstandingAmount ?? 0);
+        if (outstanding <= 0) return <span className="text-muted-foreground">—</span>;
+        return <CurrencyAmount amount={outstanding} className="text-rose-600 font-medium" />;
+      },
+    },
+    {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
