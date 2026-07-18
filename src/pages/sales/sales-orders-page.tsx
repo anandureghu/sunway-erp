@@ -75,6 +75,7 @@ export default function SalesOrdersPage() {
     void refreshOrders();
   }, [showCreateForm, location.pathname, refreshOrders]);
 
+
   useEffect(() => {
     setStatusFilter("all");
     setPaymentStatusFilter("all");

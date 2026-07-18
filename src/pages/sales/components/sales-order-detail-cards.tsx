@@ -162,6 +162,7 @@ export function SalesOrderDetailCards({ so }: Props) {
                   <col />
                   <col className="w-16" />
                   <col className="w-28" />
+                  <col className="w-24" />
                   <col className="w-28" />
                   {showCogs ? (
                     <>
@@ -176,21 +177,14 @@ export function SalesOrderDetailCards({ so }: Props) {
                     <th className="px-3 py-3 text-left font-medium">SL</th>
                     <th className="px-4 py-3 text-left font-medium">Item</th>
                     <th className="px-3 py-3 text-right font-medium">Qty</th>
-                    <th className="px-3 py-3 text-right font-medium">
-                      Unit price
-                    </th>
+                    <th className="px-3 py-3 text-right font-medium">Unit price</th>
+                    <th className="px-3 py-3 text-right font-medium">Discount</th>
                     <th className="px-3 py-3 text-right font-medium">Amount</th>
                     {showCogs ? (
                       <>
-                        <th className="px-3 py-3 text-right font-medium">
-                          FIFO cost
-                        </th>
-                        <th className="px-3 py-3 text-right font-medium">
-                          COGS
-                        </th>
-                        <th className="px-3 py-3 text-right font-medium">
-                          Margin
-                        </th>
+                        <th className="px-3 py-3 text-right font-medium">FIFO cost</th>
+                        <th className="px-3 py-3 text-right font-medium">COGS</th>
+                        <th className="px-3 py-3 text-right font-medium">Margin</th>
                       </>
                     ) : null}
                   </tr>
@@ -200,6 +194,7 @@ export function SalesOrderDetailCards({ so }: Props) {
                     const lineCogs = item.cogsAmount ?? 0;
                     const lineRevenue = item.lineTotal ?? 0;
                     const lineMargin = lineRevenue - lineCogs;
+                    const discount = item.discountPercent ?? 0;
                     return (
                       <tr
                         key={item.itemId}
@@ -221,6 +216,13 @@ export function SalesOrderDetailCards({ so }: Props) {
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-right align-top">
                           <CurrencyAmount amount={item.unitPrice || 0} />
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right align-top">
+                          {discount > 0 ? (
+                            <span className="text-amber-600 font-medium">{discount}%</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-right align-top font-semibold">
                           <CurrencyAmount amount={item.lineTotal || 0} />
