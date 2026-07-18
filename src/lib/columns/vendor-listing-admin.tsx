@@ -3,6 +3,16 @@ import type { Role } from "@/types/hr";
 import type { Vendor } from "@/types/vendor";
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Ban, CheckCircle, Eye, MoreHorizontal, Pencil, XCircle } from "lucide-react";
 
 interface VendorColumnsProps {
   onEdit: (vendor: Vendor) => void;
@@ -196,27 +206,34 @@ export const getVendorColumns = ({
       const vendor = row.original;
       if (vendor.approved === false && vendor.rejected === false) {
         return (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                approveVendor(vendor.id, true);
-              }}
-              className="bg-green-50 text-green-700 hover:bg-green-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
-            >
-              APPROVE
-            </button>
-            {role === "FINANCE_MANAGER" && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  approveVendor(vendor.id, false);
-                }}
-                className="bg-red-50 text-red-600 hover:bg-red-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
-              >
-                REJECT
-              </button>
-            )}
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="text-green-700 focus:text-green-700"
+                  onClick={() => approveVendor(vendor.id, true)}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Approve
+                </DropdownMenuItem>
+                {role === "FINANCE_MANAGER" && (
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => approveVendor(vendor.id, false)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Reject
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       }
@@ -226,38 +243,40 @@ export const getVendorColumns = ({
       }
 
       return (
-        <div className="flex items-center gap-2">
-          {onView && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onView(vendor);
-              }}
-              className="bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
-            >
-              VIEW
-            </button>
-          )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(vendor);
-            }}
-            className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
-          >
-            EDIT
-          </button>
-          {vendor.active !== false ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeactivate(vendor);
-              }}
-              className="bg-red-50 text-red-600 hover:bg-red-100 font-medium px-3 py-1.5 rounded-full transition text-sm"
-            >
-              DEACTIVATE
-            </button>
-          ) : null}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              {onView && (
+                <DropdownMenuItem onClick={() => onView(vendor)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => onEdit(vendor)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              {vendor.active !== false && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => onDeactivate(vendor)}
+                  >
+                    <Ban className="mr-2 h-4 w-4" />
+                    Deactivate
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },

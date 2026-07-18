@@ -2,7 +2,15 @@
 
 import type { Warehouse } from "@/types/inventory";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MapPin } from "lucide-react";
+import { MapPin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Helper component to display optional values
 const OptionalCell = ({
@@ -106,29 +114,33 @@ export function createWarehouseColumns(
       cell: ({ row }) => {
         const warehouse = row.original;
         return (
-          <div className="flex items-center gap-2">
-            {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(warehouse);
-                }}
-                className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
-              >
-                EDIT
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(String(warehouse.id));
-                }}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
-              >
-                DELETE
-              </button>
-            )}
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(warehouse)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => onDelete(String(warehouse.id))}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       },

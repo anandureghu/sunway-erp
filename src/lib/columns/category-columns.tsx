@@ -2,6 +2,15 @@
 
 import type { ItemCategory } from "@/types/inventory";
 import { type ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 // Status pill component
 const StatusPill = ({ value }: { value: string }) => {
@@ -83,41 +92,41 @@ export function createCategoryColumns(
       cell: ({ row }) => {
         const category = row.original;
         const isSubcategory = !!category.parentId;
+        if (!onViewDetails && !onEdit && !onDelete) return null;
         return (
-          <div className="flex items-center gap-2">
-            {onViewDetails && !isSubcategory && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewDetails(category.id);
-                }}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
-              >
-                VIEW
-              </button>
-            )}
-            {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(category);
-                }}
-                className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
-              >
-                EDIT
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(category.id);
-                }}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 font-medium px-3 py-1.5 rounded transition-colors text-sm"
-              >
-                DELETE
-              </button>
-            )}
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {onViewDetails && !isSubcategory && (
+                  <DropdownMenuItem onClick={() => onViewDetails(category.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                  </DropdownMenuItem>
+                )}
+                {onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(category)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => onDelete(category.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       },

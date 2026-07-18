@@ -14,7 +14,7 @@ const LayoutBody = () => {
     <>
       <AppSidebar />
       <SidebarEdgeHoverOpen />
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-muted/30 transition-[margin] duration-200 ease-linear">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-muted/30 transition-[margin] duration-200 ease-linear pb-[50px]">
         <Navbar />
         <div key={company?.id ?? "no-company"} className="min-w-0 flex-1">
           <Outlet />
@@ -29,7 +29,7 @@ const AppLayout = () => {
   return (
     <div className="flex min-h-svh w-full">
       <SidebarProvider>
-<EmployeeSelectionProvider>
+        <EmployeeSelectionProvider>
           <LayoutBody />
         </EmployeeSelectionProvider>
       </SidebarProvider>
