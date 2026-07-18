@@ -16,7 +16,7 @@ import {
   summarizeBulkActionResult,
 } from "@/service/historyService";
 import { CreateSalesOrderForm } from "./components/create-sales-order-form";
-import { SalesOrderDetailsDialog } from "./components/sales-order-details-dialog";
+
 import { SalesOrdersListView } from "./components/sales-orders-list-view";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
 import {
@@ -47,9 +47,7 @@ export default function SalesOrdersPage() {
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedOrderForDetails, setSelectedOrderForDetails] =
-    useState<SalesOrder | null>(null);
-  const [showOrderDetailsDialog, setShowOrderDetailsDialog] = useState(false);
+
   const [actionState, setActionState] = useState<{
     id: string;
     type: "confirm" | "cancel" | "archive";
@@ -383,15 +381,7 @@ export default function SalesOrdersPage() {
     }
   }, [confirm, refreshOrders, selectedOrderIds]);
 
-  const handleViewDetails = useCallback(
-    (id: string) => {
-      const order = orders.find((o) => o.id === id);
-      if (!order) return;
-      setSelectedOrderForDetails(order);
-      setShowOrderDetailsDialog(true);
-    },
-    [orders],
-  );
+
 
   const handleEdit = useCallback(
     (id: string) => {
@@ -416,7 +406,6 @@ export default function SalesOrdersPage() {
         handleConfirmOrder,
         handleCancelOrder,
         handleGeneratePicklist,
-        handleViewDetails,
         handleEdit,
         handleArchiveOrder,
         actionState?.id ?? null,
@@ -426,7 +415,6 @@ export default function SalesOrdersPage() {
       handleConfirmOrder,
       handleCancelOrder,
       handleGeneratePicklist,
-      handleViewDetails,
       handleEdit,
       handleArchiveOrder,
       actionState,
@@ -490,11 +478,6 @@ export default function SalesOrdersPage() {
         }}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}
-      />
-      <SalesOrderDetailsDialog
-        open={showOrderDetailsDialog}
-        order={selectedOrderForDetails}
-        onOpenChange={setShowOrderDetailsDialog}
       />
     </>
   );
