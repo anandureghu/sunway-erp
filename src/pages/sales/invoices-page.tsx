@@ -44,6 +44,7 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { useAuth } from "@/context/AuthContext";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -53,6 +54,7 @@ export default function InvoicesPage({
   disableHeader?: boolean;
 }) {
   const { confirm } = useConfirmDialog();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -69,11 +71,13 @@ export default function InvoicesPage({
     null,
   );
 
+  const companyId = user?.companyId;
+
   useEffect(() => {
     apiClient
       .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
       .then((res) => setInvoices(res.data));
-  }, []);
+  }, [companyId]);
 
   const outstandingCount = useMemo(
     () => invoices.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
