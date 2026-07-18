@@ -60,6 +60,11 @@ export function InvoiceDocumentPreview({
 }: InvoiceDocumentPreviewProps) {
   const isSales = invoice.type === "SALES";
   const isPaid = isPaidInvoiceView(invoice.status);
+  const isPartiallyPaid =
+    (invoice.status || "").toUpperCase() === "PARTIALLY_PAID" ||
+    (!isPaid &&
+      (invoice.paidAmount ?? 0) > 0 &&
+      (invoice.outstanding ?? 0) > 0);
   const order = isSales ? invoice.salesOrder : invoice.purchaseOrder;
   const items = order?.items ?? [];
   const statusColor = invoiceStatusColor(invoice.status);
@@ -72,12 +77,8 @@ export function InvoiceDocumentPreview({
         invoice.purchaseOrder?.orderNumber ?? invoice.orderNumber,
       );
   const partyName = isSales
-    ? safeInvoiceValue(
-        invoice.salesOrder?.customerName ?? invoice.toParty,
-      )
-    : safeInvoiceValue(
-        invoice.purchaseOrder?.supplierName ?? invoice.toParty,
-      );
+    ? safeInvoiceValue(invoice.salesOrder?.customerName ?? invoice.toParty)
+    : safeInvoiceValue(invoice.purchaseOrder?.supplierName ?? invoice.toParty);
   const partyEmail = isSales
     ? safeInvoiceValue(invoice.salesOrder?.customerEmail)
     : "";
@@ -87,9 +88,7 @@ export function InvoiceDocumentPreview({
   const partyAddress = isSales
     ? safeInvoiceValue(invoice.salesOrder?.shippingAddress)
     : "";
-  const brandSub =
-    invoice.invoiceHeaderSubtitle ||
-    (isSales ? "Accounts Receivable" : "Accounts Payable");
+  const brandSub = isSales ? "Customer Invoice" : "Accounts Payable";
   const termsAndConditions = (invoice.invoiceTerms || "")
     .split(/\r?\n/)
     .map((term) => term.trim())
@@ -130,7 +129,7 @@ export function InvoiceDocumentPreview({
     <div
       id={id}
       className={cn(
-        "mx-auto w-full max-w-[820px] overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-800 shadow-sm",
+        "w-full max-w-[820px] overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-800 shadow-sm",
         className,
       )}
       style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
@@ -187,7 +186,9 @@ export function InvoiceDocumentPreview({
                     </div>
                   )}
                   {partyPhone !== INVOICE_DOC_MISSING && (
-                    <div className="text-[11px] text-slate-500">{partyPhone}</div>
+                    <div className="text-[11px] text-slate-500">
+                      {partyPhone}
+                    </div>
                   )}
                   {partyAddress !== INVOICE_DOC_MISSING && (
                     <div className="text-[11px] text-slate-500">
@@ -226,14 +227,16 @@ export function InvoiceDocumentPreview({
                       </div>
                     </>
                   )}
-                  <div className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
-                    Paid Date
-                  </div>
-                  <div className="mt-1 text-[13px] font-semibold text-slate-900">
-                    {isPaid
-                      ? formatInvoiceDate(invoice.paidDate)
-                      : INVOICE_DOC_MISSING}
-                  </div>
+                  {(isPaid || isPartiallyPaid) && invoice.paidDate && (
+                    <>
+                      <div className="mt-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+                        {isPaid ? "Paid Date" : "Last Payment"}
+                      </div>
+                      <div className="mt-1 text-[13px] font-semibold text-slate-900">
+                        {formatInvoiceDate(invoice.paidDate)}
+                      </div>
+                    </>
+                  )}
                 </td>
               </tr>
             </tbody>
@@ -284,10 +287,10 @@ export function InvoiceDocumentPreview({
                         {safeInvoiceValue(item.itemName)}
                       </div>
                       {extraDescription && (
-                          <div className="mt-0.5 text-[10px] text-slate-500">
-                            {extraDescription}
-                          </div>
-                        )}
+                        <div className="mt-0.5 text-[10px] text-slate-500">
+                          {extraDescription}
+                        </div>
+                      )}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right">
                       {safeInvoiceValue(item.quantity)}
@@ -322,7 +325,7 @@ export function InvoiceDocumentPreview({
               <tbody>
                 <tr>
                   <td className="border-b border-slate-200 px-3 py-2 text-slate-500">
-                    Subtotal
+                    Amount
                   </td>
                   <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold">
                     {invoiceMoney(
@@ -338,6 +341,20 @@ export function InvoiceDocumentPreview({
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold">
                       {invoiceMoney(invoice.discountAmount, currencyCode)}
+                    </td>
+                  </tr>
+                )}
+                {showDiscount && (
+                  <tr>
+                    <td className="border-b border-slate-200 px-3 py-2 text-slate-500">
+                      Subtotal
+                    </td>
+                    <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold">
+                      {invoiceMoney(
+                        (invoice.subtotalAmount ?? invoice.amount) -
+                          (invoice.discountAmount ?? 0),
+                        currencyCode,
+                      )}
                     </td>
                   </tr>
                 )}
@@ -359,6 +376,26 @@ export function InvoiceDocumentPreview({
                     {invoiceMoney(invoice.amount, currencyCode)}
                   </td>
                 </tr>
+                {isPartiallyPaid && (invoice.paidAmount ?? 0) > 0 && (
+                  <tr>
+                    <td className="border-b border-slate-200 px-3 py-2 text-emerald-600">
+                      Paid Amount
+                    </td>
+                    <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold text-emerald-600">
+                      {invoiceMoney(invoice.paidAmount, currencyCode)}
+                    </td>
+                  </tr>
+                )}
+                {isPartiallyPaid && (
+                  <tr className="bg-amber-50">
+                    <td className="border-t-2 border-amber-400 px-3 py-2.5 font-bold text-amber-700">
+                      Balance Due
+                    </td>
+                    <td className="border-t-2 border-amber-400 px-3 py-2.5 text-right font-bold text-amber-700">
+                      {invoiceMoney(invoice.outstanding, currencyCode)}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -406,9 +443,7 @@ export function InvoiceDocumentPreview({
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3.5 text-[12px] leading-relaxed text-slate-600 whitespace-pre-wrap">
               {notesText}
               {addressLine && (
-                <p className="mt-2">
-                  Company Address: {addressLine}
-                </p>
+                <p className="mt-2">Company Address: {addressLine}</p>
               )}
               {invoice.companyPhone && (
                 <p className="mt-2">Contact: {invoice.companyPhone}</p>
@@ -516,7 +551,10 @@ export function InvoiceDocumentPreview({
             )}
           </tr>
           <tr>
-            <td colSpan={2} className="px-8 pb-5 text-right text-[10px] text-slate-400">
+            <td
+              colSpan={2}
+              className="px-8 pb-5 text-right text-[10px] text-slate-400"
+            >
               Ref: {safeInvoiceValue(invoice.invoiceId)} |{" "}
               {safeInvoiceValue(invoice.companyName)}
             </td>

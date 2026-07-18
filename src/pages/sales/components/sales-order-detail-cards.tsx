@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import {
   CalendarClock,
+  CheckCircle2,
   CreditCard,
   Mail,
   MapPin,
@@ -12,6 +13,7 @@ import {
   ReceiptText,
   Truck,
   User,
+  Warehouse,
 } from "lucide-react";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import type { ReactNode } from "react";
@@ -49,18 +51,6 @@ export function SalesOrderDetailCards({ so }: Props) {
     0,
   );
   const itemRows = so.items || [];
-  const status = (so.status || "draft").toUpperCase();
-  const showCogs = status !== "DRAFT" && status !== "CANCELLED";
-
-  const totalRevenue = so.totalAmount ?? 0;
-  const totalCogs = itemRows.reduce(
-    (sum, line) => sum + (line.cogsAmount ?? 0),
-    0,
-  );
-  const hasFifoCogs = itemRows.some((line) => (line.cogsAmount ?? 0) > 0);
-  const grossMargin = totalRevenue - totalCogs;
-  const marginPct =
-    totalRevenue > 0 ? (grossMargin / totalRevenue) * 100 : null;
 
   const shippingAddress =
     so.shippingAddress?.trim() || so.deliveryAddress?.trim() || "";
@@ -73,10 +63,13 @@ export function SalesOrderDetailCards({ so }: Props) {
     shippingAddress.toLowerCase() !== customerAddress.toLowerCase();
 
   const paymentStatus = (so.paymentStatus || "UNPAID").toUpperCase();
+  const isPartiallyPaid = paymentStatus === "PARTIALLY_PAID";
+  const isPaid = paymentStatus === "PAID";
+  const paidAmount = (so.totalAmount ?? 0) - (so.outstandingAmount ?? 0);
   const nextStep =
-    paymentStatus === "PAID"
+    isPaid
       ? "Payment complete. Fulfillment can proceed."
-      : paymentStatus === "PARTIALLY_PAID"
+      : isPartiallyPaid
         ? "Partially paid. Fulfillment can proceed; remaining balance is outstanding."
         : "Awaiting payment before fulfillment.";
 
@@ -90,7 +83,7 @@ export function SalesOrderDetailCards({ so }: Props) {
             Key order details at a glance
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-8">
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           <SummaryStat label="Order no." value={so.orderNumber || "N/A"} />
           <SummaryStat
             label="Order status"
@@ -101,13 +94,13 @@ export function SalesOrderDetailCards({ so }: Props) {
             }
           />
           <SummaryStat
-            label="Payment"
+            label="Payment status"
             value={
               <Badge
                 variant={
-                  paymentStatus === "PAID"
+                  isPaid
                     ? "default"
-                    : paymentStatus === "PARTIALLY_PAID"
+                    : isPartiallyPaid
                       ? "secondary"
                       : "outline"
                 }
@@ -117,23 +110,16 @@ export function SalesOrderDetailCards({ so }: Props) {
             }
           />
           <SummaryStat
-            label="Line items"
-            value={`${itemRows.length} (${totalItems} qty)`}
-          />
-          <SummaryStat
             label="Order total"
             highlight
             value={<CurrencyAmount amount={so.totalAmount ?? 0} />}
           />
-          <SummaryStat
-            label="Order date"
-            value={so.orderDate || "—"}
-          />
-          <SummaryStat
-            label="Invoice due"
-            value={so.invoiceDueDate || "Not set"}
-          />
-          <div className="col-span-2 min-w-0 rounded-xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm sm:col-span-3 lg:col-span-2 xl:col-span-2">
+          <SummaryStat label="Order date" value={so.orderDate || "—"} />
+          <SummaryStat label="Invoice due" value={so.invoiceDueDate || "Not set"} />
+          {isPaid && so.paidDate ? (
+            <SummaryStat label="Paid date" value={so.paidDate} />
+          ) : null}
+          <div className="col-span-2 min-w-0 rounded-xl border border-white/60 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm">
             <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               <CreditCard className="h-3.5 w-3.5" />
               Next step
@@ -143,6 +129,38 @@ export function SalesOrderDetailCards({ so }: Props) {
             </p>
           </div>
         </div>
+
+        {/* Partial payment breakdown */}
+        {isPartiallyPaid && (
+          <div className="mx-4 mb-4 grid grid-cols-3 gap-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+            <div className="text-center">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total amount</p>
+              <p className="mt-1 text-base font-bold text-slate-800">
+                <CurrencyAmount amount={so.totalAmount ?? 0} />
+              </p>
+            </div>
+            <div className="text-center border-x border-amber-200">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">Paid amount</p>
+              <p className="mt-1 text-base font-bold text-emerald-700">
+                <CurrencyAmount amount={paidAmount > 0 ? paidAmount : 0} />
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-rose-600">Due amount</p>
+              <p className="mt-1 text-base font-bold text-rose-600">
+                <CurrencyAmount amount={so.outstandingAmount ?? 0} />
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isPaid && (
+          <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-sm text-emerald-800">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span>Fully paid — <span className="font-semibold"><CurrencyAmount amount={so.totalAmount ?? 0} /></span></span>
+            {so.paidDate ? <span className="ml-auto text-xs text-emerald-700">on {so.paidDate}</span> : null}
+          </div>
+        )}
       </section>
 
       {/* Items + customer */}
@@ -164,13 +182,6 @@ export function SalesOrderDetailCards({ so }: Props) {
                   <col className="w-28" />
                   <col className="w-24" />
                   <col className="w-28" />
-                  {showCogs ? (
-                    <>
-                      <col className="w-24" />
-                      <col className="w-24" />
-                      <col className="w-24" />
-                    </>
-                  ) : null}
                 </colgroup>
                 <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
@@ -180,20 +191,10 @@ export function SalesOrderDetailCards({ so }: Props) {
                     <th className="px-3 py-3 text-right font-medium">Unit price</th>
                     <th className="px-3 py-3 text-right font-medium">Discount</th>
                     <th className="px-3 py-3 text-right font-medium">Amount</th>
-                    {showCogs ? (
-                      <>
-                        <th className="px-3 py-3 text-right font-medium">FIFO cost</th>
-                        <th className="px-3 py-3 text-right font-medium">COGS</th>
-                        <th className="px-3 py-3 text-right font-medium">Margin</th>
-                      </>
-                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
                   {itemRows.map((item, index) => {
-                    const lineCogs = item.cogsAmount ?? 0;
-                    const lineRevenue = item.lineTotal ?? 0;
-                    const lineMargin = lineRevenue - lineCogs;
                     const discount = item.discountPercent ?? 0;
                     return (
                       <tr
@@ -207,8 +208,10 @@ export function SalesOrderDetailCards({ so }: Props) {
                           <p className="font-medium leading-snug">
                             {item.itemName || "Unnamed item"}
                           </p>
-                          <p className="mt-1 text-xs leading-snug text-muted-foreground">
-                            Warehouse: {item.warehouseName || "N/A"}
+                          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Warehouse className="h-3 w-3 shrink-0" />
+                            <span className="font-medium">Warehouse:</span>
+                            {item.warehouseName || "N/A"}
                           </p>
                         </td>
                         <td className="whitespace-nowrap px-3 py-3 text-right align-top">
@@ -227,39 +230,6 @@ export function SalesOrderDetailCards({ so }: Props) {
                         <td className="whitespace-nowrap px-3 py-3 text-right align-top font-semibold">
                           <CurrencyAmount amount={item.lineTotal || 0} />
                         </td>
-                        {showCogs ? (
-                          <>
-                            <td className="whitespace-nowrap px-3 py-3 text-right align-top text-muted-foreground">
-                              {(item.fifoUnitCost ?? 0) > 0 ? (
-                                <CurrencyAmount
-                                  amount={item.fifoUnitCost ?? 0}
-                                />
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-right align-top">
-                              {lineCogs > 0 ? (
-                                <CurrencyAmount amount={lineCogs} />
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                            <td
-                              className={`whitespace-nowrap px-3 py-3 text-right align-top font-medium ${
-                                lineMargin >= 0
-                                  ? "text-emerald-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {lineCogs > 0 ? (
-                                <CurrencyAmount amount={lineMargin} />
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                          </>
-                        ) : null}
                       </tr>
                     );
                   })}
@@ -283,34 +253,6 @@ export function SalesOrderDetailCards({ so }: Props) {
                 <CurrencyAmount amount={so.totalAmount || 0} />
               </div>
             </div>
-            {showCogs && hasFifoCogs ? (
-              <>
-                <Separator className="my-3" />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm">
-                    <span className="text-muted-foreground">
-                      Total COGS (FIFO)
-                    </span>
-                    <CurrencyAmount amount={totalCogs} />
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-sm font-semibold">
-                    <span>Gross margin</span>
-                    <span
-                      className={
-                        grossMargin >= 0 ? "text-emerald-600" : "text-red-600"
-                      }
-                    >
-                      <CurrencyAmount amount={grossMargin} />
-                      {marginPct !== null ? (
-                        <span className="ml-1 text-xs font-normal text-muted-foreground">
-                          ({marginPct.toFixed(1)}%)
-                        </span>
-                      ) : null}
-                    </span>
-                  </div>
-                </div>
-              </>
-            ) : null}
           </CardContent>
         </Card>
 

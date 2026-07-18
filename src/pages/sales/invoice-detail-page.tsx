@@ -3,6 +3,7 @@ import { useLocation, useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
 import { PageHeader } from "@/components/PageHeader";
+import { Badge } from "@/components/ui/badge";
 import { resolveBackHref } from "@/lib/navigation-back";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
 import {
@@ -82,6 +83,17 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const statusRaw = (invoice.status || "").toLowerCase();
+  const statusColors: Record<string, string> = {
+    paid: "bg-emerald-100 text-emerald-800",
+    unpaid: "bg-rose-100 text-rose-700",
+    partially_paid: "bg-amber-100 text-amber-800",
+    overdue: "bg-red-100 text-red-700",
+    adjusted: "bg-purple-100 text-purple-800",
+    cancelled: "bg-slate-100 text-slate-600",
+    draft: "bg-slate-100 text-slate-600",
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 px-4 pb-6 pt-4 sm:px-6 sm:pt-6">
       <PageHeader
@@ -98,39 +110,37 @@ export default function InvoiceDetailPage() {
             ? "/inventory/sales/invoices"
             : "/inventory/purchase/invoices",
         )}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            {isReceiptView && (
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="rounded-md border border-white/40 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-100"
+              >
+                Print
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              className="rounded-md border border-white/40 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-100"
+            >
+              {isReceiptView ? "Download Receipt" : "Download Invoice"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSendEmail()}
+              className="rounded-md border border-white/40 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-100"
+            >
+              {isReceiptView ? "Email Receipt" : "Email Invoice"}
+            </button>
+            <Badge className={`text-xs font-semibold uppercase ${statusColors[statusRaw] || "bg-slate-100 text-slate-600"}`}>
+              {invoice.status || "UNPAID"}
+            </Badge>
+          </div>
+        }
       />
-
-      <div
-        className={`mx-auto mb-8 mt-6 grid max-w-5xl grid-cols-1 gap-4 ${
-          isReceiptView ? "sm:grid-cols-3" : "sm:grid-cols-2"
-        }`}
-      >
-        {isReceiptView ? (
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="rounded-xl border border-slate-200 bg-white py-4 text-lg font-semibold"
-          >
-            Print
-          </button>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={handleDownloadPdf}
-          className="rounded-xl border border-slate-200 bg-white py-4 text-lg font-semibold"
-        >
-          {isReceiptView ? "Download Receipt" : "Download Invoice"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void handleSendEmail()}
-          className="rounded-xl bg-orange-500 py-4 text-lg font-semibold text-white"
-        >
-          {isReceiptView ? "Email Receipt" : "Email Invoice"}
-        </button>
-      </div>
 
       <InvoiceDocumentPreview
         id="invoice-pdf"
