@@ -16,6 +16,7 @@ import {
   Clock,
   ArrowRight,
   MapPin,
+  Plus,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -198,23 +199,16 @@ export default function SalesLandingPage() {
         variant="darkBlue"
         icon={<ShoppingCart className="w-6 h-6" />}
         actions={
-          <>
-            <Button
-              asChild
-              size="lg"
-              className="bg-white text-slate-900 hover:bg-white/90"
-            >
-              <Link to="/inventory/sales/orders/new">Create Order</Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="secondary"
-              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
-            >
-              <Link to="/inventory/sales/orders">Manage Orders</Link>
-            </Button>
-          </>
+          <Button
+            asChild
+            size="lg"
+            className="bg-white text-slate-900 hover:bg-white/90"
+          >
+            <Link to="/inventory/sales/orders/new" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create Order
+            </Link>
+          </Button>
         }
       />
 
