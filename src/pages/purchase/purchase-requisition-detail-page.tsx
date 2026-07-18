@@ -44,7 +44,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { PurchaseRequisitionDocuments } from "./components/purchase-requisition-documents";
-import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { PageHeader } from "@/components/PageHeader";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
 import type { PurchaseRequisitionDocument } from "@/types/purchase";
 import { cn } from "@/lib/utils";
@@ -381,11 +381,11 @@ export default function PurchaseRequisitionDetailPage() {
         onConfirm={handleReviewConfirm}
       />
 
-      <SecondaryPageHeader
+      <PageHeader
         title={requisition.requisitionNo}
         description="Draft → submit for approval → approve to generate a Purchase Order."
         backHref={`${BASE}/requisitions`}
-        variant="emerald"
+        variant="darkGreen"
         actions={
           <>
             <Button

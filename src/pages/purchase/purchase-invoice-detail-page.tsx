@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { resolveBackHref } from "@/lib/navigation-back";
-import { PurchasePageHeader } from "./components/purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { InvoiceDocumentPreview } from "@/components/invoice/invoice-document-preview";
 import { MatchVendorInvoiceDialog } from "./components/match-vendor-invoice-dialog";
 import {
@@ -192,7 +192,8 @@ export default function PurchaseInvoiceDetailPage() {
       documentInvoice.purchaseOrder?.orderNumber;
     return (
       <div className="space-y-6 bg-slate-100 p-4 sm:p-6">
-        <PurchasePageHeader
+        <PageHeader
+          variant="darkGreen"
           title={documentInvoice.invoiceId}
           description={[
             orderNo ? `PO ${orderNo}` : null,
@@ -272,7 +273,8 @@ export default function PurchaseInvoiceDetailPage() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      <PurchasePageHeader
+      <PageHeader
+        variant="darkGreen"
         title={invoice.invoiceId}
         description={[
           invoice.orderNumber || invoice.purchaseOrder?.orderNumber
