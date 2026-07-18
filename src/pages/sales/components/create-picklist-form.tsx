@@ -22,7 +22,7 @@ import {
 } from "@/service/salesFlowService";
 import type { Picklist, SalesOrder } from "@/types/sales";
 import type { Warehouse } from "@/types/inventory";
-import { SalesPageHeader } from "./sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 
 type Props = {
@@ -169,7 +169,7 @@ export function CreatePicklistForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader variant="darkBlue"
         title="Generate Picklist"
         description="Select a paid, confirmed sales order and confirm the warehouse so pick lines can be prepared."
         backHref="/inventory/sales"

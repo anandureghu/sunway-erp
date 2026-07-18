@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import type { Invoice } from "@/types/sales";
-import { SalesPageHeader } from "./components/sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { resolveBackHref } from "@/lib/navigation-back";
 import { useCompanyCurrency } from "@/hooks/use-company-currency";
 import {
@@ -84,7 +84,8 @@ export default function InvoiceDetailPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 px-4 pb-6 pt-4 sm:px-6 sm:pt-6">
-      <SalesPageHeader
+      <PageHeader
+        variant="darkBlue"
         title={
           isReceiptView
             ? `Receipt ${safeInvoiceValue(invoice.invoiceId)}`
@@ -93,7 +94,9 @@ export default function InvoiceDetailPage() {
         description={invoiceHeaderDescription || undefined}
         backHref={resolveBackHref(
           location.state,
-          isSales ? "/inventory/sales/invoices" : "/inventory/purchase/invoices",
+          isSales
+            ? "/inventory/sales/invoices"
+            : "/inventory/purchase/invoices",
         )}
       />
 

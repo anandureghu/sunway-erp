@@ -79,9 +79,9 @@ export default function PicklistDispatchPage() {
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
-  const [archivingPicklistId, setArchivingPicklistId] = useState<
-    string | null
-  >(null);
+  const [archivingPicklistId, setArchivingPicklistId] = useState<string | null>(
+    null,
+  );
   const navigate = useNavigate();
   const initialSalesOrderId = navState?.salesOrderId || "";
 
@@ -297,7 +297,8 @@ export default function PicklistDispatchPage() {
   const filteredDispatches = useMemo(() => {
     if (dispatchStatusFilter === "active") {
       return dispatches.filter(
-        (d) => !["delivered", "cancelled", "failed_delivery"].includes(d.status),
+        (d) =>
+          !["delivered", "cancelled", "failed_delivery"].includes(d.status),
       );
     }
     return dispatches;
@@ -415,10 +416,10 @@ export default function PicklistDispatchPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
+        variant="darkBlue"
         title="Picklist & Dispatch"
         description="Generate warehouse picklists from paid orders and create shipments when lines are picked."
         backHref="/inventory/sales"
-        variant="darkBlue"
         actions={
           activeTab === "picklists" ? (
             <Button

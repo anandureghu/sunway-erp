@@ -376,7 +376,9 @@ export default function DeliveryTrackingPage() {
   const handleCopyTrackingLink = async () => {
     const url = getCustomerTrackingUrl();
     if (!url) {
-      toast.error("Set a company code in company settings before sharing the tracking link.");
+      toast.error(
+        "Set a company code in company settings before sharing the tracking link.",
+      );
       return;
     }
     try {
@@ -390,7 +392,9 @@ export default function DeliveryTrackingPage() {
   const handleOpenTrackingLink = () => {
     const url = getCustomerTrackingUrl();
     if (!url) {
-      toast.error("Set a company code in company settings before sharing the tracking link.");
+      toast.error(
+        "Set a company code in company settings before sharing the tracking link.",
+      );
       return;
     }
     window.open(url, "_blank", "noopener,noreferrer");
@@ -399,10 +403,10 @@ export default function DeliveryTrackingPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
+        variant="darkBlue"
         title="Delivery Tracking"
         description="Monitor shipment movement, update milestones, and confirm customer delivery."
         backHref="/inventory/sales"
-        variant="darkBlue"
       />
 
       {!loading && !loadError ? <KpiSummaryStrip items={trackingKpis} /> : null}
@@ -520,7 +524,9 @@ export default function DeliveryTrackingPage() {
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Open customer tracking page</TooltipContent>
+                        <TooltipContent>
+                          Open customer tracking page
+                        </TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -534,7 +540,9 @@ export default function DeliveryTrackingPage() {
                             <Link2 className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Copy customer tracking link</TooltipContent>
+                        <TooltipContent>
+                          Copy customer tracking link
+                        </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                     <Badge
@@ -738,8 +746,9 @@ export default function DeliveryTrackingPage() {
           <DialogHeader>
             <DialogTitle>Update Tracking</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Edit shipment details and optionally log a checkpoint note at
-              the current status ({getStatusDisplay(selectedDispatch?.status || "created").label}
+              Edit shipment details and optionally log a checkpoint note at the
+              current status (
+              {getStatusDisplay(selectedDispatch?.status || "created").label}
               ). Use the status buttons above to progress the shipment.
             </p>
           </DialogHeader>

@@ -82,11 +82,10 @@ export function SalesOrdersListView({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <PageHeader
+      <PageHeader variant="darkBlue"
         title="Manage Sales Orders"
         description="Review confirmed and completed orders, filter by status, and drill into any order."
         backHref="/inventory/sales"
-        variant="darkBlue"
         actions={
           <Button
             size="lg"
