@@ -9,24 +9,21 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   ShoppingCart,
-  FileText,
   Package,
   Truck,
   Users,
   Receipt,
   Clock,
   ArrowRight,
+  MapPin,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   listSalesOrders,
   listShipmentsAsDispatches,
 } from "@/service/salesFlowService";
-import { apiClient } from "@/service/apiClient";
-import type { Dispatch, Invoice, SalesOrder } from "@/types/sales";
-import { CurrencyAmount } from "@/components/currency/currency-amount";
-import { createCurrencySymbolIcon } from "@/components/currency/currency-symbol-icon";
-import { useCompanyCurrency } from "@/hooks/use-company-currency";
+import { listCustomers } from "@/service/customerService";
+import type { Customer, Dispatch, SalesOrder } from "@/types/sales";
 import {
   KpiSummaryStrip,
   type KpiSummaryStat,
@@ -51,10 +48,10 @@ const isSameDay = (a: Date, b: Date) =>
   a.getDate() === b.getDate();
 
 export default function SalesLandingPage() {
-  const { currencySymbol } = useCompanyCurrency();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,18 +59,15 @@ export default function SalesLandingPage() {
     (async () => {
       setLoading(true);
       try {
-        const [ordersData, invoicesRes, dispatchesData] = await Promise.all([
+        const [ordersData, dispatchesData, customersData] = await Promise.all([
           listSalesOrders().catch(() => [] as SalesOrder[]),
-          apiClient
-            .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
-            .then((res) => res.data ?? [])
-            .catch(() => [] as Invoice[]),
           listShipmentsAsDispatches().catch(() => [] as Dispatch[]),
+          listCustomers().catch(() => [] as Customer[]),
         ]);
         if (cancelled) return;
         setOrders(ordersData);
-        setInvoices(invoicesRes);
         setDispatches(dispatchesData);
+        setCustomers(customersData);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -84,14 +78,6 @@ export default function SalesLandingPage() {
       cancelled = true;
     };
   }, []);
-
-  const totalSales = useMemo(
-    () =>
-      invoices
-        .filter((inv) => !inv.archived)
-        .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0),
-    [invoices],
-  );
 
   const pendingOrders = useMemo(
     () =>
@@ -112,22 +98,19 @@ export default function SalesLandingPage() {
     }).length;
   }, [dispatches]);
 
-  const unpaidInvoices = useMemo(
+  const inTransitCount = useMemo(
     () =>
-      invoices.filter((inv) => {
-        if (inv.archived) return false;
-        const status = normalizeStatus(inv.status);
-        return (
-          status === "unpaid" ||
-          status === "pending" ||
-          status === "overdue" ||
-          status === "partially_paid"
-        );
+      dispatches.filter((d) => {
+        const status = normalizeStatus(d.status);
+        return status === "in_transit" || status === "dispatched" || status === "shipped";
       }).length,
-    [invoices],
+    [dispatches],
   );
 
-  const grossSalesIcon = createCurrencySymbolIcon(currencySymbol);
+  const activeCustomers = useMemo(
+    () => customers.filter((c) => c.status === "active").length,
+    [customers],
+  );
 
   const quickActions: ActionCard[] = [
     {
@@ -174,18 +157,12 @@ export default function SalesLandingPage() {
 
   const salesHubKpis: KpiSummaryStat[] = [
     {
-      label: "Gross sales",
-      value: <CurrencyAmount amount={totalSales} />,
-      hint: "Invoice total",
-      accent: "emerald",
-      icon: grossSalesIcon,
-    },
-    {
       label: "Pending orders",
       value: pendingOrders,
       hint: "Draft + confirmed",
       accent: "orange",
       icon: Clock,
+      onClick: () => navigate("/inventory/sales/orders"),
     },
     {
       label: "Dispatches today",
@@ -193,13 +170,23 @@ export default function SalesLandingPage() {
       hint: "Created today",
       accent: "sky",
       icon: Truck,
+      onClick: () => navigate("/inventory/sales/picklist"),
     },
     {
-      label: "Unpaid invoices",
-      value: unpaidInvoices,
-      hint: "Unpaid + overdue",
+      label: "In transit",
+      value: inTransitCount,
+      hint: "Shipments en route",
       accent: "violet",
-      icon: FileText,
+      icon: MapPin,
+      onClick: () => navigate("/inventory/sales/tracking"),
+    },
+    {
+      label: "Active customers",
+      value: activeCustomers,
+      hint: "Total active accounts",
+      accent: "emerald",
+      icon: Users,
+      onClick: () => navigate("/inventory/sales/customers"),
     },
   ];
 
