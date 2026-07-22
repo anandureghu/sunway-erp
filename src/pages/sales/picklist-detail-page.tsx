@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { SalesPageHeader } from "./components/sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 
 const PicklistDetailPage = () => {
   const { id } = useParams();
@@ -65,7 +65,8 @@ const PicklistDetailPage = () => {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader
+        variant="darkBlue"
         title={`Picklist ${picklist.picklistNumber}`}
         description={
           picklist.createdAt

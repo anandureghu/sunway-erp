@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MatchVendorInvoiceDialog } from "@/pages/purchase/components/match-vendor-invoice-dialog";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { AppTab } from "@/components/app-tab";
@@ -71,6 +72,7 @@ function PayableInvoicesTab() {
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
   );
+  const [matchingInvoice, setMatchingInvoice] = useState<FinanceInvoice | null>(null);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
@@ -289,6 +291,12 @@ function PayableInvoicesTab() {
         onOpenDocument: handleOpenInvoiceDocument,
         onDownload: handleDownloadInvoice,
         onEmail: handleEmailInvoice,
+        onMatchVendorInvoice: setMatchingInvoice,
+        onViewMatchedInvoice: (inv) => {
+          if (inv.vendorInvoiceDocumentUrl) {
+            window.open(inv.vendorInvoiceDocumentUrl, "_blank", "noopener,noreferrer");
+          }
+        },
       }),
     [
       handleArchiveInvoice,
@@ -472,6 +480,12 @@ function PayableInvoicesTab() {
           />
         </div>
       )}
+      <MatchVendorInvoiceDialog
+        invoice={matchingInvoice}
+        open={matchingInvoice != null}
+        onOpenChange={(open) => { if (!open) setMatchingInvoice(null); }}
+        onMatched={() => { setMatchingInvoice(null); load(); }}
+      />
     </div>
   );
 }

@@ -25,7 +25,7 @@ import { listCustomers } from "@/service/customerService";
 import SelectCarrier from "@/components/select-carrier";
 import type { DispatchCarrier } from "@/types/inventory";
 import type { Picklist } from "@/types/sales";
-import { SalesPageHeader } from "./sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 
 type Props = {
   onCancel: () => void;
@@ -174,7 +174,7 @@ export function CreateDispatchForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader variant="darkBlue"
         title="Create Dispatch"
         description="Turn a picked picklist into a shipment. Select a saved carrier to prefill driver and comment details."
         backHref="/inventory/sales"

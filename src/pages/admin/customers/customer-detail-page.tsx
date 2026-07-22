@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { type Customer } from "@/types/customer";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { CustomerDialog } from "./customer-dialog";
-import { SalesPageHeader } from "@/pages/sales/components/sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { resolveCustomerListPath } from "@/lib/navigation-back";
 import {
   formatCustomerCode,
@@ -76,7 +76,7 @@ export default function CustomerDetailPage() {
   return (
     <div className={isSalesHub ? "space-y-6 p-4 sm:p-6" : "space-y-6 p-6"}>
       {isSalesHub ? (
-        <SalesPageHeader
+        <PageHeader variant="darkBlue"
           title={displayName}
           description={
             subtitle ||

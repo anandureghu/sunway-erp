@@ -15,7 +15,14 @@ import {
   formatPaymentMethodLabel,
   isDummyDocumentUrl,
 } from "@/lib/payment-method-label";
-import { Archive, Loader2 } from "lucide-react";
+import { Archive, CheckCircle2, Loader2, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 import { formatExpenseCategoryLabel } from "@/lib/expense-category-label";
 
@@ -310,49 +317,55 @@ export const PAYMENT_COLUMNS = ({
         const canArchive = settled && !item.archived && onArchive != null;
         const isArchiving = archivingPaymentId === item.id;
 
-        if (isPending) {
-          return (
-            <div data-no-row-nav onClick={(e) => e.stopPropagation()}>
-              <Button size="sm" onClick={() => onConfirm(item)}>
-                {dir === "VENDOR"
-                  ? "Confirm vendor payment"
-                  : dir === "OTHER"
-                    ? "Confirm expense payment"
-                    : "Confirm payment"}
-              </Button>
-            </div>
-          );
-        }
         if (item.archived) {
           return (
             <span className="text-muted-foreground text-xs">Archived</span>
           );
         }
-        if (canArchive) {
-          return (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-muted-foreground text-xs">Confirmed</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs"
-                disabled={isArchiving}
-                onClick={() => onArchive(item)}
-              >
-                {isArchiving ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Archive className="h-3.5 w-3.5" />
-                )}
-                <span className="ml-1">
-                  {isArchiving ? "Archiving…" : "Archive"}
-                </span>
-              </Button>
-            </div>
-          );
+
+        const hasActions = isPending || canArchive;
+        if (!hasActions) {
+          return <span className="text-muted-foreground text-xs">Confirmed</span>;
         }
-        return <span className="text-muted-foreground text-xs">Confirmed</span>;
+
+        return (
+          <div data-no-row-nav onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {isPending && (
+                  <DropdownMenuItem onClick={() => onConfirm(item)}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    {dir === "VENDOR"
+                      ? "Confirm vendor payment"
+                      : dir === "OTHER"
+                        ? "Confirm expense payment"
+                        : "Confirm payment"}
+                  </DropdownMenuItem>
+                )}
+                {canArchive && (
+                  <DropdownMenuItem
+                    disabled={isArchiving}
+                    onClick={() => onArchive!(item)}
+                  >
+                    {isArchiving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Archive className="mr-2 h-4 w-4" />
+                    )}
+                    {isArchiving ? "Archiving…" : "Archive"}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
       },
     },
   );

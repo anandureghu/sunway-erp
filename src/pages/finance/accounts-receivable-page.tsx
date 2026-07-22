@@ -1,6 +1,3 @@
-import { useEffect, useState } from "react";
-import { dummyInvoices } from "@/lib/data";
-import type { Invoice } from "@/types/sales";
 import { AppTab } from "@/components/app-tab";
 import PaymentsPage from "@/modules/finance/payments-page";
 import { useAuth } from "@/context/AuthContext";
@@ -9,23 +6,12 @@ import { FileText, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 
 interface AccountsReceivableProps {
-  invoices: Invoice[];
   companyId?: number;
-}
-
-async function getInvoices(): Promise<Invoice[]> {
-  return dummyInvoices;
 }
 
 const AccountsReceivablePage = () => {
   const { user } = useAuth();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-
-  useEffect(() => {
-    Promise.all([getInvoices()]).then(([inv]) => {
-      setInvoices(inv);
-    });
-  }, []);
+  const companyId = user?.companyId ? Number(user.companyId) : 0;
 
   const tabsList = [
     {
@@ -45,8 +31,8 @@ const AccountsReceivablePage = () => {
       value: "payments",
       label: "Customer Payments",
       icon: <Wallet className="w-6 h-6" />,
-      element: ({ companyId }: AccountsReceivableProps) => (
-        <PaymentsPage companyId={companyId || 0} variant="customer" />
+      element: ({ companyId: cId }: AccountsReceivableProps) => (
+        <PaymentsPage companyId={cId || 0} variant="customer" />
       ),
     },
     // { value: "agreements", label: "Agreements" },
@@ -65,10 +51,7 @@ const AccountsReceivablePage = () => {
       <AppTab
         tabs={tabsList}
         defaultValue="invoices"
-        props={{
-          invoices,
-          companyId: user?.companyId ? Number(user.companyId) : 0,
-        }}
+        props={{ companyId }}
       />
     </div>
   );

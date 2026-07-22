@@ -129,7 +129,8 @@ export default function CustomersPage() {
         statusFilter === "all" ||
         (statusFilter === "active" && active) ||
         (statusFilter === "inactive" && !active) ||
-        (statusFilter === "with_email" && Boolean((customer.email || "").trim()));
+        (statusFilter === "with_email" &&
+          Boolean((customer.email || "").trim()));
 
       return matchesSearch && matchesPhone && matchesCode && matchesStatus;
     });
@@ -221,10 +222,10 @@ export default function CustomersPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       <PageHeader
+        variant="darkBlue"
         title="Sales Customers"
         description="Maintain buyers used on sales orders: contacts, billing details, and account notes."
         backHref="/inventory/sales"
-        variant="darkBlue"
         actions={
           <Button
             size="lg"

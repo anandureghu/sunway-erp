@@ -44,6 +44,7 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { useAuth } from "@/context/AuthContext";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -53,6 +54,7 @@ export default function InvoicesPage({
   disableHeader?: boolean;
 }) {
   const { confirm } = useConfirmDialog();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -69,11 +71,13 @@ export default function InvoicesPage({
     null,
   );
 
+  const companyId = user?.companyId;
+
   useEffect(() => {
     apiClient
       .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
       .then((res) => setInvoices(res.data));
-  }, []);
+  }, [companyId]);
 
   const outstandingCount = useMemo(
     () => invoices.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
@@ -165,8 +169,8 @@ export default function InvoicesPage({
       setInvoices(res.data);
     } catch (error: unknown) {
       const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Failed to archive selected invoices.";
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to archive selected invoices.";
       toast.error(message);
     } finally {
       setBulkArchiving(false);
@@ -241,7 +245,9 @@ export default function InvoicesPage({
       }
     } catch {
       toast.error(
-        isReceipt ? "Could not send receipt email." : "Could not send invoice email.",
+        isReceipt
+          ? "Could not send receipt email."
+          : "Could not send invoice email.",
       );
     }
   }, []);
@@ -268,7 +274,9 @@ export default function InvoicesPage({
     const unpaid = visibleInvoices.filter(
       (inv) => norm(inv.status) === "UNPAID",
     ).length;
-    const paid = visibleInvoices.filter((inv) => norm(inv.status) === "PAID").length;
+    const paid = visibleInvoices.filter(
+      (inv) => norm(inv.status) === "PAID",
+    ).length;
     const overdue = visibleInvoices.filter(
       (inv) => norm(inv.status) === "OVERDUE",
     ).length;
@@ -332,10 +340,10 @@ export default function InvoicesPage({
     <div className={cn("p-6 space-y-6", isFinancePage && "p-0")}>
       {!disableHeader && (
         <PageHeader
+          variant="darkBlue"
           title="Sales Invoices"
           description="Manage AR invoices issued from confirmed orders: payment status, due dates, and collections."
           backHref="/inventory/sales"
-          variant="darkBlue"
         />
       )}
 
@@ -378,10 +386,13 @@ export default function InvoicesPage({
                 className="pl-8 w-64"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(v) => {
-              setStatusFilter(v);
-              setKpiFilter(null);
-            }}>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v);
+                setKpiFilter(null);
+              }}
+            >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Payment status" />
               </SelectTrigger>
@@ -423,9 +434,7 @@ export default function InvoicesPage({
         getRowId={(row) => String(row.id)}
         isRowSelectable={(row) => {
           const status = (row.status || "").toUpperCase();
-          return (
-            (status === "PAID" || status === "CANCELLED") && !row.archived
-          );
+          return (status === "PAID" || status === "CANCELLED") && !row.archived;
         }}
         onRowClick={(row: Row<Invoice>) =>
           navigate(`/sales/invoices/${row.original.id}`, {

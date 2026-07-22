@@ -14,7 +14,14 @@ import {
   transactionTypeLabel,
 } from "@/lib/transaction-type-label";
 import { cn } from "@/lib/utils";
-import { Archive, Loader2 } from "lucide-react";
+import { Archive, Loader2, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const UNKNOWN = "UNKNOWN";
 
@@ -256,21 +263,30 @@ export const TRANSACTION_COLUMNS = ({
       }
       const isArchiving = archivingId === tx.id;
       return (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
-          disabled={isArchiving}
-          onClick={() => onArchive(tx)}
-        >
-          {isArchiving ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Archive className="h-3.5 w-3.5" />
-          )}
-          <span className="ml-1">{isArchiving ? "Archiving…" : "Archive"}</span>
-        </Button>
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                disabled={isArchiving}
+                onClick={() => onArchive(tx)}
+              >
+                {isArchiving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Archive className="mr-2 h-4 w-4" />
+                )}
+                {isArchiving ? "Archiving…" : "Archive"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       );
     },
   },

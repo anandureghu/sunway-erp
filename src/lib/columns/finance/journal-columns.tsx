@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -8,6 +15,7 @@ import type { JournalEntryResponseDTO } from "@/types/journal";
 import type { ColumnDef } from "@tanstack/react-table";
 import { CreditAmount, DebitAmount } from "@/components/accounting-amount";
 import { StatusBadge } from "@/lib/status-badge";
+import { MoreHorizontal, Pencil, Send } from "lucide-react";
 
 export const JOURNAL_COLUMNS = ({
   onEdit,
@@ -65,46 +73,40 @@ export const JOURNAL_COLUMNS = ({
     cell: ({ row }) => {
       const data = row.original;
       return (
-        <div>
+        <div onClick={(e) => e.stopPropagation()}>
           {!accountOpen ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="flex gap-2 items-center">
-                  <Button size="sm" disabled>
-                    Edit
-                  </Button>
-                  <Button size="sm" disabled>
-                    Post
+                <span>
+                  <Button variant="ghost" className="h-8 w-8 p-0" disabled>
+                    <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                <p>
-                  Cannot add or modify journal while accounting period is closed
-                </p>
+                <p>Cannot modify journal while accounting period is closed</p>
               </TooltipContent>
             </Tooltip>
           ) : (
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(data);
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPost(data);
-                }}
-              >
-                Post
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onEdit(data)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onPost(data)}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       );

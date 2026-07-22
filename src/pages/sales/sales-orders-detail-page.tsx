@@ -1,22 +1,85 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
-import { CheckCircle2, Clock3, XCircle, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { SalesOrderDetailCards } from "./components/sales-order-detail-cards";
-import { SalesPageHeader } from "./components/sales-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { CreateSalesOrderForm } from "./components/create-sales-order-form";
+import type { SalesOrder } from "@/types/sales";
+
+function dtoToSalesOrder(so: SalesOrderResponseDTO): SalesOrder {
+  return {
+    id: String(so.id ?? ""),
+    orderNo: so.orderNumber ?? String(so.id ?? ""),
+    orderNumber: so.orderNumber,
+    customerId: String(so.customerId ?? ""),
+    customerName: so.customerName ?? "",
+    customerEmail: so.customerEmail ?? "",
+    customerPhone: so.customerPhone ?? "",
+    orderDate: so.orderDate ?? "",
+    invoiceDueDate: so.invoiceDueDate,
+    requiredDate: undefined,
+    status: (so.status ?? "draft") as SalesOrder["status"],
+    archived: so.archived,
+    paymentStatus: so.paymentStatus,
+    outstandingAmount: so.outstandingAmount,
+    subtotal: so.subtotalAmount ?? 0,
+    tax: so.taxAmount ?? 0,
+    discount: so.discountAmount ?? 0,
+    subtotalAmount: so.subtotalAmount,
+    discountAmount: so.discountAmount,
+    taxAmount: so.taxAmount,
+    total: so.totalAmount ?? 0,
+    totalAmount: so.totalAmount,
+    shippingAddress: so.shippingAddress,
+    notes: undefined,
+    salesPerson: undefined,
+    createdAt: "",
+    updatedAt: "",
+    bankAccountId:
+      so.bankAccountId != null ? Number(so.bankAccountId) : undefined,
+    bankAccountName: so.bankAccountName,
+    debitAccountId:
+      so.debitAccountId != null ? Number(so.debitAccountId) : undefined,
+    debitAccountName: so.debitAccountName,
+    debitAccountBalance: so.debitAccountBalance,
+    sufficientDebitBalance: so.sufficientDebitBalance,
+    debitBalanceShortage: so.debitBalanceShortage,
+    creditAccountId:
+      so.creditAccountId != null ? Number(so.creditAccountId) : undefined,
+    creditAccountName: so.creditAccountName,
+    items: (so.items ?? []).map((item, idx) => ({
+      id: String(item.itemId ?? idx),
+      orderId: String(so.id ?? ""),
+      itemId: Number(item.itemId ?? 0),
+      itemName: item.itemName,
+      quantity: item.quantity ?? 0,
+      unitPrice: item.unitPrice ?? 0,
+      lineSubtotal: item.lineSubtotal,
+      discountPercent: item.discountPercent,
+      discount: item.discountPercent ?? 0,
+      taxRate: item.taxRate,
+      taxAmount: item.taxAmount,
+      tax: item.taxAmount ?? 0,
+      total: item.lineTotal ?? 0,
+      warehouseId: item.warehouseId,
+      warehouseName: item.warehouseName,
+    })),
+  };
+}
 
 const SalesOrdersDetailPage = () => {
   const { id } = useParams();
   const { confirmCancel } = useConfirmDialog();
   const [so, setSo] = useState<SalesOrderResponseDTO | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const updateStatus = async (action: "confirm" | "cancel") => {
     if (!so) return;
@@ -64,37 +127,11 @@ const SalesOrdersDetailPage = () => {
   }
 
   const status = (so.status || "").toUpperCase();
-  const statusMeta =
-    status === "CANCELLED"
-      ? {
-          label: "Cancelled",
-          icon: XCircle,
-          className: "border-rose-200 bg-rose-100 text-rose-700",
-        }
-      : status === "COMPLETED"
-        ? {
-            label: "Completed",
-            icon: CheckCircle2,
-            className: "border-emerald-200 bg-emerald-100 text-emerald-800",
-          }
-        : status === "CONFIRMED"
-          ? {
-              label: "Confirmed",
-              icon: CheckCircle2,
-              className: "border-emerald-200 bg-emerald-100 text-emerald-700",
-            }
-          : {
-              label: "Draft",
-              icon: Clock3,
-              className: "border-amber-200 bg-amber-100 text-amber-700",
-            };
-  const StatusIcon = statusMeta.icon;
   const showReceiptActions = isInvoiceReceiptView(so.paymentStatus);
   const hasSalesInvoice = so.salesInvoiceId != null;
   const showDocumentActions =
     hasSalesInvoice && status !== "DRAFT" && status !== "CANCELLED";
-  const canConfirm =
-    status === "DRAFT" && so.sufficientDebitBalance !== false;
+  const canConfirm = status === "DRAFT" && so.sufficientDebitBalance !== false;
   const insufficientBalance =
     status === "DRAFT" && so.sufficientDebitBalance === false;
 
@@ -112,32 +149,29 @@ const SalesOrdersDetailPage = () => {
     }
   };
 
+  if (editing && so) {
+    return (
+      <CreateSalesOrderForm
+        mode="edit"
+        initialOrder={dtoToSalesOrder(so)}
+        onCancel={() => setEditing(false)}
+        onSuccess={() => {
+          setEditing(false);
+          apiClient
+            .get<SalesOrderResponseDTO>(`/sales/orders/${id}`)
+            .then(({ data }) => setSo(data));
+        }}
+      />
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <SalesPageHeader
+      <PageHeader
+        variant="darkBlue"
         title={`Order ${so.orderNumber}`}
         description={`Order date: ${so.orderDate || "N/A"}`}
         backHref="/inventory/sales/orders"
-        actions={
-          <div className="flex flex-col items-stretch gap-3 sm:items-end">
-            <Badge
-              variant="outline"
-              className={`justify-center border px-3 py-1 text-xs font-medium sm:justify-end ${statusMeta.className}`}
-            >
-              <StatusIcon className="mr-1 h-3.5 w-3.5" />
-              {statusMeta.label}
-            </Badge>
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-wide text-white/70">
-                Order value
-              </p>
-              <CurrencyAmount
-                amount={so.totalAmount ?? 0}
-                className="text-2xl font-bold text-white"
-              />
-            </div>
-          </div>
-        }
       />
 
       {status === "DRAFT" && insufficientBalance && (
@@ -153,7 +187,10 @@ const SalesOrdersDetailPage = () => {
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-900/80">
               <span>
                 Order total:{" "}
-                <CurrencyAmount amount={so.totalAmount ?? 0} className="inline" />
+                <CurrencyAmount
+                  amount={so.totalAmount ?? 0}
+                  className="inline"
+                />
               </span>
               {so.debitAccountBalance != null ? (
                 <span>
@@ -164,7 +201,8 @@ const SalesOrdersDetailPage = () => {
                   />
                 </span>
               ) : null}
-              {so.debitBalanceShortage != null && so.debitBalanceShortage > 0 ? (
+              {so.debitBalanceShortage != null &&
+              so.debitBalanceShortage > 0 ? (
                 <span>
                   Short by:{" "}
                   <CurrencyAmount
@@ -175,8 +213,8 @@ const SalesOrdersDetailPage = () => {
               ) : null}
             </div>
             <p className="text-xs text-amber-900/70">
-              You can save and edit this draft. Confirmation is blocked until the
-              account is funded.
+              You can save and edit this draft. Confirmation is blocked until
+              the account is funded.
             </p>
           </div>
         </div>
@@ -184,7 +222,14 @@ const SalesOrdersDetailPage = () => {
 
       {status === "DRAFT" && (
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => updateStatus("confirm")} disabled={!canConfirm}>
+          <Button variant="outline" onClick={() => setEditing(true)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Order
+          </Button>
+          <Button
+            onClick={() => updateStatus("confirm")}
+            disabled={!canConfirm}
+          >
             Confirm Order
           </Button>
           <Button variant="destructive" onClick={() => updateStatus("cancel")}>
@@ -204,7 +249,13 @@ const SalesOrdersDetailPage = () => {
           >
             Download invoice
           </Button>
-          <Button type="button" variant="secondary" size="sm" className="rounded-lg" asChild>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            asChild
+          >
             <Link
               to={`/sales/invoices/${so.salesInvoiceId}`}
               state={{ backTo: `/inventory/sales/orders/${so.id}` }}
@@ -226,7 +277,13 @@ const SalesOrdersDetailPage = () => {
           >
             Download receipt
           </Button>
-          <Button type="button" variant="secondary" size="sm" className="rounded-lg" asChild>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            asChild
+          >
             <Link
               to={`/sales/invoices/${so.salesInvoiceId}`}
               state={{ backTo: `/inventory/sales/orders/${so.id}` }}

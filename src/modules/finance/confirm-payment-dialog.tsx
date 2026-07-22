@@ -187,36 +187,50 @@ export function ConfirmPaymentDialog({
             )}
           </div>
 
-          {maxApplicableCredit > 0 && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 space-y-2 dark:border-emerald-900 dark:bg-emerald-950/30">
-              <div className="flex items-start gap-2">
-                <Checkbox
-                  id="apply-credit-note"
-                  checked={applyCredit}
-                  onCheckedChange={(checked) => handleToggleCredit(checked === true)}
-                  className="mt-0.5"
-                />
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="apply-credit-note" className="cursor-pointer">
-                    {isVendor
-                      ? "Apply available supplier credit"
-                      : "Apply available customer credit"}{" "}
-                    (<CurrencyAmount amount={availableCredit} className="inline" /> available)
-                  </Label>
-                  {applyCredit && (
-                    <Input
-                      type="number"
-                      min={0.01}
-                      max={maxApplicableCredit}
-                      step="0.01"
-                      value={creditAmountInput}
-                      onChange={(e) => handleCreditAmountChange(e.target.value)}
-                      placeholder="Amount of credit to apply"
-                      className="h-8 text-sm"
-                    />
-                  )}
-                </div>
+          {!isOther && (
+            <div className={`rounded-md border p-3 space-y-2 ${maxApplicableCredit > 0 ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-slate-200 bg-slate-50"}`}>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground font-medium">
+                  {isVendor ? "Supplier credit balance" : "Customer credit balance"}
+                </span>
+                <span className={`font-semibold ${maxApplicableCredit > 0 ? "text-emerald-700" : "text-muted-foreground"}`}>
+                  <CurrencyAmount amount={availableCredit} className="inline" />
+                  {maxApplicableCredit <= 0 && <span className="ml-1 text-xs font-normal">(none available)</span>}
+                </span>
               </div>
+              {maxApplicableCredit > 0 && (
+                <div className="flex items-start gap-2 pt-1 border-t border-emerald-100">
+                  <Checkbox
+                    id="apply-credit-note"
+                    checked={applyCredit}
+                    onCheckedChange={(checked) => handleToggleCredit(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1 space-y-1.5">
+                    <Label htmlFor="apply-credit-note" className="cursor-pointer text-sm">
+                      Use credit balance — enter amount to apply (max{" "}
+                      <CurrencyAmount amount={maxApplicableCredit} className="inline font-medium" />)
+                    </Label>
+                    {applyCredit && (
+                      <Input
+                        type="number"
+                        min={0.01}
+                        max={maxApplicableCredit}
+                        step="0.01"
+                        value={creditAmountInput}
+                        onChange={(e) => handleCreditAmountChange(e.target.value)}
+                        placeholder="Amount of credit to apply"
+                        className="h-8 text-sm"
+                      />
+                    )}
+                    {applyCredit && appliedCredit > 0 && (
+                      <p className="text-xs text-emerald-700">
+                        Credit applied: <CurrencyAmount amount={appliedCredit} className="inline font-semibold" /> — cash required reduced accordingly.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

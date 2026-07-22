@@ -32,7 +32,6 @@ export function createSalesOrderColumns(
   onConfirm?: (id: string) => void,
   onCancel?: (id: string) => void,
   onGeneratePicklist?: (id: string) => void,
-  onViewDetails?: (id: string) => void,
   onEdit?: (id: string) => void,
   onArchive?: (id: string) => void,
   processingOrderId?: string | null,
@@ -128,6 +127,28 @@ export function createSalesOrderColumns(
       },
     },
     {
+      id: "paidAmount",
+      header: "Paid Amount",
+      cell: ({ row }) => {
+        const order = row.original;
+        const total = Number(order.total ?? 0);
+        const outstanding = Number(order.outstandingAmount ?? total);
+        const paid = total - outstanding;
+        if (paid <= 0) return <span className="text-muted-foreground">—</span>;
+        return <CurrencyAmount amount={paid} className="text-emerald-600 font-medium" />;
+      },
+    },
+    {
+      id: "dueAmount",
+      header: "Due Amount",
+      cell: ({ row }) => {
+        const order = row.original;
+        const outstanding = Number(order.outstandingAmount ?? 0);
+        if (outstanding <= 0) return <span className="text-muted-foreground">—</span>;
+        return <CurrencyAmount amount={outstanding} className="text-rose-600 font-medium" />;
+      },
+    },
+    {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
@@ -157,12 +178,6 @@ export function createSalesOrderColumns(
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                {onViewDetails && (
-                  <DropdownMenuItem onClick={() => onViewDetails(order.id)}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Details
-                  </DropdownMenuItem>
-                )}
                 {order.status === "draft" && onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(order.id)}>
                     <Edit className="mr-2 h-4 w-4" />

@@ -514,7 +514,7 @@ export function CreateSalesOrderForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <PageHeader
+      <PageHeader variant="darkBlue"
         title={isEditMode ? "Edit Sales Order" : "Create Sales Order"}
         description={
           isEditMode
@@ -526,7 +526,6 @@ export function CreateSalesOrderForm({
             ? `/inventory/sales/orders/${initialOrder.id}`
             : "/inventory/sales/orders"
         }
-        variant="darkBlue"
       />
 
       <form

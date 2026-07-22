@@ -24,7 +24,7 @@ import {
 } from "@/service/purchaseFlowService";
 import type { GoodsReceipt } from "@/types/purchase";
 import { toast } from "sonner";
-import { PurchasePageHeader } from "./components/purchase-page-header";
+import { PageHeader } from "@/components/PageHeader";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { cn } from "@/lib/utils";
 
@@ -315,7 +315,8 @@ export default function GoodsReceiptDetailPage() {
     <>
       <div className="space-y-5 p-6">
         <div>
-          <PurchasePageHeader
+          <PageHeader
+            variant="darkGreen"
             title={receipt.receiptNo}
             description="Inspection and stock posting details for this goods receipt."
             backHref={`${BASE}/inspection`}

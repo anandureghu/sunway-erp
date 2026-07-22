@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { apiClient } from "@/service/apiClient";
+import { recalculateCompanyStorage } from "@/service/companyService";
 import { toast } from "sonner";
 import { type Company } from "@/types/company";
 import {
@@ -39,12 +40,15 @@ import {
   IdCard,
   Briefcase,
   ShieldCheck,
+  HardDrive,
+  Database,
+  RefreshCw,
 } from "lucide-react";
 import { CompanyDialog } from "../admin/hr/company/company-dialog";
 import { EmployeeDialog } from "../admin/hr/employee/employee-dialog";
 import type { Employee } from "@/types/hr";
 import { useAppSelector } from "@/store/store";
-import { hasAnyRole } from "@/lib/utils";
+import { hasAnyRole, formatBytes } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 
 // ── Modules edit dialog ──────────────────────────────────────────────────────
@@ -260,6 +264,22 @@ export default function CompanyDetailPage() {
   const [openViewAdmin, setOpenViewAdmin] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [openCreateAdmin, setOpenCreateAdmin] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+
+  const handleRecalculateStorage = async () => {
+    if (!id) return;
+    setRecalculating(true);
+    try {
+      const updated = await recalculateCompanyStorage(id);
+      setCompany(updated);
+      toast.success("Storage usage recalculated");
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, "Failed to recalculate storage usage"));
+    } finally {
+      setRecalculating(false);
+    }
+  };
 
   const fetchCompany = async () => {
     if (!id || id === "undefined") return;
@@ -633,6 +653,71 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Storage Usage (SUPER_ADMIN only) ── */}
+      {isSuperAdmin && (
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-[15px] font-semibold text-slate-800">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50">
+                  <HardDrive className="h-4 w-4 text-cyan-600" />
+                </div>
+                Storage Usage
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRecalculateStorage}
+                disabled={recalculating}
+                className="h-7 gap-1 rounded-lg px-2.5 text-[12px] text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <RefreshCw
+                  className={`h-3 w-3 ${recalculating ? "animate-spin" : ""}`}
+                />
+                Recalculate
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                  <HardDrive className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                    Cloud Storage
+                  </p>
+                  <p className="text-[14px] font-semibold text-slate-700">
+                    {formatBytes(company.cloudStorageBytes)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50">
+                  <Database className="h-4 w-4 text-violet-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                    Database Storage (estimated)
+                  </p>
+                  <p className="text-[14px] font-semibold text-slate-700">
+                    {formatBytes(company.databaseStorageBytes)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[12px] text-slate-400">
+              {company.storageCalculatedAt
+                ? `Database storage last calculated ${new Date(
+                    company.storageCalculatedAt,
+                  ).toLocaleString()}`
+                : "Database storage has not been calculated yet."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Company Admin ── */}
       <Card className="rounded-2xl border-slate-200 shadow-sm">
