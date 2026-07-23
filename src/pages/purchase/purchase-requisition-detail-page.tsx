@@ -53,7 +53,7 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 const BASE = "/inventory/purchase";
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-800",
+  quotation: "bg-gray-100 text-gray-800",
   submitted: "bg-amber-100 text-amber-900",
   converted: "bg-violet-100 text-violet-900",
   rejected: "bg-red-100 text-red-800",
@@ -331,14 +331,14 @@ export default function PurchaseRequisitionDetailPage() {
     );
   }
 
-  const canSubmit = requisition.status === "draft";
+  const canSubmit = requisition.status === "quotation";
   const canApprove = requisition.status === "submitted";
   const canRejectOrSendBack = requisition.status === "submitted";
   const canRevise = requisition.status === "rejected";
-  const canEdit = requisition.status === "draft";
+  const canEdit = requisition.status === "quotation";
   const isConverted = requisition.status === "converted";
   const documentsReadOnly =
-    Boolean(requisition.archived) || requisition.status !== "draft";
+    Boolean(requisition.archived) || requisition.status !== "quotation";
   const reviewFeedbackLabel =
     requisition.reviewAction === "send_back"
       ? "Sent back for revision"
@@ -383,7 +383,7 @@ export default function PurchaseRequisitionDetailPage() {
 
       <PageHeader
         title={requisition.requisitionNo}
-        description="Draft → submit for approval → approve to generate a Purchase Order."
+        description="Quotation → submit for approval → approve to generate a Purchase Order."
         backHref={`${BASE}/requisitions`}
         variant="darkGreen"
         actions={
@@ -558,7 +558,7 @@ export default function PurchaseRequisitionDetailPage() {
                 <Button asChild variant="outline" className="rounded-lg" disabled={actionLoading}>
                   <Link to={`${BASE}/requisitions/${requisition.id}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
-                    Edit draft
+                    Edit quotation
                   </Link>
                 </Button>
               )}

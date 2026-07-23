@@ -84,7 +84,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     orderDate: dto.orderDate || "",
     invoiceDueDate: dto.invoiceDueDate || "",
     requiredDate: undefined,
-    status: (normalizeStatus(dto.status) as any) || "draft",
+    status: (normalizeStatus(dto.status) as any) || "quotation",
     archived: Boolean(dto.archived),
     paymentStatus: normalizePaymentStatus(rawPaymentStatus),
     outstandingAmount:
@@ -219,6 +219,8 @@ function toShipmentAsDispatch(dto: ShipmentResponseDTO): Dispatch {
     carrierName: dto.carrierName || undefined,
     trackingNumber: dto.trackingNumber || undefined,
     notes: dto.notes || undefined,
+    customerSignature: dto.customerSignature || undefined,
+    deliveryRemarks: dto.deliveryRemarks || undefined,
     createdBy: undefined,
     createdAt: dto.createdAt || dto.dispatchedAt || dto.deliveredAt || "",
     updatedAt: undefined,
@@ -366,9 +368,13 @@ export async function markShipmentInTransit(id: Id | string) {
   return toShipmentAsDispatch(res.data);
 }
 
-export async function markShipmentDelivered(id: Id | string) {
+export async function markShipmentDelivered(
+  id: Id | string,
+  payload: { customerSignature: string; deliveryRemarks?: string },
+) {
   const res = await apiClient.post<ShipmentResponseDTO>(
     `/warehouse/shipments/${id}/delivered`,
+    payload,
   );
   return toShipmentAsDispatch(res.data);
 }

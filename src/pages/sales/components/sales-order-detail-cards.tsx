@@ -89,7 +89,7 @@ export function SalesOrderDetailCards({ so }: Props) {
             label="Order status"
             value={
               <Badge variant="secondary" className="capitalize">
-                {(so.status || "draft").toLowerCase()}
+                {(so.status || "quotation").toLowerCase()}
               </Badge>
             }
           />

@@ -176,7 +176,7 @@ export function PurchaseRequisitionsListView({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All status</SelectItem>
-                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="quotation">Quotation</SelectItem>
                         <SelectItem value="submitted">Submitted</SelectItem>
                         <SelectItem value="converted">Converted</SelectItem>
                         <SelectItem value="rejected">Rejected</SelectItem>

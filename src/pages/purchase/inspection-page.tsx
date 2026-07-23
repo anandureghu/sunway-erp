@@ -272,9 +272,9 @@ export default function InspectionPage() {
       ),
       kpiFilterItem(
         {
-          label: "Pending inspection",
+          label: "Awaiting inspection",
           value: pendingReceipts.length,
-          hint: "Awaiting accept/reject decision",
+          hint: "Goods receipts awaiting inspect",
           accent: "violet",
           icon: Hourglass,
         },
@@ -284,9 +284,9 @@ export default function InspectionPage() {
       ),
       kpiFilterItem(
         {
-          label: "Inspected",
+          label: "Inspected – ready to receive",
           value: inspectedReceipts.length,
-          hint: "Inspection closed",
+          hint: "Inspected; receive into stock next",
           accent: "emerald",
           icon: CheckCircle2,
         },
@@ -419,8 +419,8 @@ export default function InspectionPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <PageHeader
-        title="Quality inspection"
-        description="Confirm inspection outcomes on goods received against released Purchase Orders."
+        title="Goods receipt / Inspect"
+        description="Log arrivals and confirm inspection, then receive accepted quantity into stock."
         backHref="/inventory/purchase"
         variant="darkGreen"
         actions={
@@ -430,7 +430,7 @@ export default function InspectionPage() {
             onClick={() => setShowStartForm(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Start Inspection
+            Start inspection
           </Button>
         }
       />
@@ -461,14 +461,14 @@ export default function InspectionPage() {
                 </TabsTrigger>
                 <TabsTrigger value="pending" className="gap-2">
                   <Hourglass className="h-4 w-4" />
-                  Pending inspection
+                  Awaiting inspection
                   <Badge variant="secondary" className="font-normal">
                     {pendingReceipts.length}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="inspected" className="gap-2">
                   <ClipboardList className="h-4 w-4" />
-                  Inspected
+                  Ready to receive
                   <Badge variant="secondary" className="font-normal">
                     {inspectedReceipts.length}
                   </Badge>
@@ -810,7 +810,7 @@ function StartInspectionForm({
             <p className="mb-4 text-sm text-slate-500">
               Enter the quantity that physically arrived per line. Warehouse,
               batch, lot and cost are entered later, once inspection is
-              confirmed, from Inventory (Stocks) → Receive goods.
+              confirmed, from Inventory (Stocks) → Receive.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
@@ -819,7 +819,7 @@ function StartInspectionForm({
                     <th className="pb-3 pr-4 w-12">Sl No</th>
                     <th className="pb-3 pr-4">Item</th>
                     <th className="pb-3 pr-4 text-right">Ordered</th>
-                    <th className="pb-3 pr-4 text-right">Received</th>
+                    <th className="pb-3 pr-4 text-right">Arrived</th>
                     <th className="pb-3">Remarks</th>
                   </tr>
                 </thead>
@@ -1051,7 +1051,7 @@ function InspectForm({
                   <th className="pb-3 pr-4 w-12">Sl No</th>
                   <th className="pb-3 pr-4">Item</th>
                   <th className="pb-3 pr-4 text-right">Ordered</th>
-                  <th className="pb-3 pr-4 text-right">Received</th>
+                  <th className="pb-3 pr-4 text-right">Arrived</th>
                   <th className="pb-3 pr-4 text-right">Accepted</th>
                   <th className="pb-3 pr-4 text-right">Rejected</th>
                   <th className="pb-3">Remarks</th>

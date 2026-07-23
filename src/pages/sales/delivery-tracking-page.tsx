@@ -92,6 +92,10 @@ export default function DeliveryTrackingPage() {
   const [trackingEstimatedDate, setTrackingEstimatedDate] = useState("");
   const [trackingLocation, setTrackingLocation] = useState("");
   const [trackingNotes, setTrackingNotes] = useState("");
+  const [deliverDialogOpen, setDeliverDialogOpen] = useState(false);
+  const [podSignature, setPodSignature] = useState("");
+  const [podRemarks, setPodRemarks] = useState("");
+  const [podError, setPodError] = useState<string | null>(null);
 
   const loadDispatches = async () => {
     const [shipments, orders, picklists, items] = await Promise.all([
@@ -282,8 +286,14 @@ export default function DeliveryTrackingPage() {
         await markShipmentInTransit(selectedDispatch.id);
       if (action === "out_for_delivery")
         await markShipmentOutForDelivery(selectedDispatch.id);
-      if (action === "delivered")
-        await markShipmentDelivered(selectedDispatch.id);
+      if (action === "delivered") {
+        setUpdatingStatus(false);
+        setPodSignature("");
+        setPodRemarks("");
+        setPodError(null);
+        setDeliverDialogOpen(true);
+        return;
+      }
       if (action === "failed_delivery")
         await markShipmentFailedDelivery(
           selectedDispatch.id,
@@ -291,6 +301,36 @@ export default function DeliveryTrackingPage() {
         );
       if (action === "cancelled") await cancelShipment(selectedDispatch.id);
       await refreshSelectedDispatch();
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const submitProofOfDelivery = async () => {
+    if (!selectedDispatch) return;
+    const signature = podSignature.trim();
+    if (!signature) {
+      setPodError("Customer signature is required.");
+      return;
+    }
+    try {
+      setUpdatingStatus(true);
+      setPodError(null);
+      await markShipmentDelivered(selectedDispatch.id, {
+        customerSignature: signature,
+        deliveryRemarks: podRemarks.trim() || undefined,
+      });
+      setDeliverDialogOpen(false);
+      setPodSignature("");
+      setPodRemarks("");
+      await refreshSelectedDispatch();
+      toast.success("Shipment marked delivered with proof of delivery");
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } } };
+      setPodError(
+        ax.response?.data?.message ??
+          (e instanceof Error ? e.message : "Failed to mark delivered"),
+      );
     } finally {
       setUpdatingStatus(false);
     }
@@ -666,6 +706,44 @@ export default function DeliveryTrackingPage() {
                   </Card>
                 </div>
 
+                {selectedDispatch.status === "delivered" && (
+                  <Card className="border-emerald-200 bg-emerald-50/40">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">
+                        Proof of delivery
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Customer Signature
+                        </p>
+                        {selectedDispatch.customerSignature?.startsWith(
+                          "data:image",
+                        ) ? (
+                          <img
+                            src={selectedDispatch.customerSignature}
+                            alt="Customer signature"
+                            className="max-h-32 rounded border bg-white object-contain"
+                          />
+                        ) : (
+                          <p className="rounded border bg-white px-3 py-6 text-center font-serif text-xl italic">
+                            {selectedDispatch.customerSignature || "—"}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Notes / Remarks
+                        </p>
+                        <p className="rounded border bg-white px-3 py-3 text-sm whitespace-pre-wrap">
+                          {selectedDispatch.deliveryRemarks || "—"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Tracking History */}
                 <div>
                   <CardTitle className="mb-4">Tracking History</CardTitle>
@@ -827,6 +905,60 @@ export default function DeliveryTrackingPage() {
               Cancel
             </Button>
             <Button onClick={submitTrackingUpdate}>Save Update</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deliverDialogOpen} onOpenChange={setDeliverDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Proof of delivery</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Capture the customer signature and any delivery notes before
+              marking this shipment delivered.
+            </p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pod-signature">Customer Signature</Label>
+              <Input
+                id="pod-signature"
+                value={podSignature}
+                onChange={(e) => setPodSignature(e.target.value)}
+                placeholder="Customer full name / signature"
+              />
+              <p className="text-xs text-muted-foreground">
+                Type the customer&apos;s name as electronic signature, or paste
+                a signature image data URL.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pod-remarks">Notes / Remarks</Label>
+              <Textarea
+                id="pod-remarks"
+                value={podRemarks}
+                onChange={(e) => setPodRemarks(e.target.value)}
+                placeholder="Optional delivery remarks"
+              />
+            </div>
+            {podError ? (
+              <p className="text-sm text-destructive">{podError}</p>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeliverDialogOpen(false)}
+              disabled={updatingStatus}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void submitProofOfDelivery()}
+              disabled={updatingStatus}
+            >
+              Confirm Delivered
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

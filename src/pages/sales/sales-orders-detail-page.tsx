@@ -26,7 +26,7 @@ function dtoToSalesOrder(so: SalesOrderResponseDTO): SalesOrder {
     orderDate: so.orderDate ?? "",
     invoiceDueDate: so.invoiceDueDate,
     requiredDate: undefined,
-    status: (so.status ?? "draft") as SalesOrder["status"],
+    status: (so.status ?? "quotation") as SalesOrder["status"],
     archived: so.archived,
     paymentStatus: so.paymentStatus,
     outstandingAmount: so.outstandingAmount,
@@ -130,10 +130,10 @@ const SalesOrdersDetailPage = () => {
   const showReceiptActions = isInvoiceReceiptView(so.paymentStatus);
   const hasSalesInvoice = so.salesInvoiceId != null;
   const showDocumentActions =
-    hasSalesInvoice && status !== "DRAFT" && status !== "CANCELLED";
-  const canConfirm = status === "DRAFT" && so.sufficientDebitBalance !== false;
+    hasSalesInvoice && status !== "QUOTATION" && status !== "CANCELLED";
+  const canConfirm = status === "QUOTATION" && so.sufficientDebitBalance !== false;
   const insufficientBalance =
-    status === "DRAFT" && so.sufficientDebitBalance === false;
+    status === "QUOTATION" && so.sufficientDebitBalance === false;
 
   const handleDownloadDocumentPdf = async () => {
     if (!so.salesInvoiceId) return;
@@ -174,7 +174,7 @@ const SalesOrdersDetailPage = () => {
         backHref="/inventory/sales/orders"
       />
 
-      {status === "DRAFT" && insufficientBalance && (
+      {status === "QUOTATION" && insufficientBalance && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <div className="space-y-1">
@@ -213,14 +213,14 @@ const SalesOrdersDetailPage = () => {
               ) : null}
             </div>
             <p className="text-xs text-amber-900/70">
-              You can save and edit this draft. Confirmation is blocked until
+              You can save and edit this quotation. Confirmation is blocked until
               the account is funded.
             </p>
           </div>
         </div>
       )}
 
-      {status === "DRAFT" && (
+      {status === "QUOTATION" && (
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="mr-2 h-4 w-4" />

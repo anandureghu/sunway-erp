@@ -206,8 +206,8 @@ export function CreatePurchaseRequisitionForm({
         if (isEditMode && requisitionId) {
           const pr = await getPurchaseRequisition(requisitionId);
           if (cancelled) return;
-          if (pr.status !== "draft") {
-            setLoadError("Only draft requisitions can be edited.");
+          if (pr.status !== "quotation") {
+            setLoadError("Only quotation requisitions can be edited.");
             return;
           }
           setReviewerFeedback(pr.rejectionReason ?? null);

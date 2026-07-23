@@ -56,7 +56,7 @@ export const INVENTORY_PERMISSION_MODULES: PermissionModuleRow[] = [
   { id: "INVENTORY_SALES", label: "Sales", group: "Sales", description: "Orders, customers, picklist, dispatch & invoices" },
   // Purchase  (/inventory/purchase)
   { id: "INVENTORY_PURCHASE", label: "Purchase", group: "Purchase", description: "Requisitions, orders, suppliers & invoices" },
-  { id: "INVENTORY_RECEIPT", label: "Goods Receipt", group: "Purchase", description: "Receiving against purchase orders" },
+  { id: "INVENTORY_RECEIPT", label: "Goods Receipt", group: "Purchase", description: "Inspect goods receipts and receive accepted quantity into stock" },
   // Inventory Settings  (/inventory/settings)
   { id: "INVENTORY_CATEGORY", label: "Categories", group: "Inventory Settings", description: "Item categories" },
   { id: "INVENTORY_WAREHOUSE", label: "Warehouse", group: "Inventory Settings", description: "Warehouses, locations & dispatch carriers" },

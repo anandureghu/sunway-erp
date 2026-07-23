@@ -82,7 +82,7 @@ export default function PurchaseLandingPage() {
     () =>
       orders.filter((o) => {
         const status = normalizeStatus(o.status);
-        return status === "draft" || status === "pending" || status === "approved";
+        return status === "quotation" || status === "pending" || status === "approved";
       }).length,
     [orders],
   );
@@ -137,10 +137,10 @@ export default function PurchaseLandingPage() {
       tone: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/50",
     },
     {
-      title: "Quality Inspection",
-      description: "Confirm inspection outcomes on received goods.",
+      title: "Goods receipt / Inspect",
+      description: "Log arrivals and confirm inspection before receiving into stock.",
       to: "/inventory/purchase/inspection",
-      cta: "Inspection",
+      cta: "Inspect",
       icon: Package,
       tone: "text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50",
     },
@@ -167,7 +167,7 @@ export default function PurchaseLandingPage() {
     {
       label: "Pending orders",
       value: pendingOrders,
-      hint: "Draft, pending, approved",
+      hint: "Quotation, pending, approved",
       accent: "orange",
       icon: Clock,
     },
@@ -179,9 +179,9 @@ export default function PurchaseLandingPage() {
       icon: Package,
     },
     {
-      label: "Pending inspection",
+      label: "Awaiting inspection",
       value: pendingInspection,
-      hint: "Awaiting quality check",
+      hint: "Goods receipts awaiting inspect",
       accent: "amber",
       icon: ScanSearch,
     },

@@ -72,7 +72,7 @@ const getModuleDescription = (title: string): string => {
     Sales:
       "Handle Sales transactions, manage sales invoices and maintain customer information. Perform order fulfillment and track shipments",
     Purchase:
-      "Execute the procurement workflow, including purchase requisitions, purchase orders, receiving goods, viewing and matching invoices, and processing payment receipts.",
+      "Execute the procurement workflow, including purchase requisitions, purchase orders, goods receipt inspection, receiving into stock, viewing and matching invoices, and processing payment receipts.",
     "Operations Reports":
       "Day-to-day stock health — movements, batches, low stock, and expiry alerts",
     "Management Reports":

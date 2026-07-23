@@ -244,7 +244,7 @@ export function ReceiveItemTab({
     try {
       if (mode === "po") {
         if (!selectedReceipt || !selectedLineId) {
-          toast.error("Select a confirmed-inspection receipt and line first.");
+          toast.error("Select an inspected goods receipt and line first.");
           return;
         }
         await postGoodsReceiptItemsToStock(selectedReceipt.id, {
@@ -259,7 +259,7 @@ export function ReceiveItemTab({
             },
           ],
         });
-        toast.success("Stock received");
+        toast.success("Received into stock");
         refreshAwaitingStock();
       } else {
         await receiveItemStock(data.itemId, {
@@ -273,7 +273,7 @@ export function ReceiveItemTab({
           costPrice: data.costPrice,
           unitPrice: data.unitPrice,
         });
-        toast.success("Stock received");
+        toast.success("Received into stock");
       }
       await onStockUpdated();
       resetForm();
@@ -326,7 +326,7 @@ export function ReceiveItemTab({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5 text-orange-500" />
-              Receive Item
+              Receive
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -345,9 +345,9 @@ export function ReceiveItemTab({
                       <SelectValue
                         placeholder={
                           loadingReceipts
-                            ? "Loading confirmed receipts…"
+                            ? "Loading inspected receipts…"
                             : awaitingStockReceipts.length === 0
-                              ? "No confirmed-inspection receipts awaiting stock"
+                              ? "No inspected receipts ready to receive"
                               : "Select goods receipt"
                         }
                       />
@@ -655,7 +655,7 @@ export function ReceiveItemTab({
                   submitting || (mode === "po" && !selectedLineId) || !selectedItem
                 }
               >
-                {submitting ? "Saving…" : "Receive Item"}
+                {submitting ? "Saving…" : "Receive"}
               </Button>
             </div>
           </CardContent>
