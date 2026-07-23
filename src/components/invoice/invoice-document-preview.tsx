@@ -115,7 +115,12 @@ export function InvoiceDocumentPreview({
     isSales && Boolean(invoice.bankAccountName) && !isPaid;
   const showNotes = isSales && Boolean(notesText.trim());
   const showTerms = isSales && termsAndConditions.length > 0;
-  const showDiscount = (invoice.discountAmount ?? 0) > 0;
+  // Backend stores subtotalAmount as post-discount (sum of line totals before tax).
+  // Display Subtotal as the pre-discount gross so Discount is not applied twice.
+  const discountAmount = invoice.discountAmount ?? 0;
+  const netSubtotal = invoice.subtotalAmount ?? invoice.amount ?? 0;
+  const grossSubtotal = netSubtotal + discountAmount;
+  const showDiscount = discountAmount > 0;
   const showTax = (invoice.taxAmount ?? 0) > 0;
   const showQr =
     Boolean(invoice.invoiceQrEnabled) && Boolean(invoice.publicInvoiceUrl);
@@ -266,7 +271,7 @@ export function InvoiceDocumentPreview({
                   Discount
                 </th>
                 <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
-                  Amount
+                  Line Amount
                 </th>
               </tr>
             </thead>
@@ -325,13 +330,10 @@ export function InvoiceDocumentPreview({
               <tbody>
                 <tr>
                   <td className="border-b border-slate-200 px-3 py-2 text-slate-500">
-                    Amount
+                    Subtotal
                   </td>
                   <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold">
-                    {invoiceMoney(
-                      invoice.subtotalAmount ?? invoice.amount,
-                      currencyCode,
-                    )}
+                    {invoiceMoney(grossSubtotal, currencyCode)}
                   </td>
                 </tr>
                 {showDiscount && (
@@ -340,21 +342,7 @@ export function InvoiceDocumentPreview({
                       Discount
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold">
-                      {invoiceMoney(invoice.discountAmount, currencyCode)}
-                    </td>
-                  </tr>
-                )}
-                {showDiscount && (
-                  <tr>
-                    <td className="border-b border-slate-200 px-3 py-2 text-slate-500">
-                      Subtotal
-                    </td>
-                    <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold">
-                      {invoiceMoney(
-                        (invoice.subtotalAmount ?? invoice.amount) -
-                          (invoice.discountAmount ?? 0),
-                        currencyCode,
-                      )}
+                      {invoiceMoney(discountAmount, currencyCode)}
                     </td>
                   </tr>
                 )}
