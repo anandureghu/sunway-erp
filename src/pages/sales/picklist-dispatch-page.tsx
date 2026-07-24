@@ -26,7 +26,6 @@ import {
   listSalesOrders,
   listShipmentsAsDispatches,
   markPicklistPicked,
-  markShipmentDelivered,
   markShipmentFailedDelivery,
   markShipmentInTransit,
   markShipmentOutForDelivery,
@@ -254,9 +253,9 @@ export default function PicklistDispatchPage() {
           await markShipmentOutForDelivery(id);
           await loadData();
         },
-        async (id) => {
-          await markShipmentDelivered(id);
-          await loadData();
+        (id) => {
+          // Delivery requires customer signature (POD); collect it on tracking.
+          navigate(`/inventory/sales/tracking?dispatchId=${id}`);
         },
         async (id) => {
           await markShipmentFailedDelivery(

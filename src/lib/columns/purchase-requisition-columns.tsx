@@ -145,8 +145,8 @@ export function createPurchaseRequisitionColumns(
       header: "Actions",
       cell: ({ row }) => {
         const req = row.original;
-        const canEdit = req.status === "draft";
-        const canSubmit = req.status === "draft";
+        const canEdit = req.status === "quotation";
+        const canSubmit = req.status === "quotation";
         const canApprove = req.status === "submitted";
         const canReview = req.status === "submitted";
         const canRevise = req.status === "rejected";
