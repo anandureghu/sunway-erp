@@ -99,6 +99,7 @@ import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalsForm from "@/modules/hr/appraisal/AppraisalsForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 import FinanceReportsPage from "./pages/finance/finance-reports-page";
+import FinanceDashboardPage from "./pages/finance/finance-dashboard";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import AdminSystemLogsPage from "./pages/admin/system-logs-page";
 import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
@@ -155,6 +156,7 @@ export default function App() {
 
           {/* Finance */}
           <Route path="finance">
+            <Route path="dashboard" element={<FinanceDashboardPage />} />
             <Route path="payroll" element={<Payroll />} />
             <Route path="settings" element={<FinanceSettingsPage />} />
             <Route path="receivable" element={<AccountsReceivablePage />} />

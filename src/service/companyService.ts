@@ -14,6 +14,7 @@ import {
   Wallet,
   Landmark,
   PieChart,
+  LayoutDashboard,
   UserRound,
   BriefcaseBusiness,
   CalendarDays,
@@ -345,6 +346,19 @@ export const getSidebarItems = async (
     ...(company.financeEnabled
       ? (() => {
           const financeItems = [
+            // Finance Manager Dashboard → any finance view permission
+            ...(canView(permissions, "FINANCE_REPORTS") ||
+            canView(permissions, "FINANCE_INVOICE") ||
+            canView(permissions, "FINANCE_PAYMENT") ||
+            canView(permissions, "FINANCE_LEDGER")
+              ? [
+                  {
+                    title: "Dashboard",
+                    url: "/finance/dashboard",
+                    icon: LayoutDashboard,
+                  },
+                ]
+              : []),
             // Accounts Receivable — customer invoices → FINANCE_INVOICE
             ...(canView(permissions, "FINANCE_INVOICE")
               ? [
