@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { leaveService } from "@/service/leaveService";
 import {
   Calendar,
@@ -220,7 +220,6 @@ export default function LeavesHistory() {
   const [reportedDate, setReportedDate] = useState("");
   const [returnSubmitting, setReturnSubmitting] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Open the return-confirmation modal for an approved leave.
   const openReturn = (row: Row) => {
@@ -253,11 +252,11 @@ export default function LeavesHistory() {
     setRefreshKey((k) => k + 1);
   };
 
-  // Edit a pending leave: jump to the leave form (the index tab) in edit mode,
-  // pre-filled with this row's values (handed over via router state).
+  // Edit a pending leave in the request view, pre-filled via router state.
   const openEdit = (row: Row) => {
-    const formPath = location.pathname.replace(/\/history$/, "");
-    navigate(`${formPath}?edit=1&leaveId=${row.id}`, { state: { leave: row } });
+    navigate(`../request?edit=1&leaveId=${row.id}`, {
+      state: { leave: row },
+    });
   };
 
   // Fetch leave balance per type via the preview endpoint (today → today)
@@ -565,7 +564,7 @@ export default function LeavesHistory() {
                       </span>
                       <span className="text-xs">
                         {!search &&
-                          'Apply a leave in the "Employee Leaves" tab to see it here.'}
+                          'Use "Request Leave" to apply for leave and see it here.'}
                       </span>
                     </div>
                   </td>

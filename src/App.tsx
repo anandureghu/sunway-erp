@@ -99,6 +99,8 @@ import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalsForm from "@/modules/hr/appraisal/AppraisalsForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 import FinanceReportsPage from "./pages/finance/finance-reports-page";
+import FinanceDashboardPage from "./pages/finance/finance-dashboard";
+import InventoryDashboardPage from "./pages/inventory/inventory-dashboard";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import AdminSystemLogsPage from "./pages/admin/system-logs-page";
 import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
@@ -115,6 +117,7 @@ import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
 import HRSettingsPage from "./pages/hr/settings-page";
 import HRReportsPage from "./pages/hr/hr-reports-page";
+import HrDashboardPage from "./pages/hr/hr-dashboard";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
 import { useEffect } from "react";
 import { setGlobalSettingsView } from "@/store/uiSlice";
@@ -155,6 +158,7 @@ export default function App() {
 
           {/* Finance */}
           <Route path="finance">
+            <Route path="dashboard" element={<FinanceDashboardPage />} />
             <Route path="payroll" element={<Payroll />} />
             <Route path="settings" element={<FinanceSettingsPage />} />
             <Route path="receivable" element={<AccountsReceivablePage />} />
@@ -213,6 +217,22 @@ export default function App() {
 
           {/* Inventory */}
           <Route path="inventory">
+            <Route
+              path="dashboard"
+              element={
+                <ModuleAccessGate
+                  modules={[
+                    InventoryModule.STOCK,
+                    InventoryModule.ITEM,
+                    InventoryModule.SALES,
+                    InventoryModule.PURCHASE,
+                  ]}
+                  title="Inventory dashboard access denied"
+                >
+                  <InventoryDashboardPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route
               path="settings"
               element={
@@ -513,7 +533,9 @@ export default function App() {
           {/* HR */}
           <Route path="hr">
             {/* default for /hr */}
-            <Route index element={<Navigate to="employees" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
+
+            <Route path="dashboard" element={<HrDashboardPage />} />
 
             {/* alias /hr/employee -> /hr/employees */}
             <Route
@@ -599,8 +621,9 @@ export default function App() {
 
               {/* Leaves */}
               <Route path="leaves" element={<LeavesShell />}>
-                <Route index element={<LeavesForm />} />
+                <Route index element={<Navigate to="history" replace />} />
                 <Route path="history" element={<LeavesHistory />} />
+                <Route path="request" element={<LeavesForm />} />
                 <Route path="timesheet" element={<TimesheetTab />} />
               </Route>
 

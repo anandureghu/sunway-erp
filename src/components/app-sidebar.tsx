@@ -43,6 +43,7 @@ import {
   getVisibleEmployeeSubModules,
 } from "@/service/companyService";
 import { toggleGlobalSettingsView } from "@/store/uiSlice";
+import { SidebarNavHoverLink } from "@/components/sidebar-nav-hover-link";
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
@@ -316,27 +317,12 @@ export function AppSidebar() {
           {!settingsView && (
             <SidebarMenu className="mb-2">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild className="h-auto p-0">
-                  <Link
-                    to="/"
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                      path === "/"
-                        ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-lg",
-                        path === "/" ? "bg-white/20" : "bg-slate-200",
-                      )}
-                    >
-                      <Home className="h-3.5 w-3.5" />
-                    </span>
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
+                <SidebarNavHoverLink
+                  title="Home"
+                  url="/"
+                  icon={Home}
+                  active={path === "/"}
+                />
               </SidebarMenuItem>
             </SidebarMenu>
           )}
@@ -399,35 +385,12 @@ export function AppSidebar() {
                                   </span>
                                 </div>
                               ) : (
-                                <SidebarMenuButton
-                                  asChild
-                                  className="h-auto min-w-0 p-0"
-                                >
-                                  <Link
-                                    to={item.url}
-                                    title={item.title}
-                                    className={cn(
-                                      "flex min-w-0 w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                                      active
-                                        ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
-                                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                                    )}
-                                  >
-                                    <span
-                                      className={cn(
-                                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
-                                        active
-                                          ? "bg-white/20"
-                                          : "bg-slate-200 group-hover:bg-slate-300",
-                                      )}
-                                    >
-                                      <item.icon className="h-3.5 w-3.5" />
-                                    </span>
-                                    <span className="min-w-0 flex-1 break-words leading-snug">
-                                      {item.title}
-                                    </span>
-                                  </Link>
-                                </SidebarMenuButton>
+                                <SidebarNavHoverLink
+                                  title={item.title}
+                                  url={item.url}
+                                  icon={item.icon}
+                                  active={active}
+                                />
                               )}
 
                               {/* ── Employee submodules ─────────────────── */}
@@ -583,35 +546,12 @@ export function AppSidebar() {
                               className="mx-0 translate-x-0 border-none px-0"
                             >
                               <SidebarMenuItem>
-                                <SidebarMenuButton
-                                  asChild
-                                  className="h-auto min-w-0 p-0"
-                                >
-                                  <Link
-                                    to={item.url}
-                                    title={item.title}
-                                    className={cn(
-                                      "flex min-w-0 w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                                      active
-                                        ? "bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white shadow-md shadow-violet-500/25"
-                                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                                    )}
-                                  >
-                                    <span
-                                      className={cn(
-                                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors",
-                                        active
-                                          ? "bg-white/20"
-                                          : "bg-slate-200 group-hover:bg-slate-300",
-                                      )}
-                                    >
-                                      <item.icon className="h-3.5 w-3.5" />
-                                    </span>
-                                    <span className="min-w-0 flex-1 break-words leading-snug">
-                                      {item.title}
-                                    </span>
-                                  </Link>
-                                </SidebarMenuButton>
+                                <SidebarNavHoverLink
+                                  title={item.title}
+                                  url={item.url}
+                                  icon={item.icon}
+                                  active={active}
+                                />
                               </SidebarMenuItem>
                             </SidebarMenuSub>
                           );

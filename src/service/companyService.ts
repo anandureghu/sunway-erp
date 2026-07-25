@@ -14,6 +14,7 @@ import {
   Wallet,
   Landmark,
   PieChart,
+  LayoutDashboard,
   UserRound,
   BriefcaseBusiness,
   CalendarDays,
@@ -225,6 +226,19 @@ export const getSidebarItems = async (
             image: "/assets/images/hr.svg",
             url: "/hr/dashboard",
             items: [
+              // HR Dashboard — any core HR view permission
+              ...(canView(permissions, "EMPLOYEE_PROFILE") ||
+              canView(permissions, "HR_REPORTS") ||
+              canView(permissions, "LEAVES") ||
+              canView(permissions, "PAYROLL")
+                ? [
+                    {
+                      title: "Dashboard",
+                      url: "/hr/dashboard",
+                      icon: LayoutDashboard,
+                    },
+                  ]
+                : []),
               // Employee Overview — gated by EMPLOYEE_PROFILE
               ...(canView(permissions, "EMPLOYEE_PROFILE")
                 ? [
@@ -282,6 +296,18 @@ export const getSidebarItems = async (
     ...(company.inventoryEnabled
       ? (() => {
           const inventoryItems = [
+            ...(canView(permissions, "INVENTORY_STOCK") ||
+            canView(permissions, "INVENTORY_ITEM") ||
+            canView(permissions, "INVENTORY_SALES") ||
+            canView(permissions, "INVENTORY_PURCHASE")
+              ? [
+                  {
+                    title: "Dashboard",
+                    url: "/inventory/dashboard",
+                    icon: LayoutDashboard,
+                  },
+                ]
+              : []),
             ...(canView(permissions, "INVENTORY_STOCK") ||
             canView(permissions, "INVENTORY_ITEM")
               ? [
@@ -345,6 +371,19 @@ export const getSidebarItems = async (
     ...(company.financeEnabled
       ? (() => {
           const financeItems = [
+            // Finance Manager Dashboard → any finance view permission
+            ...(canView(permissions, "FINANCE_REPORTS") ||
+            canView(permissions, "FINANCE_INVOICE") ||
+            canView(permissions, "FINANCE_PAYMENT") ||
+            canView(permissions, "FINANCE_LEDGER")
+              ? [
+                  {
+                    title: "Dashboard",
+                    url: "/finance/dashboard",
+                    icon: LayoutDashboard,
+                  },
+                ]
+              : []),
             // Accounts Receivable — customer invoices → FINANCE_INVOICE
             ...(canView(permissions, "FINANCE_INVOICE")
               ? [
