@@ -25,6 +25,7 @@ import {
   getPurchaseRequisition,
   assignPurchaseOrderSupplier,
   confirmPurchaseOrder,
+  approvePurchaseOrder,
   cancelPurchaseOrder,
   getGoodsReceiptsByPurchaseOrder,
   getPurchaseOrderPostingPreview,
@@ -33,12 +34,15 @@ import {
   PurchaseOrderPostingDialog,
   type PostingDialogAction,
 } from "./components/purchase-order-posting-dialog";
-import type { PurchaseOrderPostingPreview } from "@/types/purchase";
+import type {
+  GoodsReceipt,
+  PurchaseOrder,
+  PurchaseOrderPostingPreview,
+} from "@/types/purchase";
 import SelectVendor from "@/components/select-vendor";
 import { listVendors } from "@/service/vendorService";
 import { isVendorEligibleForPurchase } from "@/lib/vendor-api";
 import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
-import type { PurchaseOrder } from "@/types/purchase";
 import { toast } from "sonner";
 import type { RelatedGrRef } from "./components/related-purchase-documents";
 import { PageHeader } from "@/components/PageHeader";
@@ -47,6 +51,7 @@ import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
 import { cn } from "@/lib/utils";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { arePurchaseOrderGoodsFullyReceived } from "@/lib/goods-receipt-status";
 
 const BASE = "/inventory/purchase";
 
@@ -138,6 +143,9 @@ export default function PurchaseOrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [linkedReceipts, setLinkedReceipts] = useState<RelatedGrRef[]>([]);
+  const [linkedGoodsReceipts, setLinkedGoodsReceipts] = useState<
+    GoodsReceipt[]
+  >([]);
   const [linkedRequisitionNo, setLinkedRequisitionNo] = useState<string | null>(
     null,
   );
@@ -183,6 +191,7 @@ export default function PurchaseOrderDetailPage() {
   useEffect(() => {
     if (!order?.id) {
       setLinkedReceipts([]);
+      setLinkedGoodsReceipts([]);
       setLinkedRequisitionNo(null);
       return;
     }
@@ -201,6 +210,7 @@ export default function PurchaseOrderDetailPage() {
     Promise.all([receiptsPromise, requisitionPromise])
       .then(([list, requisition]) => {
         if (cancelled) return;
+        setLinkedGoodsReceipts(list);
         setLinkedReceipts(
           list.map((r) => ({ id: r.id, receiptNo: r.receiptNo })),
         );
@@ -209,7 +219,10 @@ export default function PurchaseOrderDetailPage() {
         }
       })
       .catch(() => {
-        if (!cancelled) setLinkedReceipts([]);
+        if (!cancelled) {
+          setLinkedReceipts([]);
+          setLinkedGoodsReceipts([]);
+        }
       });
 
     return () => {
@@ -232,7 +245,7 @@ export default function PurchaseOrderDetailPage() {
       return;
     }
     const st = (order.status || "").toLowerCase();
-    if (st === "draft" && order.supplierId) {
+    if (st === "approved" && order.supplierId) {
       void loadReleasePreview(order.id);
     } else {
       setReleasePreview(null);
@@ -418,15 +431,18 @@ export default function PurchaseOrderDetailPage() {
   const vendorPaymentConfirmed = order.vendorPaymentSettled === true;
   const canAssignSupplier =
     st === "draft" && (!hasSupplier || !supplierEligible);
-  const canRelease = st === "draft" && supplierEligible;
-  const canCancel = st === "draft" && !vendorPaymentConfirmed;
+  const canApprove = st === "draft" && supplierEligible;
+  const canRelease = st === "approved" && supplierEligible;
+  const canCancel =
+    (st === "draft" || st === "approved") && !vendorPaymentConfirmed;
   const canReceive =
     st === "confirmed" ||
     st === "ordered" ||
-    st === "partially_received" ||
-    st === "approved";
+    st === "partially_received";
   const isReleased =
     st === "confirmed" || st === "partially_received" || st === "received";
+  const goodsFullyReceived =
+    arePurchaseOrderGoodsFullyReceived(linkedGoodsReceipts);
   const hasPurchaseInvoice = order.purchaseInvoiceId != null;
   const reqId = order.requisitionId;
   const linkedRequisitionLabel =
@@ -438,6 +454,7 @@ export default function PurchaseOrderDetailPage() {
   const hasRelated = Boolean(reqId) || linkedReceipts.length > 0;
   const hasWorkflowActions =
     canAssignSupplier ||
+    canApprove ||
     canRelease ||
     canReceive ||
     canCancel ||
@@ -464,7 +481,7 @@ export default function PurchaseOrderDetailPage() {
       <PageHeader
         variant="darkGreen"
         title={order.orderNo}
-        description="Release when ready, then record receipts against this Purchase Order."
+        description="Approve, then release to the supplier, then record goods receipts."
         backHref="/inventory/purchase/orders"
         actions={
           <>
@@ -561,10 +578,19 @@ export default function PurchaseOrderDetailPage() {
               </div>
             )}
 
-            {isReleased && !vendorPaymentConfirmed && (
+            {isReleased && !vendorPaymentConfirmed && !goodsFullyReceived && (
+              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                Complete <strong>Inspect</strong> on the goods receipt, then{" "}
+                <strong>Receive</strong> accepted quantity into stock
+                (Inventory → Manage Stocks → Receive) before matching the
+                supplier invoice and confirming payment.
+              </p>
+            )}
+
+            {isReleased && !vendorPaymentConfirmed && goodsFullyReceived && (
               <div className="mb-4 space-y-2">
                 <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950">
-                  This order is released to the supplier. Process payment in{" "}
+                  Goods are received into stock. Process payment in{" "}
                   <strong>Finance → Accounts payable → Vendor payments</strong>.
                   Match the supplier invoice to the system-generated purchase
                   invoice under Purchase invoices before confirming payment.
@@ -641,12 +667,48 @@ export default function PurchaseOrderDetailPage() {
 
             {st === "draft" && !hasSupplier && (
               <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-                Assign a supplier above before you can release this purchase
+                Assign a supplier above before you can approve this purchase
                 order.
+              </p>
+            )}
+            {st === "draft" && hasSupplier && supplierEligible && (
+              <p className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950">
+                Approve this order first. Release to the supplier is available
+                after approval.
+              </p>
+            )}
+            {st === "approved" && (
+              <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
+                This order is approved. Release it to the supplier when ready.
               </p>
             )}
 
             <div className="flex flex-wrap gap-2">
+              {canApprove && (
+                <Button
+                  onClick={async () => {
+                    if (!order) return;
+                    setActionLoading(true);
+                    try {
+                      await approvePurchaseOrder(order.id);
+                      toast.success("Purchase order approved.");
+                      await load();
+                    } catch (e: any) {
+                      toast.error(
+                        e?.response?.data?.message ||
+                          e?.message ||
+                          "Failed to approve Purchase Order",
+                      );
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="rounded-lg"
+                >
+                  Approve
+                </Button>
+              )}
               {canRelease && (
                 <Button
                   onClick={() => void openPostingDialog("release")}
@@ -683,7 +745,7 @@ export default function PurchaseOrderDetailPage() {
           </div>
         )}
 
-        {releasePreview && st === "draft" && supplierEligible && (
+        {releasePreview && st === "approved" && supplierEligible && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-slate-900">
               Release preview

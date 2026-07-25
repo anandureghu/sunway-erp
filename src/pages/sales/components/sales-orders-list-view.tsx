@@ -146,7 +146,7 @@ export function SalesOrdersListView({
                       <SelectItem value="all">All order status</SelectItem>
                       {listTab === "active" ? (
                         <>
-                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="quotation">Quotation</SelectItem>
                           <SelectItem value="confirmed">Confirmed</SelectItem>
                           <SelectItem value="picked">Picked</SelectItem>
                           <SelectItem value="dispatched">Dispatched</SelectItem>

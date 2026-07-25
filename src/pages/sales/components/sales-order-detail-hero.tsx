@@ -37,12 +37,12 @@ export function SalesOrderDetailHero({
 }: Props) {
   const status = orderStatusKey(so);
   const payment = paymentStatusKey(so);
-  const isDraft = status === "DRAFT";
-  const canConfirm = isDraft && so.sufficientDebitBalance !== false;
-  const insufficientBalance = isDraft && so.sufficientDebitBalance === false;
+  const isQuotation = status === "QUOTATION";
+  const canConfirm = isQuotation && so.sufficientDebitBalance !== false;
+  const insufficientBalance = isQuotation && so.sufficientDebitBalance === false;
   const hasSalesInvoice = so.salesInvoiceId != null;
   const showDocumentActions =
-    hasSalesInvoice && status !== "DRAFT" && status !== "CANCELLED";
+    hasSalesInvoice && !isQuotation && status !== "CANCELLED";
   const showReceiptActions = isInvoiceReceiptView(so.paymentStatus);
   const lineCount = (so.items || []).length;
   const qty = totalLineQty(so);
@@ -107,7 +107,7 @@ export function SalesOrderDetailHero({
           {insufficientBalance ? <SalesOrderBalanceWarning so={so} /> : null}
 
           <div className="mt-6 flex flex-wrap gap-2.5">
-            {isDraft ? (
+            {isQuotation ? (
               <>
                 <Button
                   type="button"

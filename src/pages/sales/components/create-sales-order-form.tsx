@@ -518,8 +518,8 @@ export function CreateSalesOrderForm({
         title={isEditMode ? "Edit Sales Order" : "Create Sales Order"}
         description={
           isEditMode
-            ? "Update draft lines, pricing, and delivery details before confirming."
-            : "Add customer, lines, warehouses, and accounting defaults for a new draft order."
+            ? "Update quotation lines, pricing, and delivery details before confirming."
+            : "Add customer, lines, warehouses, and accounting defaults for a new quotation."
         }
         backHref={
           isEditMode && initialOrder?.id

@@ -1,6 +1,6 @@
 import type { ItemResponseDTO, InventoryReportTotalsDTO } from "@/service/erpApiTypes";
 import {
-  listItems,
+  listStockCatalog,
   listWarehouses,
   getInventoryReportSummary,
 } from "@/service/inventoryService";
@@ -30,7 +30,7 @@ export function useManageStocks() {
       }
       setLoadError(null);
       const [itemsList, warehousesList, reportSummary] = await Promise.all([
-        listItems(),
+        listStockCatalog(),
         listWarehouses(),
         getInventoryReportSummary(),
       ]);

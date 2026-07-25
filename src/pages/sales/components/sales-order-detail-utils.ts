@@ -1,7 +1,7 @@
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 
 export function orderStatusKey(so: SalesOrderResponseDTO): string {
-  return (so.status || "draft").toUpperCase();
+  return (so.status || "quotation").toUpperCase();
 }
 
 export function paymentStatusKey(so: SalesOrderResponseDTO): string {
@@ -30,8 +30,12 @@ export function nextStepMessage(so: SalesOrderResponseDTO): string {
 }
 
 export const ORDER_STATUS_STYLES: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-700",
+  QUOTATION: "bg-slate-100 text-slate-700",
   CONFIRMED: "bg-indigo-50 text-indigo-700",
+  PICKED: "bg-sky-50 text-sky-700",
+  DISPATCHED: "bg-blue-50 text-blue-700",
+  DELIVERED: "bg-emerald-50 text-emerald-700",
+  COMPLETED: "bg-emerald-50 text-emerald-700",
   CANCELLED: "bg-rose-50 text-rose-700",
   ARCHIVED: "bg-slate-100 text-slate-500",
 };

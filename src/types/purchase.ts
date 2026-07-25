@@ -55,7 +55,7 @@ export type Supplier = {
 
 // Purchase Requisition Types
 export type PurchaseRequisitionStatus =
-  | "draft"
+  | "quotation"
   | "submitted"
   | "rejected"
   | "converted";
@@ -146,8 +146,9 @@ export type PurchaseRequisition = {
 // Purchase Order Types
 export type PurchaseOrderStatus =
   | "draft"
-  | "pending"
   | "approved"
+  | "confirmed"
+  | "pending"
   | "ordered"
   | "partially_received"
   | "received"
@@ -308,7 +309,7 @@ export type GoodsReceipt = {
 
 // Purchase Invoice Types
 export type PurchaseInvoiceStatus =
-  | "draft"
+  | "quotation"
   | "pending"
   | "paid"
   | "partially_paid"

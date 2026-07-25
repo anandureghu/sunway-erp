@@ -290,6 +290,14 @@ export async function listItems(): Promise<ItemResponseDTO[]> {
   return res.data || [];
 }
 
+/** One row per item×warehouse — quantities match sales availability checks. */
+export async function listStockCatalog(): Promise<ItemResponseDTO[]> {
+  const res = await apiClient.get<ItemResponseDTO[]>(
+    "/inventory/items/stock-catalog",
+  );
+  return res.data || [];
+}
+
 export const getItemById = async (id: string) => {
   const res = await apiClient.get<ItemResponseDTO>(`/inventory/items/${id}`);
   return res.data;

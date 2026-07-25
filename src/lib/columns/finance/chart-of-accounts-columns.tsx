@@ -26,8 +26,6 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
   onDelete: (account: ChartOfAccounts) => void;
   company: Company;
 }): ColumnDef<ChartOfAccounts>[] => [
-  { accessorKey: "id", header: "ID" },
-
   { accessorKey: "accountNo", header: "Account No" },
   {
     accessorKey: "accountCode",
@@ -69,7 +67,7 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
 
   {
     accessorKey: "balance",
-    header: "Balance",
+    header: "Trail Balance",
     cell: ({ row }) => {
       const balance = row.getValue<string | number>("balance") ?? "0";
       const numeric =
@@ -86,7 +84,7 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
   },
   {
     accessorKey: "createdAt",
-    header: "Created At",
+    header: "Date Created",
     cell: ({ row }) => {
       return new Date(row?.original?.createdAt).toDateString();
     },

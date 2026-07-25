@@ -35,10 +35,12 @@ import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { TotalAmount, PaidAmount, RemainingAmount, CreditNoteAppliedAmount } from "@/components/accounting-amount";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import { StatusBadge } from "@/lib/status-badge";
+import { goodsReceiptDisplayLabel } from "@/lib/goods-receipt-status";
 
 export type PurchaseOrderColumnActions = {
   /** Navigate to full PO detail */
   onOpenOrder?: (id: string) => void;
+  onApprove?: (id: string) => void;
   onConfirm?: (id: string) => void;
   onCancel?: (id: string) => void;
   onEdit?: (id: string) => void;
@@ -57,6 +59,7 @@ export function createPurchaseOrderColumns(
 ): ColumnDef<PurchaseOrder>[] {
   const {
     onOpenOrder,
+    onApprove,
     onConfirm,
     onCancel,
     onEdit,
@@ -196,13 +199,13 @@ export function createPurchaseOrderColumns(
             rejected: order.supplier?.rejected === true,
             active: order.supplier?.status === "active",
           });
-        const canRelease = st === "draft" && supplierEligible;
-        const canCancel = st === "draft";
+        const canApprove = st === "draft" && supplierEligible;
+        const canRelease = st === "approved" && supplierEligible;
+        const canCancel = st === "draft" || st === "approved";
         const canReceive =
           st === "confirmed" ||
           st === "ordered" ||
-          st === "partially_received" ||
-          st === "approved";
+          st === "partially_received";
         const canArchive =
           !order.archived && (st === "received" || st === "cancelled");
         const reqId = order.requisitionId;
@@ -236,9 +239,17 @@ export function createPurchaseOrderColumns(
                   </>
                 )}
 
-                {(canRelease || canReceive) && <DropdownMenuSeparator />}
-                {(canRelease || canReceive) && (
+                {(canApprove || canRelease || canReceive) && (
+                  <DropdownMenuSeparator />
+                )}
+                {(canApprove || canRelease || canReceive) && (
                   <DropdownMenuLabel>Procurement</DropdownMenuLabel>
+                )}
+                {canApprove && onApprove && (
+                  <DropdownMenuItem onClick={() => onApprove(order.id)}>
+                    <CheckSquare className="mr-2 h-4 w-4" />
+                    Approve
+                  </DropdownMenuItem>
                 )}
                 {canRelease && onConfirm && (
                   <DropdownMenuItem onClick={() => onConfirm(order.id)}>
@@ -670,16 +681,9 @@ export type GoodsReceiptColumnActions = {
 
 const GOODS_RECEIPT_STATUS_COLORS: Record<string, string> = {
   pending_inspection: "bg-yellow-100 text-yellow-800",
-  inspected: "bg-green-100 text-green-800",
+  inspected: "bg-blue-100 text-blue-800",
+  received: "bg-green-100 text-green-800",
 };
-
-function goodsReceiptStatusLabel(status: string): string {
-  return status
-    .replace(/_/g, " ")
-    .split(" ")
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" ");
-}
 
 export function createGoodsReceiptColumns(
   actions: GoodsReceiptColumnActions = {},
@@ -713,14 +717,21 @@ export function createGoodsReceiptColumns(
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const status = row.getValue("status") as string;
+        const receipt = row.original;
+        const label = goodsReceiptDisplayLabel(receipt);
+        const colorKey =
+          label === "Received"
+            ? "received"
+            : label === "Awaiting inspection"
+              ? "pending_inspection"
+              : "inspected";
         return (
           <Badge
             className={
-              GOODS_RECEIPT_STATUS_COLORS[status] || "bg-gray-100 text-gray-800"
+              GOODS_RECEIPT_STATUS_COLORS[colorKey] || "bg-gray-100 text-gray-800"
             }
           >
-            {goodsReceiptStatusLabel(status)}
+            {label}
           </Badge>
         );
       },

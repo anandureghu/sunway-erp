@@ -44,7 +44,7 @@ export function SalesOrderDetailsDialog({ open, order, onOpenChange }: Props) {
                       className={
                         order.status === "confirmed"
                           ? "bg-blue-100 text-blue-800"
-                          : order.status === "draft"
+                          : order.status === "quotation"
                             ? "bg-gray-100 text-gray-800"
                             : order.status === "cancelled"
                               ? "bg-red-100 text-red-800"

@@ -25,7 +25,7 @@ export type Customer = {
 
 // Sales Order Types
 export type SalesOrderStatus =
-  | "draft"
+  | "quotation"
   | "confirmed"
   | "picked"
   | "dispatched"
@@ -173,6 +173,8 @@ export type Dispatch = {
   carrierName?: string;
   trackingNumber?: string;
   notes?: string;
+  customerSignature?: string;
+  deliveryRemarks?: string;
   createdBy?: string;
   createdAt: string;
   updatedAt?: string;

@@ -247,7 +247,7 @@ function toPurchaseRequisition(
     rejectedById:
       dto.rejectedById != null ? String(dto.rejectedById) : undefined,
     rejectedByName: dto.rejectedByName ?? undefined,
-    status: st || "draft",
+    status: st || "quotation",
     items,
     approvedDate: dto.approvedAt || undefined,
     convertedAt: dto.convertedAt || undefined,
@@ -314,7 +314,7 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     orderDate: dto.orderDate || "",
     requiredDeliveryDate: dto.requiredDeliveryDate || undefined,
     expectedDate: dto.requiredDeliveryDate || undefined,
-    status: (normalizeStatus(dto.status) as any) || "draft",
+    status: (normalizeStatus(dto.status) as any) || "quotation",
     archived: Boolean(dto.archived),
     vendorPaymentSettled: Boolean(dto.vendorPaymentSettled),
     paymentStatus: (() => {
@@ -679,6 +679,13 @@ export async function getPurchaseOrderPostingPreview(
     { params: { action } },
   );
   return toPostingPreview(res.data);
+}
+
+export async function approvePurchaseOrder(id: string | number) {
+  const res = await apiClient.post<PurchaseOrderResponseDTO>(
+    `/purchase/orders/${id}/approve`,
+  );
+  return toPurchaseOrder(res.data);
 }
 
 export async function confirmPurchaseOrder(id: string | number) {

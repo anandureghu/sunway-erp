@@ -27,12 +27,14 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { cn } from "@/lib/utils";
+import { goodsReceiptDisplayLabel } from "@/lib/goods-receipt-status";
 
 const BASE = "/inventory/purchase";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_inspection: "bg-yellow-100 text-yellow-800",
-  inspected: "bg-green-100 text-green-800",
+  inspected: "bg-blue-100 text-blue-800",
+  received: "bg-green-100 text-green-800",
 };
 
 const QUALITY_COLORS: Record<string, string> = {
@@ -44,10 +46,16 @@ const QUALITY_COLORS: Record<string, string> = {
 
 function formatLabel(value: string) {
   return value
-    .replace("_", " ")
+    .replace(/_/g, " ")
     .split(" ")
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join(" ");
+}
+
+function receiptStatusColor(label: string) {
+  if (label === "Received") return STATUS_COLORS.received;
+  if (label === "Awaiting inspection") return STATUS_COLORS.pending_inspection;
+  return STATUS_COLORS.inspected;
 }
 
 function DetailField({
@@ -333,10 +341,11 @@ export default function GoodsReceiptDetailPage() {
                 </Button>
                 <Badge
                   className={
-                    STATUS_COLORS[receipt.status] || "bg-gray-100 text-gray-800"
+                    receiptStatusColor(goodsReceiptDisplayLabel(receipt)) ||
+                    "bg-gray-100 text-gray-800"
                   }
                 >
-                  {formatLabel(receipt.status)}
+                  {goodsReceiptDisplayLabel(receipt)}
                 </Badge>
                 {receipt.archived && (
                   <Badge className="bg-slate-200 text-slate-700">
@@ -421,11 +430,12 @@ export default function GoodsReceiptDetailPage() {
                     value={
                       <Badge
                         className={
-                          STATUS_COLORS[receipt.status] ||
-                          "bg-gray-100 text-gray-800"
+                          receiptStatusColor(
+                            goodsReceiptDisplayLabel(receipt),
+                          ) || "bg-gray-100 text-gray-800"
                         }
                       >
-                        {formatLabel(receipt.status)}
+                        {goodsReceiptDisplayLabel(receipt)}
                       </Badge>
                     }
                   />

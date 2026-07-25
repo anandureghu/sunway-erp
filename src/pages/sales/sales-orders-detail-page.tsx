@@ -24,7 +24,7 @@ function dtoToSalesOrder(so: SalesOrderResponseDTO): SalesOrder {
     orderDate: so.orderDate ?? "",
     invoiceDueDate: so.invoiceDueDate,
     requiredDate: undefined,
-    status: (so.status ?? "draft") as SalesOrder["status"],
+    status: (so.status ?? "quotation") as SalesOrder["status"],
     archived: so.archived,
     paymentStatus: so.paymentStatus,
     outstandingAmount: so.outstandingAmount,

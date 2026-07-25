@@ -115,7 +115,7 @@ export default function ManageStocks() {
                       className="gap-2 py-3 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
                     >
                       <PackagePlus className="h-4 w-4 shrink-0" />
-                      <span className="truncate">Receive goods</span>
+                      <span className="truncate">Receive</span>
                     </TabsTrigger>
                   )}
                   {canManageVariances && (

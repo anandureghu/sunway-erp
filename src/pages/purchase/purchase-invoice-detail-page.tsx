@@ -24,6 +24,8 @@ import {
   formatInvoiceDate,
   safeInvoiceValue,
 } from "@/lib/invoice-document-utils";
+import { getGoodsReceiptsByPurchaseOrder } from "@/service/purchaseFlowService";
+import { arePurchaseOrderGoodsFullyReceived } from "@/lib/goods-receipt-status";
 
 export default function PurchaseInvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +36,7 @@ export default function PurchaseInvoiceDetailPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [matchDialogOpen, setMatchDialogOpen] = useState(false);
+  const [goodsFullyReceived, setGoodsFullyReceived] = useState(false);
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -99,6 +102,27 @@ export default function PurchaseInvoiceDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    const orderId = invoice?.orderId;
+    if (!orderId) {
+      setGoodsFullyReceived(false);
+      return;
+    }
+    let cancelled = false;
+    getGoodsReceiptsByPurchaseOrder(orderId)
+      .then((list) => {
+        if (!cancelled) {
+          setGoodsFullyReceived(arePurchaseOrderGoodsFullyReceived(list));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setGoodsFullyReceived(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [invoice?.orderId]);
 
   if (loading) {
     return (
@@ -462,6 +486,12 @@ export default function PurchaseInvoiceDetailPage() {
               <CardTitle className="text-lg">Vendor invoice matching</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {!goodsFullyReceived && (
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                  Complete goods receipt inspection and receive accepted
+                  quantity into stock before matching the vendor invoice.
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <CheckSquare
                   className={`h-4 w-4 ${
@@ -498,6 +528,7 @@ export default function PurchaseInvoiceDetailPage() {
                 type="button"
                 variant="outline"
                 size="sm"
+                disabled={!goodsFullyReceived}
                 onClick={() => setMatchDialogOpen(true)}
               >
                 <CheckSquare className="mr-2 h-4 w-4" />
