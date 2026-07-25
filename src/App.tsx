@@ -621,8 +621,9 @@ export default function App() {
 
               {/* Leaves */}
               <Route path="leaves" element={<LeavesShell />}>
-                <Route index element={<LeavesForm />} />
+                <Route index element={<Navigate to="history" replace />} />
                 <Route path="history" element={<LeavesHistory />} />
+                <Route path="request" element={<LeavesForm />} />
                 <Route path="timesheet" element={<TimesheetTab />} />
               </Route>
 

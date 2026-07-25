@@ -5,7 +5,6 @@ import {
   useParams,
   useSearchParams,
   useLocation,
-  useNavigate,
 } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,7 +165,6 @@ export default function LeavesForm(): ReactElement {
   // editing an existing pending leave (the row data is passed via router state).
   const [sp] = useSearchParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const editingLeaveId = sp.get("leaveId") ? Number(sp.get("leaveId")) : null;
 
   const [draft, setDraft] = useState<LeaveRecord>({ ...SEED });
@@ -423,12 +421,6 @@ export default function LeavesForm(): ReactElement {
       setDocFile(null);
       setDocError(null);
 
-      if (editingLeaveId) {
-        const base = location.pathname.replace(/\/+$/, "");
-        navigate(`${base}/history`);
-        return true;
-      }
-
       leaveService
         .previewLeave(
           employeeId,
@@ -455,8 +447,6 @@ export default function LeavesForm(): ReactElement {
     needsDoc,
     docFile,
     editingLeaveId,
-    navigate,
-    location.pathname,
     validationError,
   ]);
 
