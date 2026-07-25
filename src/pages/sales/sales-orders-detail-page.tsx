@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
 import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
@@ -190,34 +191,21 @@ const SalesOrdersDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50/80">
-      <div className="w-full space-y-5 px-4 py-5 sm:px-6 lg:py-8">
-        <div className="mx-auto flex max-w-6xl items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 rounded-lg px-2 text-slate-600 hover:text-slate-900"
-            asChild
-          >
-            <Link to="/inventory/sales/orders">
-              <ArrowLeft className="h-4 w-4" />
-              Orders
-            </Link>
-          </Button>
-          <span className="text-slate-300">/</span>
-          <span className="truncate text-sm font-medium text-slate-700">
-            {so.orderNumber || `Order #${so.id}`}
-          </span>
-        </div>
+      <div className="w-full space-y-5 p-4 sm:p-6">
+        <PageHeader
+          variant="darkBlue"
+          title={`Order ${so.orderNumber || so.id}`}
+          description={`Order date: ${so.orderDate || "N/A"}`}
+          backHref="/inventory/sales/orders"
+        />
 
-        <div className="mx-auto max-w-6xl">
-          <SalesOrderDetailCards
-            so={so}
-            onEdit={() => setEditing(true)}
-            onConfirm={() => void updateStatus("confirm")}
-            onCancel={() => void updateStatus("cancel")}
-            onDownloadDocument={() => void handleDownloadDocumentPdf()}
-          />
-        </div>
+        <SalesOrderDetailCards
+          so={so}
+          onEdit={() => setEditing(true)}
+          onConfirm={() => void updateStatus("confirm")}
+          onCancel={() => void updateStatus("cancel")}
+          onDownloadDocument={() => void handleDownloadDocumentPdf()}
+        />
       </div>
     </div>
   );
