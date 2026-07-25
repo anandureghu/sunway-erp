@@ -1,28 +1,31 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
-import { getFinanceDashboard } from "@/service/financeDashboardService";
-import type { FinanceDashboard } from "@/types/financeDashboard";
 
-export function useFinanceDashboard() {
-  const [data, setData] = useState<FinanceDashboard | null>(null);
+export function useDashboardQuery<T>(
+  fetcher: () => Promise<T>,
+  errorFallback: string,
+) {
+  const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher;
 
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await getFinanceDashboard();
+      const res = await fetcherRef.current();
       setData(res);
     } catch (err) {
-      const msg = getApiErrorMessage(err, "Could not load finance dashboard");
+      const msg = getApiErrorMessage(err, errorFallback);
       setError(msg);
       toast.error(msg);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [errorFallback]);
 
   useEffect(() => {
     void refresh();

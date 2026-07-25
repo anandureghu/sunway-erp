@@ -1,5 +1,7 @@
+import {
+  DashboardKpiSkeleton,
+} from "@/components/dashboard";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/utils";
 import type { FinanceDashboardKpis } from "@/types/financeDashboard";
 import {
@@ -23,13 +25,7 @@ export function FinanceDashboardKpis({
   loading: boolean;
 }) {
   if (loading || !kpis) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-[104px] rounded-xl" />
-        ))}
-      </div>
-    );
+    return <DashboardKpiSkeleton count={8} />;
   }
 
   const fmt = (v: number) => formatMoney(v, currencyCode);

@@ -226,6 +226,19 @@ export const getSidebarItems = async (
             image: "/assets/images/hr.svg",
             url: "/hr/dashboard",
             items: [
+              // HR Dashboard — any core HR view permission
+              ...(canView(permissions, "EMPLOYEE_PROFILE") ||
+              canView(permissions, "HR_REPORTS") ||
+              canView(permissions, "LEAVES") ||
+              canView(permissions, "PAYROLL")
+                ? [
+                    {
+                      title: "Dashboard",
+                      url: "/hr/dashboard",
+                      icon: LayoutDashboard,
+                    },
+                  ]
+                : []),
               // Employee Overview — gated by EMPLOYEE_PROFILE
               ...(canView(permissions, "EMPLOYEE_PROFILE")
                 ? [
@@ -283,6 +296,18 @@ export const getSidebarItems = async (
     ...(company.inventoryEnabled
       ? (() => {
           const inventoryItems = [
+            ...(canView(permissions, "INVENTORY_STOCK") ||
+            canView(permissions, "INVENTORY_ITEM") ||
+            canView(permissions, "INVENTORY_SALES") ||
+            canView(permissions, "INVENTORY_PURCHASE")
+              ? [
+                  {
+                    title: "Dashboard",
+                    url: "/inventory/dashboard",
+                    icon: LayoutDashboard,
+                  },
+                ]
+              : []),
             ...(canView(permissions, "INVENTORY_STOCK") ||
             canView(permissions, "INVENTORY_ITEM")
               ? [

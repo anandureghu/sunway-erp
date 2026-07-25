@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardCardSkeletonGrid } from "@/components/dashboard";
 import type {
   FinanceDashboardAlert,
   FinanceDashboardPaymentStatus,
@@ -31,11 +31,10 @@ export function FinanceDashboardPanels({
 }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[280px] rounded-xl" />
-        ))}
-      </div>
+      <DashboardCardSkeletonGrid
+        count={4}
+        className="md:grid-cols-2 xl:grid-cols-4"
+      />
     );
   }
 
