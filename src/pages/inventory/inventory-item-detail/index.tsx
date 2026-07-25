@@ -1,15 +1,18 @@
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { getItemById } from "@/service/inventoryService";
 import { ArrowLeft, Loader2, Package } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import CreateItemForm from "../item-form";
 import { ChangeItemImageDialog } from "./change-item-image-dialog";
-import { InventoryPageHeader } from "@/components/inventory-page-header";
 import { ItemDetailTabs } from "./item-detail-tabs";
 
 function apiErrorMessage(e: unknown): string {
@@ -20,10 +23,10 @@ function apiErrorMessage(e: unknown): string {
 export default function InventoryItemDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [item, setItem]           = useState<ItemResponseDTO | null>(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
-  const [editOpen, setEditOpen]   = useState(false);
+  const [item, setItem] = useState<ItemResponseDTO | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [imageNonce, setImageNonce] = useState(0);
 
@@ -37,18 +40,23 @@ export default function InventoryItemDetail() {
         const data = await getItemById(id);
         if (!cancelled) setItem(data);
       } catch (e: unknown) {
-        if (!cancelled) { setError(apiErrorMessage(e)); setItem(null); }
+        if (!cancelled) {
+          setError(apiErrorMessage(e));
+          setItem(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
         <p className="text-sm text-muted-foreground">Loading product…</p>
       </div>
     );
@@ -67,18 +75,26 @@ export default function InventoryItemDetail() {
     );
   }
 
-
   return (
-    <div className="min-h-screen">
-      <div className="w-full px-4 py-6 sm:px-6 lg:py-10 space-y-6">
-        <InventoryPageHeader
-          title={item.name}
-          description={`${item.category ?? "Uncategorized"} · SKU ${item.sku ?? item.id}`}
-          variant="item"
-          backHref="/inventory/stocks"
-        >
-          <Package className="h-6 w-6 text-white" />
-        </InventoryPageHeader>
+    <div className="min-h-screen bg-slate-50/80">
+      <div className="w-full space-y-5 px-4 py-5 sm:px-6 lg:py-8">
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 rounded-lg px-2 text-slate-600 hover:text-slate-900"
+            asChild
+          >
+            <Link to="/inventory/stocks">
+              <ArrowLeft className="h-4 w-4" />
+              Stocks
+            </Link>
+          </Button>
+          <span className="text-slate-300">/</span>
+          <span className="truncate text-sm font-medium text-slate-700">
+            {item.name}
+          </span>
+        </div>
 
         <ItemDetailTabs
           item={item}
@@ -88,12 +104,14 @@ export default function InventoryItemDetail() {
         />
       </div>
 
-      {/* Dialogs */}
       <ChangeItemImageDialog
         open={imageDialogOpen}
         onOpenChange={setImageDialogOpen}
         itemId={String(item.id)}
-        onUpdated={(updated) => { setItem(updated); setImageNonce((n) => n + 1); }}
+        onUpdated={(updated) => {
+          setItem(updated);
+          setImageNonce((n) => n + 1);
+        }}
       />
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -101,14 +119,20 @@ export default function InventoryItemDetail() {
           <div className="shrink-0 border-b border-slate-100 px-6 py-4">
             <DialogHeader>
               <DialogTitle>Edit product</DialogTitle>
-              <DialogDescription>Update catalog details. SKU cannot be changed.</DialogDescription>
+              <DialogDescription>
+                Update catalog details. SKU cannot be changed.
+              </DialogDescription>
             </DialogHeader>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <CreateItemForm
               editMode
               initialData={item}
-              onSuccess={(newItem) => { setItem(newItem); setImageNonce((n) => n + 1); setEditOpen(false); }}
+              onSuccess={(newItem) => {
+                setItem(newItem);
+                setImageNonce((n) => n + 1);
+                setEditOpen(false);
+              }}
               onCancel={() => setEditOpen(false)}
             />
           </div>
