@@ -9,6 +9,7 @@ import { enrichPurchaseOrdersWithVendors } from "@/lib/enrich-purchase-orders";
 import { listVendors } from "@/service/vendorService";
 import {
   archivePurchaseOrder,
+  approvePurchaseOrder,
   listPurchaseOrders,
 } from "@/service/purchaseFlowService";
 import {
@@ -136,7 +137,7 @@ export default function PurchaseOrdersPage() {
         {
           label: "Draft Purchase Orders",
           value: draftCount,
-          hint: "Awaiting release to supplier",
+          hint: "Awaiting approval",
           accent: "amber",
           icon: ClipboardList,
         },
@@ -183,6 +184,54 @@ export default function PurchaseOrdersPage() {
     });
   }, [orders, searchQuery, statusFilter]);
 
+  const handleApproveOrder = useCallback(
+    async (id: string) => {
+      const order = orders.find((o) => o.id === id);
+      if (!order) {
+        toast.error("Order not found");
+        return;
+      }
+      if ((order.status || "").toLowerCase() !== "draft") {
+        toast.error("Only draft purchase orders can be approved.");
+        return;
+      }
+      if (!order.supplierId) {
+        toast.error(
+          "Assign a supplier on the purchase order before approving.",
+        );
+        navigate(`/inventory/purchase/orders/${id}`);
+        return;
+      }
+      const supplier = order.supplier;
+      if (
+        !supplier ||
+        !isVendorEligibleForPurchase({
+          approved: supplier.approved === true,
+          rejected: supplier.rejected === true,
+          active: supplier.status === "active",
+        })
+      ) {
+        toast.error(
+          "Only approved and active suppliers can be set on a purchase order.",
+        );
+        navigate(`/inventory/purchase/orders/${id}`);
+        return;
+      }
+      try {
+        await approvePurchaseOrder(id);
+        toast.success("Purchase order approved.");
+        await refreshOrders();
+      } catch (e: any) {
+        toast.error(
+          e?.response?.data?.message ||
+            e?.message ||
+            "Failed to approve Purchase Order",
+        );
+      }
+    },
+    [navigate, orders, refreshOrders],
+  );
+
   const handleConfirmOrder = useCallback(
     (id: string) => {
       const order = orders.find((o) => o.id === id);
@@ -190,8 +239,8 @@ export default function PurchaseOrdersPage() {
         toast.error("Order not found");
         return;
       }
-      if ((order.status || "").toLowerCase() !== "draft") {
-        toast.error("Only draft purchase orders can be released.");
+      if ((order.status || "").toLowerCase() !== "approved") {
+        toast.error("Only approved purchase orders can be released.");
         return;
       }
       if (!order.supplierId) {
@@ -230,9 +279,10 @@ export default function PurchaseOrdersPage() {
         toast.error("Order not found");
         return;
       }
-      if (order.status !== "draft") {
+      const st = (order.status || "").toLowerCase();
+      if (st !== "draft" && st !== "approved") {
         toast.error(
-          `Cannot cancel order with status "${order.status}". Only draft orders can be cancelled.`,
+          `Cannot cancel order with status "${order.status}". Only draft or approved orders can be cancelled.`,
         );
         return;
       }
@@ -361,6 +411,7 @@ export default function PurchaseOrdersPage() {
     () =>
       createPurchaseOrderColumns({
         onOpenOrder: (id) => navigate(`/inventory/purchase/orders/${id}`),
+        onApprove: handleApproveOrder,
         onConfirm: handleConfirmOrder,
         onCancel: handleCancelOrder,
         onEdit: handleEdit,
@@ -376,6 +427,7 @@ export default function PurchaseOrdersPage() {
       }),
     [
       navigate,
+      handleApproveOrder,
       handleConfirmOrder,
       handleCancelOrder,
       handleEdit,

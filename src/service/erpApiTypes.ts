@@ -505,6 +505,8 @@ export type ShipmentResponseDTO = {
   estimatedDeliveryDate?: string;
   deliveryAddress?: string;
   notes?: string;
+  customerSignature?: string;
+  deliveryRemarks?: string;
   createdAt?: string;
   dispatchedAt?: string;
   inTransitAt?: string;

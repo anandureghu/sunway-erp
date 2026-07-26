@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useParams, useSearchParams, useLocation, Link } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { CalendarDays, BarChart2, Clock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useCallback } from "react";
@@ -18,7 +18,7 @@ export interface LeavesCtx {
 
 export default function LeavesShell() {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
+  const navigate = useNavigate();
   const [sp, setSp] = useSearchParams();
   const { registerHandlers, runBeginEdit, runSave, runCancel } = useShellFormBridge();
 
@@ -47,18 +47,15 @@ export default function LeavesShell() {
     [setSp],
   );
 
-  const isHistoryTab   = location.pathname.endsWith("/history");
-  const isTimesheetTab = location.pathname.endsWith("/timesheet");
-
   const handleSave = useCallback(async () => {
     const ok = await runSave();
-    if (ok) setEditing(false);
-  }, [runSave, setEditing]);
+    if (ok) navigate("history", { replace: true });
+  }, [navigate, runSave]);
 
   const handleCancel = useCallback(() => {
     runCancel();
-    setEditing(false);
-  }, [runCancel, setEditing]);
+    navigate("history", { replace: true });
+  }, [navigate, runCancel]);
 
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -76,9 +73,6 @@ export default function LeavesShell() {
       {/* Tabs + Action row */}
       <div className="px-4 pt-3 flex justify-between items-center border-b bg-white" role="navigation" aria-label="Leaves sections">
         <div className="flex gap-2">
-          <Tab to="." icon={<CalendarDays className="h-4 w-4" />}>
-            Employee Leaves
-          </Tab>
           <Tab to="history" icon={<BarChart2 className="h-4 w-4" />}>
             Leave History
           </Tab>
@@ -86,19 +80,17 @@ export default function LeavesShell() {
             Time Sheet
           </Tab>
         </div>
-        {!isHistoryTab && !isTimesheetTab && (
-          <EditUpdateButton
-            module="LEAVES"
-            label="Request Leave"
-            editing={editing}
-            onEdit={() => {
-              runBeginEdit();
-              setEditing(true);
-            }}
-            onCancel={handleCancel}
-            onSave={() => { void handleSave(); }}
-          />
-        )}
+        <EditUpdateButton
+          module="LEAVES"
+          label="Request Leave"
+          editing={editing}
+          onEdit={() => {
+            runBeginEdit();
+            navigate("request?edit=1");
+          }}
+          onCancel={handleCancel}
+          onSave={() => { void handleSave(); }}
+        />
       </div>
 
       {/* Body */}
@@ -115,7 +107,7 @@ function Tab({ to, icon, children }: { to: string; icon: React.ReactNode; childr
   return (
     <NavLink
       end
-      to={to}
+      to={{ pathname: to, search: "" }}
       className={({ isActive }) =>
         [
           "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-all duration-200 ease-in-out",

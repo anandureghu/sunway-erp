@@ -1,0 +1,202 @@
+import { CurrencyAmount } from "@/components/currency/currency-amount";
+import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import {
+  AlertTriangle,
+  ArrowDownToLine,
+  Calendar,
+  Package,
+  Warehouse,
+} from "lucide-react";
+import {
+  formatOptionalDate,
+  formatRecordTimestamp,
+  safeLocaleNumber,
+  safeLocaleQty,
+} from "./formatters";
+import {
+  displaySellingPrice,
+  resolveStockIndicator,
+  warehouseLabel,
+} from "./item-detail-utils";
+
+type Props = {
+  item: ItemResponseDTO;
+};
+
+export function ItemDetailStockOverview({ item }: Props) {
+  const unit = item.unitMeasure || "pcs";
+  const indicator = resolveStockIndicator(item);
+  const available = Number(item.available ?? 0);
+  const quantity = Number(item.quantity ?? 0);
+  const reserved = Number(item.reserved ?? 0);
+  const reorder = Number(item.reorderLevel ?? 0);
+  const fillPct =
+    quantity > 0
+      ? Math.min(100, Math.round((available / quantity) * 100))
+      : available > 0
+        ? 100
+        : 0;
+
+  const cards = [
+    {
+      icon: Package,
+      title: "On hand",
+      value: safeLocaleQty(quantity, unit),
+      hint: `${safeLocaleNumber(available)} available`,
+      tone: "bg-indigo-50 text-indigo-600",
+    },
+    {
+      icon: ArrowDownToLine,
+      title: "Reserved",
+      value: safeLocaleQty(reserved, unit),
+      hint: "Allocated to open orders",
+      tone: "bg-amber-50 text-amber-600",
+    },
+    {
+      icon: AlertTriangle,
+      title: "Reorder level",
+      value: safeLocaleQty(reorder, unit),
+      hint:
+        indicator === "low_stock"
+          ? "At or below reorder — restock soon"
+          : `Min ${safeLocaleQty(item.minimum, unit)} · Max ${safeLocaleQty(item.maximum, unit)}`,
+      tone:
+        indicator === "low_stock"
+          ? "bg-rose-50 text-rose-600"
+          : "bg-slate-100 text-slate-600",
+    },
+    {
+      icon: Warehouse,
+      title: "Warehouse",
+      value: warehouseLabel(item) || "Unassigned",
+      hint: item.warehouse_location || item.location || "No bin location",
+      tone: "bg-violet-50 text-violet-600",
+    },
+  ];
+
+  return (
+    <section className="space-y-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Stock Overview</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Live inventory levels and warehouse placement for this SKU
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white px-5 py-3 shadow-sm">
+          <div>
+            <p className="text-3xl font-bold tabular-nums text-slate-900">
+              {safeLocaleNumber(available)}
+            </p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+              Units available
+            </p>
+          </div>
+          <div className="h-10 w-px bg-slate-100" />
+          <div className="w-28 space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-medium text-slate-400">
+              <span>Fill</span>
+              <span>{fillPct}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-indigo-500 transition-all"
+                style={{ width: `${fillPct}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-slate-400">
+              <span>Avail</span>
+              <span>Total</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => (
+          <div
+            key={card.title}
+            className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
+          >
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.tone}`}
+            >
+              <card.icon className="h-4 w-4" />
+            </div>
+            <p className="mt-4 text-xs font-medium uppercase tracking-wider text-slate-400">
+              {card.title}
+            </p>
+            <p className="mt-1 truncate text-lg font-bold text-slate-900">
+              {card.value}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">{card.hint}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+            Pricing
+          </p>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Cost</span>
+              <span className="font-semibold tabular-nums">
+                <CurrencyAmount amount={item.costPrice} />
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Selling</span>
+              <span className="font-semibold tabular-nums text-indigo-600">
+                <CurrencyAmount amount={displaySellingPrice(item)} />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+            <Calendar className="h-3.5 w-3.5" />
+            Dates
+          </div>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Received</span>
+              <span className="font-semibold">
+                {formatOptionalDate(item.dateReceived)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Sale by</span>
+              <span className="font-semibold">
+                {formatOptionalDate(item.expiryDate)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+            Record
+          </p>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Created</span>
+              <span className="font-semibold">
+                {formatRecordTimestamp(item.createdAt)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-slate-500">Updated</span>
+              <span className="font-semibold">
+                {formatRecordTimestamp(item.updatedAt)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

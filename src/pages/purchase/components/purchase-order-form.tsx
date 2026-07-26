@@ -256,7 +256,7 @@ export function PurchaseOrderForm({
         title={isEditMode ? "Edit purchase order" : "Create purchase order"}
         description={
           isEditMode
-            ? "Update draft lines and supplier details before releasing the Purchase Order."
+            ? "Update draft lines and supplier details before approving the Purchase Order."
             : "Define supplier, dates, and lines for a new draft purchase order."
         }
         backHref={

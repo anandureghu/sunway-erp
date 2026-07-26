@@ -154,9 +154,9 @@ export function createSalesOrderColumns(
       cell: ({ row }) => {
         const order = row.original;
         const canConfirm =
-          order.status === "draft" && order.sufficientDebitBalance !== false;
+          order.status === "quotation" && order.sufficientDebitBalance !== false;
         const canCancel =
-          order.status === "draft" || order.status === "confirmed";
+          order.status === "quotation" || order.status === "confirmed";
         const canGeneratePicklist =
           order.status === "confirmed" &&
           ["PAID", "PARTIALLY_PAID"].includes(
@@ -178,7 +178,7 @@ export function createSalesOrderColumns(
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                {order.status === "draft" && onEdit && (
+                {order.status === "quotation" && onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(order.id)}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Order
@@ -199,7 +199,7 @@ export function createSalesOrderColumns(
                       : "Confirm Order"}
                   </DropdownMenuItem>
                 )}
-                {order.status === "draft" &&
+                {order.status === "quotation" &&
                   order.sufficientDebitBalance === false && (
                     <DropdownMenuItem disabled>
                       <AlertTriangle className="mr-2 h-4 w-4 text-amber-600" />

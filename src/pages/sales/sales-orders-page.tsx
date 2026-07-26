@@ -88,9 +88,9 @@ export default function SalesOrdersPage() {
     setRowSelection({});
     setPaymentStatusFilter("all");
     switch (key) {
-      case "draft":
+      case "quotation":
         setListTab("active");
-        setStatusFilter("draft");
+        setStatusFilter("quotation");
         break;
       case "partially_paid":
         setListTab("active");
@@ -132,9 +132,9 @@ export default function SalesOrdersPage() {
   );
 
   const salesOrderKpis = useMemo((): KpiSummaryStat[] => {
-    const draftCount = orders.filter((o) => o.status === "draft").length;
+    const draftCount = orders.filter((o) => o.status === "quotation").length;
     const confirmedOrdersCount = orders.filter(
-      (o) => !isClosedOrder(o) && o.status !== "draft",
+      (o) => !isClosedOrder(o) && o.status !== "quotation",
     ).length;
     const partiallyPaidCount = orders.filter(
       (o) => normalizePaymentStatusKey(o.paymentStatus) === "PARTIALLY_PAID",
@@ -166,13 +166,13 @@ export default function SalesOrdersPage() {
       ),
       kpiFilterItem(
         {
-          label: "Draft",
+          label: "Quotation",
           value: draftCount,
           hint: "Awaiting confirmation",
           accent: "amber",
           icon: ClipboardList,
         },
-        "draft",
+        "quotation",
         kpiFilter,
         applyKpiFilter,
       ),
@@ -204,7 +204,7 @@ export default function SalesOrdersPage() {
         order.customerName.toLowerCase().includes(q);
       const matchesStatus =
         kpiFilter === "confirmed"
-          ? order.status !== "draft"
+          ? order.status !== "quotation"
           : statusFilter === "all" || order.status === statusFilter;
       const matchesPaymentStatus =
         paymentStatusFilter === "all" ||
@@ -261,11 +261,11 @@ export default function SalesOrdersPage() {
       const order = orders.find((o) => o.id === id);
       if (!order) return toast.error("Order not found");
       if (
-        order.status !== "draft" &&
+        order.status !== "quotation" &&
         order.status !== "confirmed"
       ) {
         return toast.error(
-          `Cannot cancel order with status "${order.status}". Only draft or confirmed orders can be cancelled.`,
+          `Cannot cancel order with status "${order.status}". Only quotation or confirmed orders can be cancelled.`,
         );
       }
       if (!(await confirmCancel(`order ${order.orderNo}`))) {
@@ -391,8 +391,8 @@ export default function SalesOrdersPage() {
         toast.error("Order not found");
         return;
       }
-      if (order.status !== "draft") {
-        toast.error("Only draft orders can be edited.");
+      if (order.status !== "quotation") {
+        toast.error("Only quotations can be edited.");
         return;
       }
       setOrderToEdit(order);

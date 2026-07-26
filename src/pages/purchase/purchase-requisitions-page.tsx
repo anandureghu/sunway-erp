@@ -104,7 +104,7 @@ export default function PurchaseRequisitionsPage() {
   }, []);
 
   const requisitionKpis = useMemo((): KpiSummaryStat[] => {
-    const draft = requisitions.filter((r) => r.status === "draft").length;
+    const draft = requisitions.filter((r) => r.status === "quotation").length;
     const rejected = requisitions.filter((r) => r.status === "rejected").length;
     const awaitingApproval = requisitions.filter(
       (r) => r.status === "submitted",
@@ -115,13 +115,13 @@ export default function PurchaseRequisitionsPage() {
     return [
       kpiFilterItem(
         {
-          label: "Draft requisitions",
+          label: "Quotation requisitions",
           value: draft,
           hint: "Not yet submitted",
           accent: "sky",
           icon: ClipboardList,
         },
-        "draft",
+        "quotation",
         kpiFilter,
         applyKpiFilter,
       ),

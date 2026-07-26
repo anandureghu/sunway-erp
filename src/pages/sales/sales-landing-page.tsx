@@ -84,7 +84,7 @@ export default function SalesLandingPage() {
     () =>
       orders.filter((o) => {
         const status = normalizeStatus(o.status);
-        return status === "draft" || status === "confirmed";
+        return status === "quotation" || status === "confirmed";
       }).length,
     [orders],
   );
@@ -160,7 +160,7 @@ export default function SalesLandingPage() {
     {
       label: "Pending orders",
       value: pendingOrders,
-      hint: "Draft + confirmed",
+      hint: "Quotation + confirmed",
       accent: "orange",
       icon: Clock,
       onClick: () => navigate("/inventory/sales/orders"),
