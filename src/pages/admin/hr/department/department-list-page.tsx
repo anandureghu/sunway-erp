@@ -12,7 +12,9 @@ import { toast } from "sonner";
 import type { Department } from "@/types/department";
 import type { DivisionResponseDTO } from "@/types/division";
 import { DepartmentDialog } from "./department-dialog";
+import { DepartmentDetailDialog } from "./department-detail-dialog";
 import { DivisionDialog } from "../division/division-dialog";
+import type { DepartmentTableRow } from "@/lib/columns/department-listing-admin";
 import { useAuth } from "@/context/AuthContext";
 import {
   fetchDepartments,
@@ -39,6 +41,9 @@ export default function DepartmentListPage({
   const [divisionDialogOpen, setDivisionDialogOpen] = useState(false);
   const [selectedDivision, setSelectedDivision] =
     useState<DivisionResponseDTO | null>(null);
+
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [detailRow, setDetailRow] = useState<DepartmentTableRow | null>(null);
 
   const { company, user } = useAuth();
   const companyId =
@@ -155,6 +160,14 @@ export default function DepartmentListPage({
   };
 
   const columns = getDepartmentColumns({
+    onViewDepartment: (row) => {
+      setDetailRow(row);
+      setDetailDialogOpen(true);
+    },
+    onViewDivision: (row) => {
+      setDetailRow(row);
+      setDetailDialogOpen(true);
+    },
     onEditDepartment: (dept) => {
       setSelectedDepartment(dept);
       setDepartmentDialogOpen(true);
@@ -180,6 +193,29 @@ export default function DepartmentListPage({
     );
   }
 
+  const headerActions = (
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        onClick={() => {
+          setSelectedDivision(null);
+          setDivisionDialogOpen(true);
+        }}
+      >
+        Add Division
+      </Button>
+      <Button
+        onClick={() => {
+          setSelectedDepartment(null);
+          setDepartmentDialogOpen(true);
+        }}
+        className="bg-orange-500 hover:bg-orange-600 text-white"
+      >
+        Add Department
+      </Button>
+    </div>
+  );
+
   return (
     <div className={hrSettings ? "space-y-6" : "p-6 space-y-6"}>
       {hrSettings ? (
@@ -187,6 +223,7 @@ export default function DepartmentListPage({
           title="Departments"
           description="Manage departments and their divisions"
           icon={<Users className="h-5 w-5" />}
+          actions={headerActions}
         />
       ) : (
         <PageHeader
@@ -194,41 +231,20 @@ export default function DepartmentListPage({
           description="Manage departments and their divisions"
           variant="darkBlue"
           icon={<Users className="w-6 h-6" />}
+          actions={headerActions}
         />
       )}
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search department or division..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedDivision(null);
-                  setDivisionDialogOpen(true);
-                }}
-              >
-                Add Division
-              </Button>
-              <Button
-                onClick={() => {
-                  setSelectedDepartment(null);
-                  setDepartmentDialogOpen(true);
-                }}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                Add Department
-              </Button>
-            </div>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search department or division..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </CardHeader>
 
@@ -264,6 +280,12 @@ export default function DepartmentListPage({
         division={selectedDivision}
         onSuccess={handleDivisionSuccess}
         companyId={companyId}
+      />
+
+      <DepartmentDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        row={detailRow}
       />
     </div>
   );

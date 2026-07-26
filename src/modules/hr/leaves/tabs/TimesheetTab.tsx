@@ -666,6 +666,8 @@ export default function TimesheetTab() {
 
   const isCheckedIn = !!(todayEntry?.checkInTime && !todayEntry?.checkOutTime);
   const isComplete = !!(todayEntry?.checkInTime && todayEntry?.checkOutTime);
+  // Company doesn't punch in/out — attendance is auto-marked present.
+  const noPunch = todayEntry?.requireCheckIn === false;
 
   const handleCheckIn = async () => {
     if (!empId) return;
@@ -798,7 +800,12 @@ export default function TimesheetTab() {
 
             {/* Status badge */}
             <div>
-              {!todayEntry?.checkInTime ? (
+              {noPunch ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1.5 text-sm font-semibold text-emerald-300 border border-emerald-500/30">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Auto-marked present
+                </span>
+              ) : !todayEntry?.checkInTime ? (
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white/50 border border-white/10">
                   <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                   Not checked in today
@@ -834,7 +841,23 @@ export default function TimesheetTab() {
 
           {/* ── Right: Action button + Timer ── */}
           <div className="flex flex-col items-center justify-center gap-6 px-8 py-10">
-            {isComplete ? (
+            {noPunch ? (
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/20 border-2 border-emerald-400/30">
+                  <CheckCircle2 className="h-12 w-12 text-emerald-400" />
+                </div>
+                <p className="text-white/70 text-sm font-medium">
+                  Check-in is disabled for your organization.
+                </p>
+                <p className="text-white/40 text-xs max-w-[16rem]">
+                  You're automatically marked present for the standard
+                  {todayEntry?.standardWorkingHoursPerDay
+                    ? ` ${todayEntry.standardWorkingHoursPerDay}-hour`
+                    : ""}{" "}
+                  working day — no punch needed.
+                </p>
+              </div>
+            ) : isComplete ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500/20 border-2 border-emerald-400/30">
                   <CheckCircle2 className="h-12 w-12 text-emerald-400" />

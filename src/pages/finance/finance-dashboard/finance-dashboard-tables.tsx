@@ -62,7 +62,7 @@ export function FinanceDashboardTables({
         viewAllTo="/finance/receivable"
         contentClassName="overflow-x-auto px-0"
       >
-        <Table>
+        <Table className="[&_tbody_tr:nth-child(even)]:bg-slate-50/50">
           <TableHeader>
             <TableRow>
               <TableHead className="pl-6">Inv No.</TableHead>
@@ -105,7 +105,7 @@ export function FinanceDashboardTables({
         viewAllTo="/finance/payable"
         contentClassName="overflow-x-auto px-0"
       >
-        <Table>
+        <Table className="[&_tbody_tr:nth-child(even)]:bg-slate-50/50">
           <TableHeader>
             <TableRow>
               <TableHead className="pl-6">Bill No.</TableHead>

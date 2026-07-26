@@ -58,6 +58,11 @@ async function hydrateEmployeeFromCurrentJob(emp: Employee): Promise<Employee> {
     if (departmentName) next.department = departmentName;
     // Prefer backend-supplied designation; fall back to the current job's title.
     if (!next.designation && jobTitle) next.designation = jobTitle;
+    // Employment type/category also come from the current job — fall back to it.
+    if (!next.employmentCategory && cj.employmentCategory)
+      next.employmentCategory = cj.employmentCategory;
+    if (!next.employmentType && cj.employmentType)
+      next.employmentType = cj.employmentType;
     return next;
   } catch {
     console.debug("No current job for employee:", emp.id);

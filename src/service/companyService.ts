@@ -49,6 +49,9 @@ export interface HrPoliciesPayload {
   loanPolicyEnabled?: boolean;
   loanMinServiceDays?: number;
   loanMaxRepaymentMonths?: number;
+  // ── Attendance & working hours ──
+  standardWorkingHoursPerDay?: number;
+  requireCheckIn?: boolean;
 }
 
 export const fetchHrPolicies = async (

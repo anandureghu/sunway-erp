@@ -7,6 +7,7 @@ import {
   getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableHeader,
@@ -128,7 +129,7 @@ export function SelectableDataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-md border shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
         <Table className="bg-card">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -152,11 +153,13 @@ export function SelectableDataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
-                  className={
+                  className={cn(
+                    "transition-colors",
+                    row.index % 2 === 1 ? "bg-slate-50/40" : "bg-white",
                     onRowClick
-                      ? "cursor-pointer hover:bg-accent/30 transition"
-                      : undefined
-                  }
+                      ? "cursor-pointer hover:bg-slate-100/70"
+                      : "hover:bg-slate-50/70",
+                  )}
                   onClick={(e) => {
                     if (
                       (e.target as HTMLElement).closest("[data-no-row-nav]")

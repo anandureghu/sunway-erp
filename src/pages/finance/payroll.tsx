@@ -21,6 +21,7 @@ import { fetchCompany } from "@/service/companyService";
 import { downloadPayslipPdf } from "@/service/payslipService";
 import { formatMoney } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 import type { Employee } from "@/types/hr";
 import type { Company } from "@/types/company";
 import {
@@ -283,6 +284,7 @@ function EmployeePayrollTab() {
   const [selected, setSelected] = useState<Employee | null>(null);
   const [history, setHistory] = useState<PayrollRow[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const historyPg = usePagination(history, 10);
 
   // bulk-select state
   const [bulkMode, setBulkMode] = useState(false);
@@ -1318,8 +1320,10 @@ function EmployeePayrollTab() {
                       {selected.firstName} {selected.lastName}
                     </h2>
                     <p className="text-sm text-slate-500">
-                      Employee #{selected.id} ·{" "}
-                      {selected.department || "No Department"}
+                      {selected.employeeNo || `#${selected.id}`} ·{" "}
+                      {selected.departmentName ||
+                        selected.department ||
+                        "No Department"}
                     </p>
                   </div>
                 </div>
@@ -1423,25 +1427,75 @@ function EmployeePayrollTab() {
                 )}
 
                 {payrollPreview && datesReady && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <div className="border-b border-slate-100 bg-slate-50/70 px-3 py-2">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Net payable
-                      </p>
-                      <p className="text-sm font-bold text-emerald-700">
-                        {formatMoney(payrollPreview.netPayable, currencySymbol)}
+                        Payroll breakdown
                       </p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Deductions
-                      </p>
-                      <p className="text-sm font-bold text-red-600">
-                        {formatMoney(
-                          payrollPreview.totalDeductions,
-                          currencySymbol,
-                        )}
-                      </p>
+                    <div className="divide-y divide-slate-50 text-sm">
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <span className="text-slate-600">Gross earnings</span>
+                        <span className="font-semibold text-slate-800 tabular-nums">
+                          {formatMoney(payrollPreview.grossPay, currencySymbol)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <span className="text-slate-600">
+                          Worked days{" "}
+                          <span className="text-[11px] text-slate-400">
+                            (from attendance)
+                          </span>
+                        </span>
+                        <span className="font-medium text-slate-700 tabular-nums">
+                          {payrollPreview.workedDays} / {payrollPreview.workingDays}
+                        </span>
+                      </div>
+                      {payrollPreview.paidLeaveDays > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">Paid leave</span>
+                          <span className="font-medium text-slate-700 tabular-nums">
+                            {payrollPreview.paidLeaveDays} days
+                          </span>
+                        </div>
+                      )}
+                      {payrollPreview.lopAmount > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">
+                            Loss of pay{" "}
+                            <span className="text-[11px] text-slate-400">
+                              ({payrollPreview.lopDays} d)
+                            </span>
+                          </span>
+                          <span className="font-semibold text-red-600 tabular-nums">
+                            − {formatMoney(payrollPreview.lopAmount, currencySymbol)}
+                          </span>
+                        </div>
+                      )}
+                      {payrollPreview.loanDeduction > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">Loan deduction</span>
+                          <span className="font-semibold text-red-600 tabular-nums">
+                            − {formatMoney(payrollPreview.loanDeduction, currencySymbol)}
+                          </span>
+                        </div>
+                      )}
+                      {payrollPreview.endOfServiceCompensation > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">End of service</span>
+                          <span className="font-semibold text-emerald-700 tabular-nums">
+                            + {formatMoney(payrollPreview.endOfServiceCompensation, currencySymbol)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between bg-slate-50/70 px-3 py-2.5">
+                        <span className="font-semibold text-slate-700">
+                          Net payable
+                        </span>
+                        <span className="text-base font-bold text-emerald-700 tabular-nums">
+                          {formatMoney(payrollPreview.netPayable, currencySymbol)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1514,7 +1568,7 @@ function EmployeePayrollTab() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {history.map((row) => (
+                        {historyPg.pageItems.map((row) => (
                           <tr
                             key={row.payrollCode}
                             className="hover:bg-slate-50/60 transition-colors"
@@ -1561,6 +1615,16 @@ function EmployeePayrollTab() {
                         ))}
                       </tbody>
                     </table>
+                    <div className="border-t border-slate-100 px-2">
+                      <TablePagination
+                        total={historyPg.total}
+                        pageIndex={historyPg.pageIndex}
+                        pageSize={historyPg.pageSize}
+                        pageCount={historyPg.pageCount}
+                        onPageChange={historyPg.setPageIndex}
+                        onPageSizeChange={historyPg.setPageSize}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

@@ -513,7 +513,10 @@ function JobCodesTab({
       setModal(false);
     } catch (error) {
       console.error("Error saving job code:", error);
-      toast.error("Failed to save job code");
+      const detail =
+        (error as any)?.response?.data?.message ??
+        (error as any)?.response?.data?.error;
+      toast.error(detail || "Failed to save job code");
     } finally {
       setLoading(false);
     }

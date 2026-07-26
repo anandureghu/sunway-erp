@@ -79,7 +79,7 @@ function BatchLayersTable({
             <th className="p-3">Expiry</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="[&_tr:nth-child(even)]:bg-slate-50/50">
           {batches.map((row) => (
             <tr key={row.id} className="border-t">
               <td className="p-3 font-mono text-xs">{row.batchNo}</td>
@@ -126,7 +126,7 @@ function MovementLogTable({
             <th className="p-3 text-right">Value</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="[&_tr:nth-child(even)]:bg-slate-50/50">
           {movements.map((m) => (
             <tr key={m.id} className="border-t">
               <td className="p-3 text-xs text-muted-foreground">

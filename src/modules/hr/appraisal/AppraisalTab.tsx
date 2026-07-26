@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { initialsFrom } from "@/lib/utils";
 import {
   Settings,
   CheckCircle,
@@ -1792,7 +1793,7 @@ function ManagerRatingsPanel({ ratingScale }: { ratingScale: RatingScale[] }) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                        {app.employeeName?.charAt(0)?.toUpperCase()}
+                        {initialsFrom(app.employeeName)}
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-900">

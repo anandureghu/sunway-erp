@@ -248,7 +248,7 @@ export function VarianceHistoryPanel({
               </div>
             ) : null}
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="[&_tbody_tr:nth-child(even)]:bg-slate-50/50">
                 <TableHeader>
                   <TableRow>
                     {!showArchivedOnly ? (

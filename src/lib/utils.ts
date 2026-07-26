@@ -130,6 +130,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Two-letter initials for an avatar chip: first letter of the first name + first
+ * letter of the last name (e.g. "Shaik Chintapalli Sharif" → "SS"). Single-word
+ * names fall back to their first two letters; empty/blank names return "?".
+ */
+export function initialsFrom(name?: string | null): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }

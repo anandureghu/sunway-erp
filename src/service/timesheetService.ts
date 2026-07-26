@@ -8,7 +8,11 @@ export interface TimesheetEntry {
   checkOutTime?: string | null;  // ISO datetime, absent when still checked in
   workedMinutes?: number | null;
   status: "CHECKED_IN" | "CHECKED_OUT" | "NOT_CHECKED_IN";
-  notes?: string;
+  notes?: string | null;
+  autoCheckedOut?: boolean;
+  // Company attendance policy (present on the /today response).
+  requireCheckIn?: boolean;
+  standardWorkingHoursPerDay?: number;
 }
 
 export interface MonthlySummary {
@@ -42,6 +46,8 @@ export interface AttendanceHistoryItem {
   workedMinutes: number | null;
   workedDuration: string | null;
   status: "CHECKED_IN" | "CHECKED_OUT" | "NOT_CHECKED_IN" | string;
+  autoCheckedOut?: boolean;
+  note?: string | null;
 }
 
 // A server page of the HR attendance-history view for one month.
@@ -104,6 +110,8 @@ export const timesheetService = {
               checkOutTime: it.checkOutTime,
               workedMinutes: it.workedMinutes,
               status: (it.status as TimesheetEntry["status"]) ?? "NOT_CHECKED_IN",
+              autoCheckedOut: it.autoCheckedOut,
+              notes: it.note,
             }))
           : [],
       )

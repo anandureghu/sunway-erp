@@ -28,6 +28,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // src/components/datatable.tsx
 interface DataTableProps<TData, TValue> {
@@ -74,7 +75,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-md border shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
       <Table className="bg-card">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -98,11 +99,13 @@ export function DataTable<TData, TValue>({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={
+                className={cn(
+                  "transition-colors",
+                  row.index % 2 === 1 ? "bg-slate-50/40" : "bg-white",
                   onRowClick
-                    ? "cursor-pointer hover:bg-accent/30 transition"
-                    : undefined
-                }
+                    ? "cursor-pointer hover:bg-slate-100/70"
+                    : "hover:bg-slate-50/70",
+                )}
                 onClick={(e) => {
                   if (
                     (e.target as HTMLElement).closest("[data-no-row-nav]")

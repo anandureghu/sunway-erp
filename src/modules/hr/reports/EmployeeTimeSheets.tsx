@@ -17,7 +17,7 @@ import {
 } from "@/service/timesheetService";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { TablePagination, usePagination } from "@/components/table-pagination";
-import { cn } from "@/lib/utils";
+import { cn, initialsFrom } from "@/lib/utils";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtTime = (iso: string | null) => {
@@ -40,6 +40,11 @@ const fmtDate = (iso: string) => {
 };
 
 const TODAY_META: Record<string, { label: string; cls: string; dot: string }> = {
+  PRESENT: {
+    label: "Present",
+    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
   CHECKED_IN: {
     label: "Checked in",
     cls: "bg-amber-50 text-amber-700 border-amber-200",
@@ -272,7 +277,17 @@ export default function EmployeeTimeSheets() {
                           {fmtTime(d.checkInTime)}
                         </td>
                         <td className="py-2.5 tabular-nums text-slate-600">
-                          {fmtTime(d.checkOutTime)}
+                          <span className="inline-flex items-center gap-1.5">
+                            {fmtTime(d.checkOutTime)}
+                            {d.autoCheckedOut && (
+                              <span
+                                title={d.note || "Auto-checkout — employee did not check out."}
+                                className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+                              >
+                                Auto
+                              </span>
+                            )}
+                          </span>
                         </td>
                         <td className="py-2.5 tabular-nums text-slate-600">
                           {d.workedDuration || "—"}
@@ -367,11 +382,6 @@ export default function EmployeeTimeSheets() {
           </div>
         ) : (
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                {total} employee{total === 1 ? "" : "s"}
-              </p>
-            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
@@ -383,6 +393,7 @@ export default function EmployeeTimeSheets() {
                       "In",
                       "Out",
                       "Hours Today",
+                      "Days Recorded",
                       "Days Worked",
                       "Total Hours",
                     ].map((h, i) => (
@@ -417,7 +428,7 @@ export default function EmployeeTimeSheets() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
-                              {(r.employeeName?.[0] ?? "?").toUpperCase()}
+                              {initialsFrom(r.employeeName)}
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-800 truncate">
@@ -454,6 +465,9 @@ export default function EmployeeTimeSheets() {
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600">
                           {r.todayHours ? `${r.todayHours} h` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-500">
+                          {r.daysRecorded}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">

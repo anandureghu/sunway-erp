@@ -6,7 +6,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import type { Department } from "@/types/department";
 import type { DivisionResponseDTO } from "@/types/division";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -23,6 +23,8 @@ export type DepartmentTableRow = {
 };
 
 interface DepartmentColumnsProps {
+  onViewDepartment: (row: DepartmentTableRow) => void;
+  onViewDivision: (row: DepartmentTableRow) => void;
   onEditDepartment: (dept: Department) => void;
   onDeleteDepartment: (dept: Department) => void;
   onEditDivision: (division: DivisionResponseDTO) => void;
@@ -63,6 +65,8 @@ export function buildDepartmentTableRows(
 }
 
 export const getDepartmentColumns = ({
+  onViewDepartment,
+  onViewDivision,
   onEditDepartment,
   onDeleteDepartment,
   onEditDivision,
@@ -141,6 +145,10 @@ export const getDepartmentColumns = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onViewDivision(item)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditDivision(item.division!)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit
@@ -170,6 +178,10 @@ export const getDepartmentColumns = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onViewDepartment(item)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditDepartment(item.department!)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit

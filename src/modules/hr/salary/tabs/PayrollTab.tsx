@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
 import { downloadPayslipPdf } from "@/service/payslipService";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 
 interface PayrollRow {
   payDate: string;
@@ -34,6 +35,7 @@ export default function PayrollTab() {
   const [history, setHistory] = useState<PayrollRow[]>([]);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [currencySymbol, setCurrencySymbol] = useState("$");
+  const historyPg = usePagination(history, 10);
 
   const loadPayrollHistory = useCallback(async () => {
     if (!employeeId) return;
@@ -114,7 +116,7 @@ export default function PayrollTab() {
                 </tr>
               )}
 
-              {history.map((row) => (
+              {historyPg.pageItems.map((row) => (
                 <tr
                   key={row.payrollCode}
                   className="border-t hover:bg-muted/50"
@@ -163,6 +165,18 @@ export default function PayrollTab() {
               ))}
             </tbody>
           </table>
+          {history.length > 0 && (
+            <div className="border-t px-2">
+              <TablePagination
+                total={historyPg.total}
+                pageIndex={historyPg.pageIndex}
+                pageSize={historyPg.pageSize}
+                pageCount={historyPg.pageCount}
+                onPageChange={historyPg.setPageIndex}
+                onPageSizeChange={historyPg.setPageSize}
+              />
+            </div>
+          )}
         </div>
       </div>
 

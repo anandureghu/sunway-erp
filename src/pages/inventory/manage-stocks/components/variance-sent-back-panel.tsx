@@ -138,7 +138,7 @@ export function VarianceSentBackPanel({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="[&_tbody_tr:nth-child(even)]:bg-slate-50/50">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">SL No.</TableHead>

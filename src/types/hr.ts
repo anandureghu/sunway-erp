@@ -48,12 +48,17 @@ export interface Employee {
   lastName?: string;
   status?: EmployeeStatus;
   department?: string;
+  /** Department name as returned by the /employees DTO (Employee.department FK). */
+  departmentName?: string;
   /**
    * Job designation derived from the linked current-job assignment
    * (employee_current_job → job_codes.title). Distinct from `companyRole`
    * which is the security/permission role on the user.
    */
   designation?: string;
+  /** Employment category (PERMANENT/CONTRACT/…) + type (FULL_TIME/PART_TIME) from current job. */
+  employmentCategory?: string;
+  employmentType?: string;
   dateOfBirth?: string; // yyyy-mm-dd
   gender?: Gender;
   joinDate?: string; // yyyy-mm-dd

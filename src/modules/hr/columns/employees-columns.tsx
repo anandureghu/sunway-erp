@@ -52,11 +52,29 @@ const StatusCell = ({ value }: { value?: string }) => {
 
 type Cell<T> = CellContext<T, unknown>;
 
+// ── field formatters ───────────────────────────────────────────────────────────
+const fmtJoinDate = (iso?: string): string => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+/** PERMANENT → "Permanent", FULL_TIME → "Full Time". */
+const fmtEmployment = (v?: string): string => {
+  if (!v) return "—";
+  return v
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 // ── column definitions ────────────────────────────────────────────────────────
 export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
   {
     id: "slNo",
-    header: "Sl No.",
+    header: "SL. No.",
     enableSorting: false,
     cell: ({ row }: Cell<Employee>) => (
       <span className="text-xs text-muted-foreground tabular-nums">
@@ -65,13 +83,23 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
     ),
   },
   {
-    id: "employee",
-    header: "Employee",
+    accessorKey: "employeeNo",
+    header: "Emp. Code",
+    enableSorting: true,
+    cell: ({ getValue }: Cell<Employee>) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {(getValue() as string) ?? "—"}
+      </span>
+    ),
+  },
+  {
+    id: "name",
+    header: "Name",
     enableSorting: false,
     cell: ({ row }: Cell<Employee>) => {
-      const { firstName, lastName, username, status, imageUrl } = row.original;
-      const initials   = getInitials(firstName, lastName);
-      const fullName   = [firstName, lastName].filter(Boolean).join(" ") || "—";
+      const { firstName, lastName, status, imageUrl } = row.original;
+      const initials = getInitials(firstName, lastName);
+      const fullName = [firstName, lastName].filter(Boolean).join(" ") || "—";
       const gradColors = avatarColor(status);
 
       return (
@@ -87,46 +115,20 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground leading-tight">
-              {fullName}
-            </p>
-            {username && (
-              <p className="truncate text-xs text-muted-foreground">
-                @{username}
-              </p>
-            )}
-          </div>
+          <p className="truncate text-sm font-semibold text-foreground leading-tight">
+            {fullName}
+          </p>
         </div>
       );
     },
   },
   {
-    accessorKey: "employeeNo",
-    header: "Emp. No.",
-    enableSorting: true,
-    cell: ({ getValue }: Cell<Employee>) => (
-      <span className="font-mono text-xs text-muted-foreground">
-        {(getValue() as string) ?? "—"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-    enableSorting: true,
-    cell: ({ getValue }: Cell<Employee>) => (
-      <span className="text-sm text-muted-foreground truncate max-w-[180px] block">
-        {(getValue() as string) ?? "—"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "department",
+    id: "department",
     header: "Department",
     enableSorting: true,
+    accessorFn: (e) => e.departmentName ?? e.department ?? "",
     cell: ({ getValue }: Cell<Employee>) => {
-      const val = getValue() as string | undefined;
+      const val = getValue() as string;
       return val ? (
         <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 border border-blue-100">
           {val}
@@ -138,11 +140,36 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
   },
   {
     accessorKey: "designation",
-    header: "Designation",
+    header: "Position",
     enableSorting: true,
     cell: ({ getValue }: Cell<Employee>) => (
       <span className="text-sm text-foreground">
-        {(getValue() as string) ?? "—"}
+        {(getValue() as string) || "—"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "employmentCategory",
+    header: "Employment Type",
+    enableSorting: true,
+    cell: ({ getValue }: Cell<Employee>) => {
+      const val = getValue() as string | undefined;
+      return val ? (
+        <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600 border border-slate-200">
+          {fmtEmployment(val)}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground">—</span>
+      );
+    },
+  },
+  {
+    accessorKey: "joinDate",
+    header: "Joined Date",
+    enableSorting: true,
+    cell: ({ getValue }: Cell<Employee>) => (
+      <span className="text-sm text-muted-foreground tabular-nums">
+        {fmtJoinDate(getValue() as string)}
       </span>
     ),
   },
