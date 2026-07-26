@@ -1,14 +1,24 @@
 import { NavLink, Outlet, useParams, Link } from "react-router-dom";
 import { Briefcase, Package, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
+
+/** Lets the active tab hoist its primary action button into the shell header. */
+export interface LoansShellCtx {
+  registerAction: (node: ReactNode | null) => void;
+}
 
 export default function LoansShell() {
   const { id } = useParams<{ id: string }>();
   const [emp, setEmp] = useState<Employee | null>(null);
+  const [action, setAction] = useState<ReactNode>(null);
   const title = emp ? `${emp.firstName} ${emp.lastName} (${emp.employeeNo})` : "";
+
+  const registerAction = useCallback((node: ReactNode | null) => {
+    setAction(node ?? null);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -29,19 +39,20 @@ export default function LoansShell() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs + active tab's primary action */}
       <div className="border-b bg-white">
-        <div className="flex items-center px-4 py-2">
+        <div className="flex items-center justify-between gap-3 px-4 py-2">
           <div className="flex gap-2">
             <Tab to=""                   icon={<Briefcase className="h-4 w-4" />} label="Loans"               />
             <Tab to="company-properties" icon={<Package   className="h-4 w-4" />} label="Company Properties"  />
           </div>
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       </div>
 
       {/* Active tab content */}
       <div className="p-4">
-        <Outlet />
+        <Outlet context={{ registerAction } satisfies LoansShellCtx} />
       </div>
     </div>
   );

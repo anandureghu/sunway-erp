@@ -20,12 +20,13 @@ import {
   Building2,
 } from "lucide-react";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { salaryService } from "@/service/salaryService";
 import { formatMoney, generateId } from "@/lib/utils";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { addMonths } from "@/lib/date";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
+import type { LoansShellCtx } from "@/modules/hr/loans/LoansShell";
 import { loanService } from "@/service/loanService";
 import { SelectField } from "@/modules/hr/components/select-field";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
@@ -93,6 +94,7 @@ export default function LoansForm(): ReactElement {
   const { confirm } = useConfirmDialog();
   const params = useParams<{ id: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
+  const { registerAction } = useOutletContext<LoansShellCtx>();
   const { user, permissions } = useAuth();
   // Loans are scoped to the employee in the route. ADMIN/SUPER_ADMIN bypass via
   // permissions === null. Otherwise a grant applies per own/all: an "own-only"
@@ -168,6 +170,33 @@ export default function LoansForm(): ReactElement {
     setLoans((current) => [...current, newLoan]);
     setEditingId(newLoan.id);
   }, [grossSalary, hasOpenLoan]);
+
+  // Hoist the primary action into the shell header (shared layout with the
+  // other employee sub-modules), rather than a second header inside the tab.
+  const headerAction = useMemo(
+    () =>
+      canCreateLoans ? (
+        <Button
+          onClick={handleAdd}
+          disabled={hasOpenLoan || editingId !== null}
+          title={
+            hasOpenLoan
+              ? "This employee already has a pending or active loan. Only one loan at a time is allowed."
+              : undefined
+          }
+          className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="h-4 w-4" />
+          Request Loan
+        </Button>
+      ) : null,
+    [canCreateLoans, hasOpenLoan, editingId, handleAdd],
+  );
+
+  useEffect(() => {
+    registerAction(headerAction);
+    return () => registerAction(null);
+  }, [registerAction, headerAction]);
 
   const mapApiToForm = (api: any): LoansModel => ({
     id: String(api.id),
@@ -435,23 +464,6 @@ export default function LoansForm(): ReactElement {
         title="Employee Loans"
         description="Manage loan details and repayment schedules"
         icon={<Building2 className="h-5 w-5 text-white" />}
-        actions={
-          canCreateLoans ? (
-            <Button
-              onClick={handleAdd}
-              disabled={hasOpenLoan || editingId !== null}
-              title={
-                hasOpenLoan
-                  ? "This employee already has a pending or active loan. Only one loan at a time is allowed."
-                  : undefined
-              }
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus className="h-4 w-4" />
-              Request Loan
-            </Button>
-          ) : undefined
-        }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

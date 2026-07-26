@@ -84,6 +84,7 @@ const UserProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageHover, setImageHover] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Photo upload is keyed by the employee record, so it's only available to
   // users linked to an employee (same endpoint the employee profile uses).
@@ -94,6 +95,7 @@ const UserProfilePage = () => {
     setUploadingImage(true);
     try {
       const url = await hrService.uploadImage(profile.employeeId, file);
+      setImgError(false);
       setProfile((prev) => (prev ? { ...prev, imageUrl: url } : prev));
       toast.success('Profile photo updated');
     } catch {
@@ -165,7 +167,7 @@ const UserProfilePage = () => {
   })();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 duration-500 animate-in fade-in-50">
+    <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8 duration-500 animate-in fade-in-50">
       <Button
         variant="ghost"
         size="sm"
@@ -200,11 +202,12 @@ const UserProfilePage = () => {
                 onMouseLeave={() => setImageHover(false)}
                 onClick={() => canUploadPhoto && fileInputRef.current?.click()}
               >
-                {profile.imageUrl ? (
+                {profile.imageUrl && !imgError ? (
                   <img
                     src={profile.imageUrl}
                     alt={profile.fullName ?? profile.username}
                     className="h-full w-full object-cover"
+                    onError={() => setImgError(true)}
                   />
                 ) : (
                   <div className="flex h-full w-full select-none items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-3xl font-bold text-white">

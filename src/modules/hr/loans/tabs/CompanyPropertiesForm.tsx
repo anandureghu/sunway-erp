@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import { FormRow, FormField } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
+import type { LoansShellCtx } from "@/modules/hr/loans/LoansShell";
 import { propertyService } from "@/service/propertyService";
 import { toast } from "sonner";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
@@ -89,6 +90,7 @@ export default function CompanyPropertiesForm() {
   const [viewingId, setViewingId] = useState<string | null>(null);
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
+  const { registerAction } = useOutletContext<LoansShellCtx>();
   const assignedCount = items.filter(
     (item) => item.itemStatus === "ASSIGNED",
   ).length;
@@ -132,6 +134,26 @@ export default function CompanyPropertiesForm() {
     setItems((current) => [...current, newItem]);
     setEditingId("");
   }, []);
+
+  // Hoist the "Add Property" action into the shell header (shared layout with
+  // the other employee sub-modules), rather than a second in-tab header.
+  const headerAction = useMemo(
+    () => (
+      <Button
+        onClick={handleAdd}
+        className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+      >
+        <Plus className="h-4 w-4" />
+        Add Property
+      </Button>
+    ),
+    [handleAdd],
+  );
+
+  useEffect(() => {
+    registerAction(headerAction);
+    return () => registerAction(null);
+  }, [registerAction, headerAction]);
 
   const handleSave = useCallback(
     async (item: CompanyItem) => {
@@ -224,15 +246,6 @@ export default function CompanyPropertiesForm() {
         title="Company Properties"
         description="Manage company assets and equipment"
         icon={<Package className="h-5 w-5 text-white" />}
-        actions={
-          <Button
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-          >
-            <Plus className="h-4 w-4" />
-            Add Property
-          </Button>
-        }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

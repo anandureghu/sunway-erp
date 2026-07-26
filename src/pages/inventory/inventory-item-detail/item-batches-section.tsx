@@ -74,7 +74,7 @@ export function ItemBatchesSection({ itemId }: { itemId: string | number }) {
             </span>
           </div>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table className="[&_tbody_tr:nth-child(even)]:bg-slate-50/50">
               <TableHeader>
                 <TableRow>
                   <TableHead>Batch</TableHead>

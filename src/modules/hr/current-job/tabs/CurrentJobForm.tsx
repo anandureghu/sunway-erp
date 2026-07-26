@@ -325,10 +325,13 @@ export default function CurrentJobForm() {
 
     (async () => {
       try {
-        // Active job codes are reference data for the designation picker. Use
-        // the /active endpoint (viewable by employees), not getAll() which needs
-        // HR_SETTINGS view-all.
-        const codes = await jobCodeService.getActive();
+        // Assignable job codes for this employee: the active list minus codes
+        // already held by another still-employed person (a code can be held by
+        // only one active employee, freeing up when its holder exits). Falls back
+        // to the plain active list if we don't yet have an employee id.
+        const codes = employeeId
+          ? await jobCodeService.getAssignable(employeeId)
+          : await jobCodeService.getActive();
         if (mounted) setJobCodes(codes || []);
       } catch (error: any) {
         // A user without job-code read access still gets the form — it falls
@@ -343,7 +346,7 @@ export default function CurrentJobForm() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [employeeId]);
 
   /* ================= LOAD DEPARTMENTS ================= */
 

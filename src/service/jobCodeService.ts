@@ -31,6 +31,18 @@ async function getActive(): Promise<JobCode[]> {
   return res.data;
 }
 
+/**
+ * Active job codes still assignable to this employee — the active list minus codes
+ * already held by another still-employed person (a code frees up when its holder
+ * exits). The employee's own current code stays in the list so editing works.
+ */
+async function getAssignable(employeeId?: number): Promise<JobCode[]> {
+  const res = await apiClient.get<JobCode[]>("/hr/job-codes/assignable", {
+    params: employeeId != null ? { employeeId } : undefined,
+  });
+  return res.data;
+}
+
 async function getById(id: number): Promise<JobCode> {
   const res = await apiClient.get<JobCode>(`/hr/job-codes/${id}`);
   return res.data;
@@ -53,6 +65,7 @@ async function remove(id: number): Promise<void> {
 export const jobCodeService = {
   getAll,
   getActive,
+  getAssignable,
   getById,
   create,
   update,

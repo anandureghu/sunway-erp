@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { leaveService } from "@/service/leaveService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, initialsFrom } from "@/lib/utils";
 import {
   AlertCircle,
   Building2,
@@ -631,11 +631,10 @@ export default function LeaveApprovalPanel() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
-                            {(
-                              leave.employee.firstName?.[0] ??
-                              leave.employeeName?.[0] ??
-                              "?"
-                            ).toUpperCase()}
+                            {initialsFrom(
+                              leave.employeeName ||
+                                `${leave.employee.firstName ?? ""} ${leave.employee.lastName ?? ""}`,
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-slate-800 truncate">

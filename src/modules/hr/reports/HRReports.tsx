@@ -46,7 +46,7 @@ import { loanService } from "@/service/loanService";
 import { formatMoney } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
-import { cn } from "@/lib/utils";
+import { cn, initialsFrom } from "@/lib/utils";
 import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
@@ -229,13 +229,13 @@ const ATTENDANCE_HISTORY_TAB = {
 // Leave Approvals is gated by the LEAVES grant (approvers / HR / admin).
 const LEAVES_TAB = {
   id: "leaves",
-  label: "Leave Approvals",
+  label: "Leave History",
   icon: CalendarCheck,
 } as const;
 // Loan Approvals is gated by the LOANS grant.
 const LOANS_TAB = {
   id: "loans",
-  label: "Loan Approvals",
+  label: "Loan History",
   icon: Wallet,
 } as const;
 const IMMIGRATION_TAB = {
@@ -1487,7 +1487,7 @@ export default function HRReports() {
                             <td className="py-2.5">
                               <div className="flex items-center gap-2.5">
                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
-                                  {(l.employeeName?.[0] ?? "?").toUpperCase()}
+                                  {initialsFrom(l.employeeName)}
                                 </div>
                                 <div className="min-w-0">
                                   <p className="font-semibold text-slate-800 truncate">
@@ -1758,7 +1758,7 @@ export default function HRReports() {
                             <td className="py-2.5">
                               <div className="flex items-center gap-2.5">
                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
-                                  {(l.employeeName?.[0] ?? "?").toUpperCase()}
+                                  {initialsFrom(l.employeeName)}
                                 </div>
                                 <div className="min-w-0">
                                   <p className="font-semibold text-slate-800 truncate">

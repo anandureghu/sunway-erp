@@ -14,7 +14,7 @@ import {
   timesheetService,
   type EmployeeMonthlyAttendance,
 } from "@/service/timesheetService";
-import { cn } from "@/lib/utils";
+import { cn, initialsFrom } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
@@ -204,11 +204,6 @@ export default function AttendanceHistory() {
         ) : (
           <>
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-              <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  {totalElements} employee{totalElements === 1 ? "" : "s"}
-                </p>
-              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
@@ -248,7 +243,7 @@ export default function AttendanceHistory() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
-                              {(r.employeeName?.[0] ?? "?").toUpperCase()}
+                              {initialsFrom(r.employeeName)}
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-800 truncate">

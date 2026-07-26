@@ -47,7 +47,7 @@ export function InventoryDashboardLists({
         {lowStockItems.length === 0 ? (
           <DashboardEmpty message="No low-stock items." />
         ) : (
-          <Table>
+          <Table className="[&_tbody_tr:nth-child(even)]:bg-slate-50/50">
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-6">SKU</TableHead>
