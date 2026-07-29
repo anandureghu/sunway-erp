@@ -1,6 +1,4 @@
-import {
-  DashboardKpiSkeleton,
-} from "@/components/dashboard";
+import { DashboardKpiSkeleton } from "@/components/dashboard";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import type { InventoryDashboardKpis } from "@/types/inventoryDashboard";
 import {
@@ -26,8 +24,7 @@ export function InventoryDashboardKpisPanel({
     return <DashboardKpiSkeleton count={10} className="xl:grid-cols-5" />;
   }
 
-  const fmtQty = (n: number) =>
-    Number.isFinite(n) ? n.toLocaleString() : "0";
+  const fmtQty = (n: number) => (Number.isFinite(n) ? n.toLocaleString() : "0");
 
   return (
     <KpiSummaryStrip
@@ -64,7 +61,7 @@ export function InventoryDashboardKpisPanel({
         {
           label: "On Order",
           value: fmtQty(kpis.totalOnOrder),
-          hint: "Inbound purchase qty",
+          hint: "Remaining inbound PO qty",
           accent: "sky",
           icon: Truck,
         },
@@ -90,7 +87,7 @@ export function InventoryDashboardKpisPanel({
           icon: ClipboardCheck,
         },
         {
-          label: "Inspected - Ready for Confirmation",
+          label: "Ready for Inspection",
           value: fmtQty(kpis.goodsReceiptsAwaitingInspection),
           hint: "Goods receipts",
           accent: "amber",
