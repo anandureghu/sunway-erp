@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
-import SelectUser from "@/components/select-user";
+import SelectEmployees from "@/components/select-employees";
 import { Textarea } from "@/components/ui/textarea";
 import { DIVISION_SCHEMA, type DivisionFormData } from "@/schema/division";
 import { useAuth } from "@/context/AuthContext";
@@ -82,7 +82,8 @@ export const DivisionForm = ({
           />
 
           <div className="col-span-2">
-            <SelectUser
+            <SelectEmployees
+              idMode="employee"
               value={form.getValues("managerId")?.toString()}
               onChange={(val) => form.setValue("managerId", Number(val))}
               label="Manager"

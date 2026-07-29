@@ -188,6 +188,7 @@ const WarehouseMaster = () => {
       name: warehouse.name,
       status: warehouse.status,
       phone: normalizePhone(warehouse.phone),
+      manager: warehouse.managerId,
     });
     setShowWarehouseForm(true);
   };
@@ -561,6 +562,7 @@ const WarehouseMaster = () => {
                 title="Manager assignment"
               >
                 <SelectEmployees
+                  idMode="user"
                   value={watchWarehouse("manager")?.toString()}
                   onChange={(v) =>
                     resetWarehouse({
