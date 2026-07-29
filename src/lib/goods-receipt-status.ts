@@ -12,15 +12,19 @@ export function isGoodsReceiptFullyReceived(receipt: GoodsReceipt): boolean {
   return goodsReceiptLinesAwaitingStock(receipt).length === 0;
 }
 
-/** User-facing GR status: Awaiting inspection → Inspected – ready to receive → Received */
+/**
+ * Stage wording:
+ * Ready for inspection (PO, no GR yet) → Inspected - Ready for Confirmation (GR pending inspect)
+ * → Confirmed - Ready to Receive (inspected, stock pending) → Received
+ */
 export function goodsReceiptDisplayLabel(receipt: GoodsReceipt): string {
   if (receipt.status === "pending_inspection") {
-    return "Awaiting inspection";
+    return "Inspected - Ready for Confirmation";
   }
   if (isGoodsReceiptFullyReceived(receipt)) {
     return "Received";
   }
-  return "Inspected – ready to receive";
+  return "Confirmed - Ready to Receive";
 }
 
 export function goodsReceiptDisplayLabelFromStatus(
@@ -29,8 +33,8 @@ export function goodsReceiptDisplayLabelFromStatus(
 ): string {
   if (receipt) return goodsReceiptDisplayLabel(receipt);
   const s = (status || "").toLowerCase();
-  if (s === "pending_inspection") return "Awaiting inspection";
-  if (s === "inspected") return "Inspected – ready to receive";
+  if (s === "pending_inspection") return "Inspected - Ready for Confirmation";
+  if (s === "inspected") return "Confirmed - Ready to Receive";
   return status
     .replace(/_/g, " ")
     .split(" ")

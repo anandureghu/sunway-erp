@@ -51,6 +51,7 @@ import {
 } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { isGoodsReceiptFullyReceived } from "@/lib/goods-receipt-status";
 
 function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
   return (
@@ -190,13 +191,17 @@ export default function InspectionPage() {
     );
   }, [inspectedReceipts, searchQuery]);
 
-  // Purchase orders that already have a receipt awaiting inspection - excluded
-  // from "ready for inspection" so a second, overlapping intake can't be
-  // started against the same PO while one is still unresolved.
-  const orderIdsWithPendingInspection = useMemo(
-    () => new Set(pendingReceipts.map((r) => r.orderId)),
-    [pendingReceipts],
-  );
+  // Purchase orders that already have an open goods receipt (pending inspect or
+  // inspected but not fully stocked) — exclude from "ready for inspection" so a
+  // second overlapping intake can't be started against the same PO.
+  const orderIdsWithOpenGoodsReceipt = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of pendingReceipts) ids.add(r.orderId);
+    for (const r of inspectedReceipts) {
+      if (!isGoodsReceiptFullyReceived(r)) ids.add(r.orderId);
+    }
+    return ids;
+  }, [pendingReceipts, inspectedReceipts]);
 
   // Purchase orders still needing (further) goods to be logged for inspection
   const ordersReadyForInspection = useMemo(() => {
@@ -208,7 +213,7 @@ export default function InspectionPage() {
         status === "approved" ||
         status === "confirmed";
       return (
-        isReceivableStatus && !orderIdsWithPendingInspection.has(order.id)
+        isReceivableStatus && !orderIdsWithOpenGoodsReceipt.has(order.id)
       );
     });
 
@@ -223,7 +228,7 @@ export default function InspectionPage() {
     }
 
     return filtered;
-  }, [orders, orderSearchQuery, orderIdsWithPendingInspection]);
+  }, [orders, orderSearchQuery, orderIdsWithOpenGoodsReceipt]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -272,9 +277,9 @@ export default function InspectionPage() {
       ),
       kpiFilterItem(
         {
-          label: "Awaiting inspection",
+          label: "Inspected - Ready for Confirmation",
           value: pendingReceipts.length,
-          hint: "Goods receipts awaiting inspect",
+          hint: "Goods receipts awaiting inspect confirmation",
           accent: "violet",
           icon: Hourglass,
         },
@@ -284,9 +289,9 @@ export default function InspectionPage() {
       ),
       kpiFilterItem(
         {
-          label: "Inspected – ready to receive",
+          label: "Confirmed - Ready to Receive",
           value: inspectedReceipts.length,
-          hint: "Inspected; receive into stock next",
+          hint: "Confirmed; receive into stock next",
           accent: "emerald",
           icon: CheckCircle2,
         },
@@ -394,7 +399,7 @@ export default function InspectionPage() {
       <StartInspectionForm
         onCancel={() => setShowStartForm(false)}
         orderId={selectedOrderId}
-        excludeOrderIds={orderIdsWithPendingInspection}
+        excludeOrderIds={orderIdsWithOpenGoodsReceipt}
         onSuccess={() => {
           setShowStartForm(false);
           void refreshData();
@@ -461,14 +466,14 @@ export default function InspectionPage() {
                 </TabsTrigger>
                 <TabsTrigger value="pending" className="gap-2">
                   <Hourglass className="h-4 w-4" />
-                  Awaiting inspection
+                  Inspected - Ready for Confirmation
                   <Badge variant="secondary" className="font-normal">
                     {pendingReceipts.length}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="inspected" className="gap-2">
                   <ClipboardList className="h-4 w-4" />
-                  Ready to receive
+                  Confirmed - Ready to Receive
                   <Badge variant="secondary" className="font-normal">
                     {inspectedReceipts.length}
                   </Badge>
@@ -644,13 +649,11 @@ function StartInspectionForm({
           status === "approved" ||
           status === "partially_received" ||
           status === "confirmed";
-        // Keep the order visible if it's the one this form was deep-linked to
-        // open for, even if it also has a pending inspection outstanding.
-        const isExcluded =
-          excludeOrderIds?.has(o.id) && o.id !== orderId;
+        // Never allow starting a second intake while an open GR already exists.
+        const isExcluded = excludeOrderIds?.has(o.id) === true;
         return isReceivableStatus && !isExcluded;
       }),
-    [orders, excludeOrderIds, orderId],
+    [orders, excludeOrderIds],
   );
 
   useEffect(() => {

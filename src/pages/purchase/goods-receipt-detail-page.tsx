@@ -54,7 +54,9 @@ function formatLabel(value: string) {
 
 function receiptStatusColor(label: string) {
   if (label === "Received") return STATUS_COLORS.received;
-  if (label === "Awaiting inspection") return STATUS_COLORS.pending_inspection;
+  if (label === "Inspected - Ready for Confirmation") {
+    return STATUS_COLORS.pending_inspection;
+  }
   return STATUS_COLORS.inspected;
 }
 

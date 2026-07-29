@@ -298,6 +298,7 @@ export default function PaymentsPage({
     () =>
       PAYMENT_COLUMNS({
         variant,
+        listTab,
         onConfirm: handleConfirmPayment,
         onOpenInvoice: handleOpenInvoice,
         onOpenPurchaseOrder: handleOpenPurchaseOrder,
@@ -307,6 +308,7 @@ export default function PaymentsPage({
       }),
     [
       variant,
+      listTab,
       handleConfirmPayment,
       handleOpenInvoice,
       handleViewReceipt,

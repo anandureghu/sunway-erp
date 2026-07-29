@@ -90,14 +90,14 @@ export function InventoryDashboardKpisPanel({
           icon: ClipboardCheck,
         },
         {
-          label: "Awaiting Inspection",
+          label: "Inspected - Ready for Confirmation",
           value: fmtQty(kpis.goodsReceiptsAwaitingInspection),
           hint: "Goods receipts",
           accent: "amber",
           icon: Warehouse,
         },
         {
-          label: "Ready to Receive",
+          label: "Confirmed - Ready to Receive",
           value: fmtQty(kpis.goodsReceiptsReadyToReceive),
           hint: "Goods receipts",
           accent: "emerald",

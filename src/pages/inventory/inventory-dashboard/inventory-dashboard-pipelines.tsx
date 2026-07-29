@@ -139,7 +139,7 @@ export function InventoryDashboardPipelines({
           },
           {
             key: "gr-inspect",
-            label: "GR Pending Inspection",
+            label: "Inspected - Ready for Confirmation",
             count: purchasePipeline?.goodsReceiptsPendingInspection ?? 0,
             icon: PackageCheck,
             color: "bg-amber-100 text-amber-800",
@@ -147,7 +147,7 @@ export function InventoryDashboardPipelines({
           },
           {
             key: "gr-ready",
-            label: "GR Ready to Receive",
+            label: "Confirmed - Ready to Receive",
             count: purchasePipeline?.goodsReceiptsReadyToReceive ?? 0,
             icon: Truck,
             color: "bg-emerald-100 text-emerald-700",

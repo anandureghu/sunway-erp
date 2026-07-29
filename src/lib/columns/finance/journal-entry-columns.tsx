@@ -11,7 +11,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 import type { JournalEntry } from "@/types/finance/journal-entry";
@@ -151,12 +150,6 @@ export const JOURNAL_ENTRY_COLUMNS = ({
                 Archived
               </DropdownMenuItem>
             )}
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem className="text-muted-foreground">
-              ID: {entry.id}
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

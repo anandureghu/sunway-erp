@@ -28,6 +28,7 @@ import { formatExpenseCategoryLabel } from "@/lib/expense-category-label";
 
 export const PAYMENT_COLUMNS = ({
   variant = "customer",
+  listTab = "outstanding",
   onConfirm,
   onOpenInvoice,
   onOpenPurchaseOrder,
@@ -36,6 +37,7 @@ export const PAYMENT_COLUMNS = ({
   archivingPaymentId,
 }: {
   variant?: PaymentsPageVariant;
+  listTab?: "outstanding" | "archived";
   onConfirm: (payment: PaymentResponseDTO) => void;
   onOpenInvoice: (invoiceId: string) => void;
   onOpenPurchaseOrder: (purchaseOrderId: number) => void;
@@ -82,14 +84,19 @@ export const PAYMENT_COLUMNS = ({
     header: "Amount",
     cell: ({ row }) => {
       const item = row.original;
-      const amt = Number(row.getValue("amount"));
+      const amt = Math.abs(Number(row.getValue("amount")) || 0);
       const dir =
         item.paymentDirection ||
         (variant === "vendor" ? "VENDOR" : variant === "other" ? "OTHER" : "CUSTOMER");
+      // Current (outstanding) vendor/other payments show unsigned amounts — they are
+      // pending payables, not posted debit lines.
+      if ((dir === "VENDOR" || dir === "OTHER") && listTab === "outstanding") {
+        return <TotalAmount amount={amt} />;
+      }
       if (dir === "VENDOR" || dir === "OTHER") {
         return <DebitAmount amount={amt} />;
       }
-      return <CreditAmount amount={Math.abs(amt)} />;
+      return <CreditAmount amount={amt} />;
     },
   });
 
@@ -247,7 +254,7 @@ export const PAYMENT_COLUMNS = ({
           },
         ]
       : []),
-    ...(variant !== "other"
+    ...(variant !== "other" && listTab !== "outstanding"
       ? [
           {
             id: "receiptPdf",

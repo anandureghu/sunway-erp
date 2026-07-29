@@ -91,13 +91,13 @@ export const WAREHOUSE_SCHEMA = z.object({
   address: z.string().optional(),
   capacity: z.number().min(0).optional(),
   status: z.enum(["active", "inactive"]),
-  city: z.string(),
-  street: z.string(),
-  country: z.string(),
-  pin: z.string(),
+  city: z.string().optional(),
+  street: z.string().optional(),
+  country: z.string().optional(),
+  pin: z.string().optional(),
   phone: OPTIONAL_PHONE,
-  contactPersonName: z.string(),
-  manager: z.number(),
+  contactPersonName: z.string().optional(),
+  manager: z.number().nullable().optional(),
 });
 
 // Receive Item Schema

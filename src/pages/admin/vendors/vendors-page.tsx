@@ -106,6 +106,7 @@ export default function VendorsPage({
     onEdit: handleEdit,
     onDeactivate: handleDeactivate,
     onView: handleRowClick,
+    onApproveChange: fetchVendors,
     financeSettings: financeSettings,
     role: user?.role,
   });

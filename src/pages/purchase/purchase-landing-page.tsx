@@ -179,9 +179,9 @@ export default function PurchaseLandingPage() {
       icon: Package,
     },
     {
-      label: "Awaiting inspection",
+      label: "Inspected - Ready for Confirmation",
       value: pendingInspection,
-      hint: "Goods receipts awaiting inspect",
+      hint: "Goods receipts awaiting inspect confirmation",
       accent: "amber",
       icon: ScanSearch,
     },

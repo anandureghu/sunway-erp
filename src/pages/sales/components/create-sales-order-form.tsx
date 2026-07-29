@@ -21,6 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SALES_ORDER_SCHEMA, type SalesOrderFormData } from "@/schema/sales";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { useAuth } from "@/context/AuthContext";
 import { listCustomers } from "@/service/customerService";
 import {
@@ -460,9 +461,10 @@ export function CreateSalesOrderForm({
       }
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
+        getApiErrorMessage(
+          error,
           `Failed to ${isEditMode ? "update" : "create"} sales order.`,
+        ),
       );
     } finally {
       setSubmitLoading(false);

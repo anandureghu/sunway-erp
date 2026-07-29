@@ -722,7 +722,7 @@ export function createGoodsReceiptColumns(
         const colorKey =
           label === "Received"
             ? "received"
-            : label === "Awaiting inspection"
+            : label === "Inspected - Ready for Confirmation"
               ? "pending_inspection"
               : "inspected";
         return (
