@@ -112,6 +112,17 @@ function calculatePasswordStrength(
   return "strong";
 }
 
+/** Individual password rules, shared between the requirements checklist and the
+ *  validity gate so what the user sees and what is enforced never diverge. */
+function getPasswordRequirements(password: string) {
+  return {
+    length: password.length >= 8,
+    cases: /[a-z]/.test(password) && /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    special: /[!@#$%^&*]/.test(password),
+  };
+}
+
 export default function ContactInfoForm() {
   const { confirm, validationError } = useConfirmDialog();
   const { editing, isAdmin, registerHandlers } = useOutletContext<ProfileCtx>();
@@ -393,10 +404,10 @@ export default function ContactInfoForm() {
   };
 
   const isPasswordValid = () => {
+    const reqs = getPasswordRequirements(passwordState.newPassword);
     return (
-      passwordState.newPassword.length >= 8 &&
-      passwordState.newPassword === passwordState.confirmPassword &&
-      passwordState.passwordStrength !== "weak"
+      Object.values(reqs).every(Boolean) &&
+      passwordState.newPassword === passwordState.confirmPassword
     );
   };
 
@@ -592,26 +603,23 @@ export default function ContactInfoForm() {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       Requirements
                     </p>
-                    {[
-                      {
-                        ok: passwordState.newPassword.length >= 8,
-                        label: "At least 8 characters",
-                      },
-                      {
-                        ok:
-                          /[a-z]/.test(passwordState.newPassword) &&
-                          /[A-Z]/.test(passwordState.newPassword),
-                        label: "Upper & lowercase letters",
-                      },
-                      {
-                        ok: /\d/.test(passwordState.newPassword),
-                        label: "At least one number",
-                      },
-                      {
-                        ok: /[!@#$%^&*]/.test(passwordState.newPassword),
-                        label: "Special character (!@#$%^&*)",
-                      },
-                    ].map(({ ok, label }) => (
+                    {(() => {
+                      const reqs = getPasswordRequirements(
+                        passwordState.newPassword,
+                      );
+                      return [
+                        { ok: reqs.length, label: "At least 8 characters" },
+                        {
+                          ok: reqs.cases,
+                          label: "Upper & lowercase letters",
+                        },
+                        { ok: reqs.number, label: "At least one number" },
+                        {
+                          ok: reqs.special,
+                          label: "Special character (!@#$%^&*)",
+                        },
+                      ];
+                    })().map(({ ok, label }) => (
                       <div key={label} className="flex items-center gap-2">
                         <span
                           className={cn(
@@ -707,7 +715,7 @@ export default function ContactInfoForm() {
           label="Contact Details"
           accent="from-violet-600 to-blue-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Email Address" required>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1006,6 +1014,7 @@ export default function ContactInfoForm() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        aria-label="Delete address"
                         className="h-8 rounded-lg text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                         onClick={() => handleDeleteAddress(address.id)}
                       >

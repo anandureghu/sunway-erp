@@ -101,9 +101,17 @@ const buildEmployee = (row: any): Employee => {
     row.employee?.last_name ??
     (parts.length > 1 ? parts.slice(1).join(" ") : "");
 
+  const employeeNo =
+    row.employeeNo ??
+    row.employee_no ??
+    row.employee?.employeeNo ??
+    row.employee?.employee_no ??
+    undefined;
+
   return {
     ...(row.employee ?? {}),
     id: String(employeeId || ""),
+    employeeNo,
     firstName,
     lastName,
   } as Employee;
@@ -641,7 +649,7 @@ export default function LeaveApprovalPanel() {
                               {leave.employeeName ||
                                 `${leave.employee.firstName} ${leave.employee.lastName}`}
                             </p>
-                            <p className="text-[10px] font-mono text-slate-400 truncate">
+                            <p className="text-[11px] font-mono text-slate-400 whitespace-nowrap">
                               {leave.employee.employeeNo ??
                                 `EMP-${leave.employeeId}`}
                             </p>

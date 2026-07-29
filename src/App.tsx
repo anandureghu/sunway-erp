@@ -158,7 +158,17 @@ export default function App() {
 
           {/* Finance */}
           <Route path="finance">
-            <Route path="dashboard" element={<FinanceDashboardPage />} />
+            <Route
+              path="dashboard"
+              element={
+                <ModuleAccessGate
+                  module="FINANCE_DASHBOARD"
+                  title="Finance dashboard access denied"
+                >
+                  <FinanceDashboardPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route path="payroll" element={<Payroll />} />
             <Route path="settings" element={<FinanceSettingsPage />} />
             <Route path="receivable" element={<AccountsReceivablePage />} />
@@ -221,12 +231,7 @@ export default function App() {
               path="dashboard"
               element={
                 <ModuleAccessGate
-                  modules={[
-                    InventoryModule.STOCK,
-                    InventoryModule.ITEM,
-                    InventoryModule.SALES,
-                    InventoryModule.PURCHASE,
-                  ]}
+                  module="INVENTORY_DASHBOARD"
                   title="Inventory dashboard access denied"
                 >
                   <InventoryDashboardPage />
@@ -535,7 +540,17 @@ export default function App() {
             {/* default for /hr */}
             <Route index element={<Navigate to="dashboard" replace />} />
 
-            <Route path="dashboard" element={<HrDashboardPage />} />
+            <Route
+              path="dashboard"
+              element={
+                <ModuleAccessGate
+                  module="HR_DASHBOARD"
+                  title="HR dashboard access denied"
+                >
+                  <HrDashboardPage />
+                </ModuleAccessGate>
+              }
+            />
 
             {/* alias /hr/employee -> /hr/employees */}
             <Route

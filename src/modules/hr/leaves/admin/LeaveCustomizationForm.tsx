@@ -725,6 +725,8 @@ export default function LeaveCustomizationForm() {
                       {/* Include Weekends toggle */}
                       <button
                         type="button"
+                        role="switch"
+                        aria-checked={!!policy?.includeWeekends}
                         onClick={() => toggleWeekends(role.key, leaveType)}
                         className={`w-full flex items-center justify-between gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-semibold transition-colors ${
                           policy?.includeWeekends

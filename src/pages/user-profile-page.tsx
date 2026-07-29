@@ -98,8 +98,9 @@ const UserProfilePage = () => {
       setImgError(false);
       setProfile((prev) => (prev ? { ...prev, imageUrl: url } : prev));
       toast.success('Profile photo updated');
-    } catch {
-      toast.error('Failed to upload photo');
+    } catch (err: any) {
+      const detail = err?.response?.data?.message ?? err?.response?.data?.error;
+      toast.error(detail || 'Failed to upload photo');
     } finally {
       setUploadingImage(false);
     }
@@ -181,7 +182,7 @@ const UserProfilePage = () => {
       {/* Banner profile card */}
       <Card className="overflow-hidden border shadow-sm">
         {/* Cover banner with avatar + identity */}
-        <div className="relative h-44 bg-gradient-to-r from-slate-900 via-violet-800 to-blue-700 sm:h-48">
+        <div className="relative h-44 bg-gradient-to-r from-slate-900 via-indigo-800 to-sky-600 sm:h-48">
           <div
             className="pointer-events-none absolute inset-0 opacity-20"
             style={{
@@ -210,7 +211,7 @@ const UserProfilePage = () => {
                     onError={() => setImgError(true)}
                   />
                 ) : (
-                  <div className="flex h-full w-full select-none items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-3xl font-bold text-white">
+                  <div className="flex h-full w-full select-none items-center justify-center bg-gradient-to-br from-indigo-500 to-sky-600 text-3xl font-bold text-white">
                     {initials}
                   </div>
                 )}
@@ -234,7 +235,7 @@ const UserProfilePage = () => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md ring-2 ring-white transition-shadow hover:shadow-lg"
+                    className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-sky-600 text-white shadow-md ring-2 ring-white transition-shadow hover:shadow-lg"
                     aria-label="Upload profile photo"
                   >
                     <Upload className="h-3.5 w-3.5" />

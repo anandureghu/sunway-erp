@@ -20,6 +20,7 @@ import CountrySelect from "@/components/country-select";
 import PhoneInput from "@/components/PhoneInput";
 import { normalizePhone, validatePhone } from "@/lib/countries";
 import { isValidDate } from "@/modules/hr/utils/validation";
+import { generateId } from "@/lib/utils";
 import type { Dependent, Gender, MaritalStatus } from "@/types/hr";
 import { useParams, useNavigate } from "react-router-dom";
 import { dependentService } from "@/service/dependentService";
@@ -178,9 +179,12 @@ export function DependentsForm() {
   }, [reloadFromBackend]);
 
   const handleAdd = useCallback(() => {
-    const newDependent = { ...INITIAL_DEPENDENT, id: "" };
+    // Give each new row a unique client id so multiple unsaved dependents don't
+    // collide on an empty id (duplicate React keys / cross-row edits). Persisted
+    // rows use numeric ids, so this non-numeric id keeps the save path on create.
+    const newDependent = { ...INITIAL_DEPENDENT, id: generateId() };
     setDependents((current) => [...current, newDependent]);
-    setEditingId("");
+    setEditingId(newDependent.id);
   }, []);
 
   const navigate = useNavigate();
@@ -204,9 +208,10 @@ export function DependentsForm() {
           firstName: dependent.firstName,
           middleName: dependent.middleName || undefined,
           lastName: dependent.lastName,
-          dateOfBirth: dependent.dob
-            ? new Date(dependent.dob).toISOString().slice(0, 10)
-            : undefined,
+          // dob is already a yyyy-mm-dd string; sending it raw avoids the
+          // new Date(...).toISOString() UTC round-trip that shifted the day by
+          // one in negative-UTC timezones.
+          dateOfBirth: dependent.dob || undefined,
           gender: dependent.gender,
           nationality: dependent.nationality || undefined,
           nationalId: dependent.nationalId || undefined,
@@ -221,7 +226,8 @@ export function DependentsForm() {
           country: dependent.country || undefined,
         } as any;
 
-        if (dependent.id) {
+        // Numeric id ⇒ persisted record (update); non-numeric client id ⇒ new draft (create).
+        if (/^\d+$/.test(dependent.id)) {
           await dependentService.update(empId, Number(dependent.id), payload);
           toast.success("Dependent updated");
         } else {
@@ -645,7 +651,7 @@ export function DependentsForm() {
                     <FormRow columns={1}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
-                          Address Line 1 <span className="text-red-500">*</span>
+                          Address Line 1
                         </Label>
                         <Input
                           value={dependent.address}
@@ -656,7 +662,6 @@ export function DependentsForm() {
                           }
                           className="rounded-lg border-slate-300"
                           placeholder="Enter address line 1"
-                          required
                         />
                       </div>
                     </FormRow>
@@ -682,7 +687,7 @@ export function DependentsForm() {
                     <FormRow columns={2}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
-                          City <span className="text-red-500">*</span>
+                          City
                         </Label>
                         <Input
                           value={dependent.city}
@@ -693,7 +698,6 @@ export function DependentsForm() {
                           }
                           className="rounded-lg border-slate-300"
                           placeholder="Enter city"
-                          required
                         />
                       </div>
 
@@ -736,7 +740,7 @@ export function DependentsForm() {
 
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
-                          Country <span className="text-red-500">*</span>
+                          Country
                         </Label>
                         <CountrySelect
                           value={dependent.country}

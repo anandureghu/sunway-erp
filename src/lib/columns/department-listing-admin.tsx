@@ -147,7 +147,7 @@ export const getDepartmentColumns = ({
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onViewDivision(item)}>
                   <Eye className="mr-2 h-4 w-4" />
-                  View
+                  View details
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditDivision(item.division!)}>
                   <Pencil className="mr-2 h-4 w-4" />
@@ -180,7 +180,7 @@ export const getDepartmentColumns = ({
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onViewDepartment(item)}>
                   <Eye className="mr-2 h-4 w-4" />
-                  View
+                  View details
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditDepartment(item.department!)}>
                   <Pencil className="mr-2 h-4 w-4" />

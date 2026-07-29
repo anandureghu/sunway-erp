@@ -334,10 +334,15 @@ export default function CurrentJobForm() {
           : await jobCodeService.getActive();
         if (mounted) setJobCodes(codes || []);
       } catch (error: any) {
-        // A user without job-code read access still gets the form — it falls
-        // back to a free-text job-code entry. Don't alarm them with an error.
-        console.error("Error loading job codes:", error);
-        if (mounted) setJobCodes([]);
+        // Fall back to the plain active list so the dropdown never ends up empty
+        // (e.g. if the /assignable route isn't available yet). Don't alarm the user.
+        console.error("Error loading assignable job codes:", error);
+        try {
+          const fallback = await jobCodeService.getActive();
+          if (mounted) setJobCodes(fallback || []);
+        } catch {
+          if (mounted) setJobCodes([]);
+        }
       } finally {
         if (mounted) setLoadingJobCodes(false);
       }
@@ -620,11 +625,26 @@ export default function CurrentJobForm() {
                     <SelectValue placeholder="Select job code" />
                   </SelectTrigger>
                   <SelectContent>
-                    {jobCodes.map((jc) => (
-                      <SelectItem key={jc.id} value={jc.code}>
-                        {jc.code} — {jc.title}
-                      </SelectItem>
-                    ))}
+                    {jobCodes.map((jc) => {
+                      // Held by another still-employed person → visible but not pickable.
+                      // Never disable the value already selected on this form.
+                      const taken =
+                        jc.assignable === false && jc.code !== formData.jobCode;
+                      return (
+                        <SelectItem
+                          key={jc.id}
+                          value={jc.code}
+                          disabled={taken}
+                        >
+                          <span className={taken ? "text-muted-foreground" : ""}>
+                            {jc.code} — {jc.title}
+                            {taken && jc.assignedTo
+                              ? ` · assigned to ${jc.assignedTo}`
+                              : ""}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -930,7 +950,7 @@ export default function CurrentJobForm() {
             label="Contract Dates"
             accent="from-rose-500 to-orange-500"
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field
               label="Contract Start Date"
               required

@@ -9,6 +9,9 @@ export interface JobCode {
   minSalary?: number | null;
   maxSalary?: number | null;
   active: boolean;
+  /** From /assignable: false when held by another active employee (see `assignedTo`). */
+  assignable?: boolean;
+  assignedTo?: string | null;
 }
 
 export interface JobCodePayload {

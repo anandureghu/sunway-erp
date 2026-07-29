@@ -1087,7 +1087,8 @@ export default function SalaryForm() {
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Pulled from the timesheet. Days with less than 6 hours are not counted.
+                  Pulled from the timesheet. Days below the company's standard
+                  working hours are not counted.
                 </p>
               </div>
             </div>

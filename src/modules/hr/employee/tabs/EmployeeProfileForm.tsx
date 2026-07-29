@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import roleService from "@/service/roleService";
 import { cn } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import CountrySelect from "@/components/country-select";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { ProfileCtx } from "./ProfileShell";
@@ -234,7 +235,7 @@ export default function EmployeeProfileForm() {
   const [draft, setDraft] = useState<EmpProfile>(NEW_EMP);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageHover, setImageHover] = useState(false);
-  const [, setPendingFile] = useState<File | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [companyRoleOptions, setCompanyRoleOptions] = useState<
     { label: string; value: number; id: number }[]
   >([]);
@@ -308,7 +309,12 @@ export default function EmployeeProfileForm() {
         maritalStatus: updated.maritalStatus || null,
         dateOfBirth: updated.dateOfBirth || null,
         joinDate: updated.joinDate || null,
-        imageUrl: updated.photoUrl || null,
+        // Never persist a local data-URL preview; a real photo is uploaded
+        // separately (immediately for existing employees, post-create for new).
+        imageUrl:
+          updated.photoUrl && !updated.photoUrl.startsWith("data:")
+            ? updated.photoUrl
+            : null,
         birthplace: updated.birthplace || null,
         hometown: updated.hometown || null,
         nationality: updated.nationality || null,
@@ -348,7 +354,7 @@ export default function EmployeeProfileForm() {
     }
 
     try {
-      await persistChanges(draft);
+      const createdResult = await persistChanges(draft);
 
       let next = draft;
       if (id) {
@@ -358,6 +364,23 @@ export default function EmployeeProfileForm() {
           if (fresh) next = mapEmployeeToProfile(fresh);
         } catch {
           /* keep local draft if refetch fails */
+        }
+      } else if (createdResult?.id && pendingFile) {
+        // The employee now exists — upload the previewed photo against its id.
+        try {
+          const url = await uploadImage(pendingFile, Number(createdResult.id));
+          next = { ...draft, photoUrl: url };
+          setPendingFile(null);
+        } catch (err) {
+          console.error("Post-create photo upload failed", err);
+          toast.error(
+            getApiErrorMessage(
+              err,
+              "Employee created, but the photo upload failed. You can re-upload it from the profile.",
+            ),
+          );
+          // Drop the local preview so we don't keep showing an unsaved data URL.
+          next = { ...draft, photoUrl: "" };
         }
       }
 
@@ -391,22 +414,25 @@ export default function EmployeeProfileForm() {
     return () => registerHandlers(null);
   }, [saved, handleSave, handleCancel, registerHandlers]);
 
+  // Uploads to the server and returns the persisted public URL. Errors are
+  // propagated to the caller so we never report success on a failed upload.
   const uploadImage = async (
     file: File,
-    employeeId?: number,
+    employeeId: number,
   ): Promise<string> => {
-    try {
-      const { hrService } = await import("@/service/hr.service");
-      if (employeeId) return hrService.uploadImage(employeeId, file);
-    } catch {
-      toast.error("Failed to upload image. Please try again.");
-    }
-    return new Promise((resolve) => {
+    const { hrService } = await import("@/service/hr.service");
+    return hrService.uploadImage(employeeId, file);
+  };
+
+  // Reads a file into a data URL purely for a local preview (used before a new
+  // employee exists and therefore has no id to upload against yet).
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(file);
     });
-  };
 
   const statusMeta = getStatusMeta(draft.status);
   const initials = getInitials(draft.firstName, draft.lastName);
@@ -417,67 +443,67 @@ export default function EmployeeProfileForm() {
 
   return (
     <div className="bg-slate-50/60 min-h-screen space-y-5">
-      {/* ── Hero header card ── */}
-      <div className="overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm">
-        {/* Gradient banner */}
-
-        {/* Profile row — avatar overlaps banner, name sits safely below */}
-        <div className="px-6 py-3 flex items-center gap-4 bg-linear-to-br from-violet-500 to-blue-600">
-          {/* Avatar — pulled up to overlap the banner */}
-          <div className="relative shrink-0 mb-3 w-fit">
-            <div
-              className={cn(
-                "relative h-24 w-24 overflow-hidden rounded-2xl border-4 border-white shadow-lg",
-                editing && "cursor-pointer",
-              )}
-              onMouseEnter={() => editing && setImageHover(true)}
-              onMouseLeave={() => setImageHover(false)}
-              onClick={() => {
-                if (editing) fileInputRef.current?.click();
-              }}
-            >
-              {draft.photoUrl ? (
-                <img
-                  src={draft.photoUrl}
-                  alt="Profile"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-white text-2xl font-bold select-none">
-                  {initials}
-                </div>
-              )}
-              {/* Camera overlay only while editing */}
+      {/* ── Header card — matches the SecondaryPageHeader used on the other tabs
+             (white card + gradient top strip + icon/title + actions). ── */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-600" />
+        <div className="flex items-center justify-between gap-4 px-6 py-5">
+          <div className="flex items-center gap-4">
+            {/* Avatar (photo upload) */}
+            <div className="relative shrink-0">
+              <div
+                className={cn(
+                  "relative h-16 w-16 overflow-hidden rounded-xl border-2 border-slate-200 shadow-sm",
+                  editing && "cursor-pointer",
+                )}
+                onMouseEnter={() => editing && setImageHover(true)}
+                onMouseLeave={() => setImageHover(false)}
+                onClick={() => {
+                  if (editing) fileInputRef.current?.click();
+                }}
+              >
+                {draft.photoUrl ? (
+                  <img
+                    src={draft.photoUrl}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xl font-bold select-none">
+                    {initials}
+                  </div>
+                )}
+                {/* Camera overlay only while editing */}
+                {editing && (
+                  <div
+                    className={cn(
+                      "absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200",
+                      imageHover ? "opacity-100" : "opacity-0",
+                    )}
+                  >
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
+                )}
+              </div>
+              {/* Upload button only while editing */}
               {editing && (
-                <div
-                  className={cn(
-                    "absolute inset-0 flex items-center justify-center bg-black/50 transition-opacity duration-200",
-                    imageHover ? "opacity-100" : "opacity-0",
-                  )}
+                <button
+                  type="button"
+                  aria-label="Upload profile photo"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md hover:shadow-lg transition-shadow"
                 >
-                  <Camera className="h-5 w-5 text-white" />
-                </div>
+                  <Upload className="h-3.5 w-3.5" />
+                </button>
               )}
             </div>
-            {/* Upload button only while editing */}
-            {editing && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white shadow-md hover:shadow-lg transition-shadow"
-              >
-                <Upload className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
 
-          {/* Name + meta — always below the banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Name + meta */}
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-slate-50 leading-tight truncate">
+              <h1 className="text-lg font-bold leading-tight text-slate-900 truncate">
                 {fullName || "New Employee"}
-              </h2>
-              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
                 {draft.employeeNo ? (
                   <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-mono font-medium text-slate-600">
                     <Hash className="h-3 w-3" />
@@ -499,20 +525,18 @@ export default function EmployeeProfileForm() {
                 )}
               </div>
             </div>
-
-            {/* Status badge */}
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
-                statusMeta.badge,
-              )}
-            >
-              <span
-                className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)}
-              />
-              {draft.status || "Active"}
-            </span>
           </div>
+
+          {/* Status badge */}
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
+              statusMeta.badge,
+            )}
+          >
+            <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
+            {draft.status || "Active"}
+          </span>
         </div>
       </div>
 
@@ -764,15 +788,35 @@ export default function EmployeeProfileForm() {
           // Only allow changing the photo while the form is in edit mode.
           if (file && editing) {
             if (id) {
-              const url = await uploadImage(file, Number(id));
-              set("photoUrl", url);
-              setSaved((prev) => ({ ...prev, photoUrl: url }));
-              toast.success("Photo uploaded successfully!");
+              // Existing employee: upload immediately. On failure, surface the
+              // error and leave the current photo untouched (no false success,
+              // no base64 blob stored).
+              try {
+                const url = await uploadImage(file, Number(id));
+                set("photoUrl", url);
+                setSaved((prev) => ({ ...prev, photoUrl: url }));
+                toast.success("Photo uploaded successfully!");
+              } catch (err) {
+                console.error("Photo upload failed", err);
+                toast.error(
+                  getApiErrorMessage(
+                    err,
+                    "Failed to upload image. Please try again.",
+                  ),
+                );
+              }
             } else {
-              setPendingFile(file);
-              const url = await uploadImage(file);
-              set("photoUrl", url);
-              toast.success("Photo selected successfully!");
+              // New employee: no id to upload against yet. Keep the file and
+              // show a local preview; the real upload runs after create.
+              try {
+                const preview = await readFileAsDataUrl(file);
+                setPendingFile(file);
+                set("photoUrl", preview);
+                toast.success("Photo selected successfully!");
+              } catch (err) {
+                console.error("Failed to read image for preview", err);
+                toast.error("Failed to read the selected image.");
+              }
             }
           }
           // Allow re-selecting the same file to fire onChange again.

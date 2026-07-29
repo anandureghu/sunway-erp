@@ -133,33 +133,34 @@ export default function CurrentJobTab() {
 
   return (
     <div className="space-y-6">
-      {/* ROW 1: Job identity */}
+      {/* ROW 1: Job identity — read-only here; change it via the Current Job form.
+          This tab only persists effective dates and work locations. */}
       <Row>
-        <Field label="Job Code *">
-          <Input value={form.jobCode} onChange={onChange("jobCode")} disabled={!editing} />
+        <Field label="Job Code">
+          <Input value={form.jobCode} disabled readOnly />
         </Field>
 
-        <Field label="Job Title *">
-          <Input value={form.jobTitle} onChange={onChange("jobTitle")} disabled={!editing} />
+        <Field label="Job Title">
+          <Input value={form.jobTitle} disabled readOnly />
         </Field>
 
         <Field label="Job Level">
-          <Input value={form.jobLevel} onChange={onChange("jobLevel")} disabled={!editing} />
+          <Input value={form.jobLevel} disabled readOnly />
         </Field>
       </Row>
 
-      {/* ROW 2: Department */}
+      {/* ROW 2: Department — read-only (see note above) */}
       <Row>
-        <Field label="Department Code *">
-          <Input value={form.departmentCode} onChange={onChange("departmentCode")} disabled={!editing} />
+        <Field label="Department Code">
+          <Input value={form.departmentCode} disabled readOnly />
         </Field>
 
         <Field label="Department Name">
-          <Input value={form.departmentName} onChange={onChange("departmentName")} disabled={!editing} />
+          <Input value={form.departmentName} disabled readOnly />
         </Field>
 
         <Field label="Salary Grade">
-          <Input value={form.salaryGrade} onChange={onChange("salaryGrade")} disabled={!editing} />
+          <Input value={form.salaryGrade} disabled readOnly />
         </Field>
       </Row>
 

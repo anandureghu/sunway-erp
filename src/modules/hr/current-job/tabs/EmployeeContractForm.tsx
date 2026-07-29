@@ -89,6 +89,7 @@ interface ValidationErrors {
 /** Read-only, normalized view of the employee's current job for this form. */
 interface LinkedJobInfo {
   jobCode: string;
+  jobTitle: string;
   departmentName: string;
   startDate: string;
   workLocation: string;
@@ -104,6 +105,7 @@ function normalizeLinkedJob(raw: any): LinkedJobInfo | null {
   if (!raw) return null;
   return {
     jobCode: raw.job?.code ?? raw.jobCode ?? "",
+    jobTitle: raw.job?.title ?? raw.jobTitle ?? raw.designation ?? "",
     departmentName: raw.department?.name ?? raw.departmentName ?? "",
     startDate: raw.startDate ?? "",
     workLocation: raw.workLocation ?? "",
@@ -676,6 +678,14 @@ export default function EmployeeContractForm() {
     () => ({
       contractCode: formData.contractCode,
       staffName: formData.staffName,
+      jobTitle: currentJob?.jobTitle ?? "",
+      workLocation: [
+        currentJob?.workLocation,
+        currentJob?.workCity,
+        currentJob?.workCountry,
+      ]
+        .filter(Boolean)
+        .join(", "),
       contractType: formData.contractType,
       status: formData.status,
       effectiveDate: formData.effectiveDate,
@@ -691,7 +701,7 @@ export default function EmployeeContractForm() {
         customName: row.customName,
       })),
     }),
-    [formData],
+    [formData, currentJob],
   );
 
   const handleDownloadPdf = () => {
@@ -843,8 +853,8 @@ export default function EmployeeContractForm() {
             />
             <ReadOnlyInfo
               icon={<Briefcase className="h-3.5 w-3.5" />}
-              label="Job Code"
-              value={currentJob?.jobCode ?? ""}
+              label="Job Title"
+              value={currentJob?.jobTitle ?? ""}
             />
             <ReadOnlyInfo
               icon={<Building2 className="h-3.5 w-3.5" />}

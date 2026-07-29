@@ -7,6 +7,7 @@ import {
   immigrationService,
   type ImmigrationExpiryItem,
 } from "@/service/immigrationService";
+import { parseLocalDate } from "@/lib/date";
 
 const WINDOWS = [
   { label: "Next 30 days", value: 30 },
@@ -99,7 +100,8 @@ export default function ImmigrationExpiryReport() {
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <div className="min-w-[900px]">
-          <div className="grid grid-cols-[1.4fr_110px_130px_1fr_120px_130px_100px] gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <div className="grid grid-cols-[56px_1.4fr_110px_130px_1fr_120px_130px_100px] gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <div>Sl No.</div>
             <div>Employee Name</div>
             <div>Emp. Code</div>
             <div>Document</div>
@@ -121,7 +123,7 @@ export default function ImmigrationExpiryReport() {
               </p>
             </div>
           ) : (
-            items.map((it) => {
+            items.map((it, i) => {
               const expired = it.status === "EXPIRED" || it.daysRemaining < 0;
               return (
                 <Link
@@ -131,8 +133,11 @@ export default function ImmigrationExpiryReport() {
                       ? "/residence-permit"
                       : ""
                   }`}
-                  className="grid grid-cols-[1.4fr_110px_130px_1fr_120px_130px_100px] items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm last:border-0 hover:bg-slate-50"
+                  className="grid grid-cols-[56px_1.4fr_110px_130px_1fr_120px_130px_100px] items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm last:border-0 hover:bg-slate-50"
                 >
+                  <div className="text-xs tabular-nums text-slate-500">
+                    {i + 1}
+                  </div>
                   <div className="truncate font-medium text-slate-800">
                     {it.employeeName || "—"}
                   </div>
@@ -154,7 +159,13 @@ export default function ImmigrationExpiryReport() {
                   <div className="truncate font-mono text-xs text-slate-600">
                     {it.documentNumber}
                   </div>
-                  <div className="text-xs text-slate-600">{it.expiryDate}</div>
+                  <div className="text-xs text-slate-600">
+                    {parseLocalDate(it.expiryDate)?.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }) ?? it.expiryDate}
+                  </div>
                   <div>
                     <span
                       className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusBadge(it)}`}

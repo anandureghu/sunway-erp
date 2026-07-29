@@ -18,6 +18,8 @@ import {
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import { cn, initialsFrom } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/api-error-message";
+import { toast } from "sonner";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtTime = (iso: string | null) => {
@@ -101,13 +103,22 @@ export default function EmployeeTimeSheets() {
   const [daily, setDaily] = useState<AttendanceHistoryItem[]>([]);
   const [dailyLoading, setDailyLoading] = useState(false);
   const [drillSummary, setDrillSummary] = useState<MonthlySummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const monthValue = `${year}-${String(month).padStart(2, "0")}`;
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       setRows(await timesheetService.getCompanyMonthlySummary(year, month));
+    } catch (err) {
+      // Distinguish a failed load from a genuinely empty month.
+      const message = getApiErrorMessage(err, "Failed to load timesheets");
+      console.error("EmployeeTimeSheets -> load failed", err);
+      setError(message);
+      setRows([]);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -129,6 +140,13 @@ export default function EmployeeTimeSheets() {
         if (!mounted) return;
         setDaily(hist);
         setDrillSummary(summary);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        console.error("EmployeeTimeSheets -> daily load failed", err);
+        setDaily([]);
+        setDrillSummary(null);
+        toast.error(getApiErrorMessage(err, "Failed to load daily attendance"));
       })
       .finally(() => {
         if (mounted) setDailyLoading(false);
@@ -247,7 +265,14 @@ export default function EmployeeTimeSheets() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[24%]" />
+                  <col className="w-[19%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[17%]" />
+                  <col className="w-[18%]" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-slate-100">
                     {["Date", "Check In", "Check Out", "Worked", "Status"].map(
@@ -373,6 +398,10 @@ export default function EmployeeTimeSheets() {
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          </div>
+        ) : error ? (
+          <div className="py-14 text-center text-sm text-rose-500">
+            {error}
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-14 text-center text-sm text-slate-400">

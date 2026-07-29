@@ -11,7 +11,6 @@ import {
   Calendar,
   TrendingUp,
   FileText,
-  CheckCircle2,
   AlertTriangle,
   Wallet,
   PencilLine,
@@ -23,12 +22,14 @@ import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { salaryService } from "@/service/salaryService";
 import { formatMoney, generateId } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { addMonths } from "@/lib/date";
 import { useParams, useOutletContext } from "react-router-dom";
 import type { LoansShellCtx } from "@/modules/hr/loans/LoansShell";
 import { loanService } from "@/service/loanService";
 import { SelectField } from "@/modules/hr/components/select-field";
+import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { LoanPayload } from "@/types/hr/loan";
 import { toast } from "sonner";
@@ -56,6 +57,11 @@ type LoansModel = {
   rejectionComment: string;
 };
 
+/** Round a monetary value to 2 decimal places, guarding against NaN/Infinity. */
+function roundMoney(n: number): number {
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+
 function validateLoan(loan: LoansModel): boolean {
   const amountOk =
     loan.loanAmount.trim() !== "" &&
@@ -68,7 +74,11 @@ function validateLoan(loan: LoansModel): boolean {
     Number.isInteger(periodNum) &&
     periodNum > 0;
   const dateOk = loan.startDate.trim() !== "";
-  const endDateOk = loan.endDate.trim() !== "";
+  // End date is auto-derived from start + period, but guard against a manual
+  // edit that puts it on/before the start (both are yyyy-mm-dd, so string
+  // comparison is chronological).
+  const endDateOk =
+    loan.endDate.trim() !== "" && loan.endDate > loan.startDate;
   return amountOk && typeOk && periodOk && dateOk && endDateOk;
 }
 
@@ -119,7 +129,12 @@ export default function LoansForm(): ReactElement {
   const [basicSalary, setBasicSalary] = useState<number>(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
-  const [, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<{
+    id: number;
+    code: string;
+  } | null>(null);
+  const [rejectLoading, setRejectLoading] = useState(false);
   const [currencySymbol, setCurrencySymbol] = useState("$");
 
   // One loan at a time: an employee with a persisted pending or active loan
@@ -145,8 +160,12 @@ export default function LoansForm(): ReactElement {
   const loanTypeLabel = (type?: string): string =>
     (type && loanTypeOptions.find((o) => o.value === type)?.label) ||
     humanizeLoanType(type);
+  // When basic salary is unknown (still loading, fetch failed, or genuinely
+  // unset) the 30%-of-basic affordability cap can't be evaluated, so we block
+  // the request rather than silently letting any amount through.
+  const affordabilityUnknown = basicSalary <= 0;
   const exceedsLimit = (loan: LoansModel) => {
-    if (basicSalary <= 0) return false;
+    if (affordabilityUnknown) return false;
     return (
       computeMonthly(loan.loanAmount, loan.loanPeriod) > maxMonthlyDeduction
     );
@@ -308,8 +327,10 @@ export default function LoansForm(): ReactElement {
     if (user?.companyId) {
       fetchCompany(user.companyId.toString())
         .then((company: Company) => {
-          if (company?.currency?.currencyCode) {
-            setCurrencySymbol(company.currency?.currencyCode);
+          // Prefer the actual currency symbol (e.g. "$", "د.إ") over the code.
+          const cur = company?.currency;
+          if (cur?.currencySymbol || cur?.currencyCode) {
+            setCurrencySymbol(cur.currencySymbol || cur.currencyCode);
           }
         })
         .catch((err) => {
@@ -322,10 +343,12 @@ export default function LoansForm(): ReactElement {
     (loan: LoansModel, changedField?: string) => {
       const loanAmount = Number(loan.loanAmount || 0);
       const loanPeriod = Number(loan.loanPeriod || 0);
-      const monthly = loanPeriod > 0 ? loanAmount / loanPeriod : 0;
+      const monthly = roundMoney(loanPeriod > 0 ? loanAmount / loanPeriod : 0);
       const gross = grossSalary || Number(loan.grossPay || 0);
       const deduction = monthly;
-      const net = gross - deduction;
+      // Take-home pay can never be negative; clamp so an over-large deduction
+      // surfaces as 0 rather than a nonsensical negative figure.
+      const net = roundMoney(Math.max(0, gross - deduction));
 
       let updated = {
         ...loan,
@@ -385,13 +408,32 @@ export default function LoansForm(): ReactElement {
     setEditingId(null);
   }, [editingId]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!(await confirm("Are you sure you want to delete this loan?"))) return;
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!(await confirm("Are you sure you want to delete this loan?"))) return;
 
-    setLoans((current) => current.filter((l) => l.id !== id));
-    setEditingId(null);
-    toast.success("Loan removed locally");
-  }, [confirm]);
+      // Un-persisted drafts carry a non-numeric client id and only exist in
+      // local state, so there is nothing to delete on the server.
+      if (!/^\d+$/.test(id)) {
+        setLoans((current) => current.filter((l) => l.id !== id));
+        setEditingId(null);
+        return;
+      }
+
+      if (!employeeId) return;
+
+      try {
+        await loanService.deleteLoan(employeeId, Number(id));
+        setEditingId(null);
+        await loadLoans();
+        toast.success("Loan deleted");
+      } catch (err) {
+        console.error("LoansForm -> delete failed", err);
+        toast.error(getApiErrorMessage(err, "Failed to delete loan"));
+      }
+    },
+    [confirm, employeeId, loadLoans],
+  );
 
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {
@@ -425,10 +467,10 @@ export default function LoansForm(): ReactElement {
   };
 
   const handleDecision = useCallback(
-    async (loanDbId: number, approve: boolean) => {
+    async (loanDbId: number, approve: boolean, comment?: string) => {
       if (!employeeId) return;
       try {
-        await loanService.decideLoan(employeeId, loanDbId, approve);
+        await loanService.decideLoan(employeeId, loanDbId, approve, comment);
         toast.success(approve ? "Loan approved" : "Loan rejected");
         await loadLoans();
       } catch (err: any) {
@@ -444,15 +486,28 @@ export default function LoansForm(): ReactElement {
     [employeeId, loadLoans],
   );
 
+  // Reject flows through the reason dialog so the decline reason is captured and
+  // shown to the employee (matching the dedicated LoanApprovalPanel).
+  const submitReject = useCallback(
+    async (comment: string) => {
+      if (!rejectTarget) return;
+      setRejectLoading(true);
+      try {
+        await handleDecision(rejectTarget.id, false, comment);
+      } finally {
+        setRejectLoading(false);
+        setRejectTarget(null);
+      }
+    },
+    [rejectTarget, handleDecision],
+  );
+
   const totalLoans = loans.length;
   const pendingLoans = loans.filter(
     (l) => l.loanStatus?.toUpperCase() === "PENDING_APPROVAL",
   ).length;
   const activeLoans = loans.filter(
     (l) => l.loanStatus?.toUpperCase() === "ACTIVE",
-  ).length;
-  const closedLoans = loans.filter(
-    (l) => l.loanStatus?.toUpperCase() === "CLOSED",
   ).length;
   const totalOutstanding = loans
     .filter((l) => l.loanStatus?.toUpperCase() === "ACTIVE")
@@ -487,13 +542,6 @@ export default function LoansForm(): ReactElement {
           description="Currently being deducted"
           icon={<Wallet className="h-5 w-5" />}
           color="blue"
-        />
-        <SummaryCard
-          label="Closed"
-          value={closedLoans}
-          description="Fully repaid"
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          color="emerald"
         />
         <SummaryCard
           label="Outstanding"
@@ -653,6 +701,13 @@ export default function LoansForm(): ReactElement {
                             ).
                           </p>
                         )}
+                        {affordabilityUnknown && (
+                          <p className="text-xs text-amber-600 font-medium">
+                            Basic salary is unavailable, so the 30% affordability
+                            limit can't be verified. Set the employee's salary
+                            before applying for a loan.
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -787,47 +842,31 @@ export default function LoansForm(): ReactElement {
                       Salary Breakdown
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Gross / Deduction / Net are derived from salary and loan
+                          terms and are recomputed on save — display only. */}
                       <Field
                         label="Gross Pay"
-                        disabled={false}
+                        readOnly
                         value={formatMoney(loan.grossPay, currencySymbol)}
-                        onChange={(v) =>
-                          handleSave({
-                            ...loan,
-                            grossPay: v.replace(/[^0-9.]/g, ""),
-                          })
-                        }
+                        onChange={() => {}}
                         ariaLabel="Gross Pay"
-                        required
                       />
                       <Field
                         label="Deduction Amount"
-                        disabled={false}
+                        readOnly
                         value={formatMoney(
                           loan.deductionAmount,
                           currencySymbol,
                         )}
-                        onChange={(v) =>
-                          handleSave({
-                            ...loan,
-                            deductionAmount: v.replace(/[^0-9.]/g, ""),
-                          })
-                        }
+                        onChange={() => {}}
                         ariaLabel="Deduction Amount"
-                        required
                       />
                       <Field
                         label="Net Pay"
-                        disabled={false}
+                        readOnly
                         value={formatMoney(loan.netPay, currencySymbol)}
-                        onChange={(v) =>
-                          handleSave({
-                            ...loan,
-                            netPay: v.replace(/[^0-9.]/g, ""),
-                          })
-                        }
+                        onChange={() => {}}
                         ariaLabel="Net Pay"
-                        required
                       />
                     </div>
                   </div>
@@ -841,7 +880,11 @@ export default function LoansForm(): ReactElement {
                       Cancel
                     </Button>
                     <Button
-                      disabled={!validateLoan(loan) || exceedsLimit(loan)}
+                      disabled={
+                        !validateLoan(loan) ||
+                        exceedsLimit(loan) ||
+                        affordabilityUnknown
+                      }
                       onClick={async () => {
                         handleSave(loan);
                         await persistLoan(loan);
@@ -941,9 +984,17 @@ export default function LoansForm(): ReactElement {
                             <>
                               <Button
                                 size="sm"
-                                onClick={() =>
-                                  handleDecision(Number(loan.id), true)
-                                }
+                                onClick={async () => {
+                                  if (
+                                    await confirm({
+                                      title: "Approve loan",
+                                      description: `Approve loan ${loan.loanCode}? A monthly deduction will be scheduled.`,
+                                      confirmLabel: "Approve",
+                                    })
+                                  ) {
+                                    handleDecision(Number(loan.id), true);
+                                  }
+                                }}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1"
                               >
                                 <Check className="h-4 w-4" />
@@ -953,7 +1004,10 @@ export default function LoansForm(): ReactElement {
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
-                                  handleDecision(Number(loan.id), false)
+                                  setRejectTarget({
+                                    id: Number(loan.id),
+                                    code: loan.loanCode,
+                                  })
                                 }
                                 className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
                               >
@@ -1140,7 +1194,14 @@ export default function LoansForm(): ReactElement {
           ))}
         </div>
 
-        {loans.length === 0 && (
+        {loading && loans.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center mt-6">
+            <div className="mx-auto mb-4 h-8 w-8 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin" />
+            <p className="text-slate-500">Loading loans…</p>
+          </div>
+        )}
+
+        {!loading && loans.length === 0 && (
           <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center mt-6">
             <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
               <FileText className="h-12 w-12 text-blue-600" />
@@ -1165,6 +1226,14 @@ export default function LoansForm(): ReactElement {
           </div>
         )}
       </div>
+
+      <RejectReasonDialog
+        open={rejectTarget !== null}
+        subject={rejectTarget ? `loan ${rejectTarget.code}` : undefined}
+        loading={rejectLoading}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={submitReject}
+      />
     </div>
   );
 }
@@ -1175,6 +1244,7 @@ function Field(props: {
   onChange: (v: string) => void;
   type?: string;
   disabled?: boolean;
+  readOnly?: boolean;
   ariaLabel?: string;
   required?: boolean;
 }) {
@@ -1184,6 +1254,7 @@ function Field(props: {
     onChange,
     type = "text",
     disabled,
+    readOnly,
     ariaLabel,
     required,
   } = props;
@@ -1191,16 +1262,21 @@ function Field(props: {
     <div className="space-y-2">
       <Label className="text-sm font-medium text-slate-700">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && !readOnly && <span className="text-red-500 ml-1">*</span>}
       </Label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
+        readOnly={readOnly}
         aria-label={ariaLabel}
         required={required}
-        className="rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+        className={
+          readOnly
+            ? "rounded-lg border-slate-200 bg-slate-50 text-slate-600 cursor-default focus:ring-0"
+            : "rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+        }
       />
     </div>
   );

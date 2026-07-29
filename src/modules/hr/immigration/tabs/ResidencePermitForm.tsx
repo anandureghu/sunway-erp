@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import type { ReactElement } from "react";
 import type { ImmigrationCtx } from "../ImmigrationShell";
 import { toast } from "sonner";
+import { parseLocalDate } from "@/lib/date";
 import {
   immigrationService,
   type ResidencePermitPayload,
@@ -104,6 +105,15 @@ function validateResidencePermitForm(
     errors.endDate = "End date must be after start date";
   }
   return errors;
+}
+
+/** Format a yyyy-mm-dd string as a localized date, parsed at local midnight to
+ *  avoid the UTC off-by-one that `new Date("yyyy-mm-dd")` introduces. */
+function formatLocalDate(
+  value: string,
+  opts: Intl.DateTimeFormatOptions,
+): string {
+  return parseLocalDate(value)?.toLocaleDateString("en-US", opts) ?? "";
 }
 
 export default function ResidencePermitForm(): ReactElement {
@@ -212,8 +222,11 @@ export default function ResidencePermitForm(): ReactElement {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const end = new Date(draft.endDate);
-    const days = Math.floor((end.getTime() - today.getTime()) / 86400000);
+    const end = parseLocalDate(draft.endDate);
+    if (!end) return null;
+    end.setHours(0, 0, 0, 0);
+    // Both dates are at local midnight, so round to whole days (DST-safe).
+    const days = Math.round((end.getTime() - today.getTime()) / 86400000);
 
     if (days < 0) return { status: "expired", days };
     if (days <= 30) return { status: "expiring", days };
@@ -440,7 +453,7 @@ export default function ResidencePermitForm(): ReactElement {
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/60 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-700">
                       <Calendar className="h-3.5 w-3.5" />
                       From:{" "}
-                      {new Date(draft.startDate).toLocaleDateString("en-US", {
+                      {formatLocalDate(draft.startDate, {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -451,7 +464,7 @@ export default function ResidencePermitForm(): ReactElement {
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/60 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-700">
                       <Calendar className="h-3.5 w-3.5" />
                       To:{" "}
-                      {new Date(draft.endDate).toLocaleDateString("en-US", {
+                      {formatLocalDate(draft.endDate, {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -873,21 +886,18 @@ export default function ResidencePermitForm(): ReactElement {
                 {draft.startDate && (
                   <SummaryItem
                     label="Valid From"
-                    value={new Date(draft.startDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      },
-                    )}
+                    value={formatLocalDate(draft.startDate, {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   />
                 )}
 
                 {draft.endDate && (
                   <SummaryItem
                     label="Valid Until"
-                    value={new Date(draft.endDate).toLocaleDateString("en-US", {
+                    value={formatLocalDate(draft.endDate, {
                       month: "long",
                       day: "numeric",
                       year: "numeric",

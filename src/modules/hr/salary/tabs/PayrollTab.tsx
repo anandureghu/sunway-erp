@@ -33,12 +33,14 @@ export default function PayrollTab() {
   const { user } = useAuth();
 
   const [history, setHistory] = useState<PayrollRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [currencySymbol, setCurrencySymbol] = useState("$");
   const historyPg = usePagination(history, 10);
 
   const loadPayrollHistory = useCallback(async () => {
     if (!employeeId) return;
+    setLoading(true);
     try {
       const res = await payrollService.getPayrollHistory(employeeId);
       setHistory(res?.data ?? []);
@@ -48,6 +50,8 @@ export default function PayrollTab() {
       toast.error(
         ax?.response?.data?.message ?? "Failed to load payroll history",
       );
+    } finally {
+      setLoading(false);
     }
   }, [employeeId]);
 
@@ -105,7 +109,15 @@ export default function PayrollTab() {
               </tr>
             </thead>
             <tbody>
-              {history.length === 0 && (
+              {loading && (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center">
+                    <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
+                  </td>
+                </tr>
+              )}
+
+              {!loading && history.length === 0 && (
                 <tr>
                   <td
                     colSpan={7}
@@ -179,13 +191,6 @@ export default function PayrollTab() {
           )}
         </div>
       </div>
-
-      <style>{`
-        @media print {
-          body > *:not(#payslip-print-root) { display: none !important; }
-          .no-print { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 }

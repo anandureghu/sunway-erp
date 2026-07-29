@@ -6,6 +6,7 @@ import {
 } from "@/service/timesheetService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import {
   LogIn,
   LogOut,
@@ -300,7 +301,8 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
 
 // ── NEW: MonthStats ────────────────────────────────────────────────────────────
 
-const MIN_WORKED_MINUTES_FOR_DAY = 360;
+// Fallback when the company's standard working hours aren't provided on a row.
+const DEFAULT_STANDARD_HOURS_PER_DAY = 6;
 
 function workedDayCount(entries: TimesheetEntry[]): number {
   return entries.reduce((n, e) => {
@@ -308,7 +310,11 @@ function workedDayCount(entries: TimesheetEntry[]): number {
     const mins =
       e.workedMinutes ??
       Math.floor(diffMs(e.checkInTime, e.checkOutTime) / 60000);
-    return mins >= MIN_WORKED_MINUTES_FOR_DAY ? n + 1 : n;
+    // A day counts once worked minutes reach the company's configured standard
+    // (default 6h) rather than a fixed 360-minute constant.
+    const thresholdMins =
+      (e.standardWorkingHoursPerDay ?? DEFAULT_STANDARD_HOURS_PER_DAY) * 60;
+    return mins >= thresholdMins ? n + 1 : n;
   }, 0);
 }
 
@@ -605,6 +611,7 @@ export default function TimesheetTab() {
   const [todayEntry, setTodayEntry] = useState<TimesheetEntry | null>(null);
   const [history, setHistory] = useState<TimesheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   // Only an ACTIVE employee may check in. Default true so a transient load
   // failure never wrongly blocks attendance.
@@ -643,6 +650,7 @@ export default function TimesheetTab() {
   const load = useCallback(async () => {
     if (!empId) return;
     setLoading(true);
+    setError(null);
     try {
       const [today, hist] = await Promise.all([
         timesheetService.getToday(empId),
@@ -655,6 +663,12 @@ export default function TimesheetTab() {
       } else {
         setHistory(hist);
       }
+    } catch (err) {
+      // Show the failure rather than the neutral "no records" empty state.
+      const message = getApiErrorMessage(err, "Failed to load attendance");
+      console.error("TimesheetTab -> load failed", err);
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -901,7 +915,13 @@ export default function TimesheetTab() {
       <MonthStats entries={currentMonthEntries} monthLabel={monthLabel} />
 
       {/* ── ATTENDANCE HISTORY ───────────────────────────────────────────────── */}
-      <HistoryTable entries={history} />
+      {error && history.length === 0 ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      ) : (
+        <HistoryTable entries={history} />
+      )}
     </div>
   );
 }

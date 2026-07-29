@@ -13,6 +13,8 @@ import type { PermissionModuleRow } from "@/components/permission-matrix";
 
 // ── HR ────────────────────────────────────────────────────────────────────────
 export const HR_PERMISSION_MODULES: PermissionModuleRow[] = [
+  // Overview
+  { id: "HR_DASHBOARD", label: "Dashboard", group: "Overview", description: "HR & payroll dashboard overview" },
   // People
   { id: "EMPLOYEE_PROFILE", label: "Employee Profile", group: "People", description: "Employee records, profiles & contact info" },
   { id: "CURRENT_JOB", label: "Current Job", group: "People", description: "Job assignments, designations & transfers" },
@@ -32,6 +34,8 @@ export const HR_PERMISSION_MODULES: PermissionModuleRow[] = [
 
 // ── Finance ─────────────────────────────────────────────────────────────────
 export const FINANCE_PERMISSION_MODULES: PermissionModuleRow[] = [
+  // Overview
+  { id: "FINANCE_DASHBOARD", label: "Dashboard", group: "Overview", description: "Finance dashboard overview" },
   // Accounts Receivable  (/finance/receivable)
   { id: "FINANCE_INVOICE", label: "Invoices & Credit Notes", group: "Accounts Receivable", description: "Customer invoices & credit notes" },
   // Accounts Payable  (/finance/payable)
@@ -49,6 +53,8 @@ export const FINANCE_PERMISSION_MODULES: PermissionModuleRow[] = [
 
 // ── Inventory ───────────────────────────────────────────────────────────────
 export const INVENTORY_PERMISSION_MODULES: PermissionModuleRow[] = [
+  // Overview
+  { id: "INVENTORY_DASHBOARD", label: "Dashboard", group: "Overview", description: "Inventory dashboard overview" },
   // Inventory Stocks  (/inventory/stocks)
   { id: "INVENTORY_STOCK", label: "Stock Management", group: "Inventory Stocks", description: "Stock list, levels & adjustments" },
   { id: "INVENTORY_ITEM", label: "Items", group: "Inventory Stocks", description: "Item master & item detail" },
