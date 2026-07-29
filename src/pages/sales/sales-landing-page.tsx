@@ -30,6 +30,7 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { PageHeader } from "@/components/PageHeader";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 type ActionCard = {
   title: string;
@@ -82,7 +83,7 @@ export default function SalesLandingPage() {
 
   const pendingOrders = useMemo(
     () =>
-      orders.filter((o) => {
+      excludeArchived(orders).filter((o) => {
         const status = normalizeStatus(o.status);
         return status === "quotation" || status === "confirmed";
       }).length,

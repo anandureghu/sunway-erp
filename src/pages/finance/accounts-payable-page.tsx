@@ -49,6 +49,7 @@ import {
 } from "@/components/kpi-summary-strip";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { excludeArchived } from "@/lib/exclude-archived";
 import {
   bulkArchiveHistoryRecords,
   summarizeBulkActionResult,
@@ -319,19 +320,20 @@ function PayableInvoicesTab() {
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase();
-    const unpaid = rows.filter(
+    const visible = excludeArchived(rows);
+    const unpaid = visible.filter(
       (inv) => norm(inv.status) === "UNPAID",
     ).length;
-    const paid = rows.filter((inv) => norm(inv.status) === "PAID").length;
-    const overdue = rows.filter(
+    const paid = visible.filter((inv) => norm(inv.status) === "PAID").length;
+    const overdue = visible.filter(
       (inv) => norm(inv.status) === "OVERDUE",
     ).length;
     return [
       kpiFilterItem(
         {
           label: "Total invoices",
-          value: rows.length,
-          hint: "Purchase invoices loaded",
+          value: visible.length,
+          hint: "Non-archived purchase invoices",
           accent: "sky",
           icon: FileText,
         },

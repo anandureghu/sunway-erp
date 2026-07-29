@@ -26,6 +26,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 export default function SalesOrdersPage() {
   const { confirm, confirmCancel } = useConfirmDialog();
@@ -122,29 +123,32 @@ export default function SalesOrdersPage() {
   );
 
   const activeCount = useMemo(
-    () => orders.filter((o) => !isClosedOrder(o)).length,
+    () => excludeArchived(orders).filter((o) => !isClosedOrder(o)).length,
     [orders, isClosedOrder],
   );
 
   const closedCount = useMemo(
-    () => orders.filter((o) => isClosedOrder(o) && !o.archived).length,
+    () => excludeArchived(orders).filter((o) => isClosedOrder(o)).length,
     [orders, isClosedOrder],
   );
 
   const salesOrderKpis = useMemo((): KpiSummaryStat[] => {
-    const draftCount = orders.filter((o) => o.status === "quotation").length;
-    const confirmedOrdersCount = orders.filter(
+    const activeOrders = excludeArchived(orders);
+    const draftCount = activeOrders.filter(
+      (o) => o.status === "quotation",
+    ).length;
+    const confirmedOrdersCount = activeOrders.filter(
       (o) => !isClosedOrder(o) && o.status !== "quotation",
     ).length;
-    const partiallyPaidCount = orders.filter(
+    const partiallyPaidCount = activeOrders.filter(
       (o) => normalizePaymentStatusKey(o.paymentStatus) === "PARTIALLY_PAID",
     ).length;
     return [
       kpiFilterItem(
         {
           label: "Total orders",
-          value: orders.length,
-          hint: "All sales orders in scope",
+          value: activeOrders.length,
+          hint: "Non-archived sales orders",
           accent: "sky",
           icon: Package,
         },

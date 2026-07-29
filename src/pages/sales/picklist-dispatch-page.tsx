@@ -43,6 +43,7 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 export default function PicklistDispatchPage() {
   const { confirm, confirmCancel } = useConfirmDialog();
@@ -284,13 +285,14 @@ export default function PicklistDispatchPage() {
   );
 
   const filteredPicklists = useMemo(() => {
+    const active = excludeArchived(picklists);
     if (picklistStatusFilter === "created") {
-      return picklists.filter((p) => p.status === "created");
+      return active.filter((p) => p.status === "created");
     }
     if (picklistStatusFilter === "picked") {
-      return picklists.filter((p) => p.status === "picked");
+      return active.filter((p) => p.status === "picked");
     }
-    return picklists;
+    return active;
   }, [picklists, picklistStatusFilter]);
 
   const filteredDispatches = useMemo(() => {
@@ -328,8 +330,13 @@ export default function PicklistDispatchPage() {
   }, []);
 
   const fulfillmentKpis = useMemo((): KpiSummaryStat[] => {
-    const awaitingPick = picklists.filter((p) => p.status === "created").length;
-    const pickedReady = picklists.filter((p) => p.status === "picked").length;
+    const activePicklists = excludeArchived(picklists);
+    const awaitingPick = activePicklists.filter(
+      (p) => p.status === "created",
+    ).length;
+    const pickedReady = activePicklists.filter(
+      (p) => p.status === "picked",
+    ).length;
     const shipmentsTotal = dispatches.length;
     const activeShipments = dispatches.filter(
       (d) => !["delivered", "cancelled", "failed_delivery"].includes(d.status),
@@ -338,8 +345,8 @@ export default function PicklistDispatchPage() {
       kpiFilterItem(
         {
           label: "Picklists",
-          value: picklists.length,
-          hint: "Warehouse documents",
+          value: activePicklists.length,
+          hint: "Non-archived warehouse documents",
           accent: "sky",
           icon: ClipboardList,
         },

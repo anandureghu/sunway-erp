@@ -52,6 +52,7 @@ import {
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { isGoodsReceiptFullyReceived } from "@/lib/goods-receipt-status";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
   return (
@@ -163,11 +164,14 @@ export default function InspectionPage() {
   }, [refreshData]);
 
   const pendingReceipts = useMemo(
-    () => receipts.filter((r) => r.status === "pending_inspection"),
+    () =>
+      excludeArchived(receipts).filter(
+        (r) => r.status === "pending_inspection",
+      ),
     [receipts],
   );
   const inspectedReceipts = useMemo(
-    () => receipts.filter((r) => r.status === "inspected"),
+    () => excludeArchived(receipts).filter((r) => r.status === "inspected"),
     [receipts],
   );
 
@@ -205,7 +209,7 @@ export default function InspectionPage() {
 
   // Purchase orders still needing (further) goods to be logged for inspection
   const ordersReadyForInspection = useMemo(() => {
-    let filtered = orders.filter((order) => {
+    let filtered = excludeArchived(orders).filter((order) => {
       const status = order.status?.toLowerCase();
       const isReceivableStatus =
         status === "ordered" ||
@@ -250,12 +254,13 @@ export default function InspectionPage() {
   }, []);
 
   const inspectionKpis = useMemo((): KpiSummaryStat[] => {
+    const activeReceipts = excludeArchived(receipts);
     return [
       kpiFilterItem(
         {
           label: "Goods receipts",
-          value: receipts.length,
-          hint: "Recorded against Purchase Orders",
+          value: activeReceipts.length,
+          hint: "Non-archived receipts against Purchase Orders",
           accent: "sky",
           icon: ClipboardList,
         },

@@ -31,6 +31,7 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { PageHeader } from "@/components/PageHeader";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 type ActionCard = {
   title: string;
@@ -80,7 +81,7 @@ export default function PurchaseLandingPage() {
 
   const pendingOrders = useMemo(
     () =>
-      orders.filter((o) => {
+      excludeArchived(orders).filter((o) => {
         const status = normalizeStatus(o.status);
         return status === "quotation" || status === "pending" || status === "approved";
       }).length,
@@ -89,7 +90,7 @@ export default function PurchaseLandingPage() {
 
   const receiptsToday = useMemo(() => {
     const today = new Date();
-    return allReceipts.filter((r) => {
+    return excludeArchived(allReceipts).filter((r) => {
       const d = r.receiptDate ? new Date(r.receiptDate) : null;
       return d && !Number.isNaN(d.getTime()) && isSameDay(d, today);
     }).length;
@@ -97,7 +98,7 @@ export default function PurchaseLandingPage() {
 
   const pendingInspection = useMemo(
     () =>
-      allReceipts.filter(
+      excludeArchived(allReceipts).filter(
         (r) => normalizeStatus(r.status) === "pending_inspection",
       ).length,
     [allReceipts],

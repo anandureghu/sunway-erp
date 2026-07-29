@@ -29,6 +29,7 @@ import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PurchaseOrderForm } from "./components/purchase-order-form";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 type OrderTab = "open" | "terminal";
 
@@ -113,21 +114,22 @@ export default function PurchaseOrdersPage() {
       const s = (status || "").toLowerCase();
       return s === "received" || s === "cancelled";
     };
-    const draftCount = orders.filter(
+    const activeOrders = excludeArchived(orders);
+    const draftCount = activeOrders.filter(
       (o) => (o.status || "").toLowerCase() === "draft",
     ).length;
-    const terminalCount = orders.filter(
-      (o) => terminal(o.status) && !o.archived,
+    const terminalCount = activeOrders.filter((o) =>
+      terminal(o.status),
     ).length;
-    const openCommitment = orders
+    const openCommitment = activeOrders
       .filter((o) => !terminal(o.status))
       .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     return [
       kpiFilterItem(
         {
           label: "Total Purchase Orders",
-          value: orders.length,
-          hint: "All purchase orders loaded",
+          value: activeOrders.length,
+          hint: "Non-archived purchase orders",
           accent: "sky",
           icon: ShoppingCart,
         },

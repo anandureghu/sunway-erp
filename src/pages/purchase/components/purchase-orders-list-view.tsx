@@ -79,7 +79,8 @@ export function PurchaseOrdersListView({
   };
 
   const openOrders = useMemo(
-    () => orders.filter((o) => !isTerminalOrderStatus(o.status)),
+    () =>
+      orders.filter((o) => !isTerminalOrderStatus(o.status) && !o.archived),
     [orders],
   );
   const terminalOrders = useMemo(

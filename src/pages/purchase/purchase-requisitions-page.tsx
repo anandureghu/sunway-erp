@@ -31,6 +31,7 @@ import { useModulePermission } from "@/hooks/use-module-permission";
 import { InventoryModule } from "@/lib/module-permissions";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 type RequisitionTab = "active" | "converted";
 
@@ -104,12 +105,17 @@ export default function PurchaseRequisitionsPage() {
   }, []);
 
   const requisitionKpis = useMemo((): KpiSummaryStat[] => {
-    const draft = requisitions.filter((r) => r.status === "quotation").length;
-    const rejected = requisitions.filter((r) => r.status === "rejected").length;
-    const awaitingApproval = requisitions.filter(
+    const activeRequisitions = excludeArchived(requisitions);
+    const draft = activeRequisitions.filter(
+      (r) => r.status === "quotation",
+    ).length;
+    const rejected = activeRequisitions.filter(
+      (r) => r.status === "rejected",
+    ).length;
+    const awaitingApproval = activeRequisitions.filter(
       (r) => r.status === "submitted",
     ).length;
-    const converted = requisitions.filter(
+    const converted = activeRequisitions.filter(
       (r) => r.status === "converted",
     ).length;
     return [
