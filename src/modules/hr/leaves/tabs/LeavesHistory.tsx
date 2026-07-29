@@ -728,6 +728,8 @@ export default function LeavesHistory() {
                 </div>
               </div>
               <button
+                type="button"
+                aria-label="Close"
                 onClick={() => setReturnFor(null)}
                 disabled={returnSubmitting}
                 className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"

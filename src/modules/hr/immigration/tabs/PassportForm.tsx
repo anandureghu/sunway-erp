@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import type { ReactElement } from "react";
 import type { ImmigrationCtx } from "../ImmigrationShell";
 import { toast } from "sonner";
+import { parseLocalDate } from "@/lib/date";
 import {
   immigrationService,
   type PassportPayload,
@@ -75,6 +76,15 @@ function validatePassportForm(
     errors.expireDate = "Expiration date must be after issue date";
   }
   return errors;
+}
+
+/** Format a yyyy-mm-dd string as a localized date, parsed at local midnight to
+ *  avoid the UTC off-by-one that `new Date("yyyy-mm-dd")` introduces. */
+function formatLocalDate(
+  value: string,
+  opts: Intl.DateTimeFormatOptions,
+): string {
+  return parseLocalDate(value)?.toLocaleDateString("en-US", opts) ?? "";
 }
 
 /* ================= COMPONENT ================= */
@@ -186,8 +196,11 @@ export default function PassportForm(): ReactElement {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const exp = new Date(draft.expireDate);
-    const days = Math.floor((exp.getTime() - today.getTime()) / 86400000);
+    const exp = parseLocalDate(draft.expireDate);
+    if (!exp) return null;
+    exp.setHours(0, 0, 0, 0);
+    // Both dates are at local midnight, so round to whole days (DST-safe).
+    const days = Math.round((exp.getTime() - today.getTime()) / 86400000);
 
     if (days < 0) return { status: "expired", days };
     if (days <= 180) return { status: "expiring", days };
@@ -385,7 +398,7 @@ export default function PassportForm(): ReactElement {
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/60 backdrop-blur-sm rounded-lg text-xs font-medium text-slate-700">
                       <Calendar className="h-3.5 w-3.5" />
                       Expires:{" "}
-                      {new Date(draft.expireDate).toLocaleDateString("en-US", {
+                      {formatLocalDate(draft.expireDate, {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -733,28 +746,22 @@ export default function PassportForm(): ReactElement {
                 {draft.issueDate && (
                   <SummaryItem
                     label="Issue Date"
-                    value={new Date(draft.issueDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      },
-                    )}
+                    value={formatLocalDate(draft.issueDate, {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   />
                 )}
 
                 {draft.expireDate && (
                   <SummaryItem
                     label="Expiration Date"
-                    value={new Date(draft.expireDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      },
-                    )}
+                    value={formatLocalDate(draft.expireDate, {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                     highlight={
                       validity?.status === "expiring" ||
                       validity?.status === "expired"

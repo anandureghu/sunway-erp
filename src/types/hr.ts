@@ -19,7 +19,7 @@ export type EmploymentType = "FULL_TIME" | "PART_TIME";
 
 export const EMPLOYMENT_CATEGORY_OPTIONS: { value: EmploymentCategory; label: string }[] = [
   { value: "PERMANENT", label: "Permanent" },
-  { value: "CONTRACT", label: "Contract" },
+  { value: "CONTRACT", label: "Contractor" },
   { value: "INTERN", label: "Intern" },
   { value: "CONSULTANT", label: "Consultant" },
   { value: "TEMPORARY", label: "Temporary" },
@@ -40,7 +40,7 @@ export const EMPLOYEE_STATUS_OPTIONS: { value: EmployeeStatus; label: string }[]
 ];
 
 export interface Employee {
-  userId: any;
+  userId?: number;
   id?: string;
   employeeNo?: string;
   firstName?: string;

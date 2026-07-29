@@ -70,6 +70,22 @@ async function hydrateEmployeeFromCurrentJob(emp: Employee): Promise<Employee> {
   }
 }
 
+/**
+ * Hydrate only the rows actually missing a displayed field (department,
+ * designation, employmentCategory). The backend usually supplies these, so this
+ * avoids firing a per-employee current-job fetch for every row (an N+1 on each
+ * load) while never leaving a displayed column emptier than before.
+ */
+async function hydrateEmployees(list: Employee[]): Promise<Employee[]> {
+  return Promise.all(
+    list.map((emp) =>
+      emp.department && emp.designation && emp.employmentCategory
+        ? Promise.resolve(emp)
+        : hydrateEmployeeFromCurrentJob(emp),
+    ),
+  );
+}
+
 export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -277,9 +293,7 @@ export default function EmployeesPage() {
         if (!mounted) return;
 
         if (list.length > 0) {
-          const employeesWithDepartment = await Promise.all(
-            list.map((emp) => hydrateEmployeeFromCurrentJob(emp)),
-          );
+          const employeesWithDepartment = await hydrateEmployees(list);
           setEmployees(employeesWithDepartment);
         } else {
           setEmployees(list);
@@ -313,11 +327,9 @@ export default function EmployeesPage() {
       try {
         const list = await hrService.listEmployees();
 
-        // Fetch current job data for each employee to get department + designation
+        // Fill in department/designation for rows the backend left incomplete.
         if (list.length > 0) {
-          const employeesWithDepartment = await Promise.all(
-            list.map((emp) => hydrateEmployeeFromCurrentJob(emp)),
-          );
+          const employeesWithDepartment = await hydrateEmployees(list);
           setEmployees(employeesWithDepartment);
         } else {
           setEmployees(list);

@@ -33,10 +33,11 @@ export default function JobCodeAutocomplete({
   /** Dropdown open state */
   const [open, setOpen] = useState(false);
   
-  /** Active index for keyboard navigation */
-  const activeIdx = useRef(-1);
-  
+  /** Active index for keyboard navigation (state so the highlight re-renders) */
+  const [activeIdx, setActiveIdx] = useState(-1);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   // Find selected job from value
   const selectedJob = useMemo(() => {
@@ -79,32 +80,39 @@ export default function JobCodeAutocomplete({
 
   // Reset active index when filtered results change
   useEffect(() => {
-    activeIdx.current = -1;
+    setActiveIdx(-1);
   }, [filteredJobCodes]);
+
+  // Keep the highlighted option scrolled into view during keyboard navigation.
+  useEffect(() => {
+    if (!open || activeIdx < 0) return;
+    const el = listRef.current?.children[activeIdx] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeIdx, open]);
 
   /** Handle keyboard navigation */
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       if (filteredJobCodes.length > 0) {
-        activeIdx.current = Math.min(activeIdx.current + 1, filteredJobCodes.length - 1);
+        setActiveIdx((i) => Math.min(i + 1, filteredJobCodes.length - 1));
         setOpen(true);
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (filteredJobCodes.length > 0) {
-        activeIdx.current = Math.max(activeIdx.current - 1, 0);
+        setActiveIdx((i) => Math.max(i - 1, 0));
         setOpen(true);
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (open && filteredJobCodes.length > 0) {
-        const job = filteredJobCodes[activeIdx.current >= 0 ? activeIdx.current : 0];
+        const job = filteredJobCodes[activeIdx >= 0 ? activeIdx : 0];
         selectJob(job);
       }
     } else if (e.key === "Escape") {
       setOpen(false);
-      activeIdx.current = -1;
+      setActiveIdx(-1);
     } else if (e.key === "Tab") {
       setOpen(false);
     }
@@ -114,7 +122,7 @@ export default function JobCodeAutocomplete({
   function selectJob(job: JobCode) {
     setQuery(job.title);
     setOpen(false);
-    activeIdx.current = -1;
+    setActiveIdx(-1);
     onChange(job.code, job);
   }
 
@@ -191,16 +199,16 @@ export default function JobCodeAutocomplete({
 
       {/* Dropdown Options */}
       {open && filteredJobCodes.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-md border bg-white shadow-lg">
+        <ul ref={listRef} className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-md border bg-white shadow-lg">
           {filteredJobCodes.map((job, idx) => (
             <li
               key={job.id}
               onClick={() => selectJob(job)}
-              onMouseEnter={() => activeIdx.current = idx}
+              onMouseEnter={() => setActiveIdx(idx)}
               className={cn(
                 "px-3 py-2.5 cursor-pointer border-b border-slate-100 last:border-b-0 transition-colors",
-                idx === activeIdx.current 
-                  ? "bg-blue-50" 
+                idx === activeIdx
+                  ? "bg-blue-50"
                   : "hover:bg-slate-50",
                 job.code === value && "bg-blue-100"
               )}

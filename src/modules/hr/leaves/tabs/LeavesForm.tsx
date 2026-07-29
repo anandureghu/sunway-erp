@@ -51,7 +51,11 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
 // Leave types that require a supporting document
 const REQUIRES_DOCUMENT = ["Sick Leave"];
 
-/** Count working days (Mon–Fri) between two ISO date strings. */
+// Qatar Labour Law weekend: Friday and Saturday.
+const FRIDAY = 5;
+const SATURDAY = 6;
+
+/** Count working days (excluding the Fri–Sat weekend) between two ISO date strings. */
 function countWorkingDays(start: string, end: string): number {
   const s = new Date(start);
   const e = new Date(end);
@@ -60,7 +64,7 @@ function countWorkingDays(start: string, end: string): number {
   const cur = new Date(s);
   while (cur <= e) {
     const day = cur.getDay();
-    if (day !== 0 && day !== 6) count++;
+    if (day !== FRIDAY && day !== SATURDAY) count++;
     cur.setDate(cur.getDate() + 1);
   }
   return count;
@@ -330,7 +334,13 @@ export default function LeavesForm(): ReactElement {
     }
     let mounted = true;
     leaveService
-      .previewLeave(employeeId, draft.leaveType, draft.startDate, draft.endDate)
+      .previewLeave(
+        employeeId,
+        draft.leaveType,
+        draft.startDate,
+        draft.endDate,
+        draft.includeWeekends,
+      )
       .then((res) => {
         if (!mounted) return;
         // Only render preview when the API actually succeeded — res.data is always
@@ -351,7 +361,13 @@ export default function LeavesForm(): ReactElement {
     return () => {
       mounted = false;
     };
-  }, [draft.leaveType, draft.startDate, draft.endDate, employeeId]);
+  }, [
+    draft.leaveType,
+    draft.startDate,
+    draft.endDate,
+    draft.includeWeekends,
+    employeeId,
+  ]);
 
   const patch = useCallback(
     <K extends keyof LeaveRecord>(k: K, v: LeaveRecord[K]) => {
@@ -427,6 +443,7 @@ export default function LeavesForm(): ReactElement {
           draft.leaveType,
           draft.startDate,
           draft.endDate,
+          draft.includeWeekends,
         )
         .then((res) => {
           if (res.success && res.data) {
@@ -624,6 +641,9 @@ export default function LeavesForm(): ReactElement {
           {/* Toggle */}
           <button
             type="button"
+            role="switch"
+            aria-checked={draft.includeWeekends}
+            aria-label="Include weekends in leave duration"
             disabled={!editing}
             onClick={() => patch("includeWeekends", !draft.includeWeekends)}
             className={cn(
@@ -800,12 +820,13 @@ export default function LeavesForm(): ReactElement {
           <Field label="Leave Balance">
             <div className="relative">
               <TrendingUp className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {/* Auto-calculated from the leave preview and not part of the
+                  submit payload, so it is always read-only. */}
               <Input
-                disabled={!editing}
+                disabled
                 value={draft.leaveBalance}
-                onChange={(e) => patch("leaveBalance", e.target.value)}
                 placeholder="Auto-calculated"
-                className={cn(iCls, "pl-9")}
+                className={cn(iCls, "pl-9 bg-slate-50")}
               />
             </div>
           </Field>

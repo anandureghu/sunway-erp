@@ -21,6 +21,10 @@ const DEFAULT_ACTIONS: SimpleAction[] = ["view", "create", "edit", "delete"];
  * Anything not listed falls back to full view/create/edit/delete.
  */
 const PAGE_ACTIONS: Record<string, SimpleAction[]> = {
+  // ── Dashboards (view-only) ──
+  HR_DASHBOARD: ["view"],
+  FINANCE_DASHBOARD: ["view"],
+  INVENTORY_DASHBOARD: ["view"],
   // ── HR ──
   EMPLOYEE_PROFILE: ["view", "create", "edit", "delete"],
   CURRENT_JOB: ["view", "create", "edit", "delete"],

@@ -229,11 +229,8 @@ export const getSidebarItems = async (
             image: "/assets/images/hr.svg",
             url: "/hr/dashboard",
             items: [
-              // HR Dashboard — any core HR view permission
-              ...(canView(permissions, "EMPLOYEE_PROFILE") ||
-              canView(permissions, "HR_REPORTS") ||
-              canView(permissions, "LEAVES") ||
-              canView(permissions, "PAYROLL")
+              // HR Dashboard — dedicated dashboard view permission
+              ...(canView(permissions, "HR_DASHBOARD")
                 ? [
                     {
                       title: "Dashboard",
@@ -299,10 +296,7 @@ export const getSidebarItems = async (
     ...(company.inventoryEnabled
       ? (() => {
           const inventoryItems = [
-            ...(canView(permissions, "INVENTORY_STOCK") ||
-            canView(permissions, "INVENTORY_ITEM") ||
-            canView(permissions, "INVENTORY_SALES") ||
-            canView(permissions, "INVENTORY_PURCHASE")
+            ...(canView(permissions, "INVENTORY_DASHBOARD")
               ? [
                   {
                     title: "Dashboard",
@@ -374,11 +368,8 @@ export const getSidebarItems = async (
     ...(company.financeEnabled
       ? (() => {
           const financeItems = [
-            // Finance Manager Dashboard → any finance view permission
-            ...(canView(permissions, "FINANCE_REPORTS") ||
-            canView(permissions, "FINANCE_INVOICE") ||
-            canView(permissions, "FINANCE_PAYMENT") ||
-            canView(permissions, "FINANCE_LEDGER")
+            // Finance Manager Dashboard → dedicated dashboard view permission
+            ...(canView(permissions, "FINANCE_DASHBOARD")
               ? [
                   {
                     title: "Dashboard",

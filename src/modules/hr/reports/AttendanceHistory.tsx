@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import {
   Loader2,
   Search,
@@ -15,6 +16,7 @@ import {
   type EmployeeMonthlyAttendance,
 } from "@/service/timesheetService";
 import { cn, initialsFrom } from "@/lib/utils";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 const PAGE_SIZE = 10;
 
@@ -26,6 +28,7 @@ const PAGE_SIZE = 10;
  * before archiving.
  */
 export default function AttendanceHistory() {
+  const { confirm } = useConfirmDialog();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -38,6 +41,7 @@ export default function AttendanceHistory() {
   const [totalPages, setTotalPages] = useState(1);
   const [archived, setArchived] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -60,6 +64,7 @@ export default function AttendanceHistory() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await timesheetService.getMonthlyHistoryPage(
         year,
@@ -72,6 +77,14 @@ export default function AttendanceHistory() {
       setTotalElements(res.totalElements);
       setTotalPages(Math.max(res.totalPages, 1));
       setArchived(res.archived);
+    } catch (err) {
+      // Surface load failures instead of falling through to the neutral
+      // "no attendance" empty state, which reads as "there is no data".
+      const message = getApiErrorMessage(err, "Failed to load attendance");
+      console.error("AttendanceHistory -> load failed", err);
+      setError(message);
+      setRows([]);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -92,9 +105,11 @@ export default function AttendanceHistory() {
   const handleArchive = async () => {
     if (busy) return;
     if (
-      !window.confirm(
-        `Archive ${monthLabel}? This snapshots every employee's worked days for the month.`,
-      )
+      !(await confirm({
+        title: "Archive month",
+        description: `Archive ${monthLabel}? This snapshots every employee's worked days for the month.`,
+        confirmLabel: "Archive",
+      }))
     )
       return;
     setBusy(true);
@@ -114,7 +129,14 @@ export default function AttendanceHistory() {
 
   const handleUnarchive = async () => {
     if (busy) return;
-    if (!window.confirm(`Unarchive ${monthLabel}? This removes the saved snapshot.`))
+    if (
+      !(await confirm({
+        title: "Unarchive month",
+        description: `Unarchive ${monthLabel}? This removes the saved snapshot.`,
+        confirmLabel: "Unarchive",
+        variant: "destructive",
+      }))
+    )
       return;
     setBusy(true);
     try {
@@ -195,6 +217,10 @@ export default function AttendanceHistory() {
           <div className="flex items-center justify-center h-48">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
           </div>
+        ) : error ? (
+          <div className="py-14 text-center text-sm text-rose-500">
+            {error}
+          </div>
         ) : rows.length === 0 ? (
           <div className="py-14 text-center text-sm text-slate-400">
             {codeQuery
@@ -211,7 +237,6 @@ export default function AttendanceHistory() {
                       {[
                         "Sl No.",
                         "Employee",
-                        "Department",
                         "Days Worked",
                         "Days Recorded",
                         "Total Hours",
@@ -220,7 +245,7 @@ export default function AttendanceHistory() {
                           key={h}
                           className={cn(
                             "px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500",
-                            i >= 3 ? "text-right" : "text-left",
+                            i >= 2 ? "text-right" : "text-left",
                           )}
                         >
                           {h}
@@ -249,16 +274,12 @@ export default function AttendanceHistory() {
                               <p className="font-semibold text-slate-800 truncate">
                                 {r.employeeName || "—"}
                               </p>
-                              {r.employeeNo && (
-                                <p className="text-[10px] font-mono text-slate-400 truncate">
-                                  {r.employeeNo}
-                                </p>
-                              )}
+                              <p className="text-[10px] font-mono text-slate-400 truncate">
+                                {r.employeeNo || `EMP-${r.employeeId}`}
+                                {r.department ? ` · ${r.department}` : ""}
+                              </p>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-slate-500">
-                          {r.department || "—"}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">

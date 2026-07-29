@@ -222,6 +222,8 @@ export default function HrPoliciesForm() {
                 className={`inline-flex h-5 w-9 shrink-0 rounded-full relative transition-colors ${
                   hrPolicies.requireCheckIn ? "bg-emerald-500" : "bg-slate-300"
                 }`}
+                role="switch"
+                aria-checked={hrPolicies.requireCheckIn}
                 aria-label="Toggle check-in requirement"
               >
                 <span
@@ -260,6 +262,8 @@ export default function HrPoliciesForm() {
                   ? "bg-emerald-500"
                   : "bg-slate-300"
               }`}
+              role="switch"
+              aria-checked={hrPolicies.annualLeaveAccrualEnabled}
               aria-label="Toggle annual leave accrual"
             >
               <span
@@ -352,6 +356,8 @@ export default function HrPoliciesForm() {
                   ? "bg-emerald-500"
                   : "bg-slate-300"
               }`}
+              role="switch"
+              aria-checked={hrPolicies.retirementCompensationEnabled}
               aria-label="Toggle retirement compensation"
             >
               <span
@@ -415,6 +421,8 @@ export default function HrPoliciesForm() {
               className={`inline-flex h-5 w-9 shrink-0 rounded-full relative transition-colors ${
                 hrPolicies.loanPolicyEnabled ? "bg-emerald-500" : "bg-slate-300"
               }`}
+              role="switch"
+              aria-checked={hrPolicies.loanPolicyEnabled}
               aria-label="Toggle loan eligibility policy"
             >
               <span

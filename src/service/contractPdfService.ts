@@ -1,6 +1,8 @@
 export interface ContractPdfData {
   contractCode: string;
   staffName: string;
+  jobTitle: string;
+  workLocation: string;
   contractType: string;
   status: string;
   effectiveDate: string;
@@ -35,10 +37,17 @@ function statusColor(status: string): string {
 
 function contractTypeLabel(type: string): string {
   const map: Record<string, string> = {
-    PERMANENT: "Permanent", TEMPORARY: "Temporary", CONTRACT: "Contract",
+    PERMANENT: "Permanent", TEMPORARY: "Temporary", CONTRACT: "Contractor",
     PART_TIME: "Part Time", INTERN: "Intern", CONSULTANT: "Consultant", PROBATION: "Probation",
   };
-  return map[type] ?? type;
+  return map[type] ?? (type || "—");
+}
+
+function salaryTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    MONTHLY: "Monthly", HOURLY: "Hourly", DAILY: "Daily", YEARLY: "Yearly",
+  };
+  return map[type] ?? (type || "—");
 }
 
 function buildDoc(data: ContractPdfData): string {
@@ -52,16 +61,15 @@ function buildDoc(data: ContractPdfData): string {
           <td class="td-center">${i + 1}</td>
           <td class="td-name">${r.customName}</td>
           <td class="td-amount">${parseFloat(r.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-          <td class="td-date">${fmt(r.effectiveDate)}</td>
           <td class="td-note">${r.note || "—"}</td>
         </tr>`).join("")
-    : `<tr><td colspan="5" class="td-empty">No allowances defined</td></tr>`;
+    : `<tr><td colspan="4" class="td-empty">No allowances defined</td></tr>`;
 
   const totalRow = validRows.length > 0 ? `
     <tr class="total-row">
       <td colspan="2">Total Compensation</td>
       <td>${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-      <td colspan="2"></td>
+      <td></td>
     </tr>` : "";
 
   const termsSection = data.termsAndConditions ? `
@@ -236,8 +244,13 @@ function buildDoc(data: ContractPdfData): string {
     <table class="info-table">
       <tr>
         <td><div class="info-label">Employee Name</div><div class="info-value">${data.staffName || "—"}</div></td>
+        <td><div class="info-label">Job Title</div><div class="info-value">${data.jobTitle || "—"}</div></td>
+        <td><div class="info-label">Work Location</div><div class="info-value">${data.workLocation || "—"}</div></td>
+      </tr>
+      <tr>
         <td><div class="info-label">Contract Type</div><div class="info-value">${contractTypeLabel(data.contractType)}</div></td>
-        <td><div class="info-label">Salary Rate</div><div class="info-value">${data.salaryRateType || "—"}</div></td>
+        <td><div class="info-label">Salary Type</div><div class="info-value">${salaryTypeLabel(data.salaryRateType)}</div></td>
+        <td><div class="info-label">Status</div><div class="info-value">${data.status || "—"}</div></td>
       </tr>
       <tr>
         <td><div class="info-label">Effective Date</div><div class="info-value">${fmt(data.effectiveDate)}</div></td>
@@ -261,7 +274,6 @@ function buildDoc(data: ContractPdfData): string {
           <th class="center">#</th>
           <th>Allowance / Component</th>
           <th>Amount</th>
-          <th>Effective Date</th>
           <th>Note</th>
         </tr>
       </thead>

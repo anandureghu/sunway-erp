@@ -96,7 +96,10 @@ function isWithinDays(dateStr: string | undefined, days: number): boolean {
   if (!dateStr) return false;
   const d = new Date(dateStr);
   const now = new Date();
-  return (now.getTime() - d.getTime()) / 86400000 <= days;
+  const diff = (now.getTime() - d.getTime()) / 86400000;
+  // Must be in the past (or today) and within the window — a future-dated join
+  // date has a negative diff and must not count as a recent hire.
+  return diff >= 0 && diff <= days;
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -272,6 +275,7 @@ const ALL_TAB_IDS: TabId[] = [
 type LeaveApprovalRow = {
   id: number;
   employeeName: string;
+  department?: string;
   leaveCode: string;
   leaveType: string;
   startDate: string;
@@ -328,6 +332,7 @@ type LoanApprovalRow = {
   startDate: string;
   endDate: string;
   employeeName: string;
+  department?: string;
   currencySymbol?: string;
   rejectionComment?: string;
 };
@@ -527,10 +532,13 @@ export default function HRReports() {
     () => countBy(employees, (e) => e.gender || "Unknown"),
     [employees],
   );
-  const deptData = useMemo(
-    () => countBy(employees, (e) => e.department || "Unassigned").slice(0, 8),
+  const allDeptData = useMemo(
+    () => countBy(employees, (e) => e.department || "Unassigned"),
     [employees],
   );
+  // Chart shows the top 8; the KPI count must reflect the true total.
+  const deptData = useMemo(() => allDeptData.slice(0, 8), [allDeptData]);
+  const departmentCount = allDeptData.length;
   const nationalityData = useMemo(
     () => countBy(employees, (e) => e.nationality || "Unknown").slice(0, 6),
     [employees],
@@ -562,7 +570,7 @@ export default function HRReports() {
     LOCKED: COLORS.emerald,
     MANAGER_REVIEWED: COLORS.blue,
     SELF_SUBMITTED: COLORS.amber,
-    draft: COLORS.slate,
+    DRAFT: COLORS.slate,
   };
 
   // ── leave-approval analytics ──────────────────────────────────────────────────
@@ -649,10 +657,22 @@ export default function HRReports() {
   ).length;
   // "Approvals done" = loans that were approved (active) or fully repaid (closed).
   const loanApprovalsDone = loanActiveCount + loanClosedCount;
-  const loanAmountApproved = loanApprovals
-    .filter((l) => l.status === "ACTIVE" || l.status === "CLOSED")
-    .reduce((sum, l) => sum + (Number(l.loanAmount) || 0), 0);
   const loanCurrency = loanApprovals[0]?.currencySymbol || "$";
+  // Approved-loan totals grouped by currency — summing across currencies into a
+  // single symbol would be a meaningless figure, so each is totalled separately.
+  const loanAmountApprovedByCurrency = loanApprovals
+    .filter((l) => l.status === "ACTIVE" || l.status === "CLOSED")
+    .reduce((acc, l) => {
+      const sym = l.currencySymbol || loanCurrency;
+      acc.set(sym, (acc.get(sym) ?? 0) + (Number(l.loanAmount) || 0));
+      return acc;
+    }, new Map<string, number>());
+  const loanAmountApprovedDisplay =
+    loanAmountApprovedByCurrency.size === 0
+      ? formatMoney("0", loanCurrency)
+      : [...loanAmountApprovedByCurrency.entries()]
+          .map(([sym, total]) => formatMoney(String(total), sym))
+          .join(" + ");
   const filteredLoans = useMemo(() => {
     let rows = loanApprovals;
     switch (loanStatusFilter) {
@@ -725,7 +745,21 @@ export default function HRReports() {
         actions={
           <button
             onClick={() => {
-              fetchEmployees();
+              // Refresh the data behind the active tab, not just the workforce list.
+              switch (tab) {
+                case "appraisal":
+                  fetchAppraisals();
+                  break;
+                case "leaves":
+                  fetchLeaveApprovals(leaveArchivedView);
+                  break;
+                case "loans":
+                  fetchLoanApprovals(loanArchivedView);
+                  break;
+                default:
+                  fetchEmployees();
+                  break;
+              }
             }}
             className="inline-flex items-center gap-2 rounded-lg bg-white/15 border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition"
           >
@@ -776,7 +810,7 @@ export default function HRReports() {
                   },
                   {
                     label: "Departments",
-                    value: deptData.length,
+                    value: departmentCount,
                     hint: "Active departments",
                     accent: "sky",
                     icon: Building2,
@@ -1170,7 +1204,7 @@ export default function HRReports() {
                 />
                 <StatCard
                   label="Draft"
-                  value={appraisals.filter((a) => a.status === "draft").length}
+                  value={appraisals.filter((a) => a.status === "DRAFT").length}
                   icon={UserX}
                   color="bg-gradient-to-br from-slate-400 to-slate-500"
                 />
@@ -1433,7 +1467,7 @@ export default function HRReports() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm [&_th]:px-3 [&_td]:px-3">
                     <thead>
                       <tr className="border-b border-slate-100">
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-12">
@@ -1441,6 +1475,9 @@ export default function HRReports() {
                         </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Employee
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Department
                         </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Leave Type
@@ -1500,6 +1537,9 @@ export default function HRReports() {
                                   )}
                                 </div>
                               </div>
+                            </td>
+                            <td className="py-2.5 text-slate-600">
+                              {l.department || "—"}
                             </td>
                             <td className="py-2.5 text-slate-600">
                               {l.leaveType || "—"}
@@ -1641,7 +1681,7 @@ export default function HRReports() {
                   kpiFilterItem(
                     {
                       label: "Amount Approved",
-                      value: formatMoney(String(loanAmountApproved), loanCurrency),
+                      value: loanAmountApprovedDisplay,
                       hint: "Across approved loans",
                       accent: "amber",
                       icon: TrendingUp,
@@ -1703,7 +1743,7 @@ export default function HRReports() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm [&_th]:px-3 [&_td]:px-3">
                     <thead>
                       <tr className="border-b border-slate-100">
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-12">
@@ -1711,6 +1751,9 @@ export default function HRReports() {
                         </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Employee
+                        </th>
+                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                          Department
                         </th>
                         <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
                           Loan Type
@@ -1771,6 +1814,9 @@ export default function HRReports() {
                                   )}
                                 </div>
                               </div>
+                            </td>
+                            <td className="py-2.5 text-slate-600">
+                              {l.department || "—"}
                             </td>
                             <td className="py-2.5 text-slate-600">
                               {humanizeLoan(l.loanType)}

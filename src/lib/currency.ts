@@ -19,22 +19,25 @@ export function formatCurrencyAmount({
   const value = typeof amount === "string" ? Number(amount) : amount;
   if (Number.isNaN(value)) return "—";
 
-  const normalizedCode = (currencyCode ?? "").trim().toUpperCase();
-  if (normalizedCode) {
-    try {
-      return new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: normalizedCode,
-        minimumFractionDigits,
-        maximumFractionDigits,
-      }).format(value);
-    } catch {
-      // Fallback to plain localized number if currency code is invalid.
-    }
-  }
-
-  return new Intl.NumberFormat(locale, {
+  const plain = new Intl.NumberFormat(locale, {
     minimumFractionDigits,
     maximumFractionDigits,
   }).format(value);
+
+  const raw = (currencyCode ?? "").trim();
+  if (!raw) return plain;
+
+  // A valid ISO 4217 code → let Intl render the localized currency.
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: raw.toUpperCase(),
+      minimumFractionDigits,
+      maximumFractionDigits,
+    }).format(value);
+  } catch {
+    // Not an ISO code (e.g. a "$" / "د.إ" symbol) — prefix it to the amount
+    // instead of dropping it, so the symbol is always shown.
+    return `${raw}${plain}`;
+  }
 }

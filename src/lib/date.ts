@@ -31,6 +31,28 @@ export function toIsoDate(input?: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Parse a date-only string ("YYYY-MM-DD", optionally followed by a time part)
+ * into a Date at LOCAL midnight.
+ *
+ * `new Date("2026-07-01")` parses as UTC midnight, which renders/compares as the
+ * previous calendar day in negative-UTC timezones and can shift day-of-week and
+ * day-count math. This builds the Date from the local Y/M/D parts instead.
+ * Returns null for empty or unparseable input.
+ */
+export function parseLocalDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+  if (match) {
+    const [, y, m, d] = match;
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return isNaN(date.getTime()) ? null : date;
+  }
+  // Fall back to the native parser for other formats (e.g. full ISO datetimes).
+  const fallback = new Date(value);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
 export function addMonths(dateStr: string, months: number): string {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-').map(Number);

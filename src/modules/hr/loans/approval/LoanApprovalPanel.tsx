@@ -12,14 +12,16 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatMoney } from "@/lib/utils";
+import { cn, formatMoney, initialsFrom } from "@/lib/utils";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function LoanApprovalPanel() {
   const { permissions, permissionsLoading } = useAuth();
+  const { confirm } = useConfirmDialog();
 
   const [pending, setPending] = useState<PendingLoanApproval[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,80 +173,133 @@ export default function LoanApprovalPanel() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left w-12">Sl No.</th>
-                <th className="px-4 py-3 text-left">Loan Code</th>
-                <th className="px-4 py-3 text-left">Employee</th>
-                <th className="px-4 py-3 text-left">Type</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3 text-right">Period</th>
-                <th className="px-4 py-3 text-right">Monthly</th>
-                <th className="px-4 py-3 text-left">Start</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {pageItems.map((loan, index) => {
-                const currency = loan.currencySymbol ?? loan.currencyCode ?? "";
-                const busy = decidingId === loan.id;
-                return (
-                  <tr key={loan.id} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-3 text-slate-500 tabular-nums">
-                      {pageIndex * pageSize + index + 1}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-800">
-                      {loan.loanCode}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {loan.employeeName}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {humanizeLoanType(loan.loanType)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-800 font-medium">
-                      {formatMoney(String(loan.loanAmount), currency)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-600">
-                      {loan.loanPeriod} mo
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-600">
-                      {formatMoney(String(loan.monthlyDeduction), currency)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {loan.startDate
-                        ? new Date(loan.startDate).toLocaleDateString()
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => handleDecision(loan, true)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1"
-                        >
-                          <Check className="h-4 w-4" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() => setRejectTarget(loan)}
-                          className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
-                        >
-                          <X className="h-4 w-4" />
-                          Reject
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              {total} pending request{total !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  {[
+                    "Sl No.",
+                    "Employee",
+                    "Loan Type",
+                    "Amount",
+                    "Period",
+                    "Monthly",
+                    "Start Date",
+                    "Actions",
+                  ].map((header) => (
+                    <th
+                      key={header}
+                      className={cn(
+                        "text-[10px] font-bold uppercase tracking-wider text-slate-500",
+                        header === "Sl No." && "w-12",
+                        header === "Amount" ||
+                          header === "Period" ||
+                          header === "Monthly" ||
+                          header === "Actions"
+                          ? "text-right"
+                          : "text-left",
+                      )}
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pageItems.map((loan, index) => {
+                  const currency = loan.currencySymbol ?? loan.currencyCode ?? "";
+                  const busy = decidingId === loan.id;
+                  return (
+                    <tr
+                      key={loan.id}
+                      className={cn(
+                        "border-b border-slate-100 transition-colors hover:bg-slate-50/60",
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/30",
+                      )}
+                    >
+                      <td className="text-xs tabular-nums text-slate-500">
+                        {pageIndex * pageSize + index + 1}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white text-xs font-bold shadow-sm">
+                            {initialsFrom(loan.employeeName)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-slate-800">
+                              {loan.employeeName}
+                            </p>
+                            {loan.loanCode && (
+                              <p className="whitespace-nowrap font-mono text-[11px] text-slate-400">
+                                {loan.loanCode}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
+                          {humanizeLoanType(loan.loanType)}
+                        </span>
+                      </td>
+                      <td className="text-right font-medium text-slate-800">
+                        {formatMoney(String(loan.loanAmount), currency)}
+                      </td>
+                      <td className="text-right text-slate-600">
+                        {loan.loanPeriod} mo
+                      </td>
+                      <td className="text-right text-slate-600">
+                        {formatMoney(String(loan.monthlyDeduction), currency)}
+                      </td>
+                      <td className="text-xs tabular-nums text-slate-600">
+                        {loan.startDate
+                          ? new Date(loan.startDate).toLocaleDateString()
+                          : "—"}
+                      </td>
+                      <td>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            onClick={async () => {
+                              if (
+                                await confirm({
+                                  title: "Approve loan",
+                                  description: `Approve loan ${loan.loanCode} for ${loan.employeeName}? A monthly deduction will be scheduled.`,
+                                  confirmLabel: "Approve",
+                                })
+                              ) {
+                                void handleDecision(loan, true);
+                              }
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1"
+                          >
+                            <Check className="h-4 w-4" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => setRejectTarget(loan)}
+                            className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
+                          >
+                            <X className="h-4 w-4" />
+                            Reject
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           <div className="border-t border-slate-100 px-2">
             <TablePagination
               total={total}

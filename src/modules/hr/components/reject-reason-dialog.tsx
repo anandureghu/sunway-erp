@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { X, Loader2, Ban } from "lucide-react";
 
 type Props = {
@@ -23,27 +23,51 @@ export function RejectReasonDialog({
   onConfirm,
 }: Props) {
   const [comment, setComment] = useState("");
+  const titleId = useId();
 
   // Reset the field each time the dialog is (re)opened.
   useEffect(() => {
     if (open) setComment("");
   }, [open]);
 
+  // Close on Escape while the dialog is open (unless a submit is in flight).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) onCancel();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, loading, onCancel]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      onClick={() => {
+        if (!loading) onCancel();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-2xl bg-white shadow-2xl"
+      >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50">
               <Ban className="h-4 w-4 text-rose-600" />
             </span>
-            <h3 className="text-base font-bold text-slate-800">
+            <h3 id={titleId} className="text-base font-bold text-slate-800">
               Reject request
             </h3>
           </div>
           <button
+            type="button"
+            aria-label="Close"
             onClick={onCancel}
             disabled={loading}
             className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-50"

@@ -21,6 +21,7 @@ import { propertyService } from "@/service/propertyService";
 import { toast } from "sonner";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { generateId } from "@/lib/utils";
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -130,9 +131,12 @@ export default function CompanyPropertiesForm() {
   }, [reloadFromBackend]);
 
   const handleAdd = useCallback(() => {
-    const newItem = { ...INITIAL_ITEM, id: "" };
+    // Unique client id per new row so multiple unsaved properties don't collide
+    // on an empty id. Persisted rows use numeric ids, so this non-numeric id
+    // keeps the save path on create.
+    const newItem = { ...INITIAL_ITEM, id: generateId() };
     setItems((current) => [...current, newItem]);
-    setEditingId("");
+    setEditingId(newItem.id);
   }, []);
 
   // Hoist the "Add Property" action into the shell header (shared layout with
@@ -176,7 +180,8 @@ export default function CompanyPropertiesForm() {
             item.itemStatus === "ASSIGNED" ? null : item.returnDate || null,
         };
 
-        if (item.id) {
+        // Numeric id ⇒ persisted record (update); non-numeric client id ⇒ new draft (create).
+        if (/^\d+$/.test(item.id)) {
           await propertyService.update(empId, Number(item.id), payload as any);
           toast.success("Property updated");
         } else {
