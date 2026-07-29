@@ -46,6 +46,8 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Unpaid Leave",
   "Maternity Leave",
   "Hajj Leave",
+  "Marriage Leave",
+  "Bereavement Leave",
 ];
 
 // Leave types that require a supporting document

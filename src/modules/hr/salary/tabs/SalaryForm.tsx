@@ -10,7 +10,7 @@ import { salaryService } from "@/service/salaryService";
 import type { RetirementCompensation } from "@/service/salaryService";
 import { currentJobService } from "@/service/currentJobService";
 import { timesheetService } from "@/service/timesheetService";
-import { fetchCompany } from "@/service/companyService";
+import { fetchCompany, fetchHrPolicies } from "@/service/companyService";
 import { toast } from "sonner";
 import {
   DollarSign,
@@ -28,6 +28,7 @@ import {
   CalendarDays,
   Award,
   ShieldAlert,
+  Utensils,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import type { Company } from "@/types/company";
@@ -57,6 +58,10 @@ type SalaryFormState = {
   housingType: BenefitType;
   housingAllowance: number;
   otherAllowance: number;
+  foodAllowance: number;
+  /** Still linked to HR Policies statutory defaults until edited once. */
+  housingFollowsCompanyDefault: boolean;
+  foodFollowsCompanyDefault: boolean;
   compensationStatus: string;
   effectiveFrom: string;
   effectiveTo: string;
@@ -76,6 +81,9 @@ const INITIAL_STATE: SalaryFormState = {
   housingType: "COMPANY_PROVIDED",
   housingAllowance: 0,
   otherAllowance: 0,
+  foodAllowance: 0,
+  housingFollowsCompanyDefault: true,
+  foodFollowsCompanyDefault: true,
   compensationStatus: "Active",
   effectiveFrom: "",
   effectiveTo: "",
@@ -468,9 +476,19 @@ export default function SalaryForm() {
       housingType: formData.housingType,
       housingAllowance:
         formData.housingType === "ALLOWANCE"
-          ? Number(formData.housingAllowance || 0)
+          ? formData.housingFollowsCompanyDefault
+            ? null
+            : Number(formData.housingAllowance ?? 0)
           : 0,
+      housingFollowsCompanyDefault:
+        formData.housingType === "ALLOWANCE"
+          ? formData.housingFollowsCompanyDefault
+          : true,
       otherAllowance: Number(formData.otherAllowance || 0),
+      foodAllowance: formData.foodFollowsCompanyDefault
+        ? null
+        : Number(formData.foodAllowance ?? 0),
+      foodFollowsCompanyDefault: formData.foodFollowsCompanyDefault,
       status: formData.compensationStatus,
       effectiveFrom: formData.effectiveFrom,
       effectiveTo: formData.effectiveTo,
@@ -503,8 +521,29 @@ export default function SalaryForm() {
     let mounted = true;
     salaryService
       .get(employeeId)
-      .then((res) => {
-        if (!mounted || !res.data) return;
+      .then(async (res) => {
+        if (!mounted) return;
+        if (!res.data) {
+          setExists(false);
+          // Prefill Qatar/company housing + food defaults for new compensation.
+          if (user?.companyId) {
+            try {
+              const policies = await fetchHrPolicies(user.companyId);
+              if (!mounted) return;
+              setFormData((prev) => ({
+                ...prev,
+                housingType: "ALLOWANCE",
+                housingAllowance: Number(policies.defaultHousingAllowance ?? 500),
+                foodAllowance: Number(policies.defaultFoodAllowance ?? 300),
+                housingFollowsCompanyDefault: true,
+                foodFollowsCompanyDefault: true,
+              }));
+            } catch {
+              /* keep INITIAL_STATE */
+            }
+          }
+          return;
+        }
         const api = res.data;
         setFormData(
           (prev) =>
@@ -530,6 +569,11 @@ export default function SalaryForm() {
                   : "COMPANY_PROVIDED"),
               housingAllowance: Number(api.housingAllowance ?? 0),
               otherAllowance: Number(api.otherAllowance ?? 0),
+              foodAllowance: Number(api.foodAllowance ?? 0),
+              housingFollowsCompanyDefault:
+                api.housingFollowsCompanyDefault !== false,
+              foodFollowsCompanyDefault:
+                api.foodFollowsCompanyDefault !== false,
               compensationStatus:
                 api.status ?? api.compensationStatus ?? "Active",
               effectiveFrom: api.effectiveFrom ?? "",
@@ -549,7 +593,7 @@ export default function SalaryForm() {
     return () => {
       mounted = false;
     };
-  }, [employeeId]);
+  }, [employeeId, user?.companyId]);
 
   // ── total days worked from timesheet for the selected salary month ──────────
   useEffect(() => {
@@ -600,22 +644,35 @@ export default function SalaryForm() {
         "travelAllowance",
         "otherAllowance",
         "housingAllowance",
+        "foodAllowance",
       ].includes(field)
     ) {
       const num = Number(value.replace(/[^0-9.]/g, "")) || 0;
-      setFormData((prev) => ({ ...prev, [field]: num }) as SalaryFormState);
+      setFormData((prev) => {
+        const next = { ...prev, [field]: num } as SalaryFormState;
+        // Editing housing/food once severs the company-default link.
+        if (field === "housingAllowance") {
+          next.housingFollowsCompanyDefault = false;
+        }
+        if (field === "foodAllowance") {
+          next.foodFollowsCompanyDefault = false;
+        }
+        return next;
+      });
       return;
     }
     if (["transportationType", "travelType", "housingType"].includes(field)) {
       const val = value as BenefitType;
       const reset =
         field === "housingType" && val !== "ALLOWANCE"
-          ? { housingAllowance: 0 }
-          : field === "transportationType" && val !== "ALLOWANCE"
-            ? { transportationAllowance: 0 }
-            : field === "travelType" && val !== "ALLOWANCE"
-              ? { travelAllowance: 0 }
-              : {};
+          ? { housingAllowance: 0, housingFollowsCompanyDefault: true }
+          : field === "housingType" && val === "ALLOWANCE"
+            ? { housingFollowsCompanyDefault: true }
+            : field === "transportationType" && val !== "ALLOWANCE"
+              ? { transportationAllowance: 0 }
+              : field === "travelType" && val !== "ALLOWANCE"
+                ? { travelAllowance: 0 }
+                : {};
       setFormData(
         (prev) => ({ ...prev, [field]: val, ...reset }) as SalaryFormState,
       );
@@ -634,10 +691,11 @@ export default function SalaryForm() {
   const housingAmt =
     formData.housingType === "ALLOWANCE" ? formData.housingAllowance || 0 : 0;
   const otherAmt = formData.otherAllowance || 0;
+  const foodAmt = formData.foodAllowance || 0;
 
   const totalAllowance = useMemo(
-    () => transAmt + travelAmt + housingAmt + otherAmt,
-    [transAmt, travelAmt, housingAmt, otherAmt],
+    () => transAmt + travelAmt + housingAmt + otherAmt + foodAmt,
+    [transAmt, travelAmt, housingAmt, otherAmt, foodAmt],
   );
 
   const grossPay = useMemo(
@@ -839,6 +897,58 @@ export default function SalaryForm() {
                 disabled={!editing}
                 amountError={errors.housingAllowance}
               />
+              {formData.housingType === "ALLOWANCE" &&
+                formData.housingFollowsCompanyDefault && (
+                  <p className="-mt-1 px-1 text-[11px] text-slate-400">
+                    Tracks company housing default in HR Policies until you edit
+                    this amount once.
+                  </p>
+                )}
+
+              {/* Food allowance (company statutory default when blank) */}
+              <div className="rounded-xl border border-slate-100 bg-white p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white bg-orange-500">
+                    <Utensils className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-semibold text-slate-800">
+                    Food Allowance
+                  </span>
+                  {formData.foodFollowsCompanyDefault && (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Company default
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">
+                    Allowance Amount
+                  </Label>
+                  <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
+                    <span className="flex shrink-0 items-center border-r border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-500">
+                      {currencySymbol}
+                    </span>
+                    <Input
+                      type="number"
+                      value={formData.foodAllowance || ""}
+                      onChange={(e) =>
+                        updateField("foodAllowance")(e.target.value)
+                      }
+                      placeholder="0.00"
+                      disabled={!editing}
+                      className="h-full flex-1 rounded-none border-0 pl-2.5 shadow-none focus-visible:ring-0"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  {formData.foodFollowsCompanyDefault && (
+                    <p className="text-[11px] text-slate-400">
+                      Tracks company food default in HR Policies until you edit
+                      this amount once.
+                    </p>
+                  )}
+                </div>
+              </div>
 
               {/* Other allowance inline */}
               <div className="rounded-xl border border-slate-100 bg-white p-4">

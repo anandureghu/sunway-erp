@@ -25,6 +25,12 @@ export const leavePolicyService = {
     );
   },
 
+  resetQatarDefaults(companyId: number) {
+    return apiClient.post(
+      `${BASE}/${companyId}/leave-policies/reset-qatar-defaults`,
+    );
+  },
+
   // Leave Types API
   getLeaveTypes(companyId: number) {
     return apiClient.get<LeaveTypeResponse[]>(`${BASE}/${companyId}/leave-types`);

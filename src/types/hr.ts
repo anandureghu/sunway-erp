@@ -161,7 +161,9 @@ export type LeaveType =
   | "Emergency Leave"
   | "Unpaid Leave"
   | "Maternity Leave"
-  | "Hajj Leave";
+  | "Hajj Leave"
+  | "Marriage Leave"
+  | "Bereavement Leave";
 
 export interface LeaveRecord {
   leaveCode: string;
@@ -197,6 +199,7 @@ export interface Salary {
   totalAllowance: string;
   housingType: "ALLOWANCE" | "COMPANY_PROVIDED";
   housingAllowance: string;
+  foodAllowance: string;
   payPeriodStart: string; // yyyy-mm-dd
   payPeriodEnd: string; // yyyy-mm-dd
   numberOfDaysWorked: string;

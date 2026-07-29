@@ -29,7 +29,18 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Unpaid Leave",
   "Maternity Leave",
   "Hajj Leave",
+  "Marriage Leave",
+  "Bereavement Leave",
 ];
+
+/** Prefill days when a leave type row has no saved policy yet. */
+const QATAR_LEAVE_DEFAULT_DAYS: Partial<Record<LeaveType, number>> = {
+  "Sick Leave": 7,
+  "Maternity Leave": 50,
+  "Hajj Leave": 10,
+  "Marriage Leave": 3,
+  "Bereavement Leave": 3,
+};
 
 // Dynamic roles type
 interface RoleOption {
@@ -104,6 +115,16 @@ const LEAVE_TYPE_COLORS: Record<
     text: "text-emerald-700",
     icon: "text-emerald-500",
   },
+  "Marriage Leave": {
+    bg: "bg-violet-50 border-violet-200",
+    text: "text-violet-700",
+    icon: "text-violet-500",
+  },
+  "Bereavement Leave": {
+    bg: "bg-slate-50 border-slate-200",
+    text: "text-slate-700",
+    icon: "text-slate-500",
+  },
 };
 
 // Religion-restricted leave types: only employees whose religion matches can
@@ -151,6 +172,16 @@ const LEAVE_TYPE_GENDER_CONFIG: LeaveTypeGenderConfig[] = [
   },
   {
     type: "Hajj Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Marriage Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Bereavement Leave",
     applicableGenders: ["MALE", "FEMALE", "OTHER"],
     isGenderRestricted: false,
   },
@@ -268,7 +299,9 @@ export default function LeaveCustomizationForm() {
             fullMatrix.push({
               role: role.key,
               leaveType: leaveType as LeaveType,
-              daysAllowed: existing ? existing.defaultDays : 0,
+              daysAllowed: existing
+                ? existing.defaultDays
+                : (QATAR_LEAVE_DEFAULT_DAYS[leaveType as LeaveType] ?? 0),
               includeWeekends: existing?.includeWeekends ?? false,
             });
           });
@@ -287,7 +320,8 @@ export default function LeaveCustomizationForm() {
             initialPolicies.push({
               role: role.key,
               leaveType: leaveType as LeaveType,
-              daysAllowed: 0,
+              daysAllowed:
+                QATAR_LEAVE_DEFAULT_DAYS[leaveType as LeaveType] ?? 0,
             });
           });
         });
@@ -383,6 +417,44 @@ export default function LeaveCustomizationForm() {
     } catch (error) {
       console.error("Save failed:", error);
       toast.error("Failed to save leave policies");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetQatarDefaults = async () => {
+    if (!company?.id) return;
+    setLoading(true);
+    try {
+      await leavePolicyService.resetQatarDefaults(company.id);
+      const response = await leavePolicyService.getPolicies(company.id);
+      const saved = response.data || [];
+      const fullMatrix: LeavePolicy[] = [];
+      roles.forEach((role) => {
+        leaveTypes.forEach((leaveType) => {
+          const existing = saved.find(
+            (p: LeavePolicy) =>
+              p.role === role.key && p.leaveType === leaveType,
+          );
+          fullMatrix.push({
+            role: role.key,
+            leaveType: leaveType as LeaveType,
+            daysAllowed: existing
+              ? (existing.defaultDays ?? existing.daysAllowed ?? 0)
+              : (QATAR_LEAVE_DEFAULT_DAYS[leaveType as LeaveType] ?? 0),
+            includeWeekends: existing?.includeWeekends ?? false,
+          });
+        });
+      });
+      setPolicies(fullMatrix);
+      setSavedPolicies(fullMatrix);
+      setHasChanges(false);
+      toast.success(
+        "Qatar leave defaults applied (Sick 7, Maternity 50, Hajj 10, Marriage 3, Bereavement 3)",
+      );
+    } catch (error) {
+      console.error("Reset Qatar defaults failed:", error);
+      toast.error("Failed to reset Qatar leave defaults");
     } finally {
       setLoading(false);
     }
@@ -784,6 +856,16 @@ export default function LeaveCustomizationForm() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleResetQatarDefaults}
+              disabled={loading}
+              className="h-9 gap-1.5 text-sm"
+              title="Reset Sick, Maternity, Hajj, Marriage, and Bereavement to Qatar defaults for all roles"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reset Qatar leave defaults
+            </Button>
             {hasChanges && (
               <Button
                 variant="outline"
