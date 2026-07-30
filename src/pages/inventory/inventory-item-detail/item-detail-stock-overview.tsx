@@ -75,16 +75,16 @@ export function ItemDetailStockOverview({ item }: Props) {
   ];
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <section className="space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Stock Overview</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className="text-base font-bold text-slate-900">Stock Overview</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
             Live inventory levels and warehouse placement for this SKU
           </p>
         </div>
 
-        <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white px-5 py-3 shadow-sm">
+        {/* <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-2.5">
           <div>
             <p className="text-3xl font-bold tabular-nums text-slate-900">
               {safeLocaleNumber(available)}
@@ -110,37 +110,37 @@ export function ItemDetailStockOverview({ item }: Props) {
               <span>Total</span>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
         {cards.map((card) => (
           <div
             key={card.title}
-            className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
+            className="rounded-xl border border-slate-200/80 bg-white p-3"
           >
             <div
-              className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.tone}`}
+              className={`flex h-8 w-8 items-center justify-center rounded-lg ${card.tone}`}
             >
-              <card.icon className="h-4 w-4" />
+              <card.icon className="h-3.5 w-3.5" />
             </div>
-            <p className="mt-4 text-xs font-medium uppercase tracking-wider text-slate-400">
+            <p className="mt-2.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
               {card.title}
             </p>
-            <p className="mt-1 truncate text-lg font-bold text-slate-900">
+            <p className="mt-0.5 truncate text-sm font-bold text-slate-900">
               {card.value}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">{card.hint}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{card.hint}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-3.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
             Pricing
           </p>
-          <div className="mt-3 space-y-2 text-sm">
+          <div className="mt-2 space-y-1.5 text-sm">
             <div className="flex justify-between gap-2">
               <span className="text-slate-500">Cost</span>
               <span className="font-semibold tabular-nums">
@@ -156,12 +156,12 @@ export function ItemDetailStockOverview({ item }: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-3.5">
+          <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-slate-400">
             <Calendar className="h-3.5 w-3.5" />
             Dates
           </div>
-          <div className="mt-3 space-y-2 text-sm">
+          <div className="mt-2 space-y-1.5 text-sm">
             <div className="flex justify-between gap-2">
               <span className="text-slate-500">Received</span>
               <span className="font-semibold">
@@ -177,11 +177,11 @@ export function ItemDetailStockOverview({ item }: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-3.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
             Record
           </p>
-          <div className="mt-3 space-y-2 text-sm">
+          <div className="mt-2 space-y-1.5 text-sm">
             <div className="flex justify-between gap-2">
               <span className="text-slate-500">Created</span>
               <span className="font-semibold">

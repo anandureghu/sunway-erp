@@ -37,7 +37,7 @@ export type PageHeaderProps = {
 };
 
 const backButtonClassName = cn(
-  "-ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
   "border border-white/40 bg-white shadow-md",
   "text-slate-900 hover:bg-slate-100 transition-colors",
   "[&_svg]:stroke-slate-900 [&_svg]:text-slate-900",
@@ -61,8 +61,8 @@ export function PageHeader({
           className="pointer-events-none absolute inset-0 opacity-[0.08]"
           aria-hidden
         />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 flex-1 space-y-4 flex gap-3">
+        <div className="relative flex flex-col gap-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
             {onBack ? (
               <button
                 type="button"
@@ -77,25 +77,20 @@ export function PageHeader({
                 <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
               </Link>
             ) : null}
-            {/* <Badge className="rounded-full border-0 bg-white/90 px-3 py-1 text-xs font-medium text-slate-900 shadow-sm hover:bg-white/90 sm:text-sm">
-              {badge}
-            </Badge> */}
-            <div className="flex items-center gap-2">
-              {icon && (
-                <div className="size-12 rounded-full bg-white/20 flex items-center justify-center">
-                  {icon}
-                </div>
-              )}
-              <div className="space-y-0">
-                <h1 className="text-2xl font-bold tracking-tight sm:text-2xl">
-                  {title}
-                </h1>
-                {description ? (
-                  <p className="max-w-2xl text-sm leading-relaxed text-white/80">
-                    {description}
-                  </p>
-                ) : null}
+            {icon ? (
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/20">
+                {icon}
               </div>
+            ) : null}
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="truncate text-2xl font-bold tracking-tight">
+                {title}
+              </h1>
+              {description ? (
+                <p className="max-w-2xl text-sm leading-relaxed text-white/80">
+                  {description}
+                </p>
+              ) : null}
             </div>
 
             {children}

@@ -7,11 +7,9 @@ import {
   Tag,
 } from "lucide-react";
 import {
-  formatOptionalDate,
   formatUnitLabel,
   safeLocaleQty,
 } from "./formatters";
-import { STATUS_LABELS } from "./item-detail-utils";
 
 type Props = {
   item: ItemResponseDTO;
@@ -28,9 +26,6 @@ function SpecRow({ label, value }: { label: string; value: string }) {
 
 export function ItemDetailBody({ item }: Props) {
   const unit = item.unitMeasure || "pcs";
-  const statusLabel =
-    STATUS_LABELS[item.status ?? "active"] ??
-    String(item.status ?? "active").replace(/_/g, " ");
 
   const highlights = [
     item.category
@@ -74,14 +69,11 @@ export function ItemDetailBody({ item }: Props) {
     { label: "Barcode", value: item.barcode?.trim() || "—" },
     { label: "Serial no.", value: item.serialNo?.trim() || "—" },
     { label: "Bin / location", value: item.location?.trim() || "—" },
-    { label: "Date received", value: formatOptionalDate(item.dateReceived) },
-    { label: "Sale by date", value: formatOptionalDate(item.expiryDate) },
-    { label: "Status", value: statusLabel },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6">
-      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-6">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-indigo-600" />
           <h2 className="text-base font-semibold text-slate-900">
@@ -114,7 +106,7 @@ export function ItemDetailBody({ item }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
         <h2 className="text-base font-semibold text-slate-900">Technical Specs</h2>
         <div className="mt-2 flex-1">
           {specs.map((row) => (
