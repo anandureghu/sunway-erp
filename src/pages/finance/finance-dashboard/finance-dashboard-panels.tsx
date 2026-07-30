@@ -41,10 +41,10 @@ export function FinanceDashboardPanels({
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       <PendingApprovalsCard pendingApprovals={pendingApprovals} />
-      <RecentTransactionsCard
+      {/* <RecentTransactionsCard
         transactions={transactions}
         currencyCode={currencyCode}
-      />
+      /> */}
       <PaymentStatusCard paymentStatus={paymentStatus} />
       <CriticalAlertsCard alerts={alerts} currencyCode={currencyCode} />
     </div>

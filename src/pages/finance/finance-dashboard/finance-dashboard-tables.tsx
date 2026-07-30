@@ -58,7 +58,7 @@ export function FinanceDashboardTables({
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
       <DashboardSectionCard
-        title="Overdue Receivables"
+        title="Outstanding Receivables"
         viewAllTo="/finance/receivable"
         contentClassName="overflow-x-auto px-0"
       >
@@ -101,7 +101,7 @@ export function FinanceDashboardTables({
       </DashboardSectionCard>
 
       <DashboardSectionCard
-        title="Top Payables Due"
+        title="Outstanding Payables"
         viewAllTo="/finance/payable"
         contentClassName="overflow-x-auto px-0"
       >
@@ -140,7 +140,7 @@ export function FinanceDashboardTables({
       </DashboardSectionCard>
 
       <DashboardProgressListCard
-        title="Budget by Department"
+        title="Budget Allocation by Department"
         viewAllTo="/finance/ledger?tab=budget"
         emptyMessage="No department budgets."
         rows={budgets.map((row) => ({
