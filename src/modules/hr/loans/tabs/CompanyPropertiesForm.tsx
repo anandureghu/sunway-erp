@@ -331,7 +331,7 @@ export default function CompanyPropertiesForm() {
                       Property Information
                     </h3>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <FormField
                         label="Item Code"
                         required
@@ -363,7 +363,7 @@ export default function CompanyPropertiesForm() {
                       </FormField>
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <FormField
                         label="Item Status"
                         required
@@ -487,7 +487,7 @@ export default function CompanyPropertiesForm() {
                             </span>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 mt-4">
                           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
                             <p className="text-xs text-slate-600 mb-1">
                               Date Given
@@ -568,7 +568,7 @@ export default function CompanyPropertiesForm() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 bg-blue-100 rounded-lg">
@@ -616,7 +616,7 @@ export default function CompanyPropertiesForm() {
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Property Information
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                           <DetailItem
                             label="Item Code"
                             value={item.itemCode || "—"}

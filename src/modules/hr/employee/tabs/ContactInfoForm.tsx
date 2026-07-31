@@ -709,13 +709,13 @@ export default function ContactInfoForm() {
       )}
 
       {/* ── Contact Details ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <SectionHead
           icon={<Phone className="h-3.5 w-3.5" />}
           label="Contact Details"
           accent="from-violet-600 to-blue-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Email Address" required>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -766,7 +766,7 @@ export default function ContactInfoForm() {
       </div>
 
       {/* ── Addresses ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <SectionHead
           icon={<MapPin className="h-3.5 w-3.5" />}
           label="Addresses"
@@ -818,7 +818,7 @@ export default function ContactInfoForm() {
                         Address {idx + 1}
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       <Field label="Address Line 1" required>
                         <Input
                           value={address.line1}
@@ -932,7 +932,7 @@ export default function ContactInfoForm() {
                         </span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4">
                       {[
                         { label: "Line 1", value: address.line1 },
                         { label: "Line 2", value: address.line2 },
@@ -1030,7 +1030,7 @@ export default function ContactInfoForm() {
       </div>
 
       {/* ── Notes ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <SectionHead
           icon={<StickyNote className="h-3.5 w-3.5" />}
           label="Notes & Remarks"

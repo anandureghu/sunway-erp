@@ -173,7 +173,7 @@ export const EditProfileTab = ({ profile, onSaved }: Props) => {
           <CardDescription className="text-xs">Your name and contact information</CardDescription>
         </CardHeader>
         <Separator />
-        <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
+        <CardContent className="grid gap-3 pt-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {textField('First Name',   'firstName',      IdCard,   'text', 'John')}
           {textField('Last Name',    'lastName',       IdCard,   'text', 'Doe')}
           <div className="space-y-1.5">
@@ -211,7 +211,7 @@ export const EditProfileTab = ({ profile, onSaved }: Props) => {
           <CardDescription className="text-xs">Background and demographics</CardDescription>
         </CardHeader>
         <Separator />
-        <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
+        <CardContent className="grid gap-3 pt-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Gender */}
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-sm font-medium">

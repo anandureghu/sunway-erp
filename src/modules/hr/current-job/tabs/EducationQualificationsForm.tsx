@@ -314,7 +314,7 @@ export default function EducationQualificationsForm() {
                         School Information
                       </h3>
 
-                      <FormRow columns={2}>
+                      <FormRow columns={3}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             School Name <span className="text-red-500">*</span>
@@ -388,7 +388,7 @@ export default function EducationQualificationsForm() {
                         Academic Details
                       </h3>
 
-                      <FormRow columns={2}>
+                      <FormRow columns={3}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             Degree Earned{" "}
@@ -510,7 +510,7 @@ export default function EducationQualificationsForm() {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                           <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
                             <div className="flex items-center gap-3 mb-2">
                               <div className="p-2 bg-blue-100 rounded-lg">
@@ -556,7 +556,7 @@ export default function EducationQualificationsForm() {
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">
                             Academic Information
                           </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             <DetailItem
                               label="Major"
                               value={edu.major || "—"}

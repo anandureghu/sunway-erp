@@ -414,7 +414,7 @@ export default function BankForm() {
               label="Bank Information"
               accent="from-violet-600 to-blue-600"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <Field label="Bank Name" required error={errors.bankName}>
                 <div className="relative">
                   <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -468,7 +468,7 @@ export default function BankForm() {
               label="Account Details"
               accent="from-emerald-500 to-teal-600"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <Field label="Account Type" required error={errors.accountType}>
                 <div className="relative">
                   <CreditCard className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -525,7 +525,7 @@ export default function BankForm() {
               label="Bank Location"
               accent="from-amber-500 to-orange-500"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <Field label="City">
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

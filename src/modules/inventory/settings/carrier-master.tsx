@@ -296,7 +296,7 @@ export default function CarrierMaster() {
 
           <div className="overflow-y-auto bg-white px-6 py-5">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                     Carrier name *

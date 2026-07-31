@@ -253,7 +253,7 @@ export function CreatePicklistForm({
             </div>
             {selectedOrder && (
               <Card>
-                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <CardContent className="p-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Order Number</p>
                     <p className="font-medium">{selectedOrder.orderNo}</p>

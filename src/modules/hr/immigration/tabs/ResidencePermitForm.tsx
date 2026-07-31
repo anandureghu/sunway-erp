@@ -740,7 +740,7 @@ export default function ResidencePermitForm(): ReactElement {
                       <h4 className="font-bold text-slate-900 mb-2">
                         Total Validity Period
                       </h4>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.years}
