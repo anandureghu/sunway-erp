@@ -65,7 +65,6 @@ export default function FinanceDashboardPage() {
 
       <FinanceDashboardPanels
         pendingApprovals={data?.pendingApprovals ?? null}
-        transactions={data?.recentFinancialTransactions ?? []}
         paymentStatus={data?.paymentStatus ?? null}
         alerts={data?.criticalAlerts ?? []}
         currencyCode={currencyCode}

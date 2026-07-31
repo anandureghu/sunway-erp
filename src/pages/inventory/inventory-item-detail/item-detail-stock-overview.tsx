@@ -30,12 +30,6 @@ export function ItemDetailStockOverview({ item }: Props) {
   const quantity = Number(item.quantity ?? 0);
   const reserved = Number(item.reserved ?? 0);
   const reorder = Number(item.reorderLevel ?? 0);
-  const fillPct =
-    quantity > 0
-      ? Math.min(100, Math.round((available / quantity) * 100))
-      : available > 0
-        ? 100
-        : 0;
 
   const cards = [
     {

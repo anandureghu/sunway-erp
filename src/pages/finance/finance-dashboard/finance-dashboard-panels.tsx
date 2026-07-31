@@ -3,12 +3,8 @@ import type {
   FinanceDashboardAlert,
   FinanceDashboardPaymentStatus,
   FinanceDashboardPendingApprovals,
-  FinanceDashboardTransaction,
 } from "@/types/financeDashboard";
-import {
-  PendingApprovalsCard,
-  RecentTransactionsCard,
-} from "./finance-dashboard-activity";
+import { PendingApprovalsCard } from "./finance-dashboard-activity";
 import {
   CriticalAlertsCard,
   PaymentStatusCard,
@@ -16,14 +12,12 @@ import {
 
 export function FinanceDashboardPanels({
   pendingApprovals,
-  transactions,
   paymentStatus,
   alerts,
   currencyCode,
   loading,
 }: {
   pendingApprovals: FinanceDashboardPendingApprovals | null;
-  transactions: FinanceDashboardTransaction[];
   paymentStatus: FinanceDashboardPaymentStatus | null;
   alerts: FinanceDashboardAlert[];
   currencyCode?: string;
