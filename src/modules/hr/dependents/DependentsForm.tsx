@@ -407,7 +407,7 @@ export function DependentsForm() {
                       Personal Information
                     </h3>
 
-                    <FormRow columns={3}>
+                    <FormRow columns={4}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           First Name <span className="text-red-500">*</span>
@@ -467,7 +467,7 @@ export function DependentsForm() {
                       </div>
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Gender <span className="text-red-500">*</span>
@@ -561,7 +561,7 @@ export function DependentsForm() {
                       Identification
                     </h3>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           National ID
@@ -684,7 +684,7 @@ export function DependentsForm() {
                       </div>
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           City
@@ -718,7 +718,7 @@ export function DependentsForm() {
                       </div>
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Postal Code{" "}
@@ -880,7 +880,7 @@ export function DependentsForm() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 bg-blue-100 rounded-lg">
@@ -928,7 +928,7 @@ export function DependentsForm() {
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Personal Information
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                           <DetailItem
                             label="First Name"
                             value={dependent.firstName || "—"}

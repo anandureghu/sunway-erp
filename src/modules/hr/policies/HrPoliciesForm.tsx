@@ -192,7 +192,7 @@ export default function HrPoliciesForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Standard working hours / day
@@ -295,7 +295,7 @@ export default function HrPoliciesForm() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Days credited per month worked
@@ -454,7 +454,7 @@ export default function HrPoliciesForm() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Days of service before requesting a loan

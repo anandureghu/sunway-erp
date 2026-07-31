@@ -576,7 +576,7 @@ export default function LoansForm(): ReactElement {
             >
               {editingId === loan.id ? (
                 <div className="p-6 bg-gradient-to-br from-white to-slate-50">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
                     <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-white/20 rounded-lg">
@@ -628,7 +628,7 @@ export default function LoansForm(): ReactElement {
                       Loan Details
                     </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       <div>
                         <Label className="text-sm font-medium text-slate-700">
                           Loan Type <span className="text-red-500">*</span>
@@ -730,7 +730,7 @@ export default function LoansForm(): ReactElement {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
                       <Field
                         label="Start Date"
                         type="date"
@@ -841,7 +841,7 @@ export default function LoansForm(): ReactElement {
                     <h3 className="text-lg font-semibold text-slate-800 mb-4">
                       Salary Breakdown
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {/* Gross / Deduction / Net are derived from salary and loan
                           terms and are recomputed on save — display only. */}
                       <Field
@@ -956,7 +956,7 @@ export default function LoansForm(): ReactElement {
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">
                             Loan Information
                           </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             <DetailItem
                               label="Loan Type"
                               value={loanTypeLabel(loan.loanType)}
@@ -1066,7 +1066,7 @@ export default function LoansForm(): ReactElement {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <InfoCard
                           icon={DollarSign}
                           label="Loan Amount"
@@ -1098,7 +1098,7 @@ export default function LoansForm(): ReactElement {
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Loan Information
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                           <DetailItem
                             label="Loan Type"
                             value={loanTypeLabel(loan.loanType)}
@@ -1122,7 +1122,7 @@ export default function LoansForm(): ReactElement {
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Salary Breakdown
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                           <DetailItem
                             label="Gross Pay"
                             value={formatMoney(loan.grossPay, currencySymbol)}

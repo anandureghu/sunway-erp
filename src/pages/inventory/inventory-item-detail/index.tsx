@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,7 +11,7 @@ import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { getItemById } from "@/service/inventoryService";
 import { ArrowLeft, Loader2, Package } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CreateItemForm from "../item-form";
 import { ChangeItemImageDialog } from "./change-item-image-dialog";
 import { ItemDetailTabs } from "./item-detail-tabs";
@@ -77,24 +78,15 @@ export default function InventoryItemDetail() {
 
   return (
     <div className="min-h-screen bg-slate-50/80">
-      <div className="w-full space-y-5 px-4 py-5 sm:px-6 lg:py-8">
-        <div className="mx-auto flex max-w-6xl items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 rounded-lg px-2 text-slate-600 hover:text-slate-900"
-            asChild
-          >
-            <Link to="/inventory/stocks">
-              <ArrowLeft className="h-4 w-4" />
-              Stocks
-            </Link>
-          </Button>
-          <span className="text-slate-300">/</span>
-          <span className="truncate text-sm font-medium text-slate-700">
-            {item.name}
-          </span>
-        </div>
+      <div className="w-full space-y-3 p-3 sm:p-4">
+        <PageHeader
+          title={`Stocks / ${item.name}`}
+          description="View and manage this product in stock inventory"
+          variant="darkBlue"
+          icon={<Package className="h-6 w-6" />}
+          backHref="/inventory/stocks"
+          className="mb-0"
+        />
 
         <ItemDetailTabs
           item={item}

@@ -603,7 +603,7 @@ export default function CurrentJobForm() {
           label="Position Details"
           accent="from-violet-600 to-blue-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Job Code" required error={errors.jobCode}>
             {loadingJobCodes ? (
               <Input
@@ -735,7 +735,7 @@ export default function CurrentJobForm() {
           label="Department & Division"
           accent="from-emerald-500 to-teal-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Department" required error={errors.departmentCode}>
             {loadingDepartments ? (
               <Input
@@ -840,7 +840,7 @@ export default function CurrentJobForm() {
           label="Employment Classification"
           accent="from-indigo-500 to-purple-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Employment Category">
             <Select
               value={formData.employmentCategory || ""}
@@ -950,7 +950,7 @@ export default function CurrentJobForm() {
             label="Contract Dates"
             accent="from-rose-500 to-orange-500"
           />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <Field
               label="Contract Start Date"
               required
@@ -1002,7 +1002,7 @@ export default function CurrentJobForm() {
           label="Employment Dates"
           accent="from-amber-500 to-orange-500"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Start Date" required error={errors.startDate}>
             <div className="relative">
               <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1056,7 +1056,7 @@ export default function CurrentJobForm() {
           label="Work Location"
           accent="from-blue-500 to-indigo-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Work Location" required error={errors.workLocation}>
             <div className="relative">
               <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

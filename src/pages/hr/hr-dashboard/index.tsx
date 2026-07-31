@@ -7,9 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { getHrDashboard } from "@/service/hrDashboardService";
 import { LayoutDashboard } from "lucide-react";
 import { useCallback } from "react";
-import { HrDashboardCharts } from "./hr-dashboard-charts";
+import { HrDashboardAnalyticsTabs } from "./hr-dashboard-analytics-tabs";
 import { HrDashboardKpisPanel } from "./hr-dashboard-kpis";
-import { HrDashboardLists } from "./hr-dashboard-lists";
 import { HrDashboardOverview } from "./hr-dashboard-overview";
 
 export default function HrDashboardPage() {
@@ -45,21 +44,15 @@ export default function HrDashboardPage() {
 
       <HrDashboardOverview
         workforce={data?.workforceStatusToday ?? null}
-        leaveSummary={data?.leaveSummaryThisMonth ?? null}
         pendingApprovals={data?.pendingApprovals ?? null}
+        documents={data?.documentsExpiring ?? null}
         loading={loading}
       />
 
-      <HrDashboardCharts
+      <HrDashboardAnalyticsTabs
         departments={data?.employeesByDepartment ?? []}
         leaveTrend={data?.leaveTrendLast12Months ?? []}
-        loading={loading}
-      />
-
-      <HrDashboardLists
-        compliance={data?.complianceAlerts ?? null}
-        documents={data?.documentsExpiring ?? null}
-        upcomingEvents={data?.upcomingHrEvents ?? []}
+        leaveSummary={data?.leaveSummaryThisMonth ?? null}
         recentActivities={data?.recentHrActivities ?? []}
         loading={loading}
       />

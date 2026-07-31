@@ -502,7 +502,7 @@ export default function LeavesForm(): ReactElement {
       />
 
       {/* ── Balance KPI strip ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <SummaryCard
           label="Available Balance"
           value={availBal}
@@ -533,7 +533,7 @@ export default function LeavesForm(): ReactElement {
           label="Leave Details"
           accent="from-violet-600 to-blue-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Leave Type */}
           <Field label="Leave Type" required error={errors.leaveType}>
             <div className="relative">
@@ -594,7 +594,7 @@ export default function LeavesForm(): ReactElement {
           label="Leave Period"
           accent="from-emerald-500 to-teal-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Start Date" required error={errors.startDate}>
             <div className="relative">
               <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -703,7 +703,7 @@ export default function LeavesForm(): ReactElement {
           this leave.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Delegate to">
             <div className="relative">
               <UserCheck className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
@@ -807,7 +807,7 @@ export default function LeavesForm(): ReactElement {
           label="Leave Summary"
           accent="from-amber-500 to-orange-500"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Total Days">
             <div className="relative">
               <CalendarDays className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

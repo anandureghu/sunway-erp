@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/select";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { cn } from "@/lib/utils";
 
 /* ================= TYPES ================= */
 
@@ -214,23 +215,30 @@ function ReadOnlyInfo({
   icon,
   label,
   value,
+  className,
 }: {
   icon: ReactNode;
   label: string;
   value?: string;
+  className?: string;
 }) {
   const display = value && value.trim() !== "" ? value : "—";
   const isEmpty = display === "—";
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
-      <div className="mb-1 flex items-center gap-1.5">
+    <div
+      className={cn(
+        "rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-2",
+        className,
+      )}
+    >
+      <div className="mb-0.5 flex items-center gap-1">
         <span className="text-slate-400">{icon}</span>
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
           {label}
         </span>
       </div>
       <p
-        className={`truncate text-sm font-semibold ${
+        className={`truncate text-xs font-semibold ${
           isEmpty ? "text-slate-300" : "text-slate-800"
         }`}
         title={isEmpty ? undefined : display}
@@ -835,7 +843,7 @@ export default function EmployeeContractForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+          <div className="mt-3 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(140px,160px))]">
             <ReadOnlyInfo
               icon={<Hash className="h-3.5 w-3.5" />}
               label="Employee No"
@@ -876,6 +884,7 @@ export default function EmployeeContractForm() {
               ]
                 .filter(Boolean)
                 .join(", ")}
+              className="min-w-[160px] max-w-[220px]"
             />
           </div>
         </section>
@@ -891,12 +900,12 @@ export default function EmployeeContractForm() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+          <div className="mt-3 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,170px))]">
             <FormField label="Contract Code" required>
               <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Hash className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.contractCode}
                   onChange={(e) => updateField("contractCode")(e.target.value)}
@@ -906,9 +915,9 @@ export default function EmployeeContractForm() {
 
             <FormField label="Staff Name" required error={errors.staffName}>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <User className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   placeholder="Enter staff name"
                   value={formData.staffName}
@@ -929,7 +938,7 @@ export default function EmployeeContractForm() {
                 }
                 disabled={!editing}
               >
-                <SelectTrigger className="h-11 border-slate-300 rounded-xl">
+                <SelectTrigger className="h-9 rounded-lg border-slate-300">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -949,7 +958,7 @@ export default function EmployeeContractForm() {
                 }
                 disabled={!editing}
               >
-                <SelectTrigger className="h-11 border-slate-300 rounded-xl">
+                <SelectTrigger className="h-9 rounded-lg border-slate-300">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -967,10 +976,10 @@ export default function EmployeeContractForm() {
               error={errors.effectiveDate}
             >
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="date"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.effectiveDate}
                   onChange={(e) => updateField("effectiveDate")(e.target.value)}
@@ -980,10 +989,10 @@ export default function EmployeeContractForm() {
 
             <FormField label="Expiration Date">
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="date"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.expirationDate}
                   onChange={(e) =>
@@ -995,10 +1004,10 @@ export default function EmployeeContractForm() {
 
             <FormField label="Contract Period (Months)">
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Clock className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="number"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   placeholder="0"
                   value={formData.contractPeriodMonths || ""}
@@ -1011,10 +1020,10 @@ export default function EmployeeContractForm() {
 
             <FormField label="Notice Period (Days)">
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Clock className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="number"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   placeholder="30"
                   value={formData.noticePeriodDays || ""}
@@ -1031,7 +1040,7 @@ export default function EmployeeContractForm() {
                 onValueChange={(v) => updateField("salaryRateType")(v)}
                 disabled={!editing}
               >
-                <SelectTrigger className="h-11 border-slate-300 rounded-xl">
+                <SelectTrigger className="h-9 rounded-lg border-slate-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1208,13 +1217,13 @@ export default function EmployeeContractForm() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <div className="mt-3 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,170px))]">
             <FormField label="Signature Date">
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="date"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.signatureDate}
                   onChange={(e) => updateField("signatureDate")(e.target.value)}
@@ -1224,9 +1233,9 @@ export default function EmployeeContractForm() {
 
             <FormField label="Signed By">
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <User className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   placeholder="Enter signatory name"
                   value={formData.signedBy}
@@ -1235,7 +1244,7 @@ export default function EmployeeContractForm() {
               </div>
             </FormField>
 
-            <div className="md:col-span-2">
+            <div className="min-w-[280px] max-w-md [grid-column:span_2]">
               <FormField label="Attachment">
                 <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
                   <div className="p-3 bg-white rounded-xl shadow-sm">

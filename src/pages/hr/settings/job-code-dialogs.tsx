@@ -133,7 +133,7 @@ export function JobCodeFormDialog({
             iconBg="bg-emerald-50"
             title="Compensation"
           >
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div>
                 <label className={jcLabelCls}>
                   Salary grade <span className="text-rose-400">*</span>

@@ -1093,7 +1093,7 @@ export default function SalaryForm() {
               label="Status & Effective Dates"
               accent="from-emerald-500 to-teal-600"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {/* Status */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700">
@@ -1159,7 +1159,7 @@ export default function SalaryForm() {
               label="Salary Month"
               accent="from-sky-500 to-indigo-600"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <CalendarDays className="h-3.5 w-3.5 text-sky-600" />
