@@ -595,10 +595,6 @@ export function CreateSalesOrderForm({
                 <Label>Invoice Due Date *</Label>
                 <Input type="date" {...register("invoiceDueDate")} />
               </div>
-              <p className="text-sm text-muted-foreground md:col-span-2">
-                Bank and GL accounts use your company defaults from Global
-                Settings → Default Accounts.
-              </p>
               <div className="space-y-2 md:col-span-2">
                 <Label>Shipping Address</Label>
                 <Textarea
