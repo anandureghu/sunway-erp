@@ -505,7 +505,7 @@ export function createPurchaseInvoiceColumns(
     },
     {
       accessorKey: "amount",
-      header: "Total",
+      header: "Total Amount",
       cell: ({ row }) => {
         const amount = row.original.amount ?? 0;
         return <TotalAmount amount={amount} />;

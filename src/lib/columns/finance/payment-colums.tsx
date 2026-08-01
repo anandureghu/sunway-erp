@@ -81,7 +81,7 @@ export const PAYMENT_COLUMNS = ({
 
   columns.push({
     accessorKey: "amount",
-    header: "Amount",
+    header: "Payment Amount",
     cell: ({ row }) => {
       const item = row.original;
       const amt = Math.abs(Number(row.getValue("amount")) || 0);
@@ -100,19 +100,10 @@ export const PAYMENT_COLUMNS = ({
     },
   });
 
+  // Invoice settlement status only — omit invoice Total (often duplicates Payment Amount
+  // / Remainder Due on unpaid full-balance payment requests).
   if (variant !== "other") {
     columns.push(
-      {
-        id: "invoiceTotal",
-        header: "Total",
-        cell: ({ row }) => {
-          const total = row.original.invoiceTotal;
-          if (total == null) {
-            return <span className="text-muted-foreground">—</span>;
-          }
-          return <TotalAmount amount={Number(total)} />;
-        },
-      },
       {
         id: "invoicePaidAmount",
         header: "Paid Amount",

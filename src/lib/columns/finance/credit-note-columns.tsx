@@ -37,7 +37,7 @@ export const CREDIT_NOTE_COLUMNS: ColumnDef<CreditNote>[] = [
   },
   {
     accessorKey: "amount",
-    header: "Amount",
+    header: "Total Amount",
     cell: ({ row }) => <CreditAmount amount={row.original.amount} />,
   },
   {
