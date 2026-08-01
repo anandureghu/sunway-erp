@@ -22,6 +22,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { SALES_ORDER_SCHEMA, type SalesOrderFormData } from "@/schema/sales";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+import {
+  lineItemGrossAmount,
+  salesDiscountPercentLabel,
+} from "@/lib/sales-order-money";
 import { useAuth } from "@/context/AuthContext";
 import { listCustomers } from "@/service/customerService";
 import {
@@ -261,8 +265,8 @@ export function CreateSalesOrderForm({
   }, [initialOrder, isEditMode, setValue]);
 
   const totals = useMemo(() => {
-    const subtotal = orderItems.reduce(
-      (sum, item) => sum + item.total - item.tax,
+    const grossSubtotal = orderItems.reduce(
+      (sum, item) => sum + lineItemGrossAmount(item),
       0,
     );
     const tax = orderItems.reduce((sum, item) => sum + item.tax, 0);
@@ -271,7 +275,19 @@ export function CreateSalesOrderForm({
         sum + (item.unitPrice * item.quantity * item.discount) / 100,
       0,
     );
-    return { subtotal, tax, discount, total: subtotal + tax };
+    const discountPctLabel = salesDiscountPercentLabel({
+      discountAmount: discount,
+      grossSubtotal,
+      items: orderItems,
+    });
+    // Total = gross − discount + tax (same as Σ line totals)
+    return {
+      subtotal: grossSubtotal,
+      tax,
+      discount,
+      discountPctLabel,
+      total: grossSubtotal - discount + tax,
+    };
   }, [orderItems]);
 
   const effectiveSalesAccounts = useMemo(() => {
@@ -732,7 +748,7 @@ export function CreateSalesOrderForm({
                         <th className="text-left p-3 min-w-[140px]">
                           Warehouse
                         </th>
-                        <th className="text-right p-3 w-32">Line total</th>
+                        <th className="text-right p-3 w-32">Line item</th>
                         <th className="text-left p-3 w-24" />
                       </tr>
                     </thead>
@@ -816,7 +832,7 @@ export function CreateSalesOrderForm({
                             </Select>
                           </td>
                           <td className="p-3 text-right font-medium align-middle tabular-nums">
-                            <CurrencyAmount amount={item.total} />
+                            <CurrencyAmount amount={lineItemGrossAmount(item)} />
                           </td>
                           <td className="p-3 align-middle">
                             <Button
@@ -858,6 +874,11 @@ export function CreateSalesOrderForm({
                 <span className="text-muted-foreground">Discount</span>
                 <span>
                   -<CurrencyAmount amount={totals.discount} />
+                  {totals.discountPctLabel ? (
+                    <span className="ml-1 text-muted-foreground">
+                      ({totals.discountPctLabel})
+                    </span>
+                  ) : null}
                 </span>
               </div>
               <div className="flex justify-between text-sm">

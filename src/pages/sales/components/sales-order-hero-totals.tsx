@@ -1,5 +1,9 @@
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
+import {
+  salesDiscountPercentLabel,
+  salesGrossSubtotal,
+} from "@/lib/sales-order-money";
 import { ArrowUpRight, ShoppingCart } from "lucide-react";
 import {
   formatStatusLabel,
@@ -9,6 +13,17 @@ import {
 
 export function SalesOrderHeroTotals({ so }: { so: SalesOrderResponseDTO }) {
   const payment = paymentStatusKey(so);
+  const discountAmount = so.discountAmount ?? 0;
+  const grossSubtotal = salesGrossSubtotal({
+    subtotalAmount: so.subtotalAmount,
+    discountAmount,
+    items: so.items,
+  });
+  const discountPctLabel = salesDiscountPercentLabel({
+    discountAmount,
+    grossSubtotal,
+    items: so.items,
+  });
 
   return (
     <div className="flex flex-col gap-3">
@@ -23,13 +38,18 @@ export function SalesOrderHeroTotals({ so }: { so: SalesOrderResponseDTO }) {
           <div className="flex justify-between gap-2 text-slate-500">
             <span>Subtotal</span>
             <span className="font-medium tabular-nums text-slate-800">
-              <CurrencyAmount amount={so.subtotalAmount ?? 0} />
+              <CurrencyAmount amount={grossSubtotal} />
             </span>
           </div>
           <div className="flex justify-between gap-2 text-slate-500">
             <span>Discount</span>
             <span className="font-medium tabular-nums text-slate-800">
-              <CurrencyAmount amount={so.discountAmount ?? 0} />
+              <CurrencyAmount amount={discountAmount} />
+              {discountPctLabel ? (
+                <span className="ml-1 font-normal text-slate-500">
+                  ({discountPctLabel})
+                </span>
+              ) : null}
             </span>
           </div>
           <div className="flex justify-between gap-2 text-slate-500">

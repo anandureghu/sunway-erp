@@ -1,5 +1,10 @@
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
+import {
+  lineItemGrossAmount,
+  salesDiscountPercentLabel,
+  salesGrossSubtotal,
+} from "@/lib/sales-order-money";
 import { Package, ReceiptText, Warehouse } from "lucide-react";
 import { Link } from "react-router-dom";
 import { totalLineQty } from "./sales-order-detail-utils";
@@ -12,6 +17,17 @@ export function SalesOrderDetailItems({ so }: Props) {
   const itemRows = so.items || [];
   const qty = totalLineQty(so);
   const tax = so.taxAmount ?? 0;
+  const discountAmount = so.discountAmount ?? 0;
+  const grossSubtotal = salesGrossSubtotal({
+    subtotalAmount: so.subtotalAmount,
+    discountAmount,
+    items: itemRows,
+  });
+  const discountPctLabel = salesDiscountPercentLabel({
+    discountAmount,
+    grossSubtotal,
+    items: itemRows,
+  });
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
@@ -42,7 +58,7 @@ export function SalesOrderDetailItems({ so }: Props) {
               <th className="px-3 py-3 text-center">Qty</th>
               <th className="px-3 py-3 text-center">Unit price</th>
               <th className="px-3 py-3 text-center">Discount</th>
-              <th className="px-4 py-3 text-center">Amount</th>
+              <th className="px-4 py-3 text-center">Line item</th>
             </tr>
           </thead>
           <tbody>
@@ -103,7 +119,7 @@ export function SalesOrderDetailItems({ so }: Props) {
                     </td>
                     <td className="px-4 py-3 align-middle font-semibold">
                       <div className="flex justify-center">
-                        <CurrencyAmount amount={item.lineTotal || 0} />
+                        <CurrencyAmount amount={lineItemGrossAmount(item)} />
                       </div>
                     </td>
                   </tr>
@@ -129,7 +145,7 @@ export function SalesOrderDetailItems({ so }: Props) {
               </td>
               <td className="px-4 py-2 text-sm font-semibold">
                 <div className="flex justify-center">
-                  <CurrencyAmount amount={so.subtotalAmount ?? 0} />
+                  <CurrencyAmount amount={grossSubtotal} />
                 </div>
               </td>
             </tr>
@@ -138,8 +154,13 @@ export function SalesOrderDetailItems({ so }: Props) {
                 Discount
               </td>
               <td className="px-4 py-2 text-sm font-semibold">
-                <div className="flex justify-center">
-                  <CurrencyAmount amount={so.discountAmount ?? 0} />
+                <div className="flex justify-center gap-1">
+                  <CurrencyAmount amount={discountAmount} />
+                  {discountPctLabel ? (
+                    <span className="font-normal text-slate-500">
+                      ({discountPctLabel})
+                    </span>
+                  ) : null}
                 </div>
               </td>
             </tr>
