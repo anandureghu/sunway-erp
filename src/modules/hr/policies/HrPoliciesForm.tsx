@@ -640,7 +640,7 @@ export default function HrPoliciesForm() {
                 Statutory compensation
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Minimum monthly wage and default housing / food allowances used
+                Min basic salary and default housing / food allowances used
                 when an employee&apos;s compensation amounts are left blank.
               </p>
             </div>
@@ -649,7 +649,7 @@ export default function HrPoliciesForm() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Min. monthly wage (QAR)
+                Min basic salary (QAR)
               </label>
               <Input
                 type="number"

@@ -525,13 +525,14 @@ export default function SalaryForm() {
         if (!mounted) return;
         if (!res.data) {
           setExists(false);
-          // Prefill Qatar/company housing + food defaults for new compensation.
+          // Prefill company min basic salary + housing/food defaults for new compensation.
           if (user?.companyId) {
             try {
               const policies = await fetchHrPolicies(user.companyId);
               if (!mounted) return;
               setFormData((prev) => ({
                 ...prev,
+                basicSalary: Number(policies.minimumMonthlyWage ?? 1000),
                 housingType: "ALLOWANCE",
                 housingAllowance: Number(policies.defaultHousingAllowance ?? 500),
                 foodAllowance: Number(policies.defaultFoodAllowance ?? 300),

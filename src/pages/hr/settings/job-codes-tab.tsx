@@ -4,6 +4,8 @@ import { Plus, Search, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { jobCodeService } from "@/service/jobCodeService";
+import { fetchHrPolicies } from "@/service/companyService";
+import { useAuth } from "@/context/AuthContext";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { usePagination } from "@/components/table-pagination";
 import { type JobCode } from "./shared";
@@ -21,6 +23,7 @@ export function JobCodesTab({
   jobs: JobCode[];
   setJobs: React.Dispatch<React.SetStateAction<JobCode[]>>;
 }) {
+  const { user } = useAuth();
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<Partial<JobCode>>({});
   const [del, setDel] = useState<JobCode | null>(null);
@@ -67,13 +70,22 @@ export function JobCodesTab({
     setPageIndex(0);
   }, [q, setPageIndex]);
 
-  const openAdd = () => {
+  const openAdd = async () => {
+    let minSalary: number | null = 1000;
+    if (user?.companyId) {
+      try {
+        const policies = await fetchHrPolicies(user.companyId);
+        minSalary = Number(policies.minimumMonthlyWage ?? 1000);
+      } catch {
+        /* keep default 1000 */
+      }
+    }
     setForm({
       code: "",
       title: "",
       level: "Mid",
       salaryGrade: "G3",
-      minSalary: null,
+      minSalary,
       maxSalary: null,
       active: true,
     });
