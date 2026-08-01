@@ -51,7 +51,7 @@ import {
 } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
-import { isGoodsReceiptFullyReceived } from "@/lib/goods-receipt-status";
+import { isGoodsReceiptFullyReceived, purchaseOrderRemainingFromReceipts } from "@/lib/goods-receipt-status";
 import { excludeArchived } from "@/lib/exclude-archived";
 
 function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
@@ -123,7 +123,7 @@ export default function InspectionPage() {
     const st = location.state as { openReceiveForOrderId?: string } | null;
     const oid = st?.openReceiveForOrderId;
     if (oid) {
-      setSelectedOrderId(oid);
+      setSelectedOrderId(String(oid));
       setShowStartForm(true);
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -170,8 +170,13 @@ export default function InspectionPage() {
       ),
     [receipts],
   );
+  /** Inspected receipts still awaiting warehouse stock post (not yet Received). */
   const inspectedReceipts = useMemo(
-    () => excludeArchived(receipts).filter((r) => r.status === "inspected"),
+    () =>
+      excludeArchived(receipts).filter(
+        (r) =>
+          r.status === "inspected" && !isGoodsReceiptFullyReceived(r),
+      ),
     [receipts],
   );
 
@@ -200,10 +205,8 @@ export default function InspectionPage() {
   // second overlapping intake can't be started against the same PO.
   const orderIdsWithOpenGoodsReceipt = useMemo(() => {
     const ids = new Set<string>();
-    for (const r of pendingReceipts) ids.add(r.orderId);
-    for (const r of inspectedReceipts) {
-      if (!isGoodsReceiptFullyReceived(r)) ids.add(r.orderId);
-    }
+    for (const r of pendingReceipts) ids.add(String(r.orderId));
+    for (const r of inspectedReceipts) ids.add(String(r.orderId));
     return ids;
   }, [pendingReceipts, inspectedReceipts]);
 
@@ -211,13 +214,21 @@ export default function InspectionPage() {
   const ordersReadyForInspection = useMemo(() => {
     let filtered = excludeArchived(orders).filter((order) => {
       const status = order.status?.toLowerCase();
+      if (status === "received" || status === "cancelled") {
+        return false;
+      }
+      // No remaining orderable qty → fully resolved (accepted + rejected).
+      if (purchaseOrderRemainingFromReceipts(order, receipts) <= 0) {
+        return false;
+      }
       const isReceivableStatus =
         status === "ordered" ||
         status === "partially_received" ||
         status === "approved" ||
         status === "confirmed";
       return (
-        isReceivableStatus && !orderIdsWithOpenGoodsReceipt.has(order.id)
+        isReceivableStatus &&
+        !orderIdsWithOpenGoodsReceipt.has(String(order.id))
       );
     });
 
@@ -232,7 +243,7 @@ export default function InspectionPage() {
     }
 
     return filtered;
-  }, [orders, orderSearchQuery, orderIdsWithOpenGoodsReceipt]);
+  }, [orders, orderSearchQuery, orderIdsWithOpenGoodsReceipt, receipts]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -402,11 +413,21 @@ export default function InspectionPage() {
   if (showStartForm) {
     return (
       <StartInspectionForm
-        onCancel={() => setShowStartForm(false)}
+        onCancel={() => {
+          setShowStartForm(false);
+          setSelectedOrderId("");
+        }}
         orderId={selectedOrderId}
+        initialOrder={
+          selectedOrderId
+            ? orders.find((o) => String(o.id) === String(selectedOrderId)) ??
+              null
+            : null
+        }
         excludeOrderIds={orderIdsWithOpenGoodsReceipt}
         onSuccess={() => {
           setShowStartForm(false);
+          setSelectedOrderId("");
           void refreshData();
         }}
       />
@@ -437,7 +458,10 @@ export default function InspectionPage() {
           <Button
             size="lg"
             className="bg-white text-slate-900 hover:bg-white/90"
-            onClick={() => setShowStartForm(true)}
+            onClick={() => {
+              setSelectedOrderId("");
+              setShowStartForm(true);
+            }}
           >
             <Plus className="mr-2 h-4 w-4" />
             Start inspection
@@ -460,31 +484,33 @@ export default function InspectionPage() {
             }}
             className="w-full gap-4"
           >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1 lg:w-auto">
-                <TabsTrigger value="ready" className="gap-2">
-                  <Package className="h-4 w-4" />
-                  Ready for inspection
-                  <Badge variant="secondary" className="font-normal">
-                    {ordersReadyForInspection.length}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="pending" className="gap-2">
-                  <Hourglass className="h-4 w-4" />
-                  Inspected - Ready for Confirmation
-                  <Badge variant="secondary" className="font-normal">
-                    {pendingReceipts.length}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="inspected" className="gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  Confirmed - Ready to Receive
-                  <Badge variant="secondary" className="font-normal">
-                    {inspectedReceipts.length}
-                  </Badge>
-                </TabsTrigger>
-              </TabsList>
-              <div className="relative">
+            <div className="flex w-full flex-col gap-3">
+              <div className="w-full min-w-0 overflow-x-auto">
+                <TabsList className="inline-flex h-auto w-max min-w-full flex-nowrap justify-start gap-1 p-1">
+                  <TabsTrigger value="ready" className="shrink-0 gap-2">
+                    <Package className="h-4 w-4" />
+                    Ready for inspection
+                    <Badge variant="secondary" className="font-normal">
+                      {ordersReadyForInspection.length}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" className="shrink-0 gap-2">
+                    <Hourglass className="h-4 w-4" />
+                    Inspected - Ready for Confirmation
+                    <Badge variant="secondary" className="font-normal">
+                      {pendingReceipts.length}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="inspected" className="shrink-0 gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    Confirmed - Ready to Receive
+                    <Badge variant="secondary" className="font-normal">
+                      {inspectedReceipts.length}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <div className="relative w-full max-w-sm">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={
@@ -498,7 +524,7 @@ export default function InspectionPage() {
                       ? setOrderSearchQuery(e.target.value)
                       : setSearchQuery(e.target.value)
                   }
-                  className="w-64 pl-8"
+                  className="w-full pl-8"
                 />
               </div>
             </div>
@@ -547,7 +573,7 @@ export default function InspectionPage() {
                     <Button
                       size="sm"
                       onClick={() => {
-                        setSelectedOrderId(order.id);
+                        setSelectedOrderId(String(order.id));
                         setShowStartForm(true);
                       }}
                     >
@@ -612,19 +638,30 @@ export default function InspectionPage() {
   );
 }
 
+function buildReceiptLinesStatic(order: PurchaseOrder) {
+  return order.items.map((item) => ({
+    itemId: Number(item.itemId),
+    purchaseOrderItemId: Number(item.id),
+    receivedQty: item.quantity,
+    remarks: "",
+  }));
+}
+
 function StartInspectionForm({
   onCancel,
   orderId,
+  initialOrder,
   excludeOrderIds,
   onSuccess,
 }: {
   onCancel: () => void;
   orderId: string;
+  initialOrder?: PurchaseOrder | null;
   excludeOrderIds?: Set<string>;
   onSuccess: () => void;
 }) {
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(
-    null,
+    () => initialOrder ?? null,
   );
   const [receiptItems, setReceiptItems] = useState<
     Array<{
@@ -633,48 +670,59 @@ function StartInspectionForm({
       receivedQty: number;
       remarks?: string;
     }>
-  >([]);
+  >(() => (initialOrder ? buildReceiptLinesStatic(initialOrder) : []));
   const [loading, setLoading] = useState(false);
-  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
-
-  const buildReceiptLines = (order: PurchaseOrder) =>
-    order.items.map((item) => ({
-      itemId: Number(item.itemId),
-      purchaseOrderItemId: Number(item.id),
-      receivedQty: item.quantity,
-      remarks: "",
-    }));
-
-  const receivableOrders = useMemo(
-    () =>
-      orders.filter((o) => {
-        const status = o.status?.toLowerCase();
-        const isReceivableStatus =
-          status === "ordered" ||
-          status === "approved" ||
-          status === "partially_received" ||
-          status === "confirmed";
-        // Never allow starting a second intake while an open GR already exists.
-        const isExcluded = excludeOrderIds?.has(o.id) === true;
-        return isReceivableStatus && !isExcluded;
-      }),
-    [orders, excludeOrderIds],
+  const [orders, setOrders] = useState<PurchaseOrder[]>(() =>
+    initialOrder ? [initialOrder] : [],
   );
 
+  const buildReceiptLines = (order: PurchaseOrder) =>
+    buildReceiptLinesStatic(order);
+
+  const receivableOrders = useMemo(() => {
+    const list = orders.filter((o) => {
+      const status = o.status?.toLowerCase();
+      const isReceivableStatus =
+        status === "ordered" ||
+        status === "approved" ||
+        status === "partially_received" ||
+        status === "confirmed";
+      // Never allow starting a second intake while an open GR already exists —
+      // unless this is the order we opened the form with (pre-selected from list).
+      const isPreselected = orderId && String(o.id) === String(orderId);
+      const isExcluded =
+        !isPreselected && excludeOrderIds?.has(String(o.id)) === true;
+      return isReceivableStatus && !isExcluded;
+    });
+    // Ensure the pre-selected order appears in the Select options.
+    if (
+      selectedOrder &&
+      !list.some((o) => String(o.id) === String(selectedOrder.id))
+    ) {
+      return [selectedOrder, ...list];
+    }
+    return list;
+  }, [orders, excludeOrderIds, orderId, selectedOrder]);
+
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const [ordersData, vendorsData] = await Promise.all([
           listPurchaseOrders(),
           listVendors(),
         ]);
+        if (cancelled) return;
         const enriched = enrichPurchaseOrdersWithVendors(
           ordersData,
           vendorsData,
         );
         setOrders(enriched);
         if (orderId) {
-          const order = enriched.find((o) => o.id === orderId);
+          const order =
+            enriched.find((o) => String(o.id) === String(orderId)) ??
+            initialOrder ??
+            null;
           if (order) {
             setSelectedOrder(order);
             setReceiptItems(buildReceiptLines(order));
@@ -684,6 +732,10 @@ function StartInspectionForm({
         toast.error(e?.message || "Failed to load purchase orders");
       }
     })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when target order changes
   }, [orderId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -732,7 +784,8 @@ function StartInspectionForm({
   };
 
   const handleOrderSelect = (value: string) => {
-    const order = receivableOrders.find((o) => o.id === value) ?? null;
+    const order =
+      receivableOrders.find((o) => String(o.id) === String(value)) ?? null;
     setSelectedOrder(order);
     if (order) setReceiptItems(buildReceiptLines(order));
   };
@@ -766,7 +819,7 @@ function StartInspectionForm({
             Choose a released purchase order to log a receipt against.
           </p>
           <Select
-            value={selectedOrder?.id || ""}
+            value={selectedOrder ? String(selectedOrder.id) : undefined}
             onValueChange={handleOrderSelect}
           >
             <SelectTrigger className="rounded-lg">
@@ -774,7 +827,7 @@ function StartInspectionForm({
             </SelectTrigger>
             <SelectContent>
               {receivableOrders.map((order) => (
-                <SelectItem key={order.id} value={order.id}>
+                <SelectItem key={order.id} value={String(order.id)}>
                   {order.orderNo} — {purchaseOrderSupplierLabel(order)}
                 </SelectItem>
               ))}

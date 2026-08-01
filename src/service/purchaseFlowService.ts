@@ -140,6 +140,8 @@ export interface PurchaseOrderItemDTO {
   otherUnitCost?: number;
   unitCost: number;
   lineTotal?: number;
+  receivedQty?: number | null;
+  rejectedQty?: number | null;
 }
 
 export interface PurchaseOrderResponseDTO {
@@ -282,6 +284,8 @@ function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
     itemName: li.itemName ?? undefined,
     item: li,
     quantity: Number(li.quantity || 0),
+    receivedQuantity: Number(li.receivedQty ?? 0),
+    rejectedQuantity: Number(li.rejectedQty ?? 0),
     actualItemPrice:
       li.actualItemPrice != null && li.actualItemPrice !== undefined
         ? Number(li.actualItemPrice)
