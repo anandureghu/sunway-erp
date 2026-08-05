@@ -115,6 +115,12 @@ const WarehouseMaster = () => {
     resolver: zodResolver(WAREHOUSE_SCHEMA),
     defaultValues: {
       status: "active",
+      city: "",
+      street: "",
+      country: "",
+      pin: "",
+      contactPersonName: "",
+      manager: null,
     },
   });
 
@@ -123,10 +129,19 @@ const WarehouseMaster = () => {
     try {
       const normalizedName = data.name.trim();
 
-      const payload: any = {
-        ...data,
+      const payload: Record<string, unknown> = {
+        name: normalizedName,
         status: data.status || "active",
+        street: data.street || "",
+        city: data.city || "",
+        country: data.country || "",
+        pin: data.pin || "",
+        phone: data.phone || "",
+        contactPersonName: data.contactPersonName || "",
       };
+      if (data.manager != null && !Number.isNaN(Number(data.manager))) {
+        payload.manager = Number(data.manager);
+      }
 
       // Add code for new warehouses
       if (!editingWarehouse) {
@@ -188,6 +203,7 @@ const WarehouseMaster = () => {
       name: warehouse.name,
       status: warehouse.status,
       phone: normalizePhone(warehouse.phone),
+      manager: warehouse.managerId,
     });
     setShowWarehouseForm(true);
   };
@@ -561,6 +577,7 @@ const WarehouseMaster = () => {
                 title="Manager assignment"
               >
                 <SelectEmployees
+                  idMode="user"
                   value={watchWarehouse("manager")?.toString()}
                   onChange={(v) =>
                     resetWarehouse({

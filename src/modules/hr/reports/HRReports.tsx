@@ -657,13 +657,13 @@ export default function HRReports() {
   ).length;
   // "Approvals done" = loans that were approved (active) or fully repaid (closed).
   const loanApprovalsDone = loanActiveCount + loanClosedCount;
-  const loanCurrency = loanApprovals[0]?.currencySymbol || "$";
+  const loanCurrency = company?.currency?.currencyCode || "$";
   // Approved-loan totals grouped by currency — summing across currencies into a
   // single symbol would be a meaningless figure, so each is totalled separately.
   const loanAmountApprovedByCurrency = loanApprovals
     .filter((l) => l.status === "ACTIVE" || l.status === "CLOSED")
     .reduce((acc, l) => {
-      const sym = l.currencySymbol || loanCurrency;
+      const sym = loanCurrency;
       acc.set(sym, (acc.get(sym) ?? 0) + (Number(l.loanAmount) || 0));
       return acc;
     }, new Map<string, number>());
@@ -1786,7 +1786,7 @@ export default function HRReports() {
                           icon: Clock,
                         };
                         const StatusIcon = meta.icon;
-                        const sym = l.currencySymbol || loanCurrency;
+                        const sym = loanCurrency;
                         return (
                           <tr
                             key={l.id}

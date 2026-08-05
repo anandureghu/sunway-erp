@@ -8,7 +8,7 @@ import {
   type AppraisalConfigResponse,
 } from "@/service/appraisalConfigService";
 import { useAuth } from "@/context/AuthContext";
-import { roleService } from "@/service/roleService";
+import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import type { CycleConfig, Goal, RatingScale, Phase } from "./appraisal-types";
 import {
@@ -31,29 +31,26 @@ export default function AppraisalTab() {
   const [saved, setSaved] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
 
-  // Roles derived from backend config — NOT hardcoded
-  const [roles, setRoles] = useState<string[]>([]);
-  const [selectedRole, setSelectedRole] = useState<string>("");
+  // Job codes configured for this cycle — NOT hardcoded
+  const [jobCodes, setJobCodes] = useState<string[]>([]);
+  const [selectedJobCode, setSelectedJobCode] = useState<string>("");
 
-  // Company roles fetched from API
+  // Active company job codes fetched from API for the KPI-config dropdown
   const { company } = useAuth();
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  const [availableJobCodes, setAvailableJobCodes] = useState<JobCode[]>([]);
 
-  // Fetch company roles from API
+  // Fetch active company job codes from API
   useEffect(() => {
-    const fetchCompanyRoles = async () => {
+    const fetchJobCodes = async () => {
       if (!company?.id) return;
       try {
-        const companyRoles = await roleService.getRoles(company.id);
-        const roleNames = companyRoles
-          .filter((r) => r.active !== false)
-          .map((r) => r.name);
-        setAvailableRoles(roleNames);
+        const codes = await jobCodeService.getActive();
+        setAvailableJobCodes(codes.filter((c) => c.active !== false));
       } catch (err) {
-        console.error("Failed to fetch company roles:", err);
+        console.error("Failed to fetch job codes:", err);
       }
     };
-    fetchCompanyRoles();
+    fetchJobCodes();
   }, [company?.id]);
 
   const [cycleConfig, setCycleConfig] = useState<CycleConfig>({
@@ -69,8 +66,10 @@ export default function AppraisalTab() {
     status: "DRAFT",
   });
 
-  // Goals keyed by roleName — populated from backend, starts empty
-  const [goalsByRole, setGoalsByRole] = useState<Record<string, Goal[]>>({});
+  // Goals keyed by job code — populated from backend, starts empty
+  const [goalsByJobCode, setGoalsByJobCode] = useState<Record<string, Goal[]>>(
+    {},
+  );
   const [ratingScale, setRatingScale] = useState<RatingScale[]>(
     FALLBACK_RATING_SCALE,
   );
@@ -114,13 +113,13 @@ export default function AppraisalTab() {
       );
     }
 
-    if (cfg.roles && cfg.roles.length > 0) {
-      const roleNames = cfg.roles.map((r: any) => r.roleName);
-      setRoles(roleNames);
-      setSelectedRole(roleNames[0] || "");
+    if (cfg.jobConfigs && cfg.jobConfigs.length > 0) {
+      const codes = cfg.jobConfigs.map((r: any) => r.jobCode);
+      setJobCodes(codes);
+      setSelectedJobCode(codes[0] || "");
       const map: Record<string, Goal[]> = {};
-      cfg.roles.forEach((r: any) => {
-        map[r.roleName] = (r.goals || []).map((g: any, i: number) => ({
+      cfg.jobConfigs.forEach((r: any) => {
+        map[r.jobCode] = (r.goals || []).map((g: any, i: number) => ({
           id: g.goalId || i + 1,
           kpi: g.kpi || "",
           description: g.description || "",
@@ -128,11 +127,11 @@ export default function AppraisalTab() {
           active: true,
         }));
       });
-      setGoalsByRole(map);
+      setGoalsByJobCode(map);
     } else {
-      setGoalsByRole({});
-      setRoles([]);
-      setSelectedRole("");
+      setGoalsByJobCode({});
+      setJobCodes([]);
+      setSelectedJobCode("");
     }
     setSaved(false);
   }
@@ -145,9 +144,9 @@ export default function AppraisalTab() {
       appraisalName: "",
       status: "DRAFT",
     }));
-    setGoalsByRole({});
-    setRoles([]);
-    setSelectedRole("");
+    setGoalsByJobCode({});
+    setJobCodes([]);
+    setSelectedJobCode("");
     setSaved(false);
   }
 
@@ -193,9 +192,9 @@ export default function AppraisalTab() {
       enableSelfAssessment: cycleConfig.enableSelfAssessment,
       enableMidYear: cycleConfig.enableMidYear,
       enablePIP: cycleConfig.enablePIP,
-      roles: roles.map((roleName) => ({
-        roleName,
-        goals: (goalsByRole[roleName] || [])
+      jobConfigs: jobCodes.map((jobCode) => ({
+        jobCode,
+        goals: (goalsByJobCode[jobCode] || [])
           .filter((g) => g.active)
           .map((g) => ({
             kpi: g.kpi,
@@ -213,15 +212,15 @@ export default function AppraisalTab() {
       setActiveTab("cycle");
       return;
     }
-    const invalid = roles.find((role) => {
-      const active = (goalsByRole[role] || []).filter((g) => g.active);
+    const invalid = jobCodes.find((code) => {
+      const active = (goalsByJobCode[code] || []).filter((g) => g.active);
       const total = active.reduce((s, g) => s + (g.weight || 0), 0);
       return active.length > 0 && total !== 100;
     });
     if (invalid) {
       showToast(`Goal weights for "${invalid}" must total 100%`, "error");
       setActiveTab("goals");
-      setSelectedRole(invalid);
+      setSelectedJobCode(invalid);
       return;
     }
     try {
@@ -247,15 +246,15 @@ export default function AppraisalTab() {
       setActiveTab("cycle");
       return;
     }
-    const invalid = roles.find((role) => {
-      const active = (goalsByRole[role] || []).filter((g) => g.active);
+    const invalid = jobCodes.find((code) => {
+      const active = (goalsByJobCode[code] || []).filter((g) => g.active);
       const total = active.reduce((s, g) => s + (g.weight || 0), 0);
       return active.length > 0 && total !== 100;
     });
     if (invalid) {
       showToast(`Goal weights for "${invalid}" must total 100%`, "error");
       setActiveTab("goals");
-      setSelectedRole(invalid);
+      setSelectedJobCode(invalid);
       return;
     }
     try {
@@ -297,24 +296,24 @@ export default function AppraisalTab() {
     }
   }
 
-  // ── Add a new role ──
-  function handleAddRole(roleName: string) {
-    if (!roleName || roles.includes(roleName)) return;
-    setRoles((p) => [...p, roleName]);
-    setGoalsByRole((p) => ({ ...p, [roleName]: [] }));
-    setSelectedRole(roleName);
+  // ── Add a new job code ──
+  function handleAddJobCode(jobCode: string) {
+    if (!jobCode || jobCodes.includes(jobCode)) return;
+    setJobCodes((p) => [...p, jobCode]);
+    setGoalsByJobCode((p) => ({ ...p, [jobCode]: [] }));
+    setSelectedJobCode(jobCode);
   }
 
-  // ── Remove a role ──
-  function handleRemoveRole(roleName: string) {
-    setRoles((p) => p.filter((r) => r !== roleName));
-    setGoalsByRole((p) => {
+  // ── Remove a job code ──
+  function handleRemoveJobCode(jobCode: string) {
+    setJobCodes((p) => p.filter((c) => c !== jobCode));
+    setGoalsByJobCode((p) => {
       const next = { ...p };
-      delete next[roleName];
+      delete next[jobCode];
       return next;
     });
-    setSelectedRole((prev) =>
-      prev === roleName ? roles.filter((r) => r !== roleName)[0] || "" : prev,
+    setSelectedJobCode((prev) =>
+      prev === jobCode ? jobCodes.filter((c) => c !== jobCode)[0] || "" : prev,
     );
   }
 
@@ -322,16 +321,16 @@ export default function AppraisalTab() {
     cycle: <CycleSetupPanel config={cycleConfig} setConfig={setCycleConfig} />,
     goals: (
       <GoalsPanel
-        goalsByRole={goalsByRole}
-        setGoalsByRole={setGoalsByRole}
-        roles={roles}
-        selectedRole={selectedRole}
-        setSelectedRole={setSelectedRole}
+        goalsByJobCode={goalsByJobCode}
+        setGoalsByJobCode={setGoalsByJobCode}
+        jobCodes={jobCodes}
+        selectedJobCode={selectedJobCode}
+        setSelectedJobCode={setSelectedJobCode}
         maxGoals={cycleConfig.maxGoals}
         minGoals={cycleConfig.minGoals}
-        onAddRole={handleAddRole}
-        onRemoveRole={handleRemoveRole}
-        availableRoles={availableRoles}
+        onAddJobCode={handleAddJobCode}
+        onRemoveJobCode={handleRemoveJobCode}
+        availableJobCodes={availableJobCodes}
       />
     ),
     ratings: (
@@ -345,8 +344,8 @@ export default function AppraisalTab() {
     preview: (
       <PreviewPanel
         config={cycleConfig}
-        goalsByRole={goalsByRole}
-        roles={roles}
+        goalsByJobCode={goalsByJobCode}
+        jobCodes={jobCodes}
         ratingScale={ratingScale}
         phases={phases}
         saved={saved}

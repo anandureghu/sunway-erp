@@ -388,7 +388,7 @@ export function VarianceFormPanel({
         </CardHeader>
         <CardContent className="space-y-6 p-5 sm:p-6">
           {varianceItem && warehouseId ? (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-5">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   On hand now

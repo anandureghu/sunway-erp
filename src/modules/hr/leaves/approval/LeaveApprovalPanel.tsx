@@ -49,6 +49,9 @@ const TYPE_COLORS: Record<string, string> = {
   "Emergency Leave": "bg-orange-50 border-orange-200 text-orange-700",
   "Unpaid Leave": "bg-slate-50 border-slate-200 text-slate-600",
   "Maternity Leave": "bg-pink-50 border-pink-200 text-pink-700",
+  "Hajj Leave": "bg-emerald-50 border-emerald-200 text-emerald-700",
+  "Marriage Leave": "bg-violet-50 border-violet-200 text-violet-700",
+  "Bereavement Leave": "bg-slate-50 border-slate-200 text-slate-700",
 };
 
 const typeColor = (type: string) =>

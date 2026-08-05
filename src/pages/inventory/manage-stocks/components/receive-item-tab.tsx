@@ -605,6 +605,8 @@ export function ReceiveItemTab({
                     step="0.01"
                     min="0"
                     placeholder="Enter cost price"
+                    disabled={mode === "po"}
+                    readOnly={mode === "po"}
                     {...register("costPrice", { valueAsNumber: true })}
                   />
                   {errors.costPrice && (
@@ -613,7 +615,9 @@ export function ReceiveItemTab({
                     </p>
                   )}
                   <p className="mt-1 text-xs text-muted-foreground">
-                    A different cost creates a new batch layer; same batch and cost add to the existing layer.
+                    {mode === "po"
+                      ? "Taken from the purchase order line — not editable on receive."
+                      : "A different cost creates a new batch layer; same batch and cost add to the existing layer."}
                   </p>
                 </div>
 

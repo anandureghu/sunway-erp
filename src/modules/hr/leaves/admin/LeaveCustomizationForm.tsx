@@ -8,7 +8,6 @@ import {
   Minus,
   Calendar,
   Users,
-  AlertCircle,
   CheckCircle2,
   Zap,
   Lock,
@@ -29,7 +28,18 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Unpaid Leave",
   "Maternity Leave",
   "Hajj Leave",
+  "Marriage Leave",
+  "Bereavement Leave",
 ];
+
+/** Prefill days when a leave type row has no saved policy yet. */
+const QATAR_LEAVE_DEFAULT_DAYS: Partial<Record<LeaveType, number>> = {
+  "Sick Leave": 7,
+  "Maternity Leave": 50,
+  "Hajj Leave": 10,
+  "Marriage Leave": 3,
+  "Bereavement Leave": 3,
+};
 
 // Dynamic roles type
 interface RoleOption {
@@ -104,6 +114,16 @@ const LEAVE_TYPE_COLORS: Record<
     text: "text-emerald-700",
     icon: "text-emerald-500",
   },
+  "Marriage Leave": {
+    bg: "bg-violet-50 border-violet-200",
+    text: "text-violet-700",
+    icon: "text-violet-500",
+  },
+  "Bereavement Leave": {
+    bg: "bg-slate-50 border-slate-200",
+    text: "text-slate-700",
+    icon: "text-slate-500",
+  },
 };
 
 // Religion-restricted leave types: only employees whose religion matches can
@@ -151,6 +171,16 @@ const LEAVE_TYPE_GENDER_CONFIG: LeaveTypeGenderConfig[] = [
   },
   {
     type: "Hajj Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Marriage Leave",
+    applicableGenders: ["MALE", "FEMALE", "OTHER"],
+    isGenderRestricted: false,
+  },
+  {
+    type: "Bereavement Leave",
     applicableGenders: ["MALE", "FEMALE", "OTHER"],
     isGenderRestricted: false,
   },
@@ -268,7 +298,9 @@ export default function LeaveCustomizationForm() {
             fullMatrix.push({
               role: role.key,
               leaveType: leaveType as LeaveType,
-              daysAllowed: existing ? existing.defaultDays : 0,
+              daysAllowed: existing
+                ? existing.defaultDays
+                : (QATAR_LEAVE_DEFAULT_DAYS[leaveType as LeaveType] ?? 0),
               includeWeekends: existing?.includeWeekends ?? false,
             });
           });
@@ -287,7 +319,8 @@ export default function LeaveCustomizationForm() {
             initialPolicies.push({
               role: role.key,
               leaveType: leaveType as LeaveType,
-              daysAllowed: 0,
+              daysAllowed:
+                QATAR_LEAVE_DEFAULT_DAYS[leaveType as LeaveType] ?? 0,
             });
           });
         });
@@ -388,6 +421,44 @@ export default function LeaveCustomizationForm() {
     }
   };
 
+  const handleResetQatarDefaults = async () => {
+    if (!company?.id) return;
+    setLoading(true);
+    try {
+      await leavePolicyService.resetQatarDefaults(company.id);
+      const response = await leavePolicyService.getPolicies(company.id);
+      const saved = response.data || [];
+      const fullMatrix: LeavePolicy[] = [];
+      roles.forEach((role) => {
+        leaveTypes.forEach((leaveType) => {
+          const existing = saved.find(
+            (p: LeavePolicy) =>
+              p.role === role.key && p.leaveType === leaveType,
+          );
+          fullMatrix.push({
+            role: role.key,
+            leaveType: leaveType as LeaveType,
+            daysAllowed: existing
+              ? (existing.defaultDays ?? existing.daysAllowed ?? 0)
+              : (QATAR_LEAVE_DEFAULT_DAYS[leaveType as LeaveType] ?? 0),
+            includeWeekends: existing?.includeWeekends ?? false,
+          });
+        });
+      });
+      setPolicies(fullMatrix);
+      setSavedPolicies(fullMatrix);
+      setHasChanges(false);
+      toast.success(
+        "Qatar leave defaults applied (Sick 7, Maternity 50, Hajj 10, Marriage 3, Bereavement 3)",
+      );
+    } catch (error) {
+      console.error("Reset Qatar defaults failed:", error);
+      toast.error("Failed to reset Qatar leave defaults");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDiscardChanges = () => {
     setPolicies(savedPolicies.map((p) => ({ ...p })));
     setHasChanges(false);
@@ -454,12 +525,46 @@ export default function LeaveCustomizationForm() {
               </p>
             </div>
           </div>
-          {hasChanges && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-300/40 px-3 py-1.5 text-xs font-semibold text-amber-100">
-              <Zap className="h-3.5 w-3.5" />
-              Unsaved Changes
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {hasChanges && (
+              <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-300/40 px-3 py-1.5 text-xs font-semibold text-amber-100">
+                <Zap className="h-3.5 w-3.5" />
+                Unsaved
+              </span>
+            )}
+            <Button
+              variant="outline"
+              onClick={handleResetQatarDefaults}
+              disabled={loading}
+              className="h-9 gap-1.5 border-white/30 bg-white/10 text-white text-sm hover:bg-white/20 hover:text-white"
+              title="Reset Sick, Maternity, Hajj, Marriage, and Bereavement to Qatar defaults for all roles"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reset defaults
+            </Button>
+            {hasChanges && (
+              <Button
+                variant="outline"
+                onClick={handleDiscardChanges}
+                className="h-9 gap-1.5 border-white/30 bg-white/10 text-white text-sm hover:bg-white/20 hover:text-white"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Discard
+              </Button>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={loading || !hasChanges}
+              className="h-9 gap-1.5 bg-white text-blue-700 hover:bg-blue-50 text-sm font-semibold disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              {loading ? "Saving…" : "Save Policies"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -768,47 +873,6 @@ export default function LeaveCustomizationForm() {
         })}
       </div>
 
-      {/* ── Action bar ── */}
-      <div className="sticky bottom-0 z-10 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-sm shadow-lg px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            {hasChanges ? (
-              <div className="flex items-center gap-2 text-amber-700">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span className="text-sm font-medium">
-                  You have unsaved changes — click Save to apply.
-                </span>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400">All changes are saved.</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {hasChanges && (
-              <Button
-                variant="outline"
-                onClick={handleDiscardChanges}
-                className="h-9 gap-1.5 text-sm"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Discard
-              </Button>
-            )}
-            <Button
-              onClick={handleSave}
-              disabled={loading || !hasChanges}
-              className="h-9 gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 text-sm font-semibold disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              )}
-              {loading ? "Saving…" : "Save Policies"}
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

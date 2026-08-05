@@ -18,6 +18,7 @@ interface VendorColumnsProps {
   onEdit: (vendor: Vendor) => void;
   onDeactivate: (vendor: Vendor) => void;
   onView?: (vendor: Vendor) => void;
+  onApproveChange?: () => void;
   financeSettings?: boolean;
   role?: Role;
 }
@@ -80,18 +81,23 @@ const StatusPill = ({
         isActive ? "bg-green-200 text-green-500" : "bg-red-200 text-red-500"
       }`}
     >
-      {isActive ? "YES" : "NO"}
+      {isActive ? "ACTIVE" : "INACTIVE"}
     </span>
   );
 };
 
 type CellProps<TData> = CellContext<TData, unknown>;
 
-const approveVendor = (id: number, status: boolean) => {
+const approveVendor = (
+  id: number,
+  status: boolean,
+  onApproveChange?: () => void,
+) => {
   apiClient
     .patch(`/vendors/${id}`, {}, { params: { status } })
     .then(() => {
       toast.success(`Vendor ${status ? "approved" : "rejected"} successfully`);
+      onApproveChange?.();
     })
     .catch(() => {
       toast.error(`Failed to ${status ? "approve" : "reject"} vendor`);
@@ -102,6 +108,7 @@ export const getVendorColumns = ({
   onEdit,
   onDeactivate,
   onView,
+  onApproveChange,
   financeSettings = false,
   role,
 }: VendorColumnsProps): ColumnDef<Vendor>[] => [
@@ -218,7 +225,7 @@ export const getVendorColumns = ({
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem
                   className="text-green-700 focus:text-green-700"
-                  onClick={() => approveVendor(vendor.id, true)}
+                  onClick={() => approveVendor(vendor.id, true, onApproveChange)}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Approve
@@ -226,7 +233,7 @@ export const getVendorColumns = ({
                 {role === "FINANCE_MANAGER" && (
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600"
-                    onClick={() => approveVendor(vendor.id, false)}
+                    onClick={() => approveVendor(vendor.id, false, onApproveChange)}
                   >
                     <XCircle className="mr-2 h-4 w-4" />
                     Reject

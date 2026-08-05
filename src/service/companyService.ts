@@ -52,6 +52,17 @@ export interface HrPoliciesPayload {
   // ── Attendance & working hours ──
   standardWorkingHoursPerDay?: number;
   requireCheckIn?: boolean;
+  // ── Overtime (Qatar labor-law defaults) ──
+  otDayRateMultiplier?: number;
+  otNightFridayHolidayRateMultiplier?: number;
+  /** HH:mm or HH:mm:ss */
+  otNightStartTime?: string;
+  otNightEndTime?: string;
+  otMaxHoursPerDay?: number;
+  // ── Statutory compensation defaults ──
+  minimumMonthlyWage?: number;
+  defaultHousingAllowance?: number;
+  defaultFoodAllowance?: number;
 }
 
 export const fetchHrPolicies = async (

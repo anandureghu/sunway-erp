@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Zap, ShieldCheck, Clock, Fingerprint } from "lucide-react";
+import { CheckCircle2, Loader2, Zap, ShieldCheck, Clock, Fingerprint, Timer, Coins } from "lucide-react";
 import {
   fetchHrPolicies,
   updateHrPolicies,
@@ -25,7 +25,26 @@ const DEFAULT_HR_POLICIES: HrPoliciesPayload = {
   loanMaxRepaymentMonths: 24,
   standardWorkingHoursPerDay: 6,
   requireCheckIn: true,
+  otDayRateMultiplier: 1.25,
+  otNightFridayHolidayRateMultiplier: 1.5,
+  otNightStartTime: "21:00:00",
+  otNightEndTime: "03:00:00",
+  otMaxHoursPerDay: 2,
+  minimumMonthlyWage: 1000,
+  defaultHousingAllowance: 500,
+  defaultFoodAllowance: 300,
 };
+
+function toTimeInputValue(value?: string): string {
+  if (!value) return "";
+  // Backend may return HH:mm:ss — HTML time input wants HH:mm
+  return value.length >= 5 ? value.slice(0, 5) : value;
+}
+
+function fromTimeInputValue(value: string): string {
+  if (!value) return value;
+  return value.length === 5 ? `${value}:00` : value;
+}
 
 export default function HrPoliciesForm() {
   const { company } = useAuth();
@@ -173,7 +192,7 @@ export default function HrPoliciesForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Standard working hours / day
@@ -276,7 +295,7 @@ export default function HrPoliciesForm() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Days credited per month worked
@@ -435,7 +454,7 @@ export default function HrPoliciesForm() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Days of service before requesting a loan
@@ -480,6 +499,215 @@ export default function HrPoliciesForm() {
               />
               <p className="text-[10px] text-slate-400 mt-1">
                 Loan repayment cannot be spread beyond this many months.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Overtime (Qatar labor-law defaults) */}
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100">
+              <Timer className="h-4 w-4 text-amber-700" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                Overtime
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Hourly multipliers applied to basic pay for overtime. Night
+                window, Friday, and public holidays use the higher rate. Cap is
+                the max OT hours allowed per day.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Day OT rate multiplier
+              </label>
+              <Input
+                type="number"
+                step="0.05"
+                min="1"
+                max="5"
+                value={hrPolicies.otDayRateMultiplier ?? 1.25}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "otDayRateMultiplier",
+                    parseFloat(e.target.value) || 1,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Default 1.25× basic hourly
+              </p>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Night / Friday / holiday multiplier
+              </label>
+              <Input
+                type="number"
+                step="0.05"
+                min="1"
+                max="5"
+                value={hrPolicies.otNightFridayHolidayRateMultiplier ?? 1.5}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "otNightFridayHolidayRateMultiplier",
+                    parseFloat(e.target.value) || 1,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Default 1.5× basic hourly
+              </p>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Night OT start
+              </label>
+              <Input
+                type="time"
+                value={toTimeInputValue(hrPolicies.otNightStartTime)}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "otNightStartTime",
+                    fromTimeInputValue(e.target.value),
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Night OT end
+              </label>
+              <Input
+                type="time"
+                value={toTimeInputValue(hrPolicies.otNightEndTime)}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "otNightEndTime",
+                    fromTimeInputValue(e.target.value),
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Max OT hours per day
+              </label>
+              <Input
+                type="number"
+                step="0.25"
+                min="0"
+                max="24"
+                value={hrPolicies.otMaxHoursPerDay ?? 2}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "otMaxHoursPerDay",
+                    parseFloat(e.target.value) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Qatar default: 2 hours / day
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Statutory compensation defaults */}
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+              <Coins className="h-4 w-4 text-emerald-700" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                Statutory compensation
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Min basic salary and default housing / food allowances used
+                when an employee&apos;s compensation amounts are left blank.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Min basic salary (QAR)
+              </label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                value={hrPolicies.minimumMonthlyWage ?? 1000}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "minimumMonthlyWage",
+                    parseFloat(e.target.value) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Default housing allowance
+              </label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                value={hrPolicies.defaultHousingAllowance ?? 500}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "defaultHousingAllowance",
+                    parseFloat(e.target.value) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                When company does not provide housing
+              </p>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Default food allowance
+              </label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                value={hrPolicies.defaultFoodAllowance ?? 300}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "defaultFoodAllowance",
+                    parseFloat(e.target.value) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                When company does not provide food
               </p>
             </div>
           </div>

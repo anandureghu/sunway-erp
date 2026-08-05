@@ -298,6 +298,7 @@ export default function PaymentsPage({
     () =>
       PAYMENT_COLUMNS({
         variant,
+        listTab,
         onConfirm: handleConfirmPayment,
         onOpenInvoice: handleOpenInvoice,
         onOpenPurchaseOrder: handleOpenPurchaseOrder,
@@ -307,6 +308,7 @@ export default function PaymentsPage({
       }),
     [
       variant,
+      listTab,
       handleConfirmPayment,
       handleOpenInvoice,
       handleViewReceipt,
@@ -316,7 +318,10 @@ export default function PaymentsPage({
   );
 
   const outstandingCount = useMemo(
-    () => payments.filter((p) => !isPaymentArchivedTab(p, variant)).length,
+    () =>
+      payments.filter(
+        (p) => !p.archived && !isPaymentArchivedTab(p, variant),
+      ).length,
     [payments, variant],
   );
 
@@ -337,6 +342,7 @@ export default function PaymentsPage({
         if (!settled || p.archived) return false;
         matchesTab = true;
       } else {
+        if (p.archived) return false;
         matchesTab = !settled;
       }
 

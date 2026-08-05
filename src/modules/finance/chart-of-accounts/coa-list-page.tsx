@@ -53,11 +53,11 @@ export default function ChartOfAccountsListPage() {
   const handleDelete = async (coa: ChartOfAccounts) => {
     try {
       await apiClient.delete(`/finance/chart-of-accounts/${coa.id}`);
-      toast.success(`Deleted ${coa.accountName}`);
+      toast.success(`Deactivated ${coa.accountName}`);
       setChartOfAccounts((prev) => prev.filter((d) => d.id !== coa.id));
     } catch (err: any) {
       console.error(err);
-      toast.error("Failed to delete chart of accounts", {
+      toast.error("Failed to deactivate chart of accounts", {
         description: err?.response?.data?.message,
       });
     }

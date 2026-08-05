@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useMemo } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +22,46 @@ import { propertyService } from "@/service/propertyService";
 import { toast } from "sonner";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
-import { generateId } from "@/lib/utils";
+import { generateId, cn } from "@/lib/utils";
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
+
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 interface ValidationErrors {
   [key: string]: string | undefined;
@@ -139,26 +179,6 @@ export default function CompanyPropertiesForm() {
     setEditingId(newItem.id);
   }, []);
 
-  // Hoist the "Add Property" action into the shell header (shared layout with
-  // the other employee sub-modules), rather than a second in-tab header.
-  const headerAction = useMemo(
-    () => (
-      <Button
-        onClick={handleAdd}
-        className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-      >
-        <Plus className="h-4 w-4" />
-        Add Property
-      </Button>
-    ),
-    [handleAdd],
-  );
-
-  useEffect(() => {
-    registerAction(headerAction);
-    return () => registerAction(null);
-  }, [registerAction, headerAction]);
-
   const handleSave = useCallback(
     async (item: CompanyItem) => {
       setItems((current) => current.map((d) => (d.id === item.id ? item : d)));
@@ -245,8 +265,53 @@ export default function CompanyPropertiesForm() {
     [],
   );
 
+  const editingItem = editingId
+    ? (items.find((i) => i.id === editingId) ?? null)
+    : null;
+
+  // Hoist the header action into the shell header: Add Property normally, or
+  // Cancel/Save while a property is being edited.
+  const headerAction = useMemo(
+    () =>
+      editingItem ? (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            className="rounded-xl"
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={Object.keys(validateCompanyItem(editingItem)).length > 0}
+            onClick={async () => {
+              await handleSave(editingItem);
+              setEditingId(null);
+            }}
+            className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            Save Property
+          </Button>
+        </div>
+      ) : (
+        <Button
+          onClick={handleAdd}
+          className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+        >
+          <Plus className="h-4 w-4" />
+          Add Property
+        </Button>
+      ),
+    [editingItem, handleAdd, handleCancel, handleSave],
+  );
+
+  useEffect(() => {
+    registerAction(headerAction);
+    return () => registerAction(null);
+  }, [registerAction, headerAction]);
+
   return (
-    <div className="space-y-6 rounded-xl">
+    <div className="space-y-4 rounded-xl">
       <SecondaryPageHeader
         title="Company Properties"
         description="Manage company assets and equipment"
@@ -284,28 +349,21 @@ export default function CompanyPropertiesForm() {
         />
       </div>
 
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
-        <div className="flex justify-between items-center mb-5">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
-              Properties Details
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Track each company property assigned to this employee
-            </p>
-          </div>
-        </div>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <Package className="h-4 w-4 text-blue-600" />
+          Properties Details
+        </h3>
 
         {/* Properties Grid */}
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {items.map((item) => (
             <div
               key={item.id}
-              className="border border-slate-200 rounded-lg p-6 mb-6"
+              className="border border-slate-200 rounded-lg p-4 mb-6"
             >
               {editingId === item.id ? (
-                <div className="p-6 bg-gradient-to-br from-white to-slate-50">
+                <div className="p-4 bg-gradient-to-br from-white to-slate-50">
                   {/* Info Banner */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
                     <div className="flex items-start gap-3">
@@ -326,12 +384,12 @@ export default function CompanyPropertiesForm() {
                   </div>
 
                   {/* Property Information Section */}
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
                       Property Information
                     </h3>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <FormField
                         label="Item Code"
                         required
@@ -363,14 +421,14 @@ export default function CompanyPropertiesForm() {
                       </FormField>
                     </FormRow>
 
-                    <FormRow columns={2}>
+                    <FormRow columns={3}>
                       <FormField
                         label="Item Status"
                         required
                         error={validateCompanyItem(item).itemStatus}
                       >
                         <select
-                          className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                          className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                           value={item.itemStatus ?? ""}
                           onChange={(e) =>
                             updateItem(item.id, {
@@ -402,9 +460,6 @@ export default function CompanyPropertiesForm() {
                           className="rounded-lg border-slate-300"
                         />
                       </FormField>
-                    </FormRow>
-
-                    <FormRow columns={1}>
                       <FormField
                         label="Return Date"
                         error={validateCompanyItem(item).returnDate}
@@ -426,7 +481,7 @@ export default function CompanyPropertiesForm() {
                   </div>
 
                   {/* Description Section */}
-                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100">
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4">
                       Description
                     </h3>
@@ -447,30 +502,9 @@ export default function CompanyPropertiesForm() {
                     </FormField>
                   </div>
 
-                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                    <Button
-                      variant="outline"
-                      onClick={handleCancel}
-                      className="px-6 rounded-lg border-slate-300"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      disabled={
-                        Object.keys(validateCompanyItem(item)).length > 0
-                      }
-                      onClick={async () => {
-                        await handleSave(item);
-                        setEditingId(null);
-                      }}
-                      className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow-lg"
-                    >
-                      Save Property
-                    </Button>
-                  </div>
                 </div>
               ) : (
-                <div className="p-6">
+                <div className="p-4">
                   {/* Summary View */}
                   {viewingId !== item.id && (
                     <div className="relative">
@@ -487,7 +521,7 @@ export default function CompanyPropertiesForm() {
                             </span>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 mt-4">
                           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
                             <p className="text-xs text-slate-600 mb-1">
                               Date Given
@@ -554,7 +588,7 @@ export default function CompanyPropertiesForm() {
 
                   {/* Full Details View */}
                   {viewingId === item.id && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-slate-800">
                           {item.itemName}
@@ -568,84 +602,55 @@ export default function CompanyPropertiesForm() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <Package className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <span className="text-sm font-medium text-blue-700">
-                              Item Name
-                            </span>
-                          </div>
-                          <p className="text-2xl font-bold text-blue-800">
-                            {item.itemName || "—"}
-                          </p>
-                        </div>
-                        <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-200">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-emerald-100 rounded-lg">
-                              <Calendar className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <span className="text-sm font-medium text-emerald-700">
-                              Date Given
-                            </span>
-                          </div>
-                          <p className="text-2xl font-bold text-emerald-800">
-                            {item.dateGiven
-                              ? new Date(item.dateGiven).toLocaleDateString()
-                              : "—"}
-                          </p>
-                        </div>
-                        <div className="bg-violet-50 p-5 rounded-lg border border-violet-200">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-violet-100 rounded-lg">
-                              <FileText className="h-5 w-5 text-violet-600" />
-                            </div>
-                            <span className="text-sm font-medium text-violet-700">
-                              Status
-                            </span>
-                          </div>
-                          <p className="text-2xl font-bold text-violet-800">
-                            {item.itemStatus || "—"}
-                          </p>
-                        </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <ViewField
+                          icon={<Package className="h-4 w-4" />}
+                          label="Item Name"
+                          value={item.itemName}
+                        />
+                        <ViewField
+                          icon={<Calendar className="h-4 w-4" />}
+                          label="Date Given"
+                          value={formatViewDate(item.dateGiven)}
+                        />
+                        <ViewField
+                          icon={<FileText className="h-4 w-4" />}
+                          label="Status"
+                          value={item.itemStatus}
+                        />
                       </div>
 
-                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
+                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Property Information
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <DetailItem
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                          <ViewField
+                            icon={<FileText className="h-4 w-4" />}
                             label="Item Code"
-                            value={item.itemCode || "—"}
+                            value={item.itemCode}
+                            mono
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<Package className="h-4 w-4" />}
                             label="Item Name"
-                            value={item.itemName || "—"}
+                            value={item.itemName}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<Calendar className="h-4 w-4" />}
                             label="Date Given"
-                            value={
-                              item.dateGiven
-                                ? new Date(item.dateGiven).toLocaleDateString()
-                                : "—"
-                            }
+                            value={formatViewDate(item.dateGiven)}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<Calendar className="h-4 w-4" />}
                             label="Return Date"
-                            value={
-                              item.returnDate
-                                ? new Date(item.returnDate).toLocaleDateString()
-                                : "—"
-                            }
+                            value={formatViewDate(item.returnDate)}
                           />
                         </div>
                       </div>
 
                       {item.description && (
-                        <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-200">
+                        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">
                             Description
                           </h4>

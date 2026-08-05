@@ -6,26 +6,26 @@ import type { CycleConfig, Goal, RatingScale, Phase } from "./appraisal-types";
 // ── Panel 5: Preview & Save ────────────────────────────────────────────────
 export function PreviewPanel({
   config,
-  goalsByRole,
-  roles,
+  goalsByJobCode,
+  jobCodes,
   ratingScale,
   phases,
   saved,
   onSave,
 }: {
   config: CycleConfig;
-  goalsByRole: Record<string, Goal[]>;
-  roles: string[];
+  goalsByJobCode: Record<string, Goal[]>;
+  jobCodes: string[];
   ratingScale: RatingScale[];
   phases: Phase[];
   saved: boolean;
   onSave: () => void;
 }) {
-  const configuredRoles = roles.filter(
-    (r) => (goalsByRole[r] || []).filter((g) => g.active).length > 0,
+  const configuredJobCodes = jobCodes.filter(
+    (r) => (goalsByJobCode[r] || []).filter((g) => g.active).length > 0,
   ).length;
-  const validRoles = roles.filter((r) => {
-    const ag = (goalsByRole[r] || []).filter((g) => g.active);
+  const validJobCodes = jobCodes.filter((r) => {
+    const ag = (goalsByJobCode[r] || []).filter((g) => g.active);
     return ag.length > 0 && ag.reduce((s, g) => s + (g.weight || 0), 0) === 100;
   }).length;
 
@@ -40,11 +40,11 @@ export function PreviewPanel({
             color: "text-indigo-600",
           },
           {
-            label: "Roles Configured",
-            value: `${configuredRoles}/${roles.length}`,
+            label: "Job Codes Configured",
+            value: `${configuredJobCodes}/${jobCodes.length}`,
             icon: "👥",
             color:
-              validRoles === configuredRoles
+              validJobCodes === configuredJobCodes
                 ? "text-green-600"
                 : "text-amber-600",
           },
@@ -84,17 +84,17 @@ export function PreviewPanel({
           <div className="flex items-center gap-2 mb-4">
             <span className="text-lg">🎯</span>
             <h3 className="text-base font-bold text-slate-900">
-              Goals by Role ({roles.length} roles)
+              Goals by Job Code ({jobCodes.length} job codes)
             </h3>
           </div>
-          {roles.length === 0 ? (
+          {jobCodes.length === 0 ? (
             <div className="text-center py-8 text-slate-400 text-sm">
-              No roles configured yet.
+              No job codes configured yet.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {roles.map((role) => {
-                const ag = (goalsByRole[role] || []).filter((g) => g.active);
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {jobCodes.map((role) => {
+                const ag = (goalsByJobCode[role] || []).filter((g) => g.active);
                 const tw = ag.reduce((s, g) => s + (g.weight || 0), 0);
                 const ok = ag.length > 0 && tw === 100;
                 return (

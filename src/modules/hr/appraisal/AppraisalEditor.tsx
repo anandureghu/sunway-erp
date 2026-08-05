@@ -121,7 +121,7 @@ export default function AppraisalEditor({ value, onChange, onSave, onCancel }: P
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 
                 {/* Self Rating — editable in DRAFT, read-only after */}
                 <div>
@@ -191,7 +191,7 @@ export default function AppraisalEditor({ value, onChange, onSave, onCancel }: P
               </div>
 
               {/* Comments */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">
                     Self Comment
@@ -238,7 +238,7 @@ export default function AppraisalEditor({ value, onChange, onSave, onCancel }: P
       )}
 
       {/* Overall Comments */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1">
             Employee Comments

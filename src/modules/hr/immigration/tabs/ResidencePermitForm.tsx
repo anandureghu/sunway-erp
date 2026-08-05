@@ -27,6 +27,27 @@ import {
 } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { cn } from "@/lib/utils";
+
+/* ================= VIEW-MODE HELPERS ================= */
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
+const ViewField = ({ icon, label, value, mono }: { icon: React.ReactNode; label: string; value?: React.ReactNode; mono?: boolean; }) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p className={cn("truncate text-sm font-semibold", empty ? "text-slate-300" : "text-slate-700", mono && "font-mono")}>{empty ? "—" : value}</p>
+      </div>
+    </div>
+  );
+};
 
 interface SelectProps {
   value: string;
@@ -403,7 +424,7 @@ export default function ResidencePermitForm(): ReactElement {
   const validityPeriod = calculateValidity();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* ── Page header ── */}
       <SecondaryPageHeader
         title="Residence Permit & Visa"
@@ -431,7 +452,7 @@ export default function ResidencePermitForm(): ReactElement {
           className={`relative overflow-hidden bg-gradient-to-r ${validityConfig.bgPattern} border-2 ${validityConfig.borderColor} rounded-xl shadow-lg`}
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-          <div className="relative p-6">
+          <div className="relative p-4">
             <div className="flex items-start gap-4">
               <div
                 className={`${validityConfig.iconBg} rounded-xl p-3 shadow-sm`}
@@ -487,9 +508,9 @@ export default function ResidencePermitForm(): ReactElement {
       )}
 
       {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4">
         {/* Left Column - Main Form */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Visa Details Card */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
@@ -508,8 +529,9 @@ export default function ResidencePermitForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-4 space-y-4">
+              {editing ? (
+              <div className="grid md:grid-cols-2 gap-4">
                 <FormField
                   label="Visa Type"
                   required
@@ -539,7 +561,7 @@ export default function ResidencePermitForm(): ReactElement {
                       patch("permitIdNumber", e.target.value.toUpperCase())
                     }
                     placeholder="PERMIT-2024-00123"
-                    className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
 
@@ -588,7 +610,7 @@ export default function ResidencePermitForm(): ReactElement {
                     value={draft.visaDuration}
                     onChange={(e) => patch("visaDuration", e.target.value)}
                     placeholder="1 year"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
 
@@ -604,10 +626,45 @@ export default function ResidencePermitForm(): ReactElement {
                     value={draft.occupation}
                     onChange={(e) => patch("occupation", e.target.value)}
                     placeholder="Software Engineer"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
               </div>
+              ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                <ViewField
+                  icon={<FileText className="h-4 w-4" />}
+                  label="Visa Type"
+                  value={draft.visaType}
+                />
+                <ViewField
+                  icon={<Shield className="h-4 w-4" />}
+                  label="Permit ID Number"
+                  value={draft.permitIdNumber}
+                  mono
+                />
+                <ViewField
+                  icon={<Clock className="h-4 w-4" />}
+                  label="Duration Type"
+                  value={draft.durationType}
+                />
+                <ViewField
+                  icon={<MapPin className="h-4 w-4" />}
+                  label="Nationality"
+                  value={profileNationality || draft.nationality}
+                />
+                <ViewField
+                  icon={<Calendar className="h-4 w-4" />}
+                  label="Visa Duration"
+                  value={draft.visaDuration}
+                />
+                <ViewField
+                  icon={<Briefcase className="h-4 w-4" />}
+                  label="Occupation"
+                  value={draft.occupation}
+                />
+              </div>
+              )}
             </div>
           </div>
 
@@ -629,8 +686,9 @@ export default function ResidencePermitForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-4 space-y-4">
+              {editing ? (
+              <div className="grid md:grid-cols-3 gap-4">
                 <FormField
                   label="Issue Place"
                   required
@@ -643,7 +701,7 @@ export default function ResidencePermitForm(): ReactElement {
                     value={draft.issuePlace}
                     onChange={(e) => patch("issuePlace", e.target.value)}
                     placeholder="New York"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
 
@@ -659,7 +717,7 @@ export default function ResidencePermitForm(): ReactElement {
                     value={draft.issueAuthority}
                     onChange={(e) => patch("issueAuthority", e.target.value)}
                     placeholder="Immigration Department"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
 
@@ -678,6 +736,25 @@ export default function ResidencePermitForm(): ReactElement {
                   />
                 </FormField>
               </div>
+              ) : (
+              <div className="grid md:grid-cols-3 gap-4">
+                <ViewField
+                  icon={<MapPin className="h-4 w-4" />}
+                  label="Issue Place"
+                  value={draft.issuePlace}
+                />
+                <ViewField
+                  icon={<Building className="h-4 w-4" />}
+                  label="Issuing Authority"
+                  value={draft.issueAuthority}
+                />
+                <ViewField
+                  icon={<AlertCircle className="h-4 w-4" />}
+                  label="Visa Status"
+                  value={draft.visaStatus}
+                />
+              </div>
+              )}
             </div>
           </div>
 
@@ -699,8 +776,9 @@ export default function ResidencePermitForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-4 space-y-4">
+              {editing ? (
+              <div className="grid md:grid-cols-2 gap-4">
                 <FormField
                   label="Start Date"
                   required
@@ -711,7 +789,7 @@ export default function ResidencePermitForm(): ReactElement {
                     disabled={!editing}
                     value={draft.startDate}
                     onChange={(e) => patch("startDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
 
@@ -725,10 +803,24 @@ export default function ResidencePermitForm(): ReactElement {
                     disabled={!editing}
                     value={draft.endDate}
                     onChange={(e) => patch("endDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
               </div>
+              ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                <ViewField
+                  icon={<Calendar className="h-4 w-4" />}
+                  label="Start Date"
+                  value={formatViewDate(draft.startDate)}
+                />
+                <ViewField
+                  icon={<Calendar className="h-4 w-4" />}
+                  label="End Date"
+                  value={formatViewDate(draft.endDate)}
+                />
+              </div>
+              )}
 
               {validityPeriod && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-100">
@@ -740,7 +832,7 @@ export default function ResidencePermitForm(): ReactElement {
                       <h4 className="font-bold text-slate-900 mb-2">
                         Total Validity Period
                       </h4>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.years}
@@ -845,10 +937,10 @@ export default function ResidencePermitForm(): ReactElement {
         </div>
 
         {/* Right Column - Summary & Info */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Quick Summary Card */}
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-4">
               <div className="flex items-center gap-3 pb-4 border-b border-slate-700">
                 <div className="bg-white/10 rounded-lg p-2">
                   <FileText className="h-5 w-5 text-white" />
@@ -920,7 +1012,7 @@ export default function ResidencePermitForm(): ReactElement {
                 <h3 className="font-bold">Important Information</h3>
               </div>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-4">
               <InfoItem
                 icon={<Shield className="h-4 w-4" />}
                 text="Always keep original and copy of residence permit accessible"
@@ -1027,7 +1119,7 @@ function Select({
   return (
     <select
       id={selectId}
-      className="h-12 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-50 disabled:text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+      className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm disabled:bg-slate-50 disabled:text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}

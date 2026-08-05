@@ -46,6 +46,8 @@ const DEFAULT_LEAVE_TYPES: LeaveType[] = [
   "Unpaid Leave",
   "Maternity Leave",
   "Hajj Leave",
+  "Marriage Leave",
+  "Bereavement Leave",
 ];
 
 // Leave types that require a supporting document
@@ -491,7 +493,7 @@ export default function LeavesForm(): ReactElement {
   });
 
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-4">
       {/* ── Page header ── */}
       <SecondaryPageHeader
         title="Leave Management"
@@ -500,7 +502,7 @@ export default function LeavesForm(): ReactElement {
       />
 
       {/* ── Balance KPI strip ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <SummaryCard
           label="Available Balance"
           value={availBal}
@@ -525,13 +527,13 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Leave Details ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<FileText className="h-3.5 w-3.5" />}
           label="Leave Details"
           accent="from-violet-600 to-blue-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Leave Type */}
           <Field label="Leave Type" required error={errors.leaveType}>
             <div className="relative">
@@ -586,13 +588,13 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Leave Period ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<Calendar className="h-3.5 w-3.5" />}
           label="Leave Period"
           accent="from-emerald-500 to-teal-600"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Start Date" required error={errors.startDate}>
             <div className="relative">
               <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -689,7 +691,7 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Delegation ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<Users className="h-3.5 w-3.5" />}
           label="Delegation"
@@ -701,7 +703,7 @@ export default function LeavesForm(): ReactElement {
           this leave.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Delegate to">
             <div className="relative">
               <UserCheck className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
@@ -799,13 +801,13 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Summary ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<TrendingUp className="h-3.5 w-3.5" />}
           label="Leave Summary"
           accent="from-amber-500 to-orange-500"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Field label="Total Days">
             <div className="relative">
               <CalendarDays className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -835,7 +837,7 @@ export default function LeavesForm(): ReactElement {
 
       {/* ── Document Upload (Sick Leave) ── */}
       {needsDoc && (
-        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
           <SectionHead
             icon={<Upload className="h-3.5 w-3.5" />}
             label="Supporting Document"

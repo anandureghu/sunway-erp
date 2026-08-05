@@ -8,7 +8,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 import type { Company } from "@/types/company";
@@ -112,12 +111,7 @@ export const CHART_OF_ACCOUNTS_COLUMNS = ({
             </DropdownMenuItem>
 
             <DropdownMenuItem onClick={() => onDelete(account)}>
-              Delete
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-muted-foreground">
-              ID: {account.id}
+              Deactivate
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

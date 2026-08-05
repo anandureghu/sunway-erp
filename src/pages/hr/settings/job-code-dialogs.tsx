@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   Briefcase,
   Edit,
@@ -133,7 +134,7 @@ export function JobCodeFormDialog({
             iconBg="bg-emerald-50"
             title="Compensation"
           >
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div>
                 <label className={jcLabelCls}>
                   Salary grade <span className="text-rose-400">*</span>
@@ -236,7 +237,25 @@ export function JobCodeFormDialog({
   );
 }
 
-/** Read-only job-code detail dialog. */
+/** One label → value line in the clean definition list (matches Department view). */
+const JcViewField = ({
+  label,
+  value,
+}: {
+  label: string;
+  value?: ReactNode;
+}) => (
+  <div className="flex items-start justify-between gap-4 px-4 py-3">
+    <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400">
+      {label}
+    </span>
+    <span className="break-words text-right text-sm font-medium text-slate-800">
+      {value == null || value === "" ? "—" : value}
+    </span>
+  </div>
+);
+
+/** Read-only job-code detail dialog — styled to match the Department detail view. */
 export function JobCodeViewDialog({
   view,
   onClose,
@@ -246,81 +265,61 @@ export function JobCodeViewDialog({
   onClose: () => void;
   onEdit: (jc: JobCode) => void;
 }) {
+  const salaryRange =
+    view && (view.minSalary != null || view.maxSalary != null)
+      ? `${view.minSalary != null ? Number(view.minSalary).toLocaleString() : "—"} – ${view.maxSalary != null ? Number(view.maxSalary).toLocaleString() : "—"}`
+      : "—";
+
   return (
     <Dialog open={!!view} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-indigo-600" />
-            Job Code Details
-          </DialogTitle>
-          <DialogDescription>
-            Read-only view of this job code.
-          </DialogDescription>
-        </DialogHeader>
-        {view && (
-          <div className="grid grid-cols-2 gap-4 py-1">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+        {/* Header */}
+        <DialogHeader className="space-y-0 bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-5 text-left">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/25">
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="inline-flex items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
                 Job Code
-              </p>
-              <code className="mt-1 inline-block rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
-                {view.code}
-              </code>
+              </span>
+              <DialogTitle className="mt-1 truncate text-lg font-semibold text-white">
+                {view?.title ?? "Job Code"}
+              </DialogTitle>
+              <DialogDescription className="font-mono text-xs text-white/80">
+                {view?.code ?? "—"}
+              </DialogDescription>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Job Level
-              </p>
-              <p className="mt-1 text-sm font-medium text-slate-800">
-                {view.level}
-              </p>
-            </div>
-            <div className="col-span-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Job Title
-              </p>
-              <p className="mt-1 text-sm font-medium text-slate-900">
-                {view.title}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Salary Grade
-              </p>
-              <p className="mt-1 text-sm font-medium text-slate-800">
-                {view.salaryGrade}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Salary Range
-              </p>
-              <p className="mt-1 text-sm text-slate-700">
-                {view.minSalary != null || view.maxSalary != null
-                  ? `${view.minSalary != null ? Number(view.minSalary).toLocaleString() : "—"} – ${view.maxSalary != null ? Number(view.maxSalary).toLocaleString() : "—"}`
-                  : "—"}
-              </p>
-            </div>
-            <div className="col-span-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Status
-              </p>
-              <div className="mt-1">
-                {view.active ? (
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600">
-                    <CheckCircle2 className="h-4 w-4" /> Active
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400">
-                    <XCircle className="h-4 w-4" /> Inactive
-                  </span>
-                )}
-              </div>
+          </div>
+        </DialogHeader>
+
+        {/* Body */}
+        {view && (
+          <div className="space-y-5 px-6 py-5">
+            <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40">
+              <JcViewField label="Job Level" value={view.level} />
+              <JcViewField label="Salary Grade" value={view.salaryGrade} />
+              <JcViewField label="Salary Range" value={salaryRange} />
+              <JcViewField
+                label="Status"
+                value={
+                  view.active ? (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600">
+                      <CheckCircle2 className="h-4 w-4" /> Active
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-slate-400">
+                      <XCircle className="h-4 w-4" /> Inactive
+                    </span>
+                  )
+                }
+              />
             </div>
           </div>
         )}
-        <DialogFooter>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-6 py-4">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
@@ -335,7 +334,7 @@ export function JobCodeViewDialog({
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -104,8 +104,6 @@ export const CompanyForm = ({
     () => getExistingLogoUrl(defaultValues),
     [defaultValues],
   );
-  const disableCurrencySelection =
-    isEditMode && !!normalizedDefaults.currencyId;
 
   const { user } = useAppSelector((state) => state);
 
@@ -361,8 +359,8 @@ export const CompanyForm = ({
                 <SelectCurrency
                   value={field.value ? String(field.value) : undefined}
                   onChange={(v) => field.onChange(v ? Number(v) : undefined)}
-                  disabled={disableCurrencySelection}
                   disableLabel
+                  disabled={!isEditMode}
                 />
               </FormControl>
               <FormMessage />
@@ -407,7 +405,7 @@ export const CompanyForm = ({
           <div className="space-y-2 border p-4 rounded-md">
             <p className="font-medium text-sm">Subscribed Modules</p>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {/* HR */}
               <FormField
                 control={form.control}

@@ -94,7 +94,7 @@ export function createSalesInvoiceColumns(
     },
     {
       accessorKey: "total",
-      header: "Amount",
+      header: "Total Amount",
       cell: ({ row }) => {
         const type = row.original.type;
         const total =

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
@@ -57,7 +57,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
     fetchAll();
   }, []);
 
-  useEffect(() => {
+  const refreshBudgetAccountGate = useCallback(() => {
     fetchCOAAccounts().then((data) => {
       if (!data) return;
       const count = (data as ChartOfAccounts[]).filter(
@@ -66,6 +66,18 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
       setHasBudgetAccount(count > 0);
     });
   }, []);
+
+  useEffect(() => {
+    refreshBudgetAccountGate();
+  }, [refreshBudgetAccountGate]);
+
+  // Re-check when the dialog opens so a Budget Account created on the COA tab
+  // is picked up without a full page remount.
+  useEffect(() => {
+    if (open) {
+      refreshBudgetAccountGate();
+    }
+  }, [open, refreshBudgetAccountGate]);
 
   const canManageBudget = hasAnyRole(user?.role, [
     "FINANCE_MANAGER",

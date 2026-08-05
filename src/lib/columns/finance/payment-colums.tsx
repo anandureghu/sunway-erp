@@ -28,6 +28,7 @@ import { formatExpenseCategoryLabel } from "@/lib/expense-category-label";
 
 export const PAYMENT_COLUMNS = ({
   variant = "customer",
+  listTab = "outstanding",
   onConfirm,
   onOpenInvoice,
   onOpenPurchaseOrder,
@@ -36,6 +37,7 @@ export const PAYMENT_COLUMNS = ({
   archivingPaymentId,
 }: {
   variant?: PaymentsPageVariant;
+  listTab?: "outstanding" | "archived";
   onConfirm: (payment: PaymentResponseDTO) => void;
   onOpenInvoice: (invoiceId: string) => void;
   onOpenPurchaseOrder: (purchaseOrderId: number) => void;
@@ -79,33 +81,29 @@ export const PAYMENT_COLUMNS = ({
 
   columns.push({
     accessorKey: "amount",
-    header: "Amount",
+    header: "Payment Amount",
     cell: ({ row }) => {
       const item = row.original;
-      const amt = Number(row.getValue("amount"));
+      const amt = Math.abs(Number(row.getValue("amount")) || 0);
       const dir =
         item.paymentDirection ||
         (variant === "vendor" ? "VENDOR" : variant === "other" ? "OTHER" : "CUSTOMER");
+      // Current (outstanding) vendor/other payments show unsigned amounts — they are
+      // pending payables, not posted debit lines.
+      if ((dir === "VENDOR" || dir === "OTHER") && listTab === "outstanding") {
+        return <TotalAmount amount={amt} />;
+      }
       if (dir === "VENDOR" || dir === "OTHER") {
         return <DebitAmount amount={amt} />;
       }
-      return <CreditAmount amount={Math.abs(amt)} />;
+      return <CreditAmount amount={amt} />;
     },
   });
 
+  // Invoice settlement status only — omit invoice Total (often duplicates Payment Amount
+  // / Remainder Due on unpaid full-balance payment requests).
   if (variant !== "other") {
     columns.push(
-      {
-        id: "invoiceTotal",
-        header: "Total",
-        cell: ({ row }) => {
-          const total = row.original.invoiceTotal;
-          if (total == null) {
-            return <span className="text-muted-foreground">—</span>;
-          }
-          return <TotalAmount amount={Number(total)} />;
-        },
-      },
       {
         id: "invoicePaidAmount",
         header: "Paid Amount",
@@ -247,7 +245,7 @@ export const PAYMENT_COLUMNS = ({
           },
         ]
       : []),
-    ...(variant !== "other"
+    ...(variant !== "other" && listTab !== "outstanding"
       ? [
           {
             id: "receiptPdf",

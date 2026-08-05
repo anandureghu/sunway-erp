@@ -11,6 +11,10 @@ import {
   isPaidInvoiceView,
   safeInvoiceValue,
 } from "@/lib/invoice-document-utils";
+import {
+  lineItemGrossAmount,
+  salesDiscountPercentLabel,
+} from "@/lib/sales-order-money";
 
 type InvoiceDocumentPreviewProps = {
   invoice: Invoice;
@@ -32,6 +36,10 @@ function lineDiscountLabel(item: InvoiceLineItem): string {
 }
 
 function lineAmount(item: InvoiceLineItem): number | undefined {
+  // Sales lines: show exact pre-discount amount (unit × qty).
+  if ("discountPercent" in item) {
+    return lineItemGrossAmount(item);
+  }
   if ("lineTotal" in item && typeof item.lineTotal === "number") {
     return item.lineTotal;
   }
@@ -120,6 +128,15 @@ export function InvoiceDocumentPreview({
   const discountAmount = invoice.discountAmount ?? 0;
   const netSubtotal = invoice.subtotalAmount ?? invoice.amount ?? 0;
   const grossSubtotal = netSubtotal + discountAmount;
+  const discountPctLabel = salesDiscountPercentLabel({
+    discountAmount,
+    grossSubtotal,
+    items: (items as InvoiceLineItem[]).map((item) => ({
+      discountPercent:
+        "discountPercent" in item ? item.discountPercent : undefined,
+      discount: "discount" in item ? item.discount : undefined,
+    })),
+  });
   const showDiscount = discountAmount > 0;
   const showTax = (invoice.taxAmount ?? 0) > 0;
   const showQr =
@@ -271,7 +288,7 @@ export function InvoiceDocumentPreview({
                   Discount
                 </th>
                 <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
-                  Line Amount
+                  Line item
                 </th>
               </tr>
             </thead>
@@ -343,6 +360,9 @@ export function InvoiceDocumentPreview({
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right font-semibold">
                       {invoiceMoney(discountAmount, currencyCode)}
+                      {discountPctLabel
+                        ? ` (${discountPctLabel})`
+                        : ""}
                     </td>
                   </tr>
                 )}

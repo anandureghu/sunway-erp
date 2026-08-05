@@ -10,7 +10,7 @@ import { salaryService } from "@/service/salaryService";
 import type { RetirementCompensation } from "@/service/salaryService";
 import { currentJobService } from "@/service/currentJobService";
 import { timesheetService } from "@/service/timesheetService";
-import { fetchCompany } from "@/service/companyService";
+import { fetchHrPolicies } from "@/service/companyService";
 import { toast } from "sonner";
 import {
   DollarSign,
@@ -28,13 +28,53 @@ import {
   CalendarDays,
   Award,
   ShieldAlert,
+  Utensils,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import type { Company } from "@/types/company";
 import { cn } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 import type { SalaryCtx } from "../SalaryShell";
+
+// ── read-only "view mode" primitives (mirror EmployeeProfileForm) ─────────────
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
 
 type BenefitType = "ALLOWANCE" | "COMPANY_PROVIDED";
 
@@ -57,6 +97,10 @@ type SalaryFormState = {
   housingType: BenefitType;
   housingAllowance: number;
   otherAllowance: number;
+  foodAllowance: number;
+  /** Still linked to HR Policies statutory defaults until edited once. */
+  housingFollowsCompanyDefault: boolean;
+  foodFollowsCompanyDefault: boolean;
   compensationStatus: string;
   effectiveFrom: string;
   effectiveTo: string;
@@ -76,6 +120,9 @@ const INITIAL_STATE: SalaryFormState = {
   housingType: "COMPANY_PROVIDED",
   housingAllowance: 0,
   otherAllowance: 0,
+  foodAllowance: 0,
+  housingFollowsCompanyDefault: true,
+  foodFollowsCompanyDefault: true,
   compensationStatus: "Active",
   effectiveFrom: "",
   effectiveTo: "",
@@ -196,48 +243,60 @@ const BenefitRow = ({
       )}
     </div>
 
-    <div
-      className={cn(
-        "grid gap-3",
-        typeValue === "ALLOWANCE" ? "grid-cols-2" : "grid-cols-1",
-      )}
-    >
-      <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Benefit Type</Label>
-        <SelectField
-          options={BENEFIT_OPTIONS}
-          value={typeValue}
-          onChange={(e) => onTypeChange(e.target.value)}
-          disabled={disabled}
-        />
-      </div>
-
-      {typeValue === "ALLOWANCE" && (
+    {disabled ? (
+      <ViewField
+        icon={icon}
+        label={typeValue === "ALLOWANCE" ? "Allowance Amount" : "Benefit Type"}
+        value={
+          typeValue === "ALLOWANCE"
+            ? `${currencySymbol} ${amountValue || 0}`
+            : "Company provided"
+        }
+      />
+    ) : (
+      <div
+        className={cn(
+          "grid gap-3",
+          typeValue === "ALLOWANCE" ? "grid-cols-2" : "grid-cols-1",
+        )}
+      >
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">
-            Allowance Amount
-          </Label>
-          <div className="flex h-9 overflow-hidden rounded-lg border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
-            <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-2.5 text-xs font-semibold text-violet-700">
-              {currencySymbol}
-            </span>
-            <Input
-              type="number"
-              value={amountValue || ""}
-              onChange={(e) => onAmountChange(e.target.value)}
-              placeholder="0.00"
-              disabled={disabled}
-              className="h-full flex-1 rounded-none border-0 pl-2.5 shadow-none focus-visible:ring-0"
-              min="0"
-              step="0.01"
-            />
-          </div>
-          {amountError && (
-            <p className="text-xs text-rose-500">{amountError}</p>
-          )}
+          <Label className="text-xs text-muted-foreground">Benefit Type</Label>
+          <SelectField
+            options={BENEFIT_OPTIONS}
+            value={typeValue}
+            onChange={(e) => onTypeChange(e.target.value)}
+            disabled={disabled}
+          />
         </div>
-      )}
-    </div>
+
+        {typeValue === "ALLOWANCE" && (
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">
+              Allowance Amount
+            </Label>
+            <div className="flex h-9 overflow-hidden rounded-lg border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
+              <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-2.5 text-xs font-semibold text-violet-700">
+                {currencySymbol}
+              </span>
+              <Input
+                type="number"
+                value={amountValue || ""}
+                onChange={(e) => onAmountChange(e.target.value)}
+                placeholder="0.00"
+                disabled={disabled}
+                className="h-full flex-1 rounded-none border-0 pl-2.5 shadow-none focus-visible:ring-0"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            {amountError && (
+              <p className="text-xs text-rose-500">{amountError}</p>
+            )}
+          </div>
+        )}
+      </div>
+    )}
   </div>
 );
 
@@ -295,11 +354,11 @@ export default function SalaryForm() {
   const { editing, registerHandlers } = useOutletContext<SalaryCtx>();
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
-  const { user } = useAuth();
+  const { user, company } = useAuth();
 
   const [formData, setFormData] = useState<SalaryFormState>(INITIAL_STATE);
   const [exists, setExists] = useState(false);
-  const [currencySymbol, setCurrencySymbol] = useState("$");
+  const currencySymbol = company?.currency?.currencyCode ?? "";
 
   // End-of-service compensation (accrued gratuity). `enabled = false` means the
   // company policy is off (or the data needed to compute it is missing).
@@ -468,9 +527,19 @@ export default function SalaryForm() {
       housingType: formData.housingType,
       housingAllowance:
         formData.housingType === "ALLOWANCE"
-          ? Number(formData.housingAllowance || 0)
+          ? formData.housingFollowsCompanyDefault
+            ? null
+            : Number(formData.housingAllowance ?? 0)
           : 0,
+      housingFollowsCompanyDefault:
+        formData.housingType === "ALLOWANCE"
+          ? formData.housingFollowsCompanyDefault
+          : true,
       otherAllowance: Number(formData.otherAllowance || 0),
+      foodAllowance: formData.foodFollowsCompanyDefault
+        ? null
+        : Number(formData.foodAllowance ?? 0),
+      foodFollowsCompanyDefault: formData.foodFollowsCompanyDefault,
       status: formData.compensationStatus,
       effectiveFrom: formData.effectiveFrom,
       effectiveTo: formData.effectiveTo,
@@ -503,8 +572,30 @@ export default function SalaryForm() {
     let mounted = true;
     salaryService
       .get(employeeId)
-      .then((res) => {
-        if (!mounted || !res.data) return;
+      .then(async (res) => {
+        if (!mounted) return;
+        if (!res.data) {
+          setExists(false);
+          // Prefill company min basic salary + housing/food defaults for new compensation.
+          if (user?.companyId) {
+            try {
+              const policies = await fetchHrPolicies(user.companyId);
+              if (!mounted) return;
+              setFormData((prev) => ({
+                ...prev,
+                basicSalary: Number(policies.minimumMonthlyWage ?? 1000),
+                housingType: "ALLOWANCE",
+                housingAllowance: Number(policies.defaultHousingAllowance ?? 500),
+                foodAllowance: Number(policies.defaultFoodAllowance ?? 300),
+                housingFollowsCompanyDefault: true,
+                foodFollowsCompanyDefault: true,
+              }));
+            } catch {
+              /* keep INITIAL_STATE */
+            }
+          }
+          return;
+        }
         const api = res.data;
         setFormData(
           (prev) =>
@@ -530,6 +621,11 @@ export default function SalaryForm() {
                   : "COMPANY_PROVIDED"),
               housingAllowance: Number(api.housingAllowance ?? 0),
               otherAllowance: Number(api.otherAllowance ?? 0),
+              foodAllowance: Number(api.foodAllowance ?? 0),
+              housingFollowsCompanyDefault:
+                api.housingFollowsCompanyDefault !== false,
+              foodFollowsCompanyDefault:
+                api.foodFollowsCompanyDefault !== false,
               compensationStatus:
                 api.status ?? api.compensationStatus ?? "Active",
               effectiveFrom: api.effectiveFrom ?? "",
@@ -549,7 +645,7 @@ export default function SalaryForm() {
     return () => {
       mounted = false;
     };
-  }, [employeeId]);
+  }, [employeeId, user?.companyId]);
 
   // ── total days worked from timesheet for the selected salary month ──────────
   useEffect(() => {
@@ -580,17 +676,6 @@ export default function SalaryForm() {
     };
   }, [employeeId, salaryMonth]);
 
-  // ── currency ─────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user?.companyId) return;
-    fetchCompany(user.companyId.toString())
-      .then((company: Company) => {
-        if (company?.currency?.currencyCode)
-          setCurrencySymbol(company.currency.currencyCode);
-      })
-      .catch(() => {});
-  }, [user?.companyId]);
-
   // ── field updater ────────────────────────────────────────────────────────────
   const updateField = (field: keyof SalaryFormState) => (value: string) => {
     if (
@@ -600,22 +685,35 @@ export default function SalaryForm() {
         "travelAllowance",
         "otherAllowance",
         "housingAllowance",
+        "foodAllowance",
       ].includes(field)
     ) {
       const num = Number(value.replace(/[^0-9.]/g, "")) || 0;
-      setFormData((prev) => ({ ...prev, [field]: num }) as SalaryFormState);
+      setFormData((prev) => {
+        const next = { ...prev, [field]: num } as SalaryFormState;
+        // Editing housing/food once severs the company-default link.
+        if (field === "housingAllowance") {
+          next.housingFollowsCompanyDefault = false;
+        }
+        if (field === "foodAllowance") {
+          next.foodFollowsCompanyDefault = false;
+        }
+        return next;
+      });
       return;
     }
     if (["transportationType", "travelType", "housingType"].includes(field)) {
       const val = value as BenefitType;
       const reset =
         field === "housingType" && val !== "ALLOWANCE"
-          ? { housingAllowance: 0 }
-          : field === "transportationType" && val !== "ALLOWANCE"
-            ? { transportationAllowance: 0 }
-            : field === "travelType" && val !== "ALLOWANCE"
-              ? { travelAllowance: 0 }
-              : {};
+          ? { housingAllowance: 0, housingFollowsCompanyDefault: true }
+          : field === "housingType" && val === "ALLOWANCE"
+            ? { housingFollowsCompanyDefault: true }
+            : field === "transportationType" && val !== "ALLOWANCE"
+              ? { transportationAllowance: 0 }
+              : field === "travelType" && val !== "ALLOWANCE"
+                ? { travelAllowance: 0 }
+                : {};
       setFormData(
         (prev) => ({ ...prev, [field]: val, ...reset }) as SalaryFormState,
       );
@@ -634,10 +732,11 @@ export default function SalaryForm() {
   const housingAmt =
     formData.housingType === "ALLOWANCE" ? formData.housingAllowance || 0 : 0;
   const otherAmt = formData.otherAllowance || 0;
+  const foodAmt = formData.foodAllowance || 0;
 
   const totalAllowance = useMemo(
-    () => transAmt + travelAmt + housingAmt + otherAmt,
-    [transAmt, travelAmt, housingAmt, otherAmt],
+    () => transAmt + travelAmt + housingAmt + otherAmt + foodAmt,
+    [transAmt, travelAmt, housingAmt, otherAmt, foodAmt],
   );
 
   const grossPay = useMemo(
@@ -691,7 +790,7 @@ export default function SalaryForm() {
 
   // ── render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-4">
       {/* ── Page header ── */}
       <SecondaryPageHeader
         title="Salary & Compensation"
@@ -721,18 +820,27 @@ export default function SalaryForm() {
         {/* ── LEFT: form ── */}
         <div className="space-y-4">
           {/* Basic Salary card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<DollarSign className="h-4 w-4" />}
               label="Basic Salary"
               accent="from-violet-600 to-blue-600"
             />
+            {!editing ? (
+              <FormRow columns={1}>
+                <ViewField
+                  icon={<DollarSign className="h-4 w-4" />}
+                  label="Monthly Basic Salary"
+                  value={`${currencySymbol} ${formData.basicSalary || 0}`}
+                />
+              </FormRow>
+            ) : (
             <FormRow columns={1}>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700">
                   Monthly Basic Salary <span className="text-rose-500">*</span>
                 </Label>
-                <div className="flex h-12 overflow-hidden rounded-xl border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
+                <div className="flex h-9 overflow-hidden rounded-xl border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
                   <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-3 text-sm font-bold text-violet-700">
                     {currencySymbol}
                   </span>
@@ -793,10 +901,11 @@ export default function SalaryForm() {
                 )}
               </div>
             </FormRow>
+            )}
           </div>
 
           {/* Benefits card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<BadgePercent className="h-4 w-4" />}
               label="Benefits & Allowances"
@@ -839,6 +948,66 @@ export default function SalaryForm() {
                 disabled={!editing}
                 amountError={errors.housingAllowance}
               />
+              {formData.housingType === "ALLOWANCE" &&
+                formData.housingFollowsCompanyDefault && (
+                  <p className="-mt-1 px-1 text-[11px] text-slate-400">
+                    Tracks company housing default in HR Policies until you edit
+                    this amount once.
+                  </p>
+                )}
+
+              {/* Food allowance (company statutory default when blank) */}
+              <div className="rounded-xl border border-slate-100 bg-white p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white bg-orange-500">
+                    <Utensils className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-semibold text-slate-800">
+                    Food Allowance
+                  </span>
+                  {formData.foodFollowsCompanyDefault && (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Company default
+                    </span>
+                  )}
+                </div>
+                {!editing ? (
+                  <ViewField
+                    icon={<Utensils className="h-4 w-4" />}
+                    label="Allowance Amount"
+                    value={`${currencySymbol} ${formData.foodAllowance || 0}`}
+                  />
+                ) : (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">
+                    Allowance Amount
+                  </Label>
+                  <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
+                    <span className="flex shrink-0 items-center border-r border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-500">
+                      {currencySymbol}
+                    </span>
+                    <Input
+                      type="number"
+                      value={formData.foodAllowance || ""}
+                      onChange={(e) =>
+                        updateField("foodAllowance")(e.target.value)
+                      }
+                      placeholder="0.00"
+                      disabled={!editing}
+                      className="h-full flex-1 rounded-none border-0 pl-2.5 shadow-none focus-visible:ring-0"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  {formData.foodFollowsCompanyDefault && (
+                    <p className="text-[11px] text-slate-400">
+                      Tracks company food default in HR Policies until you edit
+                      this amount once.
+                    </p>
+                  )}
+                </div>
+                )}
+              </div>
 
               {/* Other allowance inline */}
               <div className="rounded-xl border border-slate-100 bg-white p-4">
@@ -850,6 +1019,13 @@ export default function SalaryForm() {
                     Other Allowance
                   </span>
                 </div>
+                {!editing ? (
+                  <ViewField
+                    icon={<Sparkles className="h-4 w-4" />}
+                    label="Allowance Amount"
+                    value={`${currencySymbol} ${formData.otherAllowance || 0}`}
+                  />
+                ) : (
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">
                     Allowance Amount
@@ -877,12 +1053,13 @@ export default function SalaryForm() {
                     </p>
                   )}
                 </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* End of Service Compensation card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<Award className="h-4 w-4" />}
               label="End of Service Compensation"
@@ -977,13 +1154,34 @@ export default function SalaryForm() {
           </div>
 
           {/* Status & Dates card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<CheckCircle className="h-4 w-4" />}
               label="Status & Effective Dates"
               accent="from-emerald-500 to-teal-600"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {!editing ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <ViewField
+                  icon={<CheckCircle className="h-4 w-4" />}
+                  label="Compensation Status"
+                  value={formData.compensationStatus}
+                />
+                <ViewField
+                  icon={<Calendar className="h-4 w-4" />}
+                  label="Effective From"
+                  value={formatViewDate(formData.effectiveFrom)}
+                  mono
+                />
+                <ViewField
+                  icon={<Calendar className="h-4 w-4" />}
+                  label="Effective To"
+                  value={formatViewDate(formData.effectiveTo)}
+                  mono
+                />
+              </div>
+            ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {/* Status */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700">
@@ -1040,16 +1238,17 @@ export default function SalaryForm() {
                 )}
               </div>
             </div>
+            )}
           </div>
 
           {/* Salary Month & Total Days Worked card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<CalendarDays className="h-4 w-4" />}
               label="Salary Month"
               accent="from-sky-500 to-indigo-600"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <CalendarDays className="h-3.5 w-3.5 text-sky-600" />
@@ -1098,7 +1297,7 @@ export default function SalaryForm() {
         {/* ── RIGHT: live compensation summary ── */}
         <div className="xl:sticky xl:top-5 space-y-4">
           {/* Gross pay hero */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-6 text-white shadow-xl">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-4 text-white shadow-xl">
             {/* decorative blobs */}
             <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             <div className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl" />

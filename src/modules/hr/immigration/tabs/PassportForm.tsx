@@ -26,6 +26,27 @@ import {
 } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { cn } from "@/lib/utils";
+
+/* ================= VIEW-MODE HELPERS ================= */
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
+const ViewField = ({ icon, label, value, mono }: { icon: React.ReactNode; label: string; value?: React.ReactNode; mono?: boolean; }) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p className={cn("truncate text-sm font-semibold", empty ? "text-slate-300" : "text-slate-700", mono && "font-mono")}>{empty ? "—" : value}</p>
+      </div>
+    </div>
+  );
+};
 
 /* ================= TYPES ================= */
 
@@ -344,7 +365,7 @@ export default function PassportForm(): ReactElement {
   const validityPeriod = calculateValidity();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SecondaryPageHeader
         title="Passport Information"
         description="Manage international travel documentation and validity status"
@@ -371,7 +392,7 @@ export default function PassportForm(): ReactElement {
           className={`relative overflow-hidden bg-gradient-to-r ${validityConfig.bgPattern} border-2 ${validityConfig.borderColor} rounded-xl shadow-lg`}
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-          <div className="relative p-6">
+          <div className="relative p-4">
             <div className="flex items-start gap-4">
               <div
                 className={`${validityConfig.iconBg} rounded-xl p-3 shadow-sm`}
@@ -421,9 +442,9 @@ export default function PassportForm(): ReactElement {
       )}
 
       {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4">
         {/* Left Column - Primary Information */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Passport Identity Card */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
@@ -442,8 +463,9 @@ export default function PassportForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-4 space-y-4">
+              {editing ? (
+              <div className="grid md:grid-cols-2 gap-4">
                 <FormField
                   label="Passport Number"
                   required
@@ -459,7 +481,7 @@ export default function PassportForm(): ReactElement {
                       )
                     }
                     placeholder="AB1234567"
-                    className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                   <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
                     <Shield className="h-3 w-3" />
@@ -477,13 +499,28 @@ export default function PassportForm(): ReactElement {
                     readOnly
                     value={profileName || draft.nameAsPassport}
                     placeholder="FULL LEGAL NAME"
-                    className="uppercase font-semibold disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="uppercase font-semibold disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                   <p className="text-xs text-slate-500 mt-1.5">
                     Taken from the employee profile
                   </p>
                 </FormField>
               </div>
+              ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                <ViewField
+                  icon={<FileText className="h-4 w-4" />}
+                  label="Passport Number"
+                  value={draft.passportNo}
+                  mono
+                />
+                <ViewField
+                  icon={<User className="h-4 w-4" />}
+                  label="Full Name on Passport"
+                  value={profileName || draft.nameAsPassport}
+                />
+              </div>
+              )}
             </div>
           </div>
 
@@ -505,8 +542,9 @@ export default function PassportForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-4 space-y-4">
+              {editing ? (
+              <div className="grid md:grid-cols-2 gap-4">
                 <FormField
                   label="Issuing Country"
                   required
@@ -544,6 +582,20 @@ export default function PassportForm(): ReactElement {
                   </p>
                 </FormField>
               </div>
+              ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                <ViewField
+                  icon={<MapPin className="h-4 w-4" />}
+                  label="Issuing Country"
+                  value={draft.issueCountry}
+                />
+                <ViewField
+                  icon={<Globe className="h-4 w-4" />}
+                  label="Nationality"
+                  value={profileNationality || draft.nationality}
+                />
+              </div>
+              )}
             </div>
           </div>
 
@@ -565,8 +617,9 @@ export default function PassportForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-4 space-y-4">
+              {editing ? (
+              <div className="grid md:grid-cols-2 gap-4">
                 <FormField
                   label="Issue Date"
                   required
@@ -577,7 +630,7 @@ export default function PassportForm(): ReactElement {
                     disabled={!editing}
                     value={draft.issueDate}
                     onChange={(e) => patch("issueDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
 
@@ -591,10 +644,24 @@ export default function PassportForm(): ReactElement {
                     disabled={!editing}
                     value={draft.expireDate}
                     onChange={(e) => patch("expireDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="disabled:bg-slate-50 disabled:text-slate-900 h-9"
                   />
                 </FormField>
               </div>
+              ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                <ViewField
+                  icon={<Calendar className="h-4 w-4" />}
+                  label="Issue Date"
+                  value={formatViewDate(draft.issueDate)}
+                />
+                <ViewField
+                  icon={<Calendar className="h-4 w-4" />}
+                  label="Expiration Date"
+                  value={formatViewDate(draft.expireDate)}
+                />
+              </div>
+              )}
 
               {validityPeriod && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-100">
@@ -606,7 +673,7 @@ export default function PassportForm(): ReactElement {
                       <h4 className="font-bold text-slate-900 mb-2">
                         Total Validity Period
                       </h4>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.years}
@@ -711,10 +778,10 @@ export default function PassportForm(): ReactElement {
         </div>
 
         {/* Right Column - Summary & Info */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Quick Summary Card */}
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-4">
               <div className="flex items-center gap-3 pb-4 border-b border-slate-700">
                 <div className="bg-white/10 rounded-lg p-2">
                   <FileText className="h-5 w-5 text-white" />
@@ -780,7 +847,7 @@ export default function PassportForm(): ReactElement {
                 <h3 className="font-bold">Important Information</h3>
               </div>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-4">
               <InfoItem
                 icon={<Shield className="h-4 w-4" />}
                 text="Most countries require at least 6 months of passport validity for entry"

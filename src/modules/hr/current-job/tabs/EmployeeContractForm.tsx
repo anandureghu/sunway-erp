@@ -18,6 +18,12 @@ import {
 import { salaryService } from "@/service/salaryService";
 import { hrService } from "@/service/hr.service";
 import { currentJobService } from "@/service/currentJobService";
+import {
+  educationService,
+  type EmployeeEducationResponse,
+} from "@/service/educationService";
+import { addressService, type Address } from "@/service/addressService";
+import { useAuth } from "@/context/AuthContext";
 import type { Employee } from "@/types/hr";
 import { downloadContractPdf } from "@/service/contractPdfService";
 import { toast } from "sonner";
@@ -38,6 +44,7 @@ import {
   Briefcase,
   Building2,
   MapPin,
+  CheckCircle2,
 } from "lucide-react";
 import {
   Select,
@@ -48,6 +55,70 @@ import {
 } from "@/components/ui/select";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { cn } from "@/lib/utils";
+
+/* ================= VIEW-MODE HELPERS ================= */
+
+/** Read-only "info item" for view mode: soft icon tile + label + value. */
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
+
+const CONTRACT_TYPE_LABELS: Record<string, string> = {
+  PERMANENT: "Permanent",
+  TEMPORARY: "Temporary",
+  INTERN: "Intern",
+  CONSULTANT: "Consultant",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  ACTIVE: "Active",
+  EXPIRED: "Expired",
+  TERMINATED: "Terminated",
+};
+
+const RATE_TYPE_LABELS: Record<string, string> = {
+  MONTHLY: "Monthly",
+  HOURLY: "Hourly",
+  DAILY: "Daily",
+  YEARLY: "Yearly",
+};
 
 /* ================= TYPES ================= */
 
@@ -112,6 +183,31 @@ function normalizeLinkedJob(raw: any): LinkedJobInfo | null {
     workCity: raw.workCity ?? "",
     workCountry: raw.workCountry ?? "",
   };
+}
+
+/** Highest qualification as a one-liner, e.g. "MS in Engineering". */
+function summarizeEducation(list: EmployeeEducationResponse[]): string {
+  if (!list || list.length === 0) return "";
+  const top = [...list].sort(
+    (a, b) => (b.yearGraduated ?? 0) - (a.yearGraduated ?? 0),
+  )[0];
+  const degree = (top.degreeEarned ?? "").trim();
+  const major = (top.major ?? "").trim();
+  if (!degree) return major;
+  return major ? `${degree} in ${major}` : degree;
+}
+
+/** Employee's home address as a single line for the contract's residence block. */
+function summarizeAddress(list: Address[]): string {
+  if (!list || list.length === 0) return "";
+  const pick =
+    list.find((a) => a.primaryAddress) ??
+    list.find((a) => a.addressType === "HOME" || a.addressType === "CURRENT") ??
+    list[0];
+  return [pick.line1, pick.line2, pick.city, pick.state, pick.country]
+    .map((p) => (p ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
 }
 
 const createEmptyRow = (): SalaryAllowanceRow => ({
@@ -214,23 +310,30 @@ function ReadOnlyInfo({
   icon,
   label,
   value,
+  className,
 }: {
   icon: ReactNode;
   label: string;
   value?: string;
+  className?: string;
 }) {
   const display = value && value.trim() !== "" ? value : "—";
   const isEmpty = display === "—";
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
-      <div className="mb-1 flex items-center gap-1.5">
+    <div
+      className={cn(
+        "rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-2",
+        className,
+      )}
+    >
+      <div className="mb-0.5 flex items-center gap-1">
         <span className="text-slate-400">{icon}</span>
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
           {label}
         </span>
       </div>
       <p
-        className={`truncate text-sm font-semibold ${
+        className={`truncate text-xs font-semibold ${
           isEmpty ? "text-slate-300" : "text-slate-800"
         }`}
         title={isEmpty ? undefined : display}
@@ -279,6 +382,7 @@ export default function EmployeeContractForm() {
   const { editing: externalEditing, registerHandlers } =
     useOutletContext<CurrentJobShellCtx>();
   const { validationError } = useConfirmDialog();
+  const { company } = useAuth();
 
   const employeeId = (() => {
     if (!id || id.trim() === "") return undefined;
@@ -293,6 +397,9 @@ export default function EmployeeContractForm() {
   const [, setSalaryOptions] = useState<SalaryOption[]>([]);
   const [employeeInfo, setEmployeeInfo] = useState<Employee | null>(null);
   const [currentJob, setCurrentJob] = useState<LinkedJobInfo | null>(null);
+  // Auto-filled from other HR tabs for the contract PDF (Qatar narrative format).
+  const [educationSummary, setEducationSummary] = useState("");
+  const [residenceAddress, setResidenceAddress] = useState("");
 
   const allowanceTypeMapRef = useRef<Map<string, number>>(new Map());
   const loadingContractRef = useRef(false);
@@ -498,14 +605,18 @@ export default function EmployeeContractForm() {
         let empInfo: Employee | null = null;
         let job: LinkedJobInfo | null = null;
         try {
-          const [emp, jobRaw] = await Promise.all([
+          const [emp, jobRaw, educations, addresses] = await Promise.all([
             hrService.getEmployee(empId).catch(() => null),
             currentJobService.get(empId).catch(() => null),
+            educationService.getAll(empId).catch(() => []),
+            addressService.getAddressesByEmployee(empId).catch(() => []),
           ]);
           empInfo = emp;
           job = normalizeLinkedJob(jobRaw);
           setEmployeeInfo(empInfo);
           setCurrentJob(job);
+          setEducationSummary(summarizeEducation(educations));
+          setResidenceAddress(summarizeAddress(addresses));
         } catch {
           // Employee/current-job not available yet
         }
@@ -677,17 +788,41 @@ export default function EmployeeContractForm() {
   const buildPdfData = useCallback(
     () => ({
       contractCode: formData.contractCode,
-      staffName: formData.staffName,
-      jobTitle: currentJob?.jobTitle ?? "",
-      workLocation: [
-        currentJob?.workLocation,
-        currentJob?.workCity,
-        currentJob?.workCountry,
+      status: formData.status,
+
+      // Contract meta — "on this day <weekday> corresponding to: <date>"
+      contractDate:
+        formData.effectiveDate ||
+        formData.signatureDate ||
+        employeeInfo?.joinDate ||
+        "",
+      placeOfContract: company?.country ?? "",
+
+      // First party (employer) — from the active company
+      employerName: company?.companyName ?? "",
+      employerAddress: [
+        company?.street,
+        company?.city,
+        company?.state,
+        company?.country,
       ]
+        .map((p) => (p ?? "").trim())
         .filter(Boolean)
         .join(", "),
+
+      // Second party (employee) — from profile / education / address tabs
+      staffName: formData.staffName,
+      education: educationSummary,
+      nationality: employeeInfo?.nationality ?? "",
+      personalId: employeeInfo?.nationalId ?? employeeInfo?.identification ?? "",
+      residenceAddress: residenceAddress,
+
+      // Engagement
+      jobTitle: currentJob?.jobTitle ?? "",
+      jobSkillLevel: "Skilled",
+
+      // Contract terms
       contractType: formData.contractType,
-      status: formData.status,
       effectiveDate: formData.effectiveDate,
       expirationDate: formData.expirationDate,
       contractPeriodMonths: formData.contractPeriodMonths,
@@ -696,12 +831,14 @@ export default function EmployeeContractForm() {
       signatureDate: formData.signatureDate,
       signedBy: formData.signedBy,
       termsAndConditions: formData.termsAndConditions,
+
+      // Salary breakdown
       salaryRows: formData.salaryRows.map((row) => ({
         ...row,
         customName: row.customName,
       })),
     }),
-    [formData, currentJob],
+    [formData, currentJob, company, employeeInfo, educationSummary, residenceAddress],
   );
 
   const handleDownloadPdf = () => {
@@ -719,7 +856,7 @@ export default function EmployeeContractForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-4">
       {/* Header Section */}
 
       <SecondaryPageHeader
@@ -817,7 +954,7 @@ export default function EmployeeContractForm() {
       </div>
 
       {/* Main Form Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
         {/* Linked Employee Info + Current Job — read-only auto-fill */}
         <section>
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
@@ -835,7 +972,7 @@ export default function EmployeeContractForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+          <div className="mt-3 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
             <ReadOnlyInfo
               icon={<Hash className="h-3.5 w-3.5" />}
               label="Employee No"
@@ -876,6 +1013,7 @@ export default function EmployeeContractForm() {
               ]
                 .filter(Boolean)
                 .join(", ")}
+              className="min-w-[160px] max-w-[220px]"
             />
           </div>
         </section>
@@ -891,12 +1029,13 @@ export default function EmployeeContractForm() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+          {editing ? (
+          <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <FormField label="Contract Code" required>
               <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Hash className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.contractCode}
                   onChange={(e) => updateField("contractCode")(e.target.value)}
@@ -906,9 +1045,9 @@ export default function EmployeeContractForm() {
 
             <FormField label="Staff Name" required error={errors.staffName}>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <User className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   placeholder="Enter staff name"
                   value={formData.staffName}
@@ -929,7 +1068,7 @@ export default function EmployeeContractForm() {
                 }
                 disabled={!editing}
               >
-                <SelectTrigger className="h-11 border-slate-300 rounded-xl">
+                <SelectTrigger className="h-9 rounded-lg border-slate-300">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -949,7 +1088,7 @@ export default function EmployeeContractForm() {
                 }
                 disabled={!editing}
               >
-                <SelectTrigger className="h-11 border-slate-300 rounded-xl">
+                <SelectTrigger className="h-9 rounded-lg border-slate-300">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -967,10 +1106,10 @@ export default function EmployeeContractForm() {
               error={errors.effectiveDate}
             >
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="date"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.effectiveDate}
                   onChange={(e) => updateField("effectiveDate")(e.target.value)}
@@ -980,10 +1119,10 @@ export default function EmployeeContractForm() {
 
             <FormField label="Expiration Date">
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Calendar className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="date"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   value={formData.expirationDate}
                   onChange={(e) =>
@@ -995,10 +1134,10 @@ export default function EmployeeContractForm() {
 
             <FormField label="Contract Period (Months)">
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Clock className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="number"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   placeholder="0"
                   value={formData.contractPeriodMonths || ""}
@@ -1011,10 +1150,10 @@ export default function EmployeeContractForm() {
 
             <FormField label="Notice Period (Days)">
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Clock className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   type="number"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
+                  className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
                   disabled={!editing}
                   placeholder="30"
                   value={formData.noticePeriodDays || ""}
@@ -1031,7 +1170,7 @@ export default function EmployeeContractForm() {
                 onValueChange={(v) => updateField("salaryRateType")(v)}
                 disabled={!editing}
               >
-                <SelectTrigger className="h-11 border-slate-300 rounded-xl">
+                <SelectTrigger className="h-9 rounded-lg border-slate-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1043,6 +1182,62 @@ export default function EmployeeContractForm() {
               </Select>
             </FormField>
           </div>
+          ) : (
+          <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <ViewField
+              icon={<Hash className="h-4 w-4" />}
+              label="Contract Code"
+              value={formData.contractCode}
+              mono
+            />
+            <ViewField
+              icon={<User className="h-4 w-4" />}
+              label="Staff Name"
+              value={formData.staffName}
+            />
+            <ViewField
+              icon={<FileText className="h-4 w-4" />}
+              label="Contract Type"
+              value={
+                CONTRACT_TYPE_LABELS[formData.contractType] ??
+                formData.contractType
+              }
+            />
+            <ViewField
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              label="Status"
+              value={STATUS_LABELS[formData.status] ?? formData.status}
+            />
+            <ViewField
+              icon={<Calendar className="h-4 w-4" />}
+              label="Effective Date"
+              value={formatViewDate(formData.effectiveDate)}
+            />
+            <ViewField
+              icon={<Calendar className="h-4 w-4" />}
+              label="Expiration Date"
+              value={formatViewDate(formData.expirationDate)}
+            />
+            <ViewField
+              icon={<Clock className="h-4 w-4" />}
+              label="Contract Period (Months)"
+              value={formData.contractPeriodMonths || ""}
+            />
+            <ViewField
+              icon={<Clock className="h-4 w-4" />}
+              label="Notice Period (Days)"
+              value={formData.noticePeriodDays || ""}
+            />
+            <ViewField
+              icon={<DollarSign className="h-4 w-4" />}
+              label="Salary Rate Type"
+              value={
+                RATE_TYPE_LABELS[formData.salaryRateType] ??
+                formData.salaryRateType
+              }
+            />
+          </div>
+          )}
         </section>
 
         {/* Salary & Allowances Section */}
@@ -1108,7 +1303,7 @@ export default function EmployeeContractForm() {
 
                     <td className="px-2 py-2 border-r border-slate-200">
                       <Input
-                        className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg text-sm"
+                        className="h-9 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg text-sm"
                         disabled={!editing}
                         value={row.customName}
                         onChange={(e) =>
@@ -1127,7 +1322,7 @@ export default function EmployeeContractForm() {
                         </span>
                         <Input
                           type="text"
-                          className="h-10 pl-7 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
+                          className="h-9 pl-7 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
                           disabled={!editing}
                           value={row.amount}
                           onChange={(e) => {
@@ -1145,7 +1340,7 @@ export default function EmployeeContractForm() {
                     <td className="px-2 py-2 border-r border-slate-200">
                       <Input
                         type="date"
-                        className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
+                        className="h-9 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
                         disabled={!editing}
                         value={row.effectiveDate}
                         onChange={(e) =>
@@ -1156,7 +1351,7 @@ export default function EmployeeContractForm() {
 
                     <td className="px-2 py-2 border-r border-slate-200">
                       <Input
-                        className="h-10 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
+                        className="h-9 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-indigo-400 bg-transparent rounded-lg"
                         disabled={!editing}
                         value={row.note}
                         onChange={(e) =>
@@ -1208,34 +1403,52 @@ export default function EmployeeContractForm() {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-            <FormField label="Signature Date">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  type="date"
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
-                  disabled={!editing}
-                  value={formData.signatureDate}
-                  onChange={(e) => updateField("signatureDate")(e.target.value)}
-                />
-              </div>
-            </FormField>
+          <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2">
+            {editing ? (
+              <FormField label="Signature Date">
+                <div className="relative">
+                  <Calendar className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="date"
+                    className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
+                    disabled={!editing}
+                    value={formData.signatureDate}
+                    onChange={(e) =>
+                      updateField("signatureDate")(e.target.value)
+                    }
+                  />
+                </div>
+              </FormField>
+            ) : (
+              <ViewField
+                icon={<Calendar className="h-4 w-4" />}
+                label="Signature Date"
+                value={formatViewDate(formData.signatureDate)}
+              />
+            )}
 
-            <FormField label="Signed By">
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  className="h-11 pl-10 border-slate-300 rounded-xl disabled:bg-slate-50 disabled:text-slate-700"
-                  disabled={!editing}
-                  placeholder="Enter signatory name"
-                  value={formData.signedBy}
-                  onChange={(e) => updateField("signedBy")(e.target.value)}
-                />
-              </div>
-            </FormField>
+            {editing ? (
+              <FormField label="Signed By">
+                <div className="relative">
+                  <User className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
+                    disabled={!editing}
+                    placeholder="Enter signatory name"
+                    value={formData.signedBy}
+                    onChange={(e) => updateField("signedBy")(e.target.value)}
+                  />
+                </div>
+              </FormField>
+            ) : (
+              <ViewField
+                icon={<User className="h-4 w-4" />}
+                label="Signed By"
+                value={formData.signedBy}
+              />
+            )}
 
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <FormField label="Attachment">
                 <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
                   <div className="p-3 bg-white rounded-xl shadow-sm">

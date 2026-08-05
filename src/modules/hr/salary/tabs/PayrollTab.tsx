@@ -4,10 +4,8 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
 import { useParams } from "react-router-dom";
 import { payrollService } from "@/service/payrollService";
-import { fetchCompany } from "@/service/companyService";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import type { Company } from "@/types/company";
 import { downloadPayslipPdf } from "@/service/payslipService";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { TablePagination, usePagination } from "@/components/table-pagination";
@@ -30,12 +28,12 @@ interface PayrollRow {
 export default function PayrollTab() {
   const { id } = useParams<{ id: string }>();
   const employeeId = id ? Number(id) : undefined;
-  const { user } = useAuth();
+  const { company } = useAuth();
 
   const [history, setHistory] = useState<PayrollRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
-  const [currencySymbol, setCurrencySymbol] = useState("$");
+  const currencySymbol = company?.currency?.currencyCode ?? "";
   const historyPg = usePagination(history, 10);
 
   const loadPayrollHistory = useCallback(async () => {
@@ -58,17 +56,6 @@ export default function PayrollTab() {
   useEffect(() => {
     void loadPayrollHistory();
   }, [loadPayrollHistory]);
-
-  useEffect(() => {
-    if (!user?.companyId) return;
-    fetchCompany(user.companyId.toString())
-      .then((company: Company) => {
-        if (company?.currency?.currencyCode) {
-          setCurrencySymbol(company.currency.currencyCode);
-        }
-      })
-      .catch((err) => console.error("Failed to load company currency", err));
-  }, [user?.companyId]);
 
   const handleDownloadPDF = async (row: PayrollRow) => {
     if (!employeeId) return;

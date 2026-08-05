@@ -14,8 +14,9 @@ import {
   Calendar,
   MapPin,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
-import { generateId } from "@/lib/utils";
+import { cn, generateId } from "@/lib/utils";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
@@ -23,6 +24,41 @@ import { educationService } from "@/service/educationService";
 import { FormRow } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+
+/* ================= VIEW HELPERS ================= */
+
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 /* ================= TYPES ================= */
 
@@ -223,20 +259,45 @@ export default function EducationQualificationsForm() {
 
   /* ================= RENDER ================= */
 
+  const editingEducation = editingId
+    ? (educations.find((e) => e.id === editingId) ?? null)
+    : null;
+
   return (
-    <div className="space-y-6 rounded-xl">
+    <div className="space-y-4 rounded-xl">
       <SecondaryPageHeader
         title="Education & Qualifications"
         description="Manage educational background"
         icon={<GraduationCap className="h-5 w-5 text-white" />}
         actions={
-          <Button
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-          >
-            <Plus className="h-4 w-4" />
-            Add Education
-          </Button>
+          editingEducation ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={Object.values(
+                  validateEducation(editingEducation),
+                ).some(Boolean)}
+                onClick={() => handleSave(editingEducation)}
+                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Save Education
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={handleAdd}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+            >
+              <Plus className="h-4 w-4" />
+              Add Education
+            </Button>
+          )
         }
       />
 
@@ -272,13 +333,13 @@ export default function EducationQualificationsForm() {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
           <GraduationCap className="h-4 w-4 text-blue-600" />
           Education Details
         </h3>
 
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {educations.map((edu) => {
             const errors = validateEducation(edu);
             const editing = editingId === edu.id;
@@ -288,10 +349,10 @@ export default function EducationQualificationsForm() {
             return (
               <div
                 key={edu.id}
-                className="border border-slate-200 rounded-lg p-6 mb-6"
+                className="border border-slate-200 rounded-lg p-4 mb-6"
               >
                 {editing ? (
-                  <div className="p-6 bg-gradient-to-br from-white to-slate-50">
+                  <div className="p-4 bg-gradient-to-br from-white to-slate-50">
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -309,12 +370,12 @@ export default function EducationQualificationsForm() {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
+                    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
                         School Information
                       </h3>
 
-                      <FormRow columns={2}>
+                      <FormRow columns={3}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             School Name <span className="text-red-500">*</span>
@@ -362,9 +423,6 @@ export default function EducationQualificationsForm() {
                             </p>
                           )}
                         </div>
-                      </FormRow>
-
-                      <FormRow columns={1}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             School Address
@@ -383,12 +441,12 @@ export default function EducationQualificationsForm() {
                       </FormRow>
                     </div>
 
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100 mb-4">
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100 mb-4">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4">
                         Academic Details
                       </h3>
 
-                      <FormRow columns={2}>
+                      <FormRow columns={3}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             Degree Earned{" "}
@@ -429,13 +487,13 @@ export default function EducationQualificationsForm() {
                       </FormRow>
                     </div>
 
-                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
+                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 shadow-sm border border-cyan-100">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <Award className="h-5 w-5 text-cyan-600" />
                         Awards & Additional Information
                       </h3>
 
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             Awards and Certificates
@@ -477,28 +535,11 @@ export default function EducationQualificationsForm() {
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                      <Button
-                        variant="outline"
-                        onClick={handleCancel}
-                        className="px-6 rounded-lg border-slate-300"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        disabled={Object.values(errors).some(Boolean)}
-                        onClick={() => handleSave(edu)}
-                        className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg"
-                      >
-                        Save Education
-                      </Button>
-                    </div>
                   </div>
                 ) : (
-                  <div className="p-6">
+                  <div className="p-4">
                     {viewing ? (
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-2xl font-bold text-slate-800">
                             {edu.schoolName || "Education Details"}
@@ -510,74 +551,54 @@ export default function EducationQualificationsForm() {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-blue-100 rounded-lg">
-                                <School className="h-5 w-5 text-blue-600" />
-                              </div>
-                              <span className="text-sm font-medium text-blue-700">
-                                School
-                              </span>
-                            </div>
-                            <p className="text-2xl font-bold text-blue-800">
-                              {edu.schoolName || "—"}
-                            </p>
-                          </div>
-                          <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-200">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-emerald-100 rounded-lg">
-                                <GraduationCap className="h-5 w-5 text-emerald-600" />
-                              </div>
-                              <span className="text-sm font-medium text-emerald-700">
-                                Degree
-                              </span>
-                            </div>
-                            <p className="text-2xl font-bold text-emerald-800">
-                              {edu.degreeEarned || "—"}
-                            </p>
-                          </div>
-                          <div className="bg-violet-50 p-5 rounded-lg border border-violet-200">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-violet-100 rounded-lg">
-                                <Calendar className="h-5 w-5 text-violet-600" />
-                              </div>
-                              <span className="text-sm font-medium text-violet-700">
-                                Year
-                              </span>
-                            </div>
-                            <p className="text-2xl font-bold text-violet-800">
-                              {edu.yearGraduated || "—"}
-                            </p>
-                          </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                          <ViewField
+                            icon={<School className="h-4 w-4" />}
+                            label="School"
+                            value={edu.schoolName}
+                          />
+                          <ViewField
+                            icon={<GraduationCap className="h-4 w-4" />}
+                            label="Degree"
+                            value={edu.degreeEarned}
+                          />
+                          <ViewField
+                            icon={<Calendar className="h-4 w-4" />}
+                            label="Year"
+                            value={edu.yearGraduated}
+                          />
                         </div>
 
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
+                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">
                             Academic Information
                           </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <DetailItem
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            <ViewField
+                              icon={<BookOpen className="h-4 w-4" />}
                               label="Major"
-                              value={edu.major || "—"}
+                              value={edu.major}
                             />
-                            <DetailItem
+                            <ViewField
+                              icon={<GraduationCap className="h-4 w-4" />}
                               label="Degree"
-                              value={edu.degreeEarned || "—"}
+                              value={edu.degreeEarned}
                             />
-                            <DetailItem
+                            <ViewField
+                              icon={<Calendar className="h-4 w-4" />}
                               label="Year Graduated"
-                              value={edu.yearGraduated || "—"}
+                              value={edu.yearGraduated}
                             />
-                            <DetailItem
+                            <ViewField
+                              icon={<School className="h-4 w-4" />}
                               label="School"
-                              value={edu.schoolName || "—"}
+                              value={edu.schoolName}
                             />
                           </div>
                         </div>
 
                         {edu.schoolAddress && (
-                          <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-200">
+                          <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
                             <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                               <MapPin className="h-5 w-5 text-indigo-600" />
                               School Address
@@ -589,7 +610,7 @@ export default function EducationQualificationsForm() {
                         )}
 
                         {edu.awards && (
-                          <div className="bg-cyan-50 rounded-xl p-6 border border-cyan-100">
+                          <div className="bg-cyan-50 rounded-xl p-4 border border-cyan-100">
                             <h4 className="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
                               <Award className="h-5 w-5 text-cyan-600" />
                               Awards & Certificates
@@ -601,7 +622,7 @@ export default function EducationQualificationsForm() {
                         )}
 
                         {edu.notes && (
-                          <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
+                          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                             <h4 className="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
                               <FileText className="h-5 w-5 text-amber-600" />
                               Notes / Remarks
@@ -728,17 +749,6 @@ export default function EducationQualificationsForm() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-        {label}
-      </p>
-      <p className="text-base text-slate-800 font-medium">{value}</p>
     </div>
   );
 }

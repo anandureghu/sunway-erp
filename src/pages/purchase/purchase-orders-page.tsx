@@ -23,12 +23,13 @@ import {
   CircleDollarSign,
   ClipboardList,
   Package,
-  ShoppingCart,
+  Wallet,
 } from "lucide-react";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PurchaseOrderForm } from "./components/purchase-order-form";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { excludeArchived } from "@/lib/exclude-archived";
 
 type OrderTab = "open" | "terminal";
 
@@ -40,6 +41,7 @@ export default function PurchaseOrdersPage() {
     (location.state as { searchQuery?: string })?.searchQuery || "",
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -85,13 +87,29 @@ export default function PurchaseOrdersPage() {
     void refreshOrders();
   }, [refreshOrders]);
 
+  const normalizePaymentStatusKey = useCallback((status?: string) => {
+    const normalized = (status || "UNPAID")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "_");
+    if (normalized === "PARTIAL") return "PARTIALLY_PAID";
+    if (normalized === "PENDING") return "UNPAID";
+    return normalized || "UNPAID";
+  }, []);
+
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
     setRowSelection({});
+    setPaymentStatusFilter("all");
     switch (key) {
       case "draft":
         setListTab("open");
         setStatusFilter("draft");
+        break;
+      case "partially_paid":
+        setListTab("open");
+        setStatusFilter("all");
+        setPaymentStatusFilter("PARTIALLY_PAID");
         break;
       case "terminal":
         setListTab("terminal");
@@ -113,23 +131,32 @@ export default function PurchaseOrdersPage() {
       const s = (status || "").toLowerCase();
       return s === "received" || s === "cancelled";
     };
-    const draftCount = orders.filter(
+    const activeOrders = excludeArchived(orders);
+    const draftCount = activeOrders.filter(
       (o) => (o.status || "").toLowerCase() === "draft",
     ).length;
-    const terminalCount = orders.filter((o) => terminal(o.status)).length;
-    const openCommitment = orders
+    const terminalCount = activeOrders.filter((o) =>
+      terminal(o.status),
+    ).length;
+    const partiallyPaidCount = activeOrders.filter(
+      (o) =>
+        normalizePaymentStatusKey(
+          o.paymentStatus || (o.vendorPaymentSettled ? "PAID" : "UNPAID"),
+        ) === "PARTIALLY_PAID",
+    ).length;
+    const openCommitment = activeOrders
       .filter((o) => !terminal(o.status))
       .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     return [
       kpiFilterItem(
         {
-          label: "Total Purchase Orders",
-          value: orders.length,
-          hint: "All purchase orders loaded",
-          accent: "sky",
-          icon: ShoppingCart,
+          label: "Partially paid",
+          value: partiallyPaidCount,
+          hint: "Orders with partial payment",
+          accent: "orange",
+          icon: Wallet,
         },
-        "all",
+        "partially_paid",
         kpiFilter,
         applyKpiFilter,
       ),
@@ -149,7 +176,7 @@ export default function PurchaseOrdersPage() {
         {
           label: "Completed or cancelled",
           value: terminalCount,
-          hint: "Fully received or cancelled",
+          hint: "Fully received or cancelled (not archived)",
           accent: "emerald",
           icon: Package,
         },
@@ -170,7 +197,7 @@ export default function PurchaseOrdersPage() {
         applyKpiFilter,
       ),
     ];
-  }, [orders, kpiFilter, applyKpiFilter]);
+  }, [orders, kpiFilter, applyKpiFilter, normalizePaymentStatusKey]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -180,9 +207,22 @@ export default function PurchaseOrdersPage() {
         order.supplier?.name?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         statusFilter === "all" || order.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const paymentKey = normalizePaymentStatusKey(
+        order.paymentStatus ||
+          (order.vendorPaymentSettled ? "PAID" : "UNPAID"),
+      );
+      const matchesPaymentStatus =
+        paymentStatusFilter === "all" ||
+        paymentKey === paymentStatusFilter.toUpperCase();
+      return matchesSearch && matchesStatus && matchesPaymentStatus;
     });
-  }, [orders, searchQuery, statusFilter]);
+  }, [
+    orders,
+    searchQuery,
+    statusFilter,
+    paymentStatusFilter,
+    normalizePaymentStatusKey,
+  ]);
 
   const handleApproveOrder = useCallback(
     async (id: string) => {
@@ -469,12 +509,14 @@ export default function PurchaseOrdersPage() {
         onListTabChange={(tab) => {
           setListTab(tab);
           setKpiFilter(null);
+          setPaymentStatusFilter("all");
           setRowSelection({});
         }}
         onSearchChange={setSearchQuery}
         onStatusChange={(value) => {
           setStatusFilter(value);
           setKpiFilter(null);
+          setPaymentStatusFilter("all");
         }}
         onRowClick={handleRowClick}
         onRetry={() => void refreshOrders()}

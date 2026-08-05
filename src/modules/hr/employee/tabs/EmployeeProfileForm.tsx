@@ -22,6 +22,8 @@ import roleService from "@/service/roleService";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import CountrySelect from "@/components/country-select";
+import CountryFlag from "@/components/CountryFlag";
+import { getCountryByName } from "@/lib/countries";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { ProfileCtx } from "./ProfileShell";
 
@@ -145,6 +147,76 @@ const getStatusMeta = (status?: string) => {
 };
 
 // ── shared styled select ──────────────────────────────────────────────────────
+// Re-format a yyyy-mm-dd value into dd-mm-yyyy for read-only display (avoids the
+// timezone shift a `new Date(...)` round-trip would introduce).
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
+
+// Read-only value tile — a clean icon + value chip shown in place of a greyed-out
+// input when the field isn't editable (view mode / always-locked fields).
+const ReadOnlyValue = ({
+  icon,
+  value,
+  className,
+}: {
+  icon?: React.ReactNode;
+  value?: React.ReactNode;
+  className?: string;
+}) => {
+  const empty = value == null || value === "";
+  return (
+    <div className="flex h-9 items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50/70 px-3">
+      {icon && <span className="shrink-0 text-violet-400">{icon}</span>}
+      <span
+        className={cn(
+          "truncate text-sm font-semibold",
+          empty ? "text-slate-300" : "text-slate-700",
+          className,
+        )}
+      >
+        {empty ? "—" : value}
+      </span>
+    </div>
+  );
+};
+
+// ── read-only "info item" for view mode: icon + label + value (no input box) ──
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const StyledSelect = ({
   disabled,
   value,
@@ -155,41 +227,55 @@ const StyledSelect = ({
   value: string;
   onChange: React.ChangeEventHandler<HTMLSelectElement>;
   children: React.ReactNode;
-}) => (
-  <select
-    disabled={disabled}
-    value={value}
-    onChange={onChange}
-    className={cn(
-      "h-9 w-full rounded-lg border border-slate-200 px-3 text-sm",
-      "focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20",
-      "transition-all bg-white",
-      disabled && "bg-slate-50 text-slate-500 cursor-not-allowed",
-    )}
-  >
-    {children}
-  </select>
-);
+}) =>
+  disabled ? (
+    <ReadOnlyValue value={value} />
+  ) : (
+    <select
+      value={value}
+      onChange={onChange}
+      className={cn(
+        "h-9 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700",
+        "focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20",
+        "transition-all bg-white",
+      )}
+    >
+      {children}
+    </select>
+  );
 
 // ── field with leading icon ───────────────────────────────────────────────────
 const IconInput = ({
   icon,
   ...props
-}: React.ComponentProps<typeof Input> & { icon: React.ReactNode }) => (
-  <div className="relative">
-    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-      {icon}
-    </span>
-    <Input
-      {...props}
-      className={cn(
-        "h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20",
-        props.disabled && "bg-slate-50 text-slate-600",
-        props.className,
-      )}
-    />
-  </div>
-);
+}: React.ComponentProps<typeof Input> & { icon: React.ReactNode }) => {
+  // Read-only / view mode: show a clean value tile instead of a greyed-out input.
+  if (props.disabled) {
+    const display =
+      props.type === "date" ? formatViewDate(props.value) : props.value;
+    return (
+      <ReadOnlyValue
+        icon={icon}
+        value={display as React.ReactNode}
+        className={props.className}
+      />
+    );
+  }
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+        {icon}
+      </span>
+      <Input
+        {...props}
+        className={cn(
+          "h-9 pl-9 rounded-lg border-slate-200 text-slate-700 focus-visible:border-violet-300 focus-visible:ring-violet-300/20",
+          props.className,
+        )}
+      />
+    </div>
+  );
+};
 
 // ── section heading ───────────────────────────────────────────────────────────
 const SectionHeading = ({
@@ -203,7 +289,7 @@ const SectionHeading = ({
   description?: string;
   accent?: string;
 }) => (
-  <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+  <div className="mb-4 flex items-center gap-3 border-b border-slate-100 pb-3">
     <div
       className={cn(
         "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
@@ -541,14 +627,15 @@ export default function EmployeeProfileForm() {
       </div>
 
       {/* ── Personal Information ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <SectionHeading
           icon={<UserCircle2 className="h-4 w-4" />}
           label="Personal Information"
           description="Basic identity and demographic details"
           accent="from-violet-600 to-blue-600"
         />
-        <FormRow columns={3}>
+        {editing ? (
+        <FormRow columns={5}>
           <FormField label="Employee No">
             <IconInput
               icon={<Hash className="h-4 w-4" />}
@@ -668,16 +755,31 @@ export default function EmployeeProfileForm() {
             />
           </FormField>
         </FormRow>
+        ) : (
+        <FormRow columns={5}>
+          <ViewField icon={<Hash className="h-4 w-4" />} label="Employee No" value={draft.employeeNo} mono />
+          <ViewField icon={<User className="h-4 w-4" />} label="Prefix" value={draft.prefix} />
+          <ViewField icon={<User className="h-4 w-4" />} label="First Name" value={draft.firstName} />
+          <ViewField icon={<User className="h-4 w-4" />} label="Middle Name" value={draft.middleName} />
+          <ViewField icon={<User className="h-4 w-4" />} label="Last Name" value={draft.lastName} />
+          <ViewField icon={<Calendar className="h-4 w-4" />} label="Date of Birth" value={formatViewDate(draft.dateOfBirth)} />
+          <ViewField icon={<User className="h-4 w-4" />} label="Gender" value={draft.gender} />
+          <ViewField icon={<Heart className="h-4 w-4" />} label="Marital Status" value={draft.maritalStatus} />
+          <ViewField icon={<ShieldCheck className="h-4 w-4" />} label="Identification No" value={draft.identification} />
+          <ViewField icon={<Building2 className="h-4 w-4" />} label="Religion" value={draft.religion} />
+        </FormRow>
+        )}
       </div>
 
       {/* ── Professional Details ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <SectionHeading
           icon={<Briefcase className="h-4 w-4" />}
           label="Professional Details"
           description="Employment status, role, and joining information"
           accent="from-emerald-500 to-teal-600"
         />
+        {editing ? (
         <FormRow columns={3}>
           <FormField label="Join Date">
             <IconInput
@@ -734,16 +836,24 @@ export default function EmployeeProfileForm() {
             )}
           </FormField>
         </FormRow>
+        ) : (
+        <FormRow columns={3}>
+          <ViewField icon={<Calendar className="h-4 w-4" />} label="Join Date" value={formatViewDate(draft.joinDate)} />
+          <ViewField icon={<ShieldCheck className="h-4 w-4" />} label="Employee Status" value={draft.status || "Active"} />
+          <ViewField icon={<User className="h-4 w-4" />} label="Role" value={draft.companyRole || draft.designation} />
+        </FormRow>
+        )}
       </div>
 
       {/* ── Origin & Background ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <SectionHeading
           icon={<Globe className="h-4 w-4" />}
           label="Origin & Background"
           description="Nationality, birthplace, and hometown information"
           accent="from-amber-500 to-orange-500"
         />
+        {editing ? (
         <FormRow columns={3}>
           <FormField label="Nationality">
             <CountrySelect
@@ -774,6 +884,13 @@ export default function EmployeeProfileForm() {
             />
           </FormField>
         </FormRow>
+        ) : (
+        <FormRow columns={3}>
+          <ViewField icon={<CountryFlag iso2={getCountryByName(draft.nationality)?.iso2} className="text-base leading-none" />} label="Nationality" value={draft.nationality} />
+          <ViewField icon={<MapPin className="h-4 w-4" />} label="Birthplace" value={draft.birthplace} />
+          <ViewField icon={<MapPin className="h-4 w-4" />} label="Hometown" value={draft.hometown} />
+        </FormRow>
+        )}
       </div>
 
       {/* Hidden file input */}

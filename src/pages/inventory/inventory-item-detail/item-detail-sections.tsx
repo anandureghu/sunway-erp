@@ -17,7 +17,7 @@ export function ItemDetailSections({
   onUpdateImage,
 }: Props) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <ItemDetailHero
         item={item}
         imageNonce={imageNonce}

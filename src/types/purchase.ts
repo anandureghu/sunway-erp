@@ -173,6 +173,7 @@ export type PurchaseOrderItem = {
   total: number;
   lineTotal: number;
   receivedQuantity?: number;
+  rejectedQuantity?: number;
   warehouseId?: string;
   notes?: string;
 };

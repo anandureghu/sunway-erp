@@ -516,7 +516,7 @@ export function RegisterSupplierInvoiceDialog({
               description="Who issued the invoice and how it ties back to procurement."
               icon={<Building2 className="h-4 w-4" />}
             >
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <FormField label="Supplier (to party)" htmlFor="toParty">
                   <Input
                     id="toParty"
@@ -575,7 +575,7 @@ export function RegisterSupplierInvoiceDialog({
               description="Invoice timing and financial breakdown."
               icon={<Calendar className="h-4 w-4" />}
             >
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <FormField label="Invoice date" htmlFor="invDate">
                   <Input
                     id="invDate"

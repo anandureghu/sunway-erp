@@ -274,7 +274,7 @@ export function AddEmployeeModal({
             iconBg="bg-slate-100"
             title="Personal information"
           >
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div>
                 <label className={labelCls}>Prefix</label>
                 <SelectField name="prefix" value={form.prefix} onChange={handleChange}>
