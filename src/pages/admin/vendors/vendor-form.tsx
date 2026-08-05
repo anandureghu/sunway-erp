@@ -122,7 +122,7 @@ export const VendorForm = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                      Contact Person
+                      Contact Person <span className="text-rose-400">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -142,7 +142,7 @@ export const VendorForm = ({
                 render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                      Email
+                      Email <span className="text-rose-400">*</span>
                     </FormLabel>
                     <FormControl>
                       <EmailInput
@@ -165,7 +165,7 @@ export const VendorForm = ({
                 render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                      Phone
+                      Phone <span className="text-rose-400">*</span>
                     </FormLabel>
                     <FormControl>
                       <PhoneInput
@@ -262,7 +262,7 @@ export const VendorForm = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                      Payment Terms
+                      Payment Terms <span className="text-rose-400">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
