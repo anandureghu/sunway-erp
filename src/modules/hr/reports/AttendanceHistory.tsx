@@ -238,7 +238,6 @@ export default function AttendanceHistory() {
                         "Sl No.",
                         "Employee",
                         "Days Worked",
-                        "Days Recorded",
                         "Total Hours",
                       ].map((h, i) => (
                         <th
@@ -285,9 +284,6 @@ export default function AttendanceHistory() {
                           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">
                             {r.daysPresent}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-500">
-                          {r.daysRecorded}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-800">
                           {r.totalHours}

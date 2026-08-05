@@ -10,43 +10,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { JobCode } from "@/service/jobCodeService";
 import type { Goal } from "./appraisal-types";
 
-// ── Panel 2: Goals & KPIs ──────────────────────────────────────────────────
+// ── Panel 2: Goals & KPIs (per job code) ───────────────────────────────────
 export function GoalsPanel({
-  goalsByRole,
-  setGoalsByRole,
-  roles,
-  selectedRole,
-  setSelectedRole,
+  goalsByJobCode,
+  setGoalsByJobCode,
+  jobCodes,
+  selectedJobCode,
+  setSelectedJobCode,
   maxGoals,
   minGoals,
-  onAddRole,
-  onRemoveRole,
-  availableRoles = [],
+  onAddJobCode,
+  onRemoveJobCode,
+  availableJobCodes = [],
 }: {
-  goalsByRole: Record<string, Goal[]>;
-  setGoalsByRole: React.Dispatch<React.SetStateAction<Record<string, Goal[]>>>;
-  roles: string[];
-  selectedRole: string;
-  setSelectedRole: (role: string) => void;
+  goalsByJobCode: Record<string, Goal[]>;
+  setGoalsByJobCode: React.Dispatch<
+    React.SetStateAction<Record<string, Goal[]>>
+  >;
+  jobCodes: string[];
+  selectedJobCode: string;
+  setSelectedJobCode: (jobCode: string) => void;
   maxGoals: number;
   minGoals: number;
-  onAddRole: (role: string) => void;
-  onRemoveRole: (role: string) => void;
-  availableRoles?: string[];
+  onAddJobCode: (jobCode: string) => void;
+  onRemoveJobCode: (jobCode: string) => void;
+  availableJobCodes?: JobCode[];
 }) {
-  const [newRole, setNewRole] = useState("");
-  const goals = goalsByRole[selectedRole] || [];
+  const [newJobCode, setNewJobCode] = useState("");
+  const goals = goalsByJobCode[selectedJobCode] || [];
   const activeGoals = goals.filter((g) => g.active);
   const totalWeight = activeGoals.reduce((s, g) => s + (g.weight || 0), 0);
 
+  // code → title lookup for friendly labels next to the code
+  const titleFor = (code: string) =>
+    availableJobCodes.find((j) => j.code === code)?.title || "";
+
   function addGoal() {
     if (activeGoals.length >= maxGoals) return;
-    setGoalsByRole((p) => ({
+    setGoalsByJobCode((p) => ({
       ...p,
-      [selectedRole]: [
-        ...(p[selectedRole] || []),
+      [selectedJobCode]: [
+        ...(p[selectedJobCode] || []),
         { id: Date.now(), kpi: "", description: "", weight: 0, active: true },
       ],
     }));
@@ -54,18 +61,18 @@ export function GoalsPanel({
 
   function removeGoal(id: number) {
     if (activeGoals.length <= minGoals) return;
-    setGoalsByRole((p) => ({
+    setGoalsByJobCode((p) => ({
       ...p,
-      [selectedRole]: p[selectedRole].map((g) =>
+      [selectedJobCode]: p[selectedJobCode].map((g) =>
         g.id === id ? { ...g, active: false } : g,
       ),
     }));
   }
 
   function updateGoal(id: number, field: keyof Goal, val: string | number) {
-    setGoalsByRole((p) => ({
+    setGoalsByJobCode((p) => ({
       ...p,
-      [selectedRole]: p[selectedRole].map((g) =>
+      [selectedJobCode]: p[selectedJobCode].map((g) =>
         g.id === id ? { ...g, [field]: val } : g,
       ),
     }));
@@ -76,9 +83,9 @@ export function GoalsPanel({
     if (!count) return;
     const base = Math.floor(100 / count);
     const rem = 100 - base * count;
-    setGoalsByRole((p) => ({
+    setGoalsByJobCode((p) => ({
       ...p,
-      [selectedRole]: p[selectedRole].map((g) => {
+      [selectedJobCode]: p[selectedJobCode].map((g) => {
         if (!g.active) return g;
         const idx = activeGoals.findIndex((a) => a.id === g.id);
         return {
@@ -89,44 +96,47 @@ export function GoalsPanel({
     }));
   }
 
-  const roleOptions = availableRoles.filter((r) => !roles.includes(r));
+  // Job codes available to add = active company codes not already configured
+  const jobCodeOptions = availableJobCodes.filter(
+    (j) => !jobCodes.includes(j.code),
+  );
 
   return (
     <div className="flex gap-6">
-      {/* Role Sidebar */}
+      {/* Job Code Sidebar */}
       <div className="w-64 shrink-0 space-y-3">
         <Card className="p-3">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">
-            Configured Roles ({roles.length})
+            Configured Job Codes ({jobCodes.length})
           </div>
 
-          {roles.length === 0 ? (
+          {jobCodes.length === 0 ? (
             <div className="text-center py-6 text-slate-400 text-sm">
-              No roles yet.
+              No job codes yet.
               <br />
-              Add a role below.
+              Add a job code below.
             </div>
           ) : (
-            roles.map((role) => {
-              const rg = (goalsByRole[role] || []).filter((g) => g.active);
+            jobCodes.map((code) => {
+              const rg = (goalsByJobCode[code] || []).filter((g) => g.active);
               const rw = rg.reduce((s, g) => s + (g.weight || 0), 0);
               const ok = rg.length > 0 && rw === 100;
               return (
                 <div
-                  key={role}
+                  key={code}
                   role="button"
                   tabIndex={0}
-                  aria-pressed={selectedRole === role}
-                  aria-label={`Select ${role}`}
-                  onClick={() => setSelectedRole(role)}
+                  aria-pressed={selectedJobCode === code}
+                  aria-label={`Select ${code}`}
+                  onClick={() => setSelectedJobCode(code)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setSelectedRole(role);
+                      setSelectedJobCode(code);
                     }
                   }}
                   className={`p-3 rounded-lg cursor-pointer mb-1 transition-all group ${
-                    selectedRole === role
+                    selectedJobCode === code
                       ? "bg-indigo-50 border border-indigo-200"
                       : "hover:bg-slate-50 border border-transparent"
                   }`}
@@ -135,23 +145,29 @@ export function GoalsPanel({
                     <div
                       className="font-semibold text-sm truncate"
                       style={{
-                        color: selectedRole === role ? "#4f46e5" : "#1e293b",
+                        color:
+                          selectedJobCode === code ? "#4f46e5" : "#1e293b",
                       }}
                     >
-                      {role}
+                      {code}
                     </div>
                     <button
                       type="button"
-                      aria-label={`Remove ${role}`}
+                      aria-label={`Remove ${code}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onRemoveRole(role);
+                        onRemoveJobCode(code);
                       }}
                       className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs ml-1"
                     >
                       ✕
                     </button>
                   </div>
+                  {titleFor(code) && (
+                    <div className="text-[11px] text-slate-400 truncate">
+                      {titleFor(code)}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-slate-400">
                       {rg.length} KPIs
@@ -170,61 +186,48 @@ export function GoalsPanel({
             })
           )}
 
-          {/* Add Role */}
+          {/* Add Job Code */}
           <div className="mt-3 pt-3 border-t border-slate-100">
             <div className="text-xs font-bold text-slate-400 uppercase mb-2">
-              Add Role
+              Add Job Code
             </div>
-            <Select value={newRole} onValueChange={setNewRole}>
+            <Select
+              value={newJobCode}
+              onValueChange={(v) => {
+                onAddJobCode(v);
+                setNewJobCode("");
+              }}
+            >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Select role..." />
+                <SelectValue placeholder="Select job code..." />
               </SelectTrigger>
               <SelectContent>
-                {roleOptions.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
+                {jobCodeOptions.length === 0 ? (
+                  <SelectItem value="__none__" disabled>
+                    All job codes added
                   </SelectItem>
-                ))}
-                <SelectItem value="__custom__">+ Custom role...</SelectItem>
+                ) : (
+                  jobCodeOptions.map((j) => (
+                    <SelectItem key={j.code} value={j.code}>
+                      {j.code} — {j.title}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
-            {newRole === "__custom__" && (
-              <Input
-                className="mt-2 h-8 text-xs"
-                placeholder="Type role name..."
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    onAddRole((e.target as HTMLInputElement).value);
-                    setNewRole("");
-                  }
-                }}
-              />
-            )}
-            {newRole && newRole !== "__custom__" && (
-              <Button
-                size="sm"
-                className="w-full mt-2 h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
-                onClick={() => {
-                  onAddRole(newRole);
-                  setNewRole("");
-                }}
-              >
-                + Add {newRole}
-              </Button>
-            )}
           </div>
         </Card>
       </div>
 
       {/* Goals Editor */}
       <div className="flex-1">
-        {!selectedRole ? (
+        {!selectedJobCode ? (
           <Card>
             <CardContent className="pt-6 text-center py-16 text-slate-400">
               <div className="text-4xl mb-3">🎯</div>
-              <p className="font-medium">No role selected</p>
+              <p className="font-medium">No job code selected</p>
               <p className="text-sm mt-1">
-                Add a role from the sidebar to configure KPIs
+                Add a job code from the sidebar to configure KPIs
               </p>
             </CardContent>
           </Card>
@@ -236,7 +239,12 @@ export function GoalsPanel({
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">🎯</span>
                     <h3 className="text-base font-bold text-slate-900">
-                      Goals for: {selectedRole}
+                      Goals for: {selectedJobCode}
+                      {titleFor(selectedJobCode) && (
+                        <span className="ml-2 text-sm font-normal text-slate-400">
+                          {titleFor(selectedJobCode)}
+                        </span>
+                      )}
                     </h3>
                   </div>
                   <p className="text-sm text-slate-500">

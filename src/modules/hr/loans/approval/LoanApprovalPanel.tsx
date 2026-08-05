@@ -5,11 +5,11 @@ import { toast } from "sonner";
 import {
   AlertCircle,
   Building2,
-  Check,
   DollarSign,
   Loader2,
   RefreshCw,
-  X,
+  ThumbsDown,
+  ThumbsUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatMoney, initialsFrom } from "@/lib/utils";
@@ -20,12 +20,13 @@ import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 export default function LoanApprovalPanel() {
-  const { permissions, permissionsLoading } = useAuth();
+  const { permissions, permissionsLoading, company } = useAuth();
   const { confirm } = useConfirmDialog();
 
   const [pending, setPending] = useState<PendingLoanApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [decidingId, setDecidingId] = useState<number | null>(null);
+  const [decidingApprove, setDecidingApprove] = useState<boolean | null>(null);
   const [rejectTarget, setRejectTarget] = useState<PendingLoanApproval | null>(
     null,
   );
@@ -81,6 +82,7 @@ export default function LoanApprovalPanel() {
     comment?: string,
   ) => {
     setDecidingId(loan.id);
+    setDecidingApprove(approve);
     try {
       await loanService.decideLoan(loan.employeeId, loan.id, approve, comment);
       toast.success(
@@ -100,6 +102,7 @@ export default function LoanApprovalPanel() {
       }
     } finally {
       setDecidingId(null);
+      setDecidingApprove(null);
     }
   };
 
@@ -212,8 +215,11 @@ export default function LoanApprovalPanel() {
               </thead>
               <tbody>
                 {pageItems.map((loan, index) => {
-                  const currency = loan.currencySymbol ?? loan.currencyCode ?? "";
+                  const currency =
+                    loan.currencyCode || company?.currency?.currencyCode || "";
                   const busy = decidingId === loan.id;
+                  const isApproving = busy && decidingApprove === true;
+                  const isRejecting = busy && decidingApprove === false;
                   return (
                     <tr
                       key={loan.id}
@@ -262,9 +268,8 @@ export default function LoanApprovalPanel() {
                           : "—"}
                       </td>
                       <td>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
+                        <div className="flex items-center justify-end gap-2">
+                          <button
                             disabled={busy}
                             onClick={async () => {
                               if (
@@ -277,21 +282,35 @@ export default function LoanApprovalPanel() {
                                 void handleDecision(loan, true);
                               }
                             }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1"
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+                              "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-400 shadow-sm",
+                              busy && "opacity-60 cursor-wait",
+                            )}
                           >
-                            <Check className="h-4 w-4" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
+                            {isApproving ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <ThumbsUp className="h-3.5 w-3.5" />
+                            )}
+                            {isApproving ? "Approving..." : "Approve"}
+                          </button>
+                          <button
                             disabled={busy}
                             onClick={() => setRejectTarget(loan)}
-                            className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+                              "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-400 shadow-sm",
+                              busy && "opacity-60 cursor-wait",
+                            )}
                           >
-                            <X className="h-4 w-4" />
-                            Reject
-                          </Button>
+                            {isRejecting ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <ThumbsDown className="h-3.5 w-3.5" />
+                            )}
+                            {isRejecting ? "Rejecting..." : "Reject"}
+                          </button>
                         </div>
                       </td>
                     </tr>

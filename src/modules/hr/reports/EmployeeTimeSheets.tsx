@@ -422,7 +422,6 @@ export default function EmployeeTimeSheets() {
                       "In",
                       "Out",
                       "Hours Today",
-                      "Days Recorded",
                       "Days Worked",
                       "Total Hours",
                     ].map((h, i) => (
@@ -494,9 +493,6 @@ export default function EmployeeTimeSheets() {
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600">
                           {r.todayHours ? `${r.todayHours} h` : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-500">
-                          {r.daysRecorded}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">

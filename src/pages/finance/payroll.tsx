@@ -17,13 +17,11 @@ import type {
   PayrollAccountStatus,
   PayrollPreview,
 } from "@/service/payrollService";
-import { fetchCompany } from "@/service/companyService";
 import { downloadPayslipPdf } from "@/service/payslipService";
 import { formatMoney } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import type { Employee } from "@/types/hr";
-import type { Company } from "@/types/company";
 import {
   Loader2,
   Settings,
@@ -274,7 +272,7 @@ function BulkStatusBadge({
 // ── Employee Payroll Tab ───────────────────────────────────────────────────────
 
 function EmployeePayrollTab() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loadingEmp, setLoadingEmp] = useState(true);
@@ -295,7 +293,7 @@ function EmployeePayrollTab() {
   const [allHistories, setAllHistories] = useState<
     Record<string, PayrollRow[]>
   >({});
-  const [currencySymbol, setCurrencySymbol] = useState("QAR");
+  const currencySymbol = company?.currency?.currencyCode ?? "";
   const [generating, setGenerating] = useState(false);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [payrollPreview, setPayrollPreview] = useState<PayrollPreview | null>(
@@ -341,17 +339,6 @@ function EmployeePayrollTab() {
     };
     load();
   }, []);
-
-  // ── load company currency ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user?.companyId) return;
-    fetchCompany(String(user.companyId))
-      .then((c: Company) => {
-        if (c?.currency?.currencyCode)
-          setCurrencySymbol(c.currency.currencyCode);
-      })
-      .catch(console.error);
-  }, [user?.companyId]);
 
   // ── single employee select ──────────────────────────────────────────────────
   const handleSelectEmployee = useCallback(async (emp: Employee) => {

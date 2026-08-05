@@ -18,11 +18,52 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { useParams } from "react-router-dom";
-import { generateId } from "@/lib/utils";
+import { cn, generateId } from "@/lib/utils";
 import { toInputDate, toIsoDate } from "@/lib/date";
 import { FormRow } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+
+/* ================= VIEW HELPERS ================= */
+
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
 
 /* ================= TYPES ================= */
 
@@ -224,20 +265,45 @@ export default function PreviousExperiencesForm() {
 
   /* ================= RENDER ================= */
 
+  const editingExperience = editingId
+    ? (experiences.find((e) => e.id === editingId) ?? null)
+    : null;
+
   return (
-    <div className="space-y-6 rounded-xl">
+    <div className="space-y-4 rounded-xl">
       <SecondaryPageHeader
         title="Previous Experiences"
         description="Manage previous employment history"
         icon={<Briefcase className="h-5 w-5 text-white" />}
         actions={
-          <Button
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-          >
-            <Plus className="h-4 w-4" />
-            Add Experience
-          </Button>
+          editingExperience ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={Object.values(
+                  validateExperience(editingExperience),
+                ).some(Boolean)}
+                onClick={() => handleSave(editingExperience)}
+                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Save Experience
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={handleAdd}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+            >
+              <Plus className="h-4 w-4" />
+              Add Experience
+            </Button>
+          )
         }
       />
 
@@ -283,13 +349,13 @@ export default function PreviousExperiencesForm() {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
           <Briefcase className="h-4 w-4 text-blue-600" />
           Experience Details
         </h3>
 
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {experiences.map((exp) => {
             const errors = validateExperience(exp);
             const editing = editingId === exp.id;
@@ -298,10 +364,10 @@ export default function PreviousExperiencesForm() {
             return (
               <div
                 key={exp.id}
-                className="border border-slate-200 rounded-lg p-6 mb-6"
+                className="border border-slate-200 rounded-lg p-4 mb-6"
               >
                 {editing ? (
-                  <div className="p-6 bg-gradient-to-br from-white to-slate-50">
+                  <div className="p-4 bg-gradient-to-br from-white to-slate-50">
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg">
@@ -319,12 +385,12 @@ export default function PreviousExperiencesForm() {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
+                    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
                         Employment Details
                       </h3>
 
-                      <FormRow columns={3}>
+                      <FormRow columns={4}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             Company Name <span className="text-red-500">*</span>
@@ -366,9 +432,6 @@ export default function PreviousExperiencesForm() {
                             </p>
                           )}
                         </div>
-                      </FormRow>
-
-                      <FormRow columns={3}>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-slate-700">
                             Last Date Worked{" "}
@@ -412,7 +475,7 @@ export default function PreviousExperiencesForm() {
                       </FormRow>
                     </div>
 
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100 mb-4">
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100 mb-4">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4">
                         Company Location
                       </h3>
@@ -436,7 +499,7 @@ export default function PreviousExperiencesForm() {
                       </FormRow>
                     </div>
 
-                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
+                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 shadow-sm border border-cyan-100">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <FileText className="h-5 w-5 text-cyan-600" />
                         Notes / Remarks
@@ -454,28 +517,11 @@ export default function PreviousExperiencesForm() {
                         {exp.notes.length} / 1000 characters
                       </p>
                     </div>
-
-                    <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                      <Button
-                        variant="outline"
-                        onClick={handleCancel}
-                        className="px-6 rounded-lg border-slate-300"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        disabled={Object.values(errors).some(Boolean)}
-                        onClick={() => handleSave(exp)}
-                        className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg"
-                      >
-                        Save Experience
-                      </Button>
-                    </div>
                   </div>
                 ) : (
-                  <div className="p-6">
+                  <div className="p-4">
                     {viewing ? (
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-2xl font-bold text-slate-800">
                             {exp.companyName || "Unnamed Company"}
@@ -488,85 +534,55 @@ export default function PreviousExperiencesForm() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-blue-100 rounded-lg">
-                                <Briefcase className="h-5 w-5 text-blue-600" />
-                              </div>
-                              <span className="text-sm font-medium text-blue-700">
-                                Job Title
-                              </span>
-                            </div>
-                            <p className="text-2xl font-bold text-blue-800">
-                              {exp.jobTitle || "—"}
-                            </p>
-                          </div>
-                          <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-200">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-emerald-100 rounded-lg">
-                                <Calendar className="h-5 w-5 text-emerald-600" />
-                              </div>
-                              <span className="text-sm font-medium text-emerald-700">
-                                Last Date Worked
-                              </span>
-                            </div>
-                            <p className="text-2xl font-bold text-emerald-800">
-                              {exp.lastDateWorked
-                                ? new Date(
-                                    exp.lastDateWorked,
-                                  ).toLocaleDateString()
-                                : "—"}
-                            </p>
-                          </div>
-                          <div className="bg-violet-50 p-5 rounded-lg border border-violet-200">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-violet-100 rounded-lg">
-                                <Clock className="h-5 w-5 text-violet-600" />
-                              </div>
-                              <span className="text-sm font-medium text-violet-700">
-                                Duration
-                              </span>
-                            </div>
-                            <p className="text-2xl font-bold text-violet-800">
-                              {exp.numberOfYears
-                                ? `${exp.numberOfYears} yrs`
-                                : "—"}
-                            </p>
-                          </div>
+                          <ViewField
+                            icon={<Briefcase className="h-4 w-4" />}
+                            label="Job Title"
+                            value={exp.jobTitle}
+                          />
+                          <ViewField
+                            icon={<Calendar className="h-4 w-4" />}
+                            label="Last Date Worked"
+                            value={formatViewDate(exp.lastDateWorked)}
+                          />
+                          <ViewField
+                            icon={<Clock className="h-4 w-4" />}
+                            label="Duration"
+                            value={
+                              exp.numberOfYears ? `${exp.numberOfYears} yrs` : ""
+                            }
+                          />
                         </div>
 
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
+                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">
                             Employment Information
                           </h4>
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            <DetailItem
+                            <ViewField
+                              icon={<Building className="h-4 w-4" />}
                               label="Company"
-                              value={exp.companyName || "—"}
+                              value={exp.companyName}
                             />
-                            <DetailItem
+                            <ViewField
+                              icon={<Briefcase className="h-4 w-4" />}
                               label="Job Title"
-                              value={exp.jobTitle || "—"}
+                              value={exp.jobTitle}
                             />
-                            <DetailItem
+                            <ViewField
+                              icon={<Calendar className="h-4 w-4" />}
                               label="Last Date Worked"
-                              value={
-                                exp.lastDateWorked
-                                  ? new Date(
-                                      exp.lastDateWorked,
-                                    ).toLocaleDateString()
-                                  : "—"
-                              }
+                              value={formatViewDate(exp.lastDateWorked)}
                             />
-                            <DetailItem
+                            <ViewField
+                              icon={<Clock className="h-4 w-4" />}
                               label="Years"
-                              value={exp.numberOfYears || "—"}
+                              value={exp.numberOfYears}
                             />
                           </div>
                         </div>
 
                         {exp.companyAddress && (
-                          <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-200">
+                          <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
                             <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                               <MapPin className="h-5 w-5 text-indigo-600" />
                               Company Address
@@ -578,7 +594,7 @@ export default function PreviousExperiencesForm() {
                         )}
 
                         {exp.notes && (
-                          <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
+                          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                             <h4 className="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
                               <FileText className="h-5 w-5 text-amber-600" />
                               Notes / Remarks
@@ -706,17 +722,6 @@ export default function PreviousExperiencesForm() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-        {label}
-      </p>
-      <p className="text-base text-slate-800 font-medium">{value}</p>
     </div>
   );
 }

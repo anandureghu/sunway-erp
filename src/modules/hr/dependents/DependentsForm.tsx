@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +14,22 @@ import {
   Heart,
   Baby,
   UserCog,
+  ShieldCheck,
+  MapPin,
+  Phone,
 } from "lucide-react";
 import { FormRow } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import CountrySelect from "@/components/country-select";
+import CountryFlag from "@/components/CountryFlag";
 import PhoneInput from "@/components/PhoneInput";
-import { normalizePhone, validatePhone } from "@/lib/countries";
+import {
+  normalizePhone,
+  validatePhone,
+  getCountryByName,
+} from "@/lib/countries";
 import { isValidDate } from "@/modules/hr/utils/validation";
-import { generateId } from "@/lib/utils";
+import { cn, generateId } from "@/lib/utils";
 import type { Dependent, Gender, MaritalStatus } from "@/types/hr";
 import { useParams, useNavigate } from "react-router-dom";
 import { dependentService } from "@/service/dependentService";
@@ -31,6 +40,50 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 interface ValidationErrors {
   [key: string]: string | undefined;
 }
+
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Format an ISO / yyyy-mm-dd date string as dd-mm-yyyy for read-only display.
+const formatDMY = (value?: string) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+};
 
 // Default initial state for a new dependent
 const INITIAL_DEPENDENT: Dependent = {
@@ -322,20 +375,48 @@ export function DependentsForm() {
     (d) => d.relationship === "Father" || d.relationship === "Mother",
   ).length;
 
+  const editingDependent = editingId
+    ? (dependents.find((d) => d.id === editingId) ?? null)
+    : null;
+
   return (
-    <div className="space-y-6 rounded-xl">
+    <div className="space-y-4 rounded-xl">
       <SecondaryPageHeader
         title="Employee Dependents"
         description="Manage dependent information"
         icon={<Users className="h-5 w-5 text-white" />}
         actions={
-          <Button
-            onClick={handleAdd}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-          >
-            <Plus className="h-4 w-4" />
-            Add Dependent
-          </Button>
+          editingDependent ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                className="rounded-xl px-5"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={
+                  Object.keys(validateDependent(editingDependent)).length > 0
+                }
+                onClick={async () => {
+                  await handleSave(editingDependent);
+                  setEditingId(null);
+                }}
+                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg px-5"
+              >
+                Save Dependent
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={handleAdd}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+            >
+              <Plus className="h-4 w-4" />
+              Add Dependent
+            </Button>
+          )
         }
       />
 
@@ -370,20 +451,20 @@ export function DependentsForm() {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
           <User className="h-4 w-4 text-blue-600" />
           Dependents Details
         </h3>
 
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {dependents.map((dependent) => (
             <div
               key={dependent.id}
-              className="border border-slate-200 rounded-lg p-6 mb-6"
+              className="border border-slate-200 rounded-lg p-4 mb-6"
             >
               {editingId === dependent.id ? (
-                <div className="p-6 bg-gradient-to-br from-white to-slate-50">
+                <div className="p-4 bg-gradient-to-br from-white to-slate-50">
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
                     <div className="flex items-start gap-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
@@ -402,7 +483,7 @@ export function DependentsForm() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
                       Personal Information
                     </h3>
@@ -473,7 +554,7 @@ export function DependentsForm() {
                           Gender <span className="text-red-500">*</span>
                         </Label>
                         <select
-                          className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                          className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                           value={dependent.gender ?? ""}
                           onChange={(e) =>
                             updateDependent(dependent.id, {
@@ -521,15 +602,12 @@ export function DependentsForm() {
                           </p>
                         )}
                       </div>
-                    </FormRow>
-
-                    <FormRow columns={1}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Relationship <span className="text-red-500">*</span>
                         </Label>
                         <select
-                          className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                          className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                           value={dependent.relationship ?? ""}
                           onChange={(e) =>
                             updateDependent(dependent.id, {
@@ -556,7 +634,7 @@ export function DependentsForm() {
                     </FormRow>
                   </div>
 
-                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100 mb-6">
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100 mb-6">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4">
                       Identification
                     </h3>
@@ -593,15 +671,12 @@ export function DependentsForm() {
                           placeholder="Select country..."
                         />
                       </div>
-                    </FormRow>
-
-                    <FormRow columns={1}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Marital Status
                         </Label>
                         <select
-                          className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                          className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                           value={dependent.maritalStatus ?? ""}
                           onChange={(e) =>
                             updateDependent(dependent.id, {
@@ -621,12 +696,12 @@ export function DependentsForm() {
                     </FormRow>
                   </div>
 
-                  <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
+                  <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 shadow-sm border border-cyan-100">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4">
                       Contact Information
                     </h3>
 
-                    <FormRow columns={1}>
+                    <FormRow columns={3}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Phone Number <span className="text-red-500">*</span>
@@ -646,9 +721,6 @@ export function DependentsForm() {
                           placeholder="Phone number"
                         />
                       </div>
-                    </FormRow>
-
-                    <FormRow columns={1}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Address Line 1
@@ -664,9 +736,6 @@ export function DependentsForm() {
                           placeholder="Enter address line 1"
                         />
                       </div>
-                    </FormRow>
-
-                    <FormRow columns={1}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Address Line 2
@@ -684,7 +753,7 @@ export function DependentsForm() {
                       </div>
                     </FormRow>
 
-                    <FormRow columns={3}>
+                    <FormRow columns={4}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           City
@@ -716,9 +785,7 @@ export function DependentsForm() {
                           placeholder="Enter state/province"
                         />
                       </div>
-                    </FormRow>
 
-                    <FormRow columns={3}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-slate-700">
                           Postal Code{" "}
@@ -753,30 +820,9 @@ export function DependentsForm() {
                     </FormRow>
                   </div>
 
-                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                    <Button
-                      variant="outline"
-                      onClick={handleCancel}
-                      className="px-6 rounded-lg border-slate-300"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      disabled={
-                        Object.keys(validateDependent(dependent)).length > 0
-                      }
-                      onClick={async () => {
-                        await handleSave(dependent);
-                        setEditingId(null);
-                      }}
-                      className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg"
-                    >
-                      Save Dependent
-                    </Button>
-                  </div>
                 </div>
               ) : (
-                <div className="p-6">
+                <div className="p-4">
                   {/* Summary View */}
                   {viewingId !== dependent.id && (
                     <div className="relative">
@@ -865,7 +911,7 @@ export function DependentsForm() {
                   )}
 
                   {viewingId === dependent.id && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-slate-800">
                           {dependent.firstName} {dependent.middleName}{" "}
@@ -881,67 +927,56 @@ export function DependentsForm() {
                       </div>
 
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        <div className="bg-blue-50 p-5 rounded-lg border border-blue-200">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <User className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <span className="text-sm font-medium text-blue-700">
-                              Gender
-                            </span>
-                          </div>
-                          <p className="text-2xl font-bold text-blue-800">
-                            {dependent.gender || "—"}
-                          </p>
-                        </div>
-                        <div className="bg-emerald-50 p-5 rounded-lg border border-emerald-200">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-emerald-100 rounded-lg">
-                              <Calendar className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <span className="text-sm font-medium text-emerald-700">
-                              Date of Birth
-                            </span>
-                          </div>
-                          <p className="text-2xl font-bold text-emerald-800">
-                            {dependent.dob
-                              ? new Date(dependent.dob).toLocaleDateString()
-                              : "—"}
-                          </p>
-                        </div>
-                        <div className="bg-violet-50 p-5 rounded-lg border border-violet-200">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-violet-100 rounded-lg">
-                              <Globe className="h-5 w-5 text-violet-600" />
-                            </div>
-                            <span className="text-sm font-medium text-violet-700">
-                              Nationality
-                            </span>
-                          </div>
-                          <p className="text-2xl font-bold text-violet-800">
-                            {dependent.nationality || "—"}
-                          </p>
-                        </div>
+                        <ViewField
+                          icon={<User className="h-4 w-4" />}
+                          label="Gender"
+                          value={dependent.gender || "—"}
+                        />
+                        <ViewField
+                          icon={<Calendar className="h-4 w-4" />}
+                          label="Date of Birth"
+                          value={formatDMY(dependent.dob)}
+                        />
+                        <ViewField
+                          icon={
+                            getCountryByName(dependent.nationality)?.iso2 ? (
+                              <CountryFlag
+                                iso2={
+                                  getCountryByName(dependent.nationality)?.iso2
+                                }
+                                className="text-base leading-none"
+                              />
+                            ) : (
+                              <Globe className="h-4 w-4" />
+                            )
+                          }
+                          label="Nationality"
+                          value={dependent.nationality || "—"}
+                        />
                       </div>
 
-                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
+                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Personal Information
                         </h4>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <DetailItem
+                          <ViewField
+                            icon={<User className="h-4 w-4" />}
                             label="First Name"
                             value={dependent.firstName || "—"}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<User className="h-4 w-4" />}
                             label="Middle Name"
                             value={dependent.middleName || "—"}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<User className="h-4 w-4" />}
                             label="Last Name"
                             value={dependent.lastName || "—"}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<Heart className="h-4 w-4" />}
                             label="Marital Status"
                             value={dependent.maritalStatus || "—"}
                           />
@@ -949,13 +984,15 @@ export function DependentsForm() {
                       </div>
 
                       {dependent.nationalId && (
-                        <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-200">
+                        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">
                             Identification
                           </h4>
-                          <DetailItem
+                          <ViewField
+                            icon={<ShieldCheck className="h-4 w-4" />}
                             label="National ID"
                             value={dependent.nationalId}
+                            mono
                           />
                         </div>
                       )}
@@ -966,45 +1003,67 @@ export function DependentsForm() {
                         dependent.state ||
                         dependent.postalCode ||
                         dependent.country) && (
-                        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 border border-cyan-100">
+                        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border border-cyan-100">
                           <h4 className="text-lg font-semibold text-slate-800 mb-4">
                             Contact Information
                           </h4>
                           {dependent.phoneNo && (
-                            <DetailItem
+                            <ViewField
+                              icon={<Phone className="h-4 w-4" />}
                               label="Phone Number"
                               value={dependent.phoneNo}
+                              mono
                             />
                           )}
                           {dependent.address && (
-                            <DetailItem
+                            <ViewField
+                              icon={<MapPin className="h-4 w-4" />}
                               label="Address Line 1"
                               value={dependent.address}
                             />
                           )}
                           {dependent.address2 && (
-                            <DetailItem
+                            <ViewField
+                              icon={<MapPin className="h-4 w-4" />}
                               label="Address Line 2"
                               value={dependent.address2}
                             />
                           )}
                           {dependent.city && (
-                            <DetailItem label="City" value={dependent.city} />
+                            <ViewField
+                              icon={<MapPin className="h-4 w-4" />}
+                              label="City"
+                              value={dependent.city}
+                            />
                           )}
                           {dependent.state && (
-                            <DetailItem
+                            <ViewField
+                              icon={<MapPin className="h-4 w-4" />}
                               label="State/Province"
                               value={dependent.state}
                             />
                           )}
                           {dependent.postalCode && (
-                            <DetailItem
+                            <ViewField
+                              icon={<MapPin className="h-4 w-4" />}
                               label="Postal Code"
                               value={dependent.postalCode}
                             />
                           )}
                           {dependent.country && (
-                            <DetailItem
+                            <ViewField
+                              icon={
+                                getCountryByName(dependent.country)?.iso2 ? (
+                                  <CountryFlag
+                                    iso2={
+                                      getCountryByName(dependent.country)?.iso2
+                                    }
+                                    className="text-base leading-none"
+                                  />
+                                ) : (
+                                  <Globe className="h-4 w-4" />
+                                )
+                              }
                               label="Country"
                               value={dependent.country}
                             />
@@ -1014,7 +1073,7 @@ export function DependentsForm() {
 
                       {dependent.dob &&
                         calculateAge(dependent.dob) !== null && (
-                          <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
+                          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                             <h4 className="text-lg font-semibold text-slate-800 mb-2">
                               Age Information
                             </h4>
@@ -1077,17 +1136,6 @@ export function DependentsForm() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-        {label}
-      </p>
-      <p className="text-base text-slate-800 font-medium">{value}</p>
     </div>
   );
 }

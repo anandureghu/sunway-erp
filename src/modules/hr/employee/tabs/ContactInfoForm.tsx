@@ -31,7 +31,8 @@ import CountrySelect from "@/components/country-select";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import PhoneInput from "@/components/PhoneInput";
 import EmailInput from "@/components/EmailInput";
-import { validatePhone, normalizePhone } from "@/lib/countries";
+import { validatePhone, normalizePhone, parsePhone } from "@/lib/countries";
+import CountryFlag from "@/components/CountryFlag";
 import { normalizeEmail, validateEmail } from "@/lib/email";
 import { toast } from "sonner";
 
@@ -469,7 +470,7 @@ export default function ContactInfoForm() {
   };
 
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-4">
       {/* ── Page header ── */}
       <SecondaryPageHeader
         title="Contact Information"
@@ -715,6 +716,7 @@ export default function ContactInfoForm() {
           label="Contact Details"
           accent="from-violet-600 to-blue-600"
         />
+        {editing ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Email Address" required>
             <div className="relative">
@@ -736,6 +738,7 @@ export default function ContactInfoForm() {
           </Field>
           <Field label="Phone Number" required>
             <PhoneInput
+              compact
               disabled={!editing}
               value={draft.phone}
               onChange={(v) => set("phone", v)}
@@ -750,6 +753,7 @@ export default function ContactInfoForm() {
           </Field>
           <Field label="Alt. Phone">
             <PhoneInput
+              compact
               disabled={!editing}
               value={draft.altPhone}
               onChange={(v) => set("altPhone", v)}
@@ -763,6 +767,13 @@ export default function ContactInfoForm() {
             )}
           </Field>
         </div>
+        ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ViewField icon={<Mail className="h-4 w-4" />} label="Email Address" value={draft.email} />
+          <ViewField icon={draft.phone ? <CountryFlag iso2={parsePhone(draft.phone).country.iso2} className="text-base leading-none" /> : <Phone className="h-4 w-4" />} label="Phone Number" value={draft.phone} />
+          <ViewField icon={draft.altPhone ? <CountryFlag iso2={parsePhone(draft.altPhone).country.iso2} className="text-base leading-none" /> : <Phone className="h-4 w-4" />} label="Alt. Phone" value={draft.altPhone} />
+        </div>
+        )}
       </div>
 
       {/* ── Addresses ── */}
@@ -1036,6 +1047,7 @@ export default function ContactInfoForm() {
           label="Notes & Remarks"
           accent="from-slate-500 to-slate-700"
         />
+        {editing ? (
         <div className="relative">
           <StickyNote className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Textarea
@@ -1043,9 +1055,17 @@ export default function ContactInfoForm() {
             value={draft.notes}
             onChange={(e) => set("notes", e.target.value)}
             placeholder="Enter any additional notes or remarks…"
-            className="min-h-[100px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 resize-none disabled:bg-slate-50"
+            className="min-h-[80px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 resize-none disabled:bg-slate-50"
           />
         </div>
+        ) : (
+          <ViewField
+            icon={<StickyNote className="h-4 w-4" />}
+            label="Notes & Remarks"
+            value={draft.notes}
+            multiline
+          />
+        )}
       </div>
     </div>
   );
@@ -1054,7 +1074,7 @@ export default function ContactInfoForm() {
 /* ── UI helpers ── */
 
 const iCls =
-  "h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
+  "h-8 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors";
 
 function SectionHead({
   icon,
@@ -1066,7 +1086,7 @@ function SectionHead({
   accent?: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 mb-5">
+    <div className="flex items-center gap-2.5 mb-4">
       <div
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white",
@@ -1075,10 +1095,44 @@ function SectionHead({
       >
         {icon}
       </div>
-      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+      <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
         {label}
       </span>
       <div className="flex-1 h-px bg-slate-100" />
+    </div>
+  );
+}
+
+// Read-only "info item" for view mode: icon + label + value (matches Employee Profile).
+function ViewField({
+  icon,
+  label,
+  value,
+  multiline,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  multiline?: boolean;
+}) {
+  const empty = value == null || value === "";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            multiline ? "whitespace-pre-wrap break-words" : "truncate",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
     </div>
   );
 }
@@ -1093,7 +1147,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       <Label className="text-xs font-semibold text-slate-700">
         {label}
         {required && <span className="text-rose-500 ml-0.5">*</span>}

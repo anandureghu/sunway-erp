@@ -493,7 +493,7 @@ export default function LeavesForm(): ReactElement {
   });
 
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-4">
       {/* ── Page header ── */}
       <SecondaryPageHeader
         title="Leave Management"
@@ -527,7 +527,7 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Leave Details ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<FileText className="h-3.5 w-3.5" />}
           label="Leave Details"
@@ -588,7 +588,7 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Leave Period ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<Calendar className="h-3.5 w-3.5" />}
           label="Leave Period"
@@ -691,7 +691,7 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Delegation ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<Users className="h-3.5 w-3.5" />}
           label="Delegation"
@@ -801,7 +801,7 @@ export default function LeavesForm(): ReactElement {
       </div>
 
       {/* ── Summary ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHead
           icon={<TrendingUp className="h-3.5 w-3.5" />}
           label="Leave Summary"
@@ -837,7 +837,7 @@ export default function LeavesForm(): ReactElement {
 
       {/* ── Document Upload (Sick Leave) ── */}
       {needsDoc && (
-        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
           <SectionHead
             icon={<Upload className="h-3.5 w-3.5" />}
             label="Supporting Document"

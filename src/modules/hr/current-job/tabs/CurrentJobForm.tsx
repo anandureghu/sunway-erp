@@ -43,6 +43,7 @@ import {
   Users,
   ShieldCheck,
   Network,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { jobCodeService, type JobCode } from "@/service/jobCodeService";
@@ -50,6 +51,47 @@ import { useAuth } from "@/context/AuthContext";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { CurrentJobCtx } from "../CurrentJobLayout";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+
+/* ================= VIEW-MODE HELPERS ================= */
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
+
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 /* ================= INITIAL DATA ================= */
 
@@ -553,7 +595,7 @@ export default function CurrentJobForm() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-4">
       <SecondaryPageHeader
         title="Current Job"
         description="Manage employment position, department, and work location details"
@@ -597,13 +639,14 @@ export default function CurrentJobForm() {
       </div>
 
       {/* ── Position Details ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHeading
           icon={<LayoutGrid className="h-3.5 w-3.5" />}
           label="Position Details"
           accent="from-violet-600 to-blue-600"
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {editing ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           <Field label="Job Code" required error={errors.jobCode}>
             {loadingJobCodes ? (
               <Input
@@ -726,16 +769,27 @@ export default function CurrentJobForm() {
             />
           </Field>
         </div>
+        ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          <ViewField icon={<Briefcase className="h-4 w-4" />} label="Job Code" value={formData.jobCode} mono />
+          <ViewField icon={<Award className="h-4 w-4" />} label="Job Title" value={formData.jobTitle} />
+          <ViewField icon={<TrendingUp className="h-4 w-4" />} label="Job Level" value={formData.jobLevel} />
+          <ViewField icon={<Award className="h-4 w-4" />} label="Salary Grade" value={formData.salaryGrade} />
+          <ViewField icon={<DollarSign className="h-4 w-4" />} label="Min Salary" value={formData.minSalary} />
+          <ViewField icon={<DollarSign className="h-4 w-4" />} label="Max Salary" value={formData.maxSalary} />
+        </div>
+        )}
       </div>
 
       {/* ── Department & Division ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHeading
           icon={<Building2 className="h-3.5 w-3.5" />}
           label="Department & Division"
           accent="from-emerald-500 to-teal-600"
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {editing ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           <Field label="Department" required error={errors.departmentCode}>
             {loadingDepartments ? (
               <Input
@@ -823,6 +877,13 @@ export default function CurrentJobForm() {
             )}
           </Field>
         </div>
+        ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          <ViewField icon={<Building2 className="h-4 w-4" />} label="Department" value={formData.departmentName || formData.departmentCode} />
+          <ViewField icon={<Building2 className="h-4 w-4" />} label="Department Name" value={formData.departmentName} />
+          <ViewField icon={<Network className="h-4 w-4" />} label="Division" value={formData.divisionName} />
+        </div>
+        )}
         {formData.departmentCode &&
           !loadingDivisions &&
           departmentDivisions.length === 0 && (
@@ -834,13 +895,14 @@ export default function CurrentJobForm() {
       </div>
 
       {/* ── Employment Classification ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHeading
           icon={<ShieldCheck className="h-3.5 w-3.5" />}
           label="Employment Classification"
           accent="from-indigo-500 to-purple-600"
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {editing ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           <Field label="Employment Category">
             <Select
               value={formData.employmentCategory || ""}
@@ -940,17 +1002,45 @@ export default function CurrentJobForm() {
             </div>
           </Field>
         </div>
+        ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          <ViewField
+            icon={<ShieldCheck className="h-4 w-4" />}
+            label="Employment Category"
+            value={
+              EMPLOYMENT_CATEGORY_OPTIONS.find(
+                (o) => o.value === formData.employmentCategory,
+              )?.label
+            }
+          />
+          <ViewField
+            icon={<Briefcase className="h-4 w-4" />}
+            label="Employment Type"
+            value={
+              EMPLOYMENT_TYPE_OPTIONS.find(
+                (o) => o.value === formData.employmentType,
+              )?.label
+            }
+          />
+          <ViewField
+            icon={<Users className="h-4 w-4" />}
+            label="Reporting Manager"
+            value={managerLabel}
+          />
+        </div>
+        )}
       </div>
 
       {/* ── Contract Dates (only when non-permanent) ── */}
       {isContractual && (
-        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
           <SectionHeading
             icon={<Calendar className="h-3.5 w-3.5" />}
             label="Contract Dates"
             accent="from-rose-500 to-orange-500"
           />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {editing ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
             <Field
               label="Contract Start Date"
               required
@@ -989,6 +1079,12 @@ export default function CurrentJobForm() {
               </div>
             </Field>
           </div>
+          ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
+            <ViewField icon={<Calendar className="h-4 w-4" />} label="Contract Start Date" value={formatViewDate(formData.contractStartDate)} />
+            <ViewField icon={<Calendar className="h-4 w-4" />} label="Contract End Date" value={formatViewDate(formData.contractEndDate)} />
+          </div>
+          )}
           <p className="text-[11px] text-muted-foreground mt-3">
             Shown because employment category is not "Permanent".
           </p>
@@ -996,13 +1092,14 @@ export default function CurrentJobForm() {
       )}
 
       {/* ── Employment Dates ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHeading
           icon={<Calendar className="h-3.5 w-3.5" />}
           label="Employment Dates"
           accent="from-amber-500 to-orange-500"
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {editing ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           <Field label="Start Date" required error={errors.startDate}>
             <div className="relative">
               <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1047,16 +1144,24 @@ export default function CurrentJobForm() {
             )}
           </Field>
         </div>
+        ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          <ViewField icon={<Calendar className="h-4 w-4" />} label="Start Date" value={formatViewDate(formData.startDate)} />
+          <ViewField icon={<Calendar className="h-4 w-4" />} label="Effective From" value={formatViewDate(formData.effectiveFrom)} />
+          <ViewField icon={<Calendar className="h-4 w-4" />} label="Expected End Date" value={formatViewDate(formData.expectedEndDate)} />
+        </div>
+        )}
       </div>
 
       {/* ── Work Location ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
         <SectionHeading
           icon={<Globe className="h-3.5 w-3.5" />}
           label="Work Location"
           accent="from-blue-500 to-indigo-600"
         />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {editing ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           <Field label="Work Location" required error={errors.workLocation}>
             <div className="relative">
               <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1093,6 +1198,13 @@ export default function CurrentJobForm() {
             />
           </Field>
         </div>
+        ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+          <ViewField icon={<MapPin className="h-4 w-4" />} label="Work Location" value={formData.workLocation} />
+          <ViewField icon={<MapPin className="h-4 w-4" />} label="Work City" value={formData.workCity} />
+          <ViewField icon={<Globe className="h-4 w-4" />} label="Work Country" value={formData.workCountry} />
+        </div>
+        )}
       </div>
     </div>
   );

@@ -18,8 +18,8 @@ export interface GoalItem {
   active?: boolean;
 }
 
-export interface GoalsByRole {
-  roleName: string;
+export interface GoalsByJobCode {
+  jobCode: string;
   goals: GoalItem[];
 }
 
@@ -45,7 +45,7 @@ export interface AppraisalConfigPayload {
   enableSelfAssessment: boolean;
   enableMidYear: boolean;
   enablePIP: boolean;
-  roles: GoalsByRole[];
+  jobConfigs: GoalsByJobCode[];
   ratingScale?: RatingScaleItem[];
   phases?: PhaseItem[];
 }
@@ -68,7 +68,7 @@ export const DEFAULT_APPRAISAL_CONFIG: AppraisalConfigPayload = {
   enableSelfAssessment: true,
   enableMidYear: true,
   enablePIP: true,
-  roles: [],
+  jobConfigs: [],
   ratingScale: [],
   phases: [],
 };
@@ -294,9 +294,9 @@ async function getKpisForRole(
 /**
  * Get all roles configuration for a year
  */
-async function getRolesByYear(year: number): Promise<GoalsByRole[]> {
-  const res = await apiClient.get<GoalsByRole[]>(
-    `/appraisal-config/year/${year}/roles`
+async function getJobConfigsByYear(year: number): Promise<GoalsByJobCode[]> {
+  const res = await apiClient.get<GoalsByJobCode[]>(
+    `/appraisal-config/year/${year}/job-configs`
   );
   return res.data;
 }
@@ -357,7 +357,7 @@ export const appraisalConfigService = {
   listByYear,
   listActive,
   getByYearAndRole,
-  getRolesByYear,
+  getJobConfigsByYear,
   getKpisForRole,
 
   // Create/Update

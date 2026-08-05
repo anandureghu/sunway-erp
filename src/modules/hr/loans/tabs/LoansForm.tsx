@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,14 +14,12 @@ import {
   AlertTriangle,
   Wallet,
   PencilLine,
-  Check,
-  X,
   Building2,
 } from "lucide-react";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { salaryService } from "@/service/salaryService";
-import { formatMoney, generateId } from "@/lib/utils";
+import { formatMoney, generateId, cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { addMonths } from "@/lib/date";
@@ -29,15 +27,51 @@ import { useParams, useOutletContext } from "react-router-dom";
 import type { LoansShellCtx } from "@/modules/hr/loans/LoansShell";
 import { loanService } from "@/service/loanService";
 import { SelectField } from "@/modules/hr/components/select-field";
-import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { LoanPayload } from "@/types/hr/loan";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { canActScoped } from "@/lib/module-permissions";
-import { fetchCompany } from "@/service/companyService";
-import type { Company } from "@/types/company";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+
+const formatViewDate = (v?: string | number | readonly string[]) => {
+  if (v == null || v === "") return "";
+  const [y, m, d] = String(v).split("-");
+  return y && m && d ? `${d}-${m}-${y}` : String(v);
+};
+
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 type LoansModel = {
   id: string;
@@ -105,7 +139,7 @@ export default function LoansForm(): ReactElement {
   const params = useParams<{ id: string }>();
   const employeeId = params.id ? Number(params.id) : undefined;
   const { registerAction } = useOutletContext<LoansShellCtx>();
-  const { user, permissions } = useAuth();
+  const { user, permissions, company } = useAuth();
   // Loans are scoped to the employee in the route. ADMIN/SUPER_ADMIN bypass via
   // permissions === null. Otherwise a grant applies per own/all: an "own-only"
   // grant only enables the action on the user's own records, so the buttons are
@@ -116,7 +150,6 @@ export default function LoansForm(): ReactElement {
     ?.employeeId;
   const isOwnEmployee =
     myEmployeeId != null && Number(myEmployeeId) === employeeId;
-  const canApproveLoans = canActScoped(permissions, "LOANS", "approve", isOwnEmployee);
   const canCreateLoans = canActScoped(permissions, "LOANS", "create", isOwnEmployee);
   const canEditLoans = canActScoped(permissions, "LOANS", "edit", isOwnEmployee);
   const canDeleteLoans = canActScoped(permissions, "LOANS", "delete", isOwnEmployee);
@@ -130,12 +163,7 @@ export default function LoansForm(): ReactElement {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<{
-    id: number;
-    code: string;
-  } | null>(null);
-  const [rejectLoading, setRejectLoading] = useState(false);
-  const [currencySymbol, setCurrencySymbol] = useState("$");
+  const currencySymbol = company?.currency?.currencyCode ?? "";
 
   // One loan at a time: an employee with a persisted pending or active loan
   // can't open another request (the backend enforces this too). Drafts (non-
@@ -189,33 +217,6 @@ export default function LoansForm(): ReactElement {
     setLoans((current) => [...current, newLoan]);
     setEditingId(newLoan.id);
   }, [grossSalary, hasOpenLoan]);
-
-  // Hoist the primary action into the shell header (shared layout with the
-  // other employee sub-modules), rather than a second header inside the tab.
-  const headerAction = useMemo(
-    () =>
-      canCreateLoans ? (
-        <Button
-          onClick={handleAdd}
-          disabled={hasOpenLoan || editingId !== null}
-          title={
-            hasOpenLoan
-              ? "This employee already has a pending or active loan. Only one loan at a time is allowed."
-              : undefined
-          }
-          className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Plus className="h-4 w-4" />
-          Request Loan
-        </Button>
-      ) : null,
-    [canCreateLoans, hasOpenLoan, editingId, handleAdd],
-  );
-
-  useEffect(() => {
-    registerAction(headerAction);
-    return () => registerAction(null);
-  }, [registerAction, headerAction]);
 
   const mapApiToForm = (api: any): LoansModel => ({
     id: String(api.id),
@@ -322,22 +323,6 @@ export default function LoansForm(): ReactElement {
   useEffect(() => {
     void loadLoans();
   }, [loadLoans]);
-
-  useEffect(() => {
-    if (user?.companyId) {
-      fetchCompany(user.companyId.toString())
-        .then((company: Company) => {
-          // Prefer the actual currency symbol (e.g. "$", "د.إ") over the code.
-          const cur = company?.currency;
-          if (cur?.currencySymbol || cur?.currencyCode) {
-            setCurrencySymbol(cur.currencySymbol || cur.currencyCode);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to load company currency", err);
-        });
-    }
-  }, [user?.companyId]);
 
   const handleSave = useCallback(
     (loan: LoansModel, changedField?: string) => {
@@ -466,42 +451,6 @@ export default function LoansForm(): ReactElement {
     }
   };
 
-  const handleDecision = useCallback(
-    async (loanDbId: number, approve: boolean, comment?: string) => {
-      if (!employeeId) return;
-      try {
-        await loanService.decideLoan(employeeId, loanDbId, approve, comment);
-        toast.success(approve ? "Loan approved" : "Loan rejected");
-        await loadLoans();
-      } catch (err: any) {
-        console.error("LoansForm -> decision failed", err);
-        const status = err?.response?.status;
-        if (status === 403) {
-          toast.error("You don't have permission to approve loans");
-        } else {
-          toast.error(err?.response?.data?.message || "Failed to update loan");
-        }
-      }
-    },
-    [employeeId, loadLoans],
-  );
-
-  // Reject flows through the reason dialog so the decline reason is captured and
-  // shown to the employee (matching the dedicated LoanApprovalPanel).
-  const submitReject = useCallback(
-    async (comment: string) => {
-      if (!rejectTarget) return;
-      setRejectLoading(true);
-      try {
-        await handleDecision(rejectTarget.id, false, comment);
-      } finally {
-        setRejectLoading(false);
-        setRejectTarget(null);
-      }
-    },
-    [rejectTarget, handleDecision],
-  );
-
   const totalLoans = loans.length;
   const pendingLoans = loans.filter(
     (l) => l.loanStatus?.toUpperCase() === "PENDING_APPROVAL",
@@ -513,8 +462,74 @@ export default function LoansForm(): ReactElement {
     .filter((l) => l.loanStatus?.toUpperCase() === "ACTIVE")
     .reduce((sum, l) => sum + Number(l.balance || 0), 0);
 
+  const editingLoan = editingId
+    ? (loans.find((l) => l.id === editingId) ?? null)
+    : null;
+
+  // Hoist the header action into the shell header: Request Loan normally, or
+  // Cancel/Save while a loan is being edited.
+  const headerAction = useMemo(
+    () =>
+      editingLoan ? (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            className="rounded-xl"
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={
+              !validateLoan(editingLoan) ||
+              exceedsLimit(editingLoan) ||
+              affordabilityUnknown
+            }
+            onClick={async () => {
+              handleSave(editingLoan);
+              await persistLoan(editingLoan);
+              setEditingId(null);
+            }}
+            className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            Save Loan
+          </Button>
+        </div>
+      ) : canCreateLoans ? (
+        <Button
+          onClick={handleAdd}
+          disabled={hasOpenLoan || editingId !== null}
+          title={
+            hasOpenLoan
+              ? "This employee already has a pending or active loan. Only one loan at a time is allowed."
+              : undefined
+          }
+          className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="h-4 w-4" />
+          Request Loan
+        </Button>
+      ) : null,
+    [
+      editingLoan,
+      canCreateLoans,
+      hasOpenLoan,
+      editingId,
+      affordabilityUnknown,
+      handleAdd,
+      handleCancel,
+      handleSave,
+      persistLoan,
+    ],
+  );
+
+  useEffect(() => {
+    registerAction(headerAction);
+    return () => registerAction(null);
+  }, [registerAction, headerAction]);
+
   return (
-    <div className="space-y-6 rounded-xl">
+    <div className="space-y-4 rounded-xl">
       <SecondaryPageHeader
         title="Employee Loans"
         description="Manage loan details and repayment schedules"
@@ -563,72 +578,43 @@ export default function LoansForm(): ReactElement {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
         <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-blue-600" />
           Loans Details
         </h3>
 
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {loans.map((loan) => (
             <div
               key={loan.id}
-              className="border border-slate-200 rounded-lg p-6 mb-6"
+              className="border border-slate-200 rounded-lg p-4 mb-6"
             >
               {editingId === loan.id ? (
-                <div className="p-6 bg-gradient-to-br from-white to-slate-50">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-white/20 rounded-lg">
-                          <DollarSign className="h-5 w-5" />
-                        </div>
-                        <span className="text-sm font-medium opacity-90">
-                          Loan Amount
-                        </span>
+                <div className="p-4 bg-gradient-to-br from-white to-slate-50">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <DollarSign className="h-5 w-5 text-blue-600" />
                       </div>
-                      <p className="text-2xl font-bold">
-                        {formatMoney(loan.loanAmount, currencySymbol) ||
-                          `${currencySymbol}0.00`}
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 text-white shadow-lg">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-white/20 rounded-lg">
-                          <TrendingUp className="h-5 w-5" />
-                        </div>
-                        <span className="text-sm font-medium opacity-90">
-                          Monthly Payment
-                        </span>
+                      <div>
+                        <h4 className="font-semibold text-slate-800 mb-1">
+                          Loan Information
+                        </h4>
+                        <p className="text-sm text-slate-600">
+                          Record the loan type, amount, tenure, and monthly
+                          deduction details for this request.
+                        </p>
                       </div>
-                      <p className="text-2xl font-bold">
-                        {formatMoney(loan.monthlyDeductions, currencySymbol) ||
-                          `${currencySymbol}0.00`}
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-white/20 rounded-lg">
-                          <FileText className="h-5 w-5" />
-                        </div>
-                        <span className="text-sm font-medium opacity-90">
-                          Current Balance
-                        </span>
-                      </div>
-                      <p className="text-2xl font-bold">
-                        {formatMoney(loan.balance, currencySymbol) ||
-                          `${currencySymbol}0.00`}
-                      </p>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
                       Loan Details
                     </h3>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       <div>
                         <Label className="text-sm font-medium text-slate-700">
                           Loan Type <span className="text-red-500">*</span>
@@ -730,7 +716,7 @@ export default function LoansForm(): ReactElement {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-4">
                       <Field
                         label="Start Date"
                         type="date"
@@ -837,11 +823,11 @@ export default function LoansForm(): ReactElement {
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100">
+                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4">
                       Salary Breakdown
                     </h3>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {/* Gross / Deduction / Net are derived from salary and loan
                           terms and are recomputed on save — display only. */}
                       <Field
@@ -871,33 +857,9 @@ export default function LoansForm(): ReactElement {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200">
-                    <Button
-                      variant="outline"
-                      onClick={handleCancel}
-                      className="px-6 rounded-lg border-slate-300"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      disabled={
-                        !validateLoan(loan) ||
-                        exceedsLimit(loan) ||
-                        affordabilityUnknown
-                      }
-                      onClick={async () => {
-                        handleSave(loan);
-                        await persistLoan(loan);
-                        setEditingId(null);
-                      }}
-                      className="px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg"
-                    >
-                      Save Loan
-                    </Button>
-                  </div>
                 </div>
               ) : (
-                <div className="p-6">
+                <div className="p-4">
                   {viewingId !== loan.id && (
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -914,108 +876,46 @@ export default function LoansForm(): ReactElement {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
-                          <InfoCard
-                            icon={DollarSign}
-                            label="Loan Amount"
-                            value={formatMoney(loan.loanAmount, currencySymbol)}
-                            color="blue"
-                          />
-                          <InfoCard
-                            icon={Calendar}
-                            label="Start Date"
-                            value={
-                              loan.startDate
-                                ? new Date(loan.startDate).toLocaleDateString()
-                                : "—"
-                            }
-                            color="emerald"
-                          />
-                          <InfoCard
-                            icon={Calendar}
-                            label="End Date"
-                            value={
-                              loan.endDate
-                                ? new Date(loan.endDate).toLocaleDateString()
-                                : "—"
-                            }
-                            color="amber"
-                          />
-                          <InfoCard
-                            icon={TrendingUp}
-                            label="Monthly Deduction"
-                            value={formatMoney(
-                              loan.monthlyDeductions,
-                              currencySymbol,
-                            )}
-                            color="violet"
-                          />
-                        </div>
-
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100 mt-6">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                            Loan Information
-                          </h4>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            <DetailItem
-                              label="Loan Type"
-                              value={loanTypeLabel(loan.loanType)}
-                            />
-                            <DetailItem
-                              label="Loan Period"
-                              value={
-                                loan.loanPeriod
-                                  ? `${loan.loanPeriod} months`
-                                  : "—"
-                              }
-                            />
-                            <DetailItem
-                              label="Current Balance"
-                              value={formatMoney(loan.balance, currencySymbol)}
-                            />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
+                            <p className="text-xs text-slate-600 mb-1">
+                              Loan Amount
+                            </p>
+                            <p className="text-sm font-semibold text-blue-700">
+                              {formatMoney(loan.loanAmount, currencySymbol)}
+                            </p>
+                          </div>
+                          {loan.startDate && (
+                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
+                              <p className="text-xs text-slate-600 mb-1">
+                                Start Date
+                              </p>
+                              <p className="text-sm font-semibold text-emerald-700">
+                                {new Date(loan.startDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          )}
+                          {loan.endDate && (
+                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-100">
+                              <p className="text-xs text-slate-600 mb-1">
+                                End Date
+                              </p>
+                              <p className="text-sm font-semibold text-amber-700">
+                                {new Date(loan.endDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          )}
+                          <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-3 rounded-lg border border-violet-100">
+                            <p className="text-xs text-slate-600 mb-1">
+                              Monthly Deduction
+                            </p>
+                            <p className="text-sm font-semibold text-violet-700">
+                              {formatMoney(loan.monthlyDeductions, currencySymbol)}
+                            </p>
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-2 ml-4">
-                        {canApproveLoans &&
-                          loan.loanStatus?.toUpperCase() ===
-                            "PENDING_APPROVAL" &&
-                          /^\d+$/.test(loan.id) && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={async () => {
-                                  if (
-                                    await confirm({
-                                      title: "Approve loan",
-                                      description: `Approve loan ${loan.loanCode}? A monthly deduction will be scheduled.`,
-                                      confirmLabel: "Approve",
-                                    })
-                                  ) {
-                                    handleDecision(Number(loan.id), true);
-                                  }
-                                }}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1"
-                              >
-                                <Check className="h-4 w-4" />
-                                Approve
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  setRejectTarget({
-                                    id: Number(loan.id),
-                                    code: loan.loanCode,
-                                  })
-                                }
-                                className="border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg flex items-center gap-1"
-                              >
-                                <X className="h-4 w-4" />
-                                Reject
-                              </Button>
-                            </>
-                          )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1052,7 +952,7 @@ export default function LoansForm(): ReactElement {
                   )}
 
                   {viewingId === loan.id && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-slate-800">
                           {loan.loanCode || "Loan Details"}
@@ -1066,44 +966,39 @@ export default function LoansForm(): ReactElement {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        <InfoCard
-                          icon={DollarSign}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <ViewField
+                          icon={<DollarSign className="h-4 w-4" />}
                           label="Loan Amount"
                           value={formatMoney(loan.loanAmount, currencySymbol)}
-                          color="blue"
                         />
-                        <InfoCard
-                          icon={Calendar}
+                        <ViewField
+                          icon={<Calendar className="h-4 w-4" />}
                           label="Start Date"
-                          value={
-                            loan.startDate
-                              ? new Date(loan.startDate).toLocaleDateString()
-                              : "—"
-                          }
-                          color="emerald"
+                          value={formatViewDate(loan.startDate)}
                         />
-                        <InfoCard
-                          icon={TrendingUp}
+                        <ViewField
+                          icon={<TrendingUp className="h-4 w-4" />}
                           label="Monthly Deduction"
                           value={formatMoney(
                             loan.monthlyDeductions,
                             currencySymbol,
                           )}
-                          color="violet"
                         />
                       </div>
 
-                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 border border-blue-100">
+                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Loan Information
                         </h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <DetailItem
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          <ViewField
+                            icon={<FileText className="h-4 w-4" />}
                             label="Loan Type"
                             value={loanTypeLabel(loan.loanType)}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<Calendar className="h-4 w-4" />}
                             label="Loan Period"
                             value={
                               loan.loanPeriod
@@ -1111,30 +1006,34 @@ export default function LoansForm(): ReactElement {
                                 : "—"
                             }
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<Wallet className="h-4 w-4" />}
                             label="Current Balance"
                             value={formatMoney(loan.balance, currencySymbol)}
                           />
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+                      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
                         <h4 className="text-lg font-semibold text-slate-800 mb-4">
                           Salary Breakdown
                         </h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <DetailItem
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          <ViewField
+                            icon={<DollarSign className="h-4 w-4" />}
                             label="Gross Pay"
                             value={formatMoney(loan.grossPay, currencySymbol)}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<TrendingUp className="h-4 w-4" />}
                             label="Deduction Amount"
                             value={formatMoney(
                               loan.deductionAmount,
                               currencySymbol,
                             )}
                           />
-                          <DetailItem
+                          <ViewField
+                            icon={<Wallet className="h-4 w-4" />}
                             label="Net Pay"
                             value={formatMoney(loan.netPay, currencySymbol)}
                           />
@@ -1142,7 +1041,7 @@ export default function LoansForm(): ReactElement {
                       </div>
 
                       {loan.notes && (
-                        <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
+                        <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                           <h4 className="text-lg font-semibold text-slate-800 mb-2">
                             Notes/Remarks
                           </h4>
@@ -1154,7 +1053,7 @@ export default function LoansForm(): ReactElement {
 
                       {loan.loanStatus?.toUpperCase() === "REJECTED" &&
                         loan.rejectionComment && (
-                          <div className="bg-rose-50 rounded-xl p-6 border border-rose-100">
+                          <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
                             <h4 className="text-lg font-semibold text-rose-800 mb-2">
                               Reason for rejection
                             </h4>
@@ -1226,14 +1125,6 @@ export default function LoansForm(): ReactElement {
           </div>
         )}
       </div>
-
-      <RejectReasonDialog
-        open={rejectTarget !== null}
-        subject={rejectTarget ? `loan ${rejectTarget.code}` : undefined}
-        loading={rejectLoading}
-        onCancel={() => setRejectTarget(null)}
-        onConfirm={submitReject}
-      />
     </div>
   );
 }
@@ -1282,46 +1173,3 @@ function Field(props: {
   );
 }
 
-function InfoCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  color: string;
-}) {
-  const colorClasses: Record<string, string> = {
-    blue: "from-blue-500 to-indigo-600",
-    emerald: "from-emerald-500 to-teal-600",
-    violet: "from-violet-500 to-purple-600",
-    amber: "from-amber-500 to-orange-600",
-  };
-  const gradient = colorClasses[color] ?? colorClasses.blue;
-  return (
-    <div
-      className={`bg-gradient-to-br ${gradient} rounded-xl p-5 text-white shadow-lg`}
-    >
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-white/20 rounded-lg">
-          <Icon className="h-5 w-5" />
-        </div>
-        <span className="text-sm font-medium opacity-90">{label}</span>
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
-    </div>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-        {label}
-      </p>
-      <p className="text-base text-slate-800 font-medium">{value}</p>
-    </div>
-  );
-}

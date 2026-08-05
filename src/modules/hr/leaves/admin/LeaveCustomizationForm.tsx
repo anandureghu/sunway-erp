@@ -8,7 +8,6 @@ import {
   Minus,
   Calendar,
   Users,
-  AlertCircle,
   CheckCircle2,
   Zap,
   Lock,
@@ -526,12 +525,46 @@ export default function LeaveCustomizationForm() {
               </p>
             </div>
           </div>
-          {hasChanges && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-300/40 px-3 py-1.5 text-xs font-semibold text-amber-100">
-              <Zap className="h-3.5 w-3.5" />
-              Unsaved Changes
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {hasChanges && (
+              <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 border border-amber-300/40 px-3 py-1.5 text-xs font-semibold text-amber-100">
+                <Zap className="h-3.5 w-3.5" />
+                Unsaved
+              </span>
+            )}
+            <Button
+              variant="outline"
+              onClick={handleResetQatarDefaults}
+              disabled={loading}
+              className="h-9 gap-1.5 border-white/30 bg-white/10 text-white text-sm hover:bg-white/20 hover:text-white"
+              title="Reset Sick, Maternity, Hajj, Marriage, and Bereavement to Qatar defaults for all roles"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reset defaults
+            </Button>
+            {hasChanges && (
+              <Button
+                variant="outline"
+                onClick={handleDiscardChanges}
+                className="h-9 gap-1.5 border-white/30 bg-white/10 text-white text-sm hover:bg-white/20 hover:text-white"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Discard
+              </Button>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={loading || !hasChanges}
+              className="h-9 gap-1.5 bg-white text-blue-700 hover:bg-blue-50 text-sm font-semibold disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              {loading ? "Saving…" : "Save Policies"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -840,57 +873,6 @@ export default function LeaveCustomizationForm() {
         })}
       </div>
 
-      {/* ── Action bar ── */}
-      <div className="sticky bottom-0 z-10 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-sm shadow-lg px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            {hasChanges ? (
-              <div className="flex items-center gap-2 text-amber-700">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span className="text-sm font-medium">
-                  You have unsaved changes — click Save to apply.
-                </span>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400">All changes are saved.</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleResetQatarDefaults}
-              disabled={loading}
-              className="h-9 gap-1.5 text-sm"
-              title="Reset Sick, Maternity, Hajj, Marriage, and Bereavement to Qatar defaults for all roles"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Reset Qatar leave defaults
-            </Button>
-            {hasChanges && (
-              <Button
-                variant="outline"
-                onClick={handleDiscardChanges}
-                className="h-9 gap-1.5 text-sm"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Discard
-              </Button>
-            )}
-            <Button
-              onClick={handleSave}
-              disabled={loading || !hasChanges}
-              className="h-9 gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 text-sm font-semibold disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              )}
-              {loading ? "Saving…" : "Save Policies"}
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

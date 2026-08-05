@@ -23,6 +23,8 @@ type Props = {
   /** Show error styling (validation handled by the parent) */
   invalid?: boolean;
   className?: string;
+  /** Render a shorter (h-8) control for dense forms. */
+  compact?: boolean;
 };
 
 /**
@@ -37,6 +39,7 @@ export default function PhoneInput({
   placeholder = "Phone number",
   invalid = false,
   className,
+  compact = false,
 }: Props) {
   const initial = parsePhone(value);
   const [iso, setIso] = useState(initial.country.iso2);
@@ -91,7 +94,8 @@ export default function PhoneInput({
     <div ref={wrapperRef} className={cn("relative", className)}>
       <div
         className={cn(
-          "flex h-9 items-stretch overflow-hidden rounded-lg border bg-white transition-colors",
+          "flex items-stretch overflow-hidden rounded-lg border bg-white transition-colors",
+          compact ? "h-8" : "h-9",
           invalid
             ? "border-rose-300 focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-400/30"
             : "border-slate-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-400/30",

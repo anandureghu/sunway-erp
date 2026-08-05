@@ -3,7 +3,6 @@ import { hrService } from "@/service/hr.service";
 import { parsePayrollApiError, payrollService } from "@/service/payrollService";
 import { salaryService } from "@/service/salaryService";
 import { downloadPayslipPdf } from "@/service/payslipService";
-import { fetchCompany } from "@/service/companyService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { formatMoney } from "@/lib/utils";
@@ -51,12 +50,12 @@ interface EmployeePayrollSummary {
 }
 
 export default function PayrollSettings() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [empSearch, setEmpSearch] = useState("");
   const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
-  const [currencySymbol, setCurrencySymbol] = useState("$");
+  const currencySymbol = company?.currency?.currencyCode ?? "";
   const [loadingEmps, setLoadingEmps] = useState(true);
 
   // Payroll generation state
@@ -80,17 +79,6 @@ export default function PayrollSettings() {
   // Summary stats across all employees
   const [summaries, setSummaries] = useState<EmployeePayrollSummary[]>([]);
   const [loadingSummaries, setLoadingSummaries] = useState(false);
-
-  // Load company currency
-  useEffect(() => {
-    if (!user?.companyId) return;
-    fetchCompany(user.companyId.toString())
-      .then((c: any) => {
-        if (c?.currency?.currencyCode)
-          setCurrencySymbol(c.currency.currencyCode);
-      })
-      .catch(() => {});
-  }, [user?.companyId]);
 
   // Load employee list
   useEffect(() => {

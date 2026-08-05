@@ -23,6 +23,40 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 import type { SalaryCtx } from "../SalaryShell";
 
+// ── read-only "info item" for view mode: icon + label + value (no input box) ──
+const ViewField = ({
+  icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  mono?: boolean;
+}) => {
+  const empty = value == null || value === "" || value === "—";
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-slate-400">{label}</p>
+        <p
+          className={cn(
+            "truncate text-sm font-semibold",
+            empty ? "text-slate-300" : "text-slate-700",
+            mono && "font-mono",
+          )}
+        >
+          {empty ? "—" : value}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 type BankModel = {
   location: string;
   city: string;
@@ -146,7 +180,7 @@ const BankCard = ({ data }: { data: BankModel }) => {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl p-6 text-white shadow-xl select-none transition-all duration-500",
+        "relative overflow-hidden rounded-2xl p-4 text-white shadow-xl select-none transition-all duration-500",
         hasData
           ? "bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900"
           : "bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300",
@@ -395,7 +429,7 @@ export default function BankForm() {
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="bg-slate-50/60 min-h-screen space-y-4">
       {/* ── Page header ── */}
       <SecondaryPageHeader
         title="Bank Details"
@@ -408,13 +442,14 @@ export default function BankForm() {
         {/* ── LEFT: form ── */}
         <div className="space-y-4">
           {/* Bank Information */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<Building2 className="h-3.5 w-3.5" />}
               label="Bank Information"
               accent="from-violet-600 to-blue-600"
             />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {editing ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Bank Name" required error={errors.bankName}>
                 <div className="relative">
                   <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -459,16 +494,36 @@ export default function BankForm() {
                 </div>
               </Field>
             </div>
+            ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ViewField
+                icon={<Building2 className="h-4 w-4" />}
+                label="Bank Name"
+                value={draft.bankName}
+              />
+              <ViewField
+                icon={<Landmark className="h-4 w-4" />}
+                label="Bank short name"
+                value={draft.bankShortName}
+              />
+              <ViewField
+                icon={<Building2 className="h-4 w-4" />}
+                label="Bank Branch"
+                value={draft.bankBranch}
+              />
+            </div>
+            )}
           </div>
 
           {/* Account Details */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<CreditCard className="h-3.5 w-3.5" />}
               label="Account Details"
               accent="from-emerald-500 to-teal-600"
             />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {editing ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Account Type" required error={errors.accountType}>
                 <div className="relative">
                   <CreditCard className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -516,16 +571,38 @@ export default function BankForm() {
                 </div>
               </Field>
             </div>
+            ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ViewField
+                icon={<CreditCard className="h-4 w-4" />}
+                label="Account Type"
+                value={formatAccountType(draft.accountType)}
+              />
+              <ViewField
+                icon={<Hash className="h-4 w-4" />}
+                label="Account Number"
+                value={maskAccount(draft.accountNo)}
+                mono
+              />
+              <ViewField
+                icon={<Globe className="h-4 w-4" />}
+                label="IBAN"
+                value={draft.iban}
+                mono
+              />
+            </div>
+            )}
           </div>
 
           {/* Location Details */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<MapPin className="h-3.5 w-3.5" />}
               label="Bank Location"
               accent="from-amber-500 to-orange-500"
             />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {editing ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="City">
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -561,15 +638,35 @@ export default function BankForm() {
                 />
               </Field>
             </div>
+            ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ViewField
+                icon={<MapPin className="h-4 w-4" />}
+                label="City"
+                value={draft.city}
+              />
+              <ViewField
+                icon={<MapPin className="h-4 w-4" />}
+                label="State"
+                value={draft.state}
+              />
+              <ViewField
+                icon={<Globe className="h-4 w-4" />}
+                label="Country"
+                value={draft.country}
+              />
+            </div>
+            )}
           </div>
 
           {/* Remarks */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
             <SectionHeading
               icon={<StickyNote className="h-3.5 w-3.5" />}
               label="Remarks"
               accent="from-slate-500 to-slate-700"
             />
+            {editing ? (
             <Field label="Additional Notes / Instructions">
               <div className="relative">
                 <FileText className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -582,6 +679,13 @@ export default function BankForm() {
                 />
               </div>
             </Field>
+            ) : (
+              <ViewField
+                icon={<FileText className="h-4 w-4" />}
+                label="Additional Notes / Instructions"
+                value={draft.remarks}
+              />
+            )}
           </div>
         </div>
 
