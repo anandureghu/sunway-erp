@@ -309,127 +309,128 @@ export default function EducationQualificationsForm() {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
-                        School Information
-                      </h3>
+                    <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                        <h3 className="mb-3 border-b border-slate-200 pb-2 text-sm font-semibold text-slate-800">
+                          School Information
+                        </h3>
 
-                      <FormRow columns={3}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            School Name <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={edu.schoolName}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                schoolName: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter school/university name"
-                          />
-                          {errors.schoolName && (
-                            <p className="text-xs text-red-500">
-                              {errors.schoolName}
-                            </p>
-                          )}
-                        </div>
+                        <FormRow columns={2}>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              School Name{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              value={edu.schoolName}
+                              onChange={(e) =>
+                                handleLocalChange(edu.id, {
+                                  schoolName: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300"
+                              placeholder="Enter school/university name"
+                            />
+                            {errors.schoolName && (
+                              <p className="text-xs text-red-500">
+                                {errors.schoolName}
+                              </p>
+                            )}
+                          </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Year Graduated{" "}
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={edu.yearGraduated}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                yearGraduated: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., 2020"
-                          />
-                          {yearsAgoText && (
-                            <div className="inline-block px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-medium">
-                              {yearsAgoText}
-                            </div>
-                          )}
-                          {errors.yearGraduated && (
-                            <p className="text-xs text-red-500">
-                              {errors.yearGraduated}
-                            </p>
-                          )}
-                        </div>
-                      </FormRow>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              Year Graduated{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              value={edu.yearGraduated}
+                              onChange={(e) =>
+                                handleLocalChange(edu.id, {
+                                  yearGraduated: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300"
+                              placeholder="e.g., 2020"
+                            />
+                            {yearsAgoText && (
+                              <div className="inline-block rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                                {yearsAgoText}
+                              </div>
+                            )}
+                            {errors.yearGraduated && (
+                              <p className="text-xs text-red-500">
+                                {errors.yearGraduated}
+                              </p>
+                            )}
+                          </div>
 
-                      <FormRow columns={1}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            School Address
-                          </Label>
-                          <Input
-                            value={edu.schoolAddress}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                schoolAddress: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter school address"
-                          />
-                        </div>
-                      </FormRow>
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <Label className="text-xs font-medium text-slate-700">
+                              School Address
+                            </Label>
+                            <Input
+                              value={edu.schoolAddress}
+                              onChange={(e) =>
+                                handleLocalChange(edu.id, {
+                                  schoolAddress: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300"
+                              placeholder="Enter school address"
+                            />
+                          </div>
+                        </FormRow>
+                      </div>
+
+                      <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-slate-50 to-blue-50 p-4 shadow-sm sm:p-5">
+                        <h3 className="mb-3 text-sm font-semibold text-slate-800">
+                          Academic Details
+                        </h3>
+
+                        <FormRow columns={2}>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              Degree Earned{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              value={edu.degreeEarned}
+                              onChange={(e) =>
+                                handleLocalChange(edu.id, {
+                                  degreeEarned: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300 bg-white"
+                              placeholder="e.g., Bachelor's, Master's"
+                            />
+                            {errors.degreeEarned && (
+                              <p className="text-xs text-red-500">
+                                {errors.degreeEarned}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              Major
+                            </Label>
+                            <Input
+                              value={edu.major}
+                              onChange={(e) =>
+                                handleLocalChange(edu.id, {
+                                  major: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300 bg-white"
+                              placeholder="e.g., Computer Science"
+                            />
+                          </div>
+                        </FormRow>
+                      </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                        Academic Details
-                      </h3>
-
-                      <FormRow columns={3}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Degree Earned{" "}
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={edu.degreeEarned}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                degreeEarned: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., Bachelor's, Master's"
-                          />
-                          {errors.degreeEarned && (
-                            <p className="text-xs text-red-500">
-                              {errors.degreeEarned}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Major
-                          </Label>
-                          <Input
-                            value={edu.major}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                major: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., Computer Science"
-                          />
-                        </div>
-                      </FormRow>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
+                    <div className="rounded-xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-blue-50 p-4 shadow-sm sm:p-5">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <Award className="h-5 w-5 text-cyan-600" />
                         Awards & Additional Information

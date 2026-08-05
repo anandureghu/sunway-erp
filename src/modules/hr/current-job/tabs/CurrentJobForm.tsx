@@ -728,217 +728,320 @@ export default function CurrentJobForm() {
         </div>
       </div>
 
-      {/* ── Department & Division ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-        <SectionHeading
-          icon={<Building2 className="h-3.5 w-3.5" />}
-          label="Department & Division"
-          accent="from-emerald-500 to-teal-600"
-        />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Field label="Department" required error={errors.departmentCode}>
-            {loadingDepartments ? (
-              <Input
-                className={fieldCls}
-                disabled
-                placeholder="Loading departments…"
-              />
-            ) : (
+      {/* ── Department & Division | Employment Classification ── */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <SectionHeading
+            icon={<Building2 className="h-3.5 w-3.5" />}
+            label="Department & Division"
+            accent="from-emerald-500 to-teal-600"
+          />
+          <div className="grid grid-cols-1 gap-3">
+            <Field label="Department" required error={errors.departmentCode}>
+              {loadingDepartments ? (
+                <Input
+                  className={fieldCls}
+                  disabled
+                  placeholder="Loading departments…"
+                />
+              ) : (
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Select
+                    value={formData.departmentCode}
+                    onValueChange={handleDepartmentChange}
+                  >
+                    <SelectTrigger
+                      className={cn(fieldCls, "pl-9")}
+                      disabled={!editing}
+                    >
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.departmentCode}>
+                          {dept.departmentCode} — {dept.departmentName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </Field>
+
+            <Field label="Department Name">
               <div className="relative">
-                <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className={cn(fieldCls, "pl-9")}
+                  disabled
+                  value={formData.departmentName}
+                  placeholder="Auto-filled from selection"
+                />
+              </div>
+            </Field>
+
+            <Field label="Division">
+              {loadingDivisions ? (
+                <Input
+                  className={fieldCls}
+                  disabled
+                  placeholder="Loading divisions…"
+                />
+              ) : (
+                <div className="relative">
+                  <Network className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Select
+                    value={
+                      formData.divisionId != null
+                        ? String(formData.divisionId)
+                        : "none"
+                    }
+                    onValueChange={handleDivisionChange}
+                  >
+                    <SelectTrigger
+                      className={cn(fieldCls, "pl-9")}
+                      disabled={!editing || !formData.departmentCode}
+                    >
+                      <SelectValue
+                        placeholder={
+                          formData.departmentCode
+                            ? "Select division (optional)"
+                            : "Pick a department first"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— No division —</SelectItem>
+                      {departmentDivisions.map((div) => (
+                        <SelectItem key={div.id} value={String(div.id)}>
+                          {div.code} — {div.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </Field>
+          </div>
+          {formData.departmentCode &&
+            !loadingDivisions &&
+            departmentDivisions.length === 0 && (
+              <p className="mt-3 flex items-center gap-1 text-[11px] text-amber-600">
+                <Network className="h-3 w-3" /> No divisions under this
+                department yet. Add one in Division Master.
+              </p>
+            )}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <SectionHeading
+            icon={<ShieldCheck className="h-3.5 w-3.5" />}
+            label="Employment Classification"
+            accent="from-indigo-500 to-purple-600"
+          />
+          <div className="grid grid-cols-1 gap-3">
+            <Field label="Employment Category">
+              <Select
+                value={formData.employmentCategory || ""}
+                onValueChange={(v) =>
+                  updateField("employmentCategory")(v as EmploymentCategory)
+                }
+              >
+                <SelectTrigger className={fieldCls} disabled={!editing}>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYMENT_CATEGORY_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field label="Employment Type">
+              <Select
+                value={formData.employmentType || ""}
+                onValueChange={(v) =>
+                  updateField("employmentType")(v as EmploymentType)
+                }
+              >
+                <SelectTrigger className={fieldCls} disabled={!editing}>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYMENT_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field
+              label="Reporting Manager"
+              error={errors.reportingManagerId}
+            >
+              <div className="relative">
+                <Users className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Select
-                  value={formData.departmentCode}
-                  onValueChange={handleDepartmentChange}
+                  value={
+                    formData.reportingManagerId != null
+                      ? String(formData.reportingManagerId)
+                      : "none"
+                  }
+                  onValueChange={(v) =>
+                    updateField("reportingManagerId")(
+                      v === "none" ? null : Number(v),
+                    )
+                  }
                 >
                   <SelectTrigger
                     className={cn(fieldCls, "pl-9")}
                     disabled={!editing}
                   >
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue placeholder="Select reporting manager">
+                      {managerLabel || (
+                        <span className="text-muted-foreground">
+                          Select reporting manager
+                        </span>
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.departmentCode}>
-                        {dept.departmentCode} — {dept.departmentName}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="none">
+                      — No reporting manager —
+                    </SelectItem>
+                    {managerCandidates
+                      .filter((e) => e.id !== employeeId)
+                      .map((m) => {
+                        const name =
+                          [m.firstName, m.lastName].filter(Boolean).join(" ") ||
+                          m.fullName ||
+                          `Employee #${m.id}`;
+                        return (
+                          <SelectItem key={m.id} value={String(m.id)}>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-slate-800">
+                                {name}
+                              </span>
+                              {m.employeeNo && (
+                                <span className="text-[11px] text-slate-400">
+                                  #{m.employeeNo}
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-          </Field>
-
-          <Field label="Department Name">
-            <div className="relative">
-              <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className={cn(fieldCls, "pl-9")}
-                disabled
-                value={formData.departmentName}
-                placeholder="Auto-filled from selection"
-              />
-            </div>
-          </Field>
-
-          <Field label="Division">
-            {loadingDivisions ? (
-              <Input
-                className={fieldCls}
-                disabled
-                placeholder="Loading divisions…"
-              />
-            ) : (
-              <div className="relative">
-                <Network className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Select
-                  value={
-                    formData.divisionId != null
-                      ? String(formData.divisionId)
-                      : "none"
-                  }
-                  onValueChange={handleDivisionChange}
-                >
-                  <SelectTrigger
-                    className={cn(fieldCls, "pl-9")}
-                    disabled={!editing || !formData.departmentCode}
-                  >
-                    <SelectValue
-                      placeholder={
-                        formData.departmentCode
-                          ? "Select division (optional)"
-                          : "Pick a department first"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— No division —</SelectItem>
-                    {departmentDivisions.map((div) => (
-                      <SelectItem key={div.id} value={String(div.id)}>
-                        {div.code} — {div.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </Field>
+            </Field>
+          </div>
         </div>
-        {formData.departmentCode &&
-          !loadingDivisions &&
-          departmentDivisions.length === 0 && (
-          <p className="text-[11px] text-amber-600 mt-3 flex items-center gap-1">
-            <Network className="h-3 w-3" /> No divisions under this department
-            yet. Add one in Division Master.
-          </p>
-        )}
-      </div>
 
-      {/* ── Employment Classification ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-        <SectionHeading
-          icon={<ShieldCheck className="h-3.5 w-3.5" />}
-          label="Employment Classification"
-          accent="from-indigo-500 to-purple-600"
-        />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Field label="Employment Category">
-            <Select
-              value={formData.employmentCategory || ""}
-              onValueChange={(v) =>
-                updateField("employmentCategory")(v as EmploymentCategory)
-              }
-            >
-              <SelectTrigger className={fieldCls} disabled={!editing}>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {EMPLOYMENT_CATEGORY_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <Field label="Employment Type">
-            <Select
-              value={formData.employmentType || ""}
-              onValueChange={(v) =>
-                updateField("employmentType")(v as EmploymentType)
-              }
-            >
-              <SelectTrigger className={fieldCls} disabled={!editing}>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                {EMPLOYMENT_TYPE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <Field
-            label="Reporting Manager"
-            error={errors.reportingManagerId}
-          >
-            <div className="relative">
-              <Users className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-              <Select
-                value={
-                  formData.reportingManagerId != null
-                    ? String(formData.reportingManagerId)
-                    : "none"
-                }
-                onValueChange={(v) =>
-                  updateField("reportingManagerId")(
-                    v === "none" ? null : Number(v),
-                  )
-                }
-              >
-                <SelectTrigger
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <SectionHeading
+            icon={<Calendar className="h-3.5 w-3.5" />}
+            label="Employment Dates"
+            accent="from-amber-500 to-orange-500"
+          />
+          <div className="grid grid-cols-1 gap-3">
+            <Field label="Start Date" required error={errors.startDate}>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="date"
                   className={cn(fieldCls, "pl-9")}
                   disabled={!editing}
-                >
-                  <SelectValue placeholder="Select reporting manager">
-                    {managerLabel || (
-                      <span className="text-muted-foreground">
-                        Select reporting manager
-                      </span>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— No reporting manager —</SelectItem>
-                  {managerCandidates
-                    .filter((e) => e.id !== employeeId)
-                    .map((m) => {
-                      const name =
-                        [m.firstName, m.lastName].filter(Boolean).join(" ") ||
-                        m.fullName ||
-                        `Employee #${m.id}`;
-                      return (
-                        <SelectItem key={m.id} value={String(m.id)}>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-slate-800">
-                              {name}
-                            </span>
-                            {m.employeeNo && (
-                              <span className="text-[11px] text-slate-400">
-                                #{m.employeeNo}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                </SelectContent>
-              </Select>
-            </div>
-          </Field>
+                  value={formData.startDate}
+                  onChange={(e) => updateField("startDate")(e.target.value)}
+                />
+              </div>
+            </Field>
+
+            <Field label="Effective From" required error={errors.effectiveFrom}>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="date"
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                  value={formData.effectiveFrom}
+                  onChange={(e) => updateField("effectiveFrom")(e.target.value)}
+                />
+              </div>
+            </Field>
+
+            <Field label="Expected End Date" error={errors.expectedEndDate}>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="date"
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                  value={formData.expectedEndDate}
+                  onChange={(e) =>
+                    updateField("expectedEndDate")(e.target.value)
+                  }
+                />
+              </div>
+              {!errors.expectedEndDate && (
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Optional — leave blank for open-ended
+                </p>
+              )}
+            </Field>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <SectionHeading
+            icon={<Globe className="h-3.5 w-3.5" />}
+            label="Work Location"
+            accent="from-blue-500 to-indigo-600"
+          />
+          <div className="grid grid-cols-1 gap-3">
+            <Field label="Work Location" required error={errors.workLocation}>
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                  value={formData.workLocation}
+                  onChange={(e) => updateField("workLocation")(e.target.value)}
+                  placeholder="Office / Remote / Hybrid"
+                />
+              </div>
+            </Field>
+
+            <Field label="Work City">
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                  value={formData.workCity}
+                  onChange={(e) => updateField("workCity")(e.target.value)}
+                  placeholder="e.g., Kuala Lumpur"
+                />
+              </div>
+            </Field>
+
+            <Field label="Work Country">
+              <CountrySelect
+                value={formData.workCountry}
+                onChange={updateField("workCountry")}
+                disabled={!editing}
+                placeholder="Select country..."
+                className={fieldCls}
+              />
+            </Field>
+          </div>
         </div>
       </div>
 
@@ -994,106 +1097,6 @@ export default function CurrentJobForm() {
           </p>
         </div>
       )}
-
-      {/* ── Employment Dates ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-        <SectionHeading
-          icon={<Calendar className="h-3.5 w-3.5" />}
-          label="Employment Dates"
-          accent="from-amber-500 to-orange-500"
-        />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Field label="Start Date" required error={errors.startDate}>
-            <div className="relative">
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.startDate}
-                onChange={(e) => updateField("startDate")(e.target.value)}
-              />
-            </div>
-          </Field>
-
-          <Field label="Effective From" required error={errors.effectiveFrom}>
-            <div className="relative">
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.effectiveFrom}
-                onChange={(e) => updateField("effectiveFrom")(e.target.value)}
-              />
-            </div>
-          </Field>
-
-          <Field label="Expected End Date" error={errors.expectedEndDate}>
-            <div className="relative">
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.expectedEndDate}
-                onChange={(e) => updateField("expectedEndDate")(e.target.value)}
-              />
-            </div>
-            {!errors.expectedEndDate && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Optional — leave blank for open-ended contracts
-              </p>
-            )}
-          </Field>
-        </div>
-      </div>
-
-      {/* ── Work Location ── */}
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-        <SectionHeading
-          icon={<Globe className="h-3.5 w-3.5" />}
-          label="Work Location"
-          accent="from-blue-500 to-indigo-600"
-        />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Field label="Work Location" required error={errors.workLocation}>
-            <div className="relative">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.workLocation}
-                onChange={(e) => updateField("workLocation")(e.target.value)}
-                placeholder="Office / Remote / Hybrid"
-              />
-            </div>
-          </Field>
-
-          <Field label="Work City">
-            <div className="relative">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.workCity}
-                onChange={(e) => updateField("workCity")(e.target.value)}
-                placeholder="e.g., Kuala Lumpur"
-              />
-            </div>
-          </Field>
-
-          <Field label="Work Country">
-            <CountrySelect
-              value={formData.workCountry}
-              onChange={updateField("workCountry")}
-              disabled={!editing}
-              placeholder="Select country..."
-              className={fieldCls}
-            />
-          </Field>
-        </div>
-      </div>
     </div>
   );
 }
@@ -1164,17 +1167,19 @@ function Field({
   children,
   required,
   error,
+  className,
 }: {
   label: string;
   required?: boolean;
   children: React.ReactNode;
   error?: string;
+  className?: string;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className={cn("min-w-0 space-y-1.5", className)}>
       <Label className="text-xs font-semibold text-slate-700">
         {label}
-        {required && <span className="text-rose-500 ml-0.5">*</span>}
+        {required && <span className="ml-0.5 text-rose-500">*</span>}
       </Label>
       {children}
       {error && (

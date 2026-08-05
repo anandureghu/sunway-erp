@@ -319,107 +319,106 @@ export default function PreviousExperiencesForm() {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
-                        Employment Details
-                      </h3>
+                    <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                        <h3 className="mb-3 border-b border-slate-200 pb-2 text-sm font-semibold text-slate-800">
+                          Employment Details
+                        </h3>
 
-                      <FormRow columns={3}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Company Name <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={exp.companyName}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                companyName: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter company name"
-                          />
-                          {errors.companyName && (
-                            <p className="text-xs text-red-500">
-                              {errors.companyName}
-                            </p>
-                          )}
-                        </div>
+                        <FormRow columns={2}>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              Company Name{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              value={exp.companyName}
+                              onChange={(e) =>
+                                handleLocalChange(exp.id, {
+                                  companyName: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300"
+                              placeholder="Enter company name"
+                            />
+                            {errors.companyName && (
+                              <p className="text-xs text-red-500">
+                                {errors.companyName}
+                              </p>
+                            )}
+                          </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Job Title <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={exp.jobTitle}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                jobTitle: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., Senior Software Engineer"
-                          />
-                          {errors.jobTitle && (
-                            <p className="text-xs text-red-500">
-                              {errors.jobTitle}
-                            </p>
-                          )}
-                        </div>
-                      </FormRow>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              Job Title <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              value={exp.jobTitle}
+                              onChange={(e) =>
+                                handleLocalChange(exp.id, {
+                                  jobTitle: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300"
+                              placeholder="e.g., Senior Software Engineer"
+                            />
+                            {errors.jobTitle && (
+                              <p className="text-xs text-red-500">
+                                {errors.jobTitle}
+                              </p>
+                            )}
+                          </div>
 
-                      <FormRow columns={3}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Last Date Worked{" "}
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            type="date"
-                            value={exp.lastDateWorked}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                lastDateWorked: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                          />
-                          {errors.lastDateWorked && (
-                            <p className="text-xs text-red-500">
-                              {errors.lastDateWorked}
-                            </p>
-                          )}
-                        </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              Last Date Worked{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              type="date"
+                              value={exp.lastDateWorked}
+                              onChange={(e) =>
+                                handleLocalChange(exp.id, {
+                                  lastDateWorked: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300"
+                            />
+                            {errors.lastDateWorked && (
+                              <p className="text-xs text-red-500">
+                                {errors.lastDateWorked}
+                              </p>
+                            )}
+                          </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Number of Years
-                          </Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            value={exp.numberOfYears}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                numberOfYears: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Total years at this company"
-                          />
-                        </div>
-                      </FormRow>
-                    </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-700">
+                              Number of Years
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              value={exp.numberOfYears}
+                              onChange={(e) =>
+                                handleLocalChange(exp.id, {
+                                  numberOfYears: e.target.value,
+                                })
+                              }
+                              className="h-9 rounded-lg border-slate-300"
+                              placeholder="Total years at this company"
+                            />
+                          </div>
+                        </FormRow>
+                      </div>
 
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 shadow-sm border border-blue-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                        Company Location
-                      </h3>
+                      <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-slate-50 to-blue-50 p-4 shadow-sm sm:p-5">
+                        <h3 className="mb-3 text-sm font-semibold text-slate-800">
+                          Company Location
+                        </h3>
 
-                      <FormRow columns={1}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-slate-700">
                             Company Address
                           </Label>
                           <Input
@@ -429,14 +428,14 @@ export default function PreviousExperiencesForm() {
                                 companyAddress: e.target.value,
                               })
                             }
-                            className="rounded-lg border-slate-300"
+                            className="h-9 rounded-lg border-slate-300 bg-white"
                             placeholder="Enter company address"
                           />
                         </div>
-                      </FormRow>
+                      </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 shadow-sm border border-cyan-100">
+                    <div className="rounded-xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-blue-50 p-4 shadow-sm sm:p-5">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                         <FileText className="h-5 w-5 text-cyan-600" />
                         Notes / Remarks

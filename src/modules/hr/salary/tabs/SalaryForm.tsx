@@ -204,12 +204,7 @@ const BenefitRow = ({
       )}
     </div>
 
-    <div
-      className={cn(
-        "grid gap-3",
-        typeValue === "ALLOWANCE" ? "grid-cols-2" : "grid-cols-1",
-      )}
-    >
+    <div className="grid grid-cols-1 gap-3">
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Benefit Type</Label>
         <SelectField
@@ -779,79 +774,147 @@ export default function SalaryForm() {
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
         {/* ── LEFT: form ── */}
         <div className="space-y-4">
-          {/* Basic Salary card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<DollarSign className="h-4 w-4" />}
-              label="Basic Salary"
-              accent="from-violet-600 to-blue-600"
-            />
-            <FormRow columns={1}>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700">
-                  Monthly Basic Salary <span className="text-rose-500">*</span>
-                </Label>
-                <div className="flex h-12 overflow-hidden rounded-xl border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
-                  <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-3 text-sm font-bold text-violet-700">
-                    {currencySymbol}
-                  </span>
-                  <Input
-                    type="number"
-                    value={formData.basicSalary || ""}
-                    onChange={(e) => updateField("basicSalary")(e.target.value)}
-                    placeholder="0.00"
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-stretch">
+            {/* Basic Salary card */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 min-w-0 w-full">
+              <SectionHeading
+                icon={<DollarSign className="h-4 w-4" />}
+                label="Basic Salary"
+                accent="from-violet-600 to-blue-600"
+              />
+              <FormRow columns={1}>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    Monthly Basic Salary <span className="text-rose-500">*</span>
+                  </Label>
+                  <div className="flex h-12 overflow-hidden rounded-xl border border-violet-200 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-300/20">
+                    <span className="flex shrink-0 items-center border-r border-violet-200 bg-violet-50 px-3 text-sm font-bold text-violet-700">
+                      {currencySymbol}
+                    </span>
+                    <Input
+                      type="number"
+                      value={formData.basicSalary || ""}
+                      onChange={(e) => updateField("basicSalary")(e.target.value)}
+                      placeholder="0.00"
+                      disabled={!editing}
+                      className="h-full flex-1 rounded-none border-0 pl-3 text-lg font-bold shadow-none focus-visible:ring-0 tabular-nums"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  {errors.basicSalary && (
+                    <p className="text-xs text-rose-500 flex items-center gap-1">
+                      <span>⚠</span> {errors.basicSalary}
+                    </p>
+                  )}
+                  {!errors.basicSalary && exceedsMaxSalary && (
+                    <p className="text-xs text-rose-500 flex items-center gap-1">
+                      <span>⚠</span> Basic salary exceeds the maximum of{" "}
+                      {formatMoney(String(maxSalary), currencySymbol)}
+                      {salaryBand.grade
+                        ? ` for salary grade ${salaryBand.grade}`
+                        : ""}
+                      .
+                    </p>
+                  )}
+                  {!errors.basicSalary && !exceedsMaxSalary && belowMinSalary && (
+                    <p className="text-xs text-rose-500 flex items-center gap-1">
+                      <span>⚠</span> Basic salary is below the minimum of{" "}
+                      {formatMoney(String(minSalary), currencySymbol)}
+                      {salaryBand.grade
+                        ? ` for salary grade ${salaryBand.grade}`
+                        : ""}
+                      .
+                    </p>
+                  )}
+                  {!exceedsMaxSalary && maxSalaryUnavailable && (
+                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                      <span>ℹ</span> No maximum salary is set for this job grade —
+                      set the grade's range in Current Job to enforce a cap.
+                    </p>
+                  )}
+                  {!exceedsMaxSalary &&
+                    !belowMinSalary &&
+                    !maxSalaryUnavailable &&
+                    maxSalary != null && (
+                    <p className="text-[11px] text-slate-400">
+                      {salaryBand.grade ? `Grade ${salaryBand.grade} — ` : ""}
+                      maximum {formatMoney(String(maxSalary), currencySymbol)}
+                      {salaryBand.min != null && salaryBand.min > 0
+                        ? `, minimum ${formatMoney(String(salaryBand.min), currencySymbol)}`
+                        : ""}
+                      .
+                    </p>
+                  )}
+                </div>
+              </FormRow>
+            </div>
+
+            {/* Status & Dates card */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 min-w-0 w-full">
+              <SectionHeading
+                icon={<CheckCircle className="h-4 w-4" />}
+                label="Status & Effective Dates"
+                accent="from-emerald-500 to-teal-600"
+              />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {/* Status */}
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    Compensation Status <span className="text-rose-500">*</span>
+                  </Label>
+                  <SelectField
+                    options={COMPENSATION_STATUS_OPTIONS}
+                    value={formData.compensationStatus}
+                    onChange={(e) =>
+                      updateField("compensationStatus")(e.target.value)
+                    }
                     disabled={!editing}
-                    className="h-full flex-1 rounded-none border-0 pl-3 text-lg font-bold shadow-none focus-visible:ring-0 tabular-nums"
-                    min="0"
-                    step="0.01"
                   />
                 </div>
-                {errors.basicSalary && (
-                  <p className="text-xs text-rose-500 flex items-center gap-1">
-                    <span>⚠</span> {errors.basicSalary}
-                  </p>
-                )}
-                {!errors.basicSalary && exceedsMaxSalary && (
-                  <p className="text-xs text-rose-500 flex items-center gap-1">
-                    <span>⚠</span> Basic salary exceeds the maximum of{" "}
-                    {formatMoney(String(maxSalary), currencySymbol)}
-                    {salaryBand.grade
-                      ? ` for salary grade ${salaryBand.grade}`
-                      : ""}
-                    .
-                  </p>
-                )}
-                {!errors.basicSalary && !exceedsMaxSalary && belowMinSalary && (
-                  <p className="text-xs text-rose-500 flex items-center gap-1">
-                    <span>⚠</span> Basic salary is below the minimum of{" "}
-                    {formatMoney(String(minSalary), currencySymbol)}
-                    {salaryBand.grade
-                      ? ` for salary grade ${salaryBand.grade}`
-                      : ""}
-                    .
-                  </p>
-                )}
-                {!exceedsMaxSalary && maxSalaryUnavailable && (
-                  <p className="text-xs text-amber-600 flex items-center gap-1">
-                    <span>ℹ</span> No maximum salary is set for this job grade —
-                    set the grade's range in Current Job to enforce a cap.
-                  </p>
-                )}
-                {!exceedsMaxSalary &&
-                  !belowMinSalary &&
-                  !maxSalaryUnavailable &&
-                  maxSalary != null && (
-                  <p className="text-[11px] text-slate-400">
-                    {salaryBand.grade ? `Grade ${salaryBand.grade} — ` : ""}
-                    maximum {formatMoney(String(maxSalary), currencySymbol)}
-                    {salaryBand.min != null && salaryBand.min > 0
-                      ? `, minimum ${formatMoney(String(salaryBand.min), currencySymbol)}`
-                      : ""}
-                    .
-                  </p>
-                )}
+
+                {/* Effective From */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-emerald-600" />
+                    Effective From <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    type="date"
+                    value={formData.effectiveFrom}
+                    onChange={(e) => updateField("effectiveFrom")(e.target.value)}
+                    disabled={!editing}
+                    className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
+                  />
+                  {errors.effectiveFrom && (
+                    <p className="text-xs text-rose-500">
+                      {errors.effectiveFrom}
+                    </p>
+                  )}
+                </div>
+
+                {/* Effective To */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                    Effective To
+                    <span className="text-[10px] font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Input
+                    type="date"
+                    value={formData.effectiveTo}
+                    onChange={(e) => updateField("effectiveTo")(e.target.value)}
+                    disabled={!editing}
+                    className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
+                  />
+                  {errors.effectiveTo && (
+                    <p className="text-xs text-rose-500">{errors.effectiveTo}</p>
+                  )}
+                </div>
               </div>
-            </FormRow>
+            </div>
           </div>
 
           {/* Benefits card */}
@@ -861,7 +924,7 @@ export default function SalaryForm() {
               label="Benefits & Allowances"
               accent="from-emerald-500 to-teal-600"
             />
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <BenefitRow
                 icon={<Car className="h-4 w-4" />}
                 label="Transportation"
@@ -886,25 +949,27 @@ export default function SalaryForm() {
                 disabled={!editing}
                 amountError={errors.travelAllowance}
               />
-              <BenefitRow
-                icon={<Home className="h-4 w-4" />}
-                label="Housing"
-                color="bg-amber-500"
-                typeValue={formData.housingType}
-                onTypeChange={updateField("housingType")}
-                amountValue={formData.housingAllowance}
-                onAmountChange={updateField("housingAllowance")}
-                currencySymbol={currencySymbol}
-                disabled={!editing}
-                amountError={errors.housingAllowance}
-              />
-              {formData.housingType === "ALLOWANCE" &&
-                formData.housingFollowsCompanyDefault && (
-                  <p className="-mt-1 px-1 text-[11px] text-slate-400">
-                    Tracks company housing default in HR Policies until you edit
-                    this amount once.
-                  </p>
-                )}
+              <div>
+                <BenefitRow
+                  icon={<Home className="h-4 w-4" />}
+                  label="Housing"
+                  color="bg-amber-500"
+                  typeValue={formData.housingType}
+                  onTypeChange={updateField("housingType")}
+                  amountValue={formData.housingAllowance}
+                  onAmountChange={updateField("housingAllowance")}
+                  currencySymbol={currencySymbol}
+                  disabled={!editing}
+                  amountError={errors.housingAllowance}
+                />
+                {formData.housingType === "ALLOWANCE" &&
+                  formData.housingFollowsCompanyDefault && (
+                    <p className="mt-1.5 px-1 text-[11px] text-slate-400">
+                      Tracks company housing default in HR Policies until you
+                      edit this amount once.
+                    </p>
+                  )}
+              </div>
 
               {/* Food allowance (company statutory default when blank) */}
               <div className="rounded-xl border border-slate-100 bg-white p-4">
@@ -992,13 +1057,14 @@ export default function SalaryForm() {
             </div>
           </div>
 
-          {/* End of Service Compensation card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<Award className="h-4 w-4" />}
-              label="End of Service Compensation"
-              accent="from-amber-500 to-orange-600"
-            />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
+            {/* End of Service Compensation card */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <SectionHeading
+                icon={<Award className="h-4 w-4" />}
+                label="End of Service Compensation"
+                accent="from-amber-500 to-orange-600"
+              />
             {loadingEos ? (
               <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Calculating accrued
@@ -1038,7 +1104,7 @@ export default function SalaryForm() {
                 </div>
 
                 {/* Breakdown grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {[
                     {
                       label: "Years of Service",
@@ -1087,120 +1153,55 @@ export default function SalaryForm() {
             )}
           </div>
 
-          {/* Status & Dates card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<CheckCircle className="h-4 w-4" />}
-              label="Status & Effective Dates"
-              accent="from-emerald-500 to-teal-600"
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {/* Status */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700">
-                  Compensation Status <span className="text-rose-500">*</span>
-                </Label>
-                <SelectField
-                  options={COMPENSATION_STATUS_OPTIONS}
-                  value={formData.compensationStatus}
-                  onChange={(e) =>
-                    updateField("compensationStatus")(e.target.value)
-                  }
-                  disabled={!editing}
-                />
-              </div>
-
-              {/* Effective From */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-emerald-600" />
-                  Effective From <span className="text-rose-500">*</span>
-                </Label>
-                <Input
-                  type="date"
-                  value={formData.effectiveFrom}
-                  onChange={(e) => updateField("effectiveFrom")(e.target.value)}
-                  disabled={!editing}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
-                />
-                {errors.effectiveFrom && (
-                  <p className="text-xs text-rose-500">
-                    {errors.effectiveFrom}
+            {/* Salary Month & Total Days Worked card */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <SectionHeading
+                icon={<CalendarDays className="h-4 w-4" />}
+                label="Salary Month"
+                accent="from-sky-500 to-indigo-600"
+              />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <CalendarDays className="h-3.5 w-3.5 text-sky-600" />
+                    Salary Month
+                  </Label>
+                  <Input
+                    type="month"
+                    value={salaryMonth}
+                    onChange={(e) => setSalaryMonth(e.target.value)}
+                    className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Defaults to the current month. Drives the days-worked figure below.
                   </p>
-                )}
-              </div>
-
-              {/* Effective To */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-slate-500" />
-                  Effective To
-                  <span className="text-[10px] font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </Label>
-                <Input
-                  type="date"
-                  value={formData.effectiveTo}
-                  onChange={(e) => updateField("effectiveTo")(e.target.value)}
-                  disabled={!editing}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
-                />
-                {errors.effectiveTo && (
-                  <p className="text-xs text-rose-500">{errors.effectiveTo}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Salary Month & Total Days Worked card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<CalendarDays className="h-4 w-4" />}
-              label="Salary Month"
-              accent="from-sky-500 to-indigo-600"
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <CalendarDays className="h-3.5 w-3.5 text-sky-600" />
-                  Salary Month
-                </Label>
-                <Input
-                  type="month"
-                  value={salaryMonth}
-                  onChange={(e) => setSalaryMonth(e.target.value)}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Defaults to the current month. Drives the days-worked figure below.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                  Total Days Worked
-                </Label>
-                <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3">
-                  {loadingDaysWorked ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
-                      <span className="text-xs text-slate-500">Loading…</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-sm font-bold tabular-nums text-slate-800">
-                        {totalDaysWorked ?? 0}
-                      </span>
-                      <span className="text-xs text-muted-foreground">days</span>
-                    </>
-                  )}
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Pulled from the timesheet. Days below the company's standard
-                  working hours are not counted.
-                </p>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                    Total Days Worked
+                  </Label>
+                  <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3">
+                    {loadingDaysWorked ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                        <span className="text-xs text-slate-500">Loading…</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm font-bold tabular-nums text-slate-800">
+                          {totalDaysWorked ?? 0}
+                        </span>
+                        <span className="text-xs text-muted-foreground">days</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Pulled from the timesheet. Days below the company's standard
+                    working hours are not counted.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

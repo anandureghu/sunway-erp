@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { cn } from "@/lib/utils";
 
 /* ================= TYPES ================= */
 
@@ -424,125 +425,127 @@ export default function PassportForm(): ReactElement {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left Column - Primary Information */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Passport Identity Card */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-500 rounded-lg p-2">
-                  <FileText className="h-5 w-5 text-white" />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* Passport Identity Card */}
+            <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+              <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-500 rounded-lg p-2">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Passport Identity
+                    </h2>
+                    <p className="text-xs text-slate-600">
+                      Official document information
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Passport Identity
-                  </h2>
-                  <p className="text-xs text-slate-600">
-                    Official document information
-                  </p>
+              </div>
+
+              <div className="flex flex-1 flex-col space-y-4 p-5">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    label="Passport Number"
+                    required
+                    icon={<FileText className="h-4 w-4" />}
+                  >
+                    <Input
+                      disabled={!editing}
+                      value={draft.passportNo}
+                      onChange={(e) =>
+                        patch(
+                          "passportNo",
+                          e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                        )
+                      }
+                      placeholder="AB1234567"
+                      className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    />
+                    <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Enter as shown on passport document
+                    </p>
+                  </FormField>
+
+                  <FormField
+                    label="Full Name on Passport"
+                    required
+                    icon={<User className="h-4 w-4" />}
+                  >
+                    <Input
+                      disabled
+                      readOnly
+                      value={profileName || draft.nameAsPassport}
+                      placeholder="FULL LEGAL NAME"
+                      className="uppercase font-semibold disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    />
+                    <p className="text-xs text-slate-500 mt-1.5">
+                      Taken from the employee profile
+                    </p>
+                  </FormField>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  label="Passport Number"
-                  required
-                  icon={<FileText className="h-4 w-4" />}
-                >
-                  <Input
-                    disabled={!editing}
-                    value={draft.passportNo}
-                    onChange={(e) =>
-                      patch(
-                        "passportNo",
-                        e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-                      )
-                    }
-                    placeholder="AB1234567"
-                    className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-12"
-                  />
-                  <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
-                    <Shield className="h-3 w-3" />
-                    Enter as shown on passport document
-                  </p>
-                </FormField>
-
-                <FormField
-                  label="Full Name on Passport"
-                  required
-                  icon={<User className="h-4 w-4" />}
-                >
-                  <Input
-                    disabled
-                    readOnly
-                    value={profileName || draft.nameAsPassport}
-                    placeholder="FULL LEGAL NAME"
-                    className="uppercase font-semibold disabled:bg-slate-50 disabled:text-slate-900 h-12"
-                  />
-                  <p className="text-xs text-slate-500 mt-1.5">
-                    Taken from the employee profile
-                  </p>
-                </FormField>
-              </div>
-            </div>
-          </div>
-
-          {/* Country Information Card */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
-              <div className="flex items-center gap-3">
-                <div className="bg-emerald-500 rounded-lg p-2">
-                  <Globe className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Country Information
-                  </h2>
-                  <p className="text-xs text-emerald-700">
-                    Nationality and issuing authority
-                  </p>
+            {/* Country Information Card */}
+            <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
+                <div className="flex items-center gap-3">
+                  <div className="bg-emerald-500 rounded-lg p-2">
+                    <Globe className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Country Information
+                    </h2>
+                    <p className="text-xs text-emerald-700">
+                      Nationality and issuing authority
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  label="Issuing Country"
-                  required
-                  icon={<MapPin className="h-4 w-4" />}
-                >
-                  <CountrySelect
-                    disabled={!editing}
-                    value={draft.issueCountry}
-                    onChange={(v) => {
-                      patch("issueCountry", v);
-                      if (!draft.nationality) patch("nationality", v);
-                    }}
-                    placeholder="Select country..."
-                  />
-                  <p className="text-xs text-slate-500 mt-1.5">
-                    Country that issued this passport
-                  </p>
-                </FormField>
+              <div className="flex flex-1 flex-col space-y-4 p-5">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    label="Issuing Country"
+                    required
+                    icon={<MapPin className="h-4 w-4" />}
+                  >
+                    <CountrySelect
+                      disabled={!editing}
+                      value={draft.issueCountry}
+                      onChange={(v) => {
+                        patch("issueCountry", v);
+                        if (!draft.nationality) patch("nationality", v);
+                      }}
+                      placeholder="Select country..."
+                    />
+                    <p className="text-xs text-slate-500 mt-1.5">
+                      Country that issued this passport
+                    </p>
+                  </FormField>
 
-                <FormField
-                  label="Nationality"
-                  required
-                  icon={<Globe className="h-4 w-4" />}
-                >
-                  <CountrySelect
-                    disabled={!editing || !!profileNationality}
-                    value={profileNationality || draft.nationality}
-                    onChange={(v) => patch("nationality", v)}
-                    placeholder="Select country..."
-                  />
-                  <p className="text-xs text-slate-500 mt-1.5">
-                    {profileNationality
-                      ? "Taken from the employee profile"
-                      : "Citizenship status"}
-                  </p>
-                </FormField>
+                  <FormField
+                    label="Nationality"
+                    required
+                    icon={<Globe className="h-4 w-4" />}
+                  >
+                    <CountrySelect
+                      disabled={!editing || !!profileNationality}
+                      value={profileNationality || draft.nationality}
+                      onChange={(v) => patch("nationality", v)}
+                      placeholder="Select country..."
+                    />
+                    <p className="text-xs text-slate-500 mt-1.5">
+                      {profileNationality
+                        ? "Taken from the employee profile"
+                        : "Citizenship status"}
+                    </p>
+                  </FormField>
+                </div>
               </div>
             </div>
           </div>
@@ -565,19 +568,20 @@ export default function PassportForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4 p-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
                   label="Issue Date"
                   required
                   icon={<Calendar className="h-4 w-4" />}
+                  className="min-w-0"
                 >
                   <Input
                     type="date"
                     disabled={!editing}
                     value={draft.issueDate}
                     onChange={(e) => patch("issueDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="h-12 w-full disabled:bg-slate-50 disabled:text-slate-900"
                   />
                 </FormField>
 
@@ -585,33 +589,34 @@ export default function PassportForm(): ReactElement {
                   label="Expiration Date"
                   required
                   icon={<Calendar className="h-4 w-4" />}
+                  className="min-w-0"
                 >
                   <Input
                     type="date"
                     disabled={!editing}
                     value={draft.expireDate}
                     onChange={(e) => patch("expireDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="h-12 w-full disabled:bg-slate-50 disabled:text-slate-900"
                   />
                 </FormField>
               </div>
 
-              {validityPeriod && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-100">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-blue-500 rounded-lg p-2.5">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {validityPeriod ? (
+                  <div className="flex h-full items-start gap-4 rounded-xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
+                    <div className="shrink-0 rounded-lg bg-blue-500 p-2.5">
                       <Clock className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-900 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="mb-3 font-bold text-slate-900">
                         Total Validity Period
                       </h4>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      <div className="grid grid-cols-3 gap-3">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.years}
                           </div>
-                          <div className="text-xs text-slate-600 uppercase tracking-wide">
+                          <div className="text-xs uppercase tracking-wide text-slate-600">
                             Years
                           </div>
                         </div>
@@ -619,7 +624,7 @@ export default function PassportForm(): ReactElement {
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.months}
                           </div>
-                          <div className="text-xs text-slate-600 uppercase tracking-wide">
+                          <div className="text-xs uppercase tracking-wide text-slate-600">
                             Months
                           </div>
                         </div>
@@ -627,30 +632,33 @@ export default function PassportForm(): ReactElement {
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.totalDays}
                           </div>
-                          <div className="text-xs text-slate-600 uppercase tracking-wide">
+                          <div className="text-xs uppercase tracking-wide text-slate-600">
                             Days
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex h-full items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                    Enter issue and expiration dates to see the total validity.
+                  </div>
+                )}
 
-              {/* Travel Advisory */}
-              <div className="flex items-center gap-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 p-4">
-                <div className="bg-amber-500 rounded-lg p-2 flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-amber-900 mb-1">
-                    Travel Advisory
-                  </h4>
-                  <p className="text-sm text-amber-800 leading-relaxed">
-                    Renew your passport well in advance of your travel dates.
-                    Many visa applications also require passport validity
-                    extending beyond your planned stay.
-                  </p>
+                <div className="flex h-full items-start gap-4 rounded-xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4">
+                  <div className="shrink-0 rounded-lg bg-amber-500 p-2">
+                    <AlertTriangle className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="mb-1 font-bold text-amber-900">
+                      Travel Advisory
+                    </h4>
+                    <p className="text-sm leading-relaxed text-amber-800">
+                      Renew your passport well in advance of your travel dates.
+                      Many visa applications also require passport validity
+                      extending beyond your planned stay.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -812,15 +820,17 @@ function FormField({
   children,
   required,
   icon,
+  className,
 }: {
   label: string;
   children: React.ReactNode;
   required?: boolean;
   icon?: React.ReactElement;
+  className?: string;
 }) {
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+    <div className={cn("min-w-0 space-y-2", className)}>
+      <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
         {icon && <span className="text-slate-400">{icon}</span>}
         {label}
         {required && <span className="text-red-500">*</span>}

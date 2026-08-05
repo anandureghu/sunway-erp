@@ -407,68 +407,69 @@ export default function BankForm() {
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5 items-start">
         {/* ── LEFT: form ── */}
         <div className="space-y-4">
-          {/* Bank Information */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<Building2 className="h-3.5 w-3.5" />}
-              label="Bank Information"
-              accent="from-violet-600 to-blue-600"
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <Field label="Bank Name" required error={errors.bankName}>
-                <div className="relative">
-                  <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
-                    disabled={!editing}
-                    value={draft.bankName}
-                    onChange={(e) => patch("bankName", e.target.value)}
-                    placeholder="e.g. CIMB Bank"
-                  />
-                </div>
-              </Field>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
+            {/* Bank Information */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <SectionHeading
+                icon={<Building2 className="h-3.5 w-3.5" />}
+                label="Bank Information"
+                accent="from-violet-600 to-blue-600"
+              />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Bank Name" required error={errors.bankName}>
+                  <div className="relative">
+                    <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
+                      disabled={!editing}
+                      value={draft.bankName}
+                      onChange={(e) => patch("bankName", e.target.value)}
+                      placeholder="e.g. CIMB Bank"
+                    />
+                  </div>
+                </Field>
 
-              <Field label="Bank short name" error={undefined}>
-                <div className="relative">
-                  <Landmark className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 uppercase"
-                    disabled={!editing}
-                    value={draft.bankShortName}
-                    onChange={(e) =>
-                      patch("bankShortName", e.target.value.toUpperCase())
-                    }
-                    placeholder="e.g. QIB, CBQ (required for bank payroll CSV)"
-                  />
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Used in the bank payroll file export.
-                </p>
-              </Field>
+                <Field label="Bank short name" error={undefined}>
+                  <div className="relative">
+                    <Landmark className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50 uppercase"
+                      disabled={!editing}
+                      value={draft.bankShortName}
+                      onChange={(e) =>
+                        patch("bankShortName", e.target.value.toUpperCase())
+                      }
+                      placeholder="e.g. QIB, CBQ (required for bank payroll CSV)"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Used in the bank payroll file export.
+                  </p>
+                </Field>
 
-              <Field label="Bank Branch" required error={errors.bankBranch}>
-                <div className="relative">
-                  <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
-                    disabled={!editing}
-                    value={draft.bankBranch}
-                    onChange={(e) => patch("bankBranch", e.target.value)}
-                    placeholder="e.g. Sunway Branch"
-                  />
-                </div>
-              </Field>
+                <Field label="Bank Branch" required error={errors.bankBranch}>
+                  <div className="relative">
+                    <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
+                      disabled={!editing}
+                      value={draft.bankBranch}
+                      onChange={(e) => patch("bankBranch", e.target.value)}
+                      placeholder="e.g. Sunway Branch"
+                    />
+                  </div>
+                </Field>
+              </div>
             </div>
-          </div>
 
-          {/* Account Details */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<CreditCard className="h-3.5 w-3.5" />}
-              label="Account Details"
-              accent="from-emerald-500 to-teal-600"
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {/* Account Details */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <SectionHeading
+                icon={<CreditCard className="h-3.5 w-3.5" />}
+                label="Account Details"
+                accent="from-emerald-500 to-teal-600"
+              />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Account Type" required error={errors.accountType}>
                 <div className="relative">
                   <CreditCard className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -517,71 +518,74 @@ export default function BankForm() {
               </Field>
             </div>
           </div>
-
-          {/* Location Details */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<MapPin className="h-3.5 w-3.5" />}
-              label="Bank Location"
-              accent="from-amber-500 to-orange-500"
-            />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <Field label="City">
-                <div className="relative">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
-                    disabled={!editing}
-                    value={draft.city}
-                    onChange={(e) => patch("city", e.target.value)}
-                    placeholder="Enter city"
-                  />
-                </div>
-              </Field>
-
-              <Field label="State">
-                <div className="relative">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
-                    disabled={!editing}
-                    value={draft.state}
-                    onChange={(e) => patch("state", e.target.value)}
-                    placeholder="Enter state"
-                  />
-                </div>
-              </Field>
-
-              <Field label="Country" required error={errors.country}>
-                <CountrySelect
-                  value={draft.country}
-                  onChange={(v) => patch("country", v)}
-                  disabled={!editing}
-                  placeholder="Select country..."
-                />
-              </Field>
-            </div>
           </div>
 
-          {/* Remarks */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
-            <SectionHeading
-              icon={<StickyNote className="h-3.5 w-3.5" />}
-              label="Remarks"
-              accent="from-slate-500 to-slate-700"
-            />
-            <Field label="Additional Notes / Instructions">
-              <div className="relative">
-                <FileText className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Textarea
-                  className="min-h-[90px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 resize-none disabled:bg-slate-50"
-                  disabled={!editing}
-                  value={draft.remarks}
-                  onChange={(e) => patch("remarks", e.target.value)}
-                  placeholder="Any special payment instructions or notes…"
-                />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
+            {/* Location Details */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <SectionHeading
+                icon={<MapPin className="h-3.5 w-3.5" />}
+                label="Bank Location"
+                accent="from-amber-500 to-orange-500"
+              />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="City">
+                  <div className="relative">
+                    <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
+                      disabled={!editing}
+                      value={draft.city}
+                      onChange={(e) => patch("city", e.target.value)}
+                      placeholder="Enter city"
+                    />
+                  </div>
+                </Field>
+
+                <Field label="State">
+                  <div className="relative">
+                    <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="h-9 pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 disabled:bg-slate-50"
+                      disabled={!editing}
+                      value={draft.state}
+                      onChange={(e) => patch("state", e.target.value)}
+                      placeholder="Enter state"
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Country" required error={errors.country}>
+                  <CountrySelect
+                    value={draft.country}
+                    onChange={(v) => patch("country", v)}
+                    disabled={!editing}
+                    placeholder="Select country..."
+                  />
+                </Field>
               </div>
-            </Field>
+            </div>
+
+            {/* Remarks */}
+            <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+              <SectionHeading
+                icon={<StickyNote className="h-3.5 w-3.5" />}
+                label="Remarks"
+                accent="from-slate-500 to-slate-700"
+              />
+              <Field label="Additional Notes / Instructions">
+                <div className="relative">
+                  <FileText className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Textarea
+                    className="min-h-[90px] pl-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20 resize-none disabled:bg-slate-50"
+                    disabled={!editing}
+                    value={draft.remarks}
+                    onChange={(e) => patch("remarks", e.target.value)}
+                    placeholder="Any special payment instructions or notes…"
+                  />
+                </div>
+              </Field>
+            </div>
           </div>
         </div>
 

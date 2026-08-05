@@ -490,193 +490,195 @@ export default function ResidencePermitForm(): ReactElement {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left Column - Main Form */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Visa Details Card */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-500 rounded-lg p-2">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Visa Details
-                  </h2>
-                  <p className="text-xs text-slate-600">
-                    Type, duration, and personal information
-                  </p>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* Visa Details Card */}
+            <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+              <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-500 rounded-lg p-2">
+                    <FileText className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Visa Details
+                    </h2>
+                    <p className="text-xs text-slate-600">
+                      Type, duration, and personal information
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  label="Visa Type"
-                  required
-                  icon={<FileText className="h-4 w-4" />}
-                  hint="Select visa category"
-                >
-                  <Select
-                    disabled={!editing}
-                    value={draft.visaType}
-                    onChange={(v) => patch("visaType", v)}
-                    options={VISA_TYPES}
-                    label="Visa type"
-                  />
-                </FormField>
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    label="Visa Type"
+                    required
+                    icon={<FileText className="h-4 w-4" />}
+                    hint="Select visa category"
+                  >
+                    <Select
+                      disabled={!editing}
+                      value={draft.visaType}
+                      onChange={(v) => patch("visaType", v)}
+                      options={VISA_TYPES}
+                      label="Visa type"
+                    />
+                  </FormField>
 
-                <FormField
-                  label="Permit ID Number"
-                  required
-                  icon={<Shield className="h-4 w-4" />}
-                  hint="Unique identification"
-                >
-                  <Input
-                    type="text"
-                    disabled={!editing}
-                    value={draft.permitIdNumber}
-                    onChange={(e) =>
-                      patch("permitIdNumber", e.target.value.toUpperCase())
+                  <FormField
+                    label="Permit ID Number"
+                    required
+                    icon={<Shield className="h-4 w-4" />}
+                    hint="Unique identification"
+                  >
+                    <Input
+                      type="text"
+                      disabled={!editing}
+                      value={draft.permitIdNumber}
+                      onChange={(e) =>
+                        patch("permitIdNumber", e.target.value.toUpperCase())
+                      }
+                      placeholder="PERMIT-2024-00123"
+                      className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Duration Type"
+                    required
+                    icon={<Clock className="h-4 w-4" />}
+                    hint="Entry type classification"
+                  >
+                    <Select
+                      disabled={!editing}
+                      value={draft.durationType}
+                      onChange={(v) => patch("durationType", v)}
+                      options={DURATION_TYPES}
+                      label="Duration type"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Nationality"
+                    required
+                    icon={<MapPin className="h-4 w-4" />}
+                    hint={
+                      profileNationality
+                        ? "Taken from the employee profile"
+                        : "Citizenship country"
                     }
-                    placeholder="PERMIT-2024-00123"
-                    className="font-mono text-lg font-semibold tracking-wider disabled:bg-slate-50 disabled:text-slate-900 h-12"
-                  />
-                </FormField>
+                  >
+                    <CountrySelect
+                      value={profileNationality || draft.nationality}
+                      onChange={(v) => patch("nationality", v)}
+                      disabled={!editing || !!profileNationality}
+                      placeholder="Select country..."
+                    />
+                  </FormField>
 
-                <FormField
-                  label="Duration Type"
-                  required
-                  icon={<Clock className="h-4 w-4" />}
-                  hint="Entry type classification"
-                >
-                  <Select
-                    disabled={!editing}
-                    value={draft.durationType}
-                    onChange={(v) => patch("durationType", v)}
-                    options={DURATION_TYPES}
-                    label="Duration type"
-                  />
-                </FormField>
+                  <FormField
+                    label="Visa Duration"
+                    required
+                    icon={<Calendar className="h-4 w-4" />}
+                    hint="Duration period (e.g., 1 year)"
+                  >
+                    <Input
+                      type="text"
+                      disabled={!editing}
+                      value={draft.visaDuration}
+                      onChange={(e) => patch("visaDuration", e.target.value)}
+                      placeholder="1 year"
+                      className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    />
+                  </FormField>
 
-                <FormField
-                  label="Nationality"
-                  required
-                  icon={<MapPin className="h-4 w-4" />}
-                  hint={
-                    profileNationality
-                      ? "Taken from the employee profile"
-                      : "Citizenship country"
-                  }
-                >
-                  <CountrySelect
-                    value={profileNationality || draft.nationality}
-                    onChange={(v) => patch("nationality", v)}
-                    disabled={!editing || !!profileNationality}
-                    placeholder="Select country..."
-                  />
-                </FormField>
-
-                <FormField
-                  label="Visa Duration"
-                  required
-                  icon={<Calendar className="h-4 w-4" />}
-                  hint="Duration period (e.g., 1 year)"
-                >
-                  <Input
-                    type="text"
-                    disabled={!editing}
-                    value={draft.visaDuration}
-                    onChange={(e) => patch("visaDuration", e.target.value)}
-                    placeholder="1 year"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
-                  />
-                </FormField>
-
-                <FormField
-                  label="Occupation"
-                  required
-                  icon={<Briefcase className="h-4 w-4" />}
-                  hint="Professional designation"
-                >
-                  <Input
-                    type="text"
-                    disabled={!editing}
-                    value={draft.occupation}
-                    onChange={(e) => patch("occupation", e.target.value)}
-                    placeholder="Software Engineer"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
-                  />
-                </FormField>
-              </div>
-            </div>
-          </div>
-
-          {/* Issuing Authority Card */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
-              <div className="flex items-center gap-3">
-                <div className="bg-emerald-500 rounded-lg p-2">
-                  <Building className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Issuing Authority
-                  </h2>
-                  <p className="text-xs text-emerald-700">
-                    Government department and location details
-                  </p>
+                  <FormField
+                    label="Occupation"
+                    required
+                    icon={<Briefcase className="h-4 w-4" />}
+                    hint="Professional designation"
+                  >
+                    <Input
+                      type="text"
+                      disabled={!editing}
+                      value={draft.occupation}
+                      onChange={(e) => patch("occupation", e.target.value)}
+                      placeholder="Software Engineer"
+                      className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    />
+                  </FormField>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  label="Issue Place"
-                  required
-                  icon={<MapPin className="h-4 w-4" />}
-                  hint="City or location"
-                >
-                  <Input
-                    type="text"
-                    disabled={!editing}
-                    value={draft.issuePlace}
-                    onChange={(e) => patch("issuePlace", e.target.value)}
-                    placeholder="New York"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
-                  />
-                </FormField>
+            {/* Issuing Authority Card */}
+            <div className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
+                <div className="flex items-center gap-3">
+                  <div className="bg-emerald-500 rounded-lg p-2">
+                    <Building className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Issuing Authority
+                    </h2>
+                    <p className="text-xs text-emerald-700">
+                      Government department and location details
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                <FormField
-                  label="Issuing Authority"
-                  required
-                  icon={<Building className="h-4 w-4" />}
-                  hint="Government agency"
-                >
-                  <Input
-                    type="text"
-                    disabled={!editing}
-                    value={draft.issueAuthority}
-                    onChange={(e) => patch("issueAuthority", e.target.value)}
-                    placeholder="Immigration Department"
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
-                  />
-                </FormField>
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    label="Issue Place"
+                    required
+                    icon={<MapPin className="h-4 w-4" />}
+                    hint="City or location"
+                  >
+                    <Input
+                      type="text"
+                      disabled={!editing}
+                      value={draft.issuePlace}
+                      onChange={(e) => patch("issuePlace", e.target.value)}
+                      placeholder="New York"
+                      className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    />
+                  </FormField>
 
-                <FormField
-                  label="Visa Status"
-                  required
-                  icon={<AlertCircle className="h-4 w-4" />}
-                  hint="Current status"
-                >
-                  <Select
-                    disabled={!editing}
-                    value={draft.visaStatus}
-                    onChange={(v) => patch("visaStatus", v)}
-                    options={VISA_STATUS}
-                    label="Visa status"
-                  />
-                </FormField>
+                  <FormField
+                    label="Issuing Authority"
+                    required
+                    icon={<Building className="h-4 w-4" />}
+                    hint="Government agency"
+                  >
+                    <Input
+                      type="text"
+                      disabled={!editing}
+                      value={draft.issueAuthority}
+                      onChange={(e) => patch("issueAuthority", e.target.value)}
+                      placeholder="Immigration Department"
+                      className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Visa Status"
+                    required
+                    icon={<AlertCircle className="h-4 w-4" />}
+                    hint="Current status"
+                  >
+                    <Select
+                      disabled={!editing}
+                      value={draft.visaStatus}
+                      onChange={(v) => patch("visaStatus", v)}
+                      options={VISA_STATUS}
+                      label="Visa status"
+                    />
+                  </FormField>
+                </div>
               </div>
             </div>
           </div>
@@ -699,8 +701,8 @@ export default function ResidencePermitForm(): ReactElement {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4 p-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
                   label="Start Date"
                   required
@@ -711,7 +713,7 @@ export default function ResidencePermitForm(): ReactElement {
                     disabled={!editing}
                     value={draft.startDate}
                     onChange={(e) => patch("startDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="h-12 w-full disabled:bg-slate-50 disabled:text-slate-900"
                   />
                 </FormField>
 
@@ -725,27 +727,27 @@ export default function ResidencePermitForm(): ReactElement {
                     disabled={!editing}
                     value={draft.endDate}
                     onChange={(e) => patch("endDate", e.target.value)}
-                    className="disabled:bg-slate-50 disabled:text-slate-900 h-12"
+                    className="h-12 w-full disabled:bg-slate-50 disabled:text-slate-900"
                   />
                 </FormField>
               </div>
 
-              {validityPeriod && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-100">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-blue-500 rounded-lg p-2.5">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {validityPeriod ? (
+                  <div className="flex h-full items-start gap-4 rounded-xl border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
+                    <div className="shrink-0 rounded-lg bg-blue-500 p-2.5">
                       <Clock className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-900 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="mb-3 font-bold text-slate-900">
                         Total Validity Period
                       </h4>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      <div className="grid grid-cols-3 gap-3">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.years}
                           </div>
-                          <div className="text-xs text-slate-600 uppercase tracking-wide">
+                          <div className="text-xs uppercase tracking-wide text-slate-600">
                             Years
                           </div>
                         </div>
@@ -753,7 +755,7 @@ export default function ResidencePermitForm(): ReactElement {
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.months}
                           </div>
-                          <div className="text-xs text-slate-600 uppercase tracking-wide">
+                          <div className="text-xs uppercase tracking-wide text-slate-600">
                             Months
                           </div>
                         </div>
@@ -761,30 +763,33 @@ export default function ResidencePermitForm(): ReactElement {
                           <div className="text-2xl font-bold text-blue-600">
                             {validityPeriod.totalDays}
                           </div>
-                          <div className="text-xs text-slate-600 uppercase tracking-wide">
+                          <div className="text-xs uppercase tracking-wide text-slate-600">
                             Days
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex h-full items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                    Enter start and end dates to see the total validity.
+                  </div>
+                )}
 
-              {/* Compliance Advisory */}
-              <div className="flex items-center gap-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 p-4">
-                <div className="bg-amber-500 rounded-lg p-2 flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-amber-900 mb-1">
-                    Compliance Notice
-                  </h4>
-                  <p className="text-sm text-amber-800 leading-relaxed">
-                    Ensure all documentation is current and valid. Start renewal
-                    procedures at least 30 days before expiration.
-                    Non-compliance may result in employment status changes.
-                  </p>
+                <div className="flex h-full items-start gap-4 rounded-xl border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4">
+                  <div className="shrink-0 rounded-lg bg-amber-500 p-2">
+                    <AlertTriangle className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="mb-1 font-bold text-amber-900">
+                      Compliance Notice
+                    </h4>
+                    <p className="text-sm leading-relaxed text-amber-800">
+                      Ensure all documentation is current and valid. Start
+                      renewal procedures at least 30 days before expiration.
+                      Non-compliance may result in employment status changes.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -961,8 +966,8 @@ function FormField({
   hint?: string;
 }) {
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+    <div className="min-w-0 space-y-2">
+      <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
         {icon && <span className="text-slate-400">{icon}</span>}
         {label}
         {required && <span className="text-red-500">*</span>}
