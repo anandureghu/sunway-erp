@@ -37,6 +37,28 @@ export const COMPANY_SCHEMA = z.object({
     .optional(),
 
   currencyId: z.number().min(1, { message: "Currency is required" }),
+
+  // Optional platform subscription (SUPER_ADMIN only; applied via separate API)
+  subscriptionPlanType: z
+    .enum(["FREE", "MONTHLY", "YEARLY", "CUSTOM"])
+    .optional(),
+  subscriptionAmount: z.number().min(0).optional(),
+  subscriptionStartsAt: z.string().optional(),
+  subscriptionEndsAt: z.string().optional(),
+  subscriptionWarningDays: z.number().min(0).optional(),
 });
 
 export type CompanyFormData = z.infer<typeof COMPANY_SCHEMA>;
+
+/** Fields sent to /companies — subscription fields are stripped. */
+export function companyPayloadFromForm(data: CompanyFormData) {
+  const {
+    subscriptionPlanType: _p,
+    subscriptionAmount: _a,
+    subscriptionStartsAt: _s,
+    subscriptionEndsAt: _e,
+    subscriptionWarningDays: _w,
+    ...company
+  } = data;
+  return company;
+}

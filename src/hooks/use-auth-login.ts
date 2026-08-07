@@ -18,6 +18,7 @@ export function useAuthLogin() {
     login(accessToken, refreshToken, {
       companies: data.companies,
       requiresCompanySelection: data.requiresCompanySelection,
+      subscriptionStatus: data.subscriptionStatus ?? undefined,
     });
 
     if (data.forcePasswordReset) {
@@ -39,7 +40,10 @@ export function useAuthLogin() {
       data.companies &&
       data.companies.length > 1
     ) {
-      login(accessToken, refreshToken, { companies: data.companies });
+      login(accessToken, refreshToken, {
+        companies: data.companies,
+        subscriptionStatus: data.subscriptionStatus ?? undefined,
+      });
       setPendingCompanies(data.companies);
       setPickerOpen(true);
       return;

@@ -104,6 +104,7 @@ import InventoryDashboardPage from "./pages/inventory/inventory-dashboard";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import AdminSystemLogsPage from "./pages/admin/system-logs-page";
 import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
+import SubscriptionsPage from "./pages/admin/subscriptions/subscriptions-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
@@ -202,6 +203,7 @@ export default function App() {
           {/* Admin */}
           <Route path="admin">
             <Route path="company" element={<CompanyPage />} />
+            <Route path="subscriptions" element={<SubscriptionsPage />} />
             <Route path="bank-accounts" element={<Navigate to="/finance/settings?tab=bank-accounts" replace />} />
             <Route
               path="default-accounts"
