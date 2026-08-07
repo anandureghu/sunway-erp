@@ -7,7 +7,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Upload, Download, FileSpreadsheet, X, Loader2 } from "lucide-react";
+import { Upload, Download, FileSpreadsheet, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { importItemsCsv, type ItemCsvImportResult } from "@/service/inventoryService";
 
@@ -74,7 +74,11 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
       const res = await importItemsCsv(file);
       setResult(res);
       if (res.created > 0) {
-        toast.success(`Imported ${res.created} item(s)`);
+        toast.success(
+          res.aiMapped
+            ? `Imported ${res.created} item(s) (AI column mapping)`
+            : `Imported ${res.created} item(s)`,
+        );
         onImported();
       } else if (res.failed === 0 && res.skipped > 0) {
         toast.message(`No new items — ${res.skipped} skipped (duplicate SKU)`);
@@ -97,6 +101,10 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
     }
   };
 
+  const mappingEntries = result?.fieldMapping
+    ? Object.entries(result.fieldMapping)
+    : [];
+
   return (
     <>
       <Button
@@ -109,7 +117,7 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
         }}
       >
         <Upload className="h-4 w-4" />
-        Import CSV
+        Bulk upload
       </Button>
 
       <Dialog
@@ -121,7 +129,7 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
       >
         <DialogContent
           className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
-          style={{ maxWidth: 520, maxHeight: "92vh", width: "calc(100vw - 32px)" }}
+          style={{ maxWidth: 560, maxHeight: "92vh", width: "calc(100vw - 32px)" }}
         >
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3.5">
@@ -130,10 +138,10 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
               </div>
               <div>
                 <DialogTitle className="text-[15px] font-semibold leading-tight text-white">
-                  Import inventory items
+                  Bulk upload inventory items
                 </DialogTitle>
                 <p className="mt-0.5 text-[12px] text-slate-300">
-                  Upload a CSV to create items in bulk
+                  Any CSV format — AI maps columns to our fields
                 </p>
               </div>
             </div>
@@ -147,16 +155,29 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
             </button>
           </div>
 
-          <div className="space-y-4 px-6 py-5">
-            <p className="text-sm text-muted-foreground">
-              Required columns: <span className="font-medium text-foreground">sku, name, category, warehouse</span>.
-              Warehouse can be the warehouse id or name. Duplicate SKUs are skipped.
-            </p>
+          <div className="space-y-4 px-6 py-5 overflow-y-auto max-h-[75vh]">
+            <div className="rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2.5 text-sm text-sky-950">
+              <p className="flex items-start gap-2 font-medium">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+                Upload your supplier/customer spreadsheet as-is
+              </p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-6 text-xs text-sky-900/80">
+                <li>
+                  Column titles are mapped to our fields (sku, name, category, prices, …)
+                  with OpenAI when configured
+                </li>
+                <li>Unmapped columns are kept in item metadata (not discarded)</li>
+                <li>
+                  If warehouse is missing, the company&apos;s first warehouse is used
+                </li>
+                <li>Duplicate SKUs are skipped</li>
+              </ul>
+            </div>
 
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" className="gap-1.5" onClick={downloadTemplate}>
                 <Download className="h-4 w-4" />
-                Download template
+                Optional template
               </Button>
               <Button
                 size="sm"
@@ -169,7 +190,7 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
-                {loading ? "Importing…" : "Choose CSV file"}
+                {loading ? "Mapping & importing…" : "Choose CSV file"}
               </Button>
               <input
                 ref={inputRef}
@@ -185,14 +206,43 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
             )}
 
             {result && (
-              <div className="rounded-lg border bg-slate-50 p-3 text-sm space-y-2">
+              <div className="rounded-lg border bg-slate-50 p-3 text-sm space-y-3">
                 <p>
                   Created <strong>{result.created}</strong>
                   {" · "}
                   Skipped <strong>{result.skipped}</strong>
                   {" · "}
                   Failed <strong>{result.failed}</strong>
+                  {result.aiMapped != null && (
+                    <>
+                      {" · "}
+                      Mapping:{" "}
+                      <strong>{result.aiMapped ? "AI" : "heuristic"}</strong>
+                    </>
+                  )}
                 </p>
+
+                {mappingEntries.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                      Column mapping
+                    </p>
+                    <ul className="max-h-36 overflow-y-auto text-xs text-slate-600 space-y-0.5">
+                      {mappingEntries.map(([source, target]) => (
+                        <li key={source} className="flex gap-2">
+                          <span className="min-w-0 truncate font-medium text-slate-800">
+                            {source}
+                          </span>
+                          <span className="text-slate-400">→</span>
+                          <span className={target ? "text-emerald-700" : "text-amber-700"}>
+                            {target || "metadata"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {result.errors.length > 0 && (
                   <ul className="max-h-40 overflow-y-auto text-xs text-slate-600 space-y-1">
                     {result.errors.slice(0, 50).map((err, i) => (

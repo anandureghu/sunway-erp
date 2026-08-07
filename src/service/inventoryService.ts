@@ -333,6 +333,8 @@ export type ItemCsvImportResult = {
   created: number;
   skipped: number;
   failed: number;
+  fieldMapping?: Record<string, string | null>;
+  aiMapped?: boolean;
   errors: { row: number; sku?: string | null; message: string }[];
 };
 
