@@ -151,6 +151,7 @@ export default function ManageStocks() {
                     onRowNavigate={(row) =>
                       navigate(`/inventory/stocks/${row.id}`)
                     }
+                    onImported={itemCaps.canCreate ? refetch : undefined}
                   />
                 </TabsContent>
                 )}

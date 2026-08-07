@@ -36,7 +36,7 @@ const suggestions = [
 ];
 
 function detectModule(pathname: string) {
-  if (pathname.startsWith("/finance")) return "Finance";
+  if (pathname.startsWith("/finance")) return "Finance and Accounting";
   if (pathname.startsWith("/inventory")) return "Inventory";
   if (pathname.startsWith("/purchase")) return "Purchase";
   if (pathname.startsWith("/sales")) return "Sales";

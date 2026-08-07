@@ -9,6 +9,7 @@ type Props = {
   onConfirm: () => void;
   onCancel: () => void;
   onDownloadDocument: () => void;
+  onReturned?: () => void;
 };
 
 export function SalesOrderDetailCards({
@@ -17,6 +18,7 @@ export function SalesOrderDetailCards({
   onConfirm,
   onCancel,
   onDownloadDocument,
+  onReturned,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -26,6 +28,7 @@ export function SalesOrderDetailCards({
         onConfirm={onConfirm}
         onCancel={onCancel}
         onDownloadDocument={onDownloadDocument}
+        onReturned={onReturned}
       />
 
       <SalesOrderDetailItems so={so} />

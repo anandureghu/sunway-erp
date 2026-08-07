@@ -404,7 +404,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
   return (
     <div className="space-y-6">
       <SecondaryPageHeader
-        title={`${moduleType === "HR" ? "HR" : moduleType === "FINANCE" ? "Finance" : "Inventory"} Permissions`}
+        title={`${moduleType === "HR" ? "HR" : moduleType === "FINANCE" ? "Finance and Accounting" : "Inventory"} Permissions`}
         description="Manage permissions for employees and roles"
         icon={<Shield className="h-5 w-5" />}
         actions={
