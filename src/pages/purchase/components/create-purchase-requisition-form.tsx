@@ -567,17 +567,6 @@ export function CreatePurchaseRequisitionForm({
             ? `/inventory/purchase/requisitions/${requisitionId}`
             : "/inventory/purchase/requisitions"
         }
-        actions={
-          <Button
-            type="button"
-            size="lg"
-            variant="secondary"
-            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-        }
       />
 
       {submitError && !loading && !loadError && (
@@ -619,456 +608,481 @@ export function CreatePurchaseRequisitionForm({
           </CardContent>
         </Card>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-6">
-          {reviewerFeedback && (
-            <Card className="border-amber-200 bg-amber-50/80">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base text-amber-900">
-                  Reviewer feedback
-                </CardTitle>
+        <form
+          onSubmit={onSubmit}
+          className="grid grid-cols-1 xl:grid-cols-3 gap-6"
+        >
+          <div className="xl:col-span-2 space-y-6">
+            {reviewerFeedback && (
+              <Card className="border-amber-200 bg-amber-50/80 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base text-amber-900">
+                    Reviewer feedback
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {reviewerFeedback}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle>Requisition details</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">
-                  {reviewerFeedback}
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Supplier is assigned on the purchase order after this
+                  requisition is approved.
                 </p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="requestedDate">Requested date</Label>
+                    <Input
+                      id="requestedDate"
+                      type="date"
+                      value={requestedDate}
+                      onChange={(e) => setRequestedDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="requiredDeliveryDate">
+                      Required delivery date
+                    </Label>
+                    <Input
+                      id="requiredDeliveryDate"
+                      type="date"
+                      value={requiredDeliveryDate}
+                      min={
+                        isEditMode
+                          ? undefined
+                          : format(new Date(), "yyyy-MM-dd")
+                      }
+                      onChange={(e) => setRequiredDeliveryDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="projectCode">Project code (optional)</Label>
+                    <Input
+                      id="projectCode"
+                      placeholder="e.g. PRJ-2026-001"
+                      value={projectCode}
+                      onChange={(e) => setProjectCode(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="urgency">Urgency</Label>
+                    <Select
+                      value={urgency}
+                      onValueChange={(v) =>
+                        setUrgency(v as PurchaseRequisitionUrgency)
+                      }
+                    >
+                      <SelectTrigger id="urgency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <div className="space-y-2 md:max-w-sm">
+                      <Label htmlFor="deliveryWarehouse">
+                        Delivery location
+                      </Label>
+                      <Select
+                        value={deliveryWarehouseId}
+                        onValueChange={setDeliveryWarehouseId}
+                      >
+                        <SelectTrigger id="deliveryWarehouse">
+                          <SelectValue placeholder="Select warehouse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh.id} value={String(wh.id)}>
+                              {wh.name}
+                              {wh.code ? ` (${wh.code})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="requisitionDescription">
+                      Requisition description
+                    </Label>
+                    <Textarea
+                      id="requisitionDescription"
+                      placeholder="Brief summary of what is being requested"
+                      value={requisitionDescription}
+                      onChange={(e) =>
+                        setRequisitionDescription(e.target.value)
+                      }
+                      required
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="justification">Justification</Label>
+                    <Textarea
+                      id="justification"
+                      placeholder="Business reason for this purchase"
+                      value={justification}
+                      onChange={(e) => setJustification(e.target.value)}
+                      required
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          )}
-          <Card>
-            <CardHeader>
-              <CardTitle>Requisition details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Supplier is assigned on the purchase order after this
-                requisition is approved.
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="requestedDate">Requested date</Label>
-                  <Input
-                    id="requestedDate"
-                    type="date"
-                    value={requestedDate}
-                    onChange={(e) => setRequestedDate(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="requiredDeliveryDate">
-                    Required delivery date
-                  </Label>
-                  <Input
-                    id="requiredDeliveryDate"
-                    type="date"
-                    value={requiredDeliveryDate}
-                    min={
-                      isEditMode ? undefined : format(new Date(), "yyyy-MM-dd")
-                    }
-                    onChange={(e) => setRequiredDeliveryDate(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="projectCode">Project code (optional)</Label>
-                  <Input
-                    id="projectCode"
-                    placeholder="e.g. PRJ-2026-001"
-                    value={projectCode}
-                    onChange={(e) => setProjectCode(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="urgency">Urgency</Label>
-                  <Select
-                    value={urgency}
-                    onValueChange={(v) =>
-                      setUrgency(v as PurchaseRequisitionUrgency)
-                    }
-                  >
-                    <SelectTrigger id="urgency">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="deliveryWarehouse">Delivery location</Label>
-                  <Select
-                    value={deliveryWarehouseId}
-                    onValueChange={setDeliveryWarehouseId}
-                  >
-                    <SelectTrigger id="deliveryWarehouse">
-                      <SelectValue placeholder="Select warehouse" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map((wh) => (
-                        <SelectItem key={wh.id} value={String(wh.id)}>
-                          {wh.name}
-                          {wh.code ? ` (${wh.code})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="requisitionDescription">
-                    Requisition description
-                  </Label>
-                  <Textarea
-                    id="requisitionDescription"
-                    placeholder="Brief summary of what is being requested"
-                    value={requisitionDescription}
-                    onChange={(e) => setRequisitionDescription(e.target.value)}
-                    required
-                    className="min-h-[80px]"
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="justification">Justification</Label>
-                  <Textarea
-                    id="justification"
-                    placeholder="Business reason for this purchase"
-                    value={justification}
-                    onChange={(e) => setJustification(e.target.value)}
-                    required
-                    className="min-h-[80px]"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Line items</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-dashed bg-muted/30 p-4 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  Search items
-                </div>
-                <p className="text-xs text-muted-foreground -mt-1">
-                  Find by name, SKU, or barcode, then set quantity and add the
-                  line.
-                </p>
-                <ItemSearchCombobox
-                  label=""
-                  query={itemSearchQuery}
-                  onQueryChange={setItemSearchQuery}
-                  results={
-                    itemSearchQuery.trim().length > 0 ? itemSearchResults : []
-                  }
-                  onSelect={handleItemSelectFromSearch}
-                />
-                {itemSearchQuery.trim().length > 0 &&
-                  itemSearchResults.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      No active items match your search.
-                    </p>
-                  )}
-                {selectedItemRecord && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
-                    <span>
-                      Selected:{" "}
-                      <span className="font-medium">
-                        {selectedItemRecord.name}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · SKU {selectedItemRecord.sku}
-                      </span>
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-muted-foreground"
-                      onClick={() => setSelectedItem("")}
-                    >
-                      Clear
-                    </Button>
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Line items
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-dashed bg-muted/30 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    Search items
                   </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label>Quantity</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={itemQuantity}
-                    onChange={(e) =>
-                      setItemQuantity(
-                        Math.max(1, parseInt(e.target.value, 10) || 1),
-                      )
+                  <p className="text-xs text-muted-foreground -mt-1">
+                    Find by name, SKU, or barcode, then set quantity and add the
+                    line.
+                  </p>
+                  <ItemSearchCombobox
+                    label=""
+                    query={itemSearchQuery}
+                    onQueryChange={setItemSearchQuery}
+                    results={
+                      itemSearchQuery.trim().length > 0
+                        ? itemSearchResults
+                        : []
                     }
+                    onSelect={handleItemSelectFromSearch}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Item cost (from master)</Label>
-                  <CurrencyAmount
-                    amount={Number(selectedItemRecord?.costPrice ?? 0)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Estimated cost</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={itemOtherCostInput}
-                    onChange={(e) => setItemOtherCostInput(e.target.value)}
-                    placeholder="Optional override"
-                  />
-                </div>
-
-                <div className="flex items-end">
-                  <Button
-                    type="button"
-                    onClick={addItemToRequisition}
-                    className="w-full"
-                  >
-                    Add item
-                  </Button>
-                </div>
-              </div>
-
-              {requisitionItems.length > 0 && (
-                <div className="border rounded-lg overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="p-2 text-left w-12">Sl No</th>
-                        <th className="p-2 text-left">Item</th>
-                        <th className="p-2 text-right w-24">Qty</th>
-                        <th className="p-2 text-right w-28">Item cost</th>
-                        <th className="p-2 text-right w-32">Other cost</th>
-                        <th className="p-2 text-right w-28">Applied</th>
-                        <th className="p-2 text-right min-w-[7rem]">
-                          Est. total
-                        </th>
-                        <th className="p-2 text-left min-w-[140px]">
-                          Line notes
-                        </th>
-                        <th className="p-2 text-left w-24" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {requisitionItems.map((row, index) => (
-                        <tr key={row.id} className="border-t">
-                          <td className="p-2 align-middle tabular-nums text-muted-foreground">
-                            {index + 1}
-                          </td>
-                          <td className="p-2 align-middle">
-                            {purchaseLineItemName(row)}
-                          </td>
-                          <td className="p-2 align-middle">
-                            <Input
-                              type="number"
-                              min={1}
-                              step={1}
-                              className="text-right h-9 tabular-nums"
-                              value={row.quantity}
-                              onChange={(e) => {
-                                const v = parseInt(e.target.value, 10);
-                                updateRequisitionLine(row.id, {
-                                  quantity: isNaN(v) ? 1 : Math.max(1, v),
-                                });
-                              }}
-                            />
-                          </td>
-                          <td className="p-2 text-right align-middle tabular-nums text-muted-foreground">
-                            <CurrencyAmount amount={row.actualItemPrice ?? 0} />
-                          </td>
-                          <td className="p-2 align-middle">
-                            <Input
-                              type="number"
-                              min={0}
-                              step={0.01}
-                              className="text-right h-9 tabular-nums"
-                              placeholder="—"
-                              value={
-                                row.otherUnitCost != null &&
-                                row.otherUnitCost > 0
-                                  ? row.otherUnitCost
-                                  : ""
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                const num =
-                                  v === "" ? undefined : parseFloat(v);
-                                updateRequisitionLine(row.id, {
-                                  otherUnitCost:
-                                    num === undefined ||
-                                    Number.isNaN(num) ||
-                                    num <= 0
-                                      ? undefined
-                                      : num,
-                                });
-                              }}
-                            />
-                          </td>
-                          <td className="p-2 text-right align-middle tabular-nums font-medium">
-                            <CurrencyAmount
-                              amount={
-                                row.estimatedUnitCost ?? row.unitPrice ?? 0
-                              }
-                            />
-                          </td>
-                          <td className="p-2 text-right font-medium align-middle tabular-nums">
-                            <CurrencyAmount amount={row.estimatedTotal ?? 0} />
-                          </td>
-                          <td className="p-2 align-middle">
-                            <Input
-                              type="text"
-                              className="h-9 text-sm"
-                              placeholder="Optional"
-                              value={row.notes ?? ""}
-                              onChange={(e) =>
-                                updateRequisitionLine(row.id, {
-                                  lineNotes: e.target.value,
-                                })
-                              }
-                            />
-                          </td>
-                          <td className="p-2 align-middle">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeItem(row.id)}
-                            >
-                              Remove
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {requisitionItems.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">
-                  Add at least one item.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Supporting documents</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Optional quotes, specifications, or approvals (PDF, Word, or
-                images, max 15 MB each).
-              </p>
-              <input
-                ref={pendingFilesInputRef}
-                type="file"
-                multiple
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                className="hidden"
-                onChange={(e) => {
-                  const picked = e.target.files
-                    ? Array.from(e.target.files)
-                    : [];
-                  if (picked.length) {
-                    setPendingFiles((prev) => [...prev, ...picked]);
-                  }
-                  e.target.value = "";
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => pendingFilesInputRef.current?.click()}
-              >
-                <Paperclip className="mr-2 h-4 w-4" />
-                Add files
-              </Button>
-              {pendingFiles.length > 0 && (
-                <ul className="space-y-2">
-                  {pendingFiles.map((file, idx) => (
-                    <li
-                      key={`${file.name}-${idx}`}
-                      className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
-                    >
-                      <span className="truncate">{file.name}</span>
+                  {itemSearchQuery.trim().length > 0 &&
+                    itemSearchResults.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        No active items match your search.
+                      </p>
+                    )}
+                  {selectedItemRecord && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+                      <span>
+                        Selected:{" "}
+                        <span className="font-medium">
+                          {selectedItemRecord.name}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · SKU {selectedItemRecord.sku}
+                        </span>
+                      </span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          setPendingFiles((prev) =>
-                            prev.filter((_, i) => i !== idx),
-                          )
-                        }
+                        className="h-8 text-muted-foreground"
+                        onClick={() => setSelectedItem("")}
                       >
-                        <X className="h-4 w-4" />
+                        Clear
                       </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+                    </div>
+                  )}
+                </div>
 
-          {requisitionItems.length > 0 && (
-            <div className="flex justify-end">
-              <Card className="w-full max-w-sm">
-                <CardHeader>
-                  <CardTitle>Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total Due</span>
-                    <span>
-                      <CurrencyAmount amount={total} />
-                    </span>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Notes (optional)</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Instructions for approver"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
+                    <Label>Quantity</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={itemQuantity}
+                      onChange={(e) =>
+                        setItemQuantity(
+                          Math.max(1, parseInt(e.target.value, 10) || 1),
+                        )
+                      }
                     />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={requisitionItems.length === 0 || submitLoading}
-            >
-              {submitLoading
-                ? isEditMode
-                  ? "Saving…"
-                  : "Creating…"
-                : isEditMode
-                  ? "Save changes"
-                  : "Create requisition"}
-            </Button>
+                  <div className="space-y-2">
+                    <Label>Item cost (from master)</Label>
+                    <div className="flex h-9 items-center text-sm tabular-nums">
+                      <CurrencyAmount
+                        amount={Number(selectedItemRecord?.costPrice ?? 0)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Estimated cost</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={itemOtherCostInput}
+                      onChange={(e) => setItemOtherCostInput(e.target.value)}
+                      placeholder="Optional override"
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      onClick={addItemToRequisition}
+                      className="w-full"
+                    >
+                      Add item
+                    </Button>
+                  </div>
+                </div>
+
+                {requisitionItems.length > 0 ? (
+                  <div className="rounded-lg border overflow-x-auto">
+                    <table className="w-full text-sm min-w-[720px]">
+                      <thead className="bg-muted/60">
+                        <tr>
+                          <th className="p-3 text-left w-12">Sl No</th>
+                          <th className="p-3 text-left">Item</th>
+                          <th className="p-3 text-right w-24">Qty</th>
+                          <th className="p-3 text-right w-28">Item cost</th>
+                          <th className="p-3 text-right w-32">Other cost</th>
+                          <th className="p-3 text-right w-28">Applied</th>
+                          <th className="p-3 text-right min-w-[7rem]">
+                            Est. total
+                          </th>
+                          <th className="p-3 text-left min-w-[140px]">
+                            Line notes
+                          </th>
+                          <th className="p-3 text-left w-24" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {requisitionItems.map((row, index) => (
+                          <tr key={row.id} className="border-t">
+                            <td className="p-3 align-middle tabular-nums text-muted-foreground">
+                              {index + 1}
+                            </td>
+                            <td className="p-3 align-middle">
+                              {purchaseLineItemName(row)}
+                            </td>
+                            <td className="p-3 align-middle">
+                              <Input
+                                type="number"
+                                min={1}
+                                step={1}
+                                className="text-right h-9 tabular-nums"
+                                value={row.quantity}
+                                onChange={(e) => {
+                                  const v = parseInt(e.target.value, 10);
+                                  updateRequisitionLine(row.id, {
+                                    quantity: isNaN(v) ? 1 : Math.max(1, v),
+                                  });
+                                }}
+                              />
+                            </td>
+                            <td className="p-3 text-right align-middle tabular-nums text-muted-foreground">
+                              <CurrencyAmount
+                                amount={row.actualItemPrice ?? 0}
+                              />
+                            </td>
+                            <td className="p-3 align-middle">
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                className="text-right h-9 tabular-nums"
+                                placeholder="—"
+                                value={
+                                  row.otherUnitCost != null &&
+                                  row.otherUnitCost > 0
+                                    ? row.otherUnitCost
+                                    : ""
+                                }
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  const num =
+                                    v === "" ? undefined : parseFloat(v);
+                                  updateRequisitionLine(row.id, {
+                                    otherUnitCost:
+                                      num === undefined ||
+                                      Number.isNaN(num) ||
+                                      num <= 0
+                                        ? undefined
+                                        : num,
+                                  });
+                                }}
+                              />
+                            </td>
+                            <td className="p-3 text-right align-middle tabular-nums font-medium">
+                              <CurrencyAmount
+                                amount={
+                                  row.estimatedUnitCost ?? row.unitPrice ?? 0
+                                }
+                              />
+                            </td>
+                            <td className="p-3 text-right font-medium align-middle tabular-nums">
+                              <CurrencyAmount
+                                amount={row.estimatedTotal ?? 0}
+                              />
+                            </td>
+                            <td className="p-3 align-middle">
+                              <Input
+                                type="text"
+                                className="h-9 text-sm"
+                                placeholder="Optional"
+                                value={row.notes ?? ""}
+                                onChange={(e) =>
+                                  updateRequisitionLine(row.id, {
+                                    lineNotes: e.target.value,
+                                  })
+                                }
+                              />
+                            </td>
+                            <td className="p-3 align-middle">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeItem(row.id)}
+                              >
+                                Remove
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground rounded-lg border border-dashed">
+                    No items added yet.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle>Supporting documents</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Optional quotes, specifications, or approvals (PDF, Word, or
+                  images, max 15 MB each).
+                </p>
+                <input
+                  ref={pendingFilesInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  className="hidden"
+                  onChange={(e) => {
+                    const picked = e.target.files
+                      ? Array.from(e.target.files)
+                      : [];
+                    if (picked.length) {
+                      setPendingFiles((prev) => [...prev, ...picked]);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => pendingFilesInputRef.current?.click()}
+                >
+                  <Paperclip className="mr-2 h-4 w-4" />
+                  Add files
+                </Button>
+                {pendingFiles.length > 0 && (
+                  <ul className="space-y-2">
+                    {pendingFiles.map((file, idx) => (
+                      <li
+                        key={`${file.name}-${idx}`}
+                        className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                      >
+                        <span className="truncate">{file.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setPendingFiles((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            )
+                          }
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="shadow-sm xl:sticky xl:top-6">
+              <CardHeader>
+                <CardTitle>Requisition summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Line items</span>
+                  <span className="tabular-nums">{requisitionItems.length}</span>
+                </div>
+                <div className="flex justify-between text-base font-semibold border-t pt-3">
+                  <span>Total Due</span>
+                  <span>
+                    <CurrencyAmount amount={total} />
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Instructions for approver"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={requisitionItems.length === 0 || submitLoading}
+                  >
+                    {submitLoading
+                      ? isEditMode
+                        ? "Saving…"
+                        : "Creating…"
+                      : isEditMode
+                        ? "Save changes"
+                        : "Create requisition"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </form>
       )}
