@@ -8,6 +8,9 @@ import {
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
+/** Set to `true` to show module blurbs in sidebar hover cards. */
+const SHOW_SIDEBAR_HOVER_DESCRIPTIONS = false;
+
 /** Short module blurbs shown on sidebar hover (Hover Card). */
 export const SIDEBAR_DESCRIPTIONS: Record<string, string> = {
   Home: "Return to your workspace overview, recent activity, and quick links across modules.",
@@ -64,7 +67,9 @@ export function SidebarNavHoverLink({
   active,
   description,
 }: SidebarNavHoverLinkProps) {
-  const blurb = description ?? SIDEBAR_DESCRIPTIONS[title];
+  const blurb = SHOW_SIDEBAR_HOVER_DESCRIPTIONS
+    ? (description ?? SIDEBAR_DESCRIPTIONS[title])
+    : undefined;
 
   const linkClassName = cn(
     "flex min-w-0 w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
