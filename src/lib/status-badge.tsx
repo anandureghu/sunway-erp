@@ -29,7 +29,6 @@ const STATUS_PALETTE: Record<string, string> = {
   /** Standing credit note not yet applied to any invoice/payment. */
   AVAILABLE: "border-transparent bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-100",
   CASHED: "border-transparent bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100",
-  PARTIALLY_APPLIED: "border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100",
 
   // —— Negative / terminal ——
   REJECTED: "border-transparent bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-100",

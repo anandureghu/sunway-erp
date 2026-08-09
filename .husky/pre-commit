@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Fail the commit if the production build does not succeed.
+npm run build
