@@ -200,6 +200,34 @@ async function remove(contractId: number) {
   return res.data;
 }
 
+/** Company-wide contracts HR should review for renewal (active or expired). */
+async function listRenewables(): Promise<ContractResponse[]> {
+  const res = await apiClient.get<ContractResponse[]>(
+    "/hr/contracts/renewables"
+  );
+  return res.data ?? [];
+}
+
+/** Renew a contract — optionally to an explicit expiry; otherwise extend by its period. */
+async function renew(
+  contractId: number,
+  expirationDate?: string
+): Promise<ContractResponse> {
+  const res = await apiClient.put<ContractResponse>(
+    `/hr/contracts/${contractId}/renew`,
+    expirationDate ? { expirationDate } : {}
+  );
+  return res.data;
+}
+
+/** Let a contract expire — mark it EXPIRED without renewing. */
+async function expire(contractId: number): Promise<ContractResponse> {
+  const res = await apiClient.put<ContractResponse>(
+    `/hr/contracts/${contractId}/expire`
+  );
+  return res.data;
+}
+
 async function getAllowanceTypes() {
   const res = await apiClient.get<AllowanceType[]>(`/hr/allowance-types`);
   return res.data ?? [];
@@ -227,6 +255,9 @@ export const contractService = {
   getAllowanceTypes,
   uploadAttachment,
   uploadAttachmentByEmployee,
+  listRenewables,
+  renew,
+  expire,
   extractErrorMessage,
 };
 

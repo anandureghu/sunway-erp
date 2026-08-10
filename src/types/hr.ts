@@ -62,6 +62,7 @@ export interface Employee {
   dateOfBirth?: string; // yyyy-mm-dd
   gender?: Gender;
   joinDate?: string; // yyyy-mm-dd
+  probationEndDate?: string; // yyyy-mm-dd
   nationality?: string;
   nationalId?: string;
   maritalStatus?: MaritalStatus;

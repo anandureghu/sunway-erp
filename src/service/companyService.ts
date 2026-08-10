@@ -52,6 +52,7 @@ export interface HrPoliciesPayload {
   // ── Attendance & working hours ──
   standardWorkingHoursPerDay?: number;
   requireCheckIn?: boolean;
+  probationPeriodMonths?: number;
   // ── Overtime (Qatar labor-law defaults) ──
   otDayRateMultiplier?: number;
   otNightFridayHolidayRateMultiplier?: number;

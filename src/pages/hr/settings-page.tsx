@@ -14,6 +14,7 @@ import {
   Building,
   FileText,
   CalendarCheck,
+  CalendarClock,
   Wallet,
   Share2,
   Building2,
@@ -24,6 +25,7 @@ import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomization
 import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel";
 import LoanApprovalPanel from "@/modules/hr/loans/approval/LoanApprovalPanel";
 import HrPoliciesForm from "@/modules/hr/policies/HrPoliciesForm";
+import ContractRenewablesPanel from "@/modules/hr/contracts/ContractRenewablesPanel";
 import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 import { AppTab } from "@/components/app-tab";
 import { PageHeader } from "@/components/PageHeader";
@@ -127,6 +129,12 @@ export default function HRSettingsPage() {
       label: "HR Policies",
       icon: tabIcon(FileText),
       element: () => <HrPoliciesForm />,
+    },
+    {
+      value: "contract-renewables",
+      label: "Contract Renewables",
+      icon: tabIcon(CalendarClock),
+      element: () => <ContractRenewablesPanel />,
     },
     ...(canApproveLeaves
       ? [

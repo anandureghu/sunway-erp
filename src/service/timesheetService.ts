@@ -31,6 +31,9 @@ export interface EmployeeMonthlyAttendance {
   daysRecorded: number;
   daysPresent: number; // worked days (>= 6h) that feed payroll
   totalHours: number;
+  overtimeHours: number; // month overtime — hours beyond the standard day, daily-capped
+  // True for no-punch companies: overtime can't be derived, so HR keys it manually.
+  editableOvertime?: boolean;
   // Today's live status (meaningful only when viewing the current month).
   todayStatus: "CHECKED_IN" | "CHECKED_OUT" | "NOT_CHECKED_IN" | string;
   todayCheckIn: string | null;
@@ -151,6 +154,18 @@ export const timesheetService = {
       .get(`/hr/attendance/monthly-summary`, { params: { year, month } })
       .then((r) => (Array.isArray(r.data) ? r.data : []))
       .catch(() => []);
+  },
+
+  // Set the manual monthly overtime for one employee (no-punch companies).
+  setOvertimeOverride(
+    employeeId: number,
+    year: number,
+    month: number,
+    overtimeHours: number,
+  ): Promise<void> {
+    return apiClient
+      .put(`/hr/attendance/overtime`, { employeeId, year, month, overtimeHours })
+      .then(() => undefined);
   },
 
   // Snapshot a month's worked-days into the archive (errors surface to caller).

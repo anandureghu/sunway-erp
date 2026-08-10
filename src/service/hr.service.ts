@@ -163,6 +163,20 @@
     await apiClient.put(`/users/${employeeId}/admin-reset-password`, payload);
   }
 
+  /** Employees still under probation in the caller's company (for the Confirm tab). */
+  async function listUnderProbation(): Promise<Employee[]> {
+    const res = await apiClient.get<Employee[]>("/employees/under-probation");
+    return res.data ?? [];
+  }
+
+  /** Confirm a probationary employee — they become active. */
+  async function confirmEmployee(employeeId: number): Promise<Employee> {
+    const res = await apiClient.put<Employee>(
+      `/employees/${employeeId}/confirm`
+    );
+    return res.data;
+  }
+
   /* =====================================================
     EXPORT SERVICE
   ===================================================== */
@@ -176,6 +190,8 @@
     uploadImage,
     getActiveJobCodes,
     resetEmployeePassword,
+    listUnderProbation,
+    confirmEmployee,
   };
 
   export default hrService;

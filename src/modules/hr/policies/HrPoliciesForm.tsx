@@ -25,6 +25,7 @@ const DEFAULT_HR_POLICIES: HrPoliciesPayload = {
   loanMaxRepaymentMonths: 24,
   standardWorkingHoursPerDay: 6,
   requireCheckIn: true,
+  probationPeriodMonths: 3,
   otDayRateMultiplier: 1.25,
   otNightFridayHolidayRateMultiplier: 1.5,
   otNightStartTime: "21:00:00",
@@ -215,6 +216,30 @@ export default function HrPoliciesForm() {
               <p className="text-[10px] text-slate-400 mt-1">
                 A full day is worked once this many hours are logged; payroll divides
                 monthly pay by working days on this basis.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Probation period (months)
+              </label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                value={hrPolicies.probationPeriodMonths ?? 3}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "probationPeriodMonths",
+                    parseInt(e.target.value, 10) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm max-w-[10rem]"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                New hires start “Under probation” for this many months, then need
+                confirming. Set 0 to create new hires as active.
               </p>
             </div>
 

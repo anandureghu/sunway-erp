@@ -46,6 +46,7 @@ import { loanService } from "@/service/loanService";
 import { formatMoney } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
+import { ConfirmEmployeesPanel } from "./ConfirmEmployeesPanel";
 import { cn, initialsFrom } from "@/lib/utils";
 import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
@@ -229,6 +230,12 @@ const ATTENDANCE_HISTORY_TAB = {
   label: "Attendance History",
   icon: History,
 } as const;
+// Confirm Employees — new hires under probation, confirmable by an approver.
+const CONFIRM_TAB = {
+  id: "confirm",
+  label: "Confirm Employees",
+  icon: UserCheck,
+} as const;
 // Leave Approvals is gated by the LEAVES grant (approvers / HR / admin).
 const LEAVES_TAB = {
   id: "leaves",
@@ -256,6 +263,7 @@ type TabId =
   | "appraisal"
   | "attendance"
   | "attendance-history"
+  | "confirm"
   | "leaves"
   | "loans"
   | "immigration"
@@ -265,6 +273,7 @@ const ALL_TAB_IDS: TabId[] = [
   "appraisal",
   "attendance",
   "attendance-history",
+  "confirm",
   "leaves",
   "loans",
   "immigration",
@@ -377,6 +386,7 @@ export default function HRReports() {
     if (canHrReports) tabs.push(...ANALYTICS_TABS);
     if (canHrReports) tabs.push(ATTENDANCE_TAB);
     if (canHrReports) tabs.push(ATTENDANCE_HISTORY_TAB);
+    if (canHrReports) tabs.push(CONFIRM_TAB);
     if (canLeaves) tabs.push(LEAVES_TAB);
     if (canLoans) tabs.push(LOANS_TAB);
     if (canImmigration) tabs.push(IMMIGRATION_TAB);
@@ -1899,6 +1909,8 @@ export default function HRReports() {
       {tab === "attendance-history" && <AttendanceHistory />}
 
       {/* ── IMMIGRATION EXPIRY TAB ── */}
+      {tab === "confirm" && <ConfirmEmployeesPanel />}
+
       {tab === "immigration" && <ImmigrationExpiryReport />}
 
       {tab === "history" && <HistoryTabPanel module="hr" />}

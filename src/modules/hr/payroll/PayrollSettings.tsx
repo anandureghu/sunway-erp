@@ -38,6 +38,7 @@ interface PayrollRow {
   netPayable: string;
   totalDeductions?: string | number;
   loanDeduction?: string | number;
+  overtimeHours?: number;
   bankName?: string;
   bankAccount?: string;
 }
@@ -254,6 +255,10 @@ export default function PayrollSettings() {
     0,
   );
   const processedCount = summaries.filter((x) => x.latestPayroll).length;
+  const totalOvertime = summaries.reduce(
+    (s, x) => s + Number(x.latestPayroll?.overtimeHours ?? 0),
+    0,
+  );
 
   const fmt = (iso: string) => {
     if (!iso) return "—";
@@ -269,6 +274,29 @@ export default function PayrollSettings() {
 
   const resolvedId =
     user?.companyId != null ? String(user.companyId) : undefined;
+
+  // Statuses that make a payroll run a final settlement (End-of-Service + full
+  // loan recovery). The backend applies this automatically from the status.
+  const EXITED = ["TERMINATED", "RESIGNED", "RETIRED"];
+  const statusMeta = (status?: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return { label: "Active", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+      case "ON_LEAVE":
+        return { label: "On Leave", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+      case "TERMINATED":
+        return { label: "Terminated", cls: "bg-rose-50 text-rose-700 border-rose-200" };
+      case "RESIGNED":
+        return { label: "Resigned", cls: "bg-orange-50 text-orange-700 border-orange-200" };
+      case "RETIRED":
+        return { label: "Retired", cls: "bg-violet-50 text-violet-700 border-violet-200" };
+      case "INACTIVE":
+        return { label: "Inactive", cls: "bg-slate-100 text-slate-500 border-slate-200" };
+      default:
+        return { label: status || "—", cls: "bg-slate-100 text-slate-500 border-slate-200" };
+    }
+  };
+  const selectedExited = EXITED.includes(String(selectedEmp?.status ?? ""));
 
   return (
     <div className="space-y-6">
@@ -303,6 +331,13 @@ export default function PayrollSettings() {
               hint: "Total disbursed amount",
               accent: "amber",
               icon: Banknote,
+            },
+            {
+              label: "Total Overtime",
+              value: `${totalOvertime.toFixed(1)} hrs`,
+              hint: "Beyond standard hours",
+              accent: "rose",
+              icon: Clock,
             },
           ]}
         />
@@ -475,6 +510,16 @@ export default function PayrollSettings() {
                             {emp.employeeNo}
                           </p>
                         </div>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold",
+                            isSelected
+                              ? "border-white/30 bg-white/15 text-white"
+                              : statusMeta(emp.status).cls,
+                          )}
+                        >
+                          {statusMeta(emp.status).label}
+                        </span>
                         {isSelected && (
                           <X className="h-4 w-4 shrink-0 text-white/70" />
                         )}
@@ -577,9 +622,19 @@ export default function PayrollSettings() {
                       {(selectedEmp.firstName?.[0] ?? "?").toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-base font-bold text-slate-900">
-                        {selectedEmp.firstName} {selectedEmp.lastName}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-bold text-slate-900">
+                          {selectedEmp.firstName} {selectedEmp.lastName}
+                        </p>
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                            statusMeta(selectedEmp.status).cls,
+                          )}
+                        >
+                          {statusMeta(selectedEmp.status).label}
+                        </span>
+                      </div>
                       <p className="text-xs text-slate-400 font-mono">
                         {selectedEmp.employeeNo} · {selectedEmp.email}
                       </p>
@@ -607,26 +662,56 @@ export default function PayrollSettings() {
                   <div className="flex-1 h-px bg-slate-100" />
                 </div>
 
-                <p className="text-xs text-muted-foreground mb-4">
-                  Pay period and pay date are set in{" "}
-                  <strong>Monthly payroll (all active employees)</strong> above.
-                </p>
-
-                <Button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="h-10 gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-semibold px-5"
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Generating…
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4" /> Generate Payroll
-                    </>
-                  )}
-                </Button>
+                {selectedExited ? (
+                  <>
+                    <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      This employee has exited (
+                      <strong>{statusMeta(selectedEmp.status).label}</strong>).
+                      Running payroll processes a <strong>final settlement</strong>{" "}
+                      — including End-of-Service gratuity and full recovery of any
+                      outstanding loan balance.
+                    </p>
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={generating}
+                      className="h-10 gap-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold px-5"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Processing…
+                        </>
+                      ) : (
+                        <>
+                          <Banknote className="h-4 w-4" /> Process Final
+                          Settlement (incl. EOS)
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Pay period and pay date are set in{" "}
+                      <strong>Monthly payroll (all active employees)</strong>{" "}
+                      above.
+                    </p>
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={generating}
+                      className="h-10 gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-semibold px-5"
+                    >
+                      {generating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Generating…
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4" /> Generate Payroll
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </div>
 
               {/* ── Payroll History ── */}

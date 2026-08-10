@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+import { notifyTimesheetChanged, onTimesheetChanged } from "@/lib/timesheet-sync";
 import {
   LogIn,
   LogOut,
@@ -30,18 +31,40 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
+// All shift times display in Qatar time (Asia/Qatar) regardless of the viewer's
+// own timezone, so a check-in shows the same wall-clock time for everyone.
+const QATAR_TZ = "Asia/Qatar";
+
 function formatClock(d: Date) {
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return d.toLocaleTimeString("en-GB", {
+    timeZone: QATAR_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 
 function formatTime(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
   return d.toLocaleTimeString("en-US", {
+    timeZone: QATAR_TZ,
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
+}
+
+/** Current hour (0–23) in Qatar time, for the greeting. */
+function qatarHour(d: Date): number {
+  return Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: QATAR_TZ,
+      hour: "2-digit",
+      hour12: false,
+    }).format(d),
+  );
 }
 
 function diffMs(from: string | null | undefined, to?: string | null): number {
@@ -678,6 +701,9 @@ export default function TimesheetTab() {
     void load();
   }, [load]);
 
+  // Re-sync when a check-in/out happens elsewhere (e.g. the header shift widget).
+  useEffect(() => onTimesheetChanged(() => void load()), [load]);
+
   const isCheckedIn = !!(todayEntry?.checkInTime && !todayEntry?.checkOutTime);
   const isComplete = !!(todayEntry?.checkInTime && todayEntry?.checkOutTime);
   // Company doesn't punch in/out — attendance is auto-marked present.
@@ -698,6 +724,7 @@ export default function TimesheetTab() {
           : [entry, ...prev];
       });
       toast.success("Checked in successfully!");
+      notifyTimesheetChanged();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to check in");
     } finally {
@@ -720,6 +747,7 @@ export default function TimesheetTab() {
           : [entry, ...prev];
       });
       toast.success("Checked out successfully!");
+      notifyTimesheetChanged();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to check out");
     } finally {
@@ -737,7 +765,7 @@ export default function TimesheetTab() {
     year: "numeric",
   });
 
-  const greeting = getGreeting(now.getHours());
+  const greeting = getGreeting(qatarHour(now));
   const GreetIcon = greeting.icon;
 
   // ── Loading screen ──────────────────────────────────────────────────────────
@@ -804,11 +832,13 @@ export default function TimesheetTab() {
               <div className="flex items-center gap-1.5 mt-2 text-white/40 text-sm font-medium">
                 <MapPin className="h-3.5 w-3.5" />
                 {now.toLocaleDateString("en-US", {
+                  timeZone: QATAR_TZ,
                   weekday: "long",
                   month: "long",
                   day: "numeric",
                   year: "numeric",
                 })}
+                <span className="ml-1 text-white/30">· Qatar</span>
               </div>
             </div>
 

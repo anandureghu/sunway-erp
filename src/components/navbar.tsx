@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { displayRole } from "@/types/role";
 import { Building2, Check, ChevronDown, LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { HeaderCheckIn } from "@/components/header-check-in";
 
 function initialsFromName(name: string | undefined): string {
   if (!name?.trim()) return "U";
@@ -122,6 +123,8 @@ const Navbar = () => {
             </div>
           )}
         </div>
+
+        <HeaderCheckIn />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
