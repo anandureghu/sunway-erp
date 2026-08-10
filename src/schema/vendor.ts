@@ -1,13 +1,13 @@
 import { z } from "zod";
-import { OPTIONAL_EMAIL } from "@/schema/email";
-import { OPTIONAL_PHONE } from "@/schema/phone";
+import { REQUIRED_EMAIL } from "@/schema/email";
+import { REQUIRED_PHONE } from "@/schema/phone";
 
 export const VENDOR_SCHEMA = z.object({
   vendorName: z
     .string()
     .min(2, "Vendor name must be at least 2 characters long"),
   taxId: z.string().optional(),
-  paymentTerms: z.string().optional(),
+  paymentTerms: z.string().min(1, "Payment terms are required"),
   currencyCode: z.string().optional(),
   creditLimit: z
     .number()
@@ -17,9 +17,9 @@ export const VENDOR_SCHEMA = z.object({
   street: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
-  phoneNo: OPTIONAL_PHONE.optional(),
-  email: OPTIONAL_EMAIL.optional(),
-  contactPersonName: z.string().optional(),
+  phoneNo: REQUIRED_PHONE,
+  email: REQUIRED_EMAIL,
+  contactPersonName: z.string().min(1, "Contact person is required"),
   fax: z.string().optional(),
   websiteUrl: z
     .string()

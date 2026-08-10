@@ -80,18 +80,21 @@ export function useInventoryReports() {
     to: format(endOfMonth(new Date()), "yyyy-MM-dd"),
   });
 
+  // Resolve category name separately so loading the categories list does not
+  // recreate summaryParams (and re-fetch) when categoryId is still "all".
+  const selectedCategoryName = useMemo(() => {
+    if (categoryId === "all") return undefined;
+    return categories.find((c) => String(c.id) === categoryId)?.name;
+  }, [categoryId, categories]);
+
   const summaryParams: InventoryReportSummaryQuery = useMemo(() => {
     const wid =
       warehouseId === "all" ? undefined : Number.parseInt(warehouseId, 10);
-    const cat =
-      categoryId === "all"
-        ? undefined
-        : categories.find((c) => String(c.id) === categoryId)?.name;
     return {
       warehouseId: Number.isFinite(wid as number) ? wid : undefined,
-      category: cat,
+      category: selectedCategoryName,
     };
-  }, [warehouseId, categoryId, categories]);
+  }, [warehouseId, selectedCategoryName]);
 
   const batchQueryParams = useMemo(() => {
     const wid =
