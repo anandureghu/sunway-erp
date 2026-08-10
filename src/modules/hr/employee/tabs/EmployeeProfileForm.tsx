@@ -409,7 +409,10 @@ export default function EmployeeProfileForm() {
         companyRole: updated.companyRole || null,
         companyRoleId: updated.companyRoleId || null,
       };
-      if (statusVal != null) payload.status = statusVal;
+      // Only send status when EDITING. For a new hire, omit it so the backend
+      // applies the company's probation policy (Under probation for the probation
+      // window, else Active) instead of the form's default "Active".
+      if (id && statusVal != null) payload.status = statusVal;
       try {
         const { hrService } = await import("@/service/hr.service");
         let createdResult: any = null;

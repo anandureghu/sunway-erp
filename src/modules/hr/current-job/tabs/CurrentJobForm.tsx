@@ -551,6 +551,23 @@ export default function CurrentJobForm() {
       if (selectedDept) {
         updateField("departmentName")(selectedDept.departmentName);
         void loadDivisionsForDepartment(selectedDept.id);
+
+        // Default "Report to" to the department's manager when none is set yet.
+        // It remains fully editable — the dropdown lists everyone in the org.
+        if (
+          formData.reportingManagerId == null &&
+          selectedDept.managerId != null &&
+          selectedDept.managerId !== employeeId
+        ) {
+          updateField("reportingManagerId")(selectedDept.managerId);
+          const mgrName = [
+            selectedDept.managerFirstName,
+            selectedDept.managerLastName,
+          ]
+            .filter(Boolean)
+            .join(" ");
+          if (mgrName) updateField("reportingManagerName")(mgrName);
+        }
       }
     }
   };

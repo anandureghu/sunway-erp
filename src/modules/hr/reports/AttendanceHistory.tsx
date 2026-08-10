@@ -238,7 +238,8 @@ export default function AttendanceHistory() {
                         "Sl No.",
                         "Employee",
                         "Days Worked",
-                        "Total Hours",
+                        "Regular Hours",
+                        "Overtime",
                       ].map((h, i) => (
                         <th
                           key={h}
@@ -286,7 +287,15 @@ export default function AttendanceHistory() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-800">
-                          {r.totalHours}
+                          {Math.round(
+                            Math.max(
+                              0,
+                              (r.totalHours || 0) - (r.overtimeHours || 0),
+                            ) * 10,
+                          ) / 10}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums font-semibold text-amber-700">
+                          {r.overtimeHours ? `${r.overtimeHours} h` : "—"}
                         </td>
                       </tr>
                     ))}

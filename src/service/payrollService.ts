@@ -40,6 +40,7 @@ export type PayrollPreview = {
   totalDeductions: number;
   netPayable: number;
   earnedGrossPay: number;
+  overtimePay: number;
   endOfServiceCompensation: number;
   finalSettlement: boolean;
   grossPay: number;

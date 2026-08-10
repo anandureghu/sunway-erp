@@ -1467,6 +1467,14 @@ function EmployeePayrollTab() {
                           </span>
                         </div>
                       )}
+                      {payrollPreview.overtimePay > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">Overtime pay</span>
+                          <span className="font-semibold text-emerald-700 tabular-nums">
+                            + {formatMoney(payrollPreview.overtimePay, currencySymbol)}
+                          </span>
+                        </div>
+                      )}
                       {payrollPreview.endOfServiceCompensation > 0 && (
                         <div className="flex items-center justify-between px-3 py-2">
                           <span className="text-slate-600">End of service</span>

@@ -8,6 +8,9 @@ import {
   Users,
   LogIn,
   LogOut,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import {
   timesheetService,
@@ -27,7 +30,11 @@ const fmtTime = (iso: string | null) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? "—"
-    : d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    : d.toLocaleTimeString("en-GB", {
+        timeZone: "Asia/Qatar",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 };
 
 const fmtDate = (iso: string) => {
@@ -96,6 +103,11 @@ export default function EmployeeTimeSheets() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
+  // Inline overtime editing (no-punch companies only — HR keys the month total).
+  const [otEditId, setOtEditId] = useState<number | null>(null);
+  const [otDraft, setOtDraft] = useState("");
+  const [otSaving, setOtSaving] = useState(false);
+
   // Drill-down state: the employee whose daily grid is open (null = board).
   const [selected, setSelected] = useState<EmployeeMonthlyAttendance | null>(
     null,
@@ -127,6 +139,34 @@ export default function EmployeeTimeSheets() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const startEditOt = (r: EmployeeMonthlyAttendance) => {
+    setOtEditId(r.employeeId);
+    setOtDraft(String(r.overtimeHours ?? 0));
+  };
+  const cancelEditOt = () => {
+    setOtEditId(null);
+    setOtDraft("");
+  };
+  const saveOt = async (r: EmployeeMonthlyAttendance) => {
+    const val = Number(otDraft);
+    if (!Number.isFinite(val) || val < 0) {
+      toast.error("Enter a valid overtime value (hours ≥ 0)");
+      return;
+    }
+    setOtSaving(true);
+    try {
+      await timesheetService.setOvertimeOverride(r.employeeId, year, month, val);
+      toast.success(`Overtime updated for ${r.employeeName || "employee"}`);
+      setOtEditId(null);
+      setOtDraft("");
+      await load();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update overtime"));
+    } finally {
+      setOtSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!selected) return;
@@ -190,6 +230,10 @@ export default function EmployeeTimeSheets() {
   );
   const totalDaysWorked = useMemo(
     () => rows.reduce((s, r) => s + (r.daysPresent || 0), 0),
+    [rows],
+  );
+  const totalOvertime = useMemo(
+    () => Math.round(rows.reduce((s, r) => s + (r.overtimeHours || 0), 0) * 10) / 10,
     [rows],
   );
 
@@ -385,6 +429,13 @@ export default function EmployeeTimeSheets() {
             accent: "sky",
             icon: Clock,
           },
+          {
+            label: "Total Overtime",
+            value: `${totalOvertime} h`,
+            hint: "Beyond standard hours",
+            accent: "rose",
+            icon: Clock,
+          },
         ]}
       />
 
@@ -423,7 +474,8 @@ export default function EmployeeTimeSheets() {
                       "Out",
                       "Hours Today",
                       "Days Worked",
-                      "Total Hours",
+                      "Regular Hours",
+                      "Overtime",
                     ].map((h, i) => (
                       <th
                         key={h}
@@ -500,7 +552,74 @@ export default function EmployeeTimeSheets() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-800">
-                          {r.totalHours}
+                          {Math.round(
+                            Math.max(
+                              0,
+                              (r.totalHours || 0) - (r.overtimeHours || 0),
+                            ) * 10,
+                          ) / 10}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums font-semibold text-amber-700">
+                          {otEditId === r.employeeId ? (
+                            <div
+                              className="flex items-center justify-end gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={otDraft}
+                                autoFocus
+                                disabled={otSaving}
+                                onChange={(e) => setOtDraft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") void saveOt(r);
+                                  if (e.key === "Escape") cancelEditOt();
+                                }}
+                                className="h-7 w-16 rounded-md border border-slate-300 px-2 text-right text-xs tabular-nums focus:border-violet-400 focus:outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void saveOt(r)}
+                                disabled={otSaving}
+                                title="Save"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                              >
+                                {otSaving ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditOt}
+                                disabled={otSaving}
+                                title="Cancel"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : r.editableOvertime ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditOt(r);
+                              }}
+                              title="Edit overtime hours"
+                              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-amber-50"
+                            >
+                              {r.overtimeHours ? `${r.overtimeHours} h` : "—"}
+                              <Pencil className="h-3 w-3 text-slate-400" />
+                            </button>
+                          ) : r.overtimeHours ? (
+                            `${r.overtimeHours} h`
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     );
