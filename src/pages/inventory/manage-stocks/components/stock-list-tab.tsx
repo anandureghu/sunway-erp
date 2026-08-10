@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
+import { ImportItemsCsvDialog } from "./import-items-csv-dialog";
 
 type StockListTabProps = {
   searchQuery: string;
@@ -26,6 +27,7 @@ type StockListTabProps = {
   loadError: string | null;
   filteredStock: ItemResponseDTO[];
   onRowNavigate: (item: ItemResponseDTO) => void;
+  onImported?: () => void;
 };
 
 function exportToCsv(data: ItemResponseDTO[]) {
@@ -150,6 +152,7 @@ export function StockListTab({
   loadError,
   filteredStock,
   onRowNavigate,
+  onImported,
 }: StockListTabProps) {
   return (
     <div className="space-y-4 mt-6">
@@ -191,6 +194,7 @@ export function StockListTab({
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2 ml-auto">
+          {onImported && <ImportItemsCsvDialog onImported={onImported} />}
           <Button
             variant="outline"
             size="sm"

@@ -447,7 +447,7 @@ export const getSidebarItems = async (
 
           return [
             {
-              title: "Finance",
+              title: "Finance and Accounting",
               icon: DollarSign,
               color: "text-green-700",
               image: "/assets/images/finance.svg",

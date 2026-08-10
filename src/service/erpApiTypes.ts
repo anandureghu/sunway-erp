@@ -150,6 +150,9 @@ export type ItemResponseDTO = {
 
   status: "active" | "discontinued" | "out_of_stock";
 
+  /** JSON string of unmapped import columns (header → value). */
+  metadata?: string | null;
+
   createdAt: string;
   updatedAt: string | null;
 
@@ -404,9 +407,11 @@ export type SalesOrderUpdateDTO = {
 };
 
 export type SalesOrderItemResponseDTO = {
+  id?: Id;
   itemId?: Id;
   itemName?: string;
   quantity?: number;
+  returnedQty?: number;
   unitPrice?: number;
   lineSubtotal?: number;
   discountPercent?: number;

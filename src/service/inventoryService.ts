@@ -329,6 +329,30 @@ export const createItem = async (formData: FormData) => {
   return res.data;
 };
 
+export type ItemCsvImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  fieldMapping?: Record<string, string | null>;
+  aiMapped?: boolean;
+  errors: { row: number; sku?: string | null; message: string }[];
+};
+
+export async function importItemsCsv(file: File): Promise<ItemCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<ItemCsvImportResult>(
+    "/inventory/items/import-csv",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return res.data;
+}
+
 export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
   const res = await apiClient.put<ItemResponseDTO>(
     `/inventory/items/${id}`,

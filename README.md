@@ -52,6 +52,15 @@ npm run dev
 
 Open **[http://localhost:5173](http://localhost:5173)** (or the port printed in the terminal if you override it).
 
+### Git hooks (Husky)
+
+`npm install` enables Husky via the `prepare` script. On every commit:
+
+- **pre-commit** runs `npm run build` (`tsc -b && vite build`) and blocks the commit if it fails
+- **prepare-commit-msg** strips Cursor `Co-authored-by` trailers
+
+To skip hooks for an emergency commit only: `git commit --no-verify` (avoid when possible).
+
 ### API base URL
 
 The dev server can talk to the API in two ways:

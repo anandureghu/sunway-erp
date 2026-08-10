@@ -2,7 +2,8 @@ export type CreditNoteStatus =
   | "DRAFT"
   | "APPLIED"
   | "AVAILABLE"
-  | "PARTIALLY_APPLIED";
+  | "PARTIALLY_APPLIED"
+  | "CASHED";
 
 export interface CreditNote {
   id: number;

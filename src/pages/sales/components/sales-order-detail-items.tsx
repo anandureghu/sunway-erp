@@ -101,7 +101,12 @@ export function SalesOrderDetailItems({ so }: Props) {
                       </p>
                     </td>
                     <td className="px-3 py-3 align-middle text-center tabular-nums text-slate-800">
-                      {item.quantity || 0}
+                      <div>{item.quantity || 0}</div>
+                      {(item.returnedQty ?? 0) > 0 ? (
+                        <div className="mt-0.5 text-[11px] font-medium text-amber-700">
+                          {item.returnedQty} returned
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <div className="flex justify-center">

@@ -133,7 +133,7 @@ function ModulesDialog({
     },
     {
       key: "finance",
-      label: "Finance",
+      label: "Finance and Accounting",
       description: "Accounts, invoices and general ledger",
       icon: DollarSign,
       color: "text-emerald-600",
@@ -438,7 +438,7 @@ export default function CompanyDetailPage() {
       border: "border-violet-100",
     },
     {
-      label: "Finance",
+      label: "Finance and Accounting",
       icon: DollarSign,
       enabled: company.financeEnabled,
       color: "text-emerald-600",

@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { SalesOrderBalanceWarning } from "./sales-order-balance-warning";
 import { SalesOrderDetailCustomer } from "./sales-order-detail-customer";
 import { SalesOrderHeroTotals } from "./sales-order-hero-totals";
+import { CreateSalesReturnDialog } from "./create-sales-return-dialog";
 import {
   formatStatusLabel,
   ORDER_STATUS_STYLES,
@@ -26,6 +27,7 @@ type Props = {
   onConfirm: () => void;
   onCancel: () => void;
   onDownloadDocument: () => void;
+  onReturned?: () => void;
 };
 
 export function SalesOrderDetailHero({
@@ -34,6 +36,7 @@ export function SalesOrderDetailHero({
   onConfirm,
   onCancel,
   onDownloadDocument,
+  onReturned,
 }: Props) {
   const status = orderStatusKey(so);
   const payment = paymentStatusKey(so);
@@ -44,7 +47,15 @@ export function SalesOrderDetailHero({
   const showDocumentActions =
     hasSalesInvoice && !isQuotation && status !== "CANCELLED";
   const showReceiptActions = isInvoiceReceiptView(so.paymentStatus);
-  const hasActions = isQuotation || showDocumentActions;
+  const canReturn =
+    !isQuotation &&
+    status !== "CANCELLED" &&
+    (so.items ?? []).some((line) => {
+      const ordered = line.quantity ?? 0;
+      const returned = line.returnedQty ?? 0;
+      return ordered - returned > 0;
+    });
+  const hasActions = isQuotation || showDocumentActions || canReturn;
 
   const statusStyle =
     ORDER_STATUS_STYLES[status] ?? "bg-slate-100 text-slate-700";
@@ -145,6 +156,10 @@ export function SalesOrderDetailHero({
                       </Link>
                     </Button>
                   </>
+                ) : null}
+
+                {canReturn && onReturned ? (
+                  <CreateSalesReturnDialog so={so} onReturned={onReturned} />
                 ) : null}
               </div>
             ) : null}

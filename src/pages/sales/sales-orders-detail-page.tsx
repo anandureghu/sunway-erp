@@ -205,6 +205,11 @@ const SalesOrdersDetailPage = () => {
           onConfirm={() => void updateStatus("confirm")}
           onCancel={() => void updateStatus("cancel")}
           onDownloadDocument={() => void handleDownloadDocumentPdf()}
+          onReturned={() => {
+            apiClient
+              .get<SalesOrderResponseDTO>(`/sales/orders/${id}`)
+              .then(({ data }) => setSo(data));
+          }}
         />
       </div>
     </div>

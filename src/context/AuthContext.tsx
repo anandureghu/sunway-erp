@@ -15,6 +15,8 @@ import {
   type CompanySummary,
   type JwtLoginResponse,
 } from "@/types/auth-company";
+import type { SubscriptionStatusResponse } from "@/types/subscription";
+import { fetchMySubscriptionStatus } from "@/service/subscriptionService";
 
 type DecodedToken = {
   userId?: number;
@@ -46,6 +48,8 @@ type AuthContextType = {
   accountPeriodOpen: boolean;
   fetchAccountPeriodStatus: () => void;
   openPeriod?: AccountingPeriod | null;
+  subscriptionStatus: SubscriptionStatusResponse | null;
+  refreshSubscriptionStatus: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -87,6 +91,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     Record<string, boolean>
   > | null>(null);
   const [permissionsLoading, setPermissionsLoading] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] =
+    useState<SubscriptionStatusResponse | null>(null);
+
+  const refreshSubscriptionStatus = async () => {
+    try {
+      const status = await fetchMySubscriptionStatus();
+      setSubscriptionStatus(status);
+    } catch (err) {
+      console.error("Failed to load subscription status", err);
+    }
+  };
 
   // ✅ NEW: Helper function to convert backend permission format to frontend
   const convertPermissionsToFrontendFormat = (
@@ -420,6 +435,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         applyUserFromToken(accessToken);
+        void refreshSubscriptionStatus();
       } catch (e) {
         console.warn("Invalid token, logging out: ", e);
         logout();
@@ -489,6 +505,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setCompanies(meta.companies);
     }
 
+    if (meta?.subscriptionStatus) {
+      setSubscriptionStatus(meta.subscriptionStatus);
+    } else {
+      void refreshSubscriptionStatus();
+    }
+
     setCompany(null);
 
     try {
@@ -504,14 +526,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const res = await apiClient.post<JwtLoginResponse>("/auth/switch-company", {
         companyId,
       });
-      const { accessToken, refreshToken, companies: companyList } = res.data;
+      const { accessToken, refreshToken, companies: companyList, subscriptionStatus: subStatus } = res.data;
       if (!accessToken) {
         toast.error("Failed to switch company");
         return;
       }
       localStorage.setItem(ACTIVE_COMPANY_KEY, String(companyId));
       setCompany(null);
-      login(accessToken, refreshToken ?? "", { companies: companyList });
+      login(accessToken, refreshToken ?? "", {
+        companies: companyList,
+        subscriptionStatus: subStatus ?? undefined,
+      });
 
       const remapped = remapCompanyScopedPath(location.pathname, companyId);
       if (remapped) {
@@ -569,6 +594,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCompany(null);
     setCompanies([]);
     setPermissions(null);
+    setSubscriptionStatus(null);
     setAccessToken(null);
     setRefreshToken(null);
     localStorage.removeItem("accessToken");
@@ -588,6 +614,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? Number(company.id)
         : null;
 
+  useEffect(() => {
+    if (accessToken && activeCompanyId != null) {
+      void refreshSubscriptionStatus();
+    }
+  }, [activeCompanyId, accessToken]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -606,6 +638,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         accountPeriodOpen,
         fetchAccountPeriodStatus,
         openPeriod,
+        subscriptionStatus,
+        refreshSubscriptionStatus,
       }}
     >
       {children}

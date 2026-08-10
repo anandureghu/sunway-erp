@@ -26,6 +26,9 @@ import type { Company } from "@/types/company";
 import { hasAnyRole } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { INDUSTRY_OPTIONS } from "@/lib/industry-options";
+import { fetchSubscription } from "@/service/subscriptionService";
+import type { SubscriptionPlanType } from "@/types/subscription";
+import { useAuth } from "@/context/AuthContext";
 
 interface CompanyFormProps {
   onSubmit: (
@@ -105,7 +108,9 @@ export const CompanyForm = ({
     [defaultValues],
   );
 
+  const { user: authUser } = useAuth();
   const { user } = useAppSelector((state) => state);
+  const superAdmin = authUser?.role === "SUPER_ADMIN" || hasAnyRole(user?.role, ["SUPER_ADMIN"]);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -138,6 +143,11 @@ export const CompanyForm = ({
       country: "India",
       phoneNo: "",
       currencyId: undefined,
+      subscriptionPlanType: "FREE",
+      subscriptionAmount: 0,
+      subscriptionStartsAt: new Date().toISOString().slice(0, 10),
+      subscriptionEndsAt: "",
+      subscriptionWarningDays: 7,
       ...normalizedDefaults,
     },
   });
@@ -156,10 +166,50 @@ export const CompanyForm = ({
         country: "India",
         phoneNo: "",
         currencyId: undefined,
+        subscriptionPlanType: "FREE",
+        subscriptionAmount: 0,
+        subscriptionStartsAt: new Date().toISOString().slice(0, 10),
+        subscriptionEndsAt: "",
+        subscriptionWarningDays: 7,
         ...normalizedDefaults,
       });
     }
   }, [normalizedDefaults, form]);
+
+  useEffect(() => {
+    const companyId =
+      defaultValues && "id" in defaultValues && defaultValues.id != null
+        ? Number(defaultValues.id)
+        : null;
+    if (!isEditMode || !companyId || !superAdmin) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const sub = await fetchSubscription(companyId);
+        if (cancelled) return;
+        form.setValue("subscriptionPlanType", sub.planType);
+        form.setValue("subscriptionAmount", Number(sub.amount ?? 0));
+        form.setValue("subscriptionStartsAt", sub.startsAt);
+        form.setValue("subscriptionEndsAt", sub.endsAt ?? "");
+        form.setValue("subscriptionWarningDays", sub.warningDays ?? 7);
+      } catch {
+        // New companies may not have a row yet until migration/backfill
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, defaultValues, form, superAdmin]);
+
+  const planType = form.watch("subscriptionPlanType");
+
+  useEffect(() => {
+    if (planType === "FREE") {
+      form.setValue("subscriptionAmount", 0);
+    }
+  }, [planType, form]);
 
   const handleSubmit: SubmitHandler<CompanyFormData> = async (values) => {
     await onSubmit(values, logoFile);
@@ -401,7 +451,7 @@ export const CompanyForm = ({
           </div>
         </div>
 
-        {hasAnyRole(user?.role, ["SUPER_ADMIN"]) && (
+        {superAdmin && (
           <div className="space-y-2 border p-4 rounded-md">
             <p className="font-medium text-sm">Subscribed Modules</p>
 
@@ -459,6 +509,121 @@ export const CompanyForm = ({
                       />
                     </FormControl>
                     <FormLabel className="m-0">Inventory</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        {superAdmin && (
+          <div className="space-y-3 border p-4 rounded-md">
+            <p className="font-medium text-sm">Platform Subscription</p>
+            <p className="text-xs text-muted-foreground">
+              Per-company plan and amount. Free is open-ended unless an end date
+              is set. New companies default to Free if left unchanged.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="subscriptionPlanType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plan</FormLabel>
+                    <Select
+                      value={field.value ?? "FREE"}
+                      onValueChange={(v) =>
+                        field.onChange(v as SubscriptionPlanType)
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="FREE">Free</SelectItem>
+                        <SelectItem value="MONTHLY">Monthly</SelectItem>
+                        <SelectItem value="YEARLY">Yearly</SelectItem>
+                        <SelectItem value="CUSTOM">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="subscriptionAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        disabled={planType === "FREE"}
+                        value={field.value ?? 0}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 0,
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="subscriptionStartsAt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Starts</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="subscriptionEndsAt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Ends
+                      {planType === "FREE" ? " (optional)" : ""}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="subscriptionWarningDays"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Warning days</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={field.value ?? 7}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : 7,
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

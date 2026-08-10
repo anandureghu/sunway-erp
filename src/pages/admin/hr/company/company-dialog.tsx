@@ -12,9 +12,13 @@ import { toast } from "sonner";
 import { apiClient } from "@/service/apiClient";
 import type { Company } from "@/types/company";
 import type { CompanyFormData } from "@/schema/company";
+import { companyPayloadFromForm } from "@/schema/company";
 import { CompanyForm } from "./company-form";
 import type { AxiosError } from "axios";
 import { X, Building2 } from "lucide-react";
+import { assignSubscription } from "@/service/subscriptionService";
+import type { SubscriptionPlanType } from "@/types/subscription";
+import { useAuth } from "@/context/AuthContext";
 
 interface CompanyDialogProps {
   open: boolean;
@@ -72,6 +76,8 @@ export const CompanyDialog = ({
 }: CompanyDialogProps) => {
   const [submitting, setSubmitting] = useState(false);
   const isEditMode = !!company;
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
   const handleSubmit = async (
     data: CompanyFormData,
@@ -80,10 +86,11 @@ export const CompanyDialog = ({
     try {
       setSubmitting(true);
 
+      const companyData = companyPayloadFromForm(data);
       const formData = new FormData();
       formData.append(
         "data",
-        new Blob([JSON.stringify(data)], { type: "application/json" }),
+        new Blob([JSON.stringify(companyData)], { type: "application/json" }),
       );
       if (logoFile) formData.append("logo", logoFile);
 
@@ -94,12 +101,35 @@ export const CompanyDialog = ({
         ? await apiClient.put(`/companies/${company!.id}`, formData, config)
         : await apiClient.post("/companies", formData, config);
 
+      const saved: Company = res.data;
+
+      if (isSuperAdmin && data.subscriptionPlanType) {
+        try {
+          const planType = data.subscriptionPlanType as SubscriptionPlanType;
+          await assignSubscription(saved.id, {
+            planType,
+            amount: planType === "FREE" ? 0 : data.subscriptionAmount ?? 0,
+            startsAt:
+              data.subscriptionStartsAt ||
+              new Date().toISOString().slice(0, 10),
+            endsAt: data.subscriptionEndsAt || null,
+            warningDays: data.subscriptionWarningDays ?? 7,
+            syncCompanyModules: false,
+          });
+        } catch (subErr) {
+          console.error("Subscription assign failed:", subErr);
+          toast.error(
+            "Company saved, but subscription update failed. Fix it under Subscriptions.",
+          );
+        }
+      }
+
       toast.success(
         isEditMode
           ? "Company updated successfully"
           : "Company added successfully",
       );
-      onSuccess(res.data, isEditMode ? "edit" : "add");
+      onSuccess(saved, isEditMode ? "edit" : "add");
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting company:", error);

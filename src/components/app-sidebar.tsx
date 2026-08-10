@@ -31,6 +31,7 @@ import {
   PinOff,
   ScrollText,
   Shield,
+  CreditCard,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -197,6 +198,7 @@ export function AppSidebar() {
       color: "text-sky-600 dark:text-sky-400",
       items: [
         { title: "Companies", url: "/admin/company", icon: Building },
+        { title: "Subscriptions", url: "/admin/subscriptions", icon: CreditCard },
         { title: "System Logs", url: "/admin/system-logs", icon: ScrollText },
       ],
     },

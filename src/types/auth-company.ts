@@ -1,3 +1,5 @@
+import type { SubscriptionStatusResponse } from "@/types/subscription";
+
 export type CompanySummary = {
   id: number;
   companyName: string;
@@ -14,6 +16,7 @@ export type JwtLoginResponse = {
   companies?: CompanySummary[];
   requiresCompanySelection?: boolean;
   forcePasswordReset?: boolean;
+  subscriptionStatus?: SubscriptionStatusResponse | null;
 };
 
 export type UserSearchResult = {
