@@ -300,11 +300,12 @@ export function EmployeeDialog({
   const onSubmit = async (values: FormValues): Promise<void> => {
     setLoading(true);
 
-    // The dropdown now lists company roles (from /api/roles), so the selected
-    // value is a CompanyRole name. Send it as `companyRole` (and the matching
-    // `companyRoleId` when we have it). The Spring Security `role` enum is
-    // left at the backend's default (USER) unless an admin overrides it
-    // elsewhere — HR shouldn't be picking it from this dialog.
+    // The dropdown lists company roles (from /api/roles), so the selected value is
+    // a CompanyRole name — sent as `companyRole` (+ its `companyRoleId`). This dialog
+    // is used only to create/edit a *company administrator*, so we also elevate the
+    // Spring Security `role` to `presetRole` (ADMIN). Without it the account defaults
+    // to USER and the "Company Admin" panel (which matches on User.role ∈ ADMIN/…)
+    // never finds it — leaving "No admin assigned" after a successful create.
     const selectedRole = companyRoles.find((r) => r.name === values.role);
 
     const payload = {
@@ -316,6 +317,7 @@ export function EmployeeDialog({
       companyId,
       companyRole: values.role || undefined,
       companyRoleId: selectedRole?.id,
+      role: presetRole,
     };
 
     try {
