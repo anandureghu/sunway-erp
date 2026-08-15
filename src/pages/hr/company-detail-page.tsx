@@ -49,13 +49,56 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Wallet,
+  AlarmClock,
 } from "lucide-react";
 import { CompanyDialog } from "../admin/hr/company/company-dialog";
 import { EmployeeDialog } from "../admin/hr/employee/employee-dialog";
+import { AssignSubscriptionDialog } from "@/pages/admin/subscriptions/assign-subscription-dialog";
+import { fetchSubscription } from "@/service/subscriptionService";
+import type {
+  CompanySubscription,
+  SubscriptionStatus,
+} from "@/types/subscription";
 import type { Employee } from "@/types/hr";
 import { useAppSelector } from "@/store/store";
 import { hasAnyRole, formatBytes, cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+
+function subscriptionStatusBadge(status: SubscriptionStatus) {
+  const className =
+    status === "ACTIVE"
+      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+      : status === "EXPIRING"
+        ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
+        : status === "EXPIRED" ||
+            status === "CANCELLED" ||
+            status === "SUSPENDED"
+          ? "bg-red-100 text-red-700 hover:bg-red-100"
+          : "bg-slate-100 text-slate-600 hover:bg-slate-100";
+  return (
+    <Badge className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${className}`}>
+      {status}
+    </Badge>
+  );
+}
+
+function formatSubscriptionMoney(
+  amount?: number | null,
+  currency?: string | null,
+) {
+  if (amount == null) return "—";
+  return `${Number(amount).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}${currency ? ` ${currency}` : ""}`;
+}
+
+function formatSubscriptionDate(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value.includes("T") ? value : `${value}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString();
+}
 
 const passwordRules = (pw: string) => [
   { ok: pw.length >= 8, label: "At least 8 characters" },
@@ -288,6 +331,11 @@ export default function CompanyDetailPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [subscription, setSubscription] = useState<CompanySubscription | null>(
+    null,
+  );
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [openSubscription, setOpenSubscription] = useState(false);
 
   const openAdminPasswordReset = () => {
     setResetPassword("");
@@ -358,6 +406,23 @@ export default function CompanyDetailPage() {
     }
   };
 
+  const fetchCompanySubscription = async () => {
+    if (!id || id === "undefined" || !isSuperAdmin) {
+      setSubscription(null);
+      return;
+    }
+    setSubscriptionLoading(true);
+    try {
+      const data = await fetchSubscription(Number(id));
+      setSubscription(data);
+    } catch (err) {
+      console.warn("fetchCompanySubscription:", err);
+      setSubscription(null);
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  };
+
   const fetchCompanyAdmin = async () => {
     if (!id || id === "undefined") return;
     setAdminLoading(true);
@@ -425,7 +490,8 @@ export default function CompanyDetailPage() {
     setAdminLoading(true);
     void fetchCompany();
     void fetchCompanyAdmin();
-  }, [id, user?.companyId, navigate]);
+    void fetchCompanySubscription();
+  }, [id, user?.companyId, navigate, isSuperAdmin]);
 
   if (loading)
     return (
@@ -718,6 +784,156 @@ export default function CompanyDetailPage() {
         </Card>
       </div>
 
+      {/* ── Platform Subscription (SUPER_ADMIN) ── */}
+      {isSuperAdmin && (
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-[15px] font-semibold text-slate-800">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
+                  <Wallet className="h-4 w-4 text-indigo-600" />
+                </div>
+                Platform Subscription
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setOpenSubscription(true)}
+                disabled={subscriptionLoading}
+                className="h-7 gap-1 rounded-lg px-2.5 text-[12px] text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <Edit className="h-3 w-3" />
+                Manage
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {subscriptionLoading ? (
+              <div className="flex items-center gap-2 py-2 text-sm text-slate-500">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-slate-500" />
+                Loading subscription…
+              </div>
+            ) : subscription ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {subscriptionStatusBadge(subscription.status)}
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+                  >
+                    {subscription.planType}
+                  </Badge>
+                  {subscription.locked && (
+                    <Badge className="gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-semibold text-red-700 hover:bg-red-100">
+                      <Lock className="h-3 w-3" />
+                      Locked
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Amount
+                    </p>
+                    <p className="mt-0.5 text-[14px] font-semibold text-slate-700">
+                      {formatSubscriptionMoney(
+                        subscription.amount,
+                        subscription.currencyCode,
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Starts
+                    </p>
+                    <p className="mt-0.5 text-[14px] font-semibold text-slate-700">
+                      {formatSubscriptionDate(subscription.startsAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Ends
+                    </p>
+                    <p className="mt-0.5 text-[14px] font-semibold text-slate-700">
+                      {formatSubscriptionDate(subscription.endsAt)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Days remaining
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[14px] font-semibold text-slate-700">
+                      <AlarmClock className="h-3.5 w-3.5 text-slate-400" />
+                      {subscription.daysRemaining != null
+                        ? subscription.daysRemaining
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Warning / grace
+                    </p>
+                    <p className="mt-0.5 text-[13px] text-slate-700">
+                      Warn {subscription.warningDays} day
+                      {subscription.warningDays === 1 ? "" : "s"} before end
+                      {subscription.graceDays > 0
+                        ? ` · ${subscription.graceDays} day grace`
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Last payment
+                    </p>
+                    <p className="mt-0.5 text-[13px] text-slate-700">
+                      {subscription.lastPaymentOn
+                        ? `${formatSubscriptionDate(subscription.lastPaymentOn)}${
+                            subscription.lastPaymentAmount != null
+                              ? ` · ${formatSubscriptionMoney(
+                                  subscription.lastPaymentAmount,
+                                  subscription.currencyCode,
+                                )}`
+                              : ""
+                          }`
+                        : "No payments recorded"}
+                    </p>
+                  </div>
+                </div>
+
+                {subscription.notes && (
+                  <p className="text-[12px] text-slate-500">
+                    <span className="font-medium text-slate-600">Notes:</span>{" "}
+                    {subscription.notes}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-5 py-4">
+                <div>
+                  <p className="text-[13px] font-medium text-slate-700">
+                    No subscription assigned
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-slate-500">
+                    Assign a plan so this company can access the platform.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setOpenSubscription(true)}
+                  className="h-8 rounded-xl bg-linear-to-r from-violet-600 to-indigo-600 px-4 text-[13px] font-semibold text-white hover:from-violet-700 hover:to-indigo-700"
+                >
+                  Assign plan
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Storage Usage (SUPER_ADMIN only) ── */}
       {isSuperAdmin && (
         <Card className="rounded-2xl border-slate-200 shadow-sm">
@@ -891,8 +1107,24 @@ export default function CompanyDetailPage() {
         onSuccess={() => {
           setOpen(false);
           fetchCompany();
+          void fetchCompanySubscription();
         }}
       />
+
+      {company && isSuperAdmin && (
+        <AssignSubscriptionDialog
+          open={openSubscription}
+          onOpenChange={setOpenSubscription}
+          companyId={company.id}
+          companyName={company.companyName}
+          initial={subscription}
+          onSaved={() => {
+            setOpenSubscription(false);
+            void fetchCompanySubscription();
+            void fetchCompany();
+          }}
+        />
+      )}
 
       {company && (
         <ModulesDialog
