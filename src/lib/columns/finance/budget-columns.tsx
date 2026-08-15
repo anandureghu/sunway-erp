@@ -28,6 +28,8 @@ export const BUDGET_COLUMNS = ({
   onReject,
   onHold,
   company,
+  canCreate = true,
+  canEdit = true,
 }: {
   onRevise: (row: BudgetResponseDTO) => void;
   onDistribute: (row: BudgetResponseDTO) => void;
@@ -35,6 +37,8 @@ export const BUDGET_COLUMNS = ({
   onReject: (row: BudgetResponseDTO) => void;
   onHold: (row: BudgetResponseDTO) => void;
   company: Company;
+  canCreate?: boolean;
+  canEdit?: boolean;
 }): ColumnDef<BudgetResponseDTO>[] => [
   {
     header: "Name",
@@ -108,7 +112,9 @@ export const BUDGET_COLUMNS = ({
         entry.status === "APPROVED" && entry.isActive !== false;
       const canApproveOrHold =
         entry.status === "IMPLEMENTED" || entry.status === "HOLD";
-      const hasActions = isActiveApproved || canApproveOrHold;
+      const showReviseOrDistribute = isActiveApproved && (canCreate || canEdit);
+      const showLifecycleActions = canApproveOrHold && canEdit;
+      const hasActions = showReviseOrDistribute || showLifecycleActions;
 
       if (!hasActions) {
         return <span className="text-muted-foreground">—</span>;
@@ -127,18 +133,22 @@ export const BUDGET_COLUMNS = ({
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <Separator />
 
-              {isActiveApproved && (
+              {showReviseOrDistribute && (
                 <>
-                  <DropdownMenuItem onClick={() => onRevise(entry)}>
-                    Revise
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onDistribute(entry)}>
-                    Distribute Budget
-                  </DropdownMenuItem>
+                  {canEdit && (
+                    <DropdownMenuItem onClick={() => onRevise(entry)}>
+                      Revise
+                    </DropdownMenuItem>
+                  )}
+                  {canCreate && (
+                    <DropdownMenuItem onClick={() => onDistribute(entry)}>
+                      Distribute Budget
+                    </DropdownMenuItem>
+                  )}
                 </>
               )}
 
-              {canApproveOrHold && (
+              {showLifecycleActions && (
                 <>
                   <DropdownMenuItem onClick={() => onApprove(entry)}>
                     Approve

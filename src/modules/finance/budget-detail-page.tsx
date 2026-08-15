@@ -20,6 +20,8 @@ import type {
 import { BudgetDistributeDialog } from "./budget-distribute-dialog";
 import { ArrowLeft, Archive, Plus, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useModulePermission } from "@/hooks/use-module-permission";
+import { MODULES } from "@/service/permissionService";
 import { StatusBadge } from "@/lib/status-badge";
 import { CreditAmount } from "@/components/accounting-amount";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,7 @@ export default function BudgetDetailPage() {
   const { confirm } = useConfirmDialog();
   const { id } = useParams();
   const { company } = useAuth();
+  const { canCreate } = useModulePermission(MODULES.FINANCE_BUDGET);
   const navigate = useNavigate();
 
   const [data, setData] = useState<BudgetResponseDTO | null>(null);
@@ -109,7 +112,7 @@ export default function BudgetDetailPage() {
     (data?.amount ?? 0) - (data?.distributedAmount ?? 0);
 
   const canDistribute =
-    data?.status === "APPROVED" && data?.isActive !== false;
+    canCreate && data?.status === "APPROVED" && data?.isActive !== false;
 
   if (loading) {
     return (
