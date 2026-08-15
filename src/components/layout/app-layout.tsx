@@ -9,6 +9,7 @@ import { AssistantSidebar } from "@/components/assistant/assistant-sidebar";
 import { SubscriptionExpiryBanner } from "@/components/subscription/subscription-expiry-banner";
 import { SubscriptionHardLock } from "@/components/subscription/subscription-hard-lock";
 import { MaxShiftCheckoutGuard } from "@/components/max-shift-checkout-guard";
+import { SessionIdleTimeoutGuard } from "@/components/session-idle-timeout-guard";
 
 const LayoutBody = () => {
   const { company } = useAuth();
@@ -16,6 +17,7 @@ const LayoutBody = () => {
   return (
     <>
       <MaxShiftCheckoutGuard />
+      <SessionIdleTimeoutGuard />
       <AppSidebar />
       <SidebarEdgeHoverOpen />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-muted/30 transition-[margin] duration-200 ease-linear pb-[60px]">
