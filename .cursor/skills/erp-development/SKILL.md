@@ -63,6 +63,7 @@ npm run build
 
 <!-- Agents: prepend new bullets here (newest first). Do not duplicate project.mdc. -->
 
+- **Session idle timeout** — Company HR policy `sessionIdleTimeoutMinutes` (`0`/off, `15`, `20`, `30`). UI in `HrPoliciesForm`; `SessionIdleTimeoutGuard` in `app-layout` signs out after inactivity (warns last 60s). Not attendance check-out — that is `maxShiftCheckoutGraceMinutes` + `MaxShiftCheckoutGuard`.
 - **Purchase orders (draft edit)** — Edit from list when `status === "draft"`; `purchase-order-form` sends `supplierId` on update; use `CurrencyAmount` for money; supplier `Select` stays enabled in edit mode.
 - **PO → AP** — Pay vendors only after **Release to supplier** (`confirmed`). `vendorPaymentSettled === true` means AP payment confirmed; cancel PO only while draft and unpaid. AP: Vendor payments + Purchase invoices tabs.
 - **PO receipts** — After AP payment confirm: download **invoice receipt** (`getInvoicePdfUrl`) and **payment receipt** (`GET /finance/payments/{id}/pdf`) from PO detail; purchase invoice detail has Invoice/Receipt tabs for GENERATED docs.

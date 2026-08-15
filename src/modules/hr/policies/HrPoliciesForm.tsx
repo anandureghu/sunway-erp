@@ -26,6 +26,7 @@ const DEFAULT_HR_POLICIES: HrPoliciesPayload = {
   standardWorkingHoursPerDay: 6,
   requireCheckIn: true,
   maxShiftCheckoutGraceMinutes: 0,
+  sessionIdleTimeoutMinutes: 0,
   probationPeriodMonths: 3,
   otDayRateMultiplier: 1.25,
   otNightFridayHolidayRateMultiplier: 1.5,
@@ -70,6 +71,7 @@ export default function HrPoliciesForm() {
         const normalized = {
           ...data,
           maxShiftCheckoutGraceMinutes: data.maxShiftCheckoutGraceMinutes ?? 0,
+          sessionIdleTimeoutMinutes: data.sessionIdleTimeoutMinutes ?? 0,
         };
         setHrPolicies(normalized);
         setSavedHrPolicies(normalized);
@@ -316,6 +318,54 @@ export default function HrPoliciesForm() {
                       onClick={() =>
                         updateHrPolicyField(
                           "maxShiftCheckoutGraceMinutes",
+                          opt.value,
+                        )
+                      }
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        selected
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-2 xl:col-span-2 rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <Timer className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-700">
+                    System idle timeout
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Sign users out of the ERP after this much inactivity. This is
+                    a session security timeout — it does not check out attendance.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {(
+                  [
+                    { value: 0, label: "Off" },
+                    { value: 15, label: "15 min" },
+                    { value: 20, label: "20 min" },
+                    { value: 30, label: "30 min" },
+                  ] as const
+                ).map((opt) => {
+                  const current = hrPolicies.sessionIdleTimeoutMinutes ?? 0;
+                  const selected = current === opt.value;
+                  return (
+                    <button
+                      key={String(opt.value)}
+                      type="button"
+                      disabled={hrPoliciesLoading}
+                      onClick={() =>
+                        updateHrPolicyField(
+                          "sessionIdleTimeoutMinutes",
                           opt.value,
                         )
                       }
