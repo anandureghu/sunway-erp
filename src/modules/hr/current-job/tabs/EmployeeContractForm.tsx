@@ -294,6 +294,13 @@ function buildSalaryOptions(s: any): SalaryOption[] {
       effectiveDate,
     });
   }
+  if (Number(s.foodAllowance) > 0) {
+    opts.push({
+      name: "Food Allowance",
+      amount: String(s.foodAllowance),
+      effectiveDate,
+    });
+  }
   if (Number(s.otherAllowance) > 0) {
     opts.push({
       name: "Other Allowance",
