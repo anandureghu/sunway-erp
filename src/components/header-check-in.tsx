@@ -19,28 +19,44 @@ function elapsedLabel(checkInIso?: string | null): string {
 
 /**
  * Header shift widget — lets an employee start (check in) or end (check out) their
- * shift from anywhere. Only shown for users linked to an employee record.
+ * shift from anywhere. Only shown for users linked to an employee record, and only
+ * when the active company requires punch in/out (`requireCheckIn`).
  */
 export function HeaderCheckIn() {
   const { user } = useAuth();
   const empIdRaw = (user as { employeeId?: number | string } | null)
     ?.employeeId;
   const empId = empIdRaw != null ? Number(empIdRaw) : null;
+  const companyId = user?.companyId != null ? Number(user.companyId) : null;
 
   const [today, setToday] = useState<TimesheetEntry | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [, tick] = useState(0);
 
   useEffect(() => {
-    if (empId == null) return;
+    if (empId == null) {
+      setToday(null);
+      setLoaded(false);
+      return;
+    }
     let mounted = true;
+    setLoaded(false);
     const refresh = () => {
       timesheetService
         .getToday(empId)
         .then((t) => {
-          if (mounted) setToday(t);
+          if (mounted) {
+            setToday(t);
+            setLoaded(true);
+          }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (mounted) {
+            setToday(null);
+            setLoaded(true);
+          }
+        });
     };
     refresh();
     // Re-sync when a check-in/out happens elsewhere (e.g. the Timesheet page).
@@ -49,9 +65,10 @@ export function HeaderCheckIn() {
       mounted = false;
       off();
     };
-  }, [empId]);
+  }, [empId, companyId]);
 
   const checkedIn = !!(today?.checkInTime && !today?.checkOutTime);
+  const punchRequired = today?.requireCheckIn !== false;
 
   // Refresh the elapsed label while checked in.
   useEffect(() => {
@@ -60,7 +77,7 @@ export function HeaderCheckIn() {
     return () => clearInterval(t);
   }, [checkedIn]);
 
-  if (empId == null) return null;
+  if (empId == null || !loaded || !punchRequired) return null;
 
   const complete = !!(today?.checkInTime && today?.checkOutTime);
 
