@@ -13,6 +13,11 @@ export interface TimesheetEntry {
   // Company attendance policy (present on the /today response).
   requireCheckIn?: boolean;
   standardWorkingHoursPerDay?: number;
+  otMaxHoursPerDay?: number;
+  /** Max paid shift in minutes (standard + OT cap). */
+  maxShiftMinutes?: number;
+  /** Grace minutes after max shift before automatic check-out. */
+  maxShiftCheckoutGraceMinutes?: number;
 }
 
 export interface MonthlySummary {

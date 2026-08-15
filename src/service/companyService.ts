@@ -52,6 +52,8 @@ export interface HrPoliciesPayload {
   // ── Attendance & working hours ──
   standardWorkingHoursPerDay?: number;
   requireCheckIn?: boolean;
+  /** Grace minutes after max shift (standard + OT) before auto check-out. */
+  maxShiftCheckoutGraceMinutes?: number | null;
   probationPeriodMonths?: number;
   // ── Overtime (Qatar labor-law defaults) ──
   otDayRateMultiplier?: number;
