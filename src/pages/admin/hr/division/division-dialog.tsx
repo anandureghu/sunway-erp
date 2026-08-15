@@ -444,7 +444,7 @@ export function DivisionDialog({
                                         {m.firstName} {m.lastName}
                                       </span>
                                       <span className="text-[11px] text-slate-400">
-                                        {m.companyRole || "Employee"} — {m.employeeNo}
+                                        {m.designation || "No job title"} — {m.employeeNo}
                                       </span>
                                     </div>
                                   </SelectItem>
