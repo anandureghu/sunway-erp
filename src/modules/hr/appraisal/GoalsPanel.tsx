@@ -168,6 +168,14 @@ export function GoalsPanel({
                       {titleFor(code)}
                     </div>
                   )}
+                  {/* A configured code that matches no active job code is a stale/legacy
+                      entry (e.g. an old company-role name from before the job-code
+                      refactor). Flag it so the admin knows it won't match employees. */}
+                  {!titleFor(code) && availableJobCodes.length > 0 && (
+                    <div className="text-[10px] font-medium text-amber-600 truncate">
+                      ⚠ Legacy — not a current job code
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs text-slate-400">
                       {rg.length} KPIs

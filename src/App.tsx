@@ -42,6 +42,7 @@ import "./App.css";
 import ProfileShell from "./modules/hr/employee/tabs/ProfileShell";
 import EmployeeProfileForm from "./modules/hr/employee/tabs/EmployeeProfileForm";
 import ContactInfoForm from "./modules/hr/employee/tabs/ContactInfoForm";
+import ExitInterviewForm from "./modules/hr/employee/tabs/ExitInterviewForm";
 
 /* Layouts */
 import AuthLayout from "./components/layout/auth-layout";
@@ -649,6 +650,10 @@ export default function App() {
                 <Route index element={<AppraisalsForm />} />
                 <Route path="form" element={<AppraisalsForm />} />
               </Route>
+
+              {/* Exit Interview — only meaningful for exited employees; the form
+                  itself gates on status and the sidebar tab only shows for them. */}
+              <Route path="exit-interview" element={<ExitInterviewForm />} />
             </Route>
           </Route>
         </Route>

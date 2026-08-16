@@ -57,13 +57,16 @@ const SelectEmployees = ({
                 [d.firstName, d.lastName].filter(Boolean).join(" ") ||
                 `Employee #${d.id}`;
               const val = optionValue(d);
+              // Prefer the job title (designation from the job code) over a bare id —
+              // it's what identifies the person's role in the org, not their login role.
+              const subtitle =
+                d.designation ||
+                (idMode === "user" ? `User ID: ${val}` : `ID: ${d.id}`);
               return (
                 <SelectItem key={`${idMode}-${val}`} value={val}>
                   <div>
                     <h2 className="font-semibold">{fullName}</h2>
-                    <h4 className="font-sm text-gray-500">
-                      {idMode === "user" ? `User ID: ${val}` : `ID: ${d.id}`}
-                    </h4>
+                    <h4 className="font-sm text-gray-500">{subtitle}</h4>
                   </div>
                 </SelectItem>
               );

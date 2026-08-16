@@ -261,6 +261,7 @@ export function AppSidebar() {
   const employeeSubModules = getVisibleEmployeeSubModules(
     isPrivileged ? null : permissions,
     empBase,
+    (selected as { status?: string } | null)?.status,
   );
 
   return (

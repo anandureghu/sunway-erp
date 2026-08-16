@@ -35,6 +35,7 @@ import {
   History,
   Archive,
   ArchiveRestore,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
@@ -46,7 +47,6 @@ import { loanService } from "@/service/loanService";
 import { formatMoney } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
-import { ConfirmEmployeesPanel } from "./ConfirmEmployeesPanel";
 import { cn, initialsFrom } from "@/lib/utils";
 import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
@@ -55,6 +55,7 @@ import { kpiFilterItem } from "@/lib/kpi-filter";
 import ImmigrationExpiryReport from "./ImmigrationExpiryReport";
 import EmployeeTimeSheets from "./EmployeeTimeSheets";
 import AttendanceHistory from "./AttendanceHistory";
+import { ExitInterviewsPanel } from "./ExitInterviewsPanel";
 import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
 // ── colour palette ────────────────────────────────────────────────────────────
@@ -230,12 +231,6 @@ const ATTENDANCE_HISTORY_TAB = {
   label: "Attendance History",
   icon: History,
 } as const;
-// Confirm Employees — new hires under probation, confirmable by an approver.
-const CONFIRM_TAB = {
-  id: "confirm",
-  label: "Confirm Employees",
-  icon: UserCheck,
-} as const;
 // Leave Approvals is gated by the LEAVES grant (approvers / HR / admin).
 const LEAVES_TAB = {
   id: "leaves",
@@ -253,6 +248,12 @@ const IMMIGRATION_TAB = {
   label: "Immigration Expiry",
   icon: ShieldAlert,
 } as const;
+// Exit / termination interviews submitted for departing employees.
+const EXIT_TAB = {
+  id: "exit-interviews",
+  label: "Exit Interviews",
+  icon: LogOut,
+} as const;
 const HISTORY_TAB = {
   id: "history",
   label: "History",
@@ -263,20 +264,20 @@ type TabId =
   | "appraisal"
   | "attendance"
   | "attendance-history"
-  | "confirm"
   | "leaves"
   | "loans"
   | "immigration"
+  | "exit-interviews"
   | "history";
 const ALL_TAB_IDS: TabId[] = [
   "workforce",
   "appraisal",
   "attendance",
   "attendance-history",
-  "confirm",
   "leaves",
   "loans",
   "immigration",
+  "exit-interviews",
   "history",
 ];
 
@@ -379,6 +380,16 @@ export default function HRReports() {
   const canImmigration = canView(permissions, "IMMIGRATION");
   const canLeaves = canView(permissions, "LEAVES");
   const canLoans = canView(permissions, "LOANS");
+  // Exit/termination forms list every departing employee company-wide, so it needs
+  // the EMPLOYEE_PROFILE *view-all* grant (matching the endpoint) — not just view-own.
+  // permissions == null → admin bypass; undefined → still loading (show for now).
+  const canExitInterviews =
+    permissions == null ||
+    !!(
+      permissions?.EMPLOYEE_PROFILE?.view_all ||
+      permissions?.EMPLOYEE_PROFILE?.viewAll ||
+      permissions?.EMPLOYEE_PROFILE?.VIEW_ALL
+    );
 
   const visibleTabs = useMemo(() => {
     const tabs: Array<{ id: TabId; label: string; icon: React.ElementType }> =
@@ -386,13 +397,13 @@ export default function HRReports() {
     if (canHrReports) tabs.push(...ANALYTICS_TABS);
     if (canHrReports) tabs.push(ATTENDANCE_TAB);
     if (canHrReports) tabs.push(ATTENDANCE_HISTORY_TAB);
-    if (canHrReports) tabs.push(CONFIRM_TAB);
     if (canLeaves) tabs.push(LEAVES_TAB);
     if (canLoans) tabs.push(LOANS_TAB);
     if (canImmigration) tabs.push(IMMIGRATION_TAB);
+    if (canExitInterviews) tabs.push(EXIT_TAB);
     tabs.push(HISTORY_TAB);
     return tabs;
-  }, [canHrReports, canLeaves, canLoans, canImmigration]);
+  }, [canHrReports, canLeaves, canLoans, canImmigration, canExitInterviews]);
 
   const requestedTab = searchParams.get("tab") as TabId | null;
   const [tab, setTab] = useState<TabId>(
@@ -1909,9 +1920,10 @@ export default function HRReports() {
       {tab === "attendance-history" && <AttendanceHistory />}
 
       {/* ── IMMIGRATION EXPIRY TAB ── */}
-      {tab === "confirm" && <ConfirmEmployeesPanel />}
 
       {tab === "immigration" && <ImmigrationExpiryReport />}
+
+      {tab === "exit-interviews" && <ExitInterviewsPanel />}
 
       {tab === "history" && <HistoryTabPanel module="hr" />}
     </div>

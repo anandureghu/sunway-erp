@@ -18,6 +18,8 @@ export interface Company {
   hrEnabled: boolean;
   financeEnabled: boolean;
   inventoryEnabled: boolean;
+  /** Whether the company punches in/out. When false, the header check-in widget is hidden. */
+  requireCheckIn?: boolean;
   currency?: Currency;
   companyCode: string;
   industry?: string | null;

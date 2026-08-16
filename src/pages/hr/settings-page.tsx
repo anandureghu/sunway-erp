@@ -18,6 +18,7 @@ import {
   Wallet,
   Share2,
   Building2,
+  UserCheck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel"
 import LoanApprovalPanel from "@/modules/hr/loans/approval/LoanApprovalPanel";
 import HrPoliciesForm from "@/modules/hr/policies/HrPoliciesForm";
 import ContractRenewablesPanel from "@/modules/hr/contracts/ContractRenewablesPanel";
+import { ConfirmEmployeesPanel } from "@/modules/hr/reports/ConfirmEmployeesPanel";
 import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
 import { AppTab } from "@/components/app-tab";
 import { PageHeader } from "@/components/PageHeader";
@@ -78,6 +80,15 @@ export default function HRSettingsPage() {
   // (no department-manager fallback for loans today).
   const canApproveLoans =
     isAdmin || !!(permissions?.LOANS?.approve || permissions?.LOANS?.APPROVE);
+
+  // Confirm Employees (probation → active) needs the EMPLOYEE_PROFILE approve grant;
+  // ADMIN/SUPER_ADMIN keep their bypass (permissions is null for them).
+  const canConfirmEmployees =
+    isAdmin ||
+    !!(
+      permissions?.EMPLOYEE_PROFILE?.approve ||
+      permissions?.EMPLOYEE_PROFILE?.APPROVE
+    );
 
   if (permissionsLoading) {
     return (
@@ -153,6 +164,16 @@ export default function HRSettingsPage() {
             label: "Loan Approvals",
             icon: tabIcon(Wallet),
             element: () => <LoanApprovalPanel />,
+          },
+        ]
+      : []),
+    ...(canConfirmEmployees
+      ? [
+          {
+            value: "confirm-employees",
+            label: "Confirm Employees",
+            icon: tabIcon(UserCheck),
+            element: () => <ConfirmEmployeesPanel />,
           },
         ]
       : []),
