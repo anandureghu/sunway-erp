@@ -14,14 +14,16 @@ import { BUDGET_COLUMNS } from "@/lib/columns/finance/budget-columns";
 import { BudgetDialog } from "./budget-dialog";
 import { BudgetDistributeDialog } from "./budget-distribute-dialog";
 import { useAuth } from "@/context/AuthContext";
-import { hasAnyRole } from "@/lib/utils";
+import { useModulePermission } from "@/hooks/use-module-permission";
+import { MODULES } from "@/service/permissionService";
 import { GlTabPanel } from "@/components/finance/gl-tab-panel";
 import { fetchCOAAccounts } from "@/service/coaService";
 import type { ChartOfAccounts } from "@/types/coa";
 
 export default function BudgetPage({ companyId }: { companyId: number }) {
   const navigate = useNavigate();
-  const { user, company } = useAuth();
+  const { company } = useAuth();
+  const { canCreate, canEdit } = useModulePermission(MODULES.FINANCE_BUDGET);
   const [list, setList] = useState<BudgetResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BudgetResponseDTO | null>(null);
@@ -79,10 +81,6 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
     }
   }, [open, refreshBudgetAccountGate]);
 
-  const canManageBudget = hasAnyRole(user?.role, [
-    "FINANCE_MANAGER",
-    "SUPER_ADMIN",
-  ]);
   const showBudgetAccountWarning = hasBudgetAccount === false;
 
   const columns = BUDGET_COLUMNS({
@@ -122,6 +120,8 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
       }
     },
     company: company!,
+    canCreate,
+    canEdit,
   });
 
   const filtered = useMemo(() => {
@@ -165,7 +165,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
           ) : undefined
         }
         actions={
-          canManageBudget ? (
+          canCreate ? (
             <Button
               onClick={() => {
                 setSelected(null);

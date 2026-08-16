@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  KeyRound,
   Lock,
   Shield,
   XCircle,
@@ -123,8 +122,12 @@ function ForgotPasswordResetForm({ email }: { email: string }) {
   return (
     <div className="w-full max-w-[460px] overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/20">
       <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 px-8 py-8 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
-          <KeyRound className="h-7 w-7 text-white" strokeWidth={1.5} />
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white shadow-md ring-1 ring-black/5">
+          <img
+            src="/assets/logo-dark.svg"
+            alt="Sunway"
+            className="h-9 w-9 object-contain"
+          />
         </div>
         <h1 className="font-display text-2xl font-bold text-white">
           Set new password

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, Mail, ShieldCheck } from "lucide-react";
+import { Building2, Mail } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { GradientButton } from "@/components/gradient-button";
 import { OtpInput } from "@/components/auth/otp-input";
@@ -184,8 +184,12 @@ function VerifyOtpForm({ pending }: { pending: PendingAuth }) {
         )}
       >
         <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 px-8 py-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
-            <ShieldCheck className="h-8 w-8 text-white" strokeWidth={1.5} />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-white shadow-md ring-1 ring-black/5">
+            <img
+              src="/assets/logo-dark.svg"
+              alt="Sunway"
+              className="h-9 w-9 object-contain"
+            />
           </div>
           <p className="text-sm font-medium text-white/90">
             {isForgotFlow ? "Password recovery" : "Secure sign-in"}

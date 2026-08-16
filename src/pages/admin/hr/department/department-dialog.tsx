@@ -371,7 +371,7 @@ export function DepartmentDialog({
                                         {m.firstName} {m.lastName}
                                       </span>
                                       <span className="text-[11px] text-slate-400">
-                                        {m.companyRole || "Manager"} — {m.employeeNo}
+                                        {m.designation || "No job title"} — {m.employeeNo}
                                       </span>
                                     </div>
                                   </SelectItem>
