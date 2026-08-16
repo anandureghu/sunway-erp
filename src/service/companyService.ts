@@ -21,6 +21,7 @@ import {
   CreditCard,
   Star,
   Shield,
+  LogOut,
 } from "lucide-react";
 
 export const fetchCompany = async (
@@ -468,10 +469,16 @@ export const getSidebarItems = async (
   ] as SidebarItem[];
 };
 
+const EXIT_STATUSES = ["RESIGNED", "TERMINATED", "RETIRED"];
+
 export const getVisibleEmployeeSubModules = (
   permissions: Record<string, any> | null | undefined,
   empBase: string | null,
+  employeeStatus?: string | null,
 ) => {
+  const isExit =
+    !!employeeStatus &&
+    EXIT_STATUSES.includes(employeeStatus.toUpperCase().replace(/\s+/g, "_"));
   const all = [
     {
       title: "Profile",
@@ -521,6 +528,18 @@ export const getVisibleEmployeeSubModules = (
       module: "IMMIGRATION",
       to: empBase ? `${empBase}/immigration` : "#",
     },
+    // Exit Interview only surfaces once the employee has exited (resigned /
+    // terminated / retired); gated by the same grant as the profile.
+    ...(isExit
+      ? [
+          {
+            title: "Exit Interview",
+            icon: LogOut,
+            module: "EMPLOYEE_PROFILE",
+            to: empBase ? `${empBase}/exit-interview` : "#",
+          },
+        ]
+      : []),
   ];
 
   return all.filter((sm) => canView(permissions, sm.module));

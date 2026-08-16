@@ -111,7 +111,9 @@ export const DepartmentForm = ({
               employeeNo: emp.employeeNo || '',
               firstName: emp.firstName || '',
               lastName: emp.lastName || '',
-              jobTitle: emp.jobTitle || emp.companyRole || 'Manager'
+              // Job title = the designation from the employee's job code, NOT the
+              // security/company role. Blank when no job code is assigned.
+              jobTitle: emp.designation || ''
             }));
           setManagers(managerOptions);
         } else {
@@ -228,7 +230,9 @@ export const DepartmentForm = ({
                             {manager.firstName} {manager.lastName}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {manager.jobTitle || "Manager"} - ID: {manager.employeeNo}
+                            {manager.jobTitle
+                              ? `${manager.jobTitle} · ID: ${manager.employeeNo}`
+                              : `ID: ${manager.employeeNo}`}
                           </span>
                         </div>
                       </SelectItem>

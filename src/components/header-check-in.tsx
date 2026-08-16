@@ -29,6 +29,8 @@ export function HeaderCheckIn() {
   const empId = empIdRaw != null ? Number(empIdRaw) : null;
   const companyId = user?.companyId != null ? Number(user.companyId) : null;
 
+  // Companies that don't punch in/out have no shift to start — hide the widget.
+
   const [today, setToday] = useState<TimesheetEntry | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
