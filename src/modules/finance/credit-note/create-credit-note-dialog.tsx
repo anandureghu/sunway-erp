@@ -37,14 +37,14 @@ export default function CreateCreditNoteDialog({ onCreated }: Props) {
   const [invoiceId, setInvoiceId] = useState("");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
-  const [applyImmediately, setApplyImmediately] = useState("true");
+  const [applyImmediately, setApplyImmediately] = useState("false");
 
   useEffect(() => {
     if (!open) {
       setInvoiceId("");
       setAmount("");
       setReason("");
-      setApplyImmediately("true");
+      setApplyImmediately("false");
     }
   }, [open]);
 

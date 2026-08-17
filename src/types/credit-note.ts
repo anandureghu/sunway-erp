@@ -16,6 +16,9 @@ export interface CreditNote {
   status: CreditNoteStatus;
   project?: string | null;
   referenceNumber: string;
+  source?: string | null;
+  reason?: string | null;
   amount: number;
   remainingAmount: number;
+  cashOutPaymentCode?: string | null;
 }

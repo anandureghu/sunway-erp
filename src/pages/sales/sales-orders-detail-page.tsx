@@ -79,6 +79,7 @@ const SalesOrdersDetailPage = () => {
   const [so, setSo] = useState<SalesOrderResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [returnsRefreshKey, setReturnsRefreshKey] = useState(0);
 
   const updateStatus = async (action: "confirm" | "cancel") => {
     if (!so) return;
@@ -206,10 +207,12 @@ const SalesOrdersDetailPage = () => {
           onCancel={() => void updateStatus("cancel")}
           onDownloadDocument={() => void handleDownloadDocumentPdf()}
           onReturned={() => {
+            setReturnsRefreshKey((k) => k + 1);
             apiClient
               .get<SalesOrderResponseDTO>(`/sales/orders/${id}`)
               .then(({ data }) => setSo(data));
           }}
+          returnsRefreshKey={returnsRefreshKey}
         />
       </div>
     </div>

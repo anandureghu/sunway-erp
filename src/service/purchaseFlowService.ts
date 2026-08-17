@@ -759,6 +759,9 @@ export interface GoodsReceiptResponseDTO {
   authorizedById?: number | null;
   authorizedByName?: string | null;
   documentPdfUrl?: string | null;
+  invoiceReducedAmount?: number | null;
+  creditNoteAmount?: number | null;
+  creditNoteNumber?: string | null;
   items: Array<{
     id: number;
     itemId: number;
@@ -848,6 +851,9 @@ function toGoodsReceipt(
     order: order,
     receiptDate: dto.receivedAt || "",
     documentPdfUrl: dto.documentPdfUrl ?? null,
+    invoiceReducedAmount: dto.invoiceReducedAmount ?? null,
+    creditNoteAmount: dto.creditNoteAmount ?? null,
+    creditNoteNumber: dto.creditNoteNumber ?? null,
     status: dto.status === "INSPECTED" ? "inspected" : "pending_inspection",
     archived: dto.archived,
     items,

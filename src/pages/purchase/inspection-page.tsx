@@ -1053,7 +1053,7 @@ function InspectForm({
     }
     setLoading(true);
     try {
-      await confirmGoodsReceiptInspection(receipt.id, {
+      const res = await confirmGoodsReceiptInspection(receipt.id, {
         items: lines.map((line) => ({
           goodsReceiptItemId: line.goodsReceiptItemId,
           acceptedQty: line.acceptedQty,
@@ -1061,7 +1061,23 @@ function InspectForm({
           remarks: line.remarks,
         })),
       });
-      toast.success("Inspection confirmed successfully!");
+      const reduced = Number(res.invoiceReducedAmount ?? 0);
+      const credit = Number(res.creditNoteAmount ?? 0);
+      if (credit > 0 && reduced > 0) {
+        toast.success(
+          `Inspection confirmed. Invoice reduced by ${reduced.toFixed(2)}; credit note ${res.creditNoteNumber ?? ""} for ${credit.toFixed(2)} created for future purchases.`,
+        );
+      } else if (credit > 0) {
+        toast.success(
+          `Inspection confirmed. Credit note ${res.creditNoteNumber ?? ""} for ${credit.toFixed(2)} created for future purchases.`,
+        );
+      } else if (reduced > 0) {
+        toast.success(
+          `Inspection confirmed. Unpaid invoice reduced by ${reduced.toFixed(2)}.`,
+        );
+      } else {
+        toast.success("Inspection confirmed successfully!");
+      }
       onSuccess();
     } catch (error: any) {
       console.error("Error confirming inspection:", error);

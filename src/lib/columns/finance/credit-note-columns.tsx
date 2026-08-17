@@ -35,6 +35,26 @@ export function buildCreditNoteColumns(options: Options = {}): ColumnDef<CreditN
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
+      accessorKey: "source",
+      header: "Source",
+      cell: ({ row }) => {
+        const src = row.original.source;
+        if (!src) return "—";
+        if (src === "AUTO_REJECTION") return "PO rejection";
+        if (src === "AUTO_CUSTOMER_RETURN") return "Customer return";
+        return src.replaceAll("_", " ");
+      },
+    },
+    {
+      accessorKey: "reason",
+      header: "Reason",
+      cell: ({ row }) => (
+        <span className="line-clamp-2 max-w-[220px] text-slate-600">
+          {row.original.reason ?? "—"}
+        </span>
+      ),
+    },
+    {
       accessorKey: "project",
       header: "Project",
       cell: ({ row }) => row.original.project ?? "—",
