@@ -200,15 +200,14 @@ export default function InspectionPage() {
     );
   }, [inspectedReceipts, searchQuery]);
 
-  // Purchase orders that already have an open goods receipt (pending inspect or
-  // inspected but not fully stocked) — exclude from "ready for inspection" so a
-  // second overlapping intake can't be started against the same PO.
+  // Only block a second intake while a GR is still awaiting inspection.
+  // Inspected (even if not yet stocked) must not block the next partial receive —
+  // backend only rejects overlapping PENDING_INSPECTION receipts.
   const orderIdsWithOpenGoodsReceipt = useMemo(() => {
     const ids = new Set<string>();
     for (const r of pendingReceipts) ids.add(String(r.orderId));
-    for (const r of inspectedReceipts) ids.add(String(r.orderId));
     return ids;
-  }, [pendingReceipts, inspectedReceipts]);
+  }, [pendingReceipts]);
 
   // Purchase orders still needing (further) goods to be logged for inspection
   const ordersReadyForInspection = useMemo(() => {
@@ -222,10 +221,7 @@ export default function InspectionPage() {
         return false;
       }
       const isReceivableStatus =
-        status === "ordered" ||
-        status === "partially_received" ||
-        status === "approved" ||
-        status === "confirmed";
+        status === "confirmed" || status === "partially_received";
       return (
         isReceivableStatus &&
         !orderIdsWithOpenGoodsReceipt.has(String(order.id))
@@ -639,12 +635,18 @@ export default function InspectionPage() {
 }
 
 function buildReceiptLinesStatic(order: PurchaseOrder) {
-  return order.items.map((item) => ({
-    itemId: Number(item.itemId),
-    purchaseOrderItemId: Number(item.id),
-    receivedQty: item.quantity,
-    remarks: "",
-  }));
+  return order.items.map((item) => {
+    const ordered = Number(item.quantity || 0);
+    const alreadyReceived = Number(item.receivedQuantity ?? 0);
+    const alreadyRejected = Number(item.rejectedQuantity ?? 0);
+    const remaining = Math.max(0, ordered - alreadyReceived - alreadyRejected);
+    return {
+      itemId: Number(item.itemId),
+      purchaseOrderItemId: Number(item.id),
+      receivedQty: remaining,
+      remarks: "",
+    };
+  });
 }
 
 function StartInspectionForm({
@@ -683,11 +685,8 @@ function StartInspectionForm({
     const list = orders.filter((o) => {
       const status = o.status?.toLowerCase();
       const isReceivableStatus =
-        status === "ordered" ||
-        status === "approved" ||
-        status === "partially_received" ||
-        status === "confirmed";
-      // Never allow starting a second intake while an open GR already exists —
+        status === "confirmed" || status === "partially_received";
+      // Never allow starting a second intake while a pending-inspection GR exists —
       // unless this is the order we opened the form with (pre-selected from list).
       const isPreselected = orderId && String(o.id) === String(orderId);
       const isExcluded =

@@ -436,9 +436,7 @@ export default function PurchaseOrderDetailPage() {
   const canCancel =
     (st === "draft" || st === "approved") && !vendorPaymentConfirmed;
   const canReceive =
-    st === "confirmed" ||
-    st === "ordered" ||
-    st === "partially_received";
+    st === "confirmed" || st === "partially_received";
   const isReleased =
     st === "confirmed" || st === "partially_received" || st === "received";
   const goodsFullyReceived =

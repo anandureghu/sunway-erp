@@ -133,6 +133,7 @@ export interface PurchaseOrderCreateDTO {
 }
 
 export interface PurchaseOrderItemDTO {
+  id?: number | null;
   itemId: number;
   itemName?: string | null;
   quantity: number;
@@ -278,7 +279,7 @@ function toPurchaseRequisition(
 
 function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
   const items: PurchaseOrderItem[] = (dto.items || []).map((li, idx) => ({
-    id: `poi-${dto.id}-${idx}`,
+    id: li.id != null ? String(li.id) : `poi-${dto.id}-${idx}`,
     orderId: String(dto.id),
     itemId: li.itemId,
     itemName: li.itemName ?? undefined,
