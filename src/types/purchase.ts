@@ -293,6 +293,11 @@ export type GoodsReceipt = {
   receiptDate: string;
   /** Backend-generated goods receipt PDF (public URL). */
   documentPdfUrl?: string | null;
+  /** Set after inspection confirm when unpaid invoice was reduced. */
+  invoiceReducedAmount?: number | null;
+  /** Set after inspection confirm when a standing supplier credit note was created. */
+  creditNoteAmount?: number | null;
+  creditNoteNumber?: string | null;
   status: GoodsReceiptStatus;
   archived?: boolean;
   items: GoodsReceiptItem[];

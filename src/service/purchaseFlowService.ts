@@ -133,6 +133,7 @@ export interface PurchaseOrderCreateDTO {
 }
 
 export interface PurchaseOrderItemDTO {
+  id?: number | null;
   itemId: number;
   itemName?: string | null;
   quantity: number;
@@ -278,7 +279,7 @@ function toPurchaseRequisition(
 
 function toPurchaseOrder(dto: PurchaseOrderResponseDTO): PurchaseOrder {
   const items: PurchaseOrderItem[] = (dto.items || []).map((li, idx) => ({
-    id: `poi-${dto.id}-${idx}`,
+    id: li.id != null ? String(li.id) : `poi-${dto.id}-${idx}`,
     orderId: String(dto.id),
     itemId: li.itemId,
     itemName: li.itemName ?? undefined,
@@ -759,6 +760,9 @@ export interface GoodsReceiptResponseDTO {
   authorizedById?: number | null;
   authorizedByName?: string | null;
   documentPdfUrl?: string | null;
+  invoiceReducedAmount?: number | null;
+  creditNoteAmount?: number | null;
+  creditNoteNumber?: string | null;
   items: Array<{
     id: number;
     itemId: number;
@@ -848,6 +852,9 @@ function toGoodsReceipt(
     order: order,
     receiptDate: dto.receivedAt || "",
     documentPdfUrl: dto.documentPdfUrl ?? null,
+    invoiceReducedAmount: dto.invoiceReducedAmount ?? null,
+    creditNoteAmount: dto.creditNoteAmount ?? null,
+    creditNoteNumber: dto.creditNoteNumber ?? null,
     status: dto.status === "INSPECTED" ? "inspected" : "pending_inspection",
     archived: dto.archived,
     items,

@@ -2,6 +2,7 @@ import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { SalesOrderDetailFinancials } from "./sales-order-detail-financials";
 import { SalesOrderDetailHero } from "./sales-order-detail-hero";
 import { SalesOrderDetailItems } from "./sales-order-detail-items";
+import { SalesOrderReturnsHistory } from "./sales-order-returns-history";
 
 type Props = {
   so: SalesOrderResponseDTO;
@@ -10,6 +11,7 @@ type Props = {
   onCancel: () => void;
   onDownloadDocument: () => void;
   onReturned?: () => void;
+  returnsRefreshKey?: number;
 };
 
 export function SalesOrderDetailCards({
@@ -19,6 +21,7 @@ export function SalesOrderDetailCards({
   onCancel,
   onDownloadDocument,
   onReturned,
+  returnsRefreshKey = 0,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -34,6 +37,13 @@ export function SalesOrderDetailCards({
       <SalesOrderDetailItems so={so} />
 
       <SalesOrderDetailFinancials so={so} />
+
+      {so.id != null && (
+        <SalesOrderReturnsHistory
+          salesOrderId={Number(so.id)}
+          refreshKey={returnsRefreshKey}
+        />
+      )}
     </div>
   );
 }

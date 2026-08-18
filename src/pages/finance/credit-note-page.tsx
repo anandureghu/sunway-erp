@@ -34,25 +34,27 @@ const CreditNotePage = () => {
   const handleCashOut = async (note: CreditNote) => {
     const ok = await confirm({
       title: "Cash out credit note?",
-      description: `Cash out remaining ${note.remainingAmount} from ${note.creditNoteNumber}? The customer/supplier can no longer apply this balance to future payments.`,
+      description: `Record a cash redemption of remaining ${note.remainingAmount} from ${note.creditNoteNumber}? A payment entry will be created and this balance can no longer be applied to future invoices.`,
       confirmLabel: "Cash out",
     });
     if (!ok) return;
 
     setCashingId(note.id);
     try {
-      await apiClient.post(`/credit-notes/${note.id}/cash-out`);
-      toast.success(`Credit note ${note.creditNoteNumber} cashed out`);
+      const res = await apiClient.post<CreditNote>(
+        `/credit-notes/${note.id}/cash-out`,
+      );
+      const code = res.data?.cashOutPaymentCode;
+      toast.success(
+        code
+          ? `Credit note ${note.creditNoteNumber} cashed out (payment ${code})`
+          : `Credit note ${note.creditNoteNumber} cashed out`,
+      );
       await fetchCreditNotes();
-    } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { message?: string; error?: string } };
-        message?: string;
-      };
+    } catch (err) {
       toast.error(
-        err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          err?.message ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (err as any)?.response?.data?.message ||
           "Failed to cash out credit note",
       );
     } finally {

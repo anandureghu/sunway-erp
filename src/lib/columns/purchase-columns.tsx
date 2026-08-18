@@ -203,9 +203,7 @@ export function createPurchaseOrderColumns(
         const canRelease = st === "approved" && supplierEligible;
         const canCancel = st === "draft" || st === "approved";
         const canReceive =
-          st === "confirmed" ||
-          st === "ordered" ||
-          st === "partially_received";
+          st === "confirmed" || st === "partially_received";
         const canArchive =
           !order.archived && (st === "received" || st === "cancelled");
         const reqId = order.requisitionId;
