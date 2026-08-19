@@ -49,6 +49,7 @@ type EmpProfile = {
   companyRole?: string; // Security role from linked user
   companyRoleId?: number | null; // FK to CompanyRole
   designation?: string; // Derived from current job's job_codes.title
+  jobCode?: string; // The current job's job_codes.code (e.g. "ENG")
 };
 
 const NEW_EMP: EmpProfile = {
@@ -70,6 +71,7 @@ const NEW_EMP: EmpProfile = {
   companyRole: "",
   companyRoleId: null,
   designation: "",
+  jobCode: "",
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -95,6 +97,7 @@ const mapEmployeeToProfile = (emp: any): EmpProfile => ({
   companyRole: emp.companyRole ?? emp.CompanyRole ?? "",
   companyRoleId: emp.companyRoleId ?? null,
   designation: emp.designation ?? "",
+  jobCode: emp.jobCode ?? "",
 });
 
 const getInitials = (first?: string, last?: string) => {
@@ -603,13 +606,17 @@ export default function EmployeeProfileForm() {
                     No employee number
                   </span>
                 )}
-                {(draft.companyRole || draft.designation) && (
+                {draft.jobCode && (
                   <span
                     className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 border border-sky-100"
-                    title="Role — company role / access level for this employee"
+                    title={
+                      draft.designation
+                        ? `Job code ${draft.jobCode} — ${draft.designation}`
+                        : "Job code"
+                    }
                   >
-                    <ShieldCheck className="h-3 w-3" />
-                    {draft.companyRole || draft.designation}
+                    <Briefcase className="h-3 w-3" />
+                    {draft.jobCode}
                   </span>
                 )}
               </div>
