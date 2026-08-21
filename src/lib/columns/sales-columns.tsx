@@ -21,22 +21,52 @@ import {
   Loader2,
   Archive,
   AlertTriangle,
+  FileText,
+  ClipboardList,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { StatusBadge } from "@/lib/status-badge";
 
+export type SalesOrderActivePicklist = {
+  id: string;
+  status: string;
+};
+
+export type SalesOrderColumnActions = {
+  onOpenOrder?: (id: string) => void;
+  onConfirm?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  onGeneratePicklist?: (id: string) => void;
+  onViewPicklist?: (picklistId: string) => void;
+  onOpenInvoice?: (invoiceId: number | string) => void;
+  onEdit?: (id: string) => void;
+  onArchive?: (id: string) => void;
+  /** Active (non-cancelled) picklist keyed by sales order id. */
+  activePicklistByOrderId?: Record<string, SalesOrderActivePicklist>;
+  processingOrderId?: string | null;
+  processingAction?: "confirm" | "cancel" | "archive" | null;
+};
+
 // Sales Order Columns
 export function createSalesOrderColumns(
-  onConfirm?: (id: string) => void,
-  onCancel?: (id: string) => void,
-  onGeneratePicklist?: (id: string) => void,
-  onEdit?: (id: string) => void,
-  onArchive?: (id: string) => void,
-  processingOrderId?: string | null,
-  processingAction?: "confirm" | "cancel" | "archive" | null,
+  actions: SalesOrderColumnActions = {},
 ): ColumnDef<SalesOrder>[] {
+  const {
+    onOpenOrder,
+    onConfirm,
+    onCancel,
+    onGeneratePicklist,
+    onViewPicklist,
+    onOpenInvoice,
+    onEdit,
+    onArchive,
+    activePicklistByOrderId = {},
+    processingOrderId,
+    processingAction,
+  } = actions;
+
   return [
     {
       accessorKey: "orderNo",
@@ -153,15 +183,26 @@ export function createSalesOrderColumns(
       header: "Actions",
       cell: ({ row }) => {
         const order = row.original;
+        const payment = (order.paymentStatus || "").toUpperCase();
+        const activePicklist = activePicklistByOrderId[String(order.id)];
         const canConfirm =
           order.status === "quotation" && order.sufficientDebitBalance !== false;
         const canCancel =
           order.status === "quotation" || order.status === "confirmed";
+        // Backend requires full payment before picklist generation.
         const canGeneratePicklist =
-          order.status === "confirmed" &&
-          ["PAID", "PARTIALLY_PAID"].includes(
-            (order.paymentStatus || "").toUpperCase(),
-          );
+          (order.status === "confirmed" || order.status === "completed") &&
+          payment === "PAID" &&
+          !activePicklist &&
+          Boolean(onGeneratePicklist);
+        const awaitingPaymentForPicklist =
+          (order.status === "confirmed" || order.status === "completed") &&
+          !activePicklist &&
+          payment !== "PAID" &&
+          payment !== "CANCELLED";
+        const canViewPicklist = Boolean(activePicklist && onViewPicklist);
+        const canOpenInvoice =
+          order.salesInvoiceId != null && Boolean(onOpenInvoice);
         const canArchive =
           !order.archived &&
           (order.status === "completed" || order.status === "cancelled");
@@ -178,6 +219,20 @@ export function createSalesOrderColumns(
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {onOpenOrder && (
+                  <DropdownMenuItem onClick={() => onOpenOrder(order.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Open detail
+                  </DropdownMenuItem>
+                )}
+                {canOpenInvoice && (
+                  <DropdownMenuItem
+                    onClick={() => onOpenInvoice!(order.salesInvoiceId!)}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Open invoice
+                  </DropdownMenuItem>
+                )}
                 {order.status === "quotation" && onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(order.id)}>
                     <Edit className="mr-2 h-4 w-4" />
@@ -206,20 +261,30 @@ export function createSalesOrderColumns(
                       Insufficient balance
                     </DropdownMenuItem>
                   )}
-                {canGeneratePicklist && onGeneratePicklist && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onGeneratePicklist(order.id)}
-                    >
-                      <Package className="mr-2 h-4 w-4" />
-                      Generate Picklist
-                    </DropdownMenuItem>
-                  </>
+                {(canGeneratePicklist ||
+                  canViewPicklist ||
+                  awaitingPaymentForPicklist) && (
+                  <DropdownMenuSeparator />
                 )}
-                {order.status === "confirmed" && !canGeneratePicklist && (
+                {canGeneratePicklist && (
+                  <DropdownMenuItem
+                    onClick={() => onGeneratePicklist!(order.id)}
+                  >
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    Generate Picklist
+                  </DropdownMenuItem>
+                )}
+                {canViewPicklist && (
+                  <DropdownMenuItem
+                    onClick={() => onViewPicklist!(activePicklist!.id)}
+                  >
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    View Picklist
+                  </DropdownMenuItem>
+                )}
+                {awaitingPaymentForPicklist && (
                   <DropdownMenuItem disabled>
-                    Awaiting full payment
+                    Awaiting full payment for picklist
                   </DropdownMenuItem>
                 )}
                 {canCancel && onCancel && (
@@ -352,6 +417,7 @@ export function createPicklistColumns(
   onCreateDispatch?: (id: string) => void,
   onArchive?: (id: string) => void,
   processingPicklistId?: string | null,
+  onViewDetails?: (id: string) => void,
 ): ColumnDef<Picklist>[] {
   return [
     {
@@ -426,10 +492,17 @@ export function createPicklistColumns(
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
+                {onViewDetails ? (
+                  <DropdownMenuItem onClick={() => onViewDetails(picklist.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem disabled>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </DropdownMenuItem>
+                )}
                 {canMarkPicked && onMarkPicked && (
                   <DropdownMenuItem onClick={() => onMarkPicked(picklist.id)}>
                     <Package className="mr-2 h-4 w-4" />

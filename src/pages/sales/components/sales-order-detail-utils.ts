@@ -24,7 +24,7 @@ export function nextStepMessage(so: SalesOrderResponseDTO): string {
   const payment = paymentStatusKey(so);
   if (payment === "PAID") return "Payment complete. Fulfillment can proceed.";
   if (payment === "PARTIALLY_PAID") {
-    return "Partially paid. Fulfillment can proceed; remaining balance is outstanding.";
+    return "Partially paid. Full payment is required before picklist generation.";
   }
   return "Awaiting payment before fulfillment.";
 }

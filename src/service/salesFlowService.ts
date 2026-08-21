@@ -115,6 +115,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
         : undefined,
     creditAccountId: dto.creditAccountId,
     creditAccountName: dto.creditAccountName,
+    salesInvoiceId: dto.salesInvoiceId != null ? Number(dto.salesInvoiceId) : null,
     shippingAddress: dto.shippingAddress || dto.deliveryAddress || undefined,
     notes: undefined,
     salesPerson: undefined,

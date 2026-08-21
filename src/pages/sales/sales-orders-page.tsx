@@ -9,6 +9,7 @@ import {
   archiveSalesOrder,
   cancelSalesOrder,
   confirmSalesOrder,
+  listPicklists,
   listSalesOrders,
 } from "@/service/salesFlowService";
 import {
@@ -48,6 +49,9 @@ export default function SalesOrdersPage() {
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [activePicklistByOrderId, setActivePicklistByOrderId] = useState<
+    Record<string, { id: string; status: string }>
+  >({});
 
   const [actionState, setActionState] = useState<{
     id: string;
@@ -62,8 +66,17 @@ export default function SalesOrdersPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const data = await listSalesOrders();
+      const [data, picklists] = await Promise.all([
+        listSalesOrders(),
+        listPicklists().catch(() => []),
+      ]);
       setOrders(data);
+      const byOrder: Record<string, { id: string; status: string }> = {};
+      for (const pl of picklists) {
+        if (!pl.orderId || pl.status === "cancelled") continue;
+        byOrder[String(pl.orderId)] = { id: pl.id, status: pl.status };
+      }
+      setActivePicklistByOrderId(byOrder);
     } catch (e: any) {
       setLoadError(e?.message || "Failed to load sales orders");
     } finally {
@@ -305,7 +318,24 @@ export default function SalesOrdersPage() {
   );
 
   const handleGeneratePicklist = useCallback(
-    (id: string) => navigate("/inventory/sales/picklist", { state: { salesOrderId: id } }),
+    (id: string) =>
+      navigate("/inventory/sales/picklist", { state: { salesOrderId: id } }),
+    [navigate],
+  );
+
+  const handleViewPicklist = useCallback(
+    (picklistId: string) => navigate(`/inventory/sales/picklist/${picklistId}`),
+    [navigate],
+  );
+
+  const handleOpenOrder = useCallback(
+    (id: string) => navigate(`/inventory/sales/orders/${id}`),
+    [navigate],
+  );
+
+  const handleOpenInvoice = useCallback(
+    (invoiceId: number | string) =>
+      navigate(`/sales/invoices/${invoiceId}`),
     [navigate],
   );
 
@@ -407,21 +437,29 @@ export default function SalesOrdersPage() {
 
   const columns = useMemo(
     () =>
-      createSalesOrderColumns(
-        handleConfirmOrder,
-        handleCancelOrder,
-        handleGeneratePicklist,
-        handleEdit,
-        handleArchiveOrder,
-        actionState?.id ?? null,
-        actionState?.type ?? null,
-      ),
+      createSalesOrderColumns({
+        onOpenOrder: handleOpenOrder,
+        onConfirm: handleConfirmOrder,
+        onCancel: handleCancelOrder,
+        onGeneratePicklist: handleGeneratePicklist,
+        onViewPicklist: handleViewPicklist,
+        onOpenInvoice: handleOpenInvoice,
+        onEdit: handleEdit,
+        onArchive: handleArchiveOrder,
+        activePicklistByOrderId,
+        processingOrderId: actionState?.id ?? null,
+        processingAction: actionState?.type ?? null,
+      }),
     [
+      handleOpenOrder,
       handleConfirmOrder,
       handleCancelOrder,
       handleGeneratePicklist,
+      handleViewPicklist,
+      handleOpenInvoice,
       handleEdit,
       handleArchiveOrder,
+      activePicklistByOrderId,
       actionState,
     ],
   );

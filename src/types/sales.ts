@@ -93,6 +93,8 @@ export type SalesOrder = {
   debitBalanceShortage?: number;
   creditAccountId?: number;
   creditAccountName?: string;
+  /** Linked sales invoice id (created when the order is confirmed). */
+  salesInvoiceId?: number | null;
 };
 
 // Picklist Types

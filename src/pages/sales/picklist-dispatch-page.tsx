@@ -226,6 +226,7 @@ export default function PicklistDispatchPage() {
         },
         handleArchivePicklist,
         archivingPicklistId,
+        (id) => navigate(`/inventory/sales/picklist/${id}`),
       ),
     [
       loadData,
@@ -233,6 +234,7 @@ export default function PicklistDispatchPage() {
       confirmCancel,
       handleArchivePicklist,
       archivingPicklistId,
+      navigate,
     ],
   );
 
