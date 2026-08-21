@@ -132,6 +132,8 @@ export type ItemResponseDTO = {
   quantity: number;
   available: number;
   reserved: number;
+  /** Remaining qty on open purchase orders (stock catalog). */
+  quantityOnOrder?: number | null;
 
   costPrice: number;
   sellingPrice: number;

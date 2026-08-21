@@ -28,8 +28,6 @@ export default function ManageStocks() {
     loading,
     loadError,
     refetch,
-    selectedWarehouse,
-    setSelectedWarehouse,
     searchQuery,
     setSearchQuery,
     selectedStatus,
@@ -136,15 +134,12 @@ export default function ManageStocks() {
                   <StockListTab
                     searchQuery={searchQuery}
                     onSearchQueryChange={setSearchQuery}
-                    selectedWarehouse={selectedWarehouse}
-                    onSelectedWarehouseChange={setSelectedWarehouse}
                     selectedStatus={selectedStatus}
                     onSelectedStatusChange={(value) => {
                       setSelectedStatus(value);
                       setKpiFilter(null);
                       setStockKpiFilter("all");
                     }}
-                    warehouses={warehouses}
                     loading={loading}
                     loadError={loadError}
                     filteredStock={filteredStock}
