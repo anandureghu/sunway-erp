@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import CategoriesMaster from "@/modules/inventory/settings/categories-master";
 import WarehouseMaster from "@/modules/inventory/settings/warehouse-master";
 import CarrierMaster from "@/modules/inventory/settings/carrier-master";
+import ItemDiscountMaster from "@/modules/inventory/settings/item-discount-master";
 import VendorsPage from "../admin/vendors/vendors-page";
 import CustomersPage from "../admin/customers/customers-page";
 import PermissionsTab from "@/components/permissions-tab";
@@ -14,8 +15,10 @@ import {
   Building,
   Handshake,
   List,
+  Percent,
   Settings,
   Shield,
+  Tag,
   Truck,
   Users,
 } from "lucide-react";
@@ -115,6 +118,20 @@ const InventorySettingsPage = () => {
       });
     }
 
+    list.push({
+      value: "pricing",
+      label: "Pricing",
+      icon: <Percent className="w-4 h-4" />,
+      children: [
+        {
+          value: "item-discount",
+          label: "Item discount",
+          icon: <Tag className="w-4 h-4" />,
+          element: () => <ItemDiscountMaster />,
+        },
+      ],
+    });
+
     return list;
   }, [showPermissions]);
 
@@ -126,6 +143,8 @@ const InventorySettingsPage = () => {
     customers: { tab: "partners", sub: "customers" },
     vendors: { tab: "partners", sub: "suppliers" },
     suppliers: { tab: "partners", sub: "suppliers" },
+    pricing: { tab: "pricing", sub: "item-discount" },
+    "item-discount": { tab: "pricing", sub: "item-discount" },
     permissions: { tab: "administration", sub: "permissions" },
   };
 
@@ -211,7 +230,7 @@ const InventorySettingsPage = () => {
     <div className="space-y-6 p-6">
       <PageHeader
         title="Inventory Settings"
-        description="Configure categories, warehouses, partners, and administration."
+        description="Configure categories, warehouses, partners, pricing, and administration."
         variant="darkBlue"
         icon={<Settings className="w-6 h-6" />}
       />

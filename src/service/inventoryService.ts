@@ -290,6 +290,22 @@ export async function listItems(): Promise<ItemResponseDTO[]> {
   return res.data || [];
 }
 
+export async function applyItemBulkDiscount(payload: {
+  itemIds: number[];
+  discountPercent: number;
+}): Promise<{
+  requestedCount: number;
+  updatedCount: number;
+  discountPercent: number;
+}> {
+  const res = await apiClient.post<{
+    requestedCount: number;
+    updatedCount: number;
+    discountPercent: number;
+  }>("/inventory/items/bulk-discount", payload);
+  return res.data;
+}
+
 /** One row per item×warehouse — quantities match sales availability checks. */
 export async function listStockCatalog(): Promise<ItemResponseDTO[]> {
   const res = await apiClient.get<ItemResponseDTO[]>(
