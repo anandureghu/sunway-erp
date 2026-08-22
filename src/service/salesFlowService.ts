@@ -481,5 +481,19 @@ export function attachOrderAndItems(
     };
   });
 
-  return { picklistsEnriched, dispatchesEnriched };
+  // Stamp shipmentId from dispatches so Create Dispatch can hide already-shipped picklists
+  // even if the picklist API omits shipmentId.
+  const shipmentIdByPicklistId = new Map<string, string>();
+  for (const d of dispatchesEnriched) {
+    if (d.picklistId && d.id) {
+      shipmentIdByPicklistId.set(String(d.picklistId), String(d.id));
+    }
+  }
+
+  const picklistsWithShipment = picklistsEnriched.map((p) => ({
+    ...p,
+    shipmentId: p.shipmentId || shipmentIdByPicklistId.get(String(p.id)),
+  }));
+
+  return { picklistsEnriched: picklistsWithShipment, dispatchesEnriched };
 }

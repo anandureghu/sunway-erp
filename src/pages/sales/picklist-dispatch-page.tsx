@@ -320,10 +320,14 @@ export default function PicklistDispatchPage() {
     () =>
       excludeArchived(picklists).filter(
         (p) =>
-          p.status === "picked" && !dispatchedPicklistIds.has(String(p.id)),
+          p.status === "picked" &&
+          !p.shipmentId &&
+          !dispatchedPicklistIds.has(String(p.id)),
       ),
     [picklists, dispatchedPicklistIds],
   );
+
+  const hasDispatchablePicklists = eligiblePicklistsForDispatch.length > 0;
 
   const filteredDispatches = useMemo(() => {
     if (dispatchStatusFilter === "active") {
@@ -472,6 +476,7 @@ export default function PicklistDispatchPage() {
             <Button
               size="lg"
               className="bg-white text-slate-900 hover:bg-white/90"
+              disabled={!hasDispatchablePicklists}
               onClick={() => {
                 setInitialPicklistId("");
                 setShowCreateDispatch(true);

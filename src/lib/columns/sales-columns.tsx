@@ -480,6 +480,7 @@ export function createPicklistColumns(
         const canCreateDispatch =
           picklist.status === "picked" &&
           !picklist.shipmentId &&
+          !picklist.archived &&
           !dispatchedPicklistIds?.has(picklist.id);
         const canArchive =
           !picklist.archived &&
