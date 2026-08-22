@@ -226,9 +226,10 @@ function renderRichLink(text: string, url: string, key: string) {
   const className =
     "font-medium text-primary underline underline-offset-2 transition hover:text-primary/80";
 
-  if (url.startsWith("/")) {
+  const appPath = toInAppPath(url);
+  if (appPath) {
     return (
-      <Link key={key} to={url} className={className}>
+      <Link key={key} to={appPath} className={className}>
         {text}
       </Link>
     );
@@ -249,6 +250,22 @@ function renderRichLink(text: string, url: string, key: string) {
   }
 
   return <span key={key}>{text}</span>;
+}
+
+/** Prefer in-app routing for relative paths and same-origin absolute URLs. */
+function toInAppPath(url: string): string | null {
+  if (!url) return null;
+  if (url.startsWith("/")) return url;
+
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.origin !== window.location.origin) {
+      return null;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
 }
 
 function renderInlineMarkdown(value: string, keyPrefix: string): ReactNode[] {
@@ -455,6 +472,7 @@ export function AssistantSidebar() {
         language,
         currentModule,
         currentScreen,
+        appBaseUrl: window.location.origin,
         pageContext: {
           path: location.pathname,
           search: location.search,

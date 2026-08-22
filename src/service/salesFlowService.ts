@@ -172,6 +172,7 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     completedTime: undefined,
     createdAt: dto.createdAt || "",
     updatedAt: undefined,
+    shipmentId: dto.shipmentId != null ? String(dto.shipmentId) : undefined,
   };
 }
 

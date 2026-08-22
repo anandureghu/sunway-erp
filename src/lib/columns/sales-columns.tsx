@@ -478,7 +478,9 @@ export function createPicklistColumns(
         const canMarkPicked = picklist.status === "created";
         const canCancel = picklist.status === "created";
         const canCreateDispatch =
-          picklist.status === "picked" && !dispatchedPicklistIds?.has(picklist.id);
+          picklist.status === "picked" &&
+          !picklist.shipmentId &&
+          !dispatchedPicklistIds?.has(picklist.id);
         const canArchive =
           !picklist.archived &&
           (picklist.status === "picked" || picklist.status === "cancelled");

@@ -203,8 +203,13 @@ export default function PicklistDispatchPage() {
         ids.add(String(dispatch.picklistId));
       }
     }
+    for (const picklist of picklists) {
+      if (picklist.shipmentId) {
+        ids.add(String(picklist.id));
+      }
+    }
     return ids;
-  }, [dispatches]);
+  }, [dispatches, picklists]);
 
   const picklistColumns = useMemo(
     () =>

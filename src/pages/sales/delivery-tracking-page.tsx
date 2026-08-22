@@ -103,7 +103,12 @@ function getAllowedTrackingStatuses(
         "cancelled",
       ];
     case "failed_delivery":
-      return ["failed_delivery", "cancelled"];
+      return [
+        "failed_delivery",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+      ];
     case "delivered":
       return ["delivered"];
     case "cancelled":
@@ -483,11 +488,14 @@ export default function DeliveryTrackingPage() {
 
   const showDispatchAction = selectedDispatch?.status === "created";
   const showInTransitAction = selectedDispatch?.status === "dispatched";
-  const showOutForDeliveryAction = selectedDispatch?.status === "in_transit";
+  const showOutForDeliveryAction =
+    selectedDispatch?.status === "in_transit" ||
+    selectedDispatch?.status === "failed_delivery";
   const showDeliveredAction =
     selectedDispatch?.status === "dispatched" ||
     selectedDispatch?.status === "in_transit" ||
-    selectedDispatch?.status === "out_for_delivery";
+    selectedDispatch?.status === "out_for_delivery" ||
+    selectedDispatch?.status === "failed_delivery";
   const showFailedAction =
     selectedDispatch?.status === "dispatched" ||
     selectedDispatch?.status === "in_transit" ||

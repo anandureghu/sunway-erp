@@ -56,7 +56,8 @@ const PicklistDetailPage = () => {
   if (loading || !picklist) {
     return <div className="p-6 text-muted-foreground">Loading…</div>;
   }
-  const canCreateDispatch = picklist.status?.toLowerCase() === "picked";
+  const canCreateDispatch =
+    picklist.status?.toLowerCase() === "picked" && !picklist.shipmentId;
 
   const getOrderLineForItem = (itemId?: number) => {
     if (!itemId || !salesOrder?.items) return undefined;

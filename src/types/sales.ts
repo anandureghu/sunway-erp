@@ -136,6 +136,8 @@ export type Picklist = {
   completedTime?: string;
   createdAt: string;
   updatedAt?: string;
+  /** Present when a shipment/dispatch already exists for this picklist. */
+  shipmentId?: string;
 };
 
 // Dispatch Types

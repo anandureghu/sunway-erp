@@ -478,6 +478,7 @@ export type PicklistResponseDTO = {
   warehouseId?: number;
   warehouseName?: string;
   warehouse?: Warehouse;
+  shipmentId?: Id;
 };
 
 export type ShipmentItemDTO = {
