@@ -196,6 +196,16 @@ export default function PicklistDispatchPage() {
     }
   }, [confirm, loadData, selectedPicklistIds]);
 
+  const dispatchedPicklistIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const dispatch of dispatches) {
+      if (dispatch.picklistId) {
+        ids.add(String(dispatch.picklistId));
+      }
+    }
+    return ids;
+  }, [dispatches]);
+
   const picklistColumns = useMemo(
     () =>
       createPicklistColumns(
@@ -227,6 +237,7 @@ export default function PicklistDispatchPage() {
         handleArchivePicklist,
         archivingPicklistId,
         (id) => navigate(`/inventory/sales/picklist/${id}`),
+        dispatchedPicklistIds,
       ),
     [
       loadData,
@@ -235,6 +246,7 @@ export default function PicklistDispatchPage() {
       handleArchivePicklist,
       archivingPicklistId,
       navigate,
+      dispatchedPicklistIds,
     ],
   );
 
@@ -287,7 +299,9 @@ export default function PicklistDispatchPage() {
   );
 
   const filteredPicklists = useMemo(() => {
-    const active = excludeArchived(picklists);
+    const active = excludeArchived(picklists).filter(
+      (p) => !dispatchedPicklistIds.has(String(p.id)),
+    );
     if (picklistStatusFilter === "created") {
       return active.filter((p) => p.status === "created");
     }
@@ -295,7 +309,16 @@ export default function PicklistDispatchPage() {
       return active.filter((p) => p.status === "picked");
     }
     return active;
-  }, [picklists, picklistStatusFilter]);
+  }, [picklists, picklistStatusFilter, dispatchedPicklistIds]);
+
+  const eligiblePicklistsForDispatch = useMemo(
+    () =>
+      excludeArchived(picklists).filter(
+        (p) =>
+          p.status === "picked" && !dispatchedPicklistIds.has(String(p.id)),
+      ),
+    [picklists, dispatchedPicklistIds],
+  );
 
   const filteredDispatches = useMemo(() => {
     if (dispatchStatusFilter === "active") {
@@ -332,7 +355,9 @@ export default function PicklistDispatchPage() {
   }, []);
 
   const fulfillmentKpis = useMemo((): KpiSummaryStat[] => {
-    const activePicklists = excludeArchived(picklists);
+    const activePicklists = excludeArchived(picklists).filter(
+      (p) => !dispatchedPicklistIds.has(String(p.id)),
+    );
     const awaitingPick = activePicklists.filter(
       (p) => p.status === "created",
     ).length;
@@ -348,7 +373,7 @@ export default function PicklistDispatchPage() {
         {
           label: "Picklists",
           value: activePicklists.length,
-          hint: "Non-archived warehouse documents",
+          hint: "Non-archived warehouse documents awaiting dispatch",
           accent: "sky",
           icon: ClipboardList,
         },
@@ -393,7 +418,7 @@ export default function PicklistDispatchPage() {
         applyKpiFilter,
       ),
     ];
-  }, [picklists, dispatches, kpiFilter, applyKpiFilter]);
+  }, [picklists, dispatches, kpiFilter, applyKpiFilter, dispatchedPicklistIds]);
 
   if (showCreatePicklist) {
     return (
@@ -410,7 +435,7 @@ export default function PicklistDispatchPage() {
   if (showCreateDispatch) {
     return (
       <CreateDispatchForm
-        picklists={picklists}
+        picklists={eligiblePicklistsForDispatch}
         initialPicklistId={initialPicklistId}
         onCancel={() => {
           setShowCreateDispatch(false);

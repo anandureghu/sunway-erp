@@ -418,6 +418,8 @@ export function createPicklistColumns(
   onArchive?: (id: string) => void,
   processingPicklistId?: string | null,
   onViewDetails?: (id: string) => void,
+  /** Picklists that already have a shipment — hide Create Dispatch. */
+  dispatchedPicklistIds?: Set<string>,
 ): ColumnDef<Picklist>[] {
   return [
     {
@@ -475,7 +477,8 @@ export function createPicklistColumns(
         const picklist = row.original;
         const canMarkPicked = picklist.status === "created";
         const canCancel = picklist.status === "created";
-        const canCreateDispatch = picklist.status === "picked";
+        const canCreateDispatch =
+          picklist.status === "picked" && !dispatchedPicklistIds?.has(picklist.id);
         const canArchive =
           !picklist.archived &&
           (picklist.status === "picked" || picklist.status === "cancelled");
@@ -648,6 +651,8 @@ export function createDispatchColumns(
           dispatch.status === "dispatched";
         const canCancel =
           dispatch.status !== "delivered" && dispatch.status !== "cancelled";
+        const canUpdateTracking =
+          dispatch.status !== "delivered" && dispatch.status !== "cancelled";
 
         return (
           <DropdownMenu>
@@ -711,7 +716,7 @@ export function createDispatchColumns(
                   </DropdownMenuItem>
                 </>
               )}
-              {onUpdateTracking && (
+              {canUpdateTracking && onUpdateTracking && (
                 <DropdownMenuItem onClick={() => onUpdateTracking(dispatch.id)}>
                   <Eye className="mr-2 h-4 w-4" />
                   Update Tracking
