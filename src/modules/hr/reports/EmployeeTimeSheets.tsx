@@ -24,24 +24,24 @@ import { cn, initialsFrom } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { toast } from "sonner";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-const fmtTime = (iso: string | null) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? "—"
-    : d.toLocaleTimeString("en-GB", {
-        timeZone: "Asia/Qatar",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-};
+import { formatPunchTime, parseTimesheetDateTime, resolveCompanyTimezone } from "@/lib/timesheet-time";
+import { fetchHrPolicies } from "@/service/companyService";
+import { useAuth } from "@/context/AuthContext";
 
-const fmtDate = (iso: string) => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
+// ── helpers ───────────────────────────────────────────────────────────────────
+const fmtTime = (iso: string | null, timeZone: string) =>
+  formatPunchTime(iso, timeZone);
+
+const fmtDate = (iso: string, timeZone: string) => {
+  const tz = resolveCompanyTimezone(timeZone);
+  const d = parseTimesheetDateTime(
+    iso.includes("T") ? iso : `${iso}T12:00:00`,
+    tz,
+  );
+  return !d
     ? iso
     : d.toLocaleDateString("en-GB", {
+        timeZone: tz,
         weekday: "short",
         day: "2-digit",
         month: "short",
@@ -93,6 +93,8 @@ const DAY_STATUS_META: Record<string, { label: string; cls: string }> = {
  * The backend scopes rows: HR sees everyone, a regular employee only themselves.
  */
 export default function EmployeeTimeSheets() {
+  const { user } = useAuth();
+  const companyId = user?.companyId != null ? Number(user.companyId) : null;
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1); // 1-based
@@ -102,6 +104,7 @@ export default function EmployeeTimeSheets() {
   const [rows, setRows] = useState<EmployeeMonthlyAttendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [companyTz, setCompanyTz] = useState("Asia/Qatar");
 
   // Inline overtime editing (no-punch companies only — HR keys the month total).
   const [otEditId, setOtEditId] = useState<number | null>(null);
@@ -139,6 +142,21 @@ export default function EmployeeTimeSheets() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (companyId == null) return;
+    let mounted = true;
+    fetchHrPolicies(companyId)
+      .then((p) => {
+        if (mounted) setCompanyTz(resolveCompanyTimezone(p?.timezone));
+      })
+      .catch(() => {
+        if (mounted) setCompanyTz("Asia/Qatar");
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [companyId]);
 
   const startEditOt = (r: EmployeeMonthlyAttendance) => {
     setOtEditId(r.employeeId);
@@ -340,14 +358,14 @@ export default function EmployeeTimeSheets() {
                     return (
                       <tr key={d.attendanceDate} className="hover:bg-slate-50/50">
                         <td className="py-2.5 font-medium text-slate-700">
-                          {fmtDate(d.attendanceDate)}
+                          {fmtDate(d.attendanceDate, companyTz)}
                         </td>
                         <td className="py-2.5 tabular-nums text-slate-600">
-                          {fmtTime(d.checkInTime)}
+                          {fmtTime(d.checkInTime, companyTz)}
                         </td>
                         <td className="py-2.5 tabular-nums text-slate-600">
                           <span className="inline-flex items-center gap-1.5">
-                            {fmtTime(d.checkOutTime)}
+                            {fmtTime(d.checkOutTime, companyTz)}
                             {d.autoCheckedOut && (
                               <span
                                 title={d.note || "Auto-checkout — employee did not check out."}
@@ -538,10 +556,10 @@ export default function EmployeeTimeSheets() {
                           </span>
                         </td>
                         <td className="px-4 py-3 tabular-nums text-slate-600">
-                          {fmtTime(r.todayCheckIn)}
+                          {fmtTime(r.todayCheckIn, companyTz)}
                         </td>
                         <td className="px-4 py-3 tabular-nums text-slate-600">
-                          {fmtTime(r.todayCheckOut)}
+                          {fmtTime(r.todayCheckOut, companyTz)}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-600">
                           {r.todayHours ? `${r.todayHours} h` : "—"}

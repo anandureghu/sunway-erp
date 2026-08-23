@@ -10,6 +10,14 @@ import {
 } from "@/service/companyService";
 import { useAuth } from "@/context/AuthContext";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { COMPANY_TIMEZONE_OPTIONS } from "@/lib/timesheet-time";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Company-level HR policies (leave accrual, retirement, loan eligibility).
 // Each block gates a rule enforced by the backend — toggling it off makes the
@@ -25,6 +33,7 @@ const DEFAULT_HR_POLICIES: HrPoliciesPayload = {
   loanMaxRepaymentMonths: 24,
   standardWorkingHoursPerDay: 6,
   requireCheckIn: true,
+  timezone: "Asia/Qatar",
   maxShiftCheckoutGraceMinutes: 0,
   sessionIdleTimeoutMinutes: 0,
   probationPeriodMonths: 3,
@@ -201,6 +210,32 @@ export default function HrPoliciesForm() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Company timezone
+              </label>
+              <Select
+                value={hrPolicies.timezone || "Asia/Qatar"}
+                onValueChange={(value) => updateHrPolicyField("timezone", value)}
+                disabled={hrPoliciesLoading}
+              >
+                <SelectTrigger className="mt-1 h-9 text-sm">
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COMPANY_TIMEZONE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Attendance punches and the company clock use this timezone.
+                Defaults to Asia/Qatar.
+              </p>
+            </div>
+
             <div>
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Standard working hours / day

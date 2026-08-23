@@ -53,6 +53,8 @@ export interface HrPoliciesPayload {
   // ── Attendance & working hours ──
   standardWorkingHoursPerDay?: number;
   requireCheckIn?: boolean;
+  /** IANA timezone for company attendance clocks (default Asia/Qatar). */
+  timezone?: string;
   /** Grace minutes after max shift (standard + OT) before auto check-out. */
   maxShiftCheckoutGraceMinutes?: number | null;
   /**

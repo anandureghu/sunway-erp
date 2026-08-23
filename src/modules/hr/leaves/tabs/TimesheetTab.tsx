@@ -9,6 +9,17 @@ import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { notifyTimesheetChanged, onTimesheetChanged } from "@/lib/timesheet-sync";
 import {
+  formatDuration24,
+  formatLiveClock,
+  formatPunchTime,
+  formatPunchTimeInZone,
+  formatTimezoneShort,
+  diffMs,
+  hourInTimezone,
+  resolveCompanyTimezone,
+} from "@/lib/timesheet-time";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import {
   LogIn,
   LogOut,
   Clock,
@@ -25,74 +36,13 @@ import {
 } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
-// ── helpers (unchanged) ───────────────────────────────────────────────────────
-
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-// All shift times display in Qatar time (Asia/Qatar) regardless of the viewer's
-// own timezone, so a check-in shows the same wall-clock time for everyone.
-const QATAR_TZ = "Asia/Qatar";
-
-function formatClock(d: Date) {
-  return d.toLocaleTimeString("en-GB", {
-    timeZone: QATAR_TZ,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
-
-function formatTime(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleTimeString("en-US", {
-    timeZone: QATAR_TZ,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-/** Current hour (0–23) in Qatar time, for the greeting. */
-function qatarHour(d: Date): number {
-  return Number(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: QATAR_TZ,
-      hour: "2-digit",
-      hour12: false,
-    }).format(d),
-  );
-}
-
-function diffMs(from: string | null | undefined, to?: string | null): number {
-  if (!from) return 0;
-  const end = to ? new Date(to).getTime() : Date.now();
-  return Math.max(0, end - new Date(from).getTime());
-}
-
-function msToDuration(ms: number): { h: number; m: number; s: number } {
-  const s = Math.floor(ms / 1000);
-  return { h: Math.floor(s / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 };
-}
-
-function formatDuration(ms: number): string {
-  const { h, m } = msToDuration(ms);
-  if (h === 0) return `${m}m`;
-  return `${h}h ${m}m`;
-}
-
-function formatDurationFull(ms: number): string {
-  const { h, m, s } = msToDuration(ms);
-  return `${pad(h)}:${pad(m)}:${pad(s)}`;
-}
-
-function totalHoursInMonth(entries: TimesheetEntry[]): number {
+function totalHoursInMonth(
+  entries: TimesheetEntry[],
+  timeZone: string,
+): number {
   return entries.reduce((sum, e) => {
     if (e.checkInTime && e.checkOutTime) {
-      sum += diffMs(e.checkInTime, e.checkOutTime) / 3600000;
+      sum += diffMs(e.checkInTime, e.checkOutTime, timeZone) / 3600000;
     }
     return sum;
   }, 0);
@@ -104,21 +54,30 @@ function getGreeting(h: number): { label: string; icon: typeof Sun } {
   return { label: "Good Evening", icon: Moon };
 }
 
-// ── ElapsedTimer (logic unchanged) ────────────────────────────────────────────
+// ── ElapsedTimer ──────────────────────────────────────────────────────────────
 
-function ElapsedTimer({ checkInTime }: { checkInTime: string }) {
-  const [elapsed, setElapsed] = useState(diffMs(checkInTime));
+function ElapsedTimer({
+  checkInTime,
+  timeZone,
+}: {
+  checkInTime: string;
+  timeZone: string;
+}) {
+  const [elapsed, setElapsed] = useState(diffMs(checkInTime, undefined, timeZone));
   useEffect(() => {
-    const t = setInterval(() => setElapsed(diffMs(checkInTime)), 1000);
+    const t = setInterval(
+      () => setElapsed(diffMs(checkInTime, undefined, timeZone)),
+      1000,
+    );
     return () => clearInterval(t);
-  }, [checkInTime]);
+  }, [checkInTime, timeZone]);
   return (
     <div className="flex flex-col items-center gap-0.5">
       <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-semibold">
         Working for
       </p>
       <p className="font-mono text-3xl font-bold text-white tabular-nums tracking-tight">
-        {formatDurationFull(elapsed)}
+        {formatDuration24(elapsed)}
       </p>
     </div>
   );
@@ -237,16 +196,31 @@ function ActionButton({
 
 // ── NEW: TodayCard ─────────────────────────────────────────────────────────────
 
-function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
+function TodayCard({
+  entry,
+  timeZone,
+}: {
+  entry: TimesheetEntry | null;
+  timeZone: string;
+}) {
+  const companyTz = resolveCompanyTimezone(timeZone);
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const localShort = formatTimezoneShort(browserTz);
+
   const duration =
     entry?.checkInTime && entry?.checkOutTime
-      ? diffMs(entry.checkInTime, entry.checkOutTime)
+      ? diffMs(entry.checkInTime, entry.checkOutTime, companyTz)
       : null;
 
   const cells = [
     {
       label: "Check In",
-      value: formatTime(entry?.checkInTime),
+      value: formatPunchTime(entry?.checkInTime, companyTz),
+      localValue: formatPunchTimeInZone(
+        entry?.checkInTime,
+        companyTz,
+        browserTz,
+      ),
       active: !!entry?.checkInTime,
       icon: LogIn,
       accent: "text-emerald-600",
@@ -256,7 +230,12 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
     },
     {
       label: "Check Out",
-      value: formatTime(entry?.checkOutTime),
+      value: formatPunchTime(entry?.checkOutTime, companyTz),
+      localValue: formatPunchTimeInZone(
+        entry?.checkOutTime,
+        companyTz,
+        browserTz,
+      ),
       active: !!entry?.checkOutTime,
       icon: LogOut,
       accent: "text-rose-600",
@@ -268,10 +247,11 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
       label: "Duration",
       value:
         duration !== null
-          ? formatDuration(duration)
+          ? formatDuration24(duration)
           : entry?.checkInTime
             ? "In Progress"
             : "—",
+      localValue: null as string | null,
       active: duration !== null || !!entry?.checkInTime,
       icon: Timer,
       accent: "text-blue-600",
@@ -284,7 +264,17 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
   return (
     <div className="grid grid-cols-3 gap-3">
       {cells.map(
-        ({ label, value, active, icon: Icon, accent, bg, ring, iconBg }) => (
+        ({
+          label,
+          value,
+          localValue,
+          active,
+          icon: Icon,
+          accent,
+          bg,
+          ring,
+          iconBg,
+        }) => (
           <div
             key={label}
             className={cn(
@@ -307,14 +297,22 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
                 <Icon className="h-3.5 w-3.5 text-white" />
               </div>
             </div>
-            <span
-              className={cn(
-                "text-2xl font-bold leading-none",
-                active ? accent : "text-slate-300",
+            <div className="flex flex-col gap-1">
+              <span
+                className={cn(
+                  "text-2xl font-bold leading-none",
+                  active ? accent : "text-slate-300",
+                )}
+              >
+                {value}
+              </span>
+              {localValue && (
+                <span className="text-[11px] font-medium text-slate-400 tabular-nums">
+                  {localValue}
+                  <span className="text-slate-300"> · local ({localShort})</span>
+                </span>
               )}
-            >
-              {value}
-            </span>
+            </div>
           </div>
         ),
       )}
@@ -327,12 +325,12 @@ function TodayCard({ entry }: { entry: TimesheetEntry | null }) {
 // Fallback when the company's standard working hours aren't provided on a row.
 const DEFAULT_STANDARD_HOURS_PER_DAY = 6;
 
-function workedDayCount(entries: TimesheetEntry[]): number {
+function workedDayCount(entries: TimesheetEntry[], timeZone: string): number {
   return entries.reduce((n, e) => {
     if (!e.checkInTime || !e.checkOutTime) return n;
     const mins =
       e.workedMinutes ??
-      Math.floor(diffMs(e.checkInTime, e.checkOutTime) / 60000);
+      Math.floor(diffMs(e.checkInTime, e.checkOutTime, timeZone) / 60000);
     // A day counts once worked minutes reach the company's configured standard
     // (default 6h) rather than a fixed 360-minute constant.
     const thresholdMins =
@@ -344,14 +342,16 @@ function workedDayCount(entries: TimesheetEntry[]): number {
 function MonthStats({
   entries,
   monthLabel,
+  timeZone,
 }: {
   entries: TimesheetEntry[];
   monthLabel: string;
+  timeZone: string;
 }) {
   const completed = entries.filter((e) => e.checkInTime && e.checkOutTime);
-  const totalH = totalHoursInMonth(entries);
+  const totalH = totalHoursInMonth(entries, timeZone);
   const avgH = completed.length ? totalH / completed.length : 0;
-  const workedDays = workedDayCount(entries);
+  const workedDays = workedDayCount(entries, timeZone);
 
   const stats = [
     {
@@ -447,7 +447,13 @@ function MonthStats({
 
 // ── NEW: HistoryTable ──────────────────────────────────────────────────────────
 
-function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
+function HistoryTable({
+  entries,
+  timeZone,
+}: {
+  entries: TimesheetEntry[];
+  timeZone: string;
+}) {
   const sorted = [...entries].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
@@ -497,7 +503,7 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
           {sorted.map((entry) => {
             const dur =
               entry.checkInTime && entry.checkOutTime
-                ? diffMs(entry.checkInTime, entry.checkOutTime)
+                ? diffMs(entry.checkInTime, entry.checkOutTime, timeZone)
                 : null;
             const isToday = entry.date === todayStr;
             const isActive = entry.status === "CHECKED_IN";
@@ -561,14 +567,14 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
                   <div className="flex items-center gap-3 text-xs">
                     <span className="flex items-center gap-1 text-emerald-600 font-semibold">
                       <LogIn className="h-3 w-3" />
-                      {formatTime(entry.checkInTime)}
+                      {formatPunchTime(entry.checkInTime, timeZone)}
                     </span>
                     {entry.checkOutTime ? (
                       <>
                         <span className="text-slate-300">→</span>
                         <span className="flex items-center gap-1 text-rose-500 font-semibold">
                           <LogOut className="h-3 w-3" />
-                          {formatTime(entry.checkOutTime)}
+                          {formatPunchTime(entry.checkOutTime, timeZone)}
                         </span>
                       </>
                     ) : (
@@ -588,7 +594,7 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
                   {dur !== null ? (
                     <>
                       <p className="text-base font-bold text-slate-800 tabular-nums">
-                        {formatDuration(dur)}
+                        {formatDuration24(dur)}
                       </p>
                       <p className="text-[10px] text-slate-400 font-medium">
                         duration
@@ -629,6 +635,7 @@ function HistoryTable({ entries }: { entries: TimesheetEntry[] }) {
 export default function TimesheetTab() {
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
+  const { confirm } = useConfirmDialog();
 
   const [now, setNow] = useState(new Date());
   const [todayEntry, setTodayEntry] = useState<TimesheetEntry | null>(null);
@@ -708,6 +715,11 @@ export default function TimesheetTab() {
   const isComplete = !!(todayEntry?.checkInTime && todayEntry?.checkOutTime);
   // Company doesn't punch in/out — attendance is auto-marked present.
   const noPunch = todayEntry?.requireCheckIn === false;
+  const companyTz = resolveCompanyTimezone(todayEntry?.timezone);
+  const companyTzShort = formatTimezoneShort(companyTz);
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const showLocalSecondary =
+    resolveCompanyTimezone(browserTz) !== companyTz;
 
   const handleCheckIn = async () => {
     if (!empId) return;
@@ -734,6 +746,16 @@ export default function TimesheetTab() {
 
   const handleCheckOut = async () => {
     if (!empId) return;
+    const ok = await confirm({
+      title: "Check out?",
+      description:
+        "End your shift for today? You will not be able to check in again until tomorrow.",
+      confirmLabel: "Check Out",
+      cancelLabel: "Stay clocked in",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
     setActionLoading(true);
     try {
       const entry = await timesheetService.checkOut(empId);
@@ -765,7 +787,7 @@ export default function TimesheetTab() {
     year: "numeric",
   });
 
-  const greeting = getGreeting(qatarHour(now));
+  const greeting = getGreeting(hourInTimezone(now, companyTz));
   const GreetIcon = greeting.icon;
 
   // ── Loading screen ──────────────────────────────────────────────────────────
@@ -824,22 +846,34 @@ export default function TimesheetTab() {
               </span>
             </div>
 
-            {/* Clock */}
+            {/* Clock — company timezone primary; local secondary when different */}
             <div>
               <div className="font-mono text-6xl font-black text-white tabular-nums tracking-tighter leading-none">
-                {formatClock(now)}
+                {formatLiveClock(now, companyTz)}
               </div>
-              <div className="flex items-center gap-1.5 mt-2 text-white/40 text-sm font-medium">
-                <MapPin className="h-3.5 w-3.5" />
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mt-2 text-white/40 text-sm font-medium">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
                 {now.toLocaleDateString("en-US", {
-                  timeZone: QATAR_TZ,
+                  timeZone: companyTz,
                   weekday: "long",
                   month: "long",
                   day: "numeric",
                   year: "numeric",
                 })}
-                <span className="ml-1 text-white/30">· Qatar</span>
+                <span className="text-white/30">· {companyTzShort}</span>
               </div>
+              {showLocalSecondary && (
+                <div className="mt-1.5 text-xs text-white/35 font-medium">
+                  Your local:{" "}
+                  <span className="text-white/55 tabular-nums">
+                    {formatLiveClock(now, browserTz)}
+                  </span>
+                  <span className="text-white/25">
+                    {" "}
+                    · {formatTimezoneShort(browserTz)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Status badge */}
@@ -875,8 +909,12 @@ export default function TimesheetTab() {
                   <Timer className="h-4 w-4" />
                   Total today:
                   <span className="text-white font-bold">
-                    {formatDuration(
-                      diffMs(todayEntry.checkInTime, todayEntry.checkOutTime),
+                    {formatDuration24(
+                      diffMs(
+                        todayEntry.checkInTime,
+                        todayEntry.checkOutTime,
+                        companyTz,
+                      ),
                     )}
                   </span>
                 </div>
@@ -920,7 +958,10 @@ export default function TimesheetTab() {
                   onCheckOut={handleCheckOut}
                 />
                 {isCheckedIn && todayEntry?.checkInTime && (
-                  <ElapsedTimer checkInTime={todayEntry.checkInTime} />
+                  <ElapsedTimer
+                    checkInTime={todayEntry.checkInTime}
+                    timeZone={companyTz}
+                  />
                 )}
                 {!isCheckedIn && employeeActive && (
                   <p className="text-white/30 text-xs text-center font-medium tracking-wide">
@@ -939,10 +980,14 @@ export default function TimesheetTab() {
       </div>
 
       {/* ── TODAY'S SUMMARY ──────────────────────────────────────────────────── */}
-      <TodayCard entry={todayEntry} />
+      <TodayCard entry={todayEntry} timeZone={companyTz} />
 
       {/* ── MONTHLY STATS ────────────────────────────────────────────────────── */}
-      <MonthStats entries={currentMonthEntries} monthLabel={monthLabel} />
+      <MonthStats
+        entries={currentMonthEntries}
+        monthLabel={monthLabel}
+        timeZone={companyTz}
+      />
 
       {/* ── ATTENDANCE HISTORY ───────────────────────────────────────────────── */}
       {error && history.length === 0 ? (
@@ -950,7 +995,7 @@ export default function TimesheetTab() {
           {error}
         </div>
       ) : (
-        <HistoryTable entries={history} />
+        <HistoryTable entries={history} timeZone={companyTz} />
       )}
     </div>
   );
