@@ -137,6 +137,8 @@ export type ItemResponseDTO = {
 
   costPrice: number;
   sellingPrice: number;
+  /** Undiscounted retail; sellingPrice may be lower when discounted. */
+  listPrice?: number | null;
 
   unitMeasure: string;
 

@@ -327,11 +327,15 @@ export async function applyItemBulkDiscount(payload: {
 }): Promise<{
   requestedCount: number;
   updatedCount: number;
+  skippedCount: number;
+  cappedAtCostCount: number;
   discountPercent: number;
 }> {
   const res = await apiClient.post<{
     requestedCount: number;
     updatedCount: number;
+    skippedCount: number;
+    cappedAtCostCount: number;
     discountPercent: number;
   }>("/inventory/items/bulk-discount", payload);
   return res.data;

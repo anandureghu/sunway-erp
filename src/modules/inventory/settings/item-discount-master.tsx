@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Percent, Search, Tag } from "lucide-react";
+import { AlertTriangle, Percent, Search, Tag } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { useModulePermission } from "@/hooks/use-module-permission";
+import { getApiErrorMessage } from "@/lib/api-error-message";
+import { priceAfterDiscount } from "@/lib/discount-floor";
+import { InventoryModule } from "@/lib/module-permissions";
 import {
   applyItemBulkDiscount,
   listItems,
@@ -45,8 +49,23 @@ function formatDate(value?: string | null): string {
   return d || "—";
 }
 
+function listPriceOf(item: ItemResponseDTO): number {
+  const list = Number(item.listPrice ?? 0);
+  if (list > 0) return list;
+  return Number(item.sellingPrice ?? 0);
+}
+
+/** Current catalog discount vs list price (0 when none / invalid). */
+function currentDiscountPercent(item: ItemResponseDTO): number {
+  const list = listPriceOf(item);
+  const sell = Number(item.sellingPrice ?? 0);
+  if (!(list > 0) || sell < 0 || sell >= list) return 0;
+  return Math.round((1 - sell / list) * 10000) / 100;
+}
+
 export default function ItemDiscountMaster() {
   const { confirm } = useConfirmDialog();
+  const { canEdit } = useModulePermission(InventoryModule.ITEM);
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -64,8 +83,7 @@ export default function ItemDiscountMaster() {
       const data = await listItems();
       setItems(data);
     } catch (e: unknown) {
-      const err = e as { message?: string };
-      toast.error(err?.message || "Failed to load items.");
+      toast.error(getApiErrorMessage(e, "Failed to load items."));
     } finally {
       setLoading(false);
     }
@@ -81,7 +99,12 @@ export default function ItemDiscountMaster() {
   );
   const types = useMemo(() => uniqueSorted(items.map((i) => i.type)), [items]);
 
+  const dateRangeInvalid =
+    Boolean(saleByFrom && saleByTo && saleByFrom > saleByTo);
+
   const filtered = useMemo(() => {
+    if (dateRangeInvalid) return [];
+
     const q = searchQuery.trim().toLowerCase();
     const from = saleByFrom || null;
     const to = saleByTo || null;
@@ -98,12 +121,21 @@ export default function ItemDiscountMaster() {
       }
 
       if (q) {
-        const hay = `${item.sku ?? ""} ${item.name ?? ""} ${item.category ?? ""} ${item.type ?? ""}`.toLowerCase();
+        const hay =
+          `${item.sku ?? ""} ${item.name ?? ""} ${item.category ?? ""} ${item.type ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [items, category, type, saleByFrom, saleByTo, searchQuery]);
+  }, [
+    items,
+    category,
+    type,
+    saleByFrom,
+    saleByTo,
+    searchQuery,
+    dateRangeInvalid,
+  ]);
 
   const previewDiscount = useMemo(() => {
     const pct = Number(discountPercent);
@@ -111,15 +143,34 @@ export default function ItemDiscountMaster() {
     return pct;
   }, [discountPercent]);
 
+  const previewWouldCapCount = useMemo(() => {
+    if (previewDiscount == null) return 0;
+    return filtered.filter((item) => {
+      const list = listPriceOf(item);
+      const cost = Number(item.costPrice ?? 0);
+      if (!(list > 0) || !(cost > 0)) return false;
+      return priceAfterDiscount(list, previewDiscount, cost).capped;
+    }).length;
+  }, [filtered, previewDiscount]);
+
   const clearFilters = () => {
     setCategory("all");
     setType("all");
     setSaleByFrom("");
     setSaleByTo("");
     setSearchQuery("");
+    setDiscountPercent("10");
   };
 
   const handleApply = async () => {
+    if (!canEdit) {
+      toast.error("You do not have permission to edit item prices.");
+      return;
+    }
+    if (dateRangeInvalid) {
+      toast.error("Sale-by from date must be on or before the to date.");
+      return;
+    }
     if (!previewDiscount) {
       toast.error("Enter a discount percent between 0 and 100 (exclusive).");
       return;
@@ -130,7 +181,9 @@ export default function ItemDiscountMaster() {
     }
 
     const ok = await confirm(
-      `Apply a ${previewDiscount}% one-time discount to ${filtered.length} item(s)? This permanently reduces selling price (and unit sale) for those items.`,
+      previewWouldCapCount > 0
+        ? `Apply a ${previewDiscount}% discount to ${filtered.length} item(s) from list price? ${previewWouldCapCount} item(s) would go below cost and will be capped at cost price.`
+        : `Apply a ${previewDiscount}% discount to ${filtered.length} item(s) from their list price? Selling price will be updated; list price stays as the baseline so discounts do not compound.`,
     );
     if (!ok) return;
 
@@ -140,42 +193,64 @@ export default function ItemDiscountMaster() {
         itemIds: filtered.map((i) => Number(i.id)),
         discountPercent: previewDiscount,
       });
-      toast.success(
+      const skipped = result.skippedCount ?? 0;
+      const capped = result.cappedAtCostCount ?? 0;
+      const parts = [
         `Discounted ${result.updatedCount} of ${result.requestedCount} item(s) by ${result.discountPercent}%.`,
-      );
+      ];
+      if (capped > 0) {
+        parts.push(
+          `${capped} capped at cost price so selling price does not go below cost.`,
+        );
+      }
+      if (skipped > 0) {
+        parts.push(
+          `${skipped} skipped (missing price, already at/below cost, or not found).`,
+        );
+      }
+      if (capped > 0) {
+        toast.warning(parts.join(" "));
+      } else {
+        toast.success(parts.join(" "));
+      }
       await load();
     } catch (e: unknown) {
-      const err = e as {
-        response?: { data?: { message?: string; error?: string } };
-        message?: string;
-      };
-      toast.error(
-        err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          err?.message ||
-          "Failed to apply discount.",
-      );
+      toast.error(getApiErrorMessage(e, "Failed to apply discount."));
     } finally {
       setApplying(false);
     }
   };
 
+  const colCount = previewDiscount != null ? 12 : 11;
+
   return (
     <div className="space-y-4">
       <SecondaryPageHeader
         title="One-time item discount"
-        description="Filter by category, type, or sale-by date, then reduce selling price for all matching items."
+        description="Filter by category, type, or sale-by date, then set selling price from each item’s list price."
         icon={<Tag className="h-5 w-5 text-white" />}
         variant="amber"
         actions={
-          <Button
-            onClick={() => void handleApply()}
-            disabled={applying || loading || !previewDiscount || filtered.length === 0}
-            className="gap-2"
-          >
-            <Percent className="h-4 w-4" />
-            {applying ? "Applying…" : `Apply to ${filtered.length} item(s)`}
-          </Button>
+          canEdit ? (
+            <Button
+              onClick={() => void handleApply()}
+              disabled={
+                applying ||
+                loading ||
+                !previewDiscount ||
+                filtered.length === 0 ||
+                dateRangeInvalid
+              }
+              className="gap-2"
+            >
+              <Percent className="h-4 w-4" />
+              {applying ? "Applying…" : `Apply to ${filtered.length} item(s)`}
+            </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              View only — item edit permission required to apply discounts.
+            </p>
+          )
         }
       />
 
@@ -246,9 +321,26 @@ export default function ItemDiscountMaster() {
               type="date"
               value={saleByTo}
               onChange={(e) => setSaleByTo(e.target.value)}
+              className={dateRangeInvalid ? "border-destructive" : undefined}
             />
           </div>
         </div>
+
+        {dateRangeInvalid ? (
+          <p className="text-sm text-destructive">
+            Sale-by from must be on or before sale-by to.
+          </p>
+        ) : null}
+
+        {previewWouldCapCount > 0 ? (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              {previewWouldCapCount} filtered item(s) would price below cost at{" "}
+              {previewDiscount}% — selling price will be capped at cost.
+            </p>
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5 w-40">
@@ -261,14 +353,18 @@ export default function ItemDiscountMaster() {
               step="0.01"
               value={discountPercent}
               onChange={(e) => setDiscountPercent(e.target.value)}
+              disabled={!canEdit}
             />
           </div>
           <Button type="button" variant="outline" onClick={clearFilters}>
             Clear filters
           </Button>
           <p className="text-sm text-muted-foreground pb-2">
-            Showing <span className="font-semibold text-slate-700">{filtered.length}</span> of{" "}
-            {items.length} items
+            Showing{" "}
+            <span className="font-semibold text-slate-700">
+              {filtered.length}
+            </span>{" "}
+            of {items.length} items
           </p>
         </div>
       </div>
@@ -279,11 +375,14 @@ export default function ItemDiscountMaster() {
             <TableHeader>
               <TableRow>
                 <TableHead>Item code</TableHead>
+                <TableHead>Item name</TableHead>
                 <TableHead>Item type</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Qty in hand</TableHead>
                 <TableHead className="text-right">Cost price</TableHead>
+                <TableHead className="text-right">List price</TableHead>
                 <TableHead className="text-right">Selling price</TableHead>
+                <TableHead className="text-right">Current discount</TableHead>
                 {previewDiscount != null && (
                   <TableHead className="text-right">After discount</TableHead>
                 )}
@@ -294,27 +393,41 @@ export default function ItemDiscountMaster() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
+                  <TableCell
+                    colSpan={colCount}
+                    className="py-10 text-center text-muted-foreground"
+                  >
                     Loading items…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
-                    No items match the filters.
+                  <TableCell
+                    colSpan={colCount}
+                    className="py-10 text-center text-muted-foreground"
+                  >
+                    {dateRangeInvalid
+                      ? "Fix the sale-by date range to see items."
+                      : "No items match the filters."}
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((item) => {
+                  const list = listPriceOf(item);
                   const selling = Number(item.sellingPrice ?? 0);
-                  const after =
-                    previewDiscount != null
-                      ? Math.round(selling * (1 - previewDiscount / 100) * 100) / 100
+                  const cost = Number(item.costPrice ?? 0);
+                  const currentPct = currentDiscountPercent(item);
+                  const afterPreview =
+                    previewDiscount != null && list > 0
+                      ? priceAfterDiscount(list, previewDiscount, cost)
                       : null;
                   return (
                     <TableRow key={item.id}>
                       <TableCell className="font-mono text-sm font-medium">
                         {item.sku || "—"}
+                      </TableCell>
+                      <TableCell className="max-w-[220px] truncate font-medium">
+                        {item.name || "—"}
                       </TableCell>
                       <TableCell>{item.type || "—"}</TableCell>
                       <TableCell>{item.category || "—"}</TableCell>
@@ -322,14 +435,37 @@ export default function ItemDiscountMaster() {
                         {item.quantity ?? 0}
                       </TableCell>
                       <TableCell className="text-right">
-                        <CurrencyAmount amount={Number(item.costPrice ?? 0)} />
+                        <CurrencyAmount amount={cost} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <CurrencyAmount amount={list} />
                       </TableCell>
                       <TableCell className="text-right">
                         <CurrencyAmount amount={selling} />
                       </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {currentPct > 0 ? (
+                          <span className="font-medium text-amber-700">
+                            {currentPct}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       {previewDiscount != null && (
-                        <TableCell className="text-right text-emerald-700 font-medium">
-                          <CurrencyAmount amount={after ?? 0} />
+                        <TableCell
+                          className={`text-right font-medium ${
+                            afterPreview?.capped
+                              ? "text-amber-700"
+                              : "text-emerald-700"
+                          }`}
+                        >
+                          <CurrencyAmount amount={afterPreview?.price ?? 0} />
+                          {afterPreview?.capped ? (
+                            <span className="ml-1 text-[10px] font-normal uppercase tracking-wide">
+                              at cost
+                            </span>
+                          ) : null}
                         </TableCell>
                       )}
                       <TableCell>{formatDate(item.expiryDate)}</TableCell>
