@@ -47,7 +47,7 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
   },
   {
     accessorKey: "quantity",
-    header: "Quantity on hand",
+    header: "Qty on hand",
     cell: ({ row }) => {
       const stock = row.original;
       const qty = Number(stock.quantity ?? 0);
@@ -64,7 +64,7 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
   },
   {
     accessorKey: "reserved",
-    header: "Quantity on reserve",
+    header: "Qty on reserve",
     cell: ({ row }) => {
       const stock = row.original;
       const reserved = Number(stock.reserved ?? 0);
@@ -80,7 +80,7 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
   },
   {
     accessorKey: "quantityOnOrder",
-    header: "Quantity on order",
+    header: "Qty on order",
     cell: ({ row }) => {
       const stock = row.original;
       const onOrder = Number(stock.quantityOnOrder ?? 0);

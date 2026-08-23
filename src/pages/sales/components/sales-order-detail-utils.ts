@@ -5,7 +5,7 @@ export function orderStatusKey(so: SalesOrderResponseDTO): string {
 }
 
 export function paymentStatusKey(so: SalesOrderResponseDTO): string {
-  return (so.paymentStatus || "UNPAID").toUpperCase();
+  return (so.paymentStatus || "UNPAID").trim().toUpperCase().replace(/\s+/g, "_");
 }
 
 export function formatStatusLabel(status: string): string {

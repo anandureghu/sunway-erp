@@ -553,7 +553,7 @@ export function CreateSalesOrderForm({
         <div className="xl:col-span-2 space-y-6">
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Customer & Order Details</CardTitle>
+              <CardTitle>Customer Details</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div className="space-y-2">
@@ -625,13 +625,13 @@ export function CreateSalesOrderForm({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
-                Add Order Items
+                Add Line Items
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                 <div className="md:col-span-2 space-y-2">
-                  <Label>Item</Label>
+                  <Label>Item Name</Label>
                   <Select value={selectedItem} onValueChange={setSelectedItem}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select item" />
@@ -641,7 +641,7 @@ export function CreateSalesOrderForm({
                         .filter((i) => i.status === "active")
                         .map((item) => (
                           <SelectItem key={item.id} value={String(item.id)}>
-                            {item.name} - {item.sellingPrice || 0}
+                            {item.sku ? `${item.sku} — ${item.name}` : item.name}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -657,6 +657,24 @@ export function CreateSalesOrderForm({
                     onChange={(e) =>
                       setItemQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))
                     }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Unit Cost</Label>
+                  <Input
+                    type="text"
+                    readOnly
+                    tabIndex={-1}
+                    className="bg-muted/40 tabular-nums"
+                    value={
+                      selectedItem
+                        ? String(
+                            items.find((i) => String(i.id) === String(selectedItem))
+                              ?.sellingPrice ?? 0,
+                          )
+                        : ""
+                    }
+                    placeholder="—"
                   />
                 </div>
                 <div className="space-y-2">
@@ -741,9 +759,9 @@ export function CreateSalesOrderForm({
                   <table className="w-full text-sm min-w-[720px]">
                     <thead className="bg-muted/60">
                       <tr>
-                        <th className="text-left p-3">Item</th>
+                        <th className="text-left p-3">Item Name</th>
                         <th className="text-right p-3 w-28">Qty</th>
-                        <th className="text-right p-3 w-32">Unit price</th>
+                        <th className="text-right p-3 w-32">Unit Cost</th>
                         <th className="text-right p-3 w-24">Disc %</th>
                         <th className="text-left p-3 min-w-[140px]">
                           Warehouse
@@ -778,13 +796,10 @@ export function CreateSalesOrderForm({
                               type="number"
                               min={0}
                               step={0.01}
-                              className="text-right h-9 tabular-nums"
+                              readOnly
+                              tabIndex={-1}
+                              className="text-right h-9 tabular-nums bg-muted/40"
                               value={item.unitPrice}
-                              onChange={(e) =>
-                                updateOrderLine(item.id, {
-                                  unitPrice: parseFloat(e.target.value) || 0,
-                                })
-                              }
                             />
                           </td>
                           <td className="p-3 align-middle">

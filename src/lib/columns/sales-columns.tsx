@@ -29,6 +29,34 @@ import { format } from "date-fns";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { StatusBadge } from "@/lib/status-badge";
 
+function paymentKey(status?: string | null): string {
+  return (status || "UNPAID").trim().toUpperCase().replace(/\s+/g, "_");
+}
+
+function isSettledPayment(status?: string | null): boolean {
+  return paymentKey(status) === "PAID";
+}
+
+function formatSnakeStatusLabel(status: string): string {
+  const known: Record<string, string> = {
+    created: "Created",
+    dispatched: "Dispatched",
+    in_transit: "In Transit",
+    out_for_delivery: "Out for Delivery",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+    failed_delivery: "Failed Delivery",
+    picked: "Picked",
+  };
+  if (known[status]) return known[status];
+  return status
+    .replace(/_/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export type SalesOrderActivePicklist = {
   id: string;
   status: string;
@@ -162,10 +190,17 @@ export function createSalesOrderColumns(
       cell: ({ row }) => {
         const order = row.original;
         const total = Number(order.total ?? 0);
-        const outstanding = Number(order.outstandingAmount ?? total);
-        const paid = total - outstanding;
+        const payment = paymentKey(order.paymentStatus);
+        let paid = 0;
+        if (payment === "PAID") {
+          paid = total;
+        } else if (order.outstandingAmount != null) {
+          paid = Math.max(0, total - Number(order.outstandingAmount));
+        }
         if (paid <= 0) return <span className="text-muted-foreground">—</span>;
-        return <CurrencyAmount amount={paid} className="text-emerald-600 font-medium" />;
+        return (
+          <CurrencyAmount amount={paid} className="text-emerald-600 font-medium" />
+        );
       },
     },
     {
@@ -173,9 +208,22 @@ export function createSalesOrderColumns(
       header: "Due Amount",
       cell: ({ row }) => {
         const order = row.original;
-        const outstanding = Number(order.outstandingAmount ?? 0);
-        if (outstanding <= 0) return <span className="text-muted-foreground">—</span>;
-        return <CurrencyAmount amount={outstanding} className="text-rose-600 font-medium" />;
+        // Quotations have no invoice yet — due only after confirm.
+        if (order.status === "quotation" || isSettledPayment(order.paymentStatus)) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        const outstanding = Number(
+          order.outstandingAmount ?? order.total ?? 0,
+        );
+        if (!(outstanding > 0)) {
+          return <span className="text-muted-foreground">—</span>;
+        }
+        return (
+          <CurrencyAmount
+            amount={outstanding}
+            className="text-rose-600 font-medium"
+          />
+        );
       },
     },
     {
@@ -183,20 +231,21 @@ export function createSalesOrderColumns(
       header: "Actions",
       cell: ({ row }) => {
         const order = row.original;
-        const payment = (order.paymentStatus || "").toUpperCase();
+        const payment = paymentKey(order.paymentStatus);
         const activePicklist = activePicklistByOrderId[String(order.id)];
         const canConfirm =
           order.status === "quotation" && order.sufficientDebitBalance !== false;
         const canCancel =
-          order.status === "quotation" || order.status === "confirmed";
+          (order.status === "quotation" || order.status === "confirmed") &&
+          !isSettledPayment(order.paymentStatus);
         // Backend requires full payment before picklist generation.
         const canGeneratePicklist =
-          (order.status === "confirmed" || order.status === "completed") &&
+          order.status === "confirmed" &&
           payment === "PAID" &&
           !activePicklist &&
           Boolean(onGeneratePicklist);
         const awaitingPaymentForPicklist =
-          (order.status === "confirmed" || order.status === "completed") &&
+          order.status === "confirmed" &&
           !activePicklist &&
           payment !== "PAID" &&
           payment !== "CANCELLED";
@@ -414,12 +463,12 @@ export const CUSTOMER_COLUMNS: ColumnDef<Customer>[] = [
 export function createPicklistColumns(
   onMarkPicked?: (id: string) => void,
   onCancel?: (id: string) => void,
-  onCreateDispatch?: (id: string) => void,
+  _onCreateDispatch?: (id: string) => void,
   onArchive?: (id: string) => void,
   processingPicklistId?: string | null,
   onViewDetails?: (id: string) => void,
-  /** Picklists that already have a shipment — hide Create Dispatch. */
-  dispatchedPicklistIds?: Set<string>,
+  /** @deprecated Create Dispatch moved to page toolbar; kept for call-site compat. */
+  _dispatchedPicklistIds?: Set<string>,
 ): ColumnDef<Picklist>[] {
   return [
     {
@@ -454,11 +503,7 @@ export function createPicklistColumns(
           <Badge
             className={statusColors[status] || "bg-gray-100 text-gray-800"}
           >
-            {status
-              .replace("_", " ")
-              .split(" ")
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-              .join(" ")}
+            {formatSnakeStatusLabel(status)}
           </Badge>
         );
       },
@@ -477,11 +522,6 @@ export function createPicklistColumns(
         const picklist = row.original;
         const canMarkPicked = picklist.status === "created";
         const canCancel = picklist.status === "created";
-        const canCreateDispatch =
-          picklist.status === "picked" &&
-          !picklist.shipmentId &&
-          !picklist.archived &&
-          !dispatchedPicklistIds?.has(picklist.id);
         const canArchive =
           !picklist.archived &&
           (picklist.status === "picked" || picklist.status === "cancelled");
@@ -514,17 +554,6 @@ export function createPicklistColumns(
                     <Package className="mr-2 h-4 w-4" />
                     Mark as Picked
                   </DropdownMenuItem>
-                )}
-                {canCreateDispatch && onCreateDispatch && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onCreateDispatch(picklist.id)}
-                    >
-                      <Truck className="mr-2 h-4 w-4" />
-                      Create Dispatch
-                    </DropdownMenuItem>
-                  </>
                 )}
                 {canCancel && onCancel && (
                   <>
@@ -615,11 +644,7 @@ export function createDispatchColumns(
           <Badge
             className={statusColors[status] || "bg-gray-100 text-gray-800"}
           >
-            {status
-              .replace("_", " ")
-              .split(" ")
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-              .join(" ")}
+            {formatSnakeStatusLabel(status)}
           </Badge>
         );
       },
@@ -690,7 +715,7 @@ export function createDispatchColumns(
                   onClick={() => onMarkOutForDelivery(dispatch.id)}
                 >
                   <Truck className="mr-2 h-4 w-4" />
-                  Mark Out For Delivery
+                  Mark Out for Delivery
                 </DropdownMenuItem>
               )}
               {canMarkDelivered && onMarkDelivered && (

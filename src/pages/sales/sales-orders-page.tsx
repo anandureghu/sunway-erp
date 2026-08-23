@@ -245,12 +245,13 @@ export default function SalesOrdersPage() {
       setActionState({ id, type: "confirm" });
       try {
         const updated = await confirmSalesOrder(id);
-        // Optimistic UI update so status changes immediately in table.
+        // Optimistic UI update so status / due / invoice fields change immediately.
         setOrders((prev) =>
           prev.map((order) =>
             order.id === id
               ? {
                   ...order,
+                  ...updated,
                   status: updated.status,
                   paymentStatus: updated.paymentStatus ?? "UNPAID",
                 }
@@ -283,6 +284,12 @@ export default function SalesOrdersPage() {
       ) {
         return toast.error(
           `Cannot cancel order with status "${order.status}". Only quotation or confirmed orders can be cancelled.`,
+        );
+      }
+      const payment = (order.paymentStatus || "").trim().toUpperCase();
+      if (payment === "PAID") {
+        return toast.error(
+          "Cannot cancel a paid order. Reverse or adjust payment in Accounts Receivable first.",
         );
       }
       if (!(await confirmCancel(`order ${order.orderNo}`))) {

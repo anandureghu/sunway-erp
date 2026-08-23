@@ -34,10 +34,10 @@ function exportToCsv(data: ItemResponseDTO[]) {
     "Item name",
     "Category",
     "Brand",
-    "Quantity on hand",
+    "Qty on hand",
     "Unit",
-    "Quantity on reserve",
-    "Quantity on order",
+    "Qty on reserve",
+    "Qty on order",
     "Date received",
     "Sale by date",
     "Status",
@@ -123,7 +123,7 @@ async function exportToPdf(data: ItemResponseDTO[]) {
       <table>
         <thead><tr>
           <th>SL No.</th><th>Item code</th><th>Item name</th><th>Category</th>
-          <th>Brand</th><th>On hand</th><th>On reserve</th><th>On order</th>
+          <th>Brand</th><th>Qty on hand</th><th>Qty on reserve</th><th>Qty on order</th>
           <th>Date received</th><th>Sale by date</th><th>Status</th>
         </tr></thead>
         <tbody>${rowsHtml}</tbody>

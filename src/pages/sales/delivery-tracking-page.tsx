@@ -121,8 +121,9 @@ function getAllowedTrackingStatuses(
 export default function DeliveryTrackingPage() {
   const { company } = useAuth();
   const { confirmCancel } = useConfirmDialog();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const selectedDispatchId = searchParams.get("dispatchId");
+  const deepLinkAction = searchParams.get("action");
   const [searchQuery, setSearchQuery] = useState("");
   const [dispatchStatusFilter, setDispatchStatusFilter] = useState<
     "all" | "created" | "in_motion" | "delivered"
@@ -303,6 +304,22 @@ export default function DeliveryTrackingPage() {
       setSelectedDispatch(match);
     }
   }, [dispatches, selectedDispatchId]);
+
+  // Deep-links from Picklist & Dispatch actions (Mark Delivered / Update Tracking).
+  useEffect(() => {
+    if (!selectedDispatch || !deepLinkAction) return;
+    if (deepLinkAction === "deliver") {
+      setPodSignature("");
+      setPodRemarks("");
+      setPodError(null);
+      setDeliverDialogOpen(true);
+    } else if (deepLinkAction === "tracking") {
+      setTrackingDialogOpen(true);
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("action");
+    setSearchParams(next, { replace: true });
+  }, [selectedDispatch, deepLinkAction, searchParams, setSearchParams]);
 
   const trackingHistory = useMemo(
     () => (selectedDispatch ? getTrackingHistory(selectedDispatch) : []),
@@ -503,6 +520,10 @@ export default function DeliveryTrackingPage() {
   const showCancelAction =
     selectedDispatch?.status !== "cancelled" &&
     selectedDispatch?.status !== "delivered";
+  const showUpdateTracking =
+    !!selectedDispatch &&
+    selectedDispatch.status !== "delivered" &&
+    selectedDispatch.status !== "cancelled";
 
   useEffect(() => {
     if (!trackingDialogOpen || !selectedDispatch) return;
@@ -769,8 +790,7 @@ export default function DeliveryTrackingPage() {
                       Cancel
                     </Button>
                   )}
-                  {selectedDispatch.status !== "delivered" &&
-                    selectedDispatch.status !== "cancelled" && (
+                  {showUpdateTracking ? (
                       <Button
                         variant="outline"
                         onClick={() => setTrackingDialogOpen(true)}
@@ -778,7 +798,7 @@ export default function DeliveryTrackingPage() {
                       >
                         Update Tracking
                       </Button>
-                    )}
+                    ) : null}
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -959,11 +979,6 @@ export default function DeliveryTrackingPage() {
                 onValueChange={(value) =>
                   setTrackingStatus(value as DispatchStatus)
                 }
-                disabled={
-                  !selectedDispatch ||
-                  getAllowedTrackingStatuses(selectedDispatch.status).length <=
-                    1
-                }
               >
                 <SelectTrigger id="tracking-status" className="w-full">
                   <SelectValue placeholder="Select status" />
@@ -971,7 +986,9 @@ export default function DeliveryTrackingPage() {
                 <SelectContent>
                   {(selectedDispatch
                     ? getAllowedTrackingStatuses(selectedDispatch.status)
-                    : []
+                    : trackingStatus
+                      ? [trackingStatus]
+                      : []
                   ).map((status) => (
                     <SelectItem key={status} value={status}>
                       {getStatusDisplay(status).label}

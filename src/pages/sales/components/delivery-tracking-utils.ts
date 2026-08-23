@@ -24,14 +24,14 @@ export function getStatusDisplay(
     case "dispatched":
       return { label: "IN TRANSIT", color: "bg-blue-500 text-white" };
     case "out_for_delivery":
-      return { label: "OUT FOR DELIVERY", color: "bg-indigo-500 text-white" };
+      return { label: "Out for Delivery", color: "bg-indigo-500 text-white" };
     case "created":
       return { label: "PENDING PICKUP", color: "bg-orange-500 text-white" };
     case "failed_delivery":
       return { label: "FAILED DELIVERY", color: "bg-red-500 text-white" };
     default:
       return {
-        label: status.toUpperCase().replace("_", " "),
+        label: status.replace(/_/g, " ").toUpperCase(),
         color: "bg-gray-500 text-white",
       };
   }

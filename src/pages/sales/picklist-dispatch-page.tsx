@@ -274,8 +274,10 @@ export default function PicklistDispatchPage() {
           await loadData();
         },
         (id) => {
-          // Delivery requires customer signature (POD); collect it on tracking.
-          navigate(`/inventory/sales/tracking?dispatchId=${id}`);
+          // Delivery requires customer signature (POD); open tracking deliver dialog.
+          navigate(
+            `/inventory/sales/tracking?dispatchId=${id}&action=deliver`,
+          );
         },
         async (id) => {
           await markShipmentFailedDelivery(
@@ -297,7 +299,9 @@ export default function PicklistDispatchPage() {
           }
         },
         (id) => {
-          navigate(`/inventory/sales/tracking?dispatchId=${id}`);
+          navigate(
+            `/inventory/sales/tracking?dispatchId=${id}&action=tracking`,
+          );
         },
       ),
     [loadData, navigate, dispatches, confirmCancel],
@@ -318,13 +322,16 @@ export default function PicklistDispatchPage() {
 
   const eligiblePicklistsForDispatch = useMemo(
     () =>
-      excludeArchived(picklists).filter(
-        (p) =>
-          p.status === "picked" &&
-          !p.shipmentId &&
-          !dispatchedPicklistIds.has(String(p.id)),
-      ),
-    [picklists, dispatchedPicklistIds],
+      excludeArchived(picklists).filter((p) => {
+        if (p.status !== "picked" || p.shipmentId || dispatchedPicklistIds.has(String(p.id))) {
+          return false;
+        }
+        const order = salesOrders.find((o) => String(o.id) === String(p.orderId));
+        const orderStatus = (order?.status || "").toLowerCase();
+        // Delivered/completed orders must not get another dispatch.
+        return orderStatus !== "completed" && orderStatus !== "cancelled";
+      }),
+    [picklists, dispatchedPicklistIds, salesOrders],
   );
 
   const hasDispatchablePicklists = eligiblePicklistsForDispatch.length > 0;
@@ -463,29 +470,14 @@ export default function PicklistDispatchPage() {
         description="Generate warehouse picklists from paid orders and create shipments when lines are picked."
         backHref="/inventory/sales"
         actions={
-          activeTab === "picklists" ? (
-            <Button
-              size="lg"
-              className="bg-white text-slate-900 hover:bg-white/90"
-              onClick={() => setShowCreatePicklist(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Generate Picklist
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              className="bg-white text-slate-900 hover:bg-white/90"
-              disabled={!hasDispatchablePicklists}
-              onClick={() => {
-                setInitialPicklistId("");
-                setShowCreateDispatch(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Dispatch
-            </Button>
-          )
+          <Button
+            size="lg"
+            className="bg-white text-slate-900 hover:bg-white/90"
+            onClick={() => setShowCreatePicklist(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Generate Picklist
+          </Button>
         }
       />
 
@@ -523,6 +515,18 @@ export default function PicklistDispatchPage() {
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
             <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <Button
+                  disabled={!hasDispatchablePicklists}
+                  onClick={() => {
+                    setInitialPicklistId("");
+                    setShowCreateDispatch(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Dispatch
+                </Button>
+              </div>
               <BulkActionBar
                 selectedCount={selectedPicklistIds.length}
                 onArchive={handleBulkArchivePicklists}
@@ -556,7 +560,21 @@ export default function PicklistDispatchPage() {
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
-            <DataTable columns={dispatchColumns} data={filteredDispatches} />
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <Button
+                  disabled={!hasDispatchablePicklists}
+                  onClick={() => {
+                    setInitialPicklistId("");
+                    setShowCreateDispatch(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Dispatch
+                </Button>
+              </div>
+              <DataTable columns={dispatchColumns} data={filteredDispatches} />
+            </div>
           )}
         </TabsContent>
       </Tabs>

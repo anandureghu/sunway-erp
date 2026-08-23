@@ -45,7 +45,7 @@ const AccountsReceivablePage = () => {
       <PageHeader
         title="Accounts Receivable"
         description="Manage your accounts receivable and customer payments"
-        variant="lightGreen"
+        variant="darkBlue"
         icon={<Wallet className="w-6 h-6" />}
       />
       <AppTab

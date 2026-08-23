@@ -62,16 +62,20 @@ export function SalesOrderDetailHero({
       const returned = line.returnedQty ?? 0;
       return ordered - returned > 0;
     });
-  const fulfillmentEligible =
-    status === "CONFIRMED" || status === "COMPLETED";
+  const canCancelOrder =
+    status !== "CANCELLED" &&
+    status !== "COMPLETED" &&
+    payment !== "PAID" &&
+    (isQuotation || status === "CONFIRMED");
   const canGeneratePicklist =
-    fulfillmentEligible &&
+    status === "CONFIRMED" &&
     payment === "PAID" &&
     !hasActivePicklist &&
     Boolean(onGeneratePicklist);
   const canViewPicklist = hasActivePicklist && Boolean(onViewPicklist);
   const hasActions =
     isQuotation ||
+    canCancelOrder ||
     showDocumentActions ||
     canReturn ||
     canGeneratePicklist ||
@@ -131,17 +135,20 @@ export function SalesOrderDetailHero({
                       <CheckCircle2 className="h-4 w-4" />
                       Confirm order
                     </Button>
-                    <Button
-                      type="button"
-                      size="lg"
-                      variant="destructive"
-                      className="h-10 gap-2 rounded-xl"
-                      onClick={onCancel}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Cancel
-                    </Button>
                   </>
+                ) : null}
+
+                {canCancelOrder ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="destructive"
+                    className="h-10 gap-2 rounded-xl"
+                    onClick={onCancel}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancel
+                  </Button>
                 ) : null}
 
                 {showDocumentActions ? (

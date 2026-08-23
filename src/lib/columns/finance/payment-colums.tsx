@@ -25,6 +25,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SupplierIdNameCell } from "@/components/supplier-id-name-cell";
 import { formatExpenseCategoryLabel } from "@/lib/expense-category-label";
+import { format, parseISO } from "date-fns";
+
+function formatPaymentDate(value?: string | null): string {
+  if (!value) return "—";
+  const raw = String(value).trim();
+  try {
+    const d =
+      raw.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(raw)
+        ? parseISO(raw.slice(0, 10))
+        : new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    return format(d, "MMM dd, yyyy");
+  } catch {
+    return raw;
+  }
+}
 
 export const PAYMENT_COLUMNS = ({
   variant = "customer",
@@ -155,7 +171,7 @@ export const PAYMENT_COLUMNS = ({
       header: "Date",
       cell: ({ row }) => {
         const date = row.getValue("effectiveDate") as string;
-        return new Date(date).toLocaleDateString();
+        return <span>{formatPaymentDate(date)}</span>;
       },
     },
     ...(variant !== "other"
