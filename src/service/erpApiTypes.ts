@@ -346,6 +346,7 @@ export type StockBatchMovementResponseDTO = {
   referenceType?: string | null;
   referenceId?: number | null;
   createdAt?: string;
+  archived?: boolean;
 };
 
 export type StockBatchHistoryPointDTO = {
@@ -360,6 +361,10 @@ export type StockBatchMovementReportDTO = {
   movements: StockBatchMovementResponseDTO[];
   receiveTrend: StockBatchHistoryPointDTO[];
   totalMovements: number;
+  page?: number;
+  size?: number;
+  totalPages?: number;
+  archived?: boolean;
 };
 
 export type StockBatchCostLayerDTO = {

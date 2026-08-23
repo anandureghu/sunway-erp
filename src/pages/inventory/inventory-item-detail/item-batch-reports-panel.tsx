@@ -1,7 +1,13 @@
 import { CurrencyAmount } from "@/components/currency/currency-amount";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { TablePagination } from "@/components/table-pagination";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ChartContainer,
@@ -9,20 +15,25 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import type {
   StockBatchInsightsDTO,
   StockBatchMovementReportDTO,
   StockBatchReportDTO,
 } from "@/service/erpApiTypes";
 import {
+  archiveBatchMovement,
+  archiveBatchMovements,
   getInventoryBatchInsights,
   getInventoryBatchMovements,
   getInventoryBatchReport,
   getItemBatchMovements,
   listItemBatches,
 } from "@/service/inventoryService";
-import { BarChart3, History, Layers, TrendingUp } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Archive, BarChart3, History, Layers, Loader2, TrendingUp } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Area,
   AreaChart,
@@ -101,61 +112,291 @@ function BatchLayersTable({
   );
 }
 
-function MovementLogTable({
-  movements,
-}: {
-  movements: StockBatchMovementReportDTO["movements"];
-}) {
-  if (!movements.length) {
-    return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        No movements recorded yet.
-      </p>
-    );
-  }
+type MovementLogPanelProps = {
+  mode: "item" | "company";
+  itemId: string | number;
+  warehouseId?: number;
+  filterItemId?: number;
+};
+
+function MovementLogPanel({
+  mode,
+  itemId,
+  warehouseId,
+  filterItemId,
+}: MovementLogPanelProps) {
+  const { confirm } = useConfirmDialog();
+  const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState<StockBatchMovementReportDTO | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [archivingId, setArchivingId] = useState<number | null>(null);
+  const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        warehouseId,
+        page: pageIndex,
+        size: pageSize,
+        archived: showArchivedOnly,
+        ...(mode === "company" && filterItemId != null
+          ? { itemId: filterItemId }
+          : {}),
+      };
+      const data =
+        mode === "item"
+          ? await getItemBatchMovements(itemId, params)
+          : await getInventoryBatchMovements(params);
+      setReport(data);
+      setSelectedIds(new Set());
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, "Failed to load movements"));
+      setReport(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    filterItemId,
+    itemId,
+    mode,
+    pageIndex,
+    pageSize,
+    showArchivedOnly,
+    warehouseId,
+    refreshKey,
+  ]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const movements = report?.movements ?? [];
+  const total = report?.totalMovements ?? 0;
+  const pageCount = Math.max(1, report?.totalPages ?? 1);
+
+  const toggleRow = useCallback((id: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback(
+    (checked: boolean) => {
+      setSelectedIds(checked ? new Set(movements.map((m) => m.id)) : new Set());
+    },
+    [movements],
+  );
+
+  const handleArchive = useCallback(
+    async (id: number) => {
+      if (
+        !(await confirm(
+          "Archive this movement? It will be hidden from the active list.",
+        ))
+      ) {
+        return;
+      }
+      setArchivingId(id);
+      try {
+        await archiveBatchMovement(id);
+        toast.success("Movement archived");
+        setRefreshKey((k) => k + 1);
+      } catch (e: unknown) {
+        toast.error(getApiErrorMessage(e, "Failed to archive movement"));
+      } finally {
+        setArchivingId(null);
+      }
+    },
+    [confirm],
+  );
+
+  const handleBulkArchive = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (
+      !(await confirm(
+        `Archive ${ids.length} selected movement(s)? They will be hidden from the active list.`,
+      ))
+    ) {
+      return;
+    }
+    setBulkArchiving(true);
+    try {
+      const result = await archiveBatchMovements(ids);
+      toast.success(
+        result.archived === 1
+          ? "1 movement archived"
+          : `${result.archived} movements archived`,
+      );
+      setSelectedIds(new Set());
+      setRefreshKey((k) => k + 1);
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, "Failed to archive movements"));
+    } finally {
+      setBulkArchiving(false);
+    }
+  }, [confirm, selectedIds]);
+
   return (
-    <div className="overflow-x-auto rounded-lg border max-h-[420px] overflow-y-auto">
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-muted/80 text-left text-xs uppercase text-muted-foreground backdrop-blur">
-          <tr>
-            <th className="p-3">Date</th>
-            <th className="p-3">Type</th>
-            <th className="p-3">Batch</th>
-            <th className="p-3">Warehouse</th>
-            <th className="p-3 text-right">Qty</th>
-            <th className="p-3 text-right">Value</th>
-          </tr>
-        </thead>
-        <tbody className="[&_tr:nth-child(even)]:bg-slate-50/50">
-          {movements.map((m) => (
-            <tr key={m.id} className="border-t">
-              <td className="p-3 text-xs text-muted-foreground">
-                {m.createdAt
-                  ? new Date(m.createdAt).toLocaleString()
-                  : "—"}
-              </td>
-              <td className="p-3">
-                <Badge variant="outline" className="text-[10px] uppercase">
-                  {movementLabel(m.movementType)}
-                </Badge>
-              </td>
-              <td className="p-3 font-mono text-xs">{m.batchNo}</td>
-              <td className="p-3">{m.warehouseName}</td>
-              <td
-                className={`p-3 text-right tabular-nums font-medium ${
-                  m.quantity > 0 ? "text-emerald-600" : "text-red-600"
-                }`}
-              >
-                {m.quantity > 0 ? "+" : ""}
-                {m.quantity}
-              </td>
-              <td className="p-3 text-right">
-                <CurrencyAmount amount={Math.abs(m.lineValue)} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          {total} {showArchivedOnly ? "archived" : "active"} movement
+          {total === 1 ? "" : "s"}
+          {total > 0
+            ? ` · page ${pageIndex + 1} of ${Math.max(1, report?.totalPages ?? 1)}`
+            : ""}
+        </p>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="show-archived-movements"
+            checked={showArchivedOnly}
+            onCheckedChange={(checked) => {
+              setShowArchivedOnly(checked);
+              setPageIndex(0);
+              setSelectedIds(new Set());
+            }}
+          />
+          <Label
+            htmlFor="show-archived-movements"
+            className="cursor-pointer text-sm"
+          >
+            Archived only
+          </Label>
+        </div>
+      </div>
+
+      {!showArchivedOnly ? (
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onArchive={() => void handleBulkArchive()}
+          onClear={() => setSelectedIds(new Set())}
+          archiving={bulkArchiving}
+        />
+      ) : null}
+
+      {loading ? (
+        <Skeleton className="h-64 w-full rounded-lg" />
+      ) : movements.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          {showArchivedOnly
+            ? "No archived movements."
+            : "No movements recorded yet."}
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border max-h-[420px] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-muted/80 text-left text-xs uppercase text-muted-foreground backdrop-blur">
+              <tr>
+                {!showArchivedOnly ? (
+                  <th className="w-10 p-3">
+                    <Checkbox
+                      checked={
+                        movements.length > 0 &&
+                        selectedIds.size === movements.length
+                      }
+                      onCheckedChange={(checked) =>
+                        toggleAll(checked === true)
+                      }
+                      aria-label="Select all"
+                    />
+                  </th>
+                ) : null}
+                <th className="p-3">Date</th>
+                <th className="p-3">Type</th>
+                <th className="p-3">Batch</th>
+                <th className="p-3">Warehouse</th>
+                <th className="p-3 text-right">Qty</th>
+                <th className="p-3 text-right">Value</th>
+                {!showArchivedOnly ? (
+                  <th className="w-[100px] p-3">Actions</th>
+                ) : null}
+              </tr>
+            </thead>
+            <tbody className="[&_tr:nth-child(even)]:bg-slate-50/50">
+              {movements.map((m) => (
+                <tr key={m.id} className="border-t">
+                  {!showArchivedOnly ? (
+                    <td className="p-3">
+                      <Checkbox
+                        checked={selectedIds.has(m.id)}
+                        onCheckedChange={(checked) =>
+                          toggleRow(m.id, checked === true)
+                        }
+                        aria-label={`Select movement ${m.id}`}
+                      />
+                    </td>
+                  ) : null}
+                  <td className="p-3 text-xs text-muted-foreground">
+                    {m.createdAt
+                      ? new Date(m.createdAt).toLocaleString()
+                      : "—"}
+                  </td>
+                  <td className="p-3">
+                    <Badge variant="outline" className="text-[10px] uppercase">
+                      {movementLabel(m.movementType)}
+                    </Badge>
+                  </td>
+                  <td className="p-3 font-mono text-xs">{m.batchNo}</td>
+                  <td className="p-3">{m.warehouseName}</td>
+                  <td
+                    className={`p-3 text-right tabular-nums font-medium ${
+                      m.quantity > 0 ? "text-emerald-600" : "text-red-600"
+                    }`}
+                  >
+                    {m.quantity > 0 ? "+" : ""}
+                    {m.quantity}
+                  </td>
+                  <td className="p-3 text-right">
+                    <CurrencyAmount amount={Math.abs(m.lineValue)} />
+                  </td>
+                  {!showArchivedOnly ? (
+                    <td className="p-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1"
+                        disabled={archivingId === m.id}
+                        onClick={() => void handleArchive(m.id)}
+                      >
+                        {archivingId === m.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Archive className="h-3.5 w-3.5" />
+                        )}
+                        Archive
+                      </Button>
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading && total > 0 ? (
+        <TablePagination
+          total={total}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          pageCount={pageCount}
+          onPageChange={setPageIndex}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPageIndex(0);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -199,8 +440,18 @@ export function ItemBatchReportsPanel({
               }))
             : getInventoryBatchReport(batchParams),
           mode === "item"
-            ? getItemBatchMovements(itemId, { warehouseId, limit: 120 })
-            : getInventoryBatchMovements({ ...batchParams, limit: 150 }),
+            ? getItemBatchMovements(itemId, {
+                warehouseId,
+                page: 0,
+                size: 150,
+                archived: false,
+              })
+            : getInventoryBatchMovements({
+                ...batchParams,
+                page: 0,
+                size: 150,
+                archived: false,
+              }),
           getInventoryBatchInsights(batchParams),
         ]);
         if (!cancelled) {
@@ -380,11 +631,12 @@ export function ItemBatchReportsPanel({
       </TabsContent>
 
       <TabsContent value="movements">
-        <p className="mb-3 text-sm text-muted-foreground">
-          {movements?.totalMovements ?? 0} total movements · showing latest{" "}
-          {movements?.movements.length ?? 0}
-        </p>
-        <MovementLogTable movements={movements?.movements ?? []} />
+        <MovementLogPanel
+          mode={mode}
+          itemId={itemId}
+          warehouseId={warehouseId}
+          filterItemId={filterItemId}
+        />
       </TabsContent>
     </Tabs>
   );
