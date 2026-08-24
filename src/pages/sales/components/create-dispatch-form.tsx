@@ -62,11 +62,45 @@ export function CreateDispatchForm({
     [picklists, selectedPicklistId],
   );
 
+  const dispatchablePicklists = useMemo(
+    () =>
+      picklists.filter(
+        (pl) =>
+          pl.status?.toLowerCase() === "picked" &&
+          !pl.shipmentId &&
+          !pl.archived,
+      ),
+    [picklists],
+  );
+
   useEffect(() => {
     if (!initialPicklistId) return;
+    const eligible = picklists.some(
+      (pl) =>
+        pl.id === initialPicklistId &&
+        pl.status?.toLowerCase() === "picked" &&
+        !pl.shipmentId &&
+        !pl.archived,
+    );
+    if (!eligible) {
+      setSelectedPicklistId("");
+      setValue("picklistId", "", { shouldValidate: false });
+      return;
+    }
     setSelectedPicklistId(initialPicklistId);
     setValue("picklistId", initialPicklistId, { shouldValidate: true });
-  }, [initialPicklistId, setValue]);
+  }, [initialPicklistId, picklists, setValue]);
+
+  useEffect(() => {
+    if (!selectedPicklistId) return;
+    const stillEligible = dispatchablePicklists.some(
+      (pl) => pl.id === selectedPicklistId,
+    );
+    if (!stillEligible) {
+      setSelectedPicklistId("");
+      setValue("picklistId", "", { shouldValidate: false });
+    }
+  }, [dispatchablePicklists, selectedPicklistId, setValue]);
 
   useEffect(() => {
     if (!selectedPicklist) return;
@@ -224,9 +258,7 @@ export function CreateDispatchForm({
                     <SelectValue placeholder="Select picklist" />
                   </SelectTrigger>
                   <SelectContent>
-                    {picklists
-                      .filter((pl) => pl.status === "picked")
-                      .map((pl) => (
+                    {dispatchablePicklists.map((pl) => (
                         <SelectItem key={pl.id} value={pl.id}>
                           {pl.picklistNo}
                         </SelectItem>
@@ -238,6 +270,12 @@ export function CreateDispatchForm({
                     {errors.picklistId.message}
                   </p>
                 )}
+                {dispatchablePicklists.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No picked picklists available. Already dispatched or
+                    archived picklists are hidden.
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-2">

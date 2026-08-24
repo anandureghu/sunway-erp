@@ -3,9 +3,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
+import { listPicklists } from "@/service/salesFlowService";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { SalesOrderDetailCards } from "./components/sales-order-detail-cards";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
@@ -24,7 +25,7 @@ function dtoToSalesOrder(so: SalesOrderResponseDTO): SalesOrder {
     orderDate: so.orderDate ?? "",
     invoiceDueDate: so.invoiceDueDate,
     requiredDate: undefined,
-    status: (so.status ?? "quotation") as SalesOrder["status"],
+    status: ((so.status || "quotation").toLowerCase() as SalesOrder["status"]),
     archived: so.archived,
     paymentStatus: so.paymentStatus,
     outstandingAmount: so.outstandingAmount,
@@ -53,6 +54,8 @@ function dtoToSalesOrder(so: SalesOrderResponseDTO): SalesOrder {
     creditAccountId:
       so.creditAccountId != null ? Number(so.creditAccountId) : undefined,
     creditAccountName: so.creditAccountName,
+    salesInvoiceId:
+      so.salesInvoiceId != null ? Number(so.salesInvoiceId) : null,
     items: (so.items ?? []).map((item, idx) => ({
       id: String(item.itemId ?? idx),
       orderId: String(so.id ?? ""),
@@ -75,11 +78,13 @@ function dtoToSalesOrder(so: SalesOrderResponseDTO): SalesOrder {
 
 const SalesOrdersDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { confirmCancel } = useConfirmDialog();
   const [so, setSo] = useState<SalesOrderResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [returnsRefreshKey, setReturnsRefreshKey] = useState(0);
+  const [activePicklistId, setActivePicklistId] = useState<string | null>(null);
 
   const updateStatus = async (action: "confirm" | "cancel") => {
     if (!so) return;
@@ -122,12 +127,22 @@ const SalesOrdersDetailPage = () => {
     void (async () => {
       try {
         setLoading(true);
-        const { data } = await apiClient.get<SalesOrderResponseDTO>(
-          `/sales/orders/${id}`,
+        const [{ data }, picklists] = await Promise.all([
+          apiClient.get<SalesOrderResponseDTO>(`/sales/orders/${id}`),
+          listPicklists().catch(() => []),
+        ]);
+        if (cancelled) return;
+        setSo(data);
+        const active = picklists.find(
+          (pl) =>
+            String(pl.orderId) === String(id) && pl.status !== "cancelled",
         );
-        if (!cancelled) setSo(data);
+        setActivePicklistId(active?.id ?? null);
       } catch {
-        if (!cancelled) setSo(null);
+        if (!cancelled) {
+          setSo(null);
+          setActivePicklistId(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -213,6 +228,17 @@ const SalesOrdersDetailPage = () => {
               .then(({ data }) => setSo(data));
           }}
           returnsRefreshKey={returnsRefreshKey}
+          hasActivePicklist={activePicklistId != null}
+          onGeneratePicklist={() =>
+            navigate("/inventory/sales/picklist", {
+              state: { salesOrderId: String(so.id) },
+            })
+          }
+          onViewPicklist={
+            activePicklistId
+              ? () => navigate(`/inventory/sales/picklist/${activePicklistId}`)
+              : undefined
+          }
         />
       </div>
     </div>

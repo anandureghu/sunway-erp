@@ -13,6 +13,8 @@ export interface TimesheetEntry {
   // Company attendance policy (present on the /today response).
   requireCheckIn?: boolean;
   standardWorkingHoursPerDay?: number;
+  /** IANA timezone for company attendance (default Asia/Qatar). */
+  timezone?: string;
   otMaxHoursPerDay?: number;
   /** Max paid shift in minutes (standard + OT cap). */
   maxShiftMinutes?: number;

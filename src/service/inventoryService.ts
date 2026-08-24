@@ -15,6 +15,7 @@ import type {
   InventoryReportSummaryDTO,
   StockBatchInsightsDTO,
   StockBatchMovementReportDTO,
+  StockBatchMovementResponseDTO,
   StockBatchReportDTO,
   StockBatchResponseDTO,
   WarehouseCreateDTO,
@@ -255,7 +256,13 @@ export async function getInventoryBatchReport(
 
 export async function getItemBatchMovements(
   itemId: Id | string,
-  params?: { warehouseId?: number; limit?: number },
+  params?: {
+    warehouseId?: number;
+    page?: number;
+    size?: number;
+    limit?: number;
+    archived?: boolean;
+  },
 ): Promise<StockBatchMovementReportDTO> {
   const res = await apiClient.get<StockBatchMovementReportDTO>(
     `/inventory/items/${itemId}/batch-movements`,
@@ -265,11 +272,35 @@ export async function getItemBatchMovements(
 }
 
 export async function getInventoryBatchMovements(
-  params?: InventoryBatchReportQuery & { limit?: number },
+  params?: InventoryBatchReportQuery & {
+    page?: number;
+    size?: number;
+    limit?: number;
+    archived?: boolean;
+  },
 ): Promise<StockBatchMovementReportDTO> {
   const res = await apiClient.get<StockBatchMovementReportDTO>(
     "/inventory/reports/batch-movements",
     { params },
+  );
+  return res.data;
+}
+
+export async function archiveBatchMovement(
+  id: number,
+): Promise<StockBatchMovementResponseDTO> {
+  const res = await apiClient.post<StockBatchMovementResponseDTO>(
+    `/inventory/batch-movements/${id}/archive`,
+  );
+  return res.data;
+}
+
+export async function archiveBatchMovements(
+  ids: number[],
+): Promise<{ archived: number }> {
+  const res = await apiClient.post<{ archived: number }>(
+    "/inventory/batch-movements/archive",
+    { ids },
   );
   return res.data;
 }
@@ -288,6 +319,26 @@ export async function getInventoryBatchInsights(
 export async function listItems(): Promise<ItemResponseDTO[]> {
   const res = await apiClient.get<ItemResponseDTO[]>("/inventory/items");
   return res.data || [];
+}
+
+export async function applyItemBulkDiscount(payload: {
+  itemIds: number[];
+  discountPercent: number;
+}): Promise<{
+  requestedCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  cappedAtCostCount: number;
+  discountPercent: number;
+}> {
+  const res = await apiClient.post<{
+    requestedCount: number;
+    updatedCount: number;
+    skippedCount: number;
+    cappedAtCostCount: number;
+    discountPercent: number;
+  }>("/inventory/items/bulk-discount", payload);
+  return res.data;
 }
 
 /** One row per item×warehouse — quantities match sales availability checks. */

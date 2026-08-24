@@ -24,6 +24,10 @@ export type AssistantChatRequest = {
   message: string;
   currentModule?: string;
   currentScreen?: string;
+  /** Preferred reply language code, e.g. en, ar. */
+  language?: string;
+  /** Public frontend origin used for assistant deep links. */
+  appBaseUrl?: string;
   pageContext?: Record<string, unknown>;
   history?: AssistantMessagePayload[];
 };

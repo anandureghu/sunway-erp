@@ -3,6 +3,7 @@ import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import {
   CheckCircle2,
+  ClipboardList,
   Download,
   FileText,
   Pencil,
@@ -28,6 +29,9 @@ type Props = {
   onCancel: () => void;
   onDownloadDocument: () => void;
   onReturned?: () => void;
+  onGeneratePicklist?: () => void;
+  onViewPicklist?: () => void;
+  hasActivePicklist?: boolean;
 };
 
 export function SalesOrderDetailHero({
@@ -37,6 +41,9 @@ export function SalesOrderDetailHero({
   onCancel,
   onDownloadDocument,
   onReturned,
+  onGeneratePicklist,
+  onViewPicklist,
+  hasActivePicklist = false,
 }: Props) {
   const status = orderStatusKey(so);
   const payment = paymentStatusKey(so);
@@ -55,7 +62,24 @@ export function SalesOrderDetailHero({
       const returned = line.returnedQty ?? 0;
       return ordered - returned > 0;
     });
-  const hasActions = isQuotation || showDocumentActions || canReturn;
+  const canCancelOrder =
+    status !== "CANCELLED" &&
+    status !== "COMPLETED" &&
+    payment !== "PAID" &&
+    (isQuotation || status === "CONFIRMED");
+  const canGeneratePicklist =
+    status === "CONFIRMED" &&
+    payment === "PAID" &&
+    !hasActivePicklist &&
+    Boolean(onGeneratePicklist);
+  const canViewPicklist = hasActivePicklist && Boolean(onViewPicklist);
+  const hasActions =
+    isQuotation ||
+    canCancelOrder ||
+    showDocumentActions ||
+    canReturn ||
+    canGeneratePicklist ||
+    canViewPicklist;
 
   const statusStyle =
     ORDER_STATUS_STYLES[status] ?? "bg-slate-100 text-slate-700";
@@ -111,17 +135,20 @@ export function SalesOrderDetailHero({
                       <CheckCircle2 className="h-4 w-4" />
                       Confirm order
                     </Button>
-                    <Button
-                      type="button"
-                      size="lg"
-                      variant="destructive"
-                      className="h-10 gap-2 rounded-xl"
-                      onClick={onCancel}
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Cancel
-                    </Button>
                   </>
+                ) : null}
+
+                {canCancelOrder ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="destructive"
+                    className="h-10 gap-2 rounded-xl"
+                    onClick={onCancel}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancel
+                  </Button>
                 ) : null}
 
                 {showDocumentActions ? (
@@ -156,6 +183,31 @@ export function SalesOrderDetailHero({
                       </Link>
                     </Button>
                   </>
+                ) : null}
+
+                {canGeneratePicklist ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="h-10 gap-2 rounded-xl bg-violet-600 hover:bg-violet-700"
+                    onClick={onGeneratePicklist}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    Generate picklist
+                  </Button>
+                ) : null}
+
+                {canViewPicklist ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="outline"
+                    className="h-10 gap-2 rounded-xl"
+                    onClick={onViewPicklist}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    View picklist
+                  </Button>
                 ) : null}
 
                 {canReturn && onReturned ? (

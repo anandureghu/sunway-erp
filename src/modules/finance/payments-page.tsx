@@ -350,6 +350,8 @@ export default function PaymentsPage({
         !q ||
         (p.paymentCode?.toLowerCase().includes(q) ?? false) ||
         (p.invoiceId?.toLowerCase().includes(q) ?? false) ||
+        (p.salesOrderNumber?.toLowerCase().includes(q) ?? false) ||
+        (p.customerName?.toLowerCase().includes(q) ?? false) ||
         String(p.purchaseOrderId ?? "").includes(q) ||
         (p.purchaseOrderNumber?.toLowerCase().includes(q) ?? false) ||
         String(p.supplierId ?? "").includes(q) ||
@@ -402,7 +404,9 @@ export default function PaymentsPage({
                 placeholder={
                   variant === "other"
                     ? "Search code, category, paid to, method…"
-                    : "Search code, invoice, PO, supplier, method…"
+                    : variant === "vendor"
+                      ? "Search code, invoice, PO, supplier, method…"
+                      : "Search code, invoice, SO, customer, method…"
                 }
                 className="pl-9"
                 value={searchQuery}

@@ -132,9 +132,13 @@ export type ItemResponseDTO = {
   quantity: number;
   available: number;
   reserved: number;
+  /** Remaining qty on open purchase orders (stock catalog). */
+  quantityOnOrder?: number | null;
 
   costPrice: number;
   sellingPrice: number;
+  /** Undiscounted retail; sellingPrice may be lower when discounted. */
+  listPrice?: number | null;
 
   unitMeasure: string;
 
@@ -344,6 +348,7 @@ export type StockBatchMovementResponseDTO = {
   referenceType?: string | null;
   referenceId?: number | null;
   createdAt?: string;
+  archived?: boolean;
 };
 
 export type StockBatchHistoryPointDTO = {
@@ -358,6 +363,10 @@ export type StockBatchMovementReportDTO = {
   movements: StockBatchMovementResponseDTO[];
   receiveTrend: StockBatchHistoryPointDTO[];
   totalMovements: number;
+  page?: number;
+  size?: number;
+  totalPages?: number;
+  archived?: boolean;
 };
 
 export type StockBatchCostLayerDTO = {
@@ -476,6 +485,7 @@ export type PicklistResponseDTO = {
   warehouseId?: number;
   warehouseName?: string;
   warehouse?: Warehouse;
+  shipmentId?: Id;
 };
 
 export type ShipmentItemDTO = {

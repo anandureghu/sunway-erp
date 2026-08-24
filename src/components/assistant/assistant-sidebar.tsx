@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Bot, ChevronDown, Loader2, Send, Sparkles, X } from "lucide-react";
+import { Bot, ChevronDown, Globe, Loader2, Send, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import {
@@ -26,14 +33,67 @@ type ChatMessage = {
 type StoredConversation = {
   conversationId?: string;
   messages: ChatMessage[];
+  language?: AssistantLanguage;
 };
 
-const suggestions = [
-  "What is my leave balance?",
-  "Show low stock items.",
-  "Check invoice INV-1001 status.",
-  "Give me inventory totals.",
+type AssistantLanguage = "en" | "ar";
+
+const LANGUAGE_OPTIONS: {
+  value: AssistantLanguage;
+  label: string;
+  nativeLabel: string;
+}[] = [
+  { value: "en", label: "English", nativeLabel: "English" },
+  { value: "ar", label: "Arabic", nativeLabel: "العربية" },
 ];
+
+const ASSISTANT_COPY: Record<
+  AssistantLanguage,
+  {
+    title: string;
+    empty: string;
+    placeholder: string;
+    thinking: string;
+    suggestions: string[];
+    sendFailed: string;
+    setupNeeded: string;
+  }
+> = {
+  en: {
+    title: "Sunway Assistant",
+    empty:
+      "Ask about live ERP data. Tool calling is connected for HR leaves, inventory stock, and finance invoices.",
+    placeholder: "Ask about leave, stock, invoices...",
+    thinking: "Thinking...",
+    suggestions: [
+      "What is my leave balance?",
+      "Show low stock items.",
+      "Check invoice INV-1001 status.",
+      "Give me inventory totals.",
+    ],
+    sendFailed: "Assistant request failed.",
+    setupNeeded: "Assistant setup needed",
+  },
+  ar: {
+    title: "مساعد سنواي",
+    empty:
+      "اسأل عن بيانات نظام تخطيط الموارد المباشرة. متاح حالياً أرصدة الإجازات والمخزون والفواتير.",
+    placeholder: "اسأل عن الإجازات أو المخزون أو الفواتير...",
+    thinking: "جاري التفكير...",
+    suggestions: [
+      "ما هو رصيد إجازاتي؟",
+      "أظهر الأصناف منخفضة المخزون.",
+      "تحقق من حالة الفاتورة INV-1001.",
+      "أعطني إجماليات المخزون.",
+    ],
+    sendFailed: "فشل طلب المساعد.",
+    setupNeeded: "يلزم إعداد المساعد",
+  },
+};
+
+function isAssistantLanguage(value: unknown): value is AssistantLanguage {
+  return value === "en" || value === "ar";
+}
 
 function detectModule(pathname: string) {
   if (pathname.startsWith("/finance")) return "Finance and Accounting";
@@ -166,9 +226,10 @@ function renderRichLink(text: string, url: string, key: string) {
   const className =
     "font-medium text-primary underline underline-offset-2 transition hover:text-primary/80";
 
-  if (url.startsWith("/")) {
+  const appPath = toInAppPath(url);
+  if (appPath) {
     return (
-      <Link key={key} to={url} className={className}>
+      <Link key={key} to={appPath} className={className}>
         {text}
       </Link>
     );
@@ -189,6 +250,22 @@ function renderRichLink(text: string, url: string, key: string) {
   }
 
   return <span key={key}>{text}</span>;
+}
+
+/** Prefer in-app routing for relative paths and same-origin absolute URLs. */
+function toInAppPath(url: string): string | null {
+  if (!url) return null;
+  if (url.startsWith("/")) return url;
+
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.origin !== window.location.origin) {
+      return null;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
 }
 
 function renderInlineMarkdown(value: string, keyPrefix: string): ReactNode[] {
@@ -304,6 +381,7 @@ export function AssistantSidebar() {
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [language, setLanguage] = useState<AssistantLanguage>("en");
   const [hydratedKey, setHydratedKey] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -312,6 +390,9 @@ export function AssistantSidebar() {
     const companyId = activeCompanyId ?? "no-company";
     return `sunway-assistant:${companyId}:${userId}`;
   }, [activeCompanyId, user?.id, user?.userId]);
+
+  const copy = ASSISTANT_COPY[language];
+  const isRtl = language === "ar";
 
   const currentModule = useMemo(
     () => detectModule(location.pathname),
@@ -328,6 +409,7 @@ export function AssistantSidebar() {
       if (!raw) {
         setMessages([]);
         setConversationId(undefined);
+        setLanguage("en");
         setHydratedKey(storageKey);
         return;
       }
@@ -335,19 +417,21 @@ export function AssistantSidebar() {
       const stored = JSON.parse(raw) as StoredConversation;
       setMessages(stored.messages ?? []);
       setConversationId(stored.conversationId);
+      setLanguage(isAssistantLanguage(stored.language) ? stored.language : "en");
       setHydratedKey(storageKey);
     } catch {
       setMessages([]);
       setConversationId(undefined);
+      setLanguage("en");
       setHydratedKey(storageKey);
     }
   }, [storageKey]);
 
   useEffect(() => {
     if (hydratedKey !== storageKey) return;
-    const stored: StoredConversation = { conversationId, messages };
+    const stored: StoredConversation = { conversationId, messages, language };
     localStorage.setItem(storageKey, JSON.stringify(stored));
-  }, [conversationId, hydratedKey, messages, storageKey]);
+  }, [conversationId, hydratedKey, language, messages, storageKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -385,12 +469,15 @@ export function AssistantSidebar() {
       const response = await sendAssistantMessage({
         conversationId,
         message: text,
+        language,
         currentModule,
         currentScreen,
+        appBaseUrl: window.location.origin,
         pageContext: {
           path: location.pathname,
           search: location.search,
           companyId: activeCompanyId,
+          language,
         },
         history,
       });
@@ -409,7 +496,7 @@ export function AssistantSidebar() {
       ]);
 
       if (!response.configured && response.error) {
-        toast.warning("Assistant setup needed", {
+        toast.warning(copy.setupNeeded, {
           description: response.error,
         });
       }
@@ -417,7 +504,7 @@ export function AssistantSidebar() {
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
-        "Assistant request failed.";
+        copy.sendFailed;
       toast.error("Assistant error", { description: message });
       setMessages((current) => [
         ...current,
@@ -436,7 +523,10 @@ export function AssistantSidebar() {
   function clearConversation() {
     setConversationId(undefined);
     setMessages([]);
-    localStorage.removeItem(storageKey);
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({ language, messages: [] } satisfies StoredConversation),
+    );
   }
 
   if (!open) {
@@ -453,14 +543,38 @@ export function AssistantSidebar() {
   }
 
   return (
-    <aside className="fixed bottom-4 right-4 z-50 flex h-[min(680px,calc(100vh-2rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-background shadow-2xl">
-      <header className="flex items-center gap-3 border-b px-4 py-3">
-        <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+    <aside
+      className="fixed bottom-4 right-4 z-50 flex h-[min(680px,calc(100vh-2rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-background shadow-2xl"
+      dir={isRtl ? "rtl" : "ltr"}
+    >
+      <header className="flex items-center gap-2 border-b px-3 py-3 sm:gap-3 sm:px-4">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Sparkles className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold">Sunway Assistant</h2>
+          <h2 className="truncate text-sm font-semibold">{copy.title}</h2>
         </div>
+        <Select
+          value={language}
+          onValueChange={(value) => {
+            if (isAssistantLanguage(value)) setLanguage(value);
+          }}
+        >
+          <SelectTrigger
+            className="h-8 w-[7.5rem] shrink-0 gap-1.5 px-2 text-xs"
+            aria-label="Assistant language"
+          >
+            <Globe className="size-3.5 shrink-0 opacity-70" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {LANGUAGE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.nativeLabel}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           type="button"
           variant="ghost"
@@ -485,11 +599,10 @@ export function AssistantSidebar() {
         {messages.length === 0 ? (
           <div className="space-y-4">
             <div className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
-              Ask about live ERP data. Tool calling is connected for HR leaves,
-              inventory stock, and finance invoices.
+              {copy.empty}
             </div>
             <div className="flex flex-wrap gap-2">
-              {suggestions.map((suggestion) => (
+              {copy.suggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
@@ -537,7 +650,7 @@ export function AssistantSidebar() {
           <div className="flex justify-start">
             <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
-              Thinking...
+              {copy.thinking}
             </div>
           </div>
         )}
@@ -560,9 +673,10 @@ export function AssistantSidebar() {
                 submitMessage();
               }
             }}
-            placeholder="Ask about leave, stock, invoices..."
+            placeholder={copy.placeholder}
             className="max-h-28 min-h-11 resize-none py-3 text-sm leading-5"
             disabled={sending}
+            dir={isRtl ? "rtl" : "ltr"}
           />
           <Button
             type="submit"

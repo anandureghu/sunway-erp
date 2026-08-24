@@ -12,6 +12,9 @@ type Props = {
   onDownloadDocument: () => void;
   onReturned?: () => void;
   returnsRefreshKey?: number;
+  onGeneratePicklist?: () => void;
+  onViewPicklist?: () => void;
+  hasActivePicklist?: boolean;
 };
 
 export function SalesOrderDetailCards({
@@ -22,6 +25,9 @@ export function SalesOrderDetailCards({
   onDownloadDocument,
   onReturned,
   returnsRefreshKey = 0,
+  onGeneratePicklist,
+  onViewPicklist,
+  hasActivePicklist = false,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -32,6 +38,9 @@ export function SalesOrderDetailCards({
         onCancel={onCancel}
         onDownloadDocument={onDownloadDocument}
         onReturned={onReturned}
+        onGeneratePicklist={onGeneratePicklist}
+        onViewPicklist={onViewPicklist}
+        hasActivePicklist={hasActivePicklist}
       />
 
       <SalesOrderDetailItems so={so} />

@@ -56,7 +56,14 @@ const PicklistDetailPage = () => {
   if (loading || !picklist) {
     return <div className="p-6 text-muted-foreground">Loading…</div>;
   }
-  const canCreateDispatch = picklist.status?.toLowerCase() === "picked";
+  const orderCompleted =
+    (salesOrder?.status || "").toLowerCase() === "completed" ||
+    (salesOrder?.status || "").toLowerCase() === "cancelled";
+  const canCreateDispatch =
+    picklist.status?.toLowerCase() === "picked" &&
+    !picklist.shipmentId &&
+    !picklist.archived &&
+    !orderCompleted;
 
   const getOrderLineForItem = (itemId?: number) => {
     if (!itemId || !salesOrder?.items) return undefined;
@@ -177,11 +184,11 @@ const PicklistDetailPage = () => {
             <table className="w-full text-sm border">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-3 py-2 text-left">Item</th>
+                  <th className="px-3 py-2 text-left">Item Name</th>
                   <th className="px-3 py-2 text-left">Warehouse</th>
                   <th className="px-3 py-2 text-right">Unit Price</th>
                   <th className="px-3 py-2 text-right">Quantity</th>
-                  <th className="px-3 py-2 text-right">Line Total</th>
+                  <th className="px-3 py-2 text-right">Line Item Total</th>
                 </tr>
               </thead>
               <tbody>

@@ -194,7 +194,7 @@ export function CreatePicklistForm({
                     {salesOrders
                       .filter((o) => {
                         const eligibleStatus =
-                          o.status === "confirmed" || o.status === "completed";
+                          o.status === "confirmed";
                         const isPaid = o.paymentStatus === "PAID";
                         const hasActivePicklist = picklists.some(
                           (pl) =>
@@ -331,11 +331,11 @@ export function CreatePicklistForm({
                 ) : (
                   <div className="overflow-x-auto p-4">
                     <div className="grid grid-cols-12 gap-2 py-2 border-b font-medium text-sm text-muted-foreground">
-                      <div className="col-span-4">Item</div>
+                      <div className="col-span-4">Item Name</div>
                       <div className="col-span-2 text-right">Qty</div>
                       <div className="col-span-2 text-right">Unit Price</div>
                       <div className="col-span-2">Warehouse</div>
-                      <div className="col-span-2 text-right">Line Total</div>
+                      <div className="col-span-2 text-right">Line Item Total</div>
                     </div>
                     {selectedOrder.items.map((item) => (
                       <div

@@ -33,7 +33,7 @@ import {
   getTrackingHistory,
 } from "@/pages/sales/components/delivery-tracking-utils";
 
-type LookupMode = "orderNumber" | "email" | "phone";
+type LookupMode = "email" | "phone";
 
 function CarrierTrackingNumber({
   trackingNumber,
@@ -271,7 +271,7 @@ export default function PublicDeliveryTrackingPage() {
   const [company, setCompany] = useState<PublicDeliveryTrackingCompany | null>(null);
   const [companyLoading, setCompanyLoading] = useState(true);
   const [companyError, setCompanyError] = useState<string | null>(null);
-  const [lookupMode, setLookupMode] = useState<LookupMode>("orderNumber");
+  const [lookupMode, setLookupMode] = useState<LookupMode>("email");
   const [orderNumber, setOrderNumber] = useState(prefilledOrderNumber);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -298,24 +298,34 @@ export default function PublicDeliveryTrackingPage() {
 
   useEffect(() => {
     if (prefilledOrderNumber) {
-      setLookupMode("orderNumber");
       setOrderNumber(prefilledOrderNumber);
     }
   }, [prefilledOrderNumber]);
 
   const lookupRequest = useMemo(() => {
-    if (lookupMode === "orderNumber") {
-      return { orderNumber: orderNumber.trim() || undefined };
-    }
+    const base = { orderNumber: orderNumber.trim() || undefined };
     if (lookupMode === "email") {
-      return { email: email.trim() || undefined };
+      return { ...base, email: email.trim() || undefined };
     }
-    return { phone: phone.trim() || undefined };
+    return { ...base, phone: phone.trim() || undefined };
   }, [lookupMode, orderNumber, email, phone]);
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!companyCode) return;
+
+    if (!orderNumber.trim()) {
+      setSearchError("Order number is required.");
+      return;
+    }
+    if (lookupMode === "email" && !email.trim()) {
+      setSearchError("Enter the email used on your order.");
+      return;
+    }
+    if (lookupMode === "phone" && !phone.trim()) {
+      setSearchError("Enter the phone number used on your order.");
+      return;
+    }
 
     setSearching(true);
     setSearchError(null);
@@ -394,40 +404,37 @@ export default function PublicDeliveryTrackingPage() {
           <CardHeader>
             <CardTitle>Find your delivery</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Enter your order number, email, or phone number to view shipment status.
+              Enter your order number plus the email or phone used on the order.
             </p>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                ["orderNumber", "Order #"],
-                ["email", "Email"],
-                ["phone", "Phone"],
-              ] as const).map(([mode, label]) => (
-                <Button
-                  key={mode}
-                  type="button"
-                  variant={lookupMode === mode ? "default" : "outline"}
-                  onClick={() => setLookupMode(mode)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-
             <form onSubmit={handleSearch} className="space-y-4">
-              {lookupMode === "orderNumber" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="orderNumber">Order number</Label>
-                  <Input
-                    id="orderNumber"
-                    value={orderNumber}
-                    onChange={(event) => setOrderNumber(event.target.value)}
-                    placeholder="e.g. SO-000123"
-                    autoComplete="off"
-                  />
-                </div>
-              ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="orderNumber">Order number</Label>
+                <Input
+                  id="orderNumber"
+                  value={orderNumber}
+                  onChange={(event) => setOrderNumber(event.target.value)}
+                  placeholder="e.g. SO-000123"
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["email", "Verify with email"],
+                  ["phone", "Verify with phone"],
+                ] as const).map(([mode, label]) => (
+                  <Button
+                    key={mode}
+                    type="button"
+                    variant={lookupMode === mode ? "default" : "outline"}
+                    onClick={() => setLookupMode(mode)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
 
               {lookupMode === "email" ? (
                 <div className="space-y-2">
@@ -441,9 +448,7 @@ export default function PublicDeliveryTrackingPage() {
                     autoComplete="email"
                   />
                 </div>
-              ) : null}
-
-              {lookupMode === "phone" ? (
+              ) : (
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone number</Label>
                   <Input
@@ -454,7 +459,7 @@ export default function PublicDeliveryTrackingPage() {
                     autoComplete="tel"
                   />
                 </div>
-              ) : null}
+              )}
 
               {searchError ? (
                 <p className="text-sm text-red-600">{searchError}</p>

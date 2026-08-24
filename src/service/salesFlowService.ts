@@ -115,6 +115,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
         : undefined,
     creditAccountId: dto.creditAccountId,
     creditAccountName: dto.creditAccountName,
+    salesInvoiceId: dto.salesInvoiceId != null ? Number(dto.salesInvoiceId) : null,
     shippingAddress: dto.shippingAddress || dto.deliveryAddress || undefined,
     notes: undefined,
     salesPerson: undefined,
@@ -171,6 +172,7 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     completedTime: undefined,
     createdAt: dto.createdAt || "",
     updatedAt: undefined,
+    shipmentId: dto.shipmentId != null ? String(dto.shipmentId) : undefined,
   };
 }
 
@@ -479,5 +481,19 @@ export function attachOrderAndItems(
     };
   });
 
-  return { picklistsEnriched, dispatchesEnriched };
+  // Stamp shipmentId from dispatches so Create Dispatch can hide already-shipped picklists
+  // even if the picklist API omits shipmentId.
+  const shipmentIdByPicklistId = new Map<string, string>();
+  for (const d of dispatchesEnriched) {
+    if (d.picklistId && d.id) {
+      shipmentIdByPicklistId.set(String(d.picklistId), String(d.id));
+    }
+  }
+
+  const picklistsWithShipment = picklistsEnriched.map((p) => ({
+    ...p,
+    shipmentId: p.shipmentId || shipmentIdByPicklistId.get(String(p.id)),
+  }));
+
+  return { picklistsEnriched: picklistsWithShipment, dispatchesEnriched };
 }

@@ -8,6 +8,7 @@ import {
   type TimesheetEntry,
 } from "@/service/timesheetService";
 import { notifyTimesheetChanged, onTimesheetChanged } from "@/lib/timesheet-sync";
+import { parseTimesheetDateTime, resolveCompanyTimezone } from "@/lib/timesheet-time";
 
 /**
  * Warns when the employee reaches max shift (standard hours + OT cap), then
@@ -90,7 +91,15 @@ export function MaxShiftCheckoutGuard() {
 
     const maxShiftMs = today.maxShiftMinutes * 60_000;
     const graceMs = Math.max(0, (today.maxShiftCheckoutGraceMinutes ?? 0) * 60_000);
-    const checkInAt = new Date(today.checkInTime).getTime();
+    const checkInAt = parseTimesheetDateTime(
+      today.checkInTime,
+      resolveCompanyTimezone(today.timezone),
+    )?.getTime();
+    if (checkInAt == null) {
+      setPhase("idle");
+      setSecondsLeft(null);
+      return;
+    }
 
     const tick = () => {
       if (checkingOutRef.current) return;

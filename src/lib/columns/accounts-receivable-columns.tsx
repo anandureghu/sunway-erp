@@ -19,10 +19,24 @@ import {
   Mail,
   MoreHorizontal,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { StatusBadge } from "@/lib/status-badge";
 import { TotalAmount, PaidAmount, RemainingAmount, CreditNoteAppliedAmount } from "@/components/accounting-amount";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
+
+function formatInvoiceColumnDate(value?: string | null): string {
+  if (!value) return "—";
+  const raw = String(value).trim();
+  try {
+    const d = raw.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(raw)
+      ? parseISO(raw.slice(0, 10))
+      : new Date(raw);
+    if (Number.isNaN(d.getTime())) return raw;
+    return format(d, "MMM dd, yyyy");
+  } catch {
+    return raw;
+  }
+}
 
 export type SalesInvoiceColumnActions = {
   onViewDetails?: (invoice: Invoice) => void;
@@ -58,7 +72,7 @@ export function createSalesInvoiceColumns(
       header: "Invoice Date",
       cell: ({ row }) => {
         const date = row.getValue("invoiceDate") as string;
-        return <span>{date}</span>;
+        return <span>{formatInvoiceColumnDate(date)}</span>;
       },
     },
     {
@@ -66,7 +80,7 @@ export function createSalesInvoiceColumns(
       header: "Due Date",
       cell: ({ row }) => {
         const date = row.getValue("dueDate") as string;
-        return <span>{format(new Date(date), "MMM dd, yyyy")}</span>;
+        return <span>{formatInvoiceColumnDate(date)}</span>;
       },
     },
     {

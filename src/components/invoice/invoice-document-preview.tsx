@@ -276,13 +276,13 @@ export function InvoiceDocumentPreview({
                   #
                 </th>
                 <th className="px-3 py-2.5 text-left text-[10px] tracking-[0.06em]">
-                  Description
+                  Item Name
                 </th>
                 <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
                   Qty
                 </th>
                 <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
-                  Unit
+                  Unit Cost
                 </th>
                 <th className="px-3 py-2.5 text-right text-[10px] tracking-[0.06em]">
                   Discount

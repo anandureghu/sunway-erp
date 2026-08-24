@@ -196,6 +196,21 @@ export default function PicklistDispatchPage() {
     }
   }, [confirm, loadData, selectedPicklistIds]);
 
+  const dispatchedPicklistIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const dispatch of dispatches) {
+      if (dispatch.picklistId) {
+        ids.add(String(dispatch.picklistId));
+      }
+    }
+    for (const picklist of picklists) {
+      if (picklist.shipmentId) {
+        ids.add(String(picklist.id));
+      }
+    }
+    return ids;
+  }, [dispatches, picklists]);
+
   const picklistColumns = useMemo(
     () =>
       createPicklistColumns(
@@ -226,6 +241,8 @@ export default function PicklistDispatchPage() {
         },
         handleArchivePicklist,
         archivingPicklistId,
+        (id) => navigate(`/inventory/sales/picklist/${id}`),
+        dispatchedPicklistIds,
       ),
     [
       loadData,
@@ -233,6 +250,8 @@ export default function PicklistDispatchPage() {
       confirmCancel,
       handleArchivePicklist,
       archivingPicklistId,
+      navigate,
+      dispatchedPicklistIds,
     ],
   );
 
@@ -255,8 +274,10 @@ export default function PicklistDispatchPage() {
           await loadData();
         },
         (id) => {
-          // Delivery requires customer signature (POD); collect it on tracking.
-          navigate(`/inventory/sales/tracking?dispatchId=${id}`);
+          // Delivery requires customer signature (POD); open tracking deliver dialog.
+          navigate(
+            `/inventory/sales/tracking?dispatchId=${id}&action=deliver`,
+          );
         },
         async (id) => {
           await markShipmentFailedDelivery(
@@ -278,14 +299,18 @@ export default function PicklistDispatchPage() {
           }
         },
         (id) => {
-          navigate(`/inventory/sales/tracking?dispatchId=${id}`);
+          navigate(
+            `/inventory/sales/tracking?dispatchId=${id}&action=tracking`,
+          );
         },
       ),
     [loadData, navigate, dispatches, confirmCancel],
   );
 
   const filteredPicklists = useMemo(() => {
-    const active = excludeArchived(picklists);
+    const active = excludeArchived(picklists).filter(
+      (p) => !dispatchedPicklistIds.has(String(p.id)),
+    );
     if (picklistStatusFilter === "created") {
       return active.filter((p) => p.status === "created");
     }
@@ -293,7 +318,23 @@ export default function PicklistDispatchPage() {
       return active.filter((p) => p.status === "picked");
     }
     return active;
-  }, [picklists, picklistStatusFilter]);
+  }, [picklists, picklistStatusFilter, dispatchedPicklistIds]);
+
+  const eligiblePicklistsForDispatch = useMemo(
+    () =>
+      excludeArchived(picklists).filter((p) => {
+        if (p.status !== "picked" || p.shipmentId || dispatchedPicklistIds.has(String(p.id))) {
+          return false;
+        }
+        const order = salesOrders.find((o) => String(o.id) === String(p.orderId));
+        const orderStatus = (order?.status || "").toLowerCase();
+        // Delivered/completed orders must not get another dispatch.
+        return orderStatus !== "completed" && orderStatus !== "cancelled";
+      }),
+    [picklists, dispatchedPicklistIds, salesOrders],
+  );
+
+  const hasDispatchablePicklists = eligiblePicklistsForDispatch.length > 0;
 
   const filteredDispatches = useMemo(() => {
     if (dispatchStatusFilter === "active") {
@@ -330,7 +371,9 @@ export default function PicklistDispatchPage() {
   }, []);
 
   const fulfillmentKpis = useMemo((): KpiSummaryStat[] => {
-    const activePicklists = excludeArchived(picklists);
+    const activePicklists = excludeArchived(picklists).filter(
+      (p) => !dispatchedPicklistIds.has(String(p.id)),
+    );
     const awaitingPick = activePicklists.filter(
       (p) => p.status === "created",
     ).length;
@@ -346,7 +389,7 @@ export default function PicklistDispatchPage() {
         {
           label: "Picklists",
           value: activePicklists.length,
-          hint: "Non-archived warehouse documents",
+          hint: "Non-archived warehouse documents awaiting dispatch",
           accent: "sky",
           icon: ClipboardList,
         },
@@ -391,7 +434,7 @@ export default function PicklistDispatchPage() {
         applyKpiFilter,
       ),
     ];
-  }, [picklists, dispatches, kpiFilter, applyKpiFilter]);
+  }, [picklists, dispatches, kpiFilter, applyKpiFilter, dispatchedPicklistIds]);
 
   if (showCreatePicklist) {
     return (
@@ -408,7 +451,7 @@ export default function PicklistDispatchPage() {
   if (showCreateDispatch) {
     return (
       <CreateDispatchForm
-        picklists={picklists}
+        picklists={eligiblePicklistsForDispatch}
         initialPicklistId={initialPicklistId}
         onCancel={() => {
           setShowCreateDispatch(false);
@@ -427,28 +470,14 @@ export default function PicklistDispatchPage() {
         description="Generate warehouse picklists from paid orders and create shipments when lines are picked."
         backHref="/inventory/sales"
         actions={
-          activeTab === "picklists" ? (
-            <Button
-              size="lg"
-              className="bg-white text-slate-900 hover:bg-white/90"
-              onClick={() => setShowCreatePicklist(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Generate Picklist
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              className="bg-white text-slate-900 hover:bg-white/90"
-              onClick={() => {
-                setInitialPicklistId("");
-                setShowCreateDispatch(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Dispatch
-            </Button>
-          )
+          <Button
+            size="lg"
+            className="bg-white text-slate-900 hover:bg-white/90"
+            onClick={() => setShowCreatePicklist(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Generate Picklist
+          </Button>
         }
       />
 
@@ -486,6 +515,18 @@ export default function PicklistDispatchPage() {
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
             <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <Button
+                  disabled={!hasDispatchablePicklists}
+                  onClick={() => {
+                    setInitialPicklistId("");
+                    setShowCreateDispatch(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Dispatch
+                </Button>
+              </div>
               <BulkActionBar
                 selectedCount={selectedPicklistIds.length}
                 onArchive={handleBulkArchivePicklists}
@@ -519,7 +560,21 @@ export default function PicklistDispatchPage() {
           ) : loadError ? (
             <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
-            <DataTable columns={dispatchColumns} data={filteredDispatches} />
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <Button
+                  disabled={!hasDispatchablePicklists}
+                  onClick={() => {
+                    setInitialPicklistId("");
+                    setShowCreateDispatch(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Dispatch
+                </Button>
+              </div>
+              <DataTable columns={dispatchColumns} data={filteredDispatches} />
+            </div>
           )}
         </TabsContent>
       </Tabs>

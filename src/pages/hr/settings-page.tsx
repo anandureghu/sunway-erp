@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { canView } from "@/service/companyService";
@@ -19,9 +19,15 @@ import {
   Share2,
   Building2,
   UserCheck,
+  Network,
+  UserRoundCog,
+  Umbrella,
+  Shield,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
+import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
 import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel";
 import LoanApprovalPanel from "@/modules/hr/loans/approval/LoanApprovalPanel";
@@ -38,14 +44,36 @@ import { JobCodesTab } from "./settings/job-codes-tab";
 import { PermissionsTab } from "./settings/permissions-tab";
 import type { JobCode, Role } from "./settings/shared";
 
-export const TABS = [
-  { id: "leaves", label: "Leave Types", icon: Calendar },
-  { id: "jobs", label: "Job Codes", icon: Briefcase },
-  { id: "perms", label: "Permissions", icon: KeyRound },
-  { id: "appraisal", label: "Appraisal", icon: Star },
-] as const;
+type SubTab = {
+  value: string;
+  label: string;
+  icon: ReactNode;
+  element: () => ReactNode;
+};
 
-export type TabId = (typeof TABS)[number]["id"];
+type GroupTab = {
+  value: string;
+  label: string;
+  icon: ReactNode;
+  element?: () => ReactNode;
+  children?: SubTab[];
+};
+
+/** Map legacy flat tab ids (pre-grouping) onto group + sub. */
+const legacyTabMap: Record<string, { tab: string; sub?: string }> = {
+  leaves: { tab: "leave-loans", sub: "leaves" },
+  "leave-approvals": { tab: "leave-loans", sub: "leave-approvals" },
+  "loan-approvals": { tab: "leave-loans", sub: "loan-approvals" },
+  "hr-policies": { tab: "policies", sub: "hr-policies" },
+  "contract-renewables": { tab: "lifecycle", sub: "contract-renewables" },
+  "confirm-employees": { tab: "lifecycle", sub: "confirm-employees" },
+  appraisal: { tab: "lifecycle", sub: "appraisal" },
+  jobs: { tab: "organization", sub: "jobs" },
+  department: { tab: "organization", sub: "department" },
+  roles: { tab: "organization", sub: "roles" },
+  social: { tab: "policies", sub: "social" },
+  permissions: { tab: "policies", sub: "permissions" },
+};
 
 export default function HRSettingsPage() {
   const navigate = useNavigate();
@@ -55,15 +83,8 @@ export default function HRSettingsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
-  // Gate the page on the HR_SETTINGS module permission instead of matching
-  // the company-role name. ADMIN/SUPER_ADMIN keep their bypass via canView's
-  // null-permissions branch (AuthContext sets permissions=null for admins).
   const isAuthorized = isAdmin || canView(permissions, "HR_SETTINGS");
 
-  // Whether to show the "Leave Approvals" tab — mirrors the backend's
-  // canActAsApprover (LEAVES.APPROVE permission OR department-manager). We
-  // can't tell from the JWT/permissions alone whether the user is a dept
-  // manager, so ask the BE.
   const [canApproveLeaves, setCanApproveLeaves] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -76,19 +97,147 @@ export default function HRSettingsPage() {
     };
   }, [user]);
 
-  // Whether to show the "Loan Approvals" tab — purely permission-driven
-  // (no department-manager fallback for loans today).
   const canApproveLoans =
     isAdmin || !!(permissions?.LOANS?.approve || permissions?.LOANS?.APPROVE);
 
-  // Confirm Employees (probation → active) needs the EMPLOYEE_PROFILE approve grant;
-  // ADMIN/SUPER_ADMIN keep their bypass (permissions is null for them).
   const canConfirmEmployees =
     isAdmin ||
     !!(
       permissions?.EMPLOYEE_PROFILE?.approve ||
       permissions?.EMPLOYEE_PROFILE?.APPROVE
     );
+
+  const groups = useMemo<GroupTab[]>(() => {
+    const list: GroupTab[] = [
+      {
+        value: "organization",
+        label: "Organization",
+        icon: <Network className="h-4 w-4" />,
+        children: [
+          {
+            value: "department",
+            label: "Departments",
+            icon: <Building2 className="h-4 w-4" />,
+            element: () => <DepartmentListPage hrSettings />,
+          },
+          {
+            value: "jobs",
+            label: "Job Codes",
+            icon: <Briefcase className="h-4 w-4" />,
+            element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} />,
+          },
+          {
+            value: "roles",
+            label: "Roles",
+            icon: <Users className="h-4 w-4" />,
+            element: () => <SettingsRolesPage hrSettings />,
+          },
+        ],
+      },
+      {
+        value: "lifecycle",
+        label: "Employee lifecycle",
+        icon: <UserRoundCog className="h-4 w-4" />,
+        children: [
+          ...(canConfirmEmployees
+            ? [
+                {
+                  value: "confirm-employees",
+                  label: "Confirmations",
+                  icon: <UserCheck className="h-4 w-4" />,
+                  element: () => <ConfirmEmployeesPanel />,
+                },
+              ]
+            : []),
+          {
+            value: "contract-renewables",
+            label: "Contract renewals",
+            icon: <CalendarClock className="h-4 w-4" />,
+            element: () => <ContractRenewablesPanel />,
+          },
+          {
+            value: "appraisal",
+            label: "Appraisals",
+            icon: <Star className="h-4 w-4" />,
+            element: () => <AppraisalTab />,
+          },
+        ],
+      },
+      {
+        value: "leave-loans",
+        label: "Leave & loans",
+        icon: <Umbrella className="h-4 w-4" />,
+        children: [
+          {
+            value: "leaves",
+            label: "Leave types",
+            icon: <Calendar className="h-4 w-4" />,
+            element: () => <LeaveCustomizationForm />,
+          },
+          ...(canApproveLeaves
+            ? [
+                {
+                  value: "leave-approvals",
+                  label: "Leave approvals",
+                  icon: <CalendarCheck className="h-4 w-4" />,
+                  element: () => <LeaveApprovalPanel />,
+                },
+              ]
+            : []),
+          ...(canApproveLoans
+            ? [
+                {
+                  value: "loan-approvals",
+                  label: "Loan approvals",
+                  icon: <Wallet className="h-4 w-4" />,
+                  element: () => <LoanApprovalPanel />,
+                },
+              ]
+            : []),
+        ],
+      },
+      {
+        value: "policies",
+        label: "Policies & access",
+        icon: <Shield className="h-4 w-4" />,
+        children: [
+          {
+            value: "hr-policies",
+            label: "HR Policies",
+            icon: <FileText className="h-4 w-4" />,
+            element: () => <HrPoliciesForm />,
+          },
+          {
+            value: "social",
+            label: "Social",
+            icon: <Share2 className="h-4 w-4" />,
+            element: () => <SocialSettingsPage hrSettings />,
+          },
+          ...(isAdmin
+            ? [
+                {
+                  value: "permissions",
+                  label: "Permissions",
+                  icon: <KeyRound className="h-4 w-4" />,
+                  element: () => (
+                    <PermissionsTab roles={roles} setRoles={setRoles} />
+                  ),
+                },
+              ]
+            : []),
+        ],
+      },
+    ];
+
+    return list.filter((g) => (g.children?.length ?? 0) > 0 || !!g.element);
+  }, [
+    canApproveLeaves,
+    canApproveLoans,
+    canConfirmEmployees,
+    isAdmin,
+    jobs,
+    roles,
+  ]);
 
   if (permissionsLoading) {
     return (
@@ -126,123 +275,100 @@ export default function HRSettingsPage() {
     );
   }
 
-  const tabIcon = (Icon: React.ElementType) => <Icon className="h-4 w-4" />;
+  const groupValues = groups.map((g) => g.value);
+  const rawTab = searchParams.get("tab");
+  const legacy = rawTab ? legacyTabMap[rawTab] : undefined;
+  const requestedGroup = legacy?.tab ?? rawTab;
+  const activeGroup =
+    requestedGroup && groupValues.includes(requestedGroup)
+      ? requestedGroup
+      : (groups[0]?.value ?? "organization");
 
-  const tabsList = [
-    {
-      value: "leaves",
-      label: "Leave Types",
-      icon: tabIcon(Calendar),
-      element: () => <LeaveCustomizationForm />,
-    },
-    {
-      value: "hr-policies",
-      label: "HR Policies",
-      icon: tabIcon(FileText),
-      element: () => <HrPoliciesForm />,
-    },
-    {
-      value: "contract-renewables",
-      label: "Contract Renewables",
-      icon: tabIcon(CalendarClock),
-      element: () => <ContractRenewablesPanel />,
-    },
-    ...(canApproveLeaves
-      ? [
-          {
-            value: "leave-approvals",
-            label: "Leave Approvals",
-            icon: tabIcon(CalendarCheck),
-            element: () => <LeaveApprovalPanel />,
-          },
-        ]
-      : []),
-    ...(canApproveLoans
-      ? [
-          {
-            value: "loan-approvals",
-            label: "Loan Approvals",
-            icon: tabIcon(Wallet),
-            element: () => <LoanApprovalPanel />,
-          },
-        ]
-      : []),
-    ...(canConfirmEmployees
-      ? [
-          {
-            value: "confirm-employees",
-            label: "Confirm Employees",
-            icon: tabIcon(UserCheck),
-            element: () => <ConfirmEmployeesPanel />,
-          },
-        ]
-      : []),
-    {
-      value: "jobs",
-      label: "Job Codes",
-      icon: tabIcon(Briefcase),
-      element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} />,
-    },
-    {
-      value: "social",
-      label: "Social",
-      icon: tabIcon(Share2),
-      element: () => <SocialSettingsPage hrSettings />,
-    },
-    {
-      value: "department",
-      label: "Department",
-      icon: tabIcon(Building2),
-      element: () => <DepartmentListPage hrSettings />,
-    },
-    {
-      value: "roles",
-      label: "Roles",
-      icon: tabIcon(Users),
-      element: () => <SettingsRolesPage hrSettings />,
-    },
-    // Permissions is system-security config — restrict to ADMIN/SUPER_ADMIN.
-    // HR Manager keeps HR_SETTINGS for operational tabs but should not be
-    // able to escalate by editing permission grants.
-    ...(isAdmin
-      ? [
-          {
-            value: "permissions",
-            label: "Permissions",
-            icon: tabIcon(KeyRound),
-            element: () => <PermissionsTab roles={roles} setRoles={setRoles} />,
-          },
-        ]
-      : []),
-    {
-      value: "appraisal",
-      label: "Appraisal",
-      icon: tabIcon(Star),
-      element: () => <AppraisalTab />,
-    },
-  ];
+  const activeGroupDef =
+    groups.find((g) => g.value === activeGroup) ?? groups[0];
+  const subValues = (activeGroupDef?.children ?? []).map((c) => c.value);
+  const requestedSub = searchParams.get("sub") ?? legacy?.sub;
+  const activeSub =
+    requestedSub && subValues.includes(requestedSub)
+      ? requestedSub
+      : (subValues[0] ?? "");
 
-  const tabParam = searchParams.get("tab");
-  const tabValues = tabsList.map((tab) => tab.value);
-  const activeTab =
-    tabParam && tabValues.includes(tabParam) ? tabParam : "leaves";
-
-  const handleTabChange = (value: string) => {
-    setSearchParams(value === "leaves" ? {} : { tab: value }, { replace: true });
+  const setGroup = (value: string) => {
+    const next = groups.find((g) => g.value === value);
+    const firstSub = next?.children?.[0]?.value;
+    const params: Record<string, string> = {};
+    if (value !== groups[0]?.value) params.tab = value;
+    if (firstSub) params.sub = firstSub;
+    setSearchParams(params, { replace: true });
   };
 
+  const setSub = (value: string) => {
+    const params: Record<string, string> = {};
+    if (activeGroup !== groups[0]?.value) params.tab = activeGroup;
+    if (value) params.sub = value;
+    setSearchParams(params, { replace: true });
+  };
+
+  const tabsList = groups.map((group) => ({
+    value: group.value,
+    label: group.label,
+    icon: group.icon,
+    element: () => {
+      if (!group.children?.length) {
+        return group.element?.() ?? null;
+      }
+
+      const sub = group.children.some((c) => c.value === activeSub)
+        ? activeSub
+        : group.children[0].value;
+
+      return (
+        <Tabs value={sub} onValueChange={setSub} className="w-full">
+          <div className="mb-4 w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200/80 bg-slate-50/80 p-1 [scrollbar-width:thin]">
+            <TabsList className="inline-flex min-w-max w-max flex-nowrap gap-1 bg-transparent p-0">
+              {group.children.map((child) => (
+                <StyledTabsTrigger
+                  key={child.value}
+                  value={child.value}
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
+                >
+                  <span className="size-4 flex items-center justify-center">
+                    {child.icon}
+                  </span>
+                  {child.label}
+                </StyledTabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+          {group.children.map((child) => (
+            <TabsContent
+              key={child.value}
+              value={child.value}
+              className="mt-0 focus-visible:outline-none"
+            >
+              {child.element()}
+            </TabsContent>
+          ))}
+        </Tabs>
+      );
+    },
+  }));
+
   return (
-    <div className="p-6 bg-slate-50/60 min-h-screen">
+    <div className="space-y-6 p-6 bg-slate-50/60 min-h-screen">
       <PageHeader
         title="HR Settings"
-        description="Manage leave policies, org structure, roles, permissions, and appraisal"
+        description="Organization, employee lifecycle, leave & loans, and policies & access"
         variant="default"
         icon={<Building className="w-6 h-6" />}
       />
+
       <AppTab
+        title=""
+        variant="primary"
         tabs={tabsList}
-        value={activeTab}
-        onValueChange={handleTabChange}
+        value={activeGroup}
+        onValueChange={setGroup}
       />
     </div>
   );

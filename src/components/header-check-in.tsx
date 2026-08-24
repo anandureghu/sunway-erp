@@ -8,13 +8,18 @@ import {
 } from "@/service/timesheetService";
 import { cn } from "@/lib/utils";
 import { notifyTimesheetChanged, onTimesheetChanged } from "@/lib/timesheet-sync";
+import { diffMs, formatDurationCompact, resolveCompanyTimezone } from "@/lib/timesheet-time";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
 /** "Xh Ym" elapsed since check-in. */
-function elapsedLabel(checkInIso?: string | null): string {
+function elapsedLabel(
+  checkInIso?: string | null,
+  timeZone?: string | null,
+): string {
   if (!checkInIso) return "";
-  const ms = Math.max(0, Date.now() - new Date(checkInIso).getTime());
-  const mins = Math.floor(ms / 60000);
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  return formatDurationCompact(
+    diffMs(checkInIso, undefined, resolveCompanyTimezone(timeZone)),
+  );
 }
 
 /**
@@ -24,6 +29,7 @@ function elapsedLabel(checkInIso?: string | null): string {
  */
 export function HeaderCheckIn() {
   const { user } = useAuth();
+  const { confirm } = useConfirmDialog();
   const empIdRaw = (user as { employeeId?: number | string } | null)
     ?.employeeId;
   const empId = empIdRaw != null ? Number(empIdRaw) : null;
@@ -85,6 +91,18 @@ export function HeaderCheckIn() {
 
   const handle = async () => {
     if (busy) return;
+    if (checkedIn) {
+      const ok = await confirm({
+        title: "Check out?",
+        description:
+          "End your shift for today? You will not be able to check in again until tomorrow.",
+        confirmLabel: "Check Out",
+        cancelLabel: "Stay clocked in",
+        variant: "destructive",
+      });
+      if (!ok) return;
+    }
+
     setBusy(true);
     try {
       if (!today?.checkInTime) {
@@ -131,7 +149,7 @@ export function HeaderCheckIn() {
         <LogIn className="h-3.5 w-3.5" />
       )}
       <span className="hidden sm:inline">
-        {checkedIn ? `Check Out · ${elapsedLabel(today?.checkInTime)}` : "Check In"}
+        {checkedIn ? `Check Out · ${elapsedLabel(today?.checkInTime, today?.timezone)}` : "Check In"}
       </span>
       <span className="sm:hidden">{checkedIn ? "Out" : "In"}</span>
     </button>

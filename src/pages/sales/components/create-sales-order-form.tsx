@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Info, Plus, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Info, Plus, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SALES_ORDER_SCHEMA, type SalesOrderFormData } from "@/schema/sales";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+import { clampDiscountPercent } from "@/lib/discount-floor";
 import {
   lineItemGrossAmount,
   salesDiscountPercentLabel,
@@ -306,14 +307,21 @@ export function CreateSalesOrderForm({
     const qty = row.quantity > 0 ? row.quantity : 0.01;
     const unitPrice =
       Number.isFinite(row.unitPrice) && row.unitPrice >= 0 ? row.unitPrice : 0;
+    const catalog = items.find((i) => String(i.id) === String(row.itemId));
+    const cost = Number(row.item?.costPrice ?? catalog?.costPrice ?? 0);
     const rawDisc = row.discountPercent ?? row.discount ?? 0;
-    const discountPct = Math.min(100, Math.max(0, rawDisc));
+    const { percent: discountPct } = clampDiscountPercent(
+      unitPrice,
+      rawDisc,
+      cost,
+    );
     const discountAmount = (unitPrice * qty * discountPct) / 100;
     const lineSubtotal = unitPrice * qty - discountAmount;
     const tax = companyTaxActive ? lineSubtotal * (companyTaxRate / 100) : 0;
     const total = lineSubtotal + tax;
     return {
       ...row,
+      item: row.item ?? catalog,
       quantity: qty,
       unitPrice,
       discountPercent: discountPct,
@@ -338,11 +346,30 @@ export function CreateSalesOrderForm({
     setOrderItems((prev) =>
       prev.map((row) => {
         if (row.id !== lineId) return row;
+        const catalog = items.find((i) => String(i.id) === String(row.itemId));
+        const cost = Number(row.item?.costPrice ?? catalog?.costPrice ?? 0);
+        let nextPatch = patch;
+        if (patch.discountPercent !== undefined) {
+          const unitPrice =
+            patch.unitPrice !== undefined ? patch.unitPrice : row.unitPrice;
+          const clamped = clampDiscountPercent(
+            unitPrice,
+            patch.discountPercent,
+            cost,
+          );
+          if (clamped.capped) {
+            toast.warning(
+              `Discount capped at ${clamped.maxPercent}% so unit price stays at or above cost.`,
+            );
+          }
+          nextPatch = { ...patch, discountPercent: clamped.percent };
+        }
         const merged: SalesOrderItem = {
           ...row,
-          ...patch,
-          ...(patch.discountPercent !== undefined
-            ? { discount: patch.discountPercent }
+          item: row.item ?? catalog,
+          ...nextPatch,
+          ...(nextPatch.discountPercent !== undefined
+            ? { discount: nextPatch.discountPercent }
             : {}),
         };
         return recomputeLine(merged);
@@ -364,7 +391,14 @@ export function CreateSalesOrderForm({
     }
 
     const unitPrice = item.sellingPrice;
-    const discountAmount = (unitPrice * itemQuantity * itemDiscount) / 100;
+    const cost = Number(item.costPrice ?? 0);
+    const clamped = clampDiscountPercent(unitPrice, itemDiscount, cost);
+    if (clamped.capped) {
+      toast.warning(
+        `Discount capped at ${clamped.maxPercent}% so unit price stays at or above cost (${cost}).`,
+      );
+    }
+    const discountAmount = (unitPrice * itemQuantity * clamped.percent) / 100;
     const subtotal = unitPrice * itemQuantity - discountAmount;
     const tax = companyTaxActive ? subtotal * (companyTaxRate / 100) : 0;
     const total = subtotal + tax;
@@ -379,10 +413,10 @@ export function CreateSalesOrderForm({
         quantity: itemQuantity,
         unitPrice,
         lineSubtotal: subtotal,
-        discountPercent: itemDiscount,
+        discountPercent: clamped.percent,
         taxRate: companyTaxActive ? companyTaxRate : 0,
         taxAmount: tax,
-        discount: itemDiscount,
+        discount: clamped.percent,
         tax,
         total,
         warehouseId: whId,
@@ -553,7 +587,7 @@ export function CreateSalesOrderForm({
         <div className="xl:col-span-2 space-y-6">
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Customer & Order Details</CardTitle>
+              <CardTitle>Customer Details</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <div className="space-y-2">
@@ -625,13 +659,13 @@ export function CreateSalesOrderForm({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
-                Add Order Items
+                Add Line Items
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                 <div className="md:col-span-2 space-y-2">
-                  <Label>Item</Label>
+                  <Label>Item Name</Label>
                   <Select value={selectedItem} onValueChange={setSelectedItem}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select item" />
@@ -641,7 +675,7 @@ export function CreateSalesOrderForm({
                         .filter((i) => i.status === "active")
                         .map((item) => (
                           <SelectItem key={item.id} value={String(item.id)}>
-                            {item.name} - {item.sellingPrice || 0}
+                            {item.sku ? `${item.sku} — ${item.name}` : item.name}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -660,6 +694,24 @@ export function CreateSalesOrderForm({
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Unit Cost</Label>
+                  <Input
+                    type="text"
+                    readOnly
+                    tabIndex={-1}
+                    className="bg-muted/40 tabular-nums"
+                    value={
+                      selectedItem
+                        ? String(
+                            items.find((i) => String(i.id) === String(selectedItem))
+                              ?.sellingPrice ?? 0,
+                          )
+                        : ""
+                    }
+                    placeholder="—"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Discount %</Label>
                   <Input
                     type="number"
@@ -670,6 +722,26 @@ export function CreateSalesOrderForm({
                       setItemDiscount(parseFloat(e.target.value) || 0)
                     }
                   />
+                  {selectedItem
+                    ? (() => {
+                        const inv = items.find(
+                          (i) => String(i.id) === String(selectedItem),
+                        );
+                        if (!inv) return null;
+                        const clamped = clampDiscountPercent(
+                          Number(inv.sellingPrice ?? 0),
+                          itemDiscount,
+                          Number(inv.costPrice ?? 0),
+                        );
+                        if (!clamped.capped) return null;
+                        return (
+                          <p className="flex items-start gap-1.5 text-xs text-amber-700">
+                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            Max {clamped.maxPercent}% — cannot go below cost.
+                          </p>
+                        );
+                      })()
+                    : null}
                 </div>
                 <div className="space-y-2">
                   <Label>Warehouse</Label>
@@ -741,9 +813,9 @@ export function CreateSalesOrderForm({
                   <table className="w-full text-sm min-w-[720px]">
                     <thead className="bg-muted/60">
                       <tr>
-                        <th className="text-left p-3">Item</th>
+                        <th className="text-left p-3">Item Name</th>
                         <th className="text-right p-3 w-28">Qty</th>
-                        <th className="text-right p-3 w-32">Unit price</th>
+                        <th className="text-right p-3 w-32">Unit Cost</th>
                         <th className="text-right p-3 w-24">Disc %</th>
                         <th className="text-left p-3 min-w-[140px]">
                           Warehouse
@@ -778,13 +850,10 @@ export function CreateSalesOrderForm({
                               type="number"
                               min={0}
                               step={0.01}
-                              className="text-right h-9 tabular-nums"
+                              readOnly
+                              tabIndex={-1}
+                              className="text-right h-9 tabular-nums bg-muted/40"
                               value={item.unitPrice}
-                              onChange={(e) =>
-                                updateOrderLine(item.id, {
-                                  unitPrice: parseFloat(e.target.value) || 0,
-                                })
-                              }
                             />
                           </td>
                           <td className="p-3 align-middle">

@@ -3,7 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { STOCK_COLUMNS } from "@/lib/columns/inventory-columns";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import type { Warehouse } from "@/types/inventory";
 import { Search, FileSpreadsheet, FileText } from "lucide-react";
 import {
   Select,
@@ -18,11 +17,8 @@ import { ImportItemsCsvDialog } from "./import-items-csv-dialog";
 type StockListTabProps = {
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
-  selectedWarehouse: string;
-  onSelectedWarehouseChange: (v: string) => void;
   selectedStatus: string;
   onSelectedStatusChange: (v: string) => void;
-  warehouses: Warehouse[];
   loading: boolean;
   loadError: string | null;
   filteredStock: ItemResponseDTO[];
@@ -32,9 +28,19 @@ type StockListTabProps = {
 
 function exportToCsv(data: ItemResponseDTO[]) {
   const headers = [
-    "SL No.", "SKU/Item Code", "Barcode", "Item Name", "Category", "Brand",
-    "Warehouse", "Quantity", "Unit", "Available", "Reserved",
-    "Item Status", "Date Received", "Sale by Date",
+    "SL No.",
+    "Item code",
+    "Barcode",
+    "Item name",
+    "Category",
+    "Brand",
+    "Qty on hand",
+    "Unit",
+    "Qty on reserve",
+    "Qty on order",
+    "Date received",
+    "Sale by date",
+    "Status",
   ];
   const rows = data.map((item, i) => [
     i + 1,
@@ -43,14 +49,13 @@ function exportToCsv(data: ItemResponseDTO[]) {
     item.name,
     item.category,
     item.brand ?? "",
-    item.warehouse_name,
     item.quantity,
     item.unitMeasure,
-    item.available,
     item.reserved,
-    item.status,
+    item.quantityOnOrder ?? 0,
     formatOptionalDate(item.dateReceived),
     formatOptionalDate(item.expiryDate),
+    item.status,
   ]);
 
   const csvContent = [headers, ...rows]
@@ -72,7 +77,7 @@ function exportToCsv(data: ItemResponseDTO[]) {
 
 async function exportToPdf(data: ItemResponseDTO[]) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod = await import("html2pdf.js" as any) as any;
+  const mod = (await import("html2pdf.js" as any)) as any;
   const html2pdf = (mod.default ?? mod) as (el: HTMLElement) => {
     set: (opts: object) => { save: () => Promise<void> };
   };
@@ -92,13 +97,12 @@ async function exportToPdf(data: ItemResponseDTO[]) {
         <td>${item.name}</td>
         <td>${item.category}</td>
         <td>${item.brand ?? "-"}</td>
-        <td>${item.warehouse_name}</td>
         <td>${item.quantity} ${item.unitMeasure}</td>
-        <td>${item.available} ${item.unitMeasure}</td>
         <td>${item.reserved || "-"}</td>
-        <td>${statusLabel[item.status] ?? item.status}</td>
+        <td>${item.quantityOnOrder || "-"}</td>
         <td>${formatOptionalDate(item.dateReceived)}</td>
         <td>${formatOptionalDate(item.expiryDate)}</td>
+        <td>${statusLabel[item.status] ?? item.status}</td>
       </tr>`,
     )
     .join("");
@@ -118,9 +122,9 @@ async function exportToPdf(data: ItemResponseDTO[]) {
       <p class="sub">Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; ${data.length} item(s)</p>
       <table>
         <thead><tr>
-          <th>SL No.</th><th>SKU</th><th>Item Name</th><th>Category</th>
-          <th>Brand</th><th>Warehouse</th><th>Quantity</th><th>Available</th>
-          <th>Reserved</th><th>Status</th><th>Date Received</th><th>Sale by Date</th>
+          <th>SL No.</th><th>Item code</th><th>Item name</th><th>Category</th>
+          <th>Brand</th><th>Qty on hand</th><th>Qty on reserve</th><th>Qty on order</th>
+          <th>Date received</th><th>Sale by date</th><th>Status</th>
         </tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>
@@ -130,12 +134,14 @@ async function exportToPdf(data: ItemResponseDTO[]) {
   el.innerHTML = html;
   document.body.appendChild(el);
 
-  await html2pdf(el).set({
-    margin: 6,
-    filename: `stock-inventory-${new Date().toISOString().slice(0, 10)}.pdf`,
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-  }).save();
+  await html2pdf(el)
+    .set({
+      margin: 6,
+      filename: `stock-inventory-${new Date().toISOString().slice(0, 10)}.pdf`,
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+    })
+    .save();
 
   document.body.removeChild(el);
 }
@@ -143,11 +149,8 @@ async function exportToPdf(data: ItemResponseDTO[]) {
 export function StockListTab({
   searchQuery,
   onSearchQueryChange,
-  selectedWarehouse,
-  onSelectedWarehouseChange,
   selectedStatus,
   onSelectedStatusChange,
-  warehouses,
   loading,
   loadError,
   filteredStock,
@@ -160,28 +163,12 @@ export function StockListTab({
         <div className="flex-1 relative min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search by SKU, name, or barcode..."
+            placeholder="Search by SKU, name, barcode, sale by date, or date received..."
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             className="pl-10"
           />
         </div>
-        <Select
-          value={selectedWarehouse}
-          onValueChange={onSelectedWarehouseChange}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Warehouses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Warehouses</SelectItem>
-            {warehouses.map((wh) => (
-              <SelectItem key={wh.id} value={wh.id}>
-                {wh.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <Select value={selectedStatus} onValueChange={onSelectedStatusChange}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All Statuses" />
@@ -225,7 +212,7 @@ export function StockListTab({
         <div className="py-10 text-center text-red-600">{loadError}</div>
       ) : filteredStock.length === 0 ? (
         <div className="py-10 text-center text-muted-foreground">
-          {searchQuery || selectedWarehouse !== "all" || selectedStatus !== "all"
+          {searchQuery || selectedStatus !== "all"
             ? "No inventory items found matching your filters."
             : "No inventory items found. Add items to get started."}
         </div>
