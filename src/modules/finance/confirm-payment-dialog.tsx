@@ -87,7 +87,7 @@ export function ConfirmPaymentDialog({
       setCreditAmountInput(maxApplicableCredit > 0 ? String(maxApplicableCredit) : "");
       setAmountInput(String(outstanding > 0 ? outstanding : ""));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [open, payment?.id, outstanding]);
 
   const appliedCredit = applyCredit

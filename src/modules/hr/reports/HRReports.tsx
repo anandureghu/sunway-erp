@@ -56,6 +56,7 @@ import ImmigrationExpiryReport from "./ImmigrationExpiryReport";
 import EmployeeTimeSheets from "./EmployeeTimeSheets";
 import AttendanceHistory from "./AttendanceHistory";
 import { ExitInterviewsPanel } from "./ExitInterviewsPanel";
+import { PayrollSummaryPanel } from "./PayrollSummaryPanel";
 import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
 // ── colour palette ────────────────────────────────────────────────────────────
@@ -248,6 +249,12 @@ const IMMIGRATION_TAB = {
   label: "Immigration Expiry",
   icon: ShieldAlert,
 } as const;
+// Company-wide payroll history grouped by department.
+const PAYROLL_SUMMARY_TAB = {
+  id: "payroll-summary",
+  label: "Payroll Summary",
+  icon: Banknote,
+} as const;
 // Exit / termination interviews submitted for departing employees.
 const EXIT_TAB = {
   id: "exit-interviews",
@@ -267,6 +274,7 @@ type TabId =
   | "leaves"
   | "loans"
   | "immigration"
+  | "payroll-summary"
   | "exit-interviews"
   | "history";
 const ALL_TAB_IDS: TabId[] = [
@@ -277,6 +285,7 @@ const ALL_TAB_IDS: TabId[] = [
   "leaves",
   "loans",
   "immigration",
+  "payroll-summary",
   "exit-interviews",
   "history",
 ];
@@ -390,6 +399,15 @@ export default function HRReports() {
       permissions?.EMPLOYEE_PROFILE?.viewAll ||
       permissions?.EMPLOYEE_PROFILE?.VIEW_ALL
     );
+  // Payroll summary shows company-wide amounts, so it needs the PAYROLL view-all
+  // grant (matching the endpoint). permissions == null → admin bypass.
+  const canPayrollSummary =
+    permissions == null ||
+    !!(
+      permissions?.PAYROLL?.view_all ||
+      permissions?.PAYROLL?.viewAll ||
+      permissions?.PAYROLL?.VIEW_ALL
+    );
 
   const visibleTabs = useMemo(() => {
     const tabs: Array<{ id: TabId; label: string; icon: React.ElementType }> =
@@ -400,10 +418,18 @@ export default function HRReports() {
     if (canLeaves) tabs.push(LEAVES_TAB);
     if (canLoans) tabs.push(LOANS_TAB);
     if (canImmigration) tabs.push(IMMIGRATION_TAB);
+    if (canPayrollSummary) tabs.push(PAYROLL_SUMMARY_TAB);
     if (canExitInterviews) tabs.push(EXIT_TAB);
     tabs.push(HISTORY_TAB);
     return tabs;
-  }, [canHrReports, canLeaves, canLoans, canImmigration, canExitInterviews]);
+  }, [
+    canHrReports,
+    canLeaves,
+    canLoans,
+    canImmigration,
+    canPayrollSummary,
+    canExitInterviews,
+  ]);
 
   const requestedTab = searchParams.get("tab") as TabId | null;
   const [tab, setTab] = useState<TabId>(
@@ -1922,6 +1948,8 @@ export default function HRReports() {
       {/* ── IMMIGRATION EXPIRY TAB ── */}
 
       {tab === "immigration" && <ImmigrationExpiryReport />}
+
+      {tab === "payroll-summary" && <PayrollSummaryPanel />}
 
       {tab === "exit-interviews" && <ExitInterviewsPanel />}
 

@@ -154,7 +154,7 @@ export default function CarrierMaster() {
 
   const columns = useMemo(
     () => createCarrierColumns(openEdit, (id) => void handleDelete(id)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [],
   );
 
