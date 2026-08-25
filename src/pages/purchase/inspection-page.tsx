@@ -734,7 +734,7 @@ function StartInspectionForm({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when target order changes
+     
   }, [orderId]);
 
   const handleSubmit = async (e: React.FormEvent) => {

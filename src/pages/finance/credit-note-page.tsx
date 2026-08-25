@@ -68,7 +68,7 @@ const CreditNotePage = () => {
         onCashOut: (note) => void handleCashOut(note),
         cashingId,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [cashingId],
   );
 

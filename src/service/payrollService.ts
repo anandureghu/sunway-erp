@@ -14,6 +14,44 @@ export type PayrollBatchResponse = {
   payrollMonth: string;
 };
 
+/** One row of the company-wide HR payroll-summary report. */
+export type PayrollSummaryRow = {
+  employeeId: number;
+  employeeNo?: string | null;
+  employeeName?: string | null;
+  department?: string | null;
+  payrollCode?: string | null;
+  payPeriodStart?: string | null;
+  payPeriodEnd?: string | null;
+  payDate?: string | null;
+  grossPay: number;
+  totalDeductions: number;
+  loanDeduction: number;
+  lopAmount: number;
+  overtimePay: number;
+  endOfServiceCompensation: number;
+  netPayable: number;
+  finalSettlement: boolean;
+};
+
+/** Company-wide payroll history for the HR Reports → Payroll Summary tab. */
+export async function fetchPayrollSummary(params?: {
+  from?: string;
+  to?: string;
+}): Promise<PayrollSummaryRow[]> {
+  try {
+    const res = await apiClient.get<PayrollSummaryRow[]>("/hr/payroll-summary", {
+      params: {
+        from: params?.from || undefined,
+        to: params?.to || undefined,
+      },
+    });
+    return Array.isArray(res.data) ? res.data : [];
+  } catch {
+    return [];
+  }
+}
+
 export type PayrollAccountStatus = {
   status: "NOT_CONFIGURED" | "READY" | "INSUFFICIENT";
   configured: boolean;

@@ -157,7 +157,7 @@ export function VarianceFormPanel({
       notes: editing.notes ?? "",
       adjustmentDate: editing.varianceDate,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [editing]);
 
   const handleItemSelect = (item: ItemResponseDTO) => {

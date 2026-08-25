@@ -39,6 +39,7 @@ import { AppTab } from "@/components/app-tab";
 import { PageHeader } from "@/components/PageHeader";
 import SocialSettingsPage from "@/pages/admin/hr/company/social-settings-page";
 import DepartmentListPage from "@/pages/admin/hr/department/department-list-page";
+import OrgStructurePanel from "@/modules/hr/organization/OrgStructurePanel";
 import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { JobCodesTab } from "./settings/job-codes-tab";
 import { PermissionsTab } from "./settings/permissions-tab";
@@ -68,6 +69,7 @@ const legacyTabMap: Record<string, { tab: string; sub?: string }> = {
   "contract-renewables": { tab: "lifecycle", sub: "contract-renewables" },
   "confirm-employees": { tab: "lifecycle", sub: "confirm-employees" },
   appraisal: { tab: "lifecycle", sub: "appraisal" },
+  "org-structure": { tab: "organization", sub: "org-structure" },
   jobs: { tab: "organization", sub: "jobs" },
   department: { tab: "organization", sub: "department" },
   roles: { tab: "organization", sub: "roles" },
@@ -114,6 +116,12 @@ export default function HRSettingsPage() {
         label: "Organization",
         icon: <Network className="h-4 w-4" />,
         children: [
+          {
+            value: "org-structure",
+            label: "Org Structure",
+            icon: <Network className="h-4 w-4" />,
+            element: () => <OrgStructurePanel />,
+          },
           {
             value: "department",
             label: "Departments",

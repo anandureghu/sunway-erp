@@ -173,7 +173,7 @@ export default function AppraisalTab() {
     const year = parseInt(cycleConfig.appraisalYear);
     if (!year) return;
     void refreshCycles(year, cycleConfig.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [cycleConfig.appraisalYear]);
 
   function showToast(msg: string, type: "success" | "error" = "success") {
