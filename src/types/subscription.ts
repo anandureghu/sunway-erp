@@ -82,6 +82,8 @@ export type CompanySubscription = {
   hrEntitled: boolean;
   financeEntitled: boolean;
   inventoryEntitled: boolean;
+  /** Max total storage in bytes (cloud + database quota). */
+  maxStorageBytes: number;
   notes?: string | null;
   daysRemaining?: number | null;
   locked: boolean;
@@ -106,6 +108,8 @@ export type AssignSubscriptionRequest = {
   hrEntitled?: boolean;
   financeEntitled?: boolean;
   inventoryEntitled?: boolean;
+  /** Max total storage in bytes (cloud + database). */
+  maxStorageBytes?: number;
   notes?: string;
   syncCompanyModules?: boolean;
 };

@@ -30,6 +30,8 @@ export interface Company {
   cloudStorageBytes?: number;
   databaseStorageBytes?: number;
   storageCalculatedAt?: string | null;
+  /** Subscription total storage quota — cloud + database (bytes), SUPER_ADMIN storage card. */
+  maxStorageBytes?: number;
   isTaxActive?: boolean;
   taxRate?: number;
   defaultSalesDebitAccountId?: number | null;

@@ -43,7 +43,6 @@ import {
   Briefcase,
   ShieldCheck,
   HardDrive,
-  Database,
   RefreshCw,
   KeyRound,
   Lock,
@@ -64,6 +63,7 @@ import type { Employee } from "@/types/hr";
 import { useAppSelector } from "@/store/store";
 import { hasAnyRole, formatBytes, cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+import { CompanyStorageUsageChart } from "./company-storage-usage-chart";
 
 function subscriptionStatusBadge(status: SubscriptionStatus) {
   const className =
@@ -871,6 +871,14 @@ export default function CompanyDetailPage() {
                   </div>
                   <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
                     <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Max storage
+                    </p>
+                    <p className="mt-0.5 text-[14px] font-semibold text-slate-700">
+                      {formatBytes(subscription.maxStorageBytes)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                       Days remaining
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-[14px] font-semibold text-slate-700">
@@ -970,41 +978,12 @@ export default function CompanyDetailPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                  <HardDrive className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                    Cloud Storage
-                  </p>
-                  <p className="text-[14px] font-semibold text-slate-700">
-                    {formatBytes(company.cloudStorageBytes)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50">
-                  <Database className="h-4 w-4 text-violet-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                    Database Storage (estimated)
-                  </p>
-                  <p className="text-[14px] font-semibold text-slate-700">
-                    {formatBytes(company.databaseStorageBytes)}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <p className="mt-3 text-[12px] text-slate-400">
-              {company.storageCalculatedAt
-                ? `Database storage last calculated ${new Date(
-                    company.storageCalculatedAt,
-                  ).toLocaleString()}`
-                : "Database storage has not been calculated yet."}
-            </p>
+            <CompanyStorageUsageChart
+              cloudBytes={company.cloudStorageBytes ?? 0}
+              databaseBytes={company.databaseStorageBytes ?? 0}
+              maxBytes={company.maxStorageBytes ?? 0}
+              calculatedAt={company.storageCalculatedAt}
+            />
           </CardContent>
         </Card>
       )}

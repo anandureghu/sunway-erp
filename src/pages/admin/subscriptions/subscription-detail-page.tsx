@@ -35,6 +35,7 @@ import {
   Pencil,
   RefreshCw,
 } from "lucide-react";
+import { formatBytes } from "@/lib/utils";
 
 function formatMoney(amount?: number | null, currency?: string | null) {
   if (amount == null) return "—";
@@ -233,6 +234,10 @@ export default function SubscriptionDetailPage() {
                       ? `${data.lastPaymentOn} (${formatMoney(data.lastPaymentAmount, data.currencyCode)})`
                       : "—"
                   }
+                />
+                <InfoCard
+                  label="Max storage"
+                  value={formatBytes(data.maxStorageBytes)}
                 />
               </div>
               {data.notes && (
