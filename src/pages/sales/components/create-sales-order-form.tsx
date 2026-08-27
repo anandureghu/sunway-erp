@@ -38,12 +38,16 @@ import {
 import type { ItemWarehouseStockRowDTO } from "@/service/erpApiTypes";
 import { apiClient } from "@/service/apiClient";
 import { createSalesOrder, updateSalesOrder } from "@/service/salesFlowService";
-import type { SalesOrder, SalesOrderItem } from "@/types/sales";
+import type { Customer, SalesOrder, SalesOrderItem } from "@/types/sales";
 import type { Company } from "@/types/company";
 import { hasSalesAccountingDefaults } from "@/lib/accounting-defaults";
 import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { PageHeader } from "@/components/PageHeader";
 import { ItemSearchCombobox } from "@/pages/inventory/manage-stocks/components/item-search-combobox";
+import {
+  CustomerSearchCombobox,
+  filterCustomersByQuery,
+} from "@/pages/sales/components/customer-search-combobox";
 
 type Props = {
   onCancel: () => void;
@@ -69,7 +73,8 @@ export function CreateSalesOrderForm({
   const [pickerStockRows, setPickerStockRows] = useState<
     ItemWarehouseStockRowDTO[]
   >([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,18 +125,50 @@ export function CreateSalesOrderForm({
     (c) => String(c.id) === String(selectedCustomerId),
   );
 
-  const composeCustomerAddress = (customer: any) => {
+  const activeCustomers = useMemo(
+    () => customers.filter((c) => c.status === "active"),
+    [customers],
+  );
+
+  const customerSearchResults = useMemo(
+    () => filterCustomersByQuery(activeCustomers, customerSearchQuery),
+    [activeCustomers, customerSearchQuery],
+  );
+
+  const composeCustomerAddress = (customer: Customer | undefined) => {
     if (!customer) return "";
     const parts = [
-      customer.address || customer.street,
+      customer.address,
       customer.city,
       customer.state,
       customer.country,
-      customer.postalCode || customer.pin,
+      customer.postalCode,
     ]
       .map((part) => (typeof part === "string" ? part.trim() : ""))
       .filter(Boolean);
     return parts.join(", ");
+  };
+
+  const handleCustomerSelectFromSearch = (customer: Customer) => {
+    setValue("customerId", String(customer.id), { shouldValidate: true });
+    setCustomerSearchQuery("");
+
+    const currentShipping = (shippingAddressValue || "").trim();
+    if (currentShipping) return;
+
+    const defaultAddress = composeCustomerAddress(customer);
+    if (!defaultAddress) return;
+
+    setValue("shippingAddress", defaultAddress, {
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+  };
+
+  const clearSelectedCustomer = () => {
+    if (isEditMode) return;
+    setValue("customerId", "", { shouldValidate: true });
+    setCustomerSearchQuery("");
   };
 
   useEffect(() => {
@@ -629,54 +666,74 @@ export function CreateSalesOrderForm({
             <CardHeader>
               <CardTitle>Customer Details</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <div className="space-y-2">
-                <Label>Customer *</Label>
-                <Select
-                  value={selectedCustomerId || ""}
-                  onValueChange={(value) => {
-                    setValue("customerId", value, { shouldValidate: true });
-
-                    // Auto-fill from customer profile only when address is currently empty.
-                    const currentShipping = (shippingAddressValue || "").trim();
-                    if (currentShipping) return;
-
-                    const customerForSelection = customers.find(
-                      (c) => String(c.id) === String(value),
-                    );
-                    const defaultAddress =
-                      composeCustomerAddress(customerForSelection);
-                    if (!defaultAddress) return;
-
-                    setValue("shippingAddress", defaultAddress, {
-                      shouldDirty: true,
-                      shouldTouch: true,
-                    });
-                  }}
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-dashed bg-muted/30 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  Search customers
+                </div>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Find by name or phone number, then confirm shipping details.
+                </p>
+                <CustomerSearchCombobox
+                  query={customerSearchQuery}
+                  onQueryChange={setCustomerSearchQuery}
+                  results={isEditMode ? [] : customerSearchResults}
+                  onSelect={handleCustomerSelectFromSearch}
                   disabled={isEditMode}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers
-                      .filter((c) => c.status === "active")
-                      .map((customer) => (
-                        <SelectItem
-                          key={customer.id}
-                          value={String(customer.id)}
-                        >
-                          {customer.name} ({customer.code})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {formState.errors.customerId && (
-                  <p className="text-sm text-red-500">
-                    {formState.errors.customerId.message}
-                  </p>
+                  errorText={formState.errors.customerId?.message}
+                />
+                {customerSearchQuery.trim().length > 0 &&
+                  customerSearchResults.length === 0 &&
+                  !isEditMode && (
+                    <p className="text-sm text-muted-foreground">
+                      No active customers match your search.
+                    </p>
+                  )}
+                {selectedCustomer && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm">
+                    <span>
+                      Selected:{" "}
+                      <span className="font-medium">{selectedCustomer.name}</span>
+                      <span className="text-muted-foreground">
+                        {selectedCustomer.phone
+                          ? ` · ${selectedCustomer.phone}`
+                          : ""}
+                        {selectedCustomer.code
+                          ? ` · ${selectedCustomer.code}`
+                          : ""}
+                      </span>
+                    </span>
+                    {!isEditMode && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-muted-foreground"
+                        onClick={clearSelectedCustomer}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
+
+              <div className="space-y-2">
+                <Label>Shipping Address</Label>
+                <Textarea
+                  placeholder="Enter shipping address"
+                  {...register("shippingAddress")}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Order Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Order Date *</Label>
                 <Input type="date" {...register("orderDate")} />
@@ -684,13 +741,6 @@ export function CreateSalesOrderForm({
               <div className="space-y-2">
                 <Label>Invoice Due Date *</Label>
                 <Input type="date" {...register("invoiceDueDate")} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Shipping Address</Label>
-                <Textarea
-                  placeholder="Enter shipping address"
-                  {...register("shippingAddress")}
-                />
               </div>
             </CardContent>
           </Card>
