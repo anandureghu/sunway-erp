@@ -1,5 +1,5 @@
 import { useEffect, useState, type ElementType } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -795,16 +795,26 @@ export default function CompanyDetailPage() {
                 </div>
                 Platform Subscription
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setOpenSubscription(true)}
-                disabled={subscriptionLoading}
-                className="h-7 gap-1 rounded-lg px-2.5 text-[12px] text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-              >
-                <Edit className="h-3 w-3" />
-                Manage
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="h-7 gap-1 rounded-lg px-2.5 text-[12px] text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <Link to={`/admin/subscriptions/${id}`}>Open detail</Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setOpenSubscription(true)}
+                  disabled={subscriptionLoading}
+                  className="h-7 gap-1 rounded-lg px-2.5 text-[12px] text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <Edit className="h-3 w-3" />
+                  Manage
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
