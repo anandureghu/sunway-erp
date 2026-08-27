@@ -7,11 +7,9 @@ export function SalesOrderBalanceWarning({ so }: { so: SalesOrderResponseDTO }) 
     <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
       <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
       <div className="space-y-1">
-        <p className="font-medium">Insufficient debit account balance</p>
+        <p className="font-medium">Insufficient funds to confirm</p>
         <p className="text-amber-900/90">
-          {so.debitAccountName
-            ? `Account "${so.debitAccountName}" does not have enough balance to confirm this order.`
-            : "The selected debit account does not have enough balance to confirm this order."}
+          There is not enough available balance to confirm this order.
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-900/80">
           <span>

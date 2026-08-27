@@ -541,8 +541,7 @@ export default function PurchaseOrderDetailPage() {
             <div className="mb-4">
               <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Release sends the order to the supplier and creates accounts
-                payable records.
+                Release sends the order to the supplier.
               </p>
             </div>
 
@@ -759,44 +758,10 @@ export default function PurchaseOrderDetailPage() {
                   className="font-semibold"
                 />
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1 rounded-xl border border-white/80 bg-white p-3">
-                  <p className="font-medium">Debit (from)</p>
-                  <p className="text-xs text-slate-500">
-                    {releasePreview.debitAccountCode} —{" "}
-                    {releasePreview.debitAccountName}
-                  </p>
-                  <p className="tabular-nums">
-                    <CurrencyAmount
-                      amount={releasePreview.debitBalanceBefore ?? 0}
-                    />{" "}
-                    →{" "}
-                    <CurrencyAmount
-                      amount={releasePreview.debitBalanceAfter ?? 0}
-                    />
-                  </p>
-                </div>
-                <div className="space-y-1 rounded-xl border border-white/80 bg-white p-3">
-                  <p className="font-medium">Credit (to)</p>
-                  <p className="text-xs text-slate-500">
-                    {releasePreview.creditAccountCode} —{" "}
-                    {releasePreview.creditAccountName}
-                  </p>
-                  <p className="tabular-nums">
-                    <CurrencyAmount
-                      amount={releasePreview.creditBalanceBefore ?? 0}
-                    />{" "}
-                    →{" "}
-                    <CurrencyAmount
-                      amount={releasePreview.creditBalanceAfter ?? 0}
-                    />
-                  </p>
-                </div>
-              </div>
               {!releasePreview.sufficientFunds && (
                 <p className="text-sm text-destructive">
                   {releasePreview.insufficientFundsMessage ||
-                    "Insufficient funds on the debit account."}
+                    "Insufficient funds to release this order."}
                 </p>
               )}
             </div>
