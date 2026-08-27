@@ -15,8 +15,9 @@ export function filterItemsByQuery(
   items: ItemResponseDTO[],
   query: string,
 ): ItemResponseDTO[] {
-  if (query.length === 0) return [];
-  const lowerQuery = query.toLowerCase();
+  const trimmed = query.trim();
+  if (trimmed.length === 0) return items;
+  const lowerQuery = trimmed.toLowerCase();
   return items.filter(
     (item) =>
       item.name.toLowerCase().includes(lowerQuery) ||

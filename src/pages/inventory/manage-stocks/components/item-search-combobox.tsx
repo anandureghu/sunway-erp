@@ -50,7 +50,8 @@ export function ItemSearchCombobox({
     setOpen(false);
   };
 
-  const showResults = open && query.trim().length > 0 && results.length > 0;
+  // Show all results on focus even when the query is empty.
+  const showResults = open && results.length > 0;
   const position = useAnchoredPosition(inputWrapperRef, showResults);
 
   return (
@@ -64,12 +65,11 @@ export function ItemSearchCombobox({
           placeholder="Search by SKU, name, or barcode..."
           value={query}
           onChange={(e) => {
-            const next = e.target.value;
-            onQueryChange(next);
-            setOpen(next.trim().length > 0);
+            onQueryChange(e.target.value);
+            setOpen(true);
           }}
           onFocus={() => {
-            if (query.trim().length > 0 && results.length > 0) {
+            if (results.length > 0) {
               setOpen(true);
             }
           }}

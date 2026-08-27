@@ -766,11 +766,7 @@ export function CreatePurchaseRequisitionForm({
                     label=""
                     query={itemSearchQuery}
                     onQueryChange={setItemSearchQuery}
-                    results={
-                      itemSearchQuery.trim().length > 0
-                        ? itemSearchResults
-                        : []
-                    }
+                    results={itemSearchResults}
                     onSelect={handleItemSelectFromSearch}
                   />
                   {itemSearchQuery.trim().length > 0 &&

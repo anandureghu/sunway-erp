@@ -134,9 +134,10 @@ export function ReceiveItemTab({
 
   const searchResults = useMemo(() => {
     const query = itemSearchQuery.trim();
-    if (!query) return [];
     const filtered = filterItemsByQuery(items, itemSearchQuery);
+    // Hide the list once the typed query exactly matches the selected item name.
     if (
+      query &&
       selectedItem &&
       selectedItem.name.trim().toLowerCase() === query.toLowerCase()
     ) {
