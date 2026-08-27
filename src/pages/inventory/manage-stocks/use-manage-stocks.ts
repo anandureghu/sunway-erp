@@ -6,6 +6,7 @@ import {
 } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
+import { resolveCatalogStatus } from "@/pages/inventory/inventory-item-detail/item-detail-utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export { filterItemsByQuery } from "@/lib/filter-items";
@@ -81,7 +82,8 @@ export function useManageStocks() {
         matchesDateSearch(stock.dateReceived, q) ||
         matchesDateSearch(stock.expiryDate, q);
       const matchesStatus =
-        selectedStatus === "all" || stock.status === selectedStatus;
+        selectedStatus === "all" ||
+        resolveCatalogStatus(stock) === selectedStatus;
       const matchesKpi =
         stockKpiFilter === "all" ||
         (stockKpiFilter === "low_stock" &&

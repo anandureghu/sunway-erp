@@ -12,6 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
+import {
+  resolveCatalogStatus,
+  STATUS_LABELS,
+} from "@/pages/inventory/inventory-item-detail/item-detail-utils";
 import { ImportItemsCsvDialog } from "./import-items-csv-dialog";
 
 type StockListTabProps = {
@@ -55,7 +59,7 @@ function exportToCsv(data: ItemResponseDTO[]) {
     item.quantityOnOrder ?? 0,
     formatOptionalDate(item.dateReceived),
     formatOptionalDate(item.expiryDate),
-    item.status,
+    STATUS_LABELS[resolveCatalogStatus(item)] ?? resolveCatalogStatus(item),
   ]);
 
   const csvContent = [headers, ...rows]
@@ -82,15 +86,10 @@ async function exportToPdf(data: ItemResponseDTO[]) {
     set: (opts: object) => { save: () => Promise<void> };
   };
 
-  const statusLabel: Record<string, string> = {
-    active: "Active",
-    discontinued: "Discontinued",
-    out_of_stock: "Out of Stock",
-  };
-
   const rowsHtml = data
-    .map(
-      (item, i) => `
+    .map((item, i) => {
+      const status = resolveCatalogStatus(item);
+      return `
       <tr>
         <td>${i + 1}</td>
         <td>${item.sku}${item.barcode ? `<br/><small>${item.barcode}</small>` : ""}</td>
@@ -102,9 +101,9 @@ async function exportToPdf(data: ItemResponseDTO[]) {
         <td>${item.quantityOnOrder || "-"}</td>
         <td>${formatOptionalDate(item.dateReceived)}</td>
         <td>${formatOptionalDate(item.expiryDate)}</td>
-        <td>${statusLabel[item.status] ?? item.status}</td>
-      </tr>`,
-    )
+        <td>${STATUS_LABELS[status] ?? status}</td>
+      </tr>`;
+    })
     .join("");
 
   const html = `
