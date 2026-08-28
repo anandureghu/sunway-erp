@@ -6,6 +6,7 @@ export type SubscriptionStatus =
   | "CANCELLED"
   | "SUSPENDED";
 export type SubscriptionReminderType = "D7" | "D3" | "D1" | "DAY_OF" | "EXPIRED";
+export type SubscriptionPaymentStatus = "PAID" | "UNPAID" | "NOT_REQUIRED";
 
 export type SubscriptionStatusResponse = {
   companyId?: number | null;
@@ -46,6 +47,26 @@ export type SubscriptionReminderLog = {
   error?: string | null;
 };
 
+export type SubscriptionInvoice = {
+  id: number;
+  companySubscriptionId: number;
+  companyId: number;
+  invoiceNo: string;
+  periodStart: string;
+  periodEnd?: string | null;
+  amount: number;
+  currencyCode?: string | null;
+  planType: SubscriptionPlanType;
+  pdfUrl?: string | null;
+  toEmail?: string | null;
+  sentAt?: string | null;
+  sentBy?: string | null;
+  sendSuccess: boolean;
+  sendError?: string | null;
+  sent: boolean;
+  createdAt?: string;
+};
+
 export type CompanySubscription = {
   id: number;
   companyId: number;
@@ -61,15 +82,19 @@ export type CompanySubscription = {
   hrEntitled: boolean;
   financeEntitled: boolean;
   inventoryEntitled: boolean;
+  /** Max total storage in bytes (cloud + database quota). */
+  maxStorageBytes: number;
   notes?: string | null;
   daysRemaining?: number | null;
   locked: boolean;
   lastPaymentOn?: string | null;
   lastPaymentAmount?: number | null;
+  paymentStatus?: SubscriptionPaymentStatus | null;
   createdAt?: string;
   updatedAt?: string;
   payments?: SubscriptionPayment[];
   reminders?: SubscriptionReminderLog[];
+  invoices?: SubscriptionInvoice[];
 };
 
 export type AssignSubscriptionRequest = {
@@ -83,6 +108,8 @@ export type AssignSubscriptionRequest = {
   hrEntitled?: boolean;
   financeEntitled?: boolean;
   inventoryEntitled?: boolean;
+  /** Max total storage in bytes (cloud + database). */
+  maxStorageBytes?: number;
   notes?: string;
   syncCompanyModules?: boolean;
 };

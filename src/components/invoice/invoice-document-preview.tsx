@@ -15,6 +15,7 @@ import {
   lineItemGrossAmount,
   salesDiscountPercentLabel,
 } from "@/lib/sales-order-money";
+import { purchaseInvoiceLineQuantity } from "@/lib/purchase-line-item";
 
 type InvoiceDocumentPreviewProps = {
   invoice: Invoice;
@@ -315,7 +316,13 @@ export function InvoiceDocumentPreview({
                       )}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right">
-                      {safeInvoiceValue(item.quantity)}
+                      {safeInvoiceValue(
+                        !isSales && "quantity" in item
+                          ? purchaseInvoiceLineQuantity(
+                              item as PurchaseOrderItem,
+                            )
+                          : item.quantity,
+                      )}
                     </td>
                     <td className="border-b border-slate-200 px-3 py-2 text-right">
                       {invoiceMoney(lineUnitPrice(item), currencyCode)}

@@ -414,7 +414,7 @@ export default function PurchaseRequisitionDetailPage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiTile
             icon={<Calendar className="h-4 w-4 text-emerald-600" />}
-            label="Requested"
+            label="Requested Date"
             value={
               requisition.requestedDate
                 ? format(new Date(requisition.requestedDate), "MMM d, yyyy")
@@ -767,12 +767,12 @@ export default function PurchaseRequisitionDetailPage() {
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                         <th className="px-4 py-3 w-12">Sl No</th>
-                        <th className="px-4 py-3">Item</th>
+                        <th className="px-4 py-3">Description</th>
                         <th className="px-4 py-3 text-right">Qty</th>
                         <th className="px-4 py-3 text-right">Item cost</th>
                         <th className="px-4 py-3 text-right">Other</th>
                         <th className="px-4 py-3 text-right">Applied</th>
-                        <th className="px-4 py-3 text-right">Est. total</th>
+                        <th className="px-4 py-3 text-right">Est. Line Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -831,7 +831,7 @@ export default function PurchaseRequisitionDetailPage() {
                               colSpan={6}
                               className="px-4 py-3 text-right text-sm font-semibold text-slate-600"
                             >
-                              Total Due
+                              Est. Total Due
                             </td>
                             <td className="px-4 py-3 text-right text-base font-bold text-slate-900">
                               <CurrencyAmount amount={requisition.totalAmount} />

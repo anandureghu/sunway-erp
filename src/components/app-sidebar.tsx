@@ -204,6 +204,13 @@ export function AppSidebar() {
     },
   ];
 
+  const adminBillingNav = {
+    title: "Company",
+    icon: CreditCard,
+    color: "text-sky-600 dark:text-sky-400",
+    items: [{ title: "Billing", url: "/billing", icon: CreditCard }],
+  };
+
   const globalSettings = useMemo(() => {
     const cid = activeCompanyId;
     const settingsRoot = cid != null ? `/settings/${cid}` : null;
@@ -565,6 +572,50 @@ export function AppSidebar() {
                 </SidebarGroup>
               </Collapsible>
             ))}
+
+          {/* Company ADMIN billing */}
+          {isAdmin && !isSuperAdmin && !settingsView && (
+            <Collapsible defaultOpen className="group/collapsible mb-1">
+              <SidebarGroup className="py-0">
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-50">
+                    <adminBillingNav.icon
+                      className={cn("h-3.5 w-3.5", adminBillingNav.color)}
+                    />
+                    <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      {adminBillingNav.title}
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="gap-0.5 mt-0.5">
+                      {adminBillingNav.items.map((item) => {
+                        const active =
+                          item.url != null && path.startsWith(item.url);
+                        return (
+                          <SidebarMenuSub
+                            key={item.title}
+                            className="mx-0 translate-x-0 border-none px-0"
+                          >
+                            <SidebarMenuItem>
+                              <SidebarNavHoverLink
+                                title={item.title}
+                                url={item.url}
+                                icon={item.icon}
+                                active={active}
+                              />
+                            </SidebarMenuItem>
+                          </SidebarMenuSub>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          )}
         </SidebarContent>
 
         {/* ── Footer — company settings toggle (ADMIN / SUPER_ADMIN only) ── */}

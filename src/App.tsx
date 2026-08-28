@@ -106,6 +106,8 @@ import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import AdminSystemLogsPage from "./pages/admin/system-logs-page";
 import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
 import SubscriptionsPage from "./pages/admin/subscriptions/subscriptions-page";
+import SubscriptionDetailPage from "./pages/admin/subscriptions/subscription-detail-page";
+import CompanyBillingPage from "./pages/admin/subscriptions/company-billing-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
@@ -196,6 +198,7 @@ export default function App() {
             element={<Navigate to="/finance/payroll" replace />}
           />
           <Route path="settings/:id" element={<SettingsPage />} />
+          <Route path="billing" element={<CompanyBillingPage />} />
           <Route
             path="settings/roles/:id"
             element={<Navigate to="/hr/settings?tab=roles" replace />}
@@ -205,6 +208,10 @@ export default function App() {
           <Route path="admin">
             <Route path="company" element={<CompanyPage />} />
             <Route path="subscriptions" element={<SubscriptionsPage />} />
+            <Route
+              path="subscriptions/:companyId"
+              element={<SubscriptionDetailPage />}
+            />
             <Route path="bank-accounts" element={<Navigate to="/finance/settings?tab=bank-accounts" replace />} />
             <Route
               path="default-accounts"

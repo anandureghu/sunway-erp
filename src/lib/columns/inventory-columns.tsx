@@ -2,6 +2,7 @@
 
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
+import { resolveCatalogStatus } from "@/pages/inventory/inventory-item-detail/item-detail-utils";
 import { type ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle } from "lucide-react";
 
@@ -116,7 +117,7 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.original.status;
+      const status = resolveCatalogStatus(row.original);
       const cfg: Record<string, { label: string; className: string }> = {
         active: { label: "Active", className: "bg-green-100 text-green-700" },
         discontinued: {

@@ -11,6 +11,15 @@ export function resolveStockIndicator(item: ItemResponseDTO): StockIndicator {
   return "in_stock";
 }
 
+/** Effective catalog status: zero qty on hand → out_of_stock (unless discontinued). */
+export function resolveCatalogStatus(
+  item: Pick<ItemResponseDTO, "status" | "quantity">,
+): ItemResponseDTO["status"] {
+  if (item.status === "discontinued") return "discontinued";
+  if (Number(item.quantity ?? 0) <= 0) return "out_of_stock";
+  return item.status;
+}
+
 export function displaySellingPrice(item: ItemResponseDTO): number {
   const selling = Number(item.sellingPrice);
   const unitSale = Number(item.unitSale);

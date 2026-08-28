@@ -289,7 +289,7 @@ export function VarianceFormPanel({
               label="Search catalog"
               query={itemSearchQuery}
               onQueryChange={setItemSearchQuery}
-              results={itemSearchQuery.length > 0 ? searchResults : []}
+              results={searchResults}
               onSelect={handleItemSelect}
               hiddenInputProps={register("itemId")}
               errorText={errors.itemId?.message}

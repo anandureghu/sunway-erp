@@ -24,6 +24,10 @@ import { assignSubscription } from "@/service/subscriptionService";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 
+/** Default quota shown when assigning a new plan (matches backend plan default). */
+const DEFAULT_MAX_STORAGE_GIB = 5;
+const GIB = 1024 * 1024 * 1024;
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,6 +50,12 @@ function defaultEndsAt(plan: SubscriptionPlanType, startsAt: string): string {
   return "";
 }
 
+function bytesToGiBInput(bytes?: number | null): string {
+  if (bytes == null || bytes <= 0) return String(DEFAULT_MAX_STORAGE_GIB);
+  const gib = bytes / GIB;
+  return String(Math.round(gib * 100) / 100);
+}
+
 export function AssignSubscriptionDialog({
   open,
   onOpenChange,
@@ -64,6 +74,9 @@ export function AssignSubscriptionDialog({
   const [warningDays, setWarningDays] = useState(
     String(initial?.warningDays ?? 7),
   );
+  const [maxStorageGiB, setMaxStorageGiB] = useState(
+    bytesToGiBInput(initial?.maxStorageBytes),
+  );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -74,6 +87,7 @@ export function AssignSubscriptionDialog({
     setStartsAt(initial?.startsAt ?? today);
     setEndsAt(initial?.endsAt ?? "");
     setWarningDays(String(initial?.warningDays ?? 7));
+    setMaxStorageGiB(bytesToGiBInput(initial?.maxStorageBytes));
     setNotes(initial?.notes ?? "");
   }, [open, initial, today]);
 
@@ -88,6 +102,11 @@ export function AssignSubscriptionDialog({
   }, [planType, startsAt]);
 
   const handleSave = async () => {
+    const gib = Number(maxStorageGiB);
+    if (!Number.isFinite(gib) || gib < 0) {
+      toast.error("Max storage must be zero or a positive number (GiB)");
+      return;
+    }
     const body: AssignSubscriptionRequest = {
       planType,
       amount: planType === "FREE" ? 0 : Number(amount),
@@ -97,6 +116,7 @@ export function AssignSubscriptionDialog({
           ? endsAt || null
           : endsAt || defaultEndsAt(planType, startsAt) || undefined,
       warningDays: Number(warningDays) || 7,
+      maxStorageBytes: Math.round(gib * GIB),
       notes: notes || undefined,
       syncCompanyModules: true,
     };
@@ -182,6 +202,21 @@ export function AssignSubscriptionDialog({
               value={warningDays}
               onChange={(e) => setWarningDays(e.target.value)}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Max storage (GiB)</Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.1"
+              value={maxStorageGiB}
+              onChange={(e) => setMaxStorageGiB(e.target.value)}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Default for all plans is {DEFAULT_MAX_STORAGE_GIB} GiB. Cloud and
+              database usage both count toward this limit; uploads are blocked
+              when the total is reached.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label>Notes</Label>

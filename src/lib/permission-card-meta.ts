@@ -48,7 +48,7 @@ const PAGE_ACTIONS: Record<string, SimpleAction[]> = {
   FINANCE_RECONCILIATION: ["view", "create", "edit", "approve"],
   // ── Inventory ──
   INVENTORY_STOCK: ["view", "create", "edit", "approve"],
-  INVENTORY_ITEM: ["view", "create", "edit"],
+  INVENTORY_ITEM: ["view", "create", "edit", "delete"],
   INVENTORY_SALES: ["view", "create", "edit", "delete"],
   INVENTORY_PURCHASE: ["view", "create", "edit", "delete", "approve"],
   INVENTORY_RECEIPT: ["view", "create", "edit"],

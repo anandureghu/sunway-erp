@@ -8,8 +8,11 @@ import { getHrDashboard } from "@/service/hrDashboardService";
 import { LayoutDashboard } from "lucide-react";
 import { useCallback } from "react";
 import { HrDashboardAnalyticsTabs } from "./hr-dashboard-analytics-tabs";
+import { HrDashboardInsightsPanels } from "./hr-dashboard-insights-panels";
 import { HrDashboardKpisPanel } from "./hr-dashboard-kpis";
 import { HrDashboardOverview } from "./hr-dashboard-overview";
+import { HrDashboardRecentActivity } from "./hr-dashboard-recent-activity";
+import { useHrDashboardInsights } from "./use-hr-dashboard-insights";
 
 export default function HrDashboardPage() {
   const { company } = useAuth();
@@ -18,6 +21,12 @@ export default function HrDashboardPage() {
     fetcher,
     "Could not load HR dashboard",
   );
+  const {
+    insights,
+    loading: insightsLoading,
+    error: insightsError,
+    refresh: refreshInsights,
+  } = useHrDashboardInsights(data, company?.id);
 
   const companyName = company?.companyName ?? "your company";
 
@@ -42,6 +51,13 @@ export default function HrDashboardPage() {
 
       <HrDashboardKpisPanel kpis={data?.kpis ?? null} loading={loading} />
 
+      <HrDashboardInsightsPanels
+        insights={insights}
+        loading={insightsLoading}
+        error={insightsError}
+        onRetry={() => void refreshInsights()}
+      />
+
       <HrDashboardOverview
         workforce={data?.workforceStatusToday ?? null}
         pendingApprovals={data?.pendingApprovals ?? null}
@@ -49,11 +65,16 @@ export default function HrDashboardPage() {
         loading={loading}
       />
 
+      <HrDashboardRecentActivity
+        activities={data?.recentHrActivities ?? []}
+        companyId={company?.id}
+        loading={loading}
+      />
+
       <HrDashboardAnalyticsTabs
         departments={data?.employeesByDepartment ?? []}
         leaveTrend={data?.leaveTrendLast12Months ?? []}
         leaveSummary={data?.leaveSummaryThisMonth ?? null}
-        recentActivities={data?.recentHrActivities ?? []}
         loading={loading}
       />
     </div>

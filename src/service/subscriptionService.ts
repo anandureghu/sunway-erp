@@ -7,6 +7,8 @@ import type {
   PagedSubscriptions,
   RecordSubscriptionPaymentRequest,
   SubscriptionAnalytics,
+  SubscriptionInvoice,
+  SubscriptionPaymentStatus,
   SubscriptionPlanType,
   SubscriptionStatus,
   SubscriptionStatusResponse,
@@ -19,11 +21,17 @@ export async function fetchMySubscriptionStatus(): Promise<SubscriptionStatusRes
   return res.data;
 }
 
+export async function fetchMySubscription(): Promise<CompanySubscription> {
+  const res = await apiClient.get<CompanySubscription>("/subscriptions/me");
+  return res.data;
+}
+
 export async function fetchSubscriptions(params: {
   status?: SubscriptionStatus | "";
   planType?: SubscriptionPlanType | "";
   companyId?: number;
   expiringWithinDays?: number;
+  paymentStatus?: SubscriptionPaymentStatus | "";
   page?: number;
   size?: number;
 }): Promise<PagedSubscriptions> {
@@ -33,6 +41,7 @@ export async function fetchSubscriptions(params: {
       planType: params.planType || undefined,
       companyId: params.companyId,
       expiringWithinDays: params.expiringWithinDays,
+      paymentStatus: params.paymentStatus || undefined,
       page: params.page ?? 0,
       size: params.size ?? 20,
     },
@@ -93,6 +102,39 @@ export async function cancelSubscription(
   return res.data;
 }
 
+export async function sendSubscriptionInvoice(
+  companyId: number,
+  resend = false,
+): Promise<SubscriptionInvoice> {
+  const res = await apiClient.post<SubscriptionInvoice>(
+    `/admin/subscriptions/${companyId}/invoices/send`,
+    null,
+    { params: { resend } },
+  );
+  return res.data;
+}
+
+export async function downloadSubscriptionInvoicePdf(
+  companyId: number,
+  invoiceId: number,
+): Promise<Blob> {
+  const res = await apiClient.get(
+    `/admin/subscriptions/${companyId}/invoices/${invoiceId}/pdf`,
+    { responseType: "blob" },
+  );
+  return res.data as Blob;
+}
+
+export async function downloadMySubscriptionInvoicePdf(
+  invoiceId: number,
+): Promise<Blob> {
+  const res = await apiClient.get(
+    `/subscriptions/me/invoices/${invoiceId}/pdf`,
+    { responseType: "blob" },
+  );
+  return res.data as Blob;
+}
+
 export async function fetchSubscriptionAnalytics(params?: {
   from?: string;
   to?: string;
@@ -102,4 +144,15 @@ export async function fetchSubscriptionAnalytics(params?: {
     { params },
   );
   return res.data;
+}
+
+export function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

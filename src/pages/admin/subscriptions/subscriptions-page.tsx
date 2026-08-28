@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,10 +18,12 @@ import {
   fetchSubscription,
   fetchSubscriptionAnalytics,
   fetchSubscriptions,
+  sendSubscriptionInvoice,
 } from "@/service/subscriptionService";
 import type {
   CompanySubscription,
   SubscriptionAnalytics,
+  SubscriptionPaymentStatus,
   SubscriptionPlanType,
   SubscriptionStatus,
 } from "@/types/subscription";
@@ -32,12 +33,17 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { AssignSubscriptionDialog } from "./assign-subscription-dialog";
 import { RecordPaymentDialog } from "./record-payment-dialog";
 import {
+  paymentStatusBadge,
+  subscriptionStatusBadge,
+} from "./subscription-badges";
+import {
   CreditCard,
   CalendarPlus,
   Pencil,
   Ban,
   RefreshCw,
   MoreHorizontal,
+  Mail,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -46,18 +52,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-function statusBadge(status: SubscriptionStatus) {
-  const variant =
-    status === "ACTIVE"
-      ? "default"
-      : status === "EXPIRING"
-        ? "secondary"
-        : status === "EXPIRED" || status === "CANCELLED" || status === "SUSPENDED"
-          ? "destructive"
-          : "outline";
-  return <Badge variant={variant}>{status}</Badge>;
-}
 
 function formatMoney(amount?: number | null, currency?: string | null) {
   if (amount == null) return "—";
@@ -69,6 +63,7 @@ function formatMoney(amount?: number | null, currency?: string | null) {
 
 export default function SubscriptionsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { confirm } = useConfirmDialog();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
@@ -77,6 +72,9 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<SubscriptionStatus | "">("");
   const [planType, setPlanType] = useState<SubscriptionPlanType | "">("");
+  const [paymentStatus, setPaymentStatus] = useState<
+    SubscriptionPaymentStatus | ""
+  >("");
   const [expiringWithin, setExpiringWithin] = useState<string>("");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -93,6 +91,7 @@ export default function SubscriptionsPage() {
       const data = await fetchSubscriptions({
         status,
         planType,
+        paymentStatus,
         expiringWithinDays: expiringWithin ? Number(expiringWithin) : undefined,
         page,
         size: 20,
@@ -104,7 +103,7 @@ export default function SubscriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [status, planType, expiringWithin, page]);
+  }, [status, planType, paymentStatus, expiringWithin, page]);
 
   const loadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
@@ -184,6 +183,20 @@ export default function SubscriptionsPage() {
     }
   };
 
+  const handleSendInvoice = async (row: CompanySubscription) => {
+    try {
+      const inv = await sendSubscriptionInvoice(row.companyId, false);
+      toast.success(
+        inv.sent
+          ? `Invoice ${inv.invoiceNo} sent`
+          : `Invoice ${inv.invoiceNo} ready`,
+      );
+      void loadList();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to send invoice"));
+    }
+  };
+
   return (
     <div className="space-y-4 p-4 md:p-6">
       <PageHeader
@@ -243,6 +256,28 @@ export default function SubscriptionsPage() {
               </Select>
             </div>
             <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Payment</p>
+              <Select
+                value={paymentStatus || "all"}
+                onValueChange={(v) => {
+                  setPage(0);
+                  setPaymentStatus(
+                    v === "all" ? "" : (v as SubscriptionPaymentStatus),
+                  );
+                }}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="UNPAID">Unpaid</SelectItem>
+                  <SelectItem value="NOT_REQUIRED">N/A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Expiring within days</p>
               <Input
                 className="w-[120px]"
@@ -276,7 +311,7 @@ export default function SubscriptionsPage() {
                   <th className="px-3 py-2.5">Status</th>
                   <th className="px-3 py-2.5">Period</th>
                   <th className="px-3 py-2.5">Days left</th>
-                  <th className="px-3 py-2.5">Last payment</th>
+                  <th className="px-3 py-2.5">Payment</th>
                   <th className="px-3 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -295,15 +330,29 @@ export default function SubscriptionsPage() {
                   </tr>
                 ) : (
                   rows.map((row) => (
-                    <tr key={row.id} className="border-b last:border-0">
+                    <tr
+                      key={row.id}
+                      className="border-b last:border-0 cursor-pointer hover:bg-muted/30"
+                      onClick={() =>
+                        navigate(`/admin/subscriptions/${row.companyId}`)
+                      }
+                    >
                       <td className="px-3 py-2.5 font-medium">
-                        {row.companyName ?? `#${row.companyId}`}
+                        <Link
+                          to={`/admin/subscriptions/${row.companyId}`}
+                          className="hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {row.companyName ?? `#${row.companyId}`}
+                        </Link>
                       </td>
                       <td className="px-3 py-2.5">{row.planType}</td>
                       <td className="px-3 py-2.5">
                         {formatMoney(row.amount, row.currencyCode)}
                       </td>
-                      <td className="px-3 py-2.5">{statusBadge(row.status)}</td>
+                      <td className="px-3 py-2.5">
+                        {subscriptionStatusBadge(row.status)}
+                      </td>
                       <td className="px-3 py-2.5 text-muted-foreground">
                         {row.startsAt}
                         {" → "}
@@ -312,10 +361,16 @@ export default function SubscriptionsPage() {
                       <td className="px-3 py-2.5">
                         {row.daysRemaining == null ? "—" : row.daysRemaining}
                       </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">
-                        {row.lastPaymentOn
-                          ? `${row.lastPaymentOn} (${formatMoney(row.lastPaymentAmount)})`
-                          : "—"}
+                      <td className="px-3 py-2.5">
+                        <div className="flex flex-col gap-1">
+                          {paymentStatusBadge(row.paymentStatus)}
+                          {row.lastPaymentOn ? (
+                            <span className="text-xs text-muted-foreground">
+                              {row.lastPaymentOn} (
+                              {formatMoney(row.lastPaymentAmount)})
+                            </span>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <div data-no-row-nav onClick={(e) => e.stopPropagation()}>
@@ -329,6 +384,15 @@ export default function SubscriptionsPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/admin/subscriptions/${row.companyId}`,
+                                  )
+                                }
+                              >
+                                View detail
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
                                 onClick={() => void openAssign(row)}
                               >
                                 <Pencil className="mr-2 h-4 w-4" />
@@ -337,6 +401,12 @@ export default function SubscriptionsPage() {
                               <DropdownMenuItem onClick={() => openPayment(row)}>
                                 <CreditCard className="mr-2 h-4 w-4" />
                                 Record payment
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => void handleSendInvoice(row)}
+                              >
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send invoice
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => void handleExtend(row)}

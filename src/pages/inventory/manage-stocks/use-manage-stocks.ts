@@ -6,6 +6,7 @@ import {
 } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
+import { resolveCatalogStatus } from "@/pages/inventory/inventory-item-detail/item-detail-utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export { filterItemsByQuery } from "@/lib/filter-items";
@@ -31,6 +32,9 @@ export function useManageStocks() {
   const [stockKpiFilter, setStockKpiFilter] = useState<
     "all" | "low_stock" | "on_reserve"
   >("all");
+  const [catalogView, setCatalogView] = useState<"active" | "archived">(
+    "active",
+  );
 
   const loadData = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent === true;
@@ -40,7 +44,7 @@ export function useManageStocks() {
       }
       setLoadError(null);
       const [itemsList, warehousesList, reportSummary] = await Promise.all([
-        listStockCatalog(),
+        listStockCatalog(catalogView === "archived"),
         listWarehouses(),
         getInventoryReportSummary(),
       ]);
@@ -59,7 +63,7 @@ export function useManageStocks() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [catalogView]);
 
   /** Background refresh (no full-page loading spinner) — tab switches, after receive/adjust. */
   const refetch = useCallback(async () => {
@@ -81,7 +85,8 @@ export function useManageStocks() {
         matchesDateSearch(stock.dateReceived, q) ||
         matchesDateSearch(stock.expiryDate, q);
       const matchesStatus =
-        selectedStatus === "all" || stock.status === selectedStatus;
+        selectedStatus === "all" ||
+        resolveCatalogStatus(stock) === selectedStatus;
       const matchesKpi =
         stockKpiFilter === "all" ||
         (stockKpiFilter === "low_stock" &&
@@ -115,6 +120,8 @@ export function useManageStocks() {
     setSelectedStatus,
     stockKpiFilter,
     setStockKpiFilter,
+    catalogView,
+    setCatalogView,
     filteredStock,
     stats,
   };

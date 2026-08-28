@@ -29,45 +29,6 @@ const titles: Record<PostingDialogAction, string> = {
   cancel: "Cancel purchase order",
 };
 
-function formatBalance(value: number | undefined) {
-  if (value === undefined || Number.isNaN(value)) return "—";
-  return <CurrencyAmount amount={value} />;
-}
-
-function AccountRow({
-  label,
-  code,
-  name,
-  before,
-  after,
-}: {
-  label: string;
-  code?: string;
-  name?: string;
-  before?: number;
-  after?: number;
-}) {
-  return (
-    <div className="rounded-md border bg-muted/30 p-3 space-y-2 text-sm">
-      <p className="font-medium">{label}</p>
-      <p className="text-muted-foreground">
-        {code ? `${code} — ` : ""}
-        {name || "—"}
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <p className="text-xs text-muted-foreground">Current balance</p>
-          <p className="font-medium tabular-nums">{formatBalance(before)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">After action</p>
-          <p className="font-medium tabular-nums">{formatBalance(after)}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function PurchaseOrderPostingDialog({
   open,
   onOpenChange,
@@ -91,15 +52,15 @@ export function PurchaseOrderPostingDialog({
           <DialogDescription>
             {orderNo ? `${orderNo} — ` : ""}
             {action === "release"
-              ? "Review purchase posting accounts. Balances change when vendor payment is confirmed in Accounts Payable."
-              : "Review how cancelling this order affects committed funds on your purchase accounts."}
+              ? "Confirm release to the supplier."
+              : "Confirm cancelling this order and releasing any committed funds."}
           </DialogDescription>
         </DialogHeader>
 
         {loading && (
           <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
-            Loading account impact…
+            Loading preview…
           </div>
         )}
 
@@ -129,21 +90,6 @@ export function PurchaseOrderPostingDialog({
                 <span>Funds are already committed for this order.</span>
               </div>
             )}
-
-            <AccountRow
-              label="Debit account (expense / inventory)"
-              code={preview.debitAccountCode}
-              name={preview.debitAccountName}
-              before={preview.debitBalanceBefore}
-              after={preview.debitBalanceAfter}
-            />
-            <AccountRow
-              label="Credit account (accounts payable)"
-              code={preview.creditAccountCode}
-              name={preview.creditAccountName}
-              before={preview.creditBalanceBefore}
-              after={preview.creditBalanceAfter}
-            />
           </div>
         )}
 

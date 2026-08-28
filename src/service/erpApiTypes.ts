@@ -154,6 +154,8 @@ export type ItemResponseDTO = {
 
   status: "active" | "discontinued" | "out_of_stock";
 
+  archived?: boolean;
+
   /** JSON string of unmapped import columns (header → value). */
   metadata?: string | null;
 
