@@ -155,16 +155,6 @@ function isCurrentYear(iso?: string): boolean {
   return !Number.isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear();
 }
 
-function isCurrentMonth(iso?: string): boolean {
-  if (!iso) return false;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return false;
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
-  );
-}
-
 function overlapsCurrentMonth(start?: string, end?: string): boolean {
   if (!start) return false;
   const startDate = new Date(start);
