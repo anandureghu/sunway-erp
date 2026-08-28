@@ -108,11 +108,11 @@ export function HeaderCheckIn() {
       if (!today?.checkInTime) {
         setToday(await timesheetService.checkIn(empId));
         toast.success("Checked in — shift started");
-        notifyTimesheetChanged();
+        notifyTimesheetChanged(empId);
       } else if (checkedIn) {
         setToday(await timesheetService.checkOut(empId));
         toast.success("Checked out — shift ended");
-        notifyTimesheetChanged();
+        notifyTimesheetChanged(empId);
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Attendance update failed");

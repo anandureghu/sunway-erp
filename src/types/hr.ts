@@ -63,6 +63,8 @@ export interface Employee {
   gender?: Gender;
   joinDate?: string; // yyyy-mm-dd
   probationEndDate?: string; // yyyy-mm-dd
+  /** Last working day — mirrors the current job's expected end date. */
+  expectedEndDate?: string; // yyyy-mm-dd
   nationality?: string;
   nationalId?: string;
   maritalStatus?: MaritalStatus;
@@ -91,6 +93,11 @@ export interface Employee {
   companyRoleId?: number | null; // Company role ID (PK reference to CompanyRole table) - new from backend
   companyName?: string;
   imageUrl?: string;
+  /** Division from the current job (for the org structure). */
+  divisionId?: number | null;
+  divisionName?: string | null;
+  /** True when the employee has been archived out of the active working set. */
+  archived?: boolean;
 }
 
 // Role type - will be dynamically fetched from API

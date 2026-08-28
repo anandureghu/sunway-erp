@@ -18,6 +18,10 @@ import type {
   PayrollPreview,
 } from "@/service/payrollService";
 import { downloadPayslipPdf } from "@/service/payslipService";
+import {
+  propertyService,
+  type CompanyPropertyResponse,
+} from "@/service/propertyService";
 import { formatMoney } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { TablePagination, usePagination } from "@/components/table-pagination";
@@ -115,6 +119,18 @@ function validateDates(input: {
 const EXIT_STATUSES = new Set(["TERMINATED", "RESIGNED", "RETIRED"]);
 function isExitStatus(status?: string | null): boolean {
   return !!status && EXIT_STATUSES.has(String(status).toUpperCase());
+}
+
+/** "a company car", "a company car and a laptop", "a car, a laptop, and a phone". */
+function formatPropertyList(items: { itemName: string }[]): string {
+  const names = items
+    .map((p) => (p.itemName || "").trim())
+    .filter(Boolean)
+    .map((n) => `a ${n.toLowerCase()}`);
+  if (names.length === 0) return "company property";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }
 
 function payrollAccountStatusLabel(status: PayrollAccountStatus["status"]) {
@@ -280,6 +296,10 @@ function EmployeePayrollTab() {
 
   // single-select state
   const [selected, setSelected] = useState<Employee | null>(null);
+  // Company property still held by the selected exiting employee (ASSIGNED only).
+  const [assignedProperties, setAssignedProperties] = useState<
+    CompanyPropertyResponse[]
+  >([]);
   const [history, setHistory] = useState<PayrollRow[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const historyPg = usePagination(history, 10);
@@ -345,6 +365,21 @@ function EmployeePayrollTab() {
     setSelected(emp);
     setPayrollInput({ payPeriodStart: "", payPeriodEnd: "", payDate: "" });
     const empId = Number(emp.id);
+
+    // For an exiting employee, surface any company property still in their hands
+    // so it can be recovered before the final payment is released.
+    setAssignedProperties([]);
+    if (isExitStatus(emp.status)) {
+      propertyService
+        .getAll(empId)
+        .then((res) =>
+          setAssignedProperties(
+            (res?.data ?? []).filter((p) => p.itemStatus === "ASSIGNED"),
+          ),
+        )
+        .catch(() => setAssignedProperties([]));
+    }
+
     setLoadingHistory(true);
     try {
       const res = await payrollService.getPayrollHistory(empId);
@@ -411,6 +446,7 @@ function EmployeePayrollTab() {
   const switchToBulk = () => {
     setBulkMode(true);
     setSelected(null);
+    setAssignedProperties([]);
     setBulkResults([]);
   };
 
@@ -467,12 +503,38 @@ function EmployeePayrollTab() {
       toast.error(dateErr);
       return;
     }
+    // A final settlement cannot run beyond the expected end date (last working day).
+    if (isExitStatus(selected.status)) {
+      if (!selected.expectedEndDate) {
+        toast.error(
+          "Set the employee's Expected End Date on their profile (Professional Details) or the Current Job tab before processing the final settlement.",
+        );
+        return;
+      }
+      if (
+        payrollInput.payPeriodEnd > selected.expectedEndDate ||
+        payrollInput.payDate > selected.expectedEndDate
+      ) {
+        toast.error(
+          `Payroll cannot be processed beyond the expected end date (${selected.expectedEndDate}).`,
+        );
+        return;
+      }
+    }
     if (alreadyGeneratedForMonth) {
       const label = formatMonthLabel(payrollInput.payPeriodStart.slice(0, 7));
       toast.error(
         `Payroll already generated for ${label}. Each employee can only have one payroll per month.`,
       );
       return;
+    }
+    // Outstanding company property on a final settlement — confirm before releasing.
+    if (isExitStatus(selected.status) && assignedProperties.length > 0) {
+      const ok = window.confirm(
+        `This employee still holds ${formatPropertyList(assignedProperties)}. ` +
+          `Do you want to process the final payment anyway?`,
+      );
+      if (!ok) return;
     }
     setGenerating(true);
     try {
@@ -1321,9 +1383,28 @@ function EmployeePayrollTab() {
                 <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                   <Calendar className="h-4 w-4 text-indigo-600" />
                   <h3 className="font-bold text-slate-800">Generate Payroll</h3>
-                  <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                    Once per month
-                  </span>
+                  <div className="ml-auto flex items-center gap-2">
+                    {isExitStatus(selected.status) &&
+                      (selected.expectedEndDate ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
+                          Expected end date:{" "}
+                          {new Date(
+                            selected.expectedEndDate,
+                          ).toLocaleDateString("en-US", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                          Expected end date: not set
+                        </span>
+                      ))}
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                      Once per month
+                    </span>
+                  </div>
                 </div>
 
                 {isExitStatus(selected.status) && (
@@ -1338,6 +1419,23 @@ function EmployeePayrollTab() {
                     </p>
                   </div>
                 )}
+
+                {isExitStatus(selected.status) &&
+                  assignedProperties.length > 0 && (
+                    <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                      <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                      <p className="text-sm text-amber-800">
+                        <strong>Company property outstanding.</strong> This
+                        employee still holds {formatPropertyList(assignedProperties)}
+                        . Recover the {assignedProperties.length === 1
+                          ? "item"
+                          : "items"}{" "}
+                        before releasing the final payment, or mark{" "}
+                        {assignedProperties.length === 1 ? "it" : "them"} returned
+                        on the employee&rsquo;s Company Properties tab.
+                      </p>
+                    </div>
+                  )}
 
                 {alreadyGeneratedForMonth && payrollInput.payPeriodStart && (
                   <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 p-3">
@@ -1378,6 +1476,11 @@ function EmployeePayrollTab() {
                     <Input
                       type="date"
                       value={payrollInput.payPeriodEnd}
+                      max={
+                        isExitStatus(selected.status)
+                          ? selected.expectedEndDate || undefined
+                          : undefined
+                      }
                       onChange={(e) =>
                         setPayrollInput((p) => ({
                           ...p,
@@ -1394,6 +1497,11 @@ function EmployeePayrollTab() {
                     <Input
                       type="date"
                       value={payrollInput.payDate}
+                      max={
+                        isExitStatus(selected.status)
+                          ? selected.expectedEndDate || undefined
+                          : undefined
+                      }
                       onChange={(e) =>
                         setPayrollInput((p) => ({
                           ...p,

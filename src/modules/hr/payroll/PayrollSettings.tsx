@@ -86,7 +86,18 @@ export default function PayrollSettings() {
     setLoadingEmps(true);
     hrService
       .listEmployees()
-      .then((res) => setEmployees(res ?? []))
+      // Drop already-settled (inactive) and archived staff from payroll. Exited
+      // employees (resigned / terminated / retired) stay only so their one final
+      // settlement can be processed — after which they become inactive and drop off.
+      .then((res) =>
+        setEmployees(
+          (res ?? []).filter(
+            (e) =>
+              !e.archived &&
+              String(e.status ?? "").toUpperCase() !== "INACTIVE",
+          ),
+        ),
+      )
       .catch(() => toast.error("Failed to load employees"))
       .finally(() => setLoadingEmps(false));
   }, []);

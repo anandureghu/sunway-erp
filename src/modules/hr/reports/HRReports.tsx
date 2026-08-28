@@ -57,6 +57,7 @@ import EmployeeTimeSheets from "./EmployeeTimeSheets";
 import AttendanceHistory from "./AttendanceHistory";
 import { ExitInterviewsPanel } from "./ExitInterviewsPanel";
 import { PayrollSummaryPanel } from "./PayrollSummaryPanel";
+import { ArchivePanel } from "./ArchivePanel";
 import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
 // ── colour palette ────────────────────────────────────────────────────────────
@@ -261,6 +262,12 @@ const EXIT_TAB = {
   label: "Exit Interviews",
   icon: LogOut,
 } as const;
+// Archive inactive (settled) employees out of the active working set.
+const ARCHIVE_TAB = {
+  id: "archive",
+  label: "Archive",
+  icon: Archive,
+} as const;
 const HISTORY_TAB = {
   id: "history",
   label: "History",
@@ -276,6 +283,7 @@ type TabId =
   | "immigration"
   | "payroll-summary"
   | "exit-interviews"
+  | "archive"
   | "history";
 const ALL_TAB_IDS: TabId[] = [
   "workforce",
@@ -287,6 +295,7 @@ const ALL_TAB_IDS: TabId[] = [
   "immigration",
   "payroll-summary",
   "exit-interviews",
+  "archive",
   "history",
 ];
 
@@ -420,6 +429,7 @@ export default function HRReports() {
     if (canImmigration) tabs.push(IMMIGRATION_TAB);
     if (canPayrollSummary) tabs.push(PAYROLL_SUMMARY_TAB);
     if (canExitInterviews) tabs.push(EXIT_TAB);
+    if (canExitInterviews) tabs.push(ARCHIVE_TAB);
     tabs.push(HISTORY_TAB);
     return tabs;
   }, [
@@ -1952,6 +1962,8 @@ export default function HRReports() {
       {tab === "payroll-summary" && <PayrollSummaryPanel />}
 
       {tab === "exit-interviews" && <ExitInterviewsPanel />}
+
+      {tab === "archive" && <ArchivePanel />}
 
       {tab === "history" && <HistoryTabPanel module="hr" />}
     </div>

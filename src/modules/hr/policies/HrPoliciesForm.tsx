@@ -9,6 +9,7 @@ import {
   type HrPoliciesPayload,
 } from "@/service/companyService";
 import { useAuth } from "@/context/AuthContext";
+import BenefitsAdjustmentPanel from "./BenefitsAdjustmentPanel";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { COMPANY_TIMEZONE_OPTIONS } from "@/lib/timesheet-time";
 import {
@@ -45,6 +46,7 @@ const DEFAULT_HR_POLICIES: HrPoliciesPayload = {
   minimumMonthlyWage: 1000,
   defaultHousingAllowance: 500,
   defaultFoodAllowance: 300,
+  defaultTransportationAllowance: 0,
 };
 
 function toTimeInputValue(value?: string): string {
@@ -874,7 +876,32 @@ export default function HrPoliciesForm() {
                 When company does not provide food
               </p>
             </div>
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Default transportation allowance
+              </label>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                value={hrPolicies.defaultTransportationAllowance ?? 0}
+                onChange={(e) =>
+                  updateHrPolicyField(
+                    "defaultTransportationAllowance",
+                    parseFloat(e.target.value) || 0,
+                  )
+                }
+                disabled={hrPoliciesLoading}
+                className="mt-1 h-9 text-sm"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                When company does not provide transport
+              </p>
+            </div>
           </div>
+
+          {/* Bulk benefits adjustment — under Statutory Compensation */}
+          <BenefitsAdjustmentPanel />
         </div>
       </div>
     </div>
