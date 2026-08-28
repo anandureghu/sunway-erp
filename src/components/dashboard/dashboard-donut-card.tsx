@@ -25,6 +25,8 @@ export function DashboardDonutCard({
   formatValue,
   showZeroSlicesInLegend = true,
   size = "md",
+  embedded = false,
+  viewAllTo,
 }: {
   title: string;
   description?: string;
@@ -35,6 +37,9 @@ export function DashboardDonutCard({
   formatValue?: (value: number) => string;
   showZeroSlicesInLegend?: boolean;
   size?: "sm" | "md";
+  /** Render chart only (no outer card). Use inside DashboardSectionCard. */
+  embedded?: boolean;
+  viewAllTo?: string;
 }) {
   const chartSlices = slices.filter((s) => s.value > 0);
   const total = slices.reduce((sum, s) => sum + s.value, 0);
@@ -43,12 +48,11 @@ export function DashboardDonutCard({
   const inner = size === "sm" ? 48 : 58;
   const outer = size === "sm" ? 70 : 84;
 
-  return (
-    <DashboardSectionCard title={title} description={description}>
-      {total === 0 ? (
-        <DashboardEmpty message={emptyMessage} className="h-56" />
-      ) : (
-        <div className="flex flex-col items-center gap-4">
+  const body =
+    total === 0 ? (
+      <DashboardEmpty message={emptyMessage} className="h-56" />
+    ) : (
+      <div className="flex flex-col items-center gap-4">
           <div className="relative w-full max-w-[220px]">
             <ChartContainer
               config={{ value: { label: "Value" } }}
@@ -116,7 +120,19 @@ export function DashboardDonutCard({
             ))}
           </ul>
         </div>
-      )}
+    );
+
+  if (embedded) {
+    return body;
+  }
+
+  return (
+    <DashboardSectionCard
+      title={title}
+      description={description}
+      viewAllTo={viewAllTo}
+    >
+      {body}
     </DashboardSectionCard>
   );
 }

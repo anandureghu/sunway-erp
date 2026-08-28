@@ -4,11 +4,8 @@ import {
   DashboardProgressListCard,
   DashboardSectionCard,
   compactNumber,
-  formatShortDate,
-  formatTime,
   monthLabel,
 } from "@/components/dashboard";
-import { TablePagination, usePagination } from "@/components/table-pagination";
 import {
   ChartContainer,
   ChartTooltip,
@@ -19,7 +16,6 @@ import type {
   HrEmployeesByDepartment,
   HrLeaveSummaryThisMonth,
   HrLeaveTrendPoint,
-  HrRecentActivity,
 } from "@/types/hrDashboard";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
@@ -148,67 +144,5 @@ export function LeaveSummaryPanel({
         </dl>
       </DashboardSectionCard>
     </div>
-  );
-}
-
-export function RecentActivitiesPanel({
-  activities,
-}: {
-  activities: HrRecentActivity[];
-}) {
-  const {
-    pageItems,
-    pageIndex,
-    pageSize,
-    pageCount,
-    total,
-    setPageIndex,
-    setPageSize,
-  } = usePagination(activities, 10);
-
-  if (activities.length === 0) {
-    return (
-      <DashboardSectionCard
-        title="Recent HR Activities"
-        description="Latest updates"
-      >
-        <DashboardEmpty message="No recent activity." />
-      </DashboardSectionCard>
-    );
-  }
-
-  return (
-    <DashboardSectionCard
-      title="Recent HR Activities"
-      description="Latest updates"
-    >
-      <div className="space-y-2">
-        {pageItems.map((activity, idx) => (
-          <div
-            key={`${activity.occurredAt}-${pageIndex}-${idx}`}
-            className="rounded-lg border px-3 py-2.5"
-          >
-            <p className="text-sm font-medium leading-snug">
-              {activity.description}
-            </p>
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {activity.employeeName}
-              {activity.occurredAt
-                ? ` · ${formatShortDate(activity.occurredAt)} ${formatTime(activity.occurredAt)}`
-                : null}
-            </p>
-          </div>
-        ))}
-      </div>
-      <TablePagination
-        total={total}
-        pageIndex={pageIndex}
-        pageSize={pageSize}
-        pageCount={pageCount}
-        onPageChange={setPageIndex}
-        onPageSizeChange={setPageSize}
-        pageSizeOptions={[5, 10, 20, 30]}
-      />
-    </DashboardSectionCard>
   );
 }

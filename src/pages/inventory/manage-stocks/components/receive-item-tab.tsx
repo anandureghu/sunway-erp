@@ -21,6 +21,7 @@ import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { receiveItemStock } from "@/service/inventoryService";
 import {
   listInspectedReceiptsAwaitingStock,
+  listPurchaseOrders,
   postGoodsReceiptItemsToStock,
 } from "@/service/purchaseFlowService";
 import type { GoodsReceipt, GoodsReceiptItem } from "@/types/purchase";
@@ -35,6 +36,7 @@ import { cn } from "@/lib/utils";
 import CreateItemForm from "../../item-form";
 import { filterItemsByQuery } from "../use-manage-stocks";
 import { ItemSearchCombobox } from "./item-search-combobox";
+import { purchaseLineItemName } from "@/lib/purchase-line-item";
 
 function findInventoryItemForItemId(
   items: ItemResponseDTO[],
@@ -118,11 +120,13 @@ export function ReceiveItemTab({
   );
   const [selectedLineId, setSelectedLineId] = useState<string>("");
   const [loadingReceipts, setLoadingReceipts] = useState(false);
+  const [receiptSearchQuery, setReceiptSearchQuery] = useState("");
   const selectedWarehouseId = watch("warehouseId");
 
   const refreshAwaitingStock = () => {
     setLoadingReceipts(true);
-    listInspectedReceiptsAwaitingStock()
+    listPurchaseOrders()
+      .then((orders) => listInspectedReceiptsAwaitingStock(orders))
       .then((data) => setAwaitingStockReceipts(data))
       .catch(() => setAwaitingStockReceipts([]))
       .finally(() => setLoadingReceipts(false));
@@ -161,6 +165,27 @@ export function ReceiveItemTab({
     () => (selectedReceipt ? awaitingStockLines(selectedReceipt) : []),
     [selectedReceipt],
   );
+
+  const filteredAwaitingStockReceipts = useMemo(() => {
+    const q = receiptSearchQuery.trim().toLowerCase();
+    if (!q) return awaitingStockReceipts;
+    return awaitingStockReceipts.filter((receipt) => {
+      const poNo =
+        receipt.order?.orderNo?.toLowerCase() ??
+        receipt.order?.orderNumber?.toLowerCase() ??
+        "";
+      const supplier =
+        receipt.order?.supplierName?.toLowerCase() ??
+        receipt.order?.supplier?.name?.toLowerCase() ??
+        "";
+      return (
+        receipt.receiptNo.toLowerCase().includes(q) ||
+        poNo.includes(q) ||
+        supplier.includes(q) ||
+        String(receipt.orderId).includes(q)
+      );
+    });
+  }, [awaitingStockReceipts, receiptSearchQuery]);
 
   const applyGrLineToForm = (line: GoodsReceiptItem) => {
     const inventoryItem = findInventoryItemForItemId(
@@ -238,6 +263,7 @@ export function ReceiveItemTab({
     setSelectedReceipt(null);
     setSelectedLineId("");
     setItemSearchQuery("");
+    setReceiptSearchQuery("");
   };
 
   const onReceiveItem = async (data: ReceiveItemFormData) => {
@@ -335,6 +361,17 @@ export function ReceiveItemTab({
               <>
                 <div>
                   <label className="text-sm font-medium mb-2 block">
+                    Search goods receipt or PO
+                  </label>
+                  <Input
+                    placeholder="Search by GR no., PO no., or supplier…"
+                    value={receiptSearchQuery}
+                    onChange={(e) => setReceiptSearchQuery(e.target.value)}
+                    disabled={loadingReceipts}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
                     Reference No. (Goods Receipt)
                   </label>
                   <Select
@@ -349,12 +386,14 @@ export function ReceiveItemTab({
                             ? "Loading inspected receipts…"
                             : awaitingStockReceipts.length === 0
                               ? "No inspected receipts ready to receive"
-                              : "Select goods receipt"
+                              : filteredAwaitingStockReceipts.length === 0
+                                ? "No receipts match your search"
+                                : "Select goods receipt"
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {awaitingStockReceipts.map((receipt) => (
+                      {filteredAwaitingStockReceipts.map((receipt) => (
                         <SelectItem key={receipt.id} value={receipt.id}>
                           {receipt.receiptNo} — {receipt.order?.orderNo ?? receipt.orderId}
                           {receipt.order
@@ -382,8 +421,12 @@ export function ReceiveItemTab({
                       <SelectContent>
                         {selectedReceiptLines.map((line) => (
                           <SelectItem key={line.id} value={line.id}>
-                            {line.item?.name ?? `Item #${line.itemId}`} — Accepted{" "}
-                            {line.acceptedQuantity}
+                            {purchaseLineItemName({
+                              itemId: line.itemId,
+                              itemName: line.item?.name,
+                              item: line.orderItem,
+                            })}{" "}
+                            — Accepted {line.acceptedQuantity}
                           </SelectItem>
                         ))}
                       </SelectContent>

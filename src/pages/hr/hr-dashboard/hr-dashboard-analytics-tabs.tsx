@@ -6,10 +6,8 @@ import type {
   HrEmployeesByDepartment,
   HrLeaveSummaryThisMonth,
   HrLeaveTrendPoint,
-  HrRecentActivity,
 } from "@/types/hrDashboard";
 import {
-  Activity,
   Building2,
   CalendarDays,
   TrendingUp,
@@ -18,14 +16,12 @@ import {
   DepartmentsPanel,
   LeaveSummaryPanel,
   LeaveTrendPanel,
-  RecentActivitiesPanel,
 } from "./hr-dashboard-analytics-panels";
 
 const TABS = [
   { id: "departments", label: "Employees by Department", icon: Building2 },
   { id: "leave-trend", label: "Leave Trend", icon: TrendingUp },
   { id: "leave-summary", label: "Leave Summary", icon: CalendarDays },
-  { id: "activities", label: "Recent HR Activities", icon: Activity },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -40,13 +36,11 @@ export function HrDashboardAnalyticsTabs({
   departments,
   leaveTrend,
   leaveSummary,
-  recentActivities,
   loading,
 }: {
   departments: HrEmployeesByDepartment[];
   leaveTrend: HrLeaveTrendPoint[];
   leaveSummary: HrLeaveSummaryThisMonth | null;
-  recentActivities: HrRecentActivity[];
   loading: boolean;
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -73,12 +67,10 @@ export function HrDashboardAnalyticsTabs({
         return <LeaveTrendPanel leaveTrend={leaveTrend} />;
       case "leave-summary":
         return <LeaveSummaryPanel leaveSummary={leaveSummary} />;
-      case "activities":
-        return <RecentActivitiesPanel activities={recentActivities} />;
       default:
         return null;
     }
-  }, [tab, departments, leaveTrend, leaveSummary, recentActivities]);
+  }, [tab, departments, leaveTrend, leaveSummary]);
 
   if (loading) {
     return (
