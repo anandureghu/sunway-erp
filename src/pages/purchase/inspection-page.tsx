@@ -26,6 +26,7 @@ import {
   createGoodsReceiptForInspection,
   confirmGoodsReceiptInspection,
   archiveGoodsReceipt,
+  getPurchaseOrder,
 } from "@/service/purchaseFlowService";
 import {
   bulkArchiveHistoryRecords,
@@ -512,7 +513,7 @@ export default function InspectionPage() {
                   placeholder={
                     activeTab === "ready"
                       ? "Search purchase orders..."
-                      : "Search receipts..."
+                      : "Search receipts or PO number..."
                   }
                   value={activeTab === "ready" ? orderSearchQuery : searchQuery}
                   onChange={(e) =>
@@ -674,12 +675,40 @@ function StartInspectionForm({
     }>
   >(() => (initialOrder ? buildReceiptLinesStatic(initialOrder) : []));
   const [loading, setLoading] = useState(false);
+  const [orderDetailsLoading, setOrderDetailsLoading] = useState(false);
   const [orders, setOrders] = useState<PurchaseOrder[]>(() =>
     initialOrder ? [initialOrder] : [],
   );
 
   const buildReceiptLines = (order: PurchaseOrder) =>
     buildReceiptLinesStatic(order);
+
+  const applySelectedOrder = useCallback(async (order: PurchaseOrder | null) => {
+    if (!order) {
+      setSelectedOrder(null);
+      setReceiptItems([]);
+      return;
+    }
+
+    setSelectedOrder(order);
+    if (order.items.length > 0) {
+      setReceiptItems(buildReceiptLines(order));
+      return;
+    }
+
+    setOrderDetailsLoading(true);
+    try {
+      const fullOrder = await getPurchaseOrder(order.id);
+      setSelectedOrder(fullOrder);
+      setReceiptItems(buildReceiptLines(fullOrder));
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err?.message || "Failed to load purchase order line items");
+      setReceiptItems([]);
+    } finally {
+      setOrderDetailsLoading(false);
+    }
+  }, []);
 
   const receivableOrders = useMemo(() => {
     const list = orders.filter((o) => {
@@ -723,8 +752,7 @@ function StartInspectionForm({
             initialOrder ??
             null;
           if (order) {
-            setSelectedOrder(order);
-            setReceiptItems(buildReceiptLines(order));
+            void applySelectedOrder(order);
           }
         }
       } catch (e: any) {
@@ -735,7 +763,13 @@ function StartInspectionForm({
       cancelled = true;
     };
      
-  }, [orderId]);
+  }, [orderId, applySelectedOrder]);
+
+  const handleOrderSelect = (value: string) => {
+    const order =
+      receivableOrders.find((o) => String(o.id) === String(value)) ?? null;
+    void applySelectedOrder(order);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -780,13 +814,6 @@ function StartInspectionForm({
     const updated = [...receiptItems];
     updated[index] = { ...updated[index], [field]: value } as (typeof updated)[number];
     setReceiptItems(updated);
-  };
-
-  const handleOrderSelect = (value: string) => {
-    const order =
-      receivableOrders.find((o) => String(o.id) === String(value)) ?? null;
-    setSelectedOrder(order);
-    if (order) setReceiptItems(buildReceiptLines(order));
   };
 
   return (
@@ -872,12 +899,21 @@ function StartInspectionForm({
               batch, lot and cost are entered later, once inspection is
               confirmed, from Inventory (Stocks) → Receive.
             </p>
+            {orderDetailsLoading ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Loading line items…
+              </div>
+            ) : receiptItems.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No line items found for this purchase order.
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     <th className="pb-3 pr-4 w-12">Sl No</th>
-                    <th className="pb-3 pr-4">Item</th>
+                    <th className="pb-3 pr-4">Description</th>
                     <th className="pb-3 pr-4 text-right">Ordered</th>
                     <th className="pb-3 pr-4 text-right">Arrived</th>
                     <th className="pb-3">Remarks</th>
@@ -886,7 +922,7 @@ function StartInspectionForm({
                 <tbody>
                   {receiptItems.map((item, idx) => {
                     const orderItem = selectedOrder.items.find(
-                      (oi) => Number(oi.itemId) === item.itemId,
+                      (oi) => Number(oi.id) === item.purchaseOrderItemId,
                     );
                     return (
                       <tr
@@ -938,6 +974,7 @@ function StartInspectionForm({
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 
@@ -1125,7 +1162,7 @@ function InspectForm({
               <thead>
                 <tr className="border-b border-slate-200 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   <th className="pb-3 pr-4 w-12">Sl No</th>
-                  <th className="pb-3 pr-4">Item</th>
+                  <th className="pb-3 pr-4">Description</th>
                   <th className="pb-3 pr-4 text-right">Ordered</th>
                   <th className="pb-3 pr-4 text-right">Arrived</th>
                   <th className="pb-3 pr-4 text-right">Accepted</th>

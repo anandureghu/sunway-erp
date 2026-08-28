@@ -608,11 +608,9 @@ export function CreatePurchaseRequisitionForm({
           </CardContent>
         </Card>
       ) : (
-        <form
-          onSubmit={onSubmit}
-          className="grid grid-cols-1 xl:grid-cols-3 gap-6"
-        >
-          <div className="xl:col-span-2 space-y-6">
+        <form onSubmit={onSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="space-y-6 xl:col-span-2">
             {reviewerFeedback && (
               <Card className="border-amber-200 bg-amber-50/80 shadow-sm">
                 <CardHeader className="pb-2">
@@ -639,7 +637,7 @@ export function CreatePurchaseRequisitionForm({
                 </p>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="requestedDate">Requested date</Label>
+                    <Label htmlFor="requestedDate">Requested Date</Label>
                     <Input
                       id="requestedDate"
                       type="date"
@@ -744,8 +742,65 @@ export function CreatePurchaseRequisitionForm({
                 </div>
               </CardContent>
             </Card>
+            </div>
 
-            <Card className="shadow-sm">
+            <div className="space-y-6">
+              <Card className="shadow-sm xl:sticky xl:top-6">
+                <CardHeader>
+                  <CardTitle>Requisition summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Line items</span>
+                    <span className="tabular-nums">
+                      {requisitionItems.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-3 text-base font-semibold">
+                    <span>Est. Total Due</span>
+                    <span>
+                      <CurrencyAmount amount={total} />
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Instructions for approver"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={onCancel}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={requisitionItems.length === 0 || submitLoading}
+                    >
+                      {submitLoading
+                        ? isEditMode
+                          ? "Saving…"
+                          : "Creating…"
+                        : isEditMode
+                          ? "Save changes"
+                          : "Create requisition"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Search className="h-5 w-5" />
@@ -850,19 +905,19 @@ export function CreatePurchaseRequisitionForm({
 
                 {requisitionItems.length > 0 ? (
                   <div className="rounded-lg border overflow-x-auto">
-                    <table className="w-full text-sm min-w-[720px]">
+                    <table className="w-full text-sm min-w-[960px]">
                       <thead className="bg-muted/60">
                         <tr>
                           <th className="p-3 text-left w-12">Sl No</th>
-                          <th className="p-3 text-left">Item</th>
-                          <th className="p-3 text-right w-24">Qty</th>
+                          <th className="p-3 text-left min-w-[140px]">Description</th>
+                          <th className="p-3 text-right w-28 min-w-[7rem]">Qty</th>
                           <th className="p-3 text-right w-28">Item cost</th>
                           <th className="p-3 text-right w-32">Other cost</th>
                           <th className="p-3 text-right w-28">Applied</th>
-                          <th className="p-3 text-right min-w-[7rem]">
-                            Est. total
+                          <th className="p-3 text-right min-w-[8rem]">
+                            Est. Line Total
                           </th>
-                          <th className="p-3 text-left min-w-[140px]">
+                          <th className="p-3 text-left min-w-[200px]">
                             Line notes
                           </th>
                           <th className="p-3 text-left w-24" />
@@ -877,12 +932,12 @@ export function CreatePurchaseRequisitionForm({
                             <td className="p-3 align-middle">
                               {purchaseLineItemName(row)}
                             </td>
-                            <td className="p-3 align-middle">
+                            <td className="p-3 align-middle w-28 min-w-[7rem]">
                               <Input
                                 type="number"
                                 min={1}
                                 step={1}
-                                className="text-right h-9 tabular-nums"
+                                className="h-9 w-20 min-w-[5rem] max-w-full text-right tabular-nums"
                                 value={row.quantity}
                                 onChange={(e) => {
                                   const v = parseInt(e.target.value, 10);
@@ -940,7 +995,7 @@ export function CreatePurchaseRequisitionForm({
                             <td className="p-3 align-middle">
                               <Input
                                 type="text"
-                                className="h-9 text-sm"
+                                className="h-9 min-w-[180px] text-sm"
                                 placeholder="Optional"
                                 value={row.notes ?? ""}
                                 onChange={(e) =>
@@ -973,7 +1028,7 @@ export function CreatePurchaseRequisitionForm({
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm">
+          <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle>Supporting documents</CardTitle>
               </CardHeader>
@@ -1032,54 +1087,6 @@ export function CreatePurchaseRequisitionForm({
                 )}
               </CardContent>
             </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="shadow-sm xl:sticky xl:top-6">
-              <CardHeader>
-                <CardTitle>Requisition summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Line items</span>
-                  <span className="tabular-nums">{requisitionItems.length}</span>
-                </div>
-                <div className="flex justify-between text-base font-semibold border-t pt-3">
-                  <span>Total Due</span>
-                  <span>
-                    <CurrencyAmount amount={total} />
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Instructions for approver"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={onCancel}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={requisitionItems.length === 0 || submitLoading}
-                  >
-                    {submitLoading
-                      ? isEditMode
-                        ? "Saving…"
-                        : "Creating…"
-                      : isEditMode
-                        ? "Save changes"
-                        : "Create requisition"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </form>
       )}
     </div>
