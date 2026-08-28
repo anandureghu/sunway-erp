@@ -1,8 +1,21 @@
-import { DataTable } from "@/components/datatable";
+import { useCallback, useMemo, useState } from "react";
+import type { Row, RowSelectionState } from "@tanstack/react-table";
+import { SelectableDataTable } from "@/components/selectable-data-table";
+import { DestructiveDeleteDialog } from "@/components/destructive-delete-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STOCK_COLUMNS } from "@/lib/columns/inventory-columns";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import {
+  bulkArchiveItems,
+  bulkDeleteItems,
+  bulkRestoreItems,
+  bulkUpdateItemStatus,
+} from "@/service/inventoryService";
+import { summarizeBulkActionResult } from "@/service/historyService";
+import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { Search, FileSpreadsheet, FileText } from "lucide-react";
 import {
   Select,
@@ -17,17 +30,24 @@ import {
   STATUS_LABELS,
 } from "@/pages/inventory/inventory-item-detail/item-detail-utils";
 import { ImportItemsCsvDialog } from "./import-items-csv-dialog";
+import { StockBulkActionBar } from "./stock-bulk-action-bar";
+import { toast } from "sonner";
 
 type StockListTabProps = {
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
   selectedStatus: string;
   onSelectedStatusChange: (v: string) => void;
+  catalogView: "active" | "archived";
+  onCatalogViewChange: (v: "active" | "archived") => void;
   loading: boolean;
   loadError: string | null;
   filteredStock: ItemResponseDTO[];
   onRowNavigate: (item: ItemResponseDTO) => void;
   onImported?: () => void;
+  onRefresh?: () => void | Promise<void>;
+  canEdit?: boolean;
+  canDelete?: boolean;
 };
 
 function exportToCsv(data: ItemResponseDTO[]) {
@@ -145,19 +165,158 @@ async function exportToPdf(data: ItemResponseDTO[]) {
   document.body.removeChild(el);
 }
 
+function uniqueItemIds(rows: ItemResponseDTO[]): number[] {
+  return [...new Set(rows.map((r) => r.id).filter((id) => id != null))];
+}
+
 export function StockListTab({
   searchQuery,
   onSearchQueryChange,
   selectedStatus,
   onSelectedStatusChange,
+  catalogView,
+  onCatalogViewChange,
   loading,
   loadError,
   filteredStock,
   onRowNavigate,
   onImported,
+  onRefresh,
+  canEdit = false,
+  canDelete = false,
 }: StockListTabProps) {
+  const { confirm } = useConfirmDialog();
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const selectedRows = useMemo(() => {
+    return Object.entries(rowSelection)
+      .filter(([, selected]) => selected)
+      .map(([rowId]) =>
+        filteredStock.find(
+          (row) => `${row.id}-${row.warehouse_id}` === rowId,
+        ),
+      )
+      .filter((row): row is ItemResponseDTO => row != null);
+  }, [rowSelection, filteredStock]);
+
+  const selectedItemIds = useMemo(
+    () => uniqueItemIds(selectedRows),
+    [selectedRows],
+  );
+
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+
+  const handleCatalogViewChange = (value: string) => {
+    onCatalogViewChange(value as "active" | "archived");
+    clearSelection();
+  };
+
+  const runBulk = async (
+    action: () => Promise<import("@/types/history").BulkActionResult>,
+    successVerb: string,
+  ) => {
+    try {
+      const result = await action();
+      toast.success(summarizeBulkActionResult(result));
+      if ((result.failed?.length ?? 0) > 0) {
+        const reasons = result.failed
+          .slice(0, 3)
+          .map((f) => f.reason)
+          .join("; ");
+        toast.warning(reasons, { duration: 8000 });
+      }
+      clearSelection();
+      await onRefresh?.();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, `Failed to ${successVerb}`));
+    }
+  };
+
+  const handleArchive = async () => {
+    if (selectedItemIds.length === 0) return;
+    if (
+      !(await confirm({
+        title: "Archive products",
+        description: `Archive ${selectedItemIds.length} selected product(s)? Archived items are hidden from the active catalog. They must have zero stock, no reservations, and no open purchase orders.`,
+        variant: "destructive",
+      }))
+    ) {
+      return;
+    }
+    setArchiving(true);
+    try {
+      await runBulk(() => bulkArchiveItems(selectedItemIds), "archive items");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (selectedItemIds.length === 0) return;
+    if (
+      !(await confirm({
+        title: "Restore products",
+        description: `Restore ${selectedItemIds.length} selected product(s) to the active catalog?`,
+      }))
+    ) {
+      return;
+    }
+    setRestoring(true);
+    try {
+      await runBulk(() => bulkRestoreItems(selectedItemIds), "restore items");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (selectedItemIds.length === 0) return;
+    setDeleting(true);
+    try {
+      await runBulk(() => bulkDeleteItems(selectedItemIds), "delete items");
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleMarkDiscontinued = async () => {
+    if (selectedItemIds.length === 0) return;
+    if (
+      !(await confirm({
+        title: "Mark discontinued",
+        description: `Mark ${selectedItemIds.length} selected product(s) as discontinued? They will remain in the active catalog.`,
+      }))
+    ) {
+      return;
+    }
+    setUpdatingStatus(true);
+    try {
+      await runBulk(
+        () => bulkUpdateItemStatus(selectedItemIds, "discontinued"),
+        "update status",
+      );
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const enableSelection = (canEdit || canDelete) && catalogView !== undefined;
+
   return (
     <div className="space-y-4 mt-6">
+      <Tabs value={catalogView} onValueChange={handleCatalogViewChange}>
+        <TabsList>
+          <TabsTrigger value="active">Active catalog</TabsTrigger>
+          <TabsTrigger value="archived">Archived</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 relative min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -168,19 +327,23 @@ export function StockListTab({
             className="pl-10"
           />
         </div>
-        <Select value={selectedStatus} onValueChange={onSelectedStatusChange}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="discontinued">Discontinued</SelectItem>
-            <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-          </SelectContent>
-        </Select>
+        {catalogView === "active" ? (
+          <Select value={selectedStatus} onValueChange={onSelectedStatusChange}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="discontinued">Discontinued</SelectItem>
+              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
         <div className="flex items-center gap-2 ml-auto">
-          {onImported && <ImportItemsCsvDialog onImported={onImported} />}
+          {onImported && catalogView === "active" ? (
+            <ImportItemsCsvDialog onImported={onImported} />
+          ) : null}
           <Button
             variant="outline"
             size="sm"
@@ -203,6 +366,43 @@ export function StockListTab({
           </Button>
         </div>
       </div>
+
+      {catalogView === "archived" ? (
+        <p className="text-sm text-muted-foreground rounded-lg border border-dashed px-3 py-2">
+          Archived products are removed from sales and receiving pickers. Restore
+          to bring them back, or permanently delete when they have no transaction
+          history.
+        </p>
+      ) : null}
+
+      <StockBulkActionBar
+        selectedCount={selectedRows.length}
+        uniqueItemCount={selectedItemIds.length}
+        view={catalogView}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        archiving={archiving}
+        restoring={restoring}
+        deleting={deleting}
+        updatingStatus={updatingStatus}
+        onArchive={catalogView === "active" && canEdit ? handleArchive : undefined}
+        onRestore={catalogView === "archived" && canEdit ? handleRestore : undefined}
+        onDelete={
+          catalogView === "archived" && canDelete
+            ? () => setDeleteDialogOpen(true)
+            : undefined
+        }
+        onMarkDiscontinued={
+          catalogView === "active" && canEdit ? handleMarkDiscontinued : undefined
+        }
+        onExportSelected={
+          selectedRows.length > 0
+            ? () => exportToCsv(selectedRows)
+            : undefined
+        }
+        onClear={clearSelection}
+      />
+
       {loading ? (
         <div className="py-10 text-center text-muted-foreground">
           Loading inventory data...
@@ -211,19 +411,43 @@ export function StockListTab({
         <div className="py-10 text-center text-red-600">{loadError}</div>
       ) : filteredStock.length === 0 ? (
         <div className="py-10 text-center text-muted-foreground">
-          {searchQuery || selectedStatus !== "all"
-            ? "No inventory items found matching your filters."
-            : "No inventory items found. Add items to get started."}
+          {catalogView === "archived"
+            ? "No archived products."
+            : searchQuery || selectedStatus !== "all"
+              ? "No inventory items found matching your filters."
+              : "No inventory items found. Add items to get started."}
         </div>
       ) : (
-        <DataTable
+        <SelectableDataTable
           columns={STOCK_COLUMNS}
           data={filteredStock}
-          onRowClick={(row) => {
+          enableRowSelection={enableSelection}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          getRowId={(row) => `${row.id}-${row.warehouse_id}`}
+          isRowSelectable={() => true}
+          onRowClick={(row: Row<ItemResponseDTO>) => {
+            if ((row.original.id ?? 0) <= 0) {
+              toast.error("This product cannot be opened — item ID is missing.");
+              return;
+            }
             onRowNavigate(row.original);
           }}
         />
       )}
+
+      <DestructiveDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Permanently delete archived products?"
+        description={`You are about to permanently delete ${selectedItemIds.length} archived product(s). This removes the item master and warehouse stock rows. Items with purchase, sales, or receipt history cannot be deleted. Type DELETE to confirm.`}
+        count={selectedItemIds.length}
+        entityLabel="products"
+        requireDeleteAll
+        confirming={deleting}
+        onConfirm={handleDeleteConfirm}
+        onExport={() => exportToCsv(selectedRows)}
+      />
     </div>
   );
 }

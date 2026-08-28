@@ -342,11 +342,55 @@ export async function applyItemBulkDiscount(payload: {
 }
 
 /** One row per item×warehouse — quantities match sales availability checks. */
-export async function listStockCatalog(): Promise<ItemResponseDTO[]> {
+export async function listStockCatalog(
+  archived = false,
+): Promise<ItemResponseDTO[]> {
   const res = await apiClient.get<ItemResponseDTO[]>(
     "/inventory/items/stock-catalog",
+    { params: { archived } },
   );
   return res.data || [];
+}
+
+export async function bulkArchiveItems(
+  itemIds: number[],
+): Promise<import("@/types/history").BulkActionResult> {
+  const res = await apiClient.post<import("@/types/history").BulkActionResult>(
+    "/inventory/items/bulk-archive",
+    { itemIds },
+  );
+  return res.data;
+}
+
+export async function bulkRestoreItems(
+  itemIds: number[],
+): Promise<import("@/types/history").BulkActionResult> {
+  const res = await apiClient.post<import("@/types/history").BulkActionResult>(
+    "/inventory/items/bulk-restore",
+    { itemIds },
+  );
+  return res.data;
+}
+
+export async function bulkDeleteItems(
+  itemIds: number[],
+): Promise<import("@/types/history").BulkActionResult> {
+  const res = await apiClient.post<import("@/types/history").BulkActionResult>(
+    "/inventory/items/bulk-delete",
+    { itemIds },
+  );
+  return res.data;
+}
+
+export async function bulkUpdateItemStatus(
+  itemIds: number[],
+  status: "active" | "discontinued" | "out_of_stock",
+): Promise<import("@/types/history").BulkActionResult> {
+  const res = await apiClient.post<import("@/types/history").BulkActionResult>(
+    "/inventory/items/bulk-status",
+    { itemIds, status },
+  );
+  return res.data;
 }
 
 export const getItemById = async (id: string) => {

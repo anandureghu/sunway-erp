@@ -33,6 +33,8 @@ export default function ManageStocks() {
     selectedStatus,
     setSelectedStatus,
     setStockKpiFilter,
+    catalogView,
+    setCatalogView,
     filteredStock,
     stats,
   } = useManageStocks();
@@ -140,6 +142,8 @@ export default function ManageStocks() {
                       setKpiFilter(null);
                       setStockKpiFilter("all");
                     }}
+                    catalogView={catalogView}
+                    onCatalogViewChange={setCatalogView}
                     loading={loading}
                     loadError={loadError}
                     filteredStock={filteredStock}
@@ -147,6 +151,9 @@ export default function ManageStocks() {
                       navigate(`/inventory/stocks/${row.id}`)
                     }
                     onImported={itemCaps.canCreate ? refetch : undefined}
+                    onRefresh={refetch}
+                    canEdit={itemCaps.canEdit}
+                    canDelete={itemCaps.canDelete}
                   />
                 </TabsContent>
                 )}

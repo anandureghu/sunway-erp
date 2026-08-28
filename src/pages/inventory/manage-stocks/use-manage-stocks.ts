@@ -32,6 +32,9 @@ export function useManageStocks() {
   const [stockKpiFilter, setStockKpiFilter] = useState<
     "all" | "low_stock" | "on_reserve"
   >("all");
+  const [catalogView, setCatalogView] = useState<"active" | "archived">(
+    "active",
+  );
 
   const loadData = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent === true;
@@ -41,7 +44,7 @@ export function useManageStocks() {
       }
       setLoadError(null);
       const [itemsList, warehousesList, reportSummary] = await Promise.all([
-        listStockCatalog(),
+        listStockCatalog(catalogView === "archived"),
         listWarehouses(),
         getInventoryReportSummary(),
       ]);
@@ -60,7 +63,7 @@ export function useManageStocks() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [catalogView]);
 
   /** Background refresh (no full-page loading spinner) — tab switches, after receive/adjust. */
   const refetch = useCallback(async () => {
@@ -117,6 +120,8 @@ export function useManageStocks() {
     setSelectedStatus,
     stockKpiFilter,
     setStockKpiFilter,
+    catalogView,
+    setCatalogView,
     filteredStock,
     stats,
   };
