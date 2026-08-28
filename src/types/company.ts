@@ -20,6 +20,9 @@ export interface Company {
   inventoryEnabled: boolean;
   /** Whether the company punches in/out. When false, the header check-in widget is hidden. */
   requireCheckIn?: boolean;
+  /** Company head (CEO / Chairperson) — the employee all department managers report to. */
+  ceoEmployeeId?: number | null;
+  ceoTitle?: string | null;
   currency?: Currency;
   companyCode: string;
   industry?: string | null;

@@ -1087,24 +1087,22 @@ export default function EmployeeContractForm() {
               </Select>
             </FormField>
 
-            <FormField label="Status" required error={errors.status}>
-              <Select
-                value={formData.status}
-                onValueChange={(v) =>
-                  updateField("status")(v as ContractStatus)
-                }
-                disabled={!editing}
-              >
-                <SelectTrigger className="h-9 rounded-lg border-slate-300">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
-                  <SelectItem value="TERMINATED">Terminated</SelectItem>
-                </SelectContent>
-              </Select>
+            <FormField label="Status">
+              {/* Status is action-driven and read-only: a signed / uploaded contract
+                  becomes Active, a departing employee's contract is Terminated, and a
+                  contract that runs out is Expired. */}
+              <div className="flex h-9 items-center">
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(
+                    formData.status,
+                  )}`}
+                >
+                  {STATUS_LABELS[formData.status] ?? formData.status ?? "Draft"}
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Set automatically from signing, upload, or contract end.
+              </p>
             </FormField>
 
             <FormField

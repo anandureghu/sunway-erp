@@ -41,6 +41,8 @@ type EmpProfile = {
   gender: "Male" | "Female" | "Other" | "";
   maritalStatus?: "Single" | "Married" | "Divorced" | "Widowed" | "";
   status?: string;
+  terminationCode?: string; // reason code — only when status is Terminated
+  expectedEndDate?: string; // last working day — same field as current job
   birthplace?: string;
   hometown?: string;
   nationality?: string;
@@ -63,6 +65,8 @@ const NEW_EMP: EmpProfile = {
   gender: "",
   maritalStatus: "",
   status: "Active",
+  terminationCode: "",
+  expectedEndDate: "",
   birthplace: "",
   hometown: "",
   nationality: "",
@@ -73,6 +77,17 @@ const NEW_EMP: EmpProfile = {
   designation: "",
   jobCode: "",
 };
+
+// Termination reason codes — shown only when the status is Terminated.
+const TERMINATION_CODES = [
+  "Termination with notice",
+  "Termination for cause",
+  "Non-renewal of contract",
+];
+
+// Exit statuses (display labels) that require an expected end date / last working day.
+const EXIT_STATUS_LABELS = new Set(["Resigned", "Terminated", "Retired"]);
+const isExitStatusLabel = (s?: string) => !!s && EXIT_STATUS_LABELS.has(s);
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fromBackendStatus = (s?: string | null): string => {
@@ -110,6 +125,10 @@ function validateEmployeeProfile(data: EmpProfile): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!data.firstName?.trim()) errors.firstName = "First name is required";
   if (!data.lastName?.trim()) errors.lastName = "Last name is required";
+  // Expected end date (last working day) is mandatory for an exiting employee.
+  if (isExitStatusLabel(data.status) && !data.expectedEndDate) {
+    errors.expectedEndDate = "Expected end date is required for this status";
+  }
   return errors;
 }
 
@@ -416,6 +435,14 @@ export default function EmployeeProfileForm() {
       // applies the company's probation policy (Under probation for the probation
       // window, else Active) instead of the form's default "Active".
       if (id && statusVal != null) payload.status = statusVal;
+      // Termination code travels with a Terminated status (blank otherwise).
+      payload.terminationCode =
+        statusVal === "TERMINATED" ? updated.terminationCode || null : null;
+      // Expected end date (last working day) is the current job's field — only sent
+      // for an exiting employee so it never overwrites an active fixed-term end date.
+      if (isExitStatusLabel(updated.status) && updated.expectedEndDate) {
+        payload.expectedEndDate = updated.expectedEndDate;
+      }
       try {
         const { hrService } = await import("@/service/hr.service");
         let createdResult: any = null;
@@ -805,16 +832,58 @@ export default function EmployeeProfileForm() {
             <StyledSelect
               disabled={!editing}
               value={draft.status ?? "Active"}
-              onChange={(e) => set("status", e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                set("status", next);
+                // Termination code only applies to a terminated employee.
+                if (next !== "Terminated") set("terminationCode", "");
+              }}
             >
               <option value="Active">Active</option>
-              <option value="On Leave">On Leave</option>
+              {/* On Leave is set automatically from leave approval — not a manual choice.
+                  Kept selectable only to display an already-on-leave employee. */}
+              {draft.status === "On Leave" && (
+                <option value="On Leave">On Leave</option>
+              )}
               <option value="Inactive">Inactive</option>
               <option value="Resigned">Resigned</option>
               <option value="Terminated">Terminated</option>
               <option value="Retired">Retired</option>
             </StyledSelect>
           </FormField>
+
+          {draft.status === "Terminated" && (
+            <FormField label="Termination Code">
+              <StyledSelect
+                disabled={!editing}
+                value={draft.terminationCode ?? ""}
+                onChange={(e) => set("terminationCode", e.target.value)}
+              >
+                <option value="">Select termination code</option>
+                {TERMINATION_CODES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </StyledSelect>
+            </FormField>
+          )}
+
+          {isExitStatusLabel(draft.status) && (
+            <FormField
+              label="Expected End Date"
+              required
+              error={errors.expectedEndDate}
+            >
+              <IconInput
+                icon={<Calendar className="h-4 w-4" />}
+                type="date"
+                disabled={!editing}
+                value={draft.expectedEndDate ?? ""}
+                onChange={(e) => set("expectedEndDate", e.target.value)}
+              />
+            </FormField>
+          )}
 
           <FormField label="Role">
             {isAdmin ? (
@@ -850,7 +919,11 @@ export default function EmployeeProfileForm() {
         <FormRow columns={3}>
           <ViewField icon={<Calendar className="h-4 w-4" />} label="Join Date" value={formatViewDate(draft.joinDate)} />
           <ViewField icon={<ShieldCheck className="h-4 w-4" />} label="Employee Status" value={draft.status || "Active"} />
-          <ViewField icon={<User className="h-4 w-4" />} label="Role" value={draft.companyRole || draft.designation} />
+          {draft.status === "Terminated" ? (
+            <ViewField icon={<ShieldCheck className="h-4 w-4" />} label="Termination Code" value={draft.terminationCode || "—"} />
+          ) : (
+            <ViewField icon={<User className="h-4 w-4" />} label="Role" value={draft.companyRole || draft.designation} />
+          )}
         </FormRow>
         )}
       </div>

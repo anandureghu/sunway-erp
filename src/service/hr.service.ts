@@ -118,6 +118,20 @@
   }
 
   /* =====================================================
+    ARCHIVE LIFECYCLE (inactive employees)
+  ===================================================== */
+  async function listArchivedEmployees(): Promise<Employee[]> {
+    const res = await apiClient.get<Employee[]>("/employees/archived");
+    return res.data ?? [];
+  }
+  async function archiveEmployee(employeeId: number): Promise<void> {
+    await apiClient.put(`/employees/${employeeId}/archive`);
+  }
+  async function unarchiveEmployee(employeeId: number): Promise<void> {
+    await apiClient.put(`/employees/${employeeId}/unarchive`);
+  }
+
+  /* =====================================================
     UPLOAD EMPLOYEE IMAGE (optional)
   ===================================================== */
   async function uploadImage(employeeId: number, file: File): Promise<string> {
@@ -187,6 +201,9 @@
     createEmployee,
     updateEmployee,
     deleteEmployee,
+    listArchivedEmployees,
+    archiveEmployee,
+    unarchiveEmployee,
     uploadImage,
     getActiveJobCodes,
     resetEmployeePassword,

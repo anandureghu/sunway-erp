@@ -10,8 +10,13 @@ export interface ExitInterview {
   designation?: string | null;
   dateOfJoining?: string | null;
   reportingManager?: string | null;
+  workLocation?: string | null;
+  lengthOfService?: string | null;
+  eosbAmount?: number | null;
   nationality?: string | null;
   employeeStatus?: string | null;
+  /** HR-department employees for the HR-representative signature picker. */
+  hrRepresentatives?: { id: number; name: string }[];
 
   // editable
   separationType?: string | null;

@@ -24,6 +24,19 @@ import {
   LogOut,
 } from "lucide-react";
 
+/** Assign (or clear, with null id) the company head (CEO / Chairperson). */
+export const assignCompanyCeo = async (
+  companyId: number,
+  ceoEmployeeId: number | null,
+  ceoTitle?: string | null,
+) => {
+  const res = await apiClient.put(`/companies/${companyId}/ceo`, {
+    ceoEmployeeId,
+    ceoTitle,
+  });
+  return res.data;
+};
+
 export const fetchCompany = async (
   id: string,
   options?: { silent?: boolean },
@@ -74,6 +87,7 @@ export interface HrPoliciesPayload {
   minimumMonthlyWage?: number;
   defaultHousingAllowance?: number;
   defaultFoodAllowance?: number;
+  defaultTransportationAllowance?: number;
 }
 
 export const fetchHrPolicies = async (

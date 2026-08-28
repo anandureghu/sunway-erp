@@ -128,6 +128,26 @@ const humanizeStatus = (s?: string | null) =>
 const keyFor = (prefix: string, statement: string) =>
   `${prefix}:${statement.slice(0, 40).replace(/[^a-zA-Z0-9]+/g, "_")}`;
 
+const OTHER_REASON = "Other (specify below)";
+
+/**
+ * Fields required before an exit interview can be *submitted* (drafts may be
+ * incomplete). Returns a map of field-key → message; empty when valid.
+ */
+function validateExitInterview(r: Record<string, any>): Record<string, string> {
+  const e: Record<string, string> = {};
+  if (!r.separationType) e.separationType = "Type of separation is required";
+  if (!r.lastWorkingDay) e.lastWorkingDay = "Last working day is required";
+  if (!r.primaryReason) e.primaryReason = "Primary reason is required";
+  if (r.primaryReason === OTHER_REASON && !String(r.otherReason ?? "").trim()) {
+    e.otherReason = "Please specify the reason";
+  }
+  if (!String(r.hrSignName ?? "").trim()) {
+    e.hrSignName = "HR representative is required";
+  }
+  return e;
+}
+
 // ── small building blocks ─────────────────────────────────────────────────────
 function SectionCard({
   n,
@@ -153,13 +173,29 @@ function SectionCard({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
         {label}
+        {required && <span className="ml-0.5 text-rose-500">*</span>}
       </label>
       {children}
+      {error && (
+        <p className="flex items-center gap-1 text-xs text-rose-500">
+          <span>⚠</span> {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -247,9 +283,18 @@ export default function ExitInterviewForm() {
   const [r, setR] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const set = (key: string, value: unknown) =>
+  const set = (key: string, value: unknown) => {
     setR((prev) => ({ ...prev, [key]: value }));
+    // Clear a field's validation error as soon as it's edited.
+    setErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
 
   const toggleFactor = (reason: string) =>
     setR((prev) => {
@@ -273,7 +318,15 @@ export default function ExitInterviewForm() {
       .then((data) => {
         if (!mounted) return;
         setCtx(data);
-        setR((data.responses as Record<string, any>) ?? {});
+        const resp = (data.responses as Record<string, any>) ?? {};
+        // Seed the system-calculated EOSB when HR hasn't entered/overridden it yet.
+        if (
+          (resp.eosbAmount == null || resp.eosbAmount === "") &&
+          data.eosbAmount != null
+        ) {
+          resp.eosbAmount = data.eosbAmount;
+        }
+        setR(resp);
       })
       .catch((err) => {
         if (mounted) toast.error(getApiErrorMessage(err, "Failed to load exit interview"));
@@ -292,6 +345,16 @@ export default function ExitInterviewForm() {
   const persist = useCallback(
     async (status: "DRAFT" | "SUBMITTED") => {
       if (empId == null) return;
+      // Required fields are enforced only on submit — a draft may be incomplete.
+      if (status === "SUBMITTED") {
+        const found = validateExitInterview(r);
+        if (Object.keys(found).length > 0) {
+          setErrors(found);
+          toast.error("Please complete the required fields before submitting.");
+          return;
+        }
+      }
+      setErrors({});
       setSaving(true);
       try {
         const payload: ExitInterview = {
@@ -392,6 +455,9 @@ export default function ExitInterviewForm() {
             ["Position / Job Title", ctx?.designation],
             ["Date of Joining", ctx?.dateOfJoining],
             ["Nationality", ctx?.nationality],
+            ["Reporting Manager", ctx?.reportingManager],
+            ["Work Location", ctx?.workLocation],
+            ["Length of Service", ctx?.lengthOfService],
           ].map(([label, val]) => (
             <div key={label as string}>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
@@ -402,33 +468,12 @@ export default function ExitInterviewForm() {
               </p>
             </div>
           ))}
-          <Field label="Reporting Manager">
-            <input
-              className={inputCls}
-              value={r.reportingManager ?? ""}
-              onChange={(e) => set("reportingManager", e.target.value)}
-            />
-          </Field>
-          <Field label="Work Location">
-            <input
-              className={inputCls}
-              value={r.workLocation ?? ""}
-              onChange={(e) => set("workLocation", e.target.value)}
-            />
-          </Field>
-          <Field label="Length of Service">
-            <input
-              className={inputCls}
-              value={r.lengthOfService ?? ""}
-              onChange={(e) => set("lengthOfService", e.target.value)}
-            />
-          </Field>
         </div>
       </SectionCard>
 
       {/* 2. Separation details */}
       <SectionCard n={2} title="Separation Details">
-        <Field label="Type of Separation">
+        <Field label="Type of Separation" required error={errors.separationType}>
           <Pills
             options={SEPARATION_TYPES}
             value={r.separationType}
@@ -436,7 +481,7 @@ export default function ExitInterviewForm() {
           />
         </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Last Working Day">
+          <Field label="Last Working Day" required error={errors.lastWorkingDay}>
             <input
               type="date"
               className={inputCls}
@@ -471,7 +516,7 @@ export default function ExitInterviewForm() {
 
       {/* 3. Primary reason */}
       <SectionCard n={3} title="Primary Reason for Leaving">
-        <Field label="Primary reason">
+        <Field label="Primary reason" required error={errors.primaryReason}>
           <select
             className={inputCls}
             value={r.primaryReason ?? ""}
@@ -508,7 +553,11 @@ export default function ExitInterviewForm() {
             })}
           </div>
         </Field>
-        <Field label="If 'Other', please specify">
+        <Field
+          label="If 'Other', please specify"
+          required={r.primaryReason === OTHER_REASON}
+          error={errors.otherReason}
+        >
           <input
             className={inputCls}
             value={r.otherReason ?? ""}
@@ -678,12 +727,32 @@ export default function ExitInterviewForm() {
               onChange={(e) => set("empSignDate", e.target.value)}
             />
           </Field>
-          <Field label="HR Representative — Name">
-            <input
-              className={inputCls}
-              value={r.hrSignName ?? ""}
-              onChange={(e) => set("hrSignName", e.target.value)}
-            />
+          <Field label="HR Representative — Name" required error={errors.hrSignName}>
+            {ctx?.hrRepresentatives && ctx.hrRepresentatives.length > 0 ? (
+              <select
+                className={inputCls}
+                value={r.hrSignName ?? ""}
+                onChange={(e) => set("hrSignName", e.target.value)}
+              >
+                <option value="">Select HR representative…</option>
+                {ctx.hrRepresentatives.map((h) => (
+                  <option key={h.id} value={h.name}>
+                    {h.name}
+                  </option>
+                ))}
+                {r.hrSignName &&
+                  !ctx.hrRepresentatives.some((h) => h.name === r.hrSignName) && (
+                    <option value={r.hrSignName}>{r.hrSignName}</option>
+                  )}
+              </select>
+            ) : (
+              <input
+                className={inputCls}
+                value={r.hrSignName ?? ""}
+                onChange={(e) => set("hrSignName", e.target.value)}
+                placeholder="No HR-department employees found"
+              />
+            )}
           </Field>
           <Field label="HR Representative — Date">
             <input

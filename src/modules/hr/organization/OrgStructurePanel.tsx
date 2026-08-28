@@ -9,6 +9,10 @@ import {
   Crown,
   GitBranch,
   UserRound,
+  Award,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -16,6 +20,7 @@ import { cn, initialsFrom } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { fetchDepartments } from "@/service/departmentService";
 import { fetchDivisions } from "@/service/divisionService";
+import { assignCompanyCeo } from "@/service/companyService";
 import { hrService } from "@/service/hr.service";
 import type { Department } from "@/types/department";
 import type { DivisionResponseDTO } from "@/types/division";
@@ -36,6 +41,13 @@ const STATUS_DOT: Record<string, string> = {
   TERMINATED: "bg-rose-500",
   RETIRED: "bg-violet-400",
 };
+
+// The org chart shows only the active workforce — departed (resigned / terminated /
+// retired), inactive, and archived staff are excluded.
+const EXCLUDED_STATUSES = ["RESIGNED", "TERMINATED", "RETIRED", "INACTIVE"];
+const isActiveWorkforce = (e: Employee) =>
+  !e.archived &&
+  !EXCLUDED_STATUSES.includes(String(e.status ?? "").toUpperCase());
 
 // Pure-CSS connectors for the top-down org chart (scoped under .org-tree).
 const TREE_CSS = `
@@ -143,13 +155,23 @@ function EmployeeBox({ e, isHead }: { e: Employee; isHead?: boolean }) {
   );
 }
 
-function DivisionBox({ d }: { d: DivisionResponseDTO }) {
+function DivisionBox({
+  d,
+  memberCount,
+  expanded,
+  onToggle,
+}: {
+  d: DivisionResponseDTO;
+  memberCount: number;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const lead = [d.managerFirstName, d.managerLastName]
     .filter(Boolean)
     .join(" ")
     .trim();
   return (
-    <div className="w-[170px] rounded-xl border border-sky-200 bg-sky-50/70 px-3 py-2 text-center shadow-sm">
+    <div className="w-[180px] rounded-xl border border-sky-200 bg-sky-50/70 px-3 py-2 text-center shadow-sm">
       <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-lg bg-sky-100 text-sky-600">
         <GitBranch className="h-3.5 w-3.5" />
       </div>
@@ -157,6 +179,18 @@ function DivisionBox({ d }: { d: DivisionResponseDTO }) {
       <p className="truncate text-[10px] text-slate-400">
         {lead ? `Lead: ${lead}` : "No lead"}
       </p>
+      {memberCount > 0 && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-sky-200 bg-white px-2 py-0.5 text-[10px] font-medium text-sky-700 hover:bg-sky-50"
+        >
+          <Users className="h-3 w-3" /> {memberCount}
+          <ChevronDown
+            className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")}
+          />
+        </button>
+      )}
     </div>
   );
 }
@@ -205,12 +239,9 @@ function DeptBox({
             onClick={onToggle}
             className="mt-2 inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-50"
           >
-            {expanded ? "Hide team" : "Show team"}
+            {expanded ? "Hide" : "Show team"}
             <ChevronDown
-              className={cn(
-                "h-3 w-3 transition-transform",
-                expanded && "rotate-180",
-              )}
+              className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")}
             />
           </button>
         )}
@@ -235,7 +266,22 @@ export default function OrgStructurePanel() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [openIds, setOpenIds] = useState<Set<number>>(new Set());
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  // Company head (CEO / Chairperson) — departments report to them.
+  const [ceoId, setCeoId] = useState<number | null>(
+    company?.ceoEmployeeId ?? null,
+  );
+  const [ceoTitle, setCeoTitle] = useState<string>(company?.ceoTitle ?? "CEO");
+  const [editingCeo, setEditingCeo] = useState(false);
+  const [ceoDraftId, setCeoDraftId] = useState("");
+  const [ceoDraftTitle, setCeoDraftTitle] = useState("CEO");
+  const [savingCeo, setSavingCeo] = useState(false);
+
+  useEffect(() => {
+    setCeoId(company?.ceoEmployeeId ?? null);
+    if (company?.ceoTitle) setCeoTitle(company.ceoTitle);
+  }, [company?.ceoEmployeeId, company?.ceoTitle]);
 
   useEffect(() => {
     if (companyId == null) return;
@@ -262,10 +308,20 @@ export default function OrgStructurePanel() {
     };
   }, [companyId]);
 
+  // Only the active workforce appears in the chart.
+  const activeEmployees = useMemo(
+    () => employees.filter(isActiveWorkforce),
+    [employees],
+  );
+  const ceo = useMemo(
+    () => (ceoId != null ? employees.find((e) => Number(e.id) === ceoId) ?? null : null),
+    [employees, ceoId],
+  );
+
   const nodes = useMemo<DeptNode[]>(() => {
     return departments
       .map((dept) => {
-        const members = employees.filter(
+        const members = activeEmployees.filter(
           (e) => Number(e.departmentId) === dept.id,
         );
         const head =
@@ -288,16 +344,15 @@ export default function OrgStructurePanel() {
       .sort((a, b) =>
         a.department.departmentName.localeCompare(b.department.departmentName),
       );
-  }, [departments, divisions, employees]);
+  }, [departments, divisions, activeEmployees]);
 
-  const unassigned = useMemo(() => {
-    const assigned = new Set(
-      employees
-        .filter((e) => departments.some((d) => Number(e.departmentId) === d.id))
-        .map((e) => e.id),
-    );
-    return employees.filter((e) => !assigned.has(e.id));
-  }, [employees, departments]);
+  const unassigned = useMemo(
+    () =>
+      activeEmployees.filter(
+        (e) => !departments.some((d) => Number(e.departmentId) === d.id),
+      ),
+    [activeEmployees, departments],
+  );
 
   const q = search.trim().toLowerCase();
   const visibleNodes = useMemo(() => {
@@ -316,27 +371,155 @@ export default function OrgStructurePanel() {
     );
   }, [nodes, q]);
 
-  const toggle = (id: number) =>
+  const isOpen = (k: string) => openIds.has(k);
+  const toggle = (k: string) =>
     setOpenIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
       return next;
     });
-  const allOpen = nodes.length > 0 && openIds.size >= nodes.length;
+  const allOpen =
+    nodes.length > 0 &&
+    nodes.every((n) => openIds.has(`dept-${n.department.id}`));
   const toggleAll = () =>
-    setOpenIds(allOpen ? new Set() : new Set(nodes.map((n) => n.department.id)));
+    setOpenIds(
+      allOpen ? new Set() : new Set(nodes.map((n) => `dept-${n.department.id}`)),
+    );
 
   useEffect(() => {
-    if (q) setOpenIds(new Set(visibleNodes.map((n) => n.department.id)));
-     
+    if (q) setOpenIds(new Set(visibleNodes.map((n) => `dept-${n.department.id}`)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
+
+  const openCeoEditor = () => {
+    setCeoDraftId(ceoId ? String(ceoId) : "");
+    setCeoDraftTitle(ceoTitle || "CEO");
+    setEditingCeo(true);
+  };
+  const saveCeo = async () => {
+    if (companyId == null) return;
+    const id = ceoDraftId ? Number(ceoDraftId) : null;
+    setSavingCeo(true);
+    try {
+      await assignCompanyCeo(
+        companyId,
+        id,
+        id ? ceoDraftTitle || "CEO" : null,
+      );
+      setCeoId(id);
+      setCeoTitle(ceoDraftTitle || "CEO");
+      setEditingCeo(false);
+      toast.success(id ? "Company head updated" : "Company head cleared");
+    } catch {
+      toast.error("Failed to update company head");
+    } finally {
+      setSavingCeo(false);
+    }
+  };
+
+  // Render the department branches (used both under the CEO and directly under company).
+  const renderDeptBranches = () => (
+    <ul>
+      {visibleNodes.map((node) => {
+        const key = `dept-${node.department.id}`;
+        const expanded = isOpen(key);
+        const undivisioned = node.members
+          .filter((e) => !node.divisions.some((dv) => Number(e.divisionId) === dv.id))
+          .sort((a, b) => {
+            if (node.head) {
+              if (a.id === node.head.id) return -1;
+              if (b.id === node.head.id) return 1;
+            }
+            return empName(a).localeCompare(empName(b));
+          });
+        const hasChildren = node.divisions.length + node.members.length > 0;
+        return (
+          <li key={key}>
+            <DeptBox node={node} expanded={expanded} onToggle={() => toggle(key)} />
+            {expanded && hasChildren && (
+              <ul>
+                {node.divisions.map((dv) => {
+                  const dkey = `div-${dv.id}`;
+                  const dOpen = isOpen(dkey);
+                  const divMembers = node.members
+                    .filter((e) => Number(e.divisionId) === dv.id)
+                    .sort((a, b) => empName(a).localeCompare(empName(b)));
+                  return (
+                    <li key={dkey}>
+                      <DivisionBox
+                        d={dv}
+                        memberCount={divMembers.length}
+                        expanded={dOpen}
+                        onToggle={() => toggle(dkey)}
+                      />
+                      {dOpen && divMembers.length > 0 && (
+                        <ul>
+                          {divMembers.map((e) => (
+                            <li key={`emp-${e.id}`}>
+                              <EmployeeBox e={e} isHead={node.head?.id === e.id} />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+                {undivisioned.map((e) => (
+                  <li key={`emp-${e.id}`}>
+                    <EmployeeBox e={e} isHead={node.head?.id === e.id} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+
+      {/* unassigned employees as a sibling branch */}
+      {!q && unassigned.length > 0 && (
+        <li key="unassigned">
+          <div className="w-[210px] rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-2.5 text-center shadow-sm">
+            <div className="mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+              <UserRound className="h-4 w-4" />
+            </div>
+            <p className="text-sm font-semibold text-slate-700">Unassigned</p>
+            <p className="text-[11px] text-slate-400">
+              {unassigned.length} without a department
+            </p>
+            <button
+              type="button"
+              onClick={() => toggle("unassigned")}
+              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-50"
+            >
+              {isOpen("unassigned") ? "Hide" : "Show"}
+              <ChevronDown
+                className={cn(
+                  "h-3 w-3 transition-transform",
+                  isOpen("unassigned") && "rotate-180",
+                )}
+              />
+            </button>
+          </div>
+          {isOpen("unassigned") && (
+            <ul>
+              {unassigned.map((e) => (
+                <li key={`un-${e.id}`}>
+                  <EmployeeBox e={e} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      )}
+    </ul>
+  );
 
   return (
     <div className="space-y-5">
       <SecondaryPageHeader
         title="Organization Structure"
-        description="Company hierarchy — departments, divisions, heads and their teams"
+        description="Company hierarchy — head, departments, divisions and their teams"
         icon={<Network className="h-5 w-5" />}
         actions={
           nodes.length > 0 ? (
@@ -379,101 +562,118 @@ export default function OrgStructurePanel() {
                 <ul>
                   <li>
                     {/* company root */}
-                    <div className="flex w-[240px] items-center gap-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-white shadow">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
-                        <Building2 className="h-5 w-5" />
+                    <div className="w-[260px] rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-white shadow">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1 text-left">
+                          <p className="truncate text-sm font-bold">
+                            {companyName}
+                          </p>
+                          <p className="text-[11px] text-white/80">
+                            {activeEmployees.length} active · {departments.length}{" "}
+                            depts · {divisions.length} divisions
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="truncate text-sm font-bold">
-                          {companyName}
-                        </p>
-                        <p className="text-[11px] text-white/80">
-                          {employees.length} employees · {departments.length}{" "}
-                          depts · {divisions.length} divisions
-                        </p>
+
+                      {/* CEO / head line — editable */}
+                      <div className="mt-2 border-t border-white/20 pt-2 text-left">
+                        {editingCeo ? (
+                          <div className="space-y-1.5">
+                            <select
+                              value={ceoDraftId}
+                              onChange={(e) => setCeoDraftId(e.target.value)}
+                              className="h-8 w-full rounded-md px-2 text-xs text-slate-800"
+                            >
+                              <option value="">— No head —</option>
+                              {activeEmployees.map((e) => (
+                                <option key={e.id} value={e.id}>
+                                  {empName(e)}
+                                  {e.designation ? ` · ${e.designation}` : ""}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="flex gap-1.5">
+                              <input
+                                value={ceoDraftTitle}
+                                onChange={(e) => setCeoDraftTitle(e.target.value)}
+                                placeholder="Title (CEO)"
+                                className="h-8 flex-1 rounded-md px-2 text-xs text-slate-800"
+                              />
+                              <button
+                                type="button"
+                                onClick={saveCeo}
+                                disabled={savingCeo}
+                                title="Save"
+                                className="flex h-8 w-8 items-center justify-center rounded-md bg-white/20 hover:bg-white/30"
+                              >
+                                {savingCeo ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingCeo(false)}
+                                title="Cancel"
+                                className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10 hover:bg-white/20"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : ceo ? (
+                          <button
+                            type="button"
+                            onClick={openCeoEditor}
+                            className="group flex w-full items-center gap-1.5 text-left text-xs text-white/90 hover:text-white"
+                          >
+                            <Award className="h-3.5 w-3.5 text-amber-300" />
+                            <span className="font-semibold">{ceoTitle}:</span>
+                            <span className="truncate">{empName(ceo)}</span>
+                            <Pencil className="ml-auto h-3 w-3 opacity-0 group-hover:opacity-100" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={openCeoEditor}
+                            className="flex w-full items-center gap-1.5 text-xs text-white/70 hover:text-white"
+                          >
+                            <Award className="h-3.5 w-3.5" /> Assign a company head
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    {/* departments */}
-                    <ul>
-                      {visibleNodes.map((node) => {
-                        const expanded = openIds.has(node.department.id);
-                        const ordered = [...node.members].sort((a, b) => {
-                          if (node.head) {
-                            if (a.id === node.head.id) return -1;
-                            if (b.id === node.head.id) return 1;
-                          }
-                          return empName(a).localeCompare(empName(b));
-                        });
-                        return (
-                          <li key={node.department.id}>
-                            <DeptBox
-                              node={node}
-                              expanded={expanded}
-                              onToggle={() => toggle(node.department.id)}
+                    {/* CEO node sits between the company and the departments */}
+                    {ceo ? (
+                      <ul>
+                        <li>
+                          <div className="w-[190px] rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center shadow-sm">
+                            <Avatar
+                              name={empName(ceo)}
+                              imageUrl={ceo.imageUrl}
+                              ring="ring-2 ring-amber-300"
                             />
-                            {expanded &&
-                              node.divisions.length + node.members.length >
-                                0 && (
-                                <ul>
-                                  {node.divisions.map((d) => (
-                                    <li key={`div-${d.id}`}>
-                                      <DivisionBox d={d} />
-                                    </li>
-                                  ))}
-                                  {ordered.map((e) => (
-                                    <li key={`emp-${e.id}`}>
-                                      <EmployeeBox
-                                        e={e}
-                                        isHead={node.head?.id === e.id}
-                                      />
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                          </li>
-                        );
-                      })}
-
-                      {/* unassigned employees as a sibling branch */}
-                      {!q && unassigned.length > 0 && (
-                        <li key="unassigned">
-                          <div className="w-[210px] rounded-2xl border border-dashed border-slate-300 bg-white px-3 py-2.5 text-center shadow-sm">
-                            <div className="mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
-                              <UserRound className="h-4 w-4" />
+                            <div className="mt-1.5 flex items-center justify-center gap-1">
+                              <Crown className="h-3 w-3 text-amber-500" />
+                              <p className="truncate text-sm font-bold text-slate-800">
+                                {empName(ceo)}
+                              </p>
                             </div>
-                            <p className="text-sm font-semibold text-slate-700">
-                              Unassigned
+                            <p className="truncate text-[11px] font-medium text-amber-700">
+                              {ceoTitle}
                             </p>
-                            <p className="text-[11px] text-slate-400">
-                              {unassigned.length} without a department
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => toggle(-1)}
-                              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-50"
-                            >
-                              {openIds.has(-1) ? "Hide" : "Show"}
-                              <ChevronDown
-                                className={cn(
-                                  "h-3 w-3 transition-transform",
-                                  openIds.has(-1) && "rotate-180",
-                                )}
-                              />
-                            </button>
                           </div>
-                          {openIds.has(-1) && (
-                            <ul>
-                              {unassigned.map((e) => (
-                                <li key={`un-${e.id}`}>
-                                  <EmployeeBox e={e} />
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+                          {renderDeptBranches()}
                         </li>
-                      )}
-                    </ul>
+                      </ul>
+                    ) : (
+                      renderDeptBranches()
+                    )}
                   </li>
                 </ul>
               </div>

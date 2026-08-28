@@ -708,8 +708,23 @@ export default function TimesheetTab() {
     void load();
   }, [load]);
 
-  // Re-sync when a check-in/out happens elsewhere (e.g. the header shift widget).
-  useEffect(() => onTimesheetChanged(() => void load()), [load]);
+  // Re-sync when a check-in/out happens elsewhere (the header shift widget, or
+  // another browser tab) and whenever the user returns to this view — so the
+  // timesheet never shows a stale "checked in" after checking out on the dashboard.
+  useEffect(() => {
+    const reload = () => void load();
+    const off = onTimesheetChanged(reload);
+    const onVisible = () => {
+      if (!document.hidden) reload();
+    };
+    window.addEventListener("focus", reload);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      off();
+      window.removeEventListener("focus", reload);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load]);
 
   const isCheckedIn = !!(todayEntry?.checkInTime && !todayEntry?.checkOutTime);
   const isComplete = !!(todayEntry?.checkInTime && todayEntry?.checkOutTime);
@@ -736,7 +751,7 @@ export default function TimesheetTab() {
           : [entry, ...prev];
       });
       toast.success("Checked in successfully!");
-      notifyTimesheetChanged();
+      notifyTimesheetChanged(empId);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to check in");
     } finally {
@@ -769,7 +784,7 @@ export default function TimesheetTab() {
           : [entry, ...prev];
       });
       toast.success("Checked out successfully!");
-      notifyTimesheetChanged();
+      notifyTimesheetChanged(empId);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to check out");
     } finally {
