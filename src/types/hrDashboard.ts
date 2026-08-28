@@ -61,6 +61,7 @@ export interface HrUpcomingEvent {
 }
 
 export interface HrRecentActivity {
+  id?: string | number;
   description: string;
   employeeName: string;
   occurredAt: string;
