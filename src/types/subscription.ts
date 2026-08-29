@@ -58,6 +58,13 @@ export type SubscriptionInvoice = {
   currencyCode?: string | null;
   planType: SubscriptionPlanType;
   pdfUrl?: string | null;
+  generatedAt?: string | null;
+  generatedBy?: string | null;
+  /** PDF generated and ready to review before send. */
+  generated: boolean;
+  /** Subscription changed since last generate — regenerate required. */
+  stale: boolean;
+  recipientPreview?: string[];
   toEmail?: string | null;
   sentAt?: string | null;
   sentBy?: string | null;

@@ -102,6 +102,24 @@ export async function cancelSubscription(
   return res.data;
 }
 
+export async function generateSubscriptionInvoice(
+  companyId: number,
+): Promise<SubscriptionInvoice> {
+  const res = await apiClient.post<SubscriptionInvoice>(
+    `/admin/subscriptions/${companyId}/invoices/generate`,
+  );
+  return res.data;
+}
+
+export async function regenerateSubscriptionInvoice(
+  companyId: number,
+): Promise<SubscriptionInvoice> {
+  const res = await apiClient.post<SubscriptionInvoice>(
+    `/admin/subscriptions/${companyId}/invoices/regenerate`,
+  );
+  return res.data;
+}
+
 export async function sendSubscriptionInvoice(
   companyId: number,
   resend = false,
@@ -155,4 +173,10 @@ export function triggerBlobDownload(blob: Blob, filename: string) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+export function openBlobPreview(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

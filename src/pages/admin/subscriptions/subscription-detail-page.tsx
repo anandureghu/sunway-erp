@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,9 @@ import {
   downloadSubscriptionInvoicePdf,
   extendSubscription,
   fetchSubscription,
+  generateSubscriptionInvoice,
+  openBlobPreview,
+  regenerateSubscriptionInvoice,
   sendSubscriptionInvoice,
   triggerBlobDownload,
 } from "@/service/subscriptionService";
@@ -31,6 +34,8 @@ import {
   CalendarPlus,
   CreditCard,
   Download,
+  Eye,
+  FileText,
   Mail,
   Pencil,
   RefreshCw,
@@ -48,17 +53,23 @@ function formatMoney(amount?: number | null, currency?: string | null) {
 export default function SubscriptionDetailPage() {
   const { companyId: companyIdParam } = useParams();
   const companyId = Number(companyIdParam);
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { confirm } = useConfirmDialog();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
 
-  const [tab, setTab] = useState("overview");
+  const tab = searchParams.get("tab") ?? "overview";
+  const setTab = (value: string) => {
+    setSearchParams(value === "overview" ? {} : { tab: value }, { replace: true });
+  };
   const [data, setData] = useState<CompanySubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [invoiceBusy, setInvoiceBusy] = useState<
+    "generate" | "regenerate" | "send" | "preview" | null
+  >(null);
 
   const load = useCallback(async () => {
     if (!Number.isFinite(companyId)) return;
@@ -86,20 +97,70 @@ export default function SubscriptionDetailPage() {
     return <Navigate to="/admin/subscriptions" replace />;
   }
 
+  const handleGenerateInvoice = async (regenerate = false) => {
+    setInvoiceBusy(regenerate ? "regenerate" : "generate");
+    try {
+      const inv = regenerate
+        ? await regenerateSubscriptionInvoice(companyId)
+        : await generateSubscriptionInvoice(companyId);
+      toast.success(
+        regenerate
+          ? `Invoice ${inv.invoiceNo} regenerated — review the PDF before sending`
+          : `Invoice ${inv.invoiceNo} generated — review the PDF before sending`,
+      );
+      setTab("invoices");
+      void load();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to generate invoice"));
+    } finally {
+      setInvoiceBusy(null);
+    }
+  };
+
   const handleSendInvoice = async (resend = false) => {
-    setSending(true);
+    if (
+      !resend &&
+      currentPeriodInvoice &&
+      (!currentPeriodInvoice.generated || currentPeriodInvoice.stale)
+    ) {
+      toast.error("Generate and verify the invoice before sending.");
+      return;
+    }
+    const recipients = currentPeriodInvoice?.recipientPreview?.join(", ");
+    if (
+      !(await confirm(
+        resend
+          ? `Resend invoice ${currentPeriodInvoice?.invoiceNo ?? ""} to ${recipients ?? "billing contacts"}?`
+          : `Send invoice ${currentPeriodInvoice?.invoiceNo ?? ""} to ${recipients ?? "billing contacts"}?`,
+      ))
+    ) {
+      return;
+    }
+    setInvoiceBusy("send");
     try {
       const inv = await sendSubscriptionInvoice(companyId, resend);
       toast.success(
         inv.sent
           ? `Invoice ${inv.invoiceNo} sent to ${inv.toEmail ?? "billing email"}`
-          : `Invoice ${inv.invoiceNo} prepared`,
+          : `Invoice ${inv.invoiceNo} could not be sent`,
       );
       void load();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to send invoice"));
     } finally {
-      setSending(false);
+      setInvoiceBusy(null);
+    }
+  };
+
+  const handlePreview = async (inv: SubscriptionInvoice) => {
+    setInvoiceBusy("preview");
+    try {
+      const blob = await downloadSubscriptionInvoicePdf(companyId, inv.id);
+      openBlobPreview(blob);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to preview PDF"));
+    } finally {
+      setInvoiceBusy(null);
     }
   };
 
@@ -172,14 +233,13 @@ export default function SubscriptionDetailPage() {
             </Button>
             <Button
               type="button"
+              variant="outline"
               size="sm"
-              onClick={() =>
-                void handleSendInvoice(Boolean(currentPeriodInvoice?.sent))
-              }
-              disabled={sending || loading || !data}
+              onClick={() => setTab("invoices")}
+              disabled={loading || !data}
             >
-              <Mail className="mr-2 h-4 w-4" />
-              {currentPeriodInvoice?.sent ? "Resend invoice" : "Send invoice"}
+              <FileText className="mr-2 h-4 w-4" />
+              Invoice workflow
             </Button>
           </div>
         }
@@ -199,6 +259,11 @@ export default function SubscriptionDetailPage() {
             {currentPeriodInvoice?.sent && (
               <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">
                 Invoice sent
+              </Badge>
+            )}
+            {currentPeriodInvoice?.generated && !currentPeriodInvoice.sent && (
+              <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                {currentPeriodInvoice.stale ? "Invoice stale" : "Ready to send"}
               </Badge>
             )}
           </div>
@@ -302,25 +367,21 @@ export default function SubscriptionDetailPage() {
               />
             </TabsContent>
 
-            <TabsContent value="invoices" className="space-y-3">
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() =>
-                    void handleSendInvoice(Boolean(currentPeriodInvoice?.sent))
-                  }
-                  disabled={sending}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  {currentPeriodInvoice?.sent
-                    ? "Resend invoice"
-                    : "Send invoice"}
-                </Button>
-              </div>
+            <TabsContent value="invoices" className="space-y-4">
+              <CurrentPeriodInvoicePanel
+                subscription={data}
+                invoice={currentPeriodInvoice}
+                busy={invoiceBusy}
+                onGenerate={() => void handleGenerateInvoice(false)}
+                onRegenerate={() => void handleGenerateInvoice(true)}
+                onPreview={(inv) => void handlePreview(inv)}
+                onDownload={(inv) => void handleDownload(inv)}
+                onSend={(resend) => void handleSendInvoice(resend)}
+              />
+
               {(data.invoices ?? []).length === 0 ? (
                 <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  No invoices yet. Send an invoice to create the first one.
+                  No invoices yet. Generate an invoice for the current period to begin.
                 </p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border">
@@ -359,20 +420,43 @@ export default function SubscriptionDetailPage() {
                                     : ""}
                                 </p>
                               </div>
+                            ) : inv.stale ? (
+                              <Badge variant="destructive">Stale — regenerate</Badge>
+                            ) : inv.generated ? (
+                              <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                                Generated
+                              </Badge>
+                            ) : inv.sendError ? (
+                              <div className="space-y-0.5">
+                                <Badge variant="destructive">Send failed</Badge>
+                                <p className="text-xs text-destructive">{inv.sendError}</p>
+                              </div>
                             ) : (
-                              <Badge variant="outline">Not sent</Badge>
+                              <Badge variant="outline">Draft</Badge>
                             )}
                           </td>
                           <td className="px-3 py-2.5 text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => void handleDownload(inv)}
-                            >
-                              <Download className="mr-1 h-4 w-4" />
-                              PDF
-                            </Button>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void handlePreview(inv)}
+                                disabled={invoiceBusy === "preview"}
+                              >
+                                <Eye className="mr-1 h-4 w-4" />
+                                Preview
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void handleDownload(inv)}
+                              >
+                                <Download className="mr-1 h-4 w-4" />
+                                PDF
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -424,6 +508,164 @@ export default function SubscriptionDetailPage() {
       >
         Back to listing
       </Button>
+    </div>
+  );
+}
+
+function CurrentPeriodInvoicePanel({
+  subscription,
+  invoice,
+  busy,
+  onGenerate,
+  onRegenerate,
+  onPreview,
+  onDownload,
+  onSend,
+}: {
+  subscription: CompanySubscription;
+  invoice?: SubscriptionInvoice;
+  busy: "generate" | "regenerate" | "send" | "preview" | null;
+  onGenerate: () => void;
+  onRegenerate: () => void;
+  onPreview: (inv: SubscriptionInvoice) => void;
+  onDownload: (inv: SubscriptionInvoice) => void;
+  onSend: (resend: boolean) => void;
+}) {
+  const recipients = invoice?.recipientPreview?.join(", ") || "—";
+  const canSend =
+    !!invoice?.generated && !invoice.stale && !invoice.sent;
+  const canRegenerate = !!invoice && !invoice.sent;
+
+  return (
+    <div className="rounded-xl border bg-muted/20 p-4 md:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold">Current period invoice</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Generate → verify PDF → send. Edit the subscription first if details
+            need correction, then regenerate.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {!invoice?.generated || invoice.stale ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={invoice?.generated ? onRegenerate : onGenerate}
+              disabled={busy != null}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              {busy === "generate" || busy === "regenerate"
+                ? "Working…"
+                : invoice?.generated
+                  ? "Regenerate"
+                  : "Generate invoice"}
+            </Button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => invoice && onPreview(invoice)}
+                disabled={!invoice || busy != null}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Preview PDF
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => invoice && onDownload(invoice)}
+                disabled={!invoice}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRegenerate}
+                disabled={!canRegenerate || busy != null}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Regenerate
+              </Button>
+            </>
+          )}
+          {invoice?.sent ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onSend(true)}
+              disabled={busy === "send"}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {busy === "send" ? "Sending…" : "Resend"}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onSend(false)}
+              disabled={!canSend || busy === "send"}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {busy === "send" ? "Sending…" : "Send invoice"}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <InfoCard
+          label="Subscription amount"
+          value={formatMoney(subscription.amount, subscription.currencyCode)}
+        />
+        <InfoCard
+          label="Invoice amount"
+          value={
+            invoice
+              ? formatMoney(invoice.amount, invoice.currencyCode)
+              : "Not generated"
+          }
+        />
+        <InfoCard label="Recipients" value={recipients} />
+        <InfoCard
+          label="Status"
+          value={
+            invoice?.sent
+              ? "Sent"
+              : invoice?.stale
+                ? "Stale — regenerate required"
+                : invoice?.generated
+                  ? "Generated — verify before send"
+                  : invoice?.sendError
+                    ? "Send failed"
+                    : "Not generated"
+          }
+        />
+      </div>
+
+      {invoice?.stale && (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Subscription details changed after the last generate. Update the plan if
+          needed, then click Regenerate and verify the PDF before sending.
+        </p>
+      )}
+      {invoice?.sendError && !invoice.sent && (
+        <p className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          Last send failed: {invoice.sendError}
+        </p>
+      )}
+      {invoice?.generatedAt && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Last generated {new Date(invoice.generatedAt).toLocaleString()}
+          {invoice.generatedBy ? ` · user ${invoice.generatedBy}` : ""}
+        </p>
+      )}
     </div>
   );
 }
