@@ -14,7 +14,7 @@ export const COMPANY_SCHEMA = z.object({
 
   crNo: z
     .number()
-    .min(1, { message: "Company number must be a positive number" })
+    .min(1, { message: "CR NO must be a positive number" })
     .optional(),
 
   industry: z.string().optional(),

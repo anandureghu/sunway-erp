@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import {
   PieChart,
   Pie,
@@ -36,9 +36,15 @@ import {
   Archive,
   ArchiveRestore,
   LogOut,
+  Umbrella,
+  Shield,
+  UserRoundCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
+import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
+import { AppTab } from "@/components/app-tab";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import { hrService } from "@/service/hr.service";
 import { appraisalService } from "@/service/appraisalService";
@@ -216,60 +222,60 @@ const CUSTOM_TOOLTIP = ({ active, payload }: any) => {
 // is gated separately by IMMIGRATION so an employee with only their own
 // immigration view still reaches it (and the backend scopes the rows).
 const ANALYTICS_TABS = [
-  { id: "workforce", label: "Workforce Overview", icon: Users },
-  { id: "appraisal", label: "Employee Performance", icon: Award },
+  { value: "workforce", label: "Workforce Overview", icon: Users },
+  { value: "appraisal", label: "Employee Performance", icon: Award },
 ] as const;
 // Employee Time Sheets (monthly worked days that feed payroll) — shown with the
 // workforce analytics under the HR_REPORTS grant.
 const ATTENDANCE_TAB = {
-  id: "attendance",
+  value: "attendance",
   label: "Employee Time Sheets",
   icon: Clock,
 } as const;
 // Attendance History — filter a month + employee code to see days worked, with
 // pagination and month archiving. Also under the HR_REPORTS grant.
 const ATTENDANCE_HISTORY_TAB = {
-  id: "attendance-history",
+  value: "attendance-history",
   label: "Attendance History",
   icon: History,
 } as const;
 // Leave Approvals is gated by the LEAVES grant (approvers / HR / admin).
 const LEAVES_TAB = {
-  id: "leaves",
+  value: "leaves",
   label: "Leave History",
   icon: CalendarCheck,
 } as const;
 // Loan Approvals is gated by the LOANS grant.
 const LOANS_TAB = {
-  id: "loans",
+  value: "loans",
   label: "Loan History",
   icon: Wallet,
 } as const;
 const IMMIGRATION_TAB = {
-  id: "immigration",
+  value: "immigration",
   label: "Immigration Expiry",
   icon: ShieldAlert,
 } as const;
 // Company-wide payroll history grouped by department.
 const PAYROLL_SUMMARY_TAB = {
-  id: "payroll-summary",
+  value: "payroll-summary",
   label: "Payroll Summary",
   icon: Banknote,
 } as const;
 // Exit / termination interviews submitted for departing employees.
 const EXIT_TAB = {
-  id: "exit-interviews",
+  value: "exit-interviews",
   label: "Exit Interviews",
   icon: LogOut,
 } as const;
 // Archive inactive (settled) employees out of the active working set.
 const ARCHIVE_TAB = {
-  id: "archive",
+  value: "archive",
   label: "Archive",
   icon: Archive,
 } as const;
 const HISTORY_TAB = {
-  id: "history",
+  value: "history",
   label: "History",
   icon: FileText,
 } as const;
@@ -285,19 +291,34 @@ type TabId =
   | "exit-interviews"
   | "archive"
   | "history";
-const ALL_TAB_IDS: TabId[] = [
-  "workforce",
-  "appraisal",
-  "attendance",
-  "attendance-history",
-  "leaves",
-  "loans",
-  "immigration",
-  "payroll-summary",
-  "exit-interviews",
-  "archive",
-  "history",
-];
+
+type SubTab = {
+  value: TabId;
+  label: string;
+  icon: React.ElementType;
+};
+
+type GroupTab = {
+  value: string;
+  label: string;
+  icon: ReactNode;
+  children: SubTab[];
+};
+
+/** Map legacy flat ?tab= ids onto grouped navigation. */
+const legacyTabMap: Record<string, { tab: string; sub: TabId }> = {
+  workforce: { tab: "workforce-analytics", sub: "workforce" },
+  appraisal: { tab: "workforce-analytics", sub: "appraisal" },
+  attendance: { tab: "time-attendance", sub: "attendance" },
+  "attendance-history": { tab: "time-attendance", sub: "attendance-history" },
+  leaves: { tab: "leave-loans", sub: "leaves" },
+  loans: { tab: "leave-loans", sub: "loans" },
+  immigration: { tab: "compliance", sub: "immigration" },
+  "payroll-summary": { tab: "payroll", sub: "payroll-summary" },
+  "exit-interviews": { tab: "lifecycle", sub: "exit-interviews" },
+  archive: { tab: "lifecycle", sub: "archive" },
+  history: { tab: "audit", sub: "history" },
+};
 
 // One decided leave row from the company-wide approvals history.
 type LeaveApprovalRow = {
@@ -392,7 +413,7 @@ const humanizeLoan = (t?: string) =>
 // ── main component ────────────────────────────────────────────────────────────
 export default function HRReports() {
   const { company, permissions } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const canHrReports = canView(permissions, "HR_REPORTS");
   const canImmigration = canView(permissions, "IMMIGRATION");
@@ -418,20 +439,71 @@ export default function HRReports() {
       permissions?.PAYROLL?.VIEW_ALL
     );
 
-  const visibleTabs = useMemo(() => {
-    const tabs: Array<{ id: TabId; label: string; icon: React.ElementType }> =
-      [];
-    if (canHrReports) tabs.push(...ANALYTICS_TABS);
-    if (canHrReports) tabs.push(ATTENDANCE_TAB);
-    if (canHrReports) tabs.push(ATTENDANCE_HISTORY_TAB);
-    if (canLeaves) tabs.push(LEAVES_TAB);
-    if (canLoans) tabs.push(LOANS_TAB);
-    if (canImmigration) tabs.push(IMMIGRATION_TAB);
-    if (canPayrollSummary) tabs.push(PAYROLL_SUMMARY_TAB);
-    if (canExitInterviews) tabs.push(EXIT_TAB);
-    if (canExitInterviews) tabs.push(ARCHIVE_TAB);
-    tabs.push(HISTORY_TAB);
-    return tabs;
+  const groups = useMemo<GroupTab[]>(() => {
+    const list: GroupTab[] = [];
+
+    if (canHrReports) {
+      list.push({
+        value: "workforce-analytics",
+        label: "Workforce & performance",
+        icon: <Users className="h-4 w-4" />,
+        children: [...ANALYTICS_TABS],
+      });
+      list.push({
+        value: "time-attendance",
+        label: "Time & attendance",
+        icon: <Clock className="h-4 w-4" />,
+        children: [ATTENDANCE_TAB, ATTENDANCE_HISTORY_TAB],
+      });
+    }
+
+    if (canLeaves || canLoans) {
+      list.push({
+        value: "leave-loans",
+        label: "Leave & loans",
+        icon: <Umbrella className="h-4 w-4" />,
+        children: [
+          ...(canLeaves ? [LEAVES_TAB] : []),
+          ...(canLoans ? [LOANS_TAB] : []),
+        ],
+      });
+    }
+
+    if (canImmigration) {
+      list.push({
+        value: "compliance",
+        label: "Compliance",
+        icon: <Shield className="h-4 w-4" />,
+        children: [IMMIGRATION_TAB],
+      });
+    }
+
+    if (canPayrollSummary) {
+      list.push({
+        value: "payroll",
+        label: "Payroll",
+        icon: <Banknote className="h-4 w-4" />,
+        children: [PAYROLL_SUMMARY_TAB],
+      });
+    }
+
+    if (canExitInterviews) {
+      list.push({
+        value: "lifecycle",
+        label: "Employee lifecycle",
+        icon: <UserRoundCog className="h-4 w-4" />,
+        children: [EXIT_TAB, ARCHIVE_TAB],
+      });
+    }
+
+    list.push({
+      value: "audit",
+      label: "Audit",
+      icon: <FileText className="h-4 w-4" />,
+      children: [HISTORY_TAB],
+    });
+
+    return list.filter((g) => g.children.length > 0);
   }, [
     canHrReports,
     canLeaves,
@@ -441,21 +513,52 @@ export default function HRReports() {
     canExitInterviews,
   ]);
 
-  const requestedTab = searchParams.get("tab") as TabId | null;
-  const [tab, setTab] = useState<TabId>(
-    requestedTab && ALL_TAB_IDS.includes(requestedTab)
-      ? requestedTab
-      : "workforce",
+  const allVisibleSubIds = useMemo(
+    () => groups.flatMap((g) => g.children.map((c) => c.value)),
+    [groups],
   );
 
-  // Keep the active tab within the set the user is allowed to see (e.g. an
-  // employee with only IMMIGRATION lands directly on the Immigration tab).
+  const groupValues = groups.map((g) => g.value);
+  const rawTab = searchParams.get("tab");
+  const legacy = rawTab ? legacyTabMap[rawTab] : undefined;
+  const requestedGroup = legacy?.tab ?? rawTab;
+  const activeGroup =
+    requestedGroup && groupValues.includes(requestedGroup)
+      ? requestedGroup
+      : (groups[0]?.value ?? "audit");
+
+  const activeGroupDef =
+    groups.find((g) => g.value === activeGroup) ?? groups[0];
+  const subValues = (activeGroupDef?.children ?? []).map((c) => c.value);
+  const requestedSub = searchParams.get("sub") ?? legacy?.sub;
+  const activeSub: TabId =
+    requestedSub && subValues.includes(requestedSub as TabId)
+      ? (requestedSub as TabId)
+      : (subValues[0] ?? "history");
+
+  const setGroup = (value: string) => {
+    const next = groups.find((g) => g.value === value);
+    const firstSub = next?.children?.[0]?.value;
+    const params: Record<string, string> = {};
+    if (value !== groups[0]?.value) params.tab = value;
+    if (firstSub) params.sub = firstSub;
+    setSearchParams(params, { replace: true });
+  };
+
+  const setSub = (value: string) => {
+    const params: Record<string, string> = {};
+    if (activeGroup !== groups[0]?.value) params.tab = activeGroup;
+    if (value) params.sub = value;
+    setSearchParams(params, { replace: true });
+  };
+
+  // Keep the active sub-tab within the set the user is allowed to see.
   useEffect(() => {
-    if (visibleTabs.length === 0) return;
-    if (!visibleTabs.some((t) => t.id === tab)) {
-      setTab(visibleTabs[0].id);
+    if (allVisibleSubIds.length === 0) return;
+    if (!allVisibleSubIds.includes(activeSub)) {
+      setSub(allVisibleSubIds[0]);
     }
-  }, [visibleTabs, tab]);
+  }, [allVisibleSubIds, activeSub]);
 
   // ── data state ──────────────────────────────────────────────────────────────
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -513,8 +616,8 @@ export default function HRReports() {
     else setLoadingEmp(false);
   }, [canHrReports]);
   useEffect(() => {
-    if (tab === "appraisal") fetchAppraisals();
-  }, [tab, appraisalYear]);
+    if (activeSub === "appraisal") fetchAppraisals();
+  }, [activeSub, appraisalYear]);
 
   // ── fetch leave approvals ─────────────────────────────────────────────────────
   const fetchLeaveApprovals = async (archived: boolean) => {
@@ -532,8 +635,8 @@ export default function HRReports() {
   };
 
   useEffect(() => {
-    if (tab === "leaves") fetchLeaveApprovals(leaveArchivedView);
-  }, [tab, leaveArchivedView]);
+    if (activeSub === "leaves") fetchLeaveApprovals(leaveArchivedView);
+  }, [activeSub, leaveArchivedView]);
 
   const handleArchiveLeave = async (id: number, archived: boolean) => {
     setLeaveBusyId(id);
@@ -564,8 +667,8 @@ export default function HRReports() {
   };
 
   useEffect(() => {
-    if (tab === "loans") fetchLoanApprovals(loanArchivedView);
-  }, [tab, loanArchivedView]);
+    if (activeSub === "loans") fetchLoanApprovals(loanArchivedView);
+  }, [activeSub, loanArchivedView]);
 
   const handleArchiveLoan = async (id: number, archived: boolean) => {
     setLoanBusyId(id);
@@ -786,67 +889,9 @@ export default function HRReports() {
   }, []);
 
   // ── render ───────────────────────────────────────────────────────────────────
-  return (
-    <div className="space-y-5 p-6 bg-slate-50/60 min-h-screen">
-      {/* Header */}
-
-      <PageHeader
-        title="HR Reports & Analytics"
-        description={
-          canHrReports
-            ? `${company?.companyName} · ${employees.length} employees`
-            : `${company?.companyName ?? ""}`
-        }
-        variant="default"
-        icon={<BarChart3 className="w-6 h-6" />}
-        actions={
-          <button
-            onClick={() => {
-              // Refresh the data behind the active tab, not just the workforce list.
-              switch (tab) {
-                case "appraisal":
-                  fetchAppraisals();
-                  break;
-                case "leaves":
-                  fetchLeaveApprovals(leaveArchivedView);
-                  break;
-                case "loans":
-                  fetchLoanApprovals(loanArchivedView);
-                  break;
-                default:
-                  fetchEmployees();
-                  break;
-              }
-            }}
-            className="inline-flex items-center gap-2 rounded-lg bg-white/15 border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
-          </button>
-        }
-      />
-
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm w-fit">
-        {visibleTabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all",
-              tab === id
-                ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-md"
-                : "text-slate-500 hover:text-slate-800 hover:bg-slate-50",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── WORKFORCE TAB ── */}
-      {tab === "workforce" &&
+  const reportPanels = (
+    <>
+      {activeSub === "workforce" &&
         (loadingEmp ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -1079,7 +1124,7 @@ export default function HRReports() {
         ))}
 
       {/* ── DEPARTMENT HEADCOUNT (under Workforce Overview) ── */}
-      {tab === "workforce" && !loadingEmp && (
+      {activeSub === "workforce" && !loadingEmp && (
           <div className="space-y-5">
             <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
               <SectionTitle
@@ -1147,7 +1192,7 @@ export default function HRReports() {
         )}
 
       {/* ── WORKFORCE BREAKDOWN (under Workforce Overview) ── */}
-      {tab === "workforce" && !loadingEmp && (
+      {activeSub === "workforce" && !loadingEmp && (
           <div className="space-y-5">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -1204,7 +1249,7 @@ export default function HRReports() {
         )}
 
       {/* ── EMPLOYEE PERFORMANCE TAB ── */}
-      {tab === "appraisal" && (
+      {activeSub === "appraisal" && (
         <div className="space-y-5">
           {/* Year selector */}
           <div className="flex items-center gap-3">
@@ -1400,7 +1445,7 @@ export default function HRReports() {
       )}
 
       {/* ── LEAVE APPROVALS TAB ── */}
-      {tab === "leaves" &&
+      {activeSub === "leaves" &&
         (loadingLeaves ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -1675,7 +1720,7 @@ export default function HRReports() {
         ))}
 
       {/* ── LOAN APPROVALS TAB ── */}
-      {tab === "loans" &&
+      {activeSub === "loans" &&
         (loadingLoans ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -1950,22 +1995,110 @@ export default function HRReports() {
         ))}
 
       {/* ── EMPLOYEE TIME SHEETS TAB ── */}
-      {tab === "attendance" && <EmployeeTimeSheets />}
+      {activeSub === "attendance" && <EmployeeTimeSheets />}
 
       {/* ── ATTENDANCE HISTORY TAB ── */}
-      {tab === "attendance-history" && <AttendanceHistory />}
+      {activeSub === "attendance-history" && <AttendanceHistory />}
 
       {/* ── IMMIGRATION EXPIRY TAB ── */}
 
-      {tab === "immigration" && <ImmigrationExpiryReport />}
+      {activeSub === "immigration" && <ImmigrationExpiryReport />}
 
-      {tab === "payroll-summary" && <PayrollSummaryPanel />}
+      {activeSub === "payroll-summary" && <PayrollSummaryPanel />}
 
-      {tab === "exit-interviews" && <ExitInterviewsPanel />}
+      {activeSub === "exit-interviews" && <ExitInterviewsPanel />}
 
-      {tab === "archive" && <ArchivePanel />}
+      {activeSub === "archive" && <ArchivePanel />}
 
-      {tab === "history" && <HistoryTabPanel module="hr" />}
+      {activeSub === "history" && <HistoryTabPanel module="hr" />}
+    </>
+  );
+
+  const tabsList = groups.map((group) => ({
+    value: group.value,
+    label: group.label,
+    icon: group.icon,
+    element: () => {
+      const sub = group.children.some((c) => c.value === activeSub)
+        ? activeSub
+        : (group.children[0]?.value ?? activeSub);
+
+      return (
+        <Tabs value={sub} onValueChange={setSub} className="w-full">
+          <div className="mb-4 w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200/80 bg-slate-50/80 p-1 [scrollbar-width:thin]">
+            <TabsList className="inline-flex min-w-max w-max flex-nowrap gap-1 bg-transparent p-0">
+              {group.children.map((child) => (
+                <StyledTabsTrigger
+                  key={child.value}
+                  value={child.value}
+                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
+                >
+                  <span className="size-4 flex items-center justify-center">
+                    <child.icon className="h-4 w-4" />
+                  </span>
+                  {child.label}
+                </StyledTabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+          {group.children.map((child) => (
+            <TabsContent
+              key={child.value}
+              value={child.value}
+              className="mt-0 focus-visible:outline-none"
+            >
+              {child.value === activeSub ? reportPanels : null}
+            </TabsContent>
+          ))}
+        </Tabs>
+      );
+    },
+  }));
+
+  return (
+    <div className="space-y-6 p-6 bg-slate-50/60 min-h-screen">
+      <PageHeader
+        title="HR Reports & Analytics"
+        description={
+          canHrReports
+            ? `${company?.companyName} · ${employees.length} employees`
+            : `${company?.companyName ?? ""}`
+        }
+        variant="default"
+        icon={<BarChart3 className="w-6 h-6" />}
+        actions={
+          <button
+            onClick={() => {
+              switch (activeSub) {
+                case "appraisal":
+                  fetchAppraisals();
+                  break;
+                case "leaves":
+                  fetchLeaveApprovals(leaveArchivedView);
+                  break;
+                case "loans":
+                  fetchLoanApprovals(loanArchivedView);
+                  break;
+                default:
+                  fetchEmployees();
+                  break;
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-lg bg-white/15 border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </button>
+        }
+      />
+
+      <AppTab
+        title=""
+        variant="primary"
+        tabs={tabsList}
+        value={activeGroup}
+        onValueChange={setGroup}
+      />
     </div>
   );
 }

@@ -517,7 +517,7 @@ export default function CompanyDetailPage() {
     );
 
   const infoFields = [
-    { icon: Hash, label: "Company No", value: company.crNo || "—" },
+    { icon: Hash, label: "CR NO", value: company.crNo || "—" },
     {
       icon: Users,
       label: "Number of employees:",
