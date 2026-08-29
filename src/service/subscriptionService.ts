@@ -8,6 +8,7 @@ import type {
   RecordSubscriptionPaymentRequest,
   SubscriptionAnalytics,
   SubscriptionInvoice,
+  SubscriptionPayment,
   SubscriptionPaymentStatus,
   SubscriptionPlanType,
   SubscriptionStatus,
@@ -148,6 +149,40 @@ export async function downloadMySubscriptionInvoicePdf(
 ): Promise<Blob> {
   const res = await apiClient.get(
     `/subscriptions/me/invoices/${invoiceId}/pdf`,
+    { responseType: "blob" },
+  );
+  return res.data as Blob;
+}
+
+export async function downloadSubscriptionPaymentReceiptPdf(
+  companyId: number,
+  paymentId: number,
+): Promise<Blob> {
+  const res = await apiClient.get(
+    `/admin/subscriptions/${companyId}/payments/${paymentId}/receipt/pdf`,
+    { responseType: "blob" },
+  );
+  return res.data as Blob;
+}
+
+export async function sendSubscriptionPaymentReceipt(
+  companyId: number,
+  paymentId: number,
+  resend = false,
+): Promise<SubscriptionPayment> {
+  const res = await apiClient.post<SubscriptionPayment>(
+    `/admin/subscriptions/${companyId}/payments/${paymentId}/receipt/send`,
+    null,
+    { params: { resend } },
+  );
+  return res.data;
+}
+
+export async function downloadMySubscriptionPaymentReceiptPdf(
+  paymentId: number,
+): Promise<Blob> {
+  const res = await apiClient.get(
+    `/subscriptions/me/payments/${paymentId}/receipt/pdf`,
     { responseType: "blob" },
   );
   return res.data as Blob;

@@ -28,6 +28,8 @@ export type SubscriptionPayment = {
   id: number;
   companySubscriptionId: number;
   companyId: number;
+  invoiceId?: number | null;
+  invoiceNo?: string | null;
   amount: number;
   paidOn: string;
   methodNote?: string | null;
@@ -35,6 +37,13 @@ export type SubscriptionPayment = {
   periodEnd?: string | null;
   recordedBy?: number | null;
   createdAt?: string;
+  receiptNo?: string | null;
+  receiptGeneratedAt?: string | null;
+  receiptSentAt?: string | null;
+  receiptGenerated: boolean;
+  receiptSent: boolean;
+  receiptToEmail?: string | null;
+  receiptSendError?: string | null;
 };
 
 export type SubscriptionReminderLog = {
@@ -72,6 +81,10 @@ export type SubscriptionInvoice = {
   sendError?: string | null;
   sent: boolean;
   createdAt?: string;
+  paid: boolean;
+  paymentId?: number | null;
+  paidOn?: string | null;
+  receiptNo?: string | null;
 };
 
 export type CompanySubscription = {
@@ -127,8 +140,11 @@ export type RecordSubscriptionPaymentRequest = {
   methodNote?: string;
   periodStart?: string;
   periodEnd?: string;
+  invoiceId?: number;
+  linkInvoice?: boolean;
   idempotencyKey?: string;
   extendSubscription?: boolean;
+  sendReceipt?: boolean;
 };
 
 export type ExtendSubscriptionRequest = {

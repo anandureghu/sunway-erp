@@ -18,9 +18,10 @@ import {
   paymentStatusBadge,
   subscriptionStatusBadge,
 } from "./subscription-badges";
+import { SubscriptionInvoiceHistoryTable } from "./subscription-invoice-history-table";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
-import { Download, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 function formatMoney(amount?: number | null, currency?: string | null) {
   if (amount == null) return "—";
@@ -134,60 +135,13 @@ export default function CompanyBillingPage() {
             </TabsContent>
 
             <TabsContent value="invoices">
-              {(data.invoices ?? []).length === 0 ? (
-                <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  No invoices yet.
-                </p>
-              ) : (
-                <div className="overflow-x-auto rounded-lg border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2.5">Invoice</th>
-                        <th className="px-3 py-2.5">Period</th>
-                        <th className="px-3 py-2.5">Amount</th>
-                        <th className="px-3 py-2.5">Status</th>
-                        <th className="px-3 py-2.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data.invoices ?? []).map((inv) => (
-                        <tr key={inv.id} className="border-t">
-                          <td className="px-3 py-2.5 font-medium">
-                            {inv.invoiceNo}
-                          </td>
-                          <td className="px-3 py-2.5 text-muted-foreground">
-                            {inv.periodStart} → {inv.periodEnd ?? "open"}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {formatMoney(inv.amount, inv.currencyCode)}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {inv.sent ? (
-                              <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">
-                                Sent
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">Not sent</Badge>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 text-right">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => void handleDownload(inv)}
-                            >
-                              <Download className="mr-1 h-4 w-4" />
-                              PDF
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <SubscriptionInvoiceHistoryTable
+                invoices={data.invoices ?? []}
+                currentPeriodStart={data.startsAt}
+                currentPeriodEnd={data.endsAt}
+                emptyMessage="No invoices yet."
+                onDownload={(inv) => void handleDownload(inv)}
+              />
             </TabsContent>
           </Tabs>
         </>

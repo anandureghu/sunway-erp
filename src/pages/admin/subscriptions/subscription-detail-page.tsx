@@ -8,23 +8,27 @@ import { Badge } from "@/components/ui/badge";
 import {
   cancelSubscription,
   downloadSubscriptionInvoicePdf,
+  downloadSubscriptionPaymentReceiptPdf,
   extendSubscription,
   fetchSubscription,
   generateSubscriptionInvoice,
   openBlobPreview,
   regenerateSubscriptionInvoice,
   sendSubscriptionInvoice,
+  sendSubscriptionPaymentReceipt,
   triggerBlobDownload,
 } from "@/service/subscriptionService";
 import type {
   CompanySubscription,
   SubscriptionInvoice,
+  SubscriptionPayment,
 } from "@/types/subscription";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { AssignSubscriptionDialog } from "./assign-subscription-dialog";
 import { RecordPaymentDialog } from "./record-payment-dialog";
+import { SubscriptionInvoiceHistoryTable } from "./subscription-invoice-history-table";
 import {
   paymentStatusBadge,
   subscriptionStatusBadge,
@@ -70,6 +74,7 @@ export default function SubscriptionDetailPage() {
   const [invoiceBusy, setInvoiceBusy] = useState<
     "generate" | "regenerate" | "send" | "preview" | null
   >(null);
+  const [receiptBusyId, setReceiptBusyId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     if (!Number.isFinite(companyId)) return;
@@ -170,6 +175,51 @@ export default function SubscriptionDetailPage() {
       triggerBlobDownload(blob, `${inv.invoiceNo}.pdf`);
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to download PDF"));
+    }
+  };
+
+  const handleDownloadReceipt = async (payment: SubscriptionPayment) => {
+    try {
+      const blob = await downloadSubscriptionPaymentReceiptPdf(
+        companyId,
+        payment.id,
+      );
+      triggerBlobDownload(
+        blob,
+        `${payment.receiptNo ?? `receipt-${payment.id}`}.pdf`,
+      );
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to download receipt"));
+    }
+  };
+
+  const handleSendReceipt = async (payment: SubscriptionPayment, resend = false) => {
+    if (
+      !(await confirm(
+        resend
+          ? `Resend receipt ${payment.receiptNo ?? ""} to billing contacts?`
+          : `Send receipt ${payment.receiptNo ?? ""} to billing contacts?`,
+      ))
+    ) {
+      return;
+    }
+    setReceiptBusyId(payment.id);
+    try {
+      const updated = await sendSubscriptionPaymentReceipt(
+        companyId,
+        payment.id,
+        resend,
+      );
+      toast.success(
+        updated.receiptSent
+          ? `Receipt sent to ${updated.receiptToEmail ?? "billing contacts"}`
+          : "Receipt could not be sent",
+      );
+      void load();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to send receipt"));
+    } finally {
+      setReceiptBusyId(null);
     }
   };
 
@@ -355,15 +405,12 @@ export default function SubscriptionDetailPage() {
             </TabsContent>
 
             <TabsContent value="payments">
-              <HistoryTable
-                empty="No payments recorded yet."
-                headers={["Paid on", "Amount", "Period", "Method"]}
-                rows={(data.payments ?? []).map((p) => [
-                  p.paidOn,
-                  formatMoney(p.amount, data.currencyCode),
-                  `${p.periodStart ?? "—"} → ${p.periodEnd ?? "—"}`,
-                  p.methodNote ?? "—",
-                ])}
+              <SubscriptionPaymentsTable
+                payments={data.payments ?? []}
+                currencyCode={data.currencyCode}
+                receiptBusyId={receiptBusyId}
+                onDownloadReceipt={(p) => void handleDownloadReceipt(p)}
+                onSendReceipt={(p, resend) => void handleSendReceipt(p, resend)}
               />
             </TabsContent>
 
@@ -379,91 +426,15 @@ export default function SubscriptionDetailPage() {
                 onSend={(resend) => void handleSendInvoice(resend)}
               />
 
-              {(data.invoices ?? []).length === 0 ? (
-                <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  No invoices yet. Generate an invoice for the current period to begin.
-                </p>
-              ) : (
-                <div className="overflow-x-auto rounded-lg border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2.5">Invoice</th>
-                        <th className="px-3 py-2.5">Period</th>
-                        <th className="px-3 py-2.5">Amount</th>
-                        <th className="px-3 py-2.5">Status</th>
-                        <th className="px-3 py-2.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data.invoices ?? []).map((inv) => (
-                        <tr key={inv.id} className="border-t">
-                          <td className="px-3 py-2.5 font-medium">
-                            {inv.invoiceNo}
-                          </td>
-                          <td className="px-3 py-2.5 text-muted-foreground">
-                            {inv.periodStart} → {inv.periodEnd ?? "open"}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {formatMoney(inv.amount, inv.currencyCode)}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {inv.sent ? (
-                              <div className="space-y-0.5">
-                                <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">
-                                  Sent
-                                </Badge>
-                                <p className="text-xs text-muted-foreground">
-                                  {inv.toEmail}
-                                  {inv.sentAt
-                                    ? ` · ${new Date(inv.sentAt).toLocaleString()}`
-                                    : ""}
-                                </p>
-                              </div>
-                            ) : inv.stale ? (
-                              <Badge variant="destructive">Stale — regenerate</Badge>
-                            ) : inv.generated ? (
-                              <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
-                                Generated
-                              </Badge>
-                            ) : inv.sendError ? (
-                              <div className="space-y-0.5">
-                                <Badge variant="destructive">Send failed</Badge>
-                                <p className="text-xs text-destructive">{inv.sendError}</p>
-                              </div>
-                            ) : (
-                              <Badge variant="outline">Draft</Badge>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => void handlePreview(inv)}
-                                disabled={invoiceBusy === "preview"}
-                              >
-                                <Eye className="mr-1 h-4 w-4" />
-                                Preview
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => void handleDownload(inv)}
-                              >
-                                <Download className="mr-1 h-4 w-4" />
-                                PDF
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <SubscriptionInvoiceHistoryTable
+                invoices={data.invoices ?? []}
+                currentPeriodStart={data.startsAt}
+                currentPeriodEnd={data.endsAt}
+                emptyMessage="No invoices yet. Generate an invoice for the current period to begin."
+                onPreview={(inv) => void handlePreview(inv)}
+                onDownload={(inv) => void handleDownload(inv)}
+                previewBusy={invoiceBusy === "preview"}
+              />
             </TabsContent>
 
             <TabsContent value="reminders">
@@ -495,6 +466,7 @@ export default function SubscriptionDetailPage() {
             companyId={companyId}
             companyName={data.companyName ?? undefined}
             suggestedAmount={data.amount}
+            invoices={data.invoices ?? []}
             onSaved={() => void load()}
           />
         </>
@@ -542,8 +514,11 @@ function CurrentPeriodInvoicePanel({
         <div>
           <h3 className="text-sm font-semibold">Current period invoice</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Generate → verify PDF → send. Edit the subscription first if details
-            need correction, then regenerate.
+            Generate → verify PDF → send for the current billing period (
+            {subscription.startsAt} → {subscription.endsAt ?? "open"}). When the
+            next period starts, extend the subscription or record payment with
+            extend — then generate a new invoice; earlier periods remain in
+            invoice history below.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -675,6 +650,114 @@ function InfoCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border bg-background p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function SubscriptionPaymentsTable({
+  payments,
+  currencyCode,
+  receiptBusyId,
+  onDownloadReceipt,
+  onSendReceipt,
+}: {
+  payments: SubscriptionPayment[];
+  currencyCode?: string | null;
+  receiptBusyId: number | null;
+  onDownloadReceipt: (payment: SubscriptionPayment) => void;
+  onSendReceipt: (payment: SubscriptionPayment, resend?: boolean) => void;
+}) {
+  if (payments.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+        No payments recorded yet.
+      </p>
+    );
+  }
+
+  const sorted = [...payments].sort((a, b) => b.paidOn.localeCompare(a.paidOn));
+
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2.5">Paid on</th>
+            <th className="px-3 py-2.5">Amount</th>
+            <th className="px-3 py-2.5">Invoice</th>
+            <th className="px-3 py-2.5">Period</th>
+            <th className="px-3 py-2.5">Method</th>
+            <th className="px-3 py-2.5">Receipt</th>
+            <th className="px-3 py-2.5 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((p) => (
+            <tr key={p.id} className="border-t">
+              <td className="px-3 py-2.5">{p.paidOn}</td>
+              <td className="px-3 py-2.5">
+                {formatMoney(p.amount, currencyCode)}
+              </td>
+              <td className="px-3 py-2.5 text-muted-foreground">
+                {p.invoiceNo ?? "—"}
+              </td>
+              <td className="px-3 py-2.5 text-muted-foreground">
+                {p.periodStart ?? "—"} → {p.periodEnd ?? "—"}
+              </td>
+              <td className="px-3 py-2.5 text-muted-foreground">
+                {p.methodNote ?? "—"}
+              </td>
+              <td className="px-3 py-2.5">
+                {p.receiptGenerated ? (
+                  <div className="space-y-0.5">
+                    <Badge variant="secondary">{p.receiptNo ?? "Generated"}</Badge>
+                    {p.receiptSent ? (
+                      <p className="text-xs text-muted-foreground">
+                        Sent {p.receiptToEmail ? `to ${p.receiptToEmail}` : ""}
+                      </p>
+                    ) : p.receiptSendError ? (
+                      <p className="text-xs text-destructive">{p.receiptSendError}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Not sent</p>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </td>
+              <td className="px-3 py-2.5 text-right">
+                {p.receiptGenerated ? (
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDownloadReceipt(p)}
+                    >
+                      <Download className="mr-1 h-4 w-4" />
+                      Receipt
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onSendReceipt(p, p.receiptSent)}
+                      disabled={receiptBusyId === p.id}
+                    >
+                      <Mail className="mr-1 h-4 w-4" />
+                      {receiptBusyId === p.id
+                        ? "Sending…"
+                        : p.receiptSent
+                          ? "Resend"
+                          : "Send"}
+                    </Button>
+                  </div>
+                ) : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
