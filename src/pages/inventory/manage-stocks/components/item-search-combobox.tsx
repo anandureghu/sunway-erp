@@ -62,7 +62,7 @@ export function ItemSearchCombobox({
       <div className="relative" ref={inputWrapperRef}>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
         <Input
-          placeholder="Search by SKU, name, or barcode..."
+          placeholder="Search by SKU, name, barcode, or category..."
           value={query}
           onChange={(e) => {
             onQueryChange(e.target.value);

@@ -23,6 +23,8 @@ export function filterItemsByQuery(
       item.name.toLowerCase().includes(lowerQuery) ||
       item.sku.toLowerCase().includes(lowerQuery) ||
       (item.barcode?.toLowerCase().includes(lowerQuery) ?? false) ||
+      item.category.toLowerCase().includes(lowerQuery) ||
+      (item.subCategory?.toLowerCase().includes(lowerQuery) ?? false) ||
       matchesDateSearch(item.dateReceived, lowerQuery) ||
       matchesDateSearch(item.expiryDate, lowerQuery),
   );

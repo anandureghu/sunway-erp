@@ -5,21 +5,11 @@ import {
   getInventoryReportSummary,
 } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
-import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
 import { resolveCatalogStatus } from "@/pages/inventory/inventory-item-detail/item-detail-utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { filterItemsByQuery } from "@/lib/filter-items";
 
 export { filterItemsByQuery } from "@/lib/filter-items";
-
-function matchesDateSearch(
-  value: string | null | undefined,
-  query: string,
-): boolean {
-  if (!value) return false;
-  const iso = String(value).toLowerCase();
-  const display = formatOptionalDate(value).toLowerCase();
-  return iso.includes(query) || display.includes(query);
-}
 
 export function useManageStocks() {
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
@@ -75,15 +65,9 @@ export function useManageStocks() {
   }, [loadData]);
 
   const filteredStock = useMemo(() => {
-    return items.filter((stock) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        q === "" ||
-        stock.name.toLowerCase().includes(q) ||
-        stock.sku.toLowerCase().includes(q) ||
-        (stock.barcode?.toLowerCase().includes(q) ?? false) ||
-        matchesDateSearch(stock.dateReceived, q) ||
-        matchesDateSearch(stock.expiryDate, q);
+    const searchFiltered = filterItemsByQuery(items, searchQuery);
+
+    return searchFiltered.filter((stock) => {
       const matchesStatus =
         selectedStatus === "all" ||
         resolveCatalogStatus(stock) === selectedStatus;
@@ -92,7 +76,7 @@ export function useManageStocks() {
         (stockKpiFilter === "low_stock" &&
           stock.available <= stock.reorderLevel) ||
         (stockKpiFilter === "on_reserve" && stock.reserved > 0);
-      return matchesSearch && matchesStatus && matchesKpi;
+      return matchesStatus && matchesKpi;
     });
   }, [items, searchQuery, selectedStatus, stockKpiFilter]);
 
