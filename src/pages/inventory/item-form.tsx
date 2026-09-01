@@ -2,8 +2,7 @@
 import {
   createItem,
   listCategories,
-  createCategory,
-  generateCategoryCode,
+  createCategoryWithGeneratedCode,
   updateItem,
   updateItemMultipart,
 } from "@/service/inventoryService";
@@ -141,9 +140,8 @@ function CreateItemForm({
     try {
       setCreatingCategory(true);
       const normalizedName = newCategoryName.trim();
-      const newCategory = await createCategory({
+      const newCategory = await createCategoryWithGeneratedCode({
         name: normalizedName,
-        code: generateCategoryCode(normalizedName),
         status: "active",
       });
       toast.success("Category created successfully!");
@@ -172,9 +170,8 @@ function CreateItemForm({
     try {
       setCreatingSubCategory(true);
       const normalizedName = newSubCategoryName.trim();
-      const newSubCategory = await createCategory({
+      const newSubCategory = await createCategoryWithGeneratedCode({
         name: normalizedName,
-        code: generateCategoryCode(normalizedName),
         status: "active",
         parentId: Number(selectedCategory.id),
       });

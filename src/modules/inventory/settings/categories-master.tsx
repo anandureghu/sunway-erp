@@ -20,7 +20,8 @@ import { type CategoryFormData, CATEGORY_SCHEMA } from "@/schema/inventory";
 import {
   updateCategory,
   generateCategoryCode,
-  createCategory,
+  randomCategoryCodeSuffix,
+  createCategoryWithGeneratedCode,
   listCategories,
   deleteCategory,
   getCategory,
@@ -58,6 +59,9 @@ const CategoriesMaster = () => {
   // Categories management state
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
+  const [previewCodeSuffix, setPreviewCodeSuffix] = useState(
+    () => randomCategoryCodeSuffix(),
+  );
 
   const [selectedCategoryForDetails, setSelectedCategoryForDetails] =
     useState<ItemCategory | null>(null);
@@ -153,6 +157,7 @@ const CategoriesMaster = () => {
 
   const handleNewCategory = () => {
     setEditingCategory(null);
+    setPreviewCodeSuffix(randomCategoryCodeSuffix());
     resetCategory({
       status: "active" as const,
       parentId: undefined,
@@ -162,6 +167,7 @@ const CategoriesMaster = () => {
 
   const handleNewSubcategory = (parentCategory: ItemCategory) => {
     setEditingCategory(null);
+    setPreviewCodeSuffix(randomCategoryCodeSuffix());
     resetCategory({
       status: "active" as const,
       parentId: parentCategory.id,
@@ -190,22 +196,31 @@ const CategoriesMaster = () => {
             : "Category updated successfully!",
         );
       } else {
-        // Generate code from name for new categories
-        const categoryCode = generateCategoryCode(normalizedName);
-
-        const payload = {
-          code: categoryCode,
-          name: normalizedName,
-          status: data.status || "active",
-          parentId: data.parentId ? Number(data.parentId) : undefined,
-        };
-
-        await createCategory(payload);
-        toast.success(
-          data.parentId
-            ? "Subcategory created successfully!"
-            : "Category created successfully!",
-        );
+        try {
+          await createCategoryWithGeneratedCode(
+            {
+              name: normalizedName,
+              status: data.status || "active",
+              parentId: data.parentId ? Number(data.parentId) : undefined,
+            },
+            previewCodeSuffix,
+          );
+          toast.success(
+            data.parentId
+              ? "Subcategory created successfully!"
+              : "Category created successfully!",
+          );
+        } catch (createError: any) {
+          if (
+            createError?.message === "Could not generate a unique category code"
+          ) {
+            toast.error(
+              "Could not generate a unique category code. Please try again.",
+            );
+            return;
+          }
+          throw createError;
+        }
       }
 
       // Reload categories
@@ -585,9 +600,12 @@ const CategoriesMaster = () => {
                   )}
                   {!editingCategory && watchCategoryName && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Code will be:{" "}
+                      Category code will be:{" "}
                       <span className="font-mono font-semibold">
-                        {generateCategoryCode(watchCategoryName)}
+                        {generateCategoryCode(
+                          watchCategoryName,
+                          previewCodeSuffix,
+                        )}
                       </span>
                     </p>
                   )}

@@ -83,6 +83,36 @@ export async function createCategory(payload: CategoryCreateDTO) {
   return toCategory(res.data);
 }
 
+export async function createCategoryWithGeneratedCode(
+  payload: Omit<CategoryCreateDTO, "code">,
+  suffix?: number,
+): Promise<ItemCategory> {
+  let codeSuffix = suffix ?? randomCategoryCodeSuffix();
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await createCategory({
+        ...payload,
+        code: generateCategoryCode(payload.name, codeSuffix),
+      });
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || "";
+      const field = error?.response?.data?.field;
+      if (
+        status === 409 &&
+        (field === "code" || message.toLowerCase().includes("code"))
+      ) {
+        codeSuffix = randomCategoryCodeSuffix();
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Could not generate a unique category code");
+}
+
 export async function updateCategory(
   id: Id | string,
   payload: CategoryUpdateDTO,
@@ -617,14 +647,23 @@ export async function listStock(): Promise<Stock[]> {
   }
 }
 
-// Helper function to generate category code from name
-export const generateCategoryCode = (name: string): string => {
-  return name
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, "_")
-    .replace(/[^A-Z0-9_]/g, "")
-    .substring(0, 50); // Limit length
+// First three letters of the category name (letters only), then "-" and a random number.
+export function getCategoryCodePrefix(name: string): string {
+  const letters = name.trim().replace(/[^a-zA-Z]/g, "").toUpperCase();
+  if (!letters) return "CAT";
+  return letters.slice(0, 3).padEnd(3, "X");
+}
+
+export function randomCategoryCodeSuffix(): number {
+  return Math.floor(Math.random() * 900) + 100;
+}
+
+export const generateCategoryCode = (
+  name: string,
+  suffix?: number,
+): string => {
+  const num = suffix ?? randomCategoryCodeSuffix();
+  return `${getCategoryCodePrefix(name)}-${num}`;
 };
 
 // Helper function to generate warehouse code from name
