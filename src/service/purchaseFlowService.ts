@@ -777,6 +777,7 @@ export interface GoodsReceiptResponseDTO {
     batchNo?: string;
     lotNo?: string;
     unitCost?: number;
+    expiryDate?: string | null;
     stockedAt?: string | null;
   }>;
 }
@@ -799,8 +800,10 @@ function toGoodsReceipt(
   order?: PurchaseOrder,
 ): GoodsReceipt {
   const items: GoodsReceiptItem[] = (dto.items || []).map((li) => {
-    const orderItem = order?.items.find(
-      (oi) => String(oi.itemId) === String(li.itemId),
+    const orderItem = order?.items.find((oi) =>
+      li.purchaseOrderItemId != null
+        ? String(oi.id) === String(li.purchaseOrderItemId)
+        : String(oi.itemId) === String(li.itemId),
     );
     return {
       id: String(li.id),
@@ -840,6 +843,7 @@ function toGoodsReceipt(
             }
           : undefined,
       unitCost: li.unitCost,
+      expiryDate: li.expiryDate ?? undefined,
       stockedAt: li.stockedAt ?? null,
       notes: li.remarks,
     };

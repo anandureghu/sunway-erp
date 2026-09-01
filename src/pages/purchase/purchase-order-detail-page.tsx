@@ -958,7 +958,7 @@ export default function PurchaseOrderDetailPage() {
                         <th className="pb-3 pr-4">Item</th>
                         <th className="pb-3 pr-4 text-right">Qty</th>
                         <th className="pb-3 pr-4 text-right">Item cost</th>
-                        <th className="pb-3 pr-4 text-right">Other</th>
+                        <th className="pb-3 pr-4 text-right">Estimated cost</th>
                         <th className="pb-3 pr-4 text-right">Applied</th>
                         <th className="pb-3 pr-4 text-right">Line total</th>
                         <th className="pb-3 text-right">Received</th>

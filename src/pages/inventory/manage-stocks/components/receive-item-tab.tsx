@@ -228,12 +228,22 @@ export function ReceiveItemTab({
     });
 
     const costPrice =
-      line.unitCost ?? line.orderItem?.unitCost ?? inventoryItem.costPrice;
+      line.unitCost ??
+      line.orderItem?.unitPrice ??
+      line.orderItem?.unitCost ??
+      inventoryItem.costPrice;
     if (costPrice != null) {
       setValue("costPrice", Number(costPrice), { shouldValidate: true });
     }
     setValue("batchNo", line.batchNo ?? "");
     setValue("serialNo", line.lotNo ?? "");
+    const saleByDate =
+      line.expiryDate ?? inventoryItem.expiryDate ?? "";
+    setValue(
+      "expiryDate",
+      saleByDate ? String(saleByDate).slice(0, 10) : "",
+      { shouldValidate: true },
+    );
 
     setItemSearchQuery(inventoryItem.name);
   };
@@ -264,6 +274,14 @@ export function ReceiveItemTab({
     setValue("warehouseId", String(item.warehouse_id), {
       shouldValidate: true,
     });
+    setValue(
+      "expiryDate",
+      item.expiryDate ? String(item.expiryDate).slice(0, 10) : "",
+      { shouldValidate: true },
+    );
+    if (item.costPrice != null) {
+      setValue("costPrice", Number(item.costPrice), { shouldValidate: true });
+    }
     setItemSearchQuery("");
   };
 
