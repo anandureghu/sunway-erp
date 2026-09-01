@@ -139,7 +139,7 @@ export function CreatePurchaseRequisitionForm({
   const [selectedItem, setSelectedItem] = useState<string>("");
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [itemQuantity, setItemQuantity] = useState<number>(1);
-  /** Optional override; empty means use item cost price. */
+  /** Optional override; empty means use standard cost from master. */
   const [itemOtherCostInput, setItemOtherCostInput] = useState<string>("");
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -872,7 +872,7 @@ export function CreatePurchaseRequisitionForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Item cost (from master)</Label>
+                    <Label>Standard cost (from master)</Label>
                     <div className="flex h-9 items-center text-sm tabular-nums">
                       <CurrencyAmount
                         amount={Number(selectedItemRecord?.costPrice ?? 0)}
@@ -911,9 +911,9 @@ export function CreatePurchaseRequisitionForm({
                           <th className="p-3 text-left w-12">Sl No</th>
                           <th className="p-3 text-left min-w-[140px]">Description</th>
                           <th className="p-3 text-right w-28 min-w-[7rem]">Qty</th>
-                          <th className="p-3 text-right w-28">Item cost</th>
-                          <th className="p-3 text-right w-32">Other cost</th>
-                          <th className="p-3 text-right w-28">Applied</th>
+                          <th className="p-3 text-right w-28">Standard cost</th>
+                          <th className="p-3 text-right w-32">Estimated cost</th>
+                          <th className="p-3 text-right w-28">Estimated cost</th>
                           <th className="p-3 text-right min-w-[8rem]">
                             Est. Line Total
                           </th>
