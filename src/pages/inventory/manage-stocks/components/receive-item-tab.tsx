@@ -18,7 +18,7 @@ import {
   type ReceiveItemFormData,
 } from "@/schema/inventory";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { receiveItemStock } from "@/service/inventoryService";
+import { listItems, receiveItemStock } from "@/service/inventoryService";
 import {
   listInspectedReceiptsAwaitingStock,
   listPurchaseOrders,
@@ -34,7 +34,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import CreateItemForm from "../../item-form";
-import { filterItemsByQuery } from "../use-manage-stocks";
+import { filterItemsByQuery } from "@/lib/filter-items";
 import { ItemSearchCombobox } from "./item-search-combobox";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 
@@ -121,7 +121,22 @@ export function ReceiveItemTab({
   const [selectedLineId, setSelectedLineId] = useState<string>("");
   const [loadingReceipts, setLoadingReceipts] = useState(false);
   const [receiptSearchQuery, setReceiptSearchQuery] = useState("");
+  const [catalogItems, setCatalogItems] = useState<ItemResponseDTO[]>([]);
   const selectedWarehouseId = watch("warehouseId");
+
+  useEffect(() => {
+    listItems()
+      .then(setCatalogItems)
+      .catch(() => setCatalogItems([]));
+  }, []);
+
+  const activeCatalogItems = useMemo(
+    () =>
+      catalogItems.filter(
+        (item) => item.status === "active" && !item.archived,
+      ),
+    [catalogItems],
+  );
 
   const refreshAwaitingStock = () => {
     setLoadingReceipts(true);
@@ -136,19 +151,10 @@ export function ReceiveItemTab({
     refreshAwaitingStock();
   }, []);
 
-  const searchResults = useMemo(() => {
-    const query = itemSearchQuery.trim();
-    const filtered = filterItemsByQuery(items, itemSearchQuery);
-    // Hide the list once the typed query exactly matches the selected item name.
-    if (
-      query &&
-      selectedItem &&
-      selectedItem.name.trim().toLowerCase() === query.toLowerCase()
-    ) {
-      return [];
-    }
-    return filtered;
-  }, [items, itemSearchQuery, selectedItem]);
+  const searchResults = useMemo(
+    () => filterItemsByQuery(activeCatalogItems, itemSearchQuery),
+    [activeCatalogItems, itemSearchQuery],
+  );
 
   const stockRowForSelection = useMemo(() => {
     if (!selectedItem || !selectedWarehouseId) return null;
@@ -178,11 +184,21 @@ export function ReceiveItemTab({
         receipt.order?.supplierName?.toLowerCase() ??
         receipt.order?.supplier?.name?.toLowerCase() ??
         "";
+      const matchesLineItem = receipt.items.some((line) => {
+        const label = purchaseLineItemName({
+          itemId: line.itemId,
+          itemName: line.item?.name,
+          item: line.orderItem,
+        }).toLowerCase();
+        const sku = line.item?.sku?.toLowerCase() ?? "";
+        return label.includes(q) || sku.includes(q);
+      });
       return (
         receipt.receiptNo.toLowerCase().includes(q) ||
         poNo.includes(q) ||
         supplier.includes(q) ||
-        String(receipt.orderId).includes(q)
+        String(receipt.orderId).includes(q) ||
+        matchesLineItem
       );
     });
   }, [awaitingStockReceipts, receiptSearchQuery]);
@@ -364,7 +380,7 @@ export function ReceiveItemTab({
                     Search goods receipt or PO
                   </label>
                   <Input
-                    placeholder="Search by GR no., PO no., or supplier…"
+                    placeholder="Search by GR no., PO no., supplier, or item…"
                     value={receiptSearchQuery}
                     onChange={(e) => setReceiptSearchQuery(e.target.value)}
                     disabled={loadingReceipts}
@@ -749,6 +765,7 @@ export function ReceiveItemTab({
           >
             <CreateItemForm
               onSuccess={(newItem) => {
+                setCatalogItems((prev) => [...prev, newItem]);
                 handleItemSelect(newItem);
                 setShowCreateItemDialog(false);
                 setItemSearchQuery("");

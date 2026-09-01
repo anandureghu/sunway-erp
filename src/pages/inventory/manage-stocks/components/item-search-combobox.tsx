@@ -90,7 +90,7 @@ export function ItemSearchCombobox({
           >
             {results.map((item) => (
               <button
-                key={item.id}
+                key={`${item.id}-${item.warehouse_id ?? 0}`}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(item)}

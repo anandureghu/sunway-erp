@@ -187,7 +187,7 @@ export default function InspectionPage() {
     return pendingReceipts.filter(
       (r) =>
         r.receiptNo.toLowerCase().includes(q) ||
-        r.order?.orderNo.toLowerCase().includes(q),
+        (r.order?.orderNo?.toLowerCase().includes(q) ?? false),
     );
   }, [pendingReceipts, searchQuery]);
 
@@ -197,7 +197,7 @@ export default function InspectionPage() {
     return inspectedReceipts.filter(
       (r) =>
         r.receiptNo.toLowerCase().includes(q) ||
-        r.order?.orderNo.toLowerCase().includes(q),
+        (r.order?.orderNo?.toLowerCase().includes(q) ?? false),
     );
   }, [inspectedReceipts, searchQuery]);
 

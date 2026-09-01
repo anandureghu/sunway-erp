@@ -20,10 +20,10 @@ export function filterItemsByQuery(
   const lowerQuery = trimmed.toLowerCase();
   return items.filter(
     (item) =>
-      item.name.toLowerCase().includes(lowerQuery) ||
-      item.sku.toLowerCase().includes(lowerQuery) ||
+      (item.name?.toLowerCase().includes(lowerQuery) ?? false) ||
+      (item.sku?.toLowerCase().includes(lowerQuery) ?? false) ||
       (item.barcode?.toLowerCase().includes(lowerQuery) ?? false) ||
-      item.category.toLowerCase().includes(lowerQuery) ||
+      (item.category?.toLowerCase().includes(lowerQuery) ?? false) ||
       (item.subCategory?.toLowerCase().includes(lowerQuery) ?? false) ||
       matchesDateSearch(item.dateReceived, lowerQuery) ||
       matchesDateSearch(item.expiryDate, lowerQuery),
