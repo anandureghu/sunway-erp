@@ -829,6 +829,7 @@ export function CreateSalesOrderForm({
                     type="number"
                     min="0"
                     max="100"
+                    step="0.1"
                     value={itemDiscount}
                     onChange={(e) =>
                       setItemDiscount(parseFloat(e.target.value) || 0)

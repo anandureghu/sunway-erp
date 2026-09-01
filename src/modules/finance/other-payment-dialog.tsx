@@ -188,6 +188,7 @@ export function OtherPaymentDialog({
                       </span>
                       <Input
                         type="number"
+                        step="0.01"
                         value={form.amount || ""}
                         onChange={(e) => update("amount", Number(e.target.value))}
                         placeholder="0.00"
