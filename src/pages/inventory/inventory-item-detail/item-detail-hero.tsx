@@ -19,6 +19,7 @@ import {
   warehouseLabel,
   type StockIndicator,
 } from "./item-detail-utils";
+import { catalogDiscountPercent, hasCatalogDiscount, listPriceOf } from "@/lib/item-catalog-pricing";
 import { safeLocaleNumber } from "./formatters";
 
 type Props = {
@@ -61,6 +62,8 @@ export function ItemDetailHero({ item, imageNonce, onEdit, onUpdateImage }: Prop
   const unit = item.unitMeasure || "pcs";
   const indicator = resolveStockIndicator(item);
   const selling = displaySellingPrice(item);
+  const list = listPriceOf(item);
+  const catalogDiscount = catalogDiscountPercent(item);
   const cost = Number(item.costPrice);
   const margin = marginPercent(item);
   const warehouse = warehouseLabel(item);
@@ -132,6 +135,12 @@ export function ItemDetailHero({ item, imageNonce, onEdit, onUpdateImage }: Prop
             <p className="mt-1 text-xl font-bold tabular-nums text-indigo-700">
               <CurrencyAmount amount={selling} />
             </p>
+            {hasCatalogDiscount(item) ? (
+              <p className="mt-0.5 text-[11px] font-medium text-indigo-600/90">
+                {catalogDiscount}% off list (
+                <CurrencyAmount amount={list} className="inline" />)
+              </p>
+            ) : null}
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">

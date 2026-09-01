@@ -93,7 +93,7 @@ export async function createCategoryWithGeneratedCode(
     try {
       return await createCategory({
         ...payload,
-        code: generateCategoryCode(payload.name, codeSuffix),
+        code: generateCategoryCode(payload.name ?? "", codeSuffix),
       });
     } catch (error: any) {
       const status = error?.response?.status;

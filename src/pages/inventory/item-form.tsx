@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X, Package, Tag, DollarSign, Layers } from "lucide-react";
+import { Plus, X, Package, Tag, DollarSign, Layers, Wrench } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ITEM_SCHEMA,
@@ -190,12 +190,15 @@ function CreateItemForm({
 
   const { register, handleSubmit, formState: { errors }, setValue, watch, reset, getValues } = useForm<ItemFormValues>({
     resolver: zodResolver(ITEM_SCHEMA),
-    defaultValues: { status: "active", unit: "pcs", costPrice: 0, sellingPrice: 0, reorderLevel: 0, minimum: 0, maximum: 0, unitSale: 0 },
+    defaultValues: { status: "active", unit: "pcs", costPrice: 0, sellingPrice: 0, reorderLevel: 0, minimum: 0, maximum: 0, unitSale: 0, negativeStockPermitted: false },
   });
 
   const buildPayload = (data: ItemFormData, warehouseId?: number) => ({
     sku: data.sku?.toUpperCase(), name: data.name, type: data.itemType,
     category: data.category, subCategory: data.subcategory, brand: data.brand,
+    manufacturerPartNumber: data.manufacturerPartNumber?.trim() || undefined,
+    model: data.model?.trim() || undefined,
+    negativeStockPermitted: data.negativeStockPermitted ?? false,
     description: data.description, location: data.location, serialNo: data.serialNo,
     warehouse: warehouseId ?? data.warehouse,
     quantity: Number(data.quantity ?? 0),
@@ -211,6 +214,9 @@ function CreateItemForm({
     id: item.id?.toString(),
     sku: item.sku ?? "", name: item.name ?? "", itemType: item.type ?? "",
     category: item.category ?? "", subcategory: item.subCategory ?? "", brand: item.brand ?? "",
+    manufacturerPartNumber: item.manufacturerPartNumber ?? "",
+    model: item.model ?? "",
+    negativeStockPermitted: item.negativeStockPermitted ?? false,
     description: item.description ?? "",
     location: item.location ?? "", serialNo: item.serialNo ?? "",
     unit: (item.unitMeasure as any) ?? undefined,
@@ -416,8 +422,41 @@ function CreateItemForm({
         </div>
       </ItemSectionCard>
 
+      {/* ── Section: Technical specifications ── */}
+      <ItemSectionCard icon={<Wrench className="h-3.5 w-3.5 text-white" />} title="Technical specifications">
+        <div className={fieldsGrid}>
+          <F label="Manufacturer part no.">
+            <Input placeholder="Manufacturer part number" {...register("manufacturerPartNumber")} className={icls} />
+          </F>
+
+          <F label="Model">
+            <Input placeholder="Model name or number" {...register("model")} className={icls} />
+          </F>
+
+          <F label="Negative stock permitted" required>
+            <Select
+              onValueChange={(value) =>
+                setValue("negativeStockPermitted", value === "yes")
+              }
+              value={watch("negativeStockPermitted") ? "yes" : "no"}
+            >
+              <SelectTrigger className={icls}>
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                <SelectItem value="no">No</SelectItem>
+                <SelectItem value="yes">Yes</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-slate-400 mt-1">
+              When No, sales cannot exceed available warehouse stock.
+            </p>
+          </F>
+        </div>
+      </ItemSectionCard>
+
       {/* ── Section: Unit & Warehouse ── */}
-      <ItemSectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Unit &amp; warehouse">
+      <ItemSectionCard icon={<Package className="h-3.5 w-3.5 text-white" />} title="Inventory control">
         <div className={fieldsGrid}>
           <F label="Unit" required>
             <Select onValueChange={(value) => setValue("unit", value as any)} value={watch("unit")}>
@@ -464,21 +503,6 @@ function CreateItemForm({
             <Input type="date" {...register("expiryDate")} className={cn(icls, "min-w-[9.5rem]")} />
             <p className="text-[11px] text-slate-400 mt-1">Optional</p>
           </F>
-        </div>
-      </ItemSectionCard>
-
-      {/* ── Section: Pricing ── */}
-      <ItemSectionCard icon={<DollarSign className="h-3.5 w-3.5 text-white" />} title="Pricing">
-        <div className={fieldsGrid}>
-          <F label="Cost Price" required>
-            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("costPrice", { valueAsNumber: true })} className={icls} />
-            {errors.costPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.costPrice.message}</p>}
-          </F>
-
-          <F label="Selling price" required>
-            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("sellingPrice", { valueAsNumber: true })} className={icls} />
-            {errors.sellingPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.sellingPrice.message}</p>}
-          </F>
 
           <F label="Reorder level" required>
             <Input type="number" step="1" min="0" placeholder="0" {...register("reorderLevel", { valueAsNumber: true })} className={icls} />
@@ -493,6 +517,21 @@ function CreateItemForm({
           <F label="Maximum Stock">
             <Input type="number" step="1" min="0" placeholder="0" {...register("maximum", { setValueAs: (v) => v === "" || v == null ? 0 : Number(v) })} className={icls} />
             {errors.maximum && <p className="text-[11px] text-rose-400 mt-1">{errors.maximum.message}</p>}
+          </F>
+        </div>
+      </ItemSectionCard>
+
+      {/* ── Section: Cost and selling ── */}
+      <ItemSectionCard icon={<DollarSign className="h-3.5 w-3.5 text-white" />} title="Cost and selling">
+        <div className={fieldsGrid}>
+          <F label="Cost Price" required>
+            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("costPrice", { valueAsNumber: true })} className={icls} />
+            {errors.costPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.costPrice.message}</p>}
+          </F>
+
+          <F label="Selling price" required>
+            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("sellingPrice", { valueAsNumber: true })} className={icls} />
+            {errors.sellingPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.sellingPrice.message}</p>}
           </F>
         </div>
       </ItemSectionCard>

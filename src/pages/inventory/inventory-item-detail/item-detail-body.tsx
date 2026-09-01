@@ -62,6 +62,8 @@ export function ItemDetailBody({ item }: Props) {
 
   const specs: { label: string; value: string }[] = [
     { label: "Brand", value: item.brand?.trim() || "—" },
+    { label: "Manufacturer part no.", value: item.manufacturerPartNumber?.trim() || "—" },
+    { label: "Model", value: item.model?.trim() || "—" },
     { label: "Category", value: item.category?.trim() || "—" },
     { label: "Sub category", value: item.subCategory?.trim() || "—" },
     { label: "Item type", value: item.type?.trim() || "—" },
@@ -107,7 +109,9 @@ export function ItemDetailBody({ item }: Props) {
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
-        <h2 className="text-base font-semibold text-slate-900">Technical Specs</h2>
+        <h2 className="text-base font-semibold text-slate-900">
+          Technical specifications
+        </h2>
         <div className="mt-2 flex-1">
           {specs.map((row) => (
             <SpecRow key={row.label} label={row.label} value={row.value} />

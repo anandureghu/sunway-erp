@@ -1,4 +1,5 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import { catalogDiscountPercent, hasCatalogDiscount } from "@/lib/item-catalog-pricing";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
@@ -98,6 +99,9 @@ export function ItemSearchCombobox({
                 <div className="font-medium">{item.name}</div>
                 <div className="text-sm text-gray-500">
                   SKU: {item.sku} | {item.category}
+                  {hasCatalogDiscount(item)
+                    ? ` | ${catalogDiscountPercent(item)}% off list`
+                    : ""}
                 </div>
               </button>
             ))}

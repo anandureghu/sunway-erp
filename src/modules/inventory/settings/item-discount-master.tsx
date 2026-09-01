@@ -26,6 +26,10 @@ import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { useModulePermission } from "@/hooks/use-module-permission";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { priceAfterDiscount } from "@/lib/discount-floor";
+import {
+  catalogDiscountPercent,
+  listPriceOf,
+} from "@/lib/item-catalog-pricing";
 import { InventoryModule } from "@/lib/module-permissions";
 import {
   applyItemBulkDiscount,
@@ -47,20 +51,6 @@ function formatDate(value?: string | null): string {
   if (!value) return "—";
   const d = value.slice(0, 10);
   return d || "—";
-}
-
-function listPriceOf(item: ItemResponseDTO): number {
-  const list = Number(item.listPrice ?? 0);
-  if (list > 0) return list;
-  return Number(item.sellingPrice ?? 0);
-}
-
-/** Current catalog discount vs list price (0 when none / invalid). */
-function currentDiscountPercent(item: ItemResponseDTO): number {
-  const list = listPriceOf(item);
-  const sell = Number(item.sellingPrice ?? 0);
-  if (!(list > 0) || sell < 0 || sell >= list) return 0;
-  return Math.round((1 - sell / list) * 10000) / 100;
 }
 
 export default function ItemDiscountMaster() {
@@ -416,7 +406,7 @@ export default function ItemDiscountMaster() {
                   const list = listPriceOf(item);
                   const selling = Number(item.sellingPrice ?? 0);
                   const cost = Number(item.costPrice ?? 0);
-                  const currentPct = currentDiscountPercent(item);
+                  const currentPct = catalogDiscountPercent(item);
                   const afterPreview =
                     previewDiscount != null && list > 0
                       ? priceAfterDiscount(list, previewDiscount, cost)

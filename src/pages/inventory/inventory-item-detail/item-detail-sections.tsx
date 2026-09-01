@@ -2,6 +2,8 @@ import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { ItemDetailHero } from "./item-detail-hero";
 import { ItemDetailBody } from "./item-detail-body";
 import { ItemDetailStockOverview } from "./item-detail-stock-overview";
+import { ItemDetailCostSelling } from "./item-detail-cost-selling";
+import { ItemDetailAudit } from "./item-detail-audit";
 
 type Props = {
   item: ItemResponseDTO;
@@ -26,6 +28,10 @@ export function ItemDetailSections({
       />
       <ItemDetailBody item={item} />
       <ItemDetailStockOverview item={item} />
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <ItemDetailCostSelling item={item} />
+        <ItemDetailAudit item={item} />
+      </div>
     </div>
   );
 }
