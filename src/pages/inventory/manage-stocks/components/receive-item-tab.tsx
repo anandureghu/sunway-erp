@@ -131,6 +131,19 @@ export function ReceiveItemTab({
     ItemWarehouseStockRowDTO[]
   >([]);
   const selectedWarehouseId = watch("warehouseId");
+  const watchedExpiryDate = watch("expiryDate");
+
+  const toSaleByDate = (value: unknown): string => {
+    if (value == null || value === "") return "";
+    return String(value).slice(0, 10);
+  };
+
+  const resolveSubmitSaleByDate = (formExpiry?: string): string | undefined => {
+    const fromForm = toSaleByDate(formExpiry);
+    if (fromForm) return fromForm;
+    const fromItem = toSaleByDate(selectedItem?.expiryDate);
+    return fromItem || undefined;
+  };
 
   useEffect(() => {
     listItems()
@@ -248,12 +261,8 @@ export function ReceiveItemTab({
     }
     setValue("batchNo", line.batchNo ?? "");
     setValue("serialNo", line.lotNo ?? "");
-    const saleByDate = line.expiryDate ?? inventoryItem.expiryDate ?? "";
-    setValue(
-      "expiryDate",
-      saleByDate ? String(saleByDate).slice(0, 10) : "",
-      { shouldValidate: true },
-    );
+    const saleByDate = toSaleByDate(line.expiryDate ?? inventoryItem.expiryDate);
+    setValue("expiryDate", saleByDate, { shouldValidate: true });
 
     setItemSearchQuery(inventoryItem.name);
     void listItemWarehouseStock(line.itemId)
@@ -317,7 +326,7 @@ export function ReceiveItemTab({
     });
     setValue(
       "expiryDate",
-      item.expiryDate ? String(item.expiryDate).slice(0, 10) : "",
+      toSaleByDate(item.expiryDate),
       { shouldValidate: true },
     );
     if (item.costPrice != null) {
@@ -362,7 +371,7 @@ export function ReceiveItemTab({
               batchNo: data.batchNo,
               lotNo: data.serialNo,
               unitCost: data.costPrice,
-              expiryDate: data.expiryDate || undefined,
+              expiryDate: resolveSubmitSaleByDate(data.expiryDate),
             },
           ],
         });
@@ -372,7 +381,7 @@ export function ReceiveItemTab({
         await receiveItemStock(data.itemId, {
           quantityReceived: data.quantityReceived,
           receivedDate: data.receivedDate,
-          expiryDate: data.expiryDate || undefined,
+          expiryDate: resolveSubmitSaleByDate(data.expiryDate),
           batchNo: data.batchNo,
           serialNo: data.serialNo,
           referenceNo: data.referenceNo,
@@ -731,9 +740,21 @@ export function ReceiveItemTab({
                   <label className="text-sm font-medium mb-2 block">
                     Sale by Date
                   </label>
-                  <Input type="date" {...register("expiryDate")} />
+                  <Input
+                    type="date"
+                    {...register("expiryDate")}
+                    value={watchedExpiryDate ?? ""}
+                    onChange={(e) =>
+                      setValue("expiryDate", e.target.value, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                  />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Optional — leave blank if there is no sale-by date
+                    {selectedItem.expiryDate
+                      ? `Defaults to the item sale-by date (${toSaleByDate(selectedItem.expiryDate)}) when left blank.`
+                      : "Optional — leave blank if there is no sale-by date"}
                   </p>
                 </div>
 

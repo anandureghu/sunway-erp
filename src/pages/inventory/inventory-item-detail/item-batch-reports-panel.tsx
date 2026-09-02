@@ -87,7 +87,7 @@ function BatchLayersTable({
             <th className="p-3 text-right">Unit cost</th>
             <th className="p-3 text-right">Value</th>
             <th className="p-3">Received</th>
-            <th className="p-3">Expiry</th>
+            <th className="p-3">Sale by</th>
           </tr>
         </thead>
         <tbody className="[&_tr:nth-child(even)]:bg-slate-50/50">
