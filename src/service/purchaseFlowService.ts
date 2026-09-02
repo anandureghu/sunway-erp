@@ -749,6 +749,8 @@ export interface StockPostingDTO {
 export interface GoodsReceiptResponseDTO {
   id: number;
   purchaseOrderId: number;
+  purchaseOrderNumber?: string | null;
+  supplierName?: string | null;
   status: "PENDING_INSPECTION" | "INSPECTED";
   archived: boolean;
   receivedAt: string;
@@ -853,6 +855,13 @@ function toGoodsReceipt(
     id: String(dto.id),
     receiptNo: `GR-${dto.id}`,
     orderId: String(dto.purchaseOrderId || ""),
+    purchaseOrderNumber:
+      dto.purchaseOrderNumber ?? order?.orderNo ?? order?.orderNumber ?? undefined,
+    supplierName:
+      dto.supplierName ??
+      order?.supplierName ??
+      order?.supplier?.name ??
+      undefined,
     order: order,
     receiptDate: dto.receivedAt || "",
     documentPdfUrl: dto.documentPdfUrl ?? null,
