@@ -116,8 +116,6 @@ export function ItemDetailHero({ item, imageNonce, onEdit, onUpdateImage }: Prop
           {item.name}
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Item ID: {item.id}
-          <span className="mx-1.5 text-slate-300">·</span>
           SKU: <span className="font-mono text-[13px]">{item.sku || "—"}</span>
         </p>
 

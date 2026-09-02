@@ -1,34 +1,56 @@
-import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import type {
+  ItemResponseDTO,
+  ItemWarehouseStockRowDTO,
+} from "@/service/erpApiTypes";
 import { safeLocaleQty } from "./formatters";
-import {
-  resolveStockIndicator,
-  warehouseLabel,
-} from "./item-detail-utils";
+import { resolveStockIndicator } from "./item-detail-utils";
 import {
   AlertTriangle,
   ArrowDownToLine,
+  Loader2,
   Package,
   Warehouse,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type Props = {
   item: ItemResponseDTO;
+  warehouseStock: ItemWarehouseStockRowDTO[];
+  warehouseStockLoading: boolean;
 };
 
-export function ItemDetailStockOverview({ item }: Props) {
+export function ItemDetailStockOverview({
+  item,
+  warehouseStock,
+  warehouseStockLoading,
+}: Props) {
   const unit = item.unitMeasure || "pcs";
   const indicator = resolveStockIndicator(item);
-  const available = Number(item.available ?? 0);
-  const quantity = Number(item.quantity ?? 0);
-  const reserved = Number(item.reserved ?? 0);
   const reorder = Number(item.reorderLevel ?? 0);
+
+  const totals = warehouseStock.reduce(
+    (acc, row) => {
+      acc.onHand += Number(row.quantityOnHand ?? 0);
+      acc.reserved += Number(row.reserved ?? 0);
+      acc.available += Number(row.available ?? 0);
+      return acc;
+    },
+    { onHand: 0, reserved: 0, available: 0 },
+  );
+
+  const hasWarehouseRows = warehouseStock.length > 0;
+  const onHand = hasWarehouseRows ? totals.onHand : Number(item.quantity ?? 0);
+  const reserved = hasWarehouseRows ? totals.reserved : Number(item.reserved ?? 0);
+  const available = hasWarehouseRows
+    ? totals.available
+    : Number(item.available ?? 0);
 
   const cards = [
     {
       icon: Package,
       title: "On hand",
-      value: safeLocaleQty(quantity, unit),
-      hint: `${available.toLocaleString()} available`,
+      value: safeLocaleQty(onHand, unit),
+      hint: `${available.toLocaleString()} available across warehouses`,
       tone: "bg-indigo-50 text-indigo-600",
     },
     {
@@ -51,27 +73,18 @@ export function ItemDetailStockOverview({ item }: Props) {
           ? "bg-rose-50 text-rose-600"
           : "bg-slate-100 text-slate-600",
     },
-    {
-      icon: Warehouse,
-      title: "Warehouse",
-      value: warehouseLabel(item) || "Unassigned",
-      hint: item.warehouse_location || item.location || "No bin location",
-      tone: "bg-violet-50 text-violet-600",
-    },
   ];
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-base font-bold text-slate-900">Inventory Control</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Live inventory levels, warehouse placement, and stock policy
-          </p>
-        </div>
+      <div>
+        <h2 className="text-base font-bold text-slate-900">Inventory Control</h2>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Live inventory levels by warehouse and stock policy
+        </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         {cards.map((card) => (
           <div
             key={card.title}
@@ -93,6 +106,71 @@ export function ItemDetailStockOverview({ item }: Props) {
             </p>
           </div>
         ))}
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
+        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+          <Warehouse className="h-4 w-4 text-indigo-600" />
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">
+              Stock by warehouse
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              On-hand, reserved, and available quantity at each location
+            </p>
+          </div>
+        </div>
+
+        {warehouseStockLoading ? (
+          <div className="flex items-center gap-2 px-4 py-6 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading warehouse stock…
+          </div>
+        ) : warehouseStock.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-slate-500">
+            No warehouse stock rows yet. Receive stock into a warehouse to see
+            quantities here.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[28rem] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-2.5 font-medium">Warehouse</th>
+                  <th className="px-4 py-2.5 text-right font-medium">On hand</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Reserved</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Available</th>
+                </tr>
+              </thead>
+              <tbody>
+                {warehouseStock.map((row) => (
+                  <tr
+                    key={row.warehouseId}
+                    className="border-b border-slate-50 last:border-0"
+                  >
+                    <td className="px-4 py-2.5 font-medium text-slate-900">
+                      <Link
+                        to={`/inventory/warehouses/${row.warehouseId}`}
+                        className="underline-offset-2 hover:underline"
+                      >
+                        {row.warehouseName || `Warehouse ${row.warehouseId}`}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-800">
+                      {safeLocaleQty(row.quantityOnHand, unit)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-800">
+                      {safeLocaleQty(row.reserved, unit)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-900">
+                      {safeLocaleQty(row.available, unit)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 text-sm">
