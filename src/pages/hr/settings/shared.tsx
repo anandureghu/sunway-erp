@@ -80,6 +80,18 @@ export interface JobCode {
   minSalary?: number | null;
   maxSalary?: number | null;
   active: boolean;
+  /** Approval state: PENDING_APPROVAL | APPROVED | REJECTED. */
+  status?: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | string;
+  // Defaults copied onto the current job when this code is assigned.
+  departmentId?: number | null;
+  departmentName?: string | null;
+  divisionId?: number | null;
+  divisionName?: string | null;
+  employmentCategory?: string | null;
+  employmentType?: string | null;
+  workLocation?: string | null;
+  workCity?: string | null;
+  workCountry?: string | null;
 }
 
 export interface Permission {

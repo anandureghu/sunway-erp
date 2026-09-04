@@ -128,6 +128,9 @@ export type ItemResponseDTO = {
   subCategory: string | null;
 
   brand: string | null;
+  manufacturerPartNumber?: string | null;
+  model?: string | null;
+  negativeStockPermitted?: boolean;
 
   quantity: number;
   available: number;
@@ -178,6 +181,9 @@ export type ItemCreateDTO = {
   category?: string;
   subCategory?: string;
   brand?: string;
+  manufacturerPartNumber?: string;
+  model?: string;
+  negativeStockPermitted?: boolean;
   location?: string;
   serialNo?: string;
   dateReceived?: string;
@@ -204,6 +210,9 @@ export type ItemUpdateDTO = {
   category?: string;
   subCategory?: string;
   brand?: string;
+  manufacturerPartNumber?: string;
+  model?: string;
+  negativeStockPermitted?: boolean;
   location?: string;
   serialNo?: string;
   dateReceived?: string;

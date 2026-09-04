@@ -61,6 +61,9 @@ interface PayrollRow {
   grossPay: string;
   netPayable: string;
   totalDeductions?: string | number;
+  /** True for an exit run (final settlement / EOS); false/absent = a regular run. */
+  finalSettlement?: boolean;
+  endOfServiceCompensation?: string | number;
 }
 
 type BulkStatus = "pending" | "skipped" | "generating" | "done" | "error";
@@ -330,6 +333,22 @@ function EmployeePayrollTab() {
     payPeriodEnd: "",
     payDate: "",
   });
+  // Why the last generate attempt for this employee was refused — shown inline so the
+  // HR user sees the exact reason (missing salary, pending leave, past end date, …).
+  const [generateError, setGenerateError] = useState<{
+    message: string;
+    details: string[];
+  } | null>(null);
+
+  // Clear the failure reason as soon as the user changes employee or any date.
+  useEffect(() => {
+    setGenerateError(null);
+  }, [
+    selected?.id,
+    payrollInput.payPeriodStart,
+    payrollInput.payPeriodEnd,
+    payrollInput.payDate,
+  ]);
 
   // ── load employees + histories ──────────────────────────────────────────────
   useEffect(() => {
@@ -394,11 +413,19 @@ function EmployeePayrollTab() {
   }, []);
 
   // ── bulk checkbox helpers ───────────────────────────────────────────────────
-  const filteredEmployees = employees.filter((e) =>
-    `${e.firstName ?? ""} ${e.lastName ?? ""}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  );
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const filteredEmployees = employees
+    // Inactive employees are not payable and are excluded from the selection list.
+    .filter((e) => String(e.status ?? "").toUpperCase() !== "INACTIVE")
+    // Expired employees — whose expected end date (last working day) has already
+    // passed — have left the company and are removed from the payroll list.
+    .filter((e) => !e.expectedEndDate || e.expectedEndDate >= todayIso)
+    // Searchable by name AND employee code.
+    .filter((e) =>
+      `${e.firstName ?? ""} ${e.lastName ?? ""} ${e.employeeNo ?? ""}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
+    );
 
   // Only active employees can be bulk-processed; exits are settled individually.
   const bulkEligibleEmployees = filteredEmployees.filter(
@@ -496,17 +523,24 @@ function EmployeePayrollTab() {
   }, [selected, payrollInput.payPeriodStart, allHistories, history]);
 
   // ── single generate ─────────────────────────────────────────────────────────
+  // Record a refusal reason both inline (persistent) and as a toast.
+  const failGenerate = (message: string, details: string[] = []) => {
+    setGenerateError({ message, details });
+    toast.error(message);
+  };
+
   const handleGenerate = async () => {
     if (!selected) return;
+    setGenerateError(null);
     const dateErr = validateDates(payrollInput);
     if (dateErr) {
-      toast.error(dateErr);
+      failGenerate(dateErr);
       return;
     }
     // A final settlement cannot run beyond the expected end date (last working day).
     if (isExitStatus(selected.status)) {
       if (!selected.expectedEndDate) {
-        toast.error(
+        failGenerate(
           "Set the employee's Expected End Date on their profile (Professional Details) or the Current Job tab before processing the final settlement.",
         );
         return;
@@ -515,7 +549,7 @@ function EmployeePayrollTab() {
         payrollInput.payPeriodEnd > selected.expectedEndDate ||
         payrollInput.payDate > selected.expectedEndDate
       ) {
-        toast.error(
+        failGenerate(
           `Payroll cannot be processed beyond the expected end date (${selected.expectedEndDate}).`,
         );
         return;
@@ -523,7 +557,7 @@ function EmployeePayrollTab() {
     }
     if (alreadyGeneratedForMonth) {
       const label = formatMonthLabel(payrollInput.payPeriodStart.slice(0, 7));
-      toast.error(
+      failGenerate(
         `Payroll already generated for ${label}. Each employee can only have one payroll per month.`,
       );
       return;
@@ -539,6 +573,7 @@ function EmployeePayrollTab() {
     setGenerating(true);
     try {
       await payrollService.generatePayroll(Number(selected.id), payrollInput);
+      setGenerateError(null);
       toast.success("Payroll generated successfully");
       const res = await payrollService.getPayrollHistory(Number(selected.id));
       const rows = (res?.data ?? []) as PayrollRow[];
@@ -546,7 +581,11 @@ function EmployeePayrollTab() {
       setAllHistories((prev) => ({ ...prev, [String(selected.id)]: rows }));
       setPayrollInput({ payPeriodStart: "", payPeriodEnd: "", payDate: "" });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to generate payroll");
+      const data = err?.response?.data;
+      failGenerate(
+        data?.message || "Failed to generate payroll",
+        Array.isArray(data?.details) ? data.details : [],
+      );
     } finally {
       setGenerating(false);
     }
@@ -926,7 +965,7 @@ function EmployeePayrollTab() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <Input
-                  placeholder="Search employees..."
+                  placeholder="Search by name or code..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8 h-8 text-sm bg-slate-50 border-slate-200"
@@ -1452,6 +1491,25 @@ function EmployeePayrollTab() {
                   </div>
                 )}
 
+                {generateError && (
+                  <div className="flex items-start gap-2.5 rounded-xl bg-rose-50 border border-rose-200 p-3">
+                    <AlertCircle className="h-4 w-4 text-rose-600 mt-0.5 shrink-0" />
+                    <div className="text-sm text-rose-800">
+                      <p>
+                        <strong>Payroll not generated.</strong>{" "}
+                        {generateError.message}
+                      </p>
+                      {generateError.details.length > 0 && (
+                        <ul className="mt-1 list-disc pl-5 text-xs text-rose-700">
+                          {generateError.details.map((d, i) => (
+                            <li key={i}>{d}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
@@ -1651,6 +1709,9 @@ function EmployeePayrollTab() {
                             Code
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
+                            Type
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
                             Period
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
@@ -1678,6 +1739,20 @@ function EmployeePayrollTab() {
                           >
                             <td className="px-5 py-3.5 font-mono text-xs text-slate-600">
                               {row.payrollCode}
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <span
+                                className={cn(
+                                  "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                  row.finalSettlement
+                                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                                    : "border-slate-200 bg-slate-50 text-slate-500",
+                                )}
+                              >
+                                {row.finalSettlement
+                                  ? "Final settlement (EOS)"
+                                  : "Regular"}
+                              </span>
                             </td>
                             <td className="px-4 py-3.5 text-slate-600 text-xs">
                               {row.payPeriodStart}

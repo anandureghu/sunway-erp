@@ -12,7 +12,7 @@ function Input({ className, type, step, ...props }: React.ComponentProps<"input"
         className
       )}
       {...props}
-      step={type === "number" ? 1 : step}
+      step={type === "number" ? (step ?? 1) : step}
     />
   )
 }

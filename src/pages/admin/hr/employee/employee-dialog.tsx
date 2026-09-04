@@ -190,11 +190,16 @@ export function EmployeeDialog({
         if (!cancelled) {
           setCompanyRoles(roles);
           if (mode === "create") {
+            // Default new employees to the self-service Employee role; fall back to
+            // any explicit preset, then admin only if self-service isn't configured.
+            const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
             const match =
               (presetRole &&
                 roles.find(
                   (r) => r.name.toLowerCase() === presetRole.toLowerCase(),
                 )) ||
+              roles.find((r) => norm(r.name).includes("selfservice")) ||
+              roles.find((r) => norm(r.name) === "employee") ||
               roles.find((r) => r.name.toLowerCase() === "admin");
             if (match) {
               form.setValue("role", match.name);

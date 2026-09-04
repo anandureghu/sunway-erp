@@ -104,6 +104,7 @@ const INITIAL_DEPENDENT: Dependent = {
   state: "",
   postalCode: "",
   country: "",
+  emergencyContact: false,
 };
 
 // Function to create initial dependent from provided data (for demo/testing)
@@ -216,6 +217,7 @@ export function DependentsForm() {
           state: d.state ?? "",
           postalCode: d.postalCode ?? "",
           country: d.country ?? "",
+          emergencyContact: d.emergencyContact ?? false,
         })),
       );
     } catch (err: any) {
@@ -277,6 +279,7 @@ export function DependentsForm() {
           state: dependent.state || undefined,
           postalCode: dependent.postalCode || undefined,
           country: dependent.country || undefined,
+          emergencyContact: dependent.emergencyContact ?? false,
         } as any;
 
         // Numeric id ⇒ persisted record (update); non-numeric client id ⇒ new draft (create).
@@ -694,6 +697,36 @@ export function DependentsForm() {
                         </select>
                       </div>
                     </FormRow>
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`emergency-${dependent.id}`}
+                          checked={dependent.emergencyContact ?? false}
+                          onChange={(e) =>
+                            updateDependent(dependent.id, {
+                              emergencyContact: e.target.checked,
+                            })
+                          }
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <Label
+                          htmlFor={`emergency-${dependent.id}`}
+                          className="cursor-pointer text-sm font-medium text-slate-700"
+                        >
+                          Emergency Contact
+                        </Label>
+                      </div>
+                      {dependent.emergencyContact && (
+                        <p className="mt-1.5 rounded-md bg-blue-50 px-2.5 py-1.5 text-[11px] text-blue-700">
+                          This dependent is the emergency contact. Their{" "}
+                          <strong>name, relationship</strong> (above) and{" "}
+                          <strong>phone number</strong> (in Contact Information
+                          below) will be used — fill those in to complete the
+                          emergency contact details.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 shadow-sm border border-cyan-100">

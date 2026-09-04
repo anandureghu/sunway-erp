@@ -187,7 +187,7 @@ export default function InspectionPage() {
     return pendingReceipts.filter(
       (r) =>
         r.receiptNo.toLowerCase().includes(q) ||
-        r.order?.orderNo.toLowerCase().includes(q),
+        (r.order?.orderNo?.toLowerCase().includes(q) ?? false),
     );
   }, [pendingReceipts, searchQuery]);
 
@@ -197,7 +197,7 @@ export default function InspectionPage() {
     return inspectedReceipts.filter(
       (r) =>
         r.receiptNo.toLowerCase().includes(q) ||
-        r.order?.orderNo.toLowerCase().includes(q),
+        (r.order?.orderNo?.toLowerCase().includes(q) ?? false),
     );
   }, [inspectedReceipts, searchQuery]);
 
@@ -946,6 +946,7 @@ function StartInspectionForm({
                           <Input
                             type="number"
                             min="0"
+                            step="0.01"
                             value={item.receivedQty}
                             onChange={(e) =>
                               updateItem(
@@ -1195,6 +1196,7 @@ function InspectForm({
                           type="number"
                           min="0"
                           max={line.receivedQty}
+                          step="0.01"
                           value={line.acceptedQty}
                           disabled={line.receivedQty === 0}
                           onChange={(e) =>
@@ -1210,6 +1212,7 @@ function InspectForm({
                         <Input
                           type="number"
                           min="0"
+                          step="0.01"
                           max={
                             line.receivedQty === 0
                               ? line.orderedQuantity

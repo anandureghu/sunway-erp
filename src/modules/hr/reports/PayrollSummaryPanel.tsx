@@ -191,7 +191,7 @@ function DepartmentSection({
                             : "border-slate-200 bg-slate-50 text-slate-500",
                         )}
                       >
-                        {r.finalSettlement ? "Final settlement" : "Regular"}
+                        {r.finalSettlement ? "Final settlement (EOS)" : "Regular"}
                       </span>
                     </td>
                   </tr>

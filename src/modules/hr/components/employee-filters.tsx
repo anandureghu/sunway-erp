@@ -6,10 +6,11 @@ interface EmployeeFiltersProps {
 }
 
 const filters = [
-  { label: "All",      value: null,       dot: "bg-blue-500" },
-  { label: "Active",   value: "active",   dot: "bg-emerald-500" },
-  { label: "On Leave", value: "on leave", dot: "bg-amber-500" },
-  { label: "Inactive", value: "inactive", dot: "bg-rose-500" },
+  { label: "All",             value: null,              dot: "bg-blue-500" },
+  { label: "Active",          value: "active",          dot: "bg-emerald-500" },
+  { label: "Under Probation", value: "under probation", dot: "bg-indigo-500" },
+  { label: "On Leave",        value: "on leave",        dot: "bg-amber-500" },
+  { label: "Inactive",        value: "inactive",        dot: "bg-rose-500" },
 ] as const;
 
 export function EmployeeFilters({

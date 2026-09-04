@@ -289,6 +289,9 @@ export type GoodsReceipt = {
   id: string;
   receiptNo: string;
   orderId: string;
+  /** From GR API — available even when the full PO object was not joined. */
+  purchaseOrderNumber?: string;
+  supplierName?: string;
   order?: PurchaseOrder;
   receiptDate: string;
   /** Backend-generated goods receipt PDF (public URL). */

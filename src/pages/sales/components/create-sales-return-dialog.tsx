@@ -168,6 +168,7 @@ export function CreateSalesReturnDialog({ so, onReturned }: Props) {
                     type="number"
                     min={0}
                     max={remaining}
+                    step="0.01"
                     className="h-9 w-24"
                     value={qtys[key] ?? 0}
                     onChange={(e) =>

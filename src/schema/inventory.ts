@@ -10,6 +10,9 @@ export const ITEM_SCHEMA = z
     category: z.string().min(1),
     subcategory: z.string().optional(),
     brand: z.string().optional(),
+    manufacturerPartNumber: z.string().optional(),
+    model: z.string().optional(),
+    negativeStockPermitted: z.boolean().optional(),
     description: z.string().optional(),
 
     unit: z

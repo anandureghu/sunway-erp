@@ -241,7 +241,7 @@ export const CompanyForm = ({
             name="crNo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel required>Company CR No.</FormLabel>
+                <FormLabel required>CR NO</FormLabel>
                 <FormControl>
                   <Input
                     type="number"

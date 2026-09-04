@@ -1,6 +1,10 @@
 import { apiClient } from "./apiClient";
 
-export type BenefitsScope = "GRADE_CODE" | "DEPARTMENT" | "EMPLOYEE";
+export type BenefitsScope =
+  | "GRADE_CODE"
+  | "DEPARTMENT"
+  | "EMPLOYEE"
+  | "ALL_EMPLOYEES";
 
 /** Pay-component keys the adjustment can raise. */
 export type BenefitsComponent =

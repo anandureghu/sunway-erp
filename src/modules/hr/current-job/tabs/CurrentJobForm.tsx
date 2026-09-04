@@ -470,6 +470,35 @@ export default function CurrentJobForm() {
     return () => registerHandlers(null);
   }, [shellSave, handleFormCancel, handleEdit, registerHandlers]);
 
+  /* ===== NON-PERMANENT EMPLOYMENT DATES (from contract, read-only) ===== */
+  // A non-permanent employee's employment dates come from the contract: Effective
+  // From = Contract Start Date, Expected End Date = Contract End Date. Both fields are
+  // then read-only (see the inputs below).
+  const isNonPermanent =
+    !!formData.employmentCategory &&
+    formData.employmentCategory !== "PERMANENT";
+
+  useEffect(() => {
+    if (!isNonPermanent) return;
+    if (
+      formData.contractStartDate &&
+      formData.effectiveFrom !== formData.contractStartDate
+    ) {
+      updateField("effectiveFrom")(formData.contractStartDate);
+    }
+    if (
+      formData.contractEndDate &&
+      formData.expectedEndDate !== formData.contractEndDate
+    ) {
+      updateField("expectedEndDate")(formData.contractEndDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isNonPermanent,
+    formData.contractStartDate,
+    formData.contractEndDate,
+  ]);
+
   /* ================= VALIDATION ================= */
 
   const validateForm = (data: CurrentJob): ValidationErrors => {
@@ -535,6 +564,36 @@ export default function CurrentJobForm() {
         updateField("salaryGrade")(selectedJob.salaryGrade);
         updateField("minSalary")(selectedJob.minSalary ?? null);
         updateField("maxSalary")(selectedJob.maxSalary ?? null);
+
+        // Populate the rest of the current-job fields from the job-code defaults:
+        // department (+ its divisions), division, employment classification and work
+        // location — all still editable afterwards.
+        if (selectedJob.departmentId != null) {
+          const dept = departments.find(
+            (d) => (d as { id?: number }).id === selectedJob.departmentId,
+          );
+          if (dept?.departmentCode) {
+            handleDepartmentChange(dept.departmentCode);
+          }
+        }
+        if (selectedJob.divisionId != null) {
+          updateField("divisionId")(selectedJob.divisionId);
+          if (selectedJob.divisionName)
+            updateField("divisionName")(selectedJob.divisionName);
+        }
+        if (selectedJob.employmentCategory)
+          updateField("employmentCategory")(
+            selectedJob.employmentCategory as CurrentJob["employmentCategory"],
+          );
+        if (selectedJob.employmentType)
+          updateField("employmentType")(
+            selectedJob.employmentType as CurrentJob["employmentType"],
+          );
+        if (selectedJob.workLocation)
+          updateField("workLocation")(selectedJob.workLocation);
+        if (selectedJob.workCity) updateField("workCity")(selectedJob.workCity);
+        if (selectedJob.workCountry)
+          updateField("workCountry")(selectedJob.workCountry);
       }
     }
   };
@@ -1136,11 +1195,16 @@ export default function CurrentJobForm() {
               <Input
                 type="date"
                 className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
+                disabled={!editing || isNonPermanent}
                 value={formData.effectiveFrom}
                 onChange={(e) => updateField("effectiveFrom")(e.target.value)}
               />
             </div>
+            {isNonPermanent && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                From the Contract Start Date (non-permanent).
+              </p>
+            )}
           </Field>
 
           <Field label="Expected End Date" error={errors.expectedEndDate}>
@@ -1149,15 +1213,21 @@ export default function CurrentJobForm() {
               <Input
                 type="date"
                 className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
+                disabled={!editing || isNonPermanent}
                 value={formData.expectedEndDate}
                 onChange={(e) => updateField("expectedEndDate")(e.target.value)}
               />
             </div>
-            {!errors.expectedEndDate && (
+            {isNonPermanent ? (
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Optional — leave blank for open-ended contracts
+                From the Contract End Date (non-permanent).
               </p>
+            ) : (
+              !errors.expectedEndDate && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Optional — leave blank for open-ended contracts
+                </p>
+              )
             )}
           </Field>
         </div>

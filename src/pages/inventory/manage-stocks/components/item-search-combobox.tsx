@@ -1,4 +1,5 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import { catalogDiscountPercent, hasCatalogDiscount } from "@/lib/item-catalog-pricing";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
@@ -62,7 +63,7 @@ export function ItemSearchCombobox({
       <div className="relative" ref={inputWrapperRef}>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
         <Input
-          placeholder="Search by SKU, name, or barcode..."
+          placeholder="Search by SKU, name, barcode, or category..."
           value={query}
           onChange={(e) => {
             onQueryChange(e.target.value);
@@ -89,7 +90,7 @@ export function ItemSearchCombobox({
           >
             {results.map((item) => (
               <button
-                key={item.id}
+                key={`${item.id}-${item.warehouse_id ?? 0}`}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(item)}
@@ -98,6 +99,9 @@ export function ItemSearchCombobox({
                 <div className="font-medium">{item.name}</div>
                 <div className="text-sm text-gray-500">
                   SKU: {item.sku} | {item.category}
+                  {hasCatalogDiscount(item)
+                    ? ` | ${catalogDiscountPercent(item)}% off list`
+                    : ""}
                 </div>
               </button>
             ))}

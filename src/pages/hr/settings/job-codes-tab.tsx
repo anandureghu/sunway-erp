@@ -30,11 +30,47 @@ export function JobCodesTab({
   const [view, setView] = useState<JobCode | null>(null);
   const [q, setQ] = useState("");
   const [, setLoading] = useState(true);
+  const [departments, setDepartments] = useState<{ id: number; name: string }[]>(
+    [],
+  );
+  const [divisions, setDivisions] = useState<{ id: number; name: string }[]>([]);
   const F = (p: Partial<JobCode>) => setForm((v) => ({ ...v, ...p }));
 
   useEffect(() => {
     fetchJobCodes();
   }, []);
+
+  // Departments + divisions populate the job-code dialog dropdowns.
+  useEffect(() => {
+    if (!user?.companyId) return;
+    void (async () => {
+      try {
+        const [{ fetchDepartments }, { fetchDivisions }] = await Promise.all([
+          import("@/service/departmentService"),
+          import("@/service/divisionService"),
+        ]);
+        const cid = Number(user.companyId);
+        const [deps, divs] = await Promise.all([
+          fetchDepartments(cid),
+          fetchDivisions(cid),
+        ]);
+        setDepartments(
+          (Array.isArray(deps) ? deps : []).map((d: any) => ({
+            id: d.id,
+            name: d.departmentName ?? d.name ?? `#${d.id}`,
+          })),
+        );
+        setDivisions(
+          (Array.isArray(divs) ? divs : []).map((d: any) => ({
+            id: d.id,
+            name: d.name ?? `#${d.id}`,
+          })),
+        );
+      } catch {
+        /* dropdowns just stay empty */
+      }
+    })();
+  }, [user?.companyId]);
 
   const fetchJobCodes = async () => {
     try {
@@ -121,6 +157,13 @@ export function JobCodesTab({
         minSalary,
         maxSalary,
         active: form.active ?? true,
+        departmentId: form.departmentId ?? null,
+        divisionId: form.divisionId ?? null,
+        employmentCategory: form.employmentCategory ?? null,
+        employmentType: form.employmentType ?? null,
+        workLocation: form.workLocation ?? null,
+        workCity: form.workCity ?? null,
+        workCountry: form.workCountry ?? null,
       };
 
       if (form.id) {
@@ -157,6 +200,21 @@ export function JobCodesTab({
       toast.error(detail || "Failed to delete job code");
     } finally {
       setDel(null);
+    }
+  };
+
+  const handleDecision = async (jc: JobCode, approve: boolean) => {
+    try {
+      const updated = approve
+        ? await jobCodeService.approve(jc.id)
+        : await jobCodeService.reject(jc.id);
+      setJobs((prev) => prev.map((j) => (j.id === jc.id ? updated : j)));
+      toast.success(approve ? "Job code approved" : "Job code rejected");
+    } catch (error) {
+      const detail =
+        (error as any)?.response?.data?.message ??
+        (error as any)?.response?.data?.error;
+      toast.error(detail || "Failed to update approval");
     }
   };
 
@@ -201,6 +259,8 @@ export function JobCodesTab({
         onView={setView}
         onEdit={openEdit}
         onDelete={setDel}
+        onApprove={(jc) => handleDecision(jc, true)}
+        onReject={(jc) => handleDecision(jc, false)}
       />
 
       <JobCodeFormDialog
@@ -210,6 +270,9 @@ export function JobCodesTab({
         onField={F}
         onSave={save}
         onClose={() => setModal(false)}
+        existingCodes={jobs.map((j) => j.code)}
+        departments={departments}
+        divisions={divisions}
       />
 
       <JobCodeViewDialog

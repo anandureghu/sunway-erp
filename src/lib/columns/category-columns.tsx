@@ -72,7 +72,7 @@ export function createCategoryColumns(
     },
     {
       accessorKey: "code",
-      header: "CODE",
+      header: "Category Code",
       enableSorting: true,
       cell: ({ row }) => (
         <span className="text-gray-900 font-normal whitespace-nowrap">

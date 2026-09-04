@@ -749,6 +749,8 @@ export interface StockPostingDTO {
 export interface GoodsReceiptResponseDTO {
   id: number;
   purchaseOrderId: number;
+  purchaseOrderNumber?: string | null;
+  supplierName?: string | null;
   status: "PENDING_INSPECTION" | "INSPECTED";
   archived: boolean;
   receivedAt: string;
@@ -777,6 +779,7 @@ export interface GoodsReceiptResponseDTO {
     batchNo?: string;
     lotNo?: string;
     unitCost?: number;
+    expiryDate?: string | null;
     stockedAt?: string | null;
   }>;
 }
@@ -799,8 +802,10 @@ function toGoodsReceipt(
   order?: PurchaseOrder,
 ): GoodsReceipt {
   const items: GoodsReceiptItem[] = (dto.items || []).map((li) => {
-    const orderItem = order?.items.find(
-      (oi) => String(oi.itemId) === String(li.itemId),
+    const orderItem = order?.items.find((oi) =>
+      li.purchaseOrderItemId != null
+        ? String(oi.id) === String(li.purchaseOrderItemId)
+        : String(oi.itemId) === String(li.itemId),
     );
     return {
       id: String(li.id),
@@ -840,6 +845,7 @@ function toGoodsReceipt(
             }
           : undefined,
       unitCost: li.unitCost,
+      expiryDate: li.expiryDate ?? undefined,
       stockedAt: li.stockedAt ?? null,
       notes: li.remarks,
     };
@@ -849,6 +855,13 @@ function toGoodsReceipt(
     id: String(dto.id),
     receiptNo: `GR-${dto.id}`,
     orderId: String(dto.purchaseOrderId || ""),
+    purchaseOrderNumber:
+      dto.purchaseOrderNumber ?? order?.orderNo ?? order?.orderNumber ?? undefined,
+    supplierName:
+      dto.supplierName ??
+      order?.supplierName ??
+      order?.supplier?.name ??
+      undefined,
     order: order,
     receiptDate: dto.receivedAt || "",
     documentPdfUrl: dto.documentPdfUrl ?? null,

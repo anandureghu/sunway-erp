@@ -90,6 +90,7 @@ export default function EmployeesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [empTypeFilter, setEmpTypeFilter] = useState<string | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const navigate = useNavigate();
   const { setSelected } = useEmployeeSelection();
@@ -128,9 +129,13 @@ export default function EmployeesPage() {
       const matchesStatus =
         !statusFilter || normalize(employee.status) === desired;
 
-      return matchesSearch && matchesStatus;
+      const matchesEmpType =
+        !empTypeFilter ||
+        normalize(employee.employmentCategory) === normalize(empTypeFilter);
+
+      return matchesSearch && matchesStatus && matchesEmpType;
     });
-  }, [searchQuery, statusFilter, employees]);
+  }, [searchQuery, statusFilter, empTypeFilter, employees]);
 
   const handleEmployeeSelect = (employee: Employee) => {
     setSelected({
@@ -428,10 +433,30 @@ export default function EmployeesPage() {
             )}
           </div>
 
-          <EmployeeFilters
-            onFilterStatus={setStatusFilter}
-            activeFilter={statusFilter}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <EmployeeFilters
+              onFilterStatus={setStatusFilter}
+              activeFilter={statusFilter}
+            />
+            <select
+              value={empTypeFilter ?? ""}
+              onChange={(e) => setEmpTypeFilter(e.target.value || null)}
+              aria-label="Filter by employment type"
+              className={cn(
+                "h-[26px] rounded-full border px-3 text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-foreground/10",
+                empTypeFilter
+                  ? "border-foreground/20 bg-foreground text-background"
+                  : "border-border bg-background text-muted-foreground hover:border-foreground/20 hover:text-foreground",
+              )}
+            >
+              <option value="">All types</option>
+              <option value="PERMANENT">Permanent</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="CONSULTANT">Consultant</option>
+              <option value="INTERN">Intern</option>
+              <option value="TEMPORARY">Temporary</option>
+            </select>
+          </div>
         </div>
 
         <div
@@ -453,6 +478,7 @@ export default function EmployeesPage() {
                 onClick={() => {
                   setSearchQuery("");
                   setStatusFilter(null);
+                  setEmpTypeFilter(null);
                 }}
               >
                 Clear filters

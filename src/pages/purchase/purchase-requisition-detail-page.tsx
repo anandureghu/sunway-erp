@@ -770,7 +770,7 @@ export default function PurchaseRequisitionDetailPage() {
                         <th className="px-4 py-3">Description</th>
                         <th className="px-4 py-3 text-right">Qty</th>
                         <th className="px-4 py-3 text-right">Item cost</th>
-                        <th className="px-4 py-3 text-right">Other</th>
+                        <th className="px-4 py-3 text-right">Estimated cost</th>
                         <th className="px-4 py-3 text-right">Applied</th>
                         <th className="px-4 py-3 text-right">Est. Line Total</th>
                       </tr>

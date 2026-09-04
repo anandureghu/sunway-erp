@@ -3,6 +3,8 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
 import { resolveCatalogStatus } from "@/pages/inventory/inventory-item-detail/item-detail-utils";
+import { catalogDiscountPercent, hasCatalogDiscount } from "@/lib/item-catalog-pricing";
+import { CurrencyAmount } from "@/components/currency/currency-amount";
 import { type ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle } from "lucide-react";
 
@@ -44,6 +46,37 @@ export const STOCK_COLUMNS: ColumnDef<ItemResponseDTO>[] = [
     cell: ({ row }) => {
       const item = row.original;
       return <span className="text-gray-600">{item.brand || "-"}</span>;
+    },
+  },
+  {
+    id: "catalogDiscount",
+    header: "Discount",
+    cell: ({ row }) => {
+      const item = row.original;
+      if (!hasCatalogDiscount(item)) {
+        return <span className="text-gray-400">—</span>;
+      }
+      const pct = catalogDiscountPercent(item);
+      return (
+        <span className="font-medium text-amber-700 tabular-nums">{pct}%</span>
+      );
+    },
+  },
+  {
+    accessorKey: "sellingPrice",
+    header: "Selling price",
+    cell: ({ row }) => {
+      const item = row.original;
+      return (
+        <div className="flex flex-col gap-0.5 tabular-nums">
+          <CurrencyAmount amount={item.sellingPrice} className="font-medium" />
+          {hasCatalogDiscount(item) ? (
+            <span className="text-[11px] text-slate-500">
+              List <CurrencyAmount amount={item.listPrice ?? item.sellingPrice} className="inline" />
+            </span>
+          ) : null}
+        </div>
+      );
     },
   },
   {

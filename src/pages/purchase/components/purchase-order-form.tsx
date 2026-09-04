@@ -114,7 +114,9 @@ export function PurchaseOrderForm({
           itemId: Number(line.itemId),
           itemName: matchedItem?.name || `Item #${line.itemId}`,
           quantity: Number(line.quantity || 0),
-          unitCost: Number(line.unitPrice || 0),
+          unitCost: Number(
+            line.actualItemPrice ?? matchedItem?.costPrice ?? 0,
+          ),
           otherUnitCost: Number(line.otherUnitCost || 0),
         };
       }),
@@ -371,7 +373,7 @@ export function PurchaseOrderForm({
               />
             </div>
             <div className="space-y-2">
-              <Label>Unit Cost</Label>
+              <Label>Item cost</Label>
               <Input
                 type="number"
                 min="0"
@@ -381,7 +383,7 @@ export function PurchaseOrderForm({
               />
             </div>
             <div className="space-y-2">
-              <Label>Other Cost</Label>
+              <Label>Estimated cost</Label>
               <Input
                 type="number"
                 min="0"
@@ -400,15 +402,16 @@ export function PurchaseOrderForm({
 
           {lines.length > 0 ? (
             <div className="rounded-lg border overflow-x-auto">
-              <table className="w-full text-sm min-w-[760px]">
+              <table className="w-full text-sm min-w-[860px]">
                 <thead className="bg-muted/60">
                   <tr>
                     <th className="text-left p-3 w-12">Sl No</th>
                     <th className="text-left p-3">Item</th>
                     <th className="text-right p-3 w-24">Qty</th>
-                    <th className="text-right p-3 w-32">Unit Cost</th>
-                    <th className="text-right p-3 w-32">Other Cost</th>
-                    <th className="text-right p-3 w-32">Line Total</th>
+                    <th className="text-right p-3 w-32">Item cost</th>
+                    <th className="text-right p-3 w-32">Estimated cost</th>
+                    <th className="text-right p-3 w-28">Applied</th>
+                    <th className="text-right p-3 w-32">Line total</th>
                     <th className="text-left p-3 w-24" />
                   </tr>
                 </thead>
@@ -464,6 +467,9 @@ export function PurchaseOrderForm({
                               })
                             }
                           />
+                        </td>
+                        <td className="p-3 text-right align-middle tabular-nums font-medium">
+                          <CurrencyAmount amount={applied} />
                         </td>
                         <td className="p-3 text-right font-medium align-middle">
                           <CurrencyAmount

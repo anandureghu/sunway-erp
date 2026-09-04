@@ -83,7 +83,7 @@ export function ItemBatchesSection({ itemId }: { itemId: string | number }) {
                   <TableHead className="text-right">Unit cost</TableHead>
                   <TableHead className="text-right">Value</TableHead>
                   <TableHead>Received</TableHead>
-                  <TableHead>Expiry</TableHead>
+                  <TableHead>Sale by</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

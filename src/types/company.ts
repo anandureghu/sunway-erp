@@ -2,7 +2,7 @@ export interface Company {
   id: number;
   companyName: string;
   noOfEmployees: number; // number of employees
-  crNo: number; // company number
+  crNo: number; // CR NO (Commercial Registration)
   computerCard: string;
   street: string;
   city: string;

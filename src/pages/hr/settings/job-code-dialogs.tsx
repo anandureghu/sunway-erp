@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   Briefcase,
+  Building2,
   Edit,
   CheckCircle2,
   XCircle,
@@ -28,6 +29,52 @@ import {
   GRADES,
 } from "./shared";
 
+type Option = { id: number; name: string };
+type DivisionOption = Option & { departmentId?: number | null };
+
+const EMPLOYMENT_CATEGORIES = [
+  "PERMANENT",
+  "CONTRACT",
+  "INTERN",
+  "CONSULTANT",
+  "TEMPORARY",
+];
+const EMPLOYMENT_TYPES = ["FULL_TIME", "PART_TIME"];
+const WORK_LOCATIONS = ["OFFICE", "HYBRID", "REMOTE"];
+const humanizeEnum = (v: string) =>
+  v
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+/** Department name → job-code prefix and numeric width (HR-#### , others -###). */
+function deptPrefix(name?: string): { prefix: string; pad: number } {
+  const n = (name ?? "").toLowerCase();
+  if (/\bhr\b|human\s*resource/.test(n)) return { prefix: "HR", pad: 4 };
+  if (/financ|account/.test(n)) return { prefix: "FIN", pad: 3 };
+  if (/inventor|stock|warehouse/.test(n)) return { prefix: "INV", pad: 3 };
+  if (/operation/.test(n)) return { prefix: "OPS", pad: 3 };
+  const letters = (name ?? "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 3);
+  return { prefix: letters || "JOB", pad: 3 };
+}
+
+/** The trailing numeric part of a code (e.g. "HR-0007" → "0007"). */
+function digitsOfCode(code?: string): string {
+  const m = (code ?? "").match(/(\d+)\s*$/);
+  return m ? m[1] : "";
+}
+
+/** Next free `PREFIX-000` code for a prefix, from the existing codes. */
+function suggestJobCode(prefix: string, pad: number, existing: string[]): string {
+  const re = new RegExp(`^${prefix}-(\\d+)$`, "i");
+  let max = 0;
+  for (const c of existing) {
+    const m = c.match(re);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return `${prefix}-${String(max + 1).padStart(pad, "0")}`;
+}
+
 /** Add / edit job-code modal. */
 export function JobCodeFormDialog({
   open,
@@ -36,6 +83,9 @@ export function JobCodeFormDialog({
   onField,
   onSave,
   onClose,
+  existingCodes = [],
+  departments = [],
+  divisions = [],
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -43,7 +93,15 @@ export function JobCodeFormDialog({
   onField: (p: Partial<JobCode>) => void;
   onSave: () => void;
   onClose: () => void;
+  existingCodes?: string[];
+  departments?: Option[];
+  divisions?: DivisionOption[];
 }) {
+  const selectedDept = departments.find((d) => d.id === form.departmentId);
+  const pfx = deptPrefix(selectedDept?.name);
+  const deptDivisions = divisions.filter(
+    (dv) => dv.departmentId == null || dv.departmentId === form.departmentId,
+  );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -88,16 +146,65 @@ export function JobCodeFormDialog({
             title="Identity"
           >
             <div className="grid grid-cols-2 gap-4">
+              {/* Department FIRST — it drives the job-code prefix. */}
+              <div className="col-span-2">
+                <label className={jcLabelCls}>
+                  Department <span className="text-rose-400">*</span>
+                </label>
+                <JcSelectField
+                  value={form.departmentId != null ? String(form.departmentId) : ""}
+                  onChange={(e) => {
+                    const id = e.target.value ? Number(e.target.value) : undefined;
+                    const dept = departments.find((d) => d.id === id);
+                    const p = deptPrefix(dept?.name);
+                    onField({
+                      departmentId: id ?? null,
+                      departmentName: dept?.name ?? null,
+                      divisionId: null,
+                      // Default the code to the next free PREFIX-000; digits stay editable.
+                      code: id ? suggestJobCode(p.prefix, p.pad, existingCodes) : "",
+                    });
+                  }}
+                >
+                  <option value="">Select department…</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </JcSelectField>
+              </div>
+
               <div>
                 <label className={jcLabelCls}>
                   Job code <span className="text-rose-400">*</span>
                 </label>
-                <input
-                  value={form.code ?? ""}
-                  onChange={(e) => onField({ code: e.target.value.toUpperCase() })}
-                  placeholder="ENG-003"
-                  className={`${jcInputCls} font-mono uppercase tracking-wider`}
-                />
+                {form.departmentId ? (
+                  <div className="flex h-9 overflow-hidden rounded-lg border border-slate-300 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-200/50">
+                    <span className="flex items-center bg-slate-100 px-2.5 font-mono text-sm font-semibold text-slate-500">
+                      {pfx.prefix}-
+                    </span>
+                    <input
+                      value={digitsOfCode(form.code)}
+                      inputMode="numeric"
+                      placeholder={"0".repeat(pfx.pad)}
+                      onChange={(e) => {
+                        const digits = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, pfx.pad);
+                        onField({ code: `${pfx.prefix}-${digits}` });
+                      }}
+                      className="w-full px-2 font-mono text-sm outline-none"
+                    />
+                  </div>
+                ) : (
+                  <input
+                    value={form.code ?? ""}
+                    disabled
+                    placeholder="Select a department first"
+                    className={`${jcInputCls} font-mono uppercase tracking-wider disabled:bg-slate-50`}
+                  />
+                )}
               </div>
 
               <div>
@@ -122,6 +229,104 @@ export function JobCodeFormDialog({
                   value={form.title ?? ""}
                   onChange={(e) => onField({ title: e.target.value })}
                   placeholder="Software Engineer"
+                  className={jcInputCls}
+                />
+              </div>
+            </div>
+          </JcSection>
+
+          {/* ── Assignment & Classification (copied onto the current job) ── */}
+          <JcSection
+            icon={<Building2 className="h-3.5 w-3.5 text-blue-600" />}
+            iconBg="bg-blue-50"
+            title="Assignment & Classification"
+          >
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className={jcLabelCls}>Division</label>
+                <JcSelectField
+                  value={form.divisionId != null ? String(form.divisionId) : ""}
+                  onChange={(e) =>
+                    onField({
+                      divisionId: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                >
+                  <option value="">
+                    {form.departmentId
+                      ? "Select division…"
+                      : "Select a department first"}
+                  </option>
+                  {deptDivisions.map((dv) => (
+                    <option key={dv.id} value={dv.id}>
+                      {dv.name}
+                    </option>
+                  ))}
+                </JcSelectField>
+              </div>
+              <div>
+                <label className={jcLabelCls}>Employment category</label>
+                <JcSelectField
+                  value={form.employmentCategory ?? ""}
+                  onChange={(e) =>
+                    onField({ employmentCategory: e.target.value || null })
+                  }
+                >
+                  <option value="">Select…</option>
+                  {EMPLOYMENT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {humanizeEnum(c)}
+                    </option>
+                  ))}
+                </JcSelectField>
+              </div>
+              <div>
+                <label className={jcLabelCls}>Employment type</label>
+                <JcSelectField
+                  value={form.employmentType ?? ""}
+                  onChange={(e) =>
+                    onField({ employmentType: e.target.value || null })
+                  }
+                >
+                  <option value="">Select…</option>
+                  {EMPLOYMENT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {humanizeEnum(t)}
+                    </option>
+                  ))}
+                </JcSelectField>
+              </div>
+              <div>
+                <label className={jcLabelCls}>Work location</label>
+                <JcSelectField
+                  value={form.workLocation ?? ""}
+                  onChange={(e) =>
+                    onField({ workLocation: e.target.value || null })
+                  }
+                >
+                  <option value="">Select…</option>
+                  {WORK_LOCATIONS.map((w) => (
+                    <option key={w} value={w}>
+                      {humanizeEnum(w)}
+                    </option>
+                  ))}
+                </JcSelectField>
+              </div>
+              <div>
+                <label className={jcLabelCls}>Work city</label>
+                <input
+                  value={form.workCity ?? ""}
+                  onChange={(e) => onField({ workCity: e.target.value })}
+                  placeholder="Doha"
+                  className={jcInputCls}
+                />
+              </div>
+              <div>
+                <label className={jcLabelCls}>Work country</label>
+                <input
+                  value={form.workCountry ?? ""}
+                  onChange={(e) => onField({ workCountry: e.target.value })}
+                  placeholder="Qatar"
                   className={jcInputCls}
                 />
               </div>
@@ -297,9 +502,32 @@ export function JobCodeViewDialog({
         {view && (
           <div className="space-y-5 px-6 py-5">
             <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/40">
+              <JcViewField label="Department" value={view.departmentName} />
+              <JcViewField label="Division" value={view.divisionName} />
               <JcViewField label="Job Level" value={view.level} />
               <JcViewField label="Salary Grade" value={view.salaryGrade} />
               <JcViewField label="Salary Range" value={salaryRange} />
+              <JcViewField
+                label="Employment"
+                value={
+                  [view.employmentCategory, view.employmentType]
+                    .filter(Boolean)
+                    .map((v) => humanizeEnum(String(v)))
+                    .join(" · ") || undefined
+                }
+              />
+              <JcViewField
+                label="Work Location"
+                value={
+                  [
+                    view.workLocation ? humanizeEnum(view.workLocation) : "",
+                    view.workCity,
+                    view.workCountry,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || undefined
+                }
+              />
               <JcViewField
                 label="Status"
                 value={

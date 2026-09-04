@@ -260,6 +260,8 @@ export interface Dependent {
   state?: string;
   postalCode?: string;
   country?: string;
+  /** Whether this dependent is the employee's emergency contact. */
+  emergencyContact?: boolean;
 }
 
 // Legacy Appraisal interface - kept for backward compatibility

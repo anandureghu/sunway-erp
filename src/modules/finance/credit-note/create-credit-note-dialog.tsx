@@ -148,9 +148,10 @@ export default function CreateCreditNoteDialog({ onCreated }: Props) {
                     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-300">
                       <DollarSign className="h-[15px] w-[15px]" />
                     </span>
-                    <Input
-                      type="number"
-                      value={amount}
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
                       className="h-10 pl-9 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"

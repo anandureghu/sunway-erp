@@ -18,7 +18,6 @@ import {
   fetchSubscription,
   fetchSubscriptionAnalytics,
   fetchSubscriptions,
-  sendSubscriptionInvoice,
 } from "@/service/subscriptionService";
 import type {
   CompanySubscription,
@@ -184,17 +183,7 @@ export default function SubscriptionsPage() {
   };
 
   const handleSendInvoice = async (row: CompanySubscription) => {
-    try {
-      const inv = await sendSubscriptionInvoice(row.companyId, false);
-      toast.success(
-        inv.sent
-          ? `Invoice ${inv.invoiceNo} sent`
-          : `Invoice ${inv.invoiceNo} ready`,
-      );
-      void loadList();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to send invoice"));
-    }
+    navigate(`/admin/subscriptions/${row.companyId}?tab=invoices`);
   };
 
   return (
@@ -406,7 +395,7 @@ export default function SubscriptionsPage() {
                                 onClick={() => void handleSendInvoice(row)}
                               >
                                 <Mail className="mr-2 h-4 w-4" />
-                                Send invoice
+                                Invoice workflow
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => void handleExtend(row)}

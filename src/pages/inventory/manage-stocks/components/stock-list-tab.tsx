@@ -321,7 +321,7 @@ export function StockListTab({
         <div className="flex-1 relative min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search by SKU, name, barcode, sale by date, or date received..."
+            placeholder="Search by SKU, name, barcode, category, sale by date, or date received..."
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             className="pl-10"

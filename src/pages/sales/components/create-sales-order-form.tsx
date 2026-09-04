@@ -25,6 +25,11 @@ import { getApiErrorMessage } from "@/lib/api-error-message";
 import { clampDiscountPercent } from "@/lib/discount-floor";
 import { filterItemsByQuery } from "@/lib/filter-items";
 import {
+  catalogDiscountPercent,
+  hasCatalogDiscount,
+  listPriceOf,
+} from "@/lib/item-catalog-pricing";
+import {
   lineItemGrossAmount,
   salesDiscountPercentLabel,
 } from "@/lib/sales-order-money";
@@ -48,6 +53,33 @@ import {
   CustomerSearchCombobox,
   filterCustomersByQuery,
 } from "@/pages/sales/components/customer-search-combobox";
+
+function warehouseAvailable(
+  rows: ItemWarehouseStockRowDTO[],
+  warehouseId: number,
+): number {
+  return rows.find((r) => r.warehouseId === warehouseId)?.available ?? 0;
+}
+
+function stockExceeded(
+  item: ItemResponseDTO | undefined,
+  warehouseId: number,
+  quantity: number,
+  rows: ItemWarehouseStockRowDTO[],
+): boolean {
+  if (!item || item.negativeStockPermitted) return false;
+  if (!warehouseId) return true;
+  return quantity > warehouseAvailable(rows, warehouseId);
+}
+
+async function ensureItemStockRows(
+  itemId: number | string,
+  cache: Record<string, ItemWarehouseStockRowDTO[]>,
+): Promise<ItemWarehouseStockRowDTO[]> {
+  const key = String(itemId);
+  if (cache[key]) return cache[key];
+  return listItemWarehouseStock(key);
+}
 
 type Props = {
   onCancel: () => void;
@@ -73,6 +105,9 @@ export function CreateSalesOrderForm({
   const [pickerStockRows, setPickerStockRows] = useState<
     ItemWarehouseStockRowDTO[]
   >([]);
+  const [itemStockCache, setItemStockCache] = useState<
+    Record<string, ItemWarehouseStockRowDTO[]>
+  >({});
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
   const [items, setItems] = useState<ItemResponseDTO[]>([]);
@@ -230,7 +265,10 @@ export function CreateSalesOrderForm({
     let cancelled = false;
     listItemWarehouseStock(selectedItem)
       .then((rows) => {
-        if (!cancelled) setPickerStockRows(rows);
+        if (!cancelled) {
+          setPickerStockRows(rows);
+          setItemStockCache((prev) => ({ ...prev, [selectedItem]: rows }));
+        }
       })
       .catch(() => {
         if (!cancelled) setPickerStockRows([]);
@@ -409,7 +447,7 @@ export function CreateSalesOrderForm({
     };
   };
 
-  const updateOrderLine = (
+  const updateOrderLine = async (
     lineId: string,
     patch: Partial<{
       quantity: number;
@@ -418,6 +456,35 @@ export function CreateSalesOrderForm({
       warehouseId: number;
     }>,
   ) => {
+    const target = orderItems.find((row) => row.id === lineId);
+    if (!target) return;
+
+    const catalog =
+      items.find((i) => String(i.id) === String(target.itemId)) ?? target.item;
+    const nextWarehouseId =
+      patch.warehouseId ?? target.warehouseId ?? 0;
+    const nextQuantity = patch.quantity ?? target.quantity;
+
+    if (
+      catalog &&
+      !catalog.negativeStockPermitted &&
+      nextWarehouseId &&
+      (patch.quantity !== undefined || patch.warehouseId !== undefined)
+    ) {
+      const rows = await ensureItemStockRows(target.itemId, itemStockCache);
+      setItemStockCache((prev) => ({
+        ...prev,
+        [String(target.itemId)]: rows,
+      }));
+      if (stockExceeded(catalog, nextWarehouseId, nextQuantity, rows)) {
+        const available = warehouseAvailable(rows, nextWarehouseId);
+        toast.error(
+          `Only ${available} available at this warehouse. Negative stock is not permitted for this item.`,
+        );
+        return;
+      }
+    }
+
     setOrderItems((prev) =>
       prev.map((row) => {
         if (row.id !== lineId) return row;
@@ -467,6 +534,14 @@ export function CreateSalesOrderForm({
       : Number(item.warehouse_id ?? 0);
     if (!whId) {
       toast.error("Select a warehouse for this line.");
+      return;
+    }
+
+    if (stockExceeded(item, whId, itemQuantity, pickerStockRows)) {
+      const available = warehouseAvailable(pickerStockRows, whId);
+      toast.error(
+        `Only ${available} available at the selected warehouse. Negative stock is not permitted for this item.`,
+      );
       return;
     }
 
@@ -524,6 +599,31 @@ export function CreateSalesOrderForm({
         `Line item ${missingWarehouseIdx + 1} is missing a warehouse. Please select one before saving.`,
       );
     }
+
+    const stockCache = { ...itemStockCache };
+    const totalsByLine = new Map<string, number>();
+    for (const line of orderItems) {
+      const key = `${line.itemId}-${line.warehouseId}`;
+      totalsByLine.set(
+        key,
+        (totalsByLine.get(key) ?? 0) + line.quantity,
+      );
+    }
+    for (const [key, totalQty] of totalsByLine) {
+      const [itemIdStr, whIdStr] = key.split("-");
+      const catalog = items.find((i) => String(i.id) === itemIdStr);
+      if (!catalog || catalog.negativeStockPermitted) continue;
+      const whId = Number(whIdStr);
+      const rows = await ensureItemStockRows(itemIdStr, stockCache);
+      stockCache[itemIdStr] = rows;
+      const available = warehouseAvailable(rows, whId);
+      if (totalQty > available) {
+        return toast.error(
+          `${catalog.name}: only ${available} available at the selected warehouse (${totalQty} requested). Negative stock is not permitted.`,
+        );
+      }
+    }
+    setItemStockCache(stockCache);
 
     const completeData = {
       ...data,
@@ -817,10 +917,21 @@ export function CreateSalesOrderForm({
                 </div>
                 <div className="space-y-2">
                   <Label>Unit price (from master)</Label>
-                  <div className="flex h-9 items-center text-sm tabular-nums">
+                  <div className="flex h-9 flex-col items-start text-sm tabular-nums">
                     <CurrencyAmount
                       amount={Number(selectedItemRecord?.sellingPrice ?? 0)}
                     />
+                    {selectedItemRecord && hasCatalogDiscount(selectedItemRecord)
+                      ? (
+                        <span className="text-[11px] text-amber-700">
+                          {catalogDiscountPercent(selectedItemRecord)}% off list (
+                          <CurrencyAmount
+                            amount={listPriceOf(selectedItemRecord)}
+                            className="inline"
+                          />)
+                        </span>
+                      )
+                      : null}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -829,6 +940,7 @@ export function CreateSalesOrderForm({
                     type="number"
                     min="0"
                     max="100"
+                    step="0.1"
                     value={itemDiscount}
                     onChange={(e) =>
                       setItemDiscount(parseFloat(e.target.value) || 0)
@@ -916,7 +1028,8 @@ export function CreateSalesOrderForm({
                         (pickerStockRows.find(
                           (x) => String(x.warehouseId) === itemWarehouse,
                         )?.available ?? 0) &&
-                        "Reduce quantity or choose a warehouse with enough stock."}
+                        !selectedItemRecord?.negativeStockPermitted &&
+                        "Reduce quantity or choose a warehouse with enough stock. This item does not allow negative stock."}
                     </p>
                   ) : null}
                 </div>

@@ -603,20 +603,31 @@ export default function HrPoliciesForm() {
                 )
               }
               disabled={hrPoliciesLoading}
-              className={`inline-flex h-5 w-9 shrink-0 rounded-full relative transition-colors ${
-                hrPolicies.loanPolicyEnabled ? "bg-emerald-500" : "bg-slate-300"
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                hrPolicies.loanPolicyEnabled
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 bg-white text-slate-500"
               }`}
               role="switch"
               aria-checked={hrPolicies.loanPolicyEnabled}
               aria-label="Toggle loan eligibility policy"
             >
               <span
-                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                className={`relative inline-flex h-5 w-9 rounded-full transition-colors ${
                   hrPolicies.loanPolicyEnabled
-                    ? "translate-x-4"
-                    : "translate-x-0.5"
+                    ? "bg-emerald-500"
+                    : "bg-slate-300"
                 }`}
-              />
+              >
+                <span
+                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    hrPolicies.loanPolicyEnabled
+                      ? "translate-x-4"
+                      : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              {hrPolicies.loanPolicyEnabled ? "Enabled" : "Enable"}
             </button>
           </div>
 

@@ -8,6 +8,7 @@ import type {
   RecordSubscriptionPaymentRequest,
   SubscriptionAnalytics,
   SubscriptionInvoice,
+  SubscriptionPayment,
   SubscriptionPaymentStatus,
   SubscriptionPlanType,
   SubscriptionStatus,
@@ -102,6 +103,24 @@ export async function cancelSubscription(
   return res.data;
 }
 
+export async function generateSubscriptionInvoice(
+  companyId: number,
+): Promise<SubscriptionInvoice> {
+  const res = await apiClient.post<SubscriptionInvoice>(
+    `/admin/subscriptions/${companyId}/invoices/generate`,
+  );
+  return res.data;
+}
+
+export async function regenerateSubscriptionInvoice(
+  companyId: number,
+): Promise<SubscriptionInvoice> {
+  const res = await apiClient.post<SubscriptionInvoice>(
+    `/admin/subscriptions/${companyId}/invoices/regenerate`,
+  );
+  return res.data;
+}
+
 export async function sendSubscriptionInvoice(
   companyId: number,
   resend = false,
@@ -135,6 +154,40 @@ export async function downloadMySubscriptionInvoicePdf(
   return res.data as Blob;
 }
 
+export async function downloadSubscriptionPaymentReceiptPdf(
+  companyId: number,
+  paymentId: number,
+): Promise<Blob> {
+  const res = await apiClient.get(
+    `/admin/subscriptions/${companyId}/payments/${paymentId}/receipt/pdf`,
+    { responseType: "blob" },
+  );
+  return res.data as Blob;
+}
+
+export async function sendSubscriptionPaymentReceipt(
+  companyId: number,
+  paymentId: number,
+  resend = false,
+): Promise<SubscriptionPayment> {
+  const res = await apiClient.post<SubscriptionPayment>(
+    `/admin/subscriptions/${companyId}/payments/${paymentId}/receipt/send`,
+    null,
+    { params: { resend } },
+  );
+  return res.data;
+}
+
+export async function downloadMySubscriptionPaymentReceiptPdf(
+  paymentId: number,
+): Promise<Blob> {
+  const res = await apiClient.get(
+    `/subscriptions/me/payments/${paymentId}/receipt/pdf`,
+    { responseType: "blob" },
+  );
+  return res.data as Blob;
+}
+
 export async function fetchSubscriptionAnalytics(params?: {
   from?: string;
   to?: string;
@@ -155,4 +208,10 @@ export function triggerBlobDownload(blob: Blob, filename: string) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+export function openBlobPreview(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

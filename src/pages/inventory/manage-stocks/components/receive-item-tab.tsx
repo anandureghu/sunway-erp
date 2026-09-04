@@ -17,8 +17,8 @@ import {
   RECEIVE_ITEM_SCHEMA,
   type ReceiveItemFormData,
 } from "@/schema/inventory";
-import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { receiveItemStock } from "@/service/inventoryService";
+import type { ItemResponseDTO, ItemWarehouseStockRowDTO } from "@/service/erpApiTypes";
+import { listItems, listItemWarehouseStock, receiveItemStock } from "@/service/inventoryService";
 import {
   listInspectedReceiptsAwaitingStock,
   listPurchaseOrders,
@@ -34,20 +34,24 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import CreateItemForm from "../../item-form";
-import { filterItemsByQuery } from "../use-manage-stocks";
+import { filterItemsByQuery } from "@/lib/filter-items";
 import { ItemSearchCombobox } from "./item-search-combobox";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
+import {
+  filterAwaitingStockReceipts,
+  formatAwaitingStockReceiptLabel,
+} from "@/lib/filter-awaiting-stock-receipts";
 
 function findInventoryItemForItemId(
   items: ItemResponseDTO[],
-  itemId: number,
+  itemId: number | string,
   preferredWarehouseId?: string,
 ): ItemResponseDTO | null {
-  const matches = items.filter((i) => i.id === itemId);
+  const matches = items.filter((i) => String(i.id) === String(itemId));
   if (matches.length === 0) return null;
   if (preferredWarehouseId) {
     const warehouseMatch = matches.find(
-      (i) => String(i.warehouse_id) === preferredWarehouseId,
+      (i) => String(i.warehouse_id) === String(preferredWarehouseId),
     );
     if (warehouseMatch) return warehouseMatch;
   }
@@ -121,7 +125,39 @@ export function ReceiveItemTab({
   const [selectedLineId, setSelectedLineId] = useState<string>("");
   const [loadingReceipts, setLoadingReceipts] = useState(false);
   const [receiptSearchQuery, setReceiptSearchQuery] = useState("");
+  const [receiptSearchOpen, setReceiptSearchOpen] = useState(false);
+  const [catalogItems, setCatalogItems] = useState<ItemResponseDTO[]>([]);
+  const [itemWarehouseStock, setItemWarehouseStock] = useState<
+    ItemWarehouseStockRowDTO[]
+  >([]);
   const selectedWarehouseId = watch("warehouseId");
+  const watchedExpiryDate = watch("expiryDate");
+
+  const toSaleByDate = (value: unknown): string => {
+    if (value == null || value === "") return "";
+    return String(value).slice(0, 10);
+  };
+
+  const resolveSubmitSaleByDate = (formExpiry?: string): string | undefined => {
+    const fromForm = toSaleByDate(formExpiry);
+    if (fromForm) return fromForm;
+    const fromItem = toSaleByDate(selectedItem?.expiryDate);
+    return fromItem || undefined;
+  };
+
+  useEffect(() => {
+    listItems()
+      .then(setCatalogItems)
+      .catch(() => setCatalogItems([]));
+  }, []);
+
+  const activeCatalogItems = useMemo(
+    () =>
+      catalogItems.filter(
+        (item) => item.status === "active" && !item.archived,
+      ),
+    [catalogItems],
+  );
 
   const refreshAwaitingStock = () => {
     setLoadingReceipts(true);
@@ -136,63 +172,68 @@ export function ReceiveItemTab({
     refreshAwaitingStock();
   }, []);
 
-  const searchResults = useMemo(() => {
-    const query = itemSearchQuery.trim();
-    const filtered = filterItemsByQuery(items, itemSearchQuery);
-    // Hide the list once the typed query exactly matches the selected item name.
-    if (
-      query &&
-      selectedItem &&
-      selectedItem.name.trim().toLowerCase() === query.toLowerCase()
-    ) {
-      return [];
-    }
-    return filtered;
-  }, [items, itemSearchQuery, selectedItem]);
+  const searchResults = useMemo(
+    () => filterItemsByQuery(activeCatalogItems, itemSearchQuery),
+    [activeCatalogItems, itemSearchQuery],
+  );
 
   const stockRowForSelection = useMemo(() => {
     if (!selectedItem || !selectedWarehouseId) return null;
     return items.find(
       (i) =>
-        i.id === selectedItem.id &&
-        String(i.warehouse_id) === selectedWarehouseId,
+        String(i.id) === String(selectedItem.id) &&
+        String(i.warehouse_id) === String(selectedWarehouseId),
     );
   }, [items, selectedItem, selectedWarehouseId]);
 
-  const quantityOnHand = stockRowForSelection?.quantity ?? null;
+  /** Prefer live per-warehouse stock (same source sales uses); fall back to catalog row. */
+  const quantityOnHand = useMemo(() => {
+    if (!selectedWarehouseId) return null;
+    const live = itemWarehouseStock.find(
+      (row) => String(row.warehouseId) === String(selectedWarehouseId),
+    );
+    if (live) return live.quantityOnHand;
+    return stockRowForSelection?.quantity ?? null;
+  }, [itemWarehouseStock, selectedWarehouseId, stockRowForSelection]);
 
   const selectedReceiptLines = useMemo(
     () => (selectedReceipt ? awaitingStockLines(selectedReceipt) : []),
     [selectedReceipt],
   );
 
-  const filteredAwaitingStockReceipts = useMemo(() => {
-    const q = receiptSearchQuery.trim().toLowerCase();
-    if (!q) return awaitingStockReceipts;
-    return awaitingStockReceipts.filter((receipt) => {
-      const poNo =
-        receipt.order?.orderNo?.toLowerCase() ??
-        receipt.order?.orderNumber?.toLowerCase() ??
-        "";
-      const supplier =
-        receipt.order?.supplierName?.toLowerCase() ??
-        receipt.order?.supplier?.name?.toLowerCase() ??
-        "";
-      return (
-        receipt.receiptNo.toLowerCase().includes(q) ||
-        poNo.includes(q) ||
-        supplier.includes(q) ||
-        String(receipt.orderId).includes(q)
-      );
-    });
-  }, [awaitingStockReceipts, receiptSearchQuery]);
+  const selectedGrLine = useMemo(
+    () => selectedReceiptLines.find((line) => line.id === selectedLineId) ?? null,
+    [selectedReceiptLines, selectedLineId],
+  );
+
+  const poItemLabel = selectedGrLine
+    ? purchaseLineItemName({
+        itemId: selectedGrLine.itemId,
+        itemName: selectedGrLine.item?.name,
+        item: selectedGrLine.orderItem,
+      })
+    : null;
+
+  const filteredAwaitingStockReceipts = useMemo(
+    () => filterAwaitingStockReceipts(awaitingStockReceipts, receiptSearchQuery),
+    [awaitingStockReceipts, receiptSearchQuery],
+  );
 
   const applyGrLineToForm = (line: GoodsReceiptItem) => {
-    const inventoryItem = findInventoryItemForItemId(
+    // Resolve identity from the full item catalog (name/default warehouse), not a
+    // random stock-catalog warehouse row — and never reuse a stale form warehouse.
+    const catalogItem = findInventoryItemForItemId(activeCatalogItems, line.itemId);
+    const preferredWarehouseId =
+      line.warehouseId ??
+      (catalogItem?.warehouse_id != null
+        ? String(catalogItem.warehouse_id)
+        : undefined);
+    const stockRow = findInventoryItemForItemId(
       items,
       line.itemId,
-      selectedWarehouseId,
+      preferredWarehouseId,
     );
+    const inventoryItem = catalogItem ?? stockRow;
     if (!inventoryItem) {
       toast.error(
         `Item "${line.item?.name ?? line.itemId}" was not found in inventory`,
@@ -201,25 +242,32 @@ export function ReceiveItemTab({
     }
 
     setSelectedItem(inventoryItem);
-    setValue("itemId", inventoryItem.id.toString(), { shouldValidate: true });
-    setValue(
-      "warehouseId",
-      inventoryItem.warehouse_id != null ? String(inventoryItem.warehouse_id) : "",
-      { shouldValidate: true },
-    );
+    setItemWarehouseStock([]);
+    setValue("itemId", String(inventoryItem.id), { shouldValidate: true });
+    setValue("warehouseId", preferredWarehouseId ?? "", {
+      shouldValidate: true,
+    });
     setValue("quantityReceived", line.acceptedQuantity ?? 0, {
       shouldValidate: true,
     });
 
     const costPrice =
-      line.unitCost ?? line.orderItem?.unitCost ?? inventoryItem.costPrice;
+      line.unitCost ??
+      line.orderItem?.unitPrice ??
+      line.orderItem?.unitCost ??
+      inventoryItem.costPrice;
     if (costPrice != null) {
       setValue("costPrice", Number(costPrice), { shouldValidate: true });
     }
     setValue("batchNo", line.batchNo ?? "");
     setValue("serialNo", line.lotNo ?? "");
+    const saleByDate = toSaleByDate(line.expiryDate ?? inventoryItem.expiryDate);
+    setValue("expiryDate", saleByDate, { shouldValidate: true });
 
     setItemSearchQuery(inventoryItem.name);
+    void listItemWarehouseStock(line.itemId)
+      .then(setItemWarehouseStock)
+      .catch(() => setItemWarehouseStock([]));
   };
 
   const handleReceiptChange = (receiptId: string) => {
@@ -227,7 +275,9 @@ export function ReceiveItemTab({
     setSelectedReceipt(receipt);
     setSelectedLineId("");
     setSelectedItem(null);
+    setItemWarehouseStock([]);
     setItemSearchQuery("");
+    setValue("warehouseId", "");
     if (!receipt) return;
     const lines = awaitingStockLines(receipt);
     if (lines.length > 0) {
@@ -242,13 +292,50 @@ export function ReceiveItemTab({
     if (line) applyGrLineToForm(line);
   };
 
+  // Keep selection in sync with the active search filter.
+  useEffect(() => {
+    if (!receiptSearchQuery.trim()) return;
+
+    if (filteredAwaitingStockReceipts.length === 1) {
+      const only = filteredAwaitingStockReceipts[0];
+      if (selectedReceipt?.id !== only.id) {
+        handleReceiptChange(only.id);
+      }
+      return;
+    }
+
+    if (
+      selectedReceipt &&
+      !filteredAwaitingStockReceipts.some((r) => r.id === selectedReceipt.id)
+    ) {
+      setSelectedReceipt(null);
+      setSelectedLineId("");
+      setSelectedItem(null);
+      setItemSearchQuery("");
+    }
+    // handleReceiptChange closes over latest receipts/form setters for this render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredAwaitingStockReceipts, receiptSearchQuery, selectedReceipt?.id]);
+
   const handleItemSelect = (item: ItemResponseDTO) => {
     setSelectedItem(item);
+    setItemWarehouseStock([]);
     setValue("itemId", item.id.toString());
     setValue("warehouseId", String(item.warehouse_id), {
       shouldValidate: true,
     });
+    setValue(
+      "expiryDate",
+      toSaleByDate(item.expiryDate),
+      { shouldValidate: true },
+    );
+    if (item.costPrice != null) {
+      setValue("costPrice", Number(item.costPrice), { shouldValidate: true });
+    }
     setItemSearchQuery("");
+    void listItemWarehouseStock(item.id)
+      .then(setItemWarehouseStock)
+      .catch(() => setItemWarehouseStock([]));
   };
 
   const resetForm = () => {
@@ -262,8 +349,10 @@ export function ReceiveItemTab({
     setSelectedItem(null);
     setSelectedReceipt(null);
     setSelectedLineId("");
+    setItemWarehouseStock([]);
     setItemSearchQuery("");
     setReceiptSearchQuery("");
+    setReceiptSearchOpen(false);
   };
 
   const onReceiveItem = async (data: ReceiveItemFormData) => {
@@ -282,7 +371,7 @@ export function ReceiveItemTab({
               batchNo: data.batchNo,
               lotNo: data.serialNo,
               unitCost: data.costPrice,
-              expiryDate: data.expiryDate || undefined,
+              expiryDate: resolveSubmitSaleByDate(data.expiryDate),
             },
           ],
         });
@@ -292,7 +381,7 @@ export function ReceiveItemTab({
         await receiveItemStock(data.itemId, {
           quantityReceived: data.quantityReceived,
           receivedDate: data.receivedDate,
-          expiryDate: data.expiryDate || undefined,
+          expiryDate: resolveSubmitSaleByDate(data.expiryDate),
           batchNo: data.batchNo,
           serialNo: data.serialNo,
           referenceNo: data.referenceNo,
@@ -359,23 +448,75 @@ export function ReceiveItemTab({
           <CardContent className="space-y-4">
             {mode === "po" ? (
               <>
-                <div>
+                <div className="relative">
                   <label className="text-sm font-medium mb-2 block">
                     Search goods receipt or PO
                   </label>
                   <Input
-                    placeholder="Search by GR no., PO no., or supplier…"
+                    placeholder="Search by GR no., PO no., supplier, or item…"
                     value={receiptSearchQuery}
-                    onChange={(e) => setReceiptSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setReceiptSearchQuery(e.target.value);
+                      setReceiptSearchOpen(true);
+                    }}
+                    onFocus={() => setReceiptSearchOpen(true)}
+                    onBlur={() => {
+                      // Allow click on a result before closing.
+                      window.setTimeout(() => setReceiptSearchOpen(false), 150);
+                    }}
                     disabled={loadingReceipts}
                   />
+                  {receiptSearchOpen && !loadingReceipts && (
+                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                      {awaitingStockReceipts.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">
+                          No inspected receipts ready to receive
+                        </p>
+                      ) : filteredAwaitingStockReceipts.length === 0 ? (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">
+                          No receipts match “{receiptSearchQuery.trim()}”
+                        </p>
+                      ) : (
+                        filteredAwaitingStockReceipts.map((receipt) => (
+                          <button
+                            key={receipt.id}
+                            type="button"
+                            className={cn(
+                              "flex w-full px-3 py-2 text-left text-sm hover:bg-accent",
+                              selectedReceipt?.id === receipt.id && "bg-accent",
+                            )}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              handleReceiptChange(receipt.id);
+                              setReceiptSearchQuery(
+                                formatAwaitingStockReceiptLabel(receipt),
+                              );
+                              setReceiptSearchOpen(false);
+                            }}
+                          >
+                            {formatAwaitingStockReceiptLabel(receipt)}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Only receipts with confirmed inspection outcomes are listed
+                    here, capped at their accepted quantity.
+                    {receiptSearchQuery.trim() &&
+                    filteredAwaitingStockReceipts.length > 0
+                      ? ` ${filteredAwaitingStockReceipts.length} match${
+                          filteredAwaitingStockReceipts.length === 1 ? "" : "es"
+                        }.`
+                      : null}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     Reference No. (Goods Receipt)
                   </label>
                   <Select
-                    value={selectedReceipt?.id || ""}
+                    value={selectedReceipt?.id}
                     onValueChange={handleReceiptChange}
                     disabled={loadingReceipts}
                   >
@@ -395,26 +536,22 @@ export function ReceiveItemTab({
                     <SelectContent>
                       {filteredAwaitingStockReceipts.map((receipt) => (
                         <SelectItem key={receipt.id} value={receipt.id}>
-                          {receipt.receiptNo} — {receipt.order?.orderNo ?? receipt.orderId}
-                          {receipt.order
-                            ? ` — ${receipt.order.supplierName ?? receipt.order.supplier?.name ?? ""}`
-                            : ""}
+                          {formatAwaitingStockReceiptLabel(receipt)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Only receipts with confirmed inspection outcomes are listed
-                    here, capped at their accepted quantity.
-                  </p>
                 </div>
 
-                {selectedReceipt && selectedReceiptLines.length > 1 && (
+                {selectedReceipt && selectedReceiptLines.length >= 1 && (
                   <div>
                     <label className="text-sm font-medium mb-2 block">
                       Receipt Line Item
                     </label>
-                    <Select value={selectedLineId} onValueChange={handleLineChange}>
+                    <Select
+                      value={selectedLineId || undefined}
+                      onValueChange={handleLineChange}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select line item" />
                       </SelectTrigger>
@@ -481,12 +618,24 @@ export function ReceiveItemTab({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    Item Description
+                    Item
                   </label>
                   <Input
-                    value={selectedItem.description || selectedItem.name}
+                    value={
+                      (poItemLabel && !poItemLabel.startsWith("Item #")
+                        ? poItemLabel
+                        : null) ||
+                      selectedItem.name ||
+                      selectedItem.description ||
+                      ""
+                    }
                     disabled
                   />
+                  {selectedItem.sku ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      SKU: {selectedItem.sku}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div>
@@ -591,9 +740,21 @@ export function ReceiveItemTab({
                   <label className="text-sm font-medium mb-2 block">
                     Sale by Date
                   </label>
-                  <Input type="date" {...register("expiryDate")} />
+                  <Input
+                    type="date"
+                    {...register("expiryDate")}
+                    value={watchedExpiryDate ?? ""}
+                    onChange={(e) =>
+                      setValue("expiryDate", e.target.value, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
+                  />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Optional — leave blank if there is no sale-by date
+                    {selectedItem.expiryDate
+                      ? `Defaults to the item sale-by date (${toSaleByDate(selectedItem.expiryDate)}) when left blank.`
+                      : "Optional — leave blank if there is no sale-by date"}
                   </p>
                 </div>
 
@@ -749,6 +910,7 @@ export function ReceiveItemTab({
           >
             <CreateItemForm
               onSuccess={(newItem) => {
+                setCatalogItems((prev) => [...prev, newItem]);
                 handleItemSelect(newItem);
                 setShowCreateItemDialog(false);
                 setItemSearchQuery("");
