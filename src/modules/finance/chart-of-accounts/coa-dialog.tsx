@@ -1,4 +1,3 @@
-// src/pages/admin/departments/DepartmentDialog.tsx
 import {
   Dialog,
   DialogContent,
@@ -8,7 +7,10 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { apiClient } from "@/service/apiClient";
 import type { ChartOfAccounts } from "@/types/finance/chart-of-accounts";
-import type { COAFormData } from "@/schema/finance/chart-of-account";
+import {
+  normalizeCoaFormDefaults,
+  type COAFormData,
+} from "@/schema/finance/chart-of-account";
 import { ChartOfAccountsForm } from "@/modules/finance/chart-of-accounts/coa-form";
 import { CoaCreateConfirmView } from "@/modules/finance/chart-of-accounts/coa-create-confirm-view";
 import { X, Layers } from "lucide-react";
@@ -43,8 +45,12 @@ export const ChartOfAccountsDialog = ({
   const persistAccount = async (data: COAFormData) => {
     setLoading(true);
     try {
+      // Backend update only persists name + description (structural fields are immutable).
       const res = isEdit
-        ? await apiClient.put(`/finance/chart-of-accounts/${coa!.id}`, data)
+        ? await apiClient.put(`/finance/chart-of-accounts/${coa!.id}`, {
+            accountName: data.accountName,
+            description: data.description ?? "",
+          })
         : await apiClient.post("/finance/chart-of-accounts", data);
       toast.success(
         isEdit
@@ -90,20 +96,22 @@ export const ChartOfAccountsDialog = ({
       : "Add Chart Of Account";
 
   const subtitle = isEdit
-    ? "Update chart of account details below"
+    ? "Update name and description — other fields are locked after creation"
     : step === "confirm"
       ? "Verify details — accounts cannot be changed after creation"
       : "Enter chart of account details below";
 
+  const formDefaults = coa ? normalizeCoaFormDefaults(coa) : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="gap-0 overflow-hidden rounded-2xl border border-slate-200 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
-        style={{ maxWidth: 680, maxHeight: "92vh", width: "calc(100vw - 32px)" }}
+        className="flex h-fit max-h-[90vh] flex-col gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 p-0 shadow-2xl shadow-slate-200/60 [&>button]:hidden"
+        style={{ maxWidth: 680, width: "calc(100vw - 32px)" }}
       >
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold tracking-wide transition-all duration-300 border-2 border-white/20 bg-teal-100 text-teal-600">
+        <div className="flex shrink-0 items-center justify-between bg-slate-800 px-5 py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-white/20 bg-teal-100 text-teal-600">
               <Layers className="h-5 w-5" />
             </div>
             <div>
@@ -123,16 +131,13 @@ export const ChartOfAccountsDialog = ({
           </button>
         </div>
 
-        <div
-          className="overflow-y-auto bg-white px-6 py-5"
-          style={{ maxHeight: "calc(92vh - 132px)" }}
-        >
+        <div className="overflow-y-auto px-4 py-4">
           <div className={!isEdit && step === "confirm" ? "hidden" : undefined}>
             <ChartOfAccountsForm
               key={coa?.id ?? "new"}
               onSubmit={handleSubmit}
               loading={loading && isEdit}
-              defaultValues={coa as COAFormData | null}
+              defaultValues={formDefaults}
               submitLabel={isEdit ? undefined : "Review & continue"}
             />
           </div>

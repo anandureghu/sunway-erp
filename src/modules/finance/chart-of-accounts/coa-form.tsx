@@ -1,8 +1,6 @@
-// src/pages/admin/finance/ChartOfAccountsForm.tsx
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Form,
@@ -20,6 +18,7 @@ import SelectDepartment from "@/components/select-department";
 
 import {
   COA_SCHEMA,
+  normalizeCoaFormDefaults,
   type COAFormData,
 } from "@/schema/finance/chart-of-account";
 import {
@@ -35,27 +34,35 @@ import { type Department } from "@/types/department";
 import SelectAccount from "@/components/select-account";
 import { cn } from "@/lib/utils";
 import { Layers, Hash } from "lucide-react";
+import { apiClient } from "@/service/apiClient";
 
 interface ChartOfAccountsFormProps {
   onSubmit: (data: COAFormData) => Promise<void> | void;
   loading?: boolean;
-  defaultValues?: Partial<COAFormData> | null;
+  defaultValues?: Partial<COAFormData> & {
+    departmentCode?: string | null;
+    departmentName?: string | null;
+  } | null;
   /** Override primary button label (create flow uses review step). */
   submitLabel?: string;
 }
+
+const icls =
+  "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
 
 export const ChartOfAccountsForm = ({
   onSubmit,
   loading,
   defaultValues,
   submitLabel,
-}: ChartOfAccountsFormProps)  => {
+}: ChartOfAccountsFormProps) => {
   const isEditMode = useMemo(
     () => !!defaultValues?.accountCode,
     [defaultValues],
   );
 
   const { company } = useAuth();
+  const seededTypeRef = useRef<string | null>(null);
 
   const form = useForm<COAFormData>({
     resolver: zodResolver(COA_SCHEMA),
@@ -64,21 +71,41 @@ export const ChartOfAccountsForm = ({
       accountName: "",
       description: "",
       type: "ASSET",
-      ...defaultValues,
+      accountNo: "",
+      interCompanyNumber: "",
+      ...(defaultValues
+        ? normalizeCoaFormDefaults(defaultValues)
+        : {}),
     },
   });
 
   const accountNo = form.watch("accountNo");
   const projectCode = form.watch("projectCode");
   const interCompanyNumber = form.watch("interCompanyNumber");
+  const accountType = form.watch("type");
 
-  const [department, setDepartment] = useState<Department | null>();
+  const [department, setDepartment] = useState<Department | null>(null);
 
   useEffect(() => {
-    if (defaultValues) {
-      form.reset(defaultValues);
+    if (!defaultValues) return;
+    const normalized = normalizeCoaFormDefaults(defaultValues);
+    const { departmentCode, departmentName, ...formFields } = normalized;
+    form.reset(formFields);
+    seededTypeRef.current = formFields.type;
+    if (normalized.departmentId && departmentCode) {
+      setDepartment({
+        id: normalized.departmentId,
+        departmentCode,
+        departmentName: departmentName ?? "",
+        companyCode: "",
+        companyId: company?.id ?? 0,
+        companyName: "",
+        createdAt: "",
+      });
+    } else {
+      setDepartment(null);
     }
-  }, [defaultValues, form]);
+  }, [defaultValues, form, company?.id]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     try {
@@ -88,63 +115,85 @@ export const ChartOfAccountsForm = ({
     }
   });
 
-  const isBudgetAccountSelected = form.watch("type") === "BUDGET";
+  const isBudgetAccountSelected = accountType === "BUDGET";
 
   const deptCode = isBudgetAccountSelected
     ? "BUD1"
-    : department?.departmentCode || projectCode || "000";
+    : department?.departmentCode ||
+      defaultValues?.departmentCode ||
+      projectCode ||
+      "000";
 
-  // First segment of the GL code is the company's own 3-digit code (zero-padded
-  // so a 1–2 digit code still fills the segment). Falls back to 000 only when a
-  // company has no code set yet.
   const companySegment = String(company?.companyCode ?? "")
     .trim()
     .padStart(3, "0")
     .slice(-3);
 
-  const computedCode = `${companySegment}.${
-    deptCode
-  }.${accountNo || "000000"}.${interCompanyNumber || "000"}`;
+  // On edit, prefer the persisted code so department segment stays accurate.
+  const computedCode = isEditMode
+    ? defaultValues?.accountCode ||
+      `${companySegment}.${deptCode}.${accountNo || "000000"}.${interCompanyNumber || "000"}`
+    : `${companySegment}.${deptCode}.${accountNo || "000000"}.${interCompanyNumber || "000"}`;
 
-  // Push computed value into form state
   useEffect(() => {
     form.setValue("accountCode", computedCode);
-  }, [computedCode]);
+  }, [computedCode, form]);
 
+  // Suggest next unique account number on create when type changes — never overwrite on edit.
   useEffect(() => {
-    const idx = COA.findIndex((coa) => coa.key === form.watch("type"));
-    form.setValue("accountNo", String((idx + 1) * 100000));
-
-    if (form.watch("type") === "BUDGET") {
-      form.setValue("accountNo", `BUD${new Date().getFullYear()}`);
+    if (isEditMode) return;
+    if (!accountType) return;
+    if (seededTypeRef.current === accountType && form.getValues("accountNo")) {
+      return;
     }
-  }, [form.watch("type")]);
+    seededTypeRef.current = accountType;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await apiClient.get<{ accountNo: string }>(
+          "/finance/chart-of-accounts/next-account-no",
+          { params: { type: accountType } },
+        );
+        if (!cancelled && data?.accountNo) {
+          form.setValue("accountNo", data.accountNo);
+        }
+      } catch {
+        // Fallback: type base series if API unavailable
+        if (accountType === "BUDGET") {
+          form.setValue("accountNo", `BUD${new Date().getFullYear()}`);
+        } else {
+          const idx = COA.findIndex((coa) => coa.key === accountType);
+          form.setValue("accountNo", String((idx + 1) * 100000));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountType, isEditMode, form]);
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className="space-y-6">
-
-        {/* ── Account Code Preview Banner ── */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white p-5 rounded-xl">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
-              <Layers className="h-4 w-4 text-white" />
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="rounded-xl bg-slate-800 p-4 text-white">
+          <div className="mb-2 flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10">
+              <Layers className="h-3.5 w-3.5 text-white" />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
                 Account Code
               </p>
-              <p className="text-[12px] text-slate-400">
+              <p className="text-[11px] text-slate-400">
                 Auto-computed from your selections
               </p>
             </div>
           </div>
-          <p className="text-3xl font-bold font-mono pl-12">{computedCode}</p>
+          <p className="pl-10 font-mono text-2xl font-bold">{computedCode}</p>
         </div>
 
-        {/* ── Section: Core Information ── */}
-        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
               <Hash className="h-3.5 w-3.5 text-white" />
             </div>
@@ -152,7 +201,7 @@ export const ChartOfAccountsForm = ({
               Core information
             </span>
           </div>
-          <div className="p-5 space-y-5">
+          <div className="space-y-3 p-4">
             <FormField
               control={form.control}
               name="accountName"
@@ -164,9 +213,8 @@ export const ChartOfAccountsForm = ({
                   <FormControl>
                     <Input
                       {...field}
-                      disabled={false}
                       placeholder="Cash at Bank"
-                      className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      className={icls}
                     />
                   </FormControl>
                   <FormMessage />
@@ -186,10 +234,9 @@ export const ChartOfAccountsForm = ({
                     <Select
                       onValueChange={(val) => form.setValue("type", val)}
                       value={field.value}
-                      defaultValue="ADMIN"
                       disabled={isEditMode}
                     >
-                      <SelectTrigger className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]">
+                      <SelectTrigger className={icls}>
                         <SelectValue placeholder="Select COA Type" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-slate-200 shadow-lg">
@@ -218,9 +265,16 @@ export const ChartOfAccountsForm = ({
                     <Input
                       {...field}
                       placeholder="100000"
-                      className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      disabled={isEditMode}
+                      className={icls}
                     />
                   </FormControl>
+                  {!isEditMode && (
+                    <p className="text-[11px] text-slate-400">
+                      Suggested next available number for this type — must be
+                      unique.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -228,10 +282,9 @@ export const ChartOfAccountsForm = ({
           </div>
         </div>
 
-        {/* ── Section: Department / Project Assignment ── */}
         {!isBudgetAccountSelected && (
-          <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+          <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600">
                 <Hash className="h-3.5 w-3.5 text-white" />
               </div>
@@ -239,13 +292,13 @@ export const ChartOfAccountsForm = ({
                 Assignment
               </span>
             </div>
-            <div className="p-5">
+            <div className="p-4">
               <div
                 className={cn(
-                  "space-y-4",
+                  "space-y-3",
                   !form.watch("departmentId") &&
                     !form.watch("projectCode") &&
-                    "p-5 border border-dashed border-slate-300 rounded-xl bg-slate-50/50",
+                    "rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4",
                 )}
               >
                 {!form.watch("projectCode") && (
@@ -278,8 +331,10 @@ export const ChartOfAccountsForm = ({
                         <FormControl>
                           <Input
                             {...field}
+                            value={field.value ?? ""}
                             placeholder="2000"
-                            className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                            disabled={isEditMode}
+                            className={icls}
                           />
                         </FormControl>
                         <FormMessage />
@@ -292,9 +347,8 @@ export const ChartOfAccountsForm = ({
           </div>
         )}
 
-        {/* ── Section: Hierarchy & Details ── */}
-        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
+        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
               <Layers className="h-3.5 w-3.5 text-white" />
             </div>
@@ -302,7 +356,7 @@ export const ChartOfAccountsForm = ({
               Hierarchy &amp; details
             </span>
           </div>
-          <div className="p-5 space-y-5">
+          <div className="space-y-3 p-4">
             <SelectAccount
               value={form.watch("parentId")?.toString()}
               onChange={(val) => {
@@ -325,7 +379,8 @@ export const ChartOfAccountsForm = ({
                     <Input
                       {...field}
                       placeholder="200"
-                      className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      disabled={isEditMode}
+                      className={icls}
                     />
                   </FormControl>
                   <FormMessage />
@@ -344,9 +399,10 @@ export const ChartOfAccountsForm = ({
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value ?? ""}
                       placeholder="Optional description..."
                       rows={3}
-                      className="rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)] resize-none px-3 py-2"
+                      className="resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 outline-none placeholder:text-slate-300 focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
                     />
                   </FormControl>
                   <FormMessage />
@@ -358,7 +414,7 @@ export const ChartOfAccountsForm = ({
 
         <Button
           type="submit"
-          className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 font-semibold text-[13px] shadow-sm hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+          className="h-11 w-full rounded-xl bg-slate-900 text-[13px] font-semibold shadow-sm transition-all hover:bg-slate-800 disabled:opacity-50"
           disabled={loading}
         >
           {loading
