@@ -412,10 +412,6 @@ function CreateItemForm({
             {errors.status && <p className="text-[11px] text-rose-400 mt-1">{errors.status.message}</p>}
           </F>
 
-          <F label="Barcode">
-            <Input placeholder="Optional barcode" {...register("barcode")} className={icls} />
-          </F>
-
           <F label="Serial No.">
             <Input placeholder="Optional serial number" {...register("serialNo")} className={icls} />
           </F>
@@ -432,7 +428,8 @@ function CreateItemForm({
           <F label="Model">
             <Input placeholder="Model name or number" {...register("model")} className={icls} />
           </F>
-
+        </div>
+        <div className={cn(fieldsGrid, "mt-4")}>
           <F label="Negative stock permitted" required>
             <Select
               onValueChange={(value) =>
@@ -504,6 +501,12 @@ function CreateItemForm({
             <p className="text-[11px] text-slate-400 mt-1">Optional</p>
           </F>
 
+          <F label="Barcode">
+            <Input placeholder="Optional barcode" {...register("barcode")} className={icls} />
+          </F>
+        </div>
+
+        <div className={cn(fieldsGrid, "mt-4")}>
           <F label="Reorder level" required>
             <Input type="number" step="1" min="0" placeholder="0" {...register("reorderLevel", { valueAsNumber: true })} className={icls} />
             {errors.reorderLevel && <p className="text-[11px] text-rose-400 mt-1">{errors.reorderLevel.message}</p>}
