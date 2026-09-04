@@ -17,12 +17,12 @@ export function ItemSectionCard({
   return (
     <div
       className={cn(
-        "flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
+        "flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm",
         className,
       )}
     >
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
             {icon}
           </div>
@@ -30,7 +30,7 @@ export function ItemSectionCard({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="flex flex-1 flex-col space-y-5 p-5">{children}</div>
+      <div className="flex flex-col space-y-3 p-4">{children}</div>
     </div>
   );
 }

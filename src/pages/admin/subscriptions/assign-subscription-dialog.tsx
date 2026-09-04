@@ -167,9 +167,9 @@ export function AssignSubscriptionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-0 bg-slate-50/80 p-0 sm:rounded-2xl">
-        <DialogHeader className="border-b border-slate-100 bg-white px-6 py-5">
-          <DialogTitle className="text-lg font-semibold text-slate-900">
+      <DialogContent className="flex h-fit max-h-[90vh] w-full max-w-xl flex-col gap-0 overflow-y-auto border-0 bg-slate-100 p-0 sm:rounded-2xl">
+        <DialogHeader className="shrink-0 space-y-1 border-b border-slate-100 bg-white px-5 py-3.5 text-left">
+          <DialogTitle className="text-base font-semibold text-slate-900">
             {initial ? "Edit subscription" : "Assign subscription"}
             {companyName ? ` — ${companyName}` : ""}
           </DialogTitle>
@@ -180,8 +180,9 @@ export function AssignSubscriptionDialog({
           </p>
         </DialogHeader>
 
-        <div className="space-y-4 p-5">
+        <div className="space-y-3 p-4">
           <ItemSectionCard
+            className="h-auto"
             icon={<CalendarRange className="h-3.5 w-3.5 text-white" />}
             title="Plan & billing"
           >
@@ -236,6 +237,7 @@ export function AssignSubscriptionDialog({
           </ItemSectionCard>
 
           <ItemSectionCard
+            className="h-auto"
             icon={<HardDrive className="h-3.5 w-3.5 text-white" />}
             title="Limits & notes"
           >
