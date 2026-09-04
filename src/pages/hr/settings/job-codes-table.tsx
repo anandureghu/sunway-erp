@@ -40,6 +40,8 @@ export function JobCodesTable({
   onView,
   onEdit,
   onDelete,
+  onApprove,
+  onReject,
 }: {
   rows: JobCode[];
   filteredCount: number;
@@ -53,6 +55,8 @@ export function JobCodesTable({
   onView: (jc: JobCode) => void;
   onEdit: (jc: JobCode) => void;
   onDelete: (jc: JobCode) => void;
+  onApprove?: (jc: JobCode) => void;
+  onReject?: (jc: JobCode) => void;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -136,21 +140,36 @@ export function JobCodesTable({
                 )}
               </TableCell>
               <TableCell>
-                {j.active ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span className="text-sm font-medium text-green-600">
-                      Active
+                <div className="flex flex-col gap-1">
+                  {j.active ? (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span className="text-sm font-medium text-green-600">
+                        Active
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-slate-400" />
+                      <span className="text-sm font-medium text-slate-400">
+                        Inactive
+                      </span>
+                    </div>
+                  )}
+                  {j.status && j.status !== "APPROVED" && (
+                    <span
+                      className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                        j.status === "REJECTED"
+                          ? "border-rose-200 bg-rose-50 text-rose-600"
+                          : "border-amber-200 bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {j.status === "REJECTED"
+                        ? "Rejected"
+                        : "Pending approval"}
                     </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-slate-400" />
-                    <span className="text-sm font-medium text-slate-400">
-                      Inactive
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
@@ -170,6 +189,24 @@ export function JobCodesTable({
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
+                    {j.status === "PENDING_APPROVAL" && onApprove && (
+                      <DropdownMenuItem
+                        className="text-green-600 focus:text-green-600"
+                        onClick={() => onApprove(j)}
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Approve
+                      </DropdownMenuItem>
+                    )}
+                    {j.status === "PENDING_APPROVAL" && onReject && (
+                      <DropdownMenuItem
+                        className="text-amber-600 focus:text-amber-600"
+                        onClick={() => onReject(j)}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Reject
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       className="text-red-600 focus:text-red-600"
                       onClick={() => onDelete(j)}

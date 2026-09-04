@@ -9,6 +9,18 @@ export interface JobCode {
   minSalary?: number | null;
   maxSalary?: number | null;
   active: boolean;
+  /** Approval state: PENDING_APPROVAL | APPROVED | REJECTED. */
+  status?: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | string;
+  // Defaults copied onto the current job when this code is assigned.
+  departmentId?: number | null;
+  departmentName?: string | null;
+  divisionId?: number | null;
+  divisionName?: string | null;
+  employmentCategory?: string | null;
+  employmentType?: string | null;
+  workLocation?: string | null;
+  workCity?: string | null;
+  workCountry?: string | null;
   /** From /assignable: false when held by another active employee (see `assignedTo`). */
   assignable?: boolean;
   assignedTo?: string | null;
@@ -22,6 +34,13 @@ export interface JobCodePayload {
   minSalary?: number | null;
   maxSalary?: number | null;
   active: boolean;
+  departmentId?: number | null;
+  divisionId?: number | null;
+  employmentCategory?: string | null;
+  employmentType?: string | null;
+  workLocation?: string | null;
+  workCity?: string | null;
+  workCountry?: string | null;
 }
 
 async function getAll(): Promise<JobCode[]> {
@@ -65,6 +84,16 @@ async function remove(id: number): Promise<void> {
   await apiClient.delete(`/hr/job-codes/${id}`);
 }
 
+async function approve(id: number): Promise<JobCode> {
+  const res = await apiClient.put<JobCode>(`/hr/job-codes/${id}/approve`);
+  return res.data;
+}
+
+async function reject(id: number): Promise<JobCode> {
+  const res = await apiClient.put<JobCode>(`/hr/job-codes/${id}/reject`);
+  return res.data;
+}
+
 export const jobCodeService = {
   getAll,
   getActive,
@@ -72,5 +101,7 @@ export const jobCodeService = {
   getById,
   create,
   update,
+  approve,
+  reject,
   delete: remove,
 };

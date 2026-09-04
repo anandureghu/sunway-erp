@@ -81,7 +81,8 @@ const SEED: ResidencePermitModel = {
   issueAuthority: "",
   visaDuration: "",
   occupation: "",
-  visaStatus: "",
+  // Visa status defaults to Active on a new record.
+  visaStatus: "Active",
   startDate: "",
   endDate: "",
 };
@@ -164,6 +165,13 @@ export default function ResidencePermitForm(): ReactElement {
           setDraft((d) => ({ ...d, nationality: nat }));
           setSaved((s) => ({ ...s, nationality: nat }));
         }
+        // Occupation is auto-filled from the employee's Job Title (current job's
+        // designation) when it hasn't been set yet.
+        const jobTitle = ((emp as { designation?: string }).designation ?? "").trim();
+        if (jobTitle) {
+          setDraft((d) => (d.occupation ? d : { ...d, occupation: jobTitle }));
+          setSaved((s) => (s.occupation ? s : { ...s, occupation: jobTitle }));
+        }
       })
       .catch(() => {});
     return () => {
@@ -188,7 +196,7 @@ export default function ResidencePermitForm(): ReactElement {
             issueAuthority: data?.issueAuthority ?? "",
             visaDuration: data?.visaDuration ?? "",
             occupation: data?.occupation ?? "",
-            visaStatus: data?.visaStatus ?? "",
+            visaStatus: data?.visaStatus || "Active",
             startDate: data?.startDate ?? "",
             endDate: data?.endDate ?? "",
           };

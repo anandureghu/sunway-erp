@@ -17,6 +17,7 @@ export interface DependentPayload {
   state?: string;
   postalCode?: string;
   country?: string;
+  emergencyContact?: boolean;
 }
 
 async function getAll(employeeId: number) {

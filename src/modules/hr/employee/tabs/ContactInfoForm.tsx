@@ -470,7 +470,7 @@ export default function ContactInfoForm() {
   };
 
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-4">
+    <div className="space-y-4">
       {/* ── Page header ── */}
       <SecondaryPageHeader
         title="Contact Information"

@@ -270,6 +270,19 @@ export const leaveService = {
     }
   },
 
+  // Permanently delete an archived (completed) leave record.
+  async deleteLeaveRecord(leaveId: number): Promise<LeaveServiceResponse> {
+    try {
+      await apiClient.delete(`/leaves/${leaveId}`);
+      return { success: true };
+    } catch (error: unknown) {
+      return {
+        success: false,
+        message: getErrorMessage(error, "Failed to delete leave"),
+      };
+    }
+  },
+
   async approveLeave(leaveId: number): Promise<LeaveServiceResponse> {
     if (!leaveId || leaveId <= 0) {
       return { success: false, message: "Invalid leave ID" };

@@ -27,13 +27,20 @@ const StatusCell = ({ value }: { value?: string }) => {
   const key = String(value ?? "").toUpperCase().replace(/[\s-]/g, "_");
 
   const map: Record<string, { label: string; className: string }> = {
-    ACTIVE:   { label: "Active",   className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    INACTIVE: { label: "Inactive", className: "bg-rose-50    text-rose-700    border-rose-200"    },
-    ON_LEAVE: { label: "On Leave", className: "bg-amber-50   text-amber-700   border-amber-200"   },
+    ACTIVE:          { label: "Active",          className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    UNDER_PROBATION: { label: "Under Probation", className: "bg-indigo-50  text-indigo-700  border-indigo-200"  },
+    INACTIVE:        { label: "Inactive",        className: "bg-rose-50    text-rose-700    border-rose-200"    },
+    ON_LEAVE:        { label: "On Leave",        className: "bg-amber-50   text-amber-700   border-amber-200"   },
   };
 
+  // Fallback: never show a raw enum — turn e.g. "UNDER_PROBATION" into "Under Probation".
+  const humanized = String(value ?? "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
   const { label, className } = map[key] ?? {
-    label: value || "—",
+    label: humanized || "—",
     className: "bg-gray-50 text-gray-700 border-gray-200",
   };
 
@@ -41,9 +48,10 @@ const StatusCell = ({ value }: { value?: string }) => {
     <Badge variant="outline" className={cn("text-xs font-medium", className)}>
       <span className={cn("mr-1.5 h-1.5 w-1.5 rounded-full inline-block", {
         "bg-emerald-500": key === "ACTIVE",
+        "bg-indigo-500":  key === "UNDER_PROBATION",
         "bg-rose-500":    key === "INACTIVE",
         "bg-amber-500":   key === "ON_LEAVE",
-        "bg-gray-400":    !["ACTIVE","INACTIVE","ON_LEAVE"].includes(key),
+        "bg-gray-400":    !["ACTIVE","UNDER_PROBATION","INACTIVE","ON_LEAVE"].includes(key),
       })} />
       {label}
     </Badge>

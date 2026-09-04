@@ -35,6 +35,7 @@ import {
   History,
   Archive,
   ArchiveRestore,
+  Trash2,
   LogOut,
   Umbrella,
   Shield,
@@ -678,6 +679,46 @@ export default function HRReports() {
       setLoanApprovals((prev) => prev.filter((l) => l.id !== id));
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to update loan");
+    } finally {
+      setLoanBusyId(null);
+    }
+  };
+
+  const handleDeleteLeave = async (id: number) => {
+    if (
+      !(window.confirm(
+        "Permanently delete this archived leave record? This cannot be undone.",
+      ))
+    )
+      return;
+    setLeaveBusyId(id);
+    try {
+      const res = await leaveService.deleteLeaveRecord(id);
+      if (!res.success) {
+        toast.error(res.message || "Failed to delete leave");
+        return;
+      }
+      toast.success("Leave deleted");
+      setLeaveApprovals((prev) => prev.filter((l) => l.id !== id));
+    } finally {
+      setLeaveBusyId(null);
+    }
+  };
+
+  const handleDeleteLoan = async (id: number) => {
+    if (
+      !(window.confirm(
+        "Permanently delete this archived loan record? This cannot be undone.",
+      ))
+    )
+      return;
+    setLoanBusyId(id);
+    try {
+      await loanService.deleteLoanRecord(id);
+      toast.success("Loan deleted");
+      setLoanApprovals((prev) => prev.filter((l) => l.id !== id));
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to delete loan");
     } finally {
       setLoanBusyId(null);
     }
@@ -1681,24 +1722,51 @@ export default function HRReports() {
                               )}
                             </td>
                             <td className="py-2.5 text-right">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleArchiveLeave(l.id, !leaveArchivedView)
-                                }
-                                disabled={leaveBusyId === l.id}
-                                title={
-                                  leaveArchivedView ? "Unarchive" : "Archive"
-                                }
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                              >
+                              <div className="inline-flex items-center gap-1.5">
+                                {/* Archive is only offered for COMPLETED leaves. In the
+                                    archived view, Restore + Delete are available. */}
                                 {leaveArchivedView ? (
-                                  <ArchiveRestore className="h-3.5 w-3.5" />
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleArchiveLeave(l.id, false)
+                                      }
+                                      disabled={leaveBusyId === l.id}
+                                      title="Restore"
+                                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                    >
+                                      <ArchiveRestore className="h-3.5 w-3.5" />
+                                      Restore
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteLeave(l.id)}
+                                      disabled={leaveBusyId === l.id}
+                                      title="Delete permanently"
+                                      className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Delete
+                                    </button>
+                                  </>
+                                ) : l.leaveStatus === "COMPLETED" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleArchiveLeave(l.id, true)
+                                    }
+                                    disabled={leaveBusyId === l.id}
+                                    title="Archive"
+                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                  >
+                                    <Archive className="h-3.5 w-3.5" />
+                                    Archive
+                                  </button>
                                 ) : (
-                                  <Archive className="h-3.5 w-3.5" />
+                                  <span className="text-slate-300">—</span>
                                 )}
-                                {leaveArchivedView ? "Restore" : "Archive"}
-                              </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1956,24 +2024,49 @@ export default function HRReports() {
                               )}
                             </td>
                             <td className="py-2.5 text-right">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleArchiveLoan(l.id, !loanArchivedView)
-                                }
-                                disabled={loanBusyId === l.id}
-                                title={
-                                  loanArchivedView ? "Unarchive" : "Archive"
-                                }
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                              >
+                              <div className="inline-flex items-center gap-1.5">
+                                {/* Archive is only offered for completed (CLOSED) loans.
+                                    In the archived view, Restore + Delete are available. */}
                                 {loanArchivedView ? (
-                                  <ArchiveRestore className="h-3.5 w-3.5" />
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleArchiveLoan(l.id, false)
+                                      }
+                                      disabled={loanBusyId === l.id}
+                                      title="Restore"
+                                      className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                    >
+                                      <ArchiveRestore className="h-3.5 w-3.5" />
+                                      Restore
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteLoan(l.id)}
+                                      disabled={loanBusyId === l.id}
+                                      title="Delete permanently"
+                                      className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Delete
+                                    </button>
+                                  </>
+                                ) : l.status === "CLOSED" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleArchiveLoan(l.id, true)}
+                                    disabled={loanBusyId === l.id}
+                                    title="Archive"
+                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                  >
+                                    <Archive className="h-3.5 w-3.5" />
+                                    Archive
+                                  </button>
                                 ) : (
-                                  <Archive className="h-3.5 w-3.5" />
+                                  <span className="text-slate-300">—</span>
                                 )}
-                                {loanArchivedView ? "Restore" : "Archive"}
-                              </button>
+                              </div>
                             </td>
                           </tr>
                         );

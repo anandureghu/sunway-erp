@@ -163,6 +163,10 @@ export default function LoansForm(): ReactElement {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Loan-eligibility pre-check (company min-service policy etc.).
+  const [eligibility, setEligibility] = useState<
+    import("@/service/loanService").LoanEligibility | null
+  >(null);
   const currencySymbol = company?.currency?.currencyCode ?? "";
 
   // One loan at a time: an employee with a persisted pending or active loan
@@ -206,6 +210,14 @@ export default function LoansForm(): ReactElement {
       );
       return;
     }
+    // Block the request up front when the employee doesn't meet loan policy.
+    if (eligibility && !eligibility.eligible) {
+      toast.error(
+        eligibility.reason ||
+          "This employee is not eligible to request a loan right now.",
+      );
+      return;
+    }
     const gross = grossSalary || 0;
     const newLoan = {
       ...INITIAL_LOAN,
@@ -216,7 +228,7 @@ export default function LoansForm(): ReactElement {
     };
     setLoans((current) => [...current, newLoan]);
     setEditingId(newLoan.id);
-  }, [grossSalary, hasOpenLoan]);
+  }, [grossSalary, hasOpenLoan, eligibility]);
 
   const mapApiToForm = (api: any): LoansModel => ({
     id: String(api.id),
@@ -272,6 +284,15 @@ export default function LoansForm(): ReactElement {
       setLoading(false);
     }
   }, [employeeId, grossSalary]);
+
+  // Pre-check loan eligibility so we can block a request the policy would reject.
+  useEffect(() => {
+    if (!employeeId) return;
+    void loanService
+      .checkEligibility(employeeId)
+      .then((res) => setEligibility(res.data))
+      .catch(() => setEligibility(null));
+  }, [employeeId]);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -535,6 +556,15 @@ export default function LoansForm(): ReactElement {
         description="Manage loan details and repayment schedules"
         icon={<Building2 className="h-5 w-5 text-white" />}
       />
+
+      {eligibility && !eligibility.eligible && !hasOpenLoan && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <p className="text-sm text-amber-800">
+            <strong>Not eligible for a loan.</strong> {eligibility.reason}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <SummaryCard

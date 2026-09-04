@@ -9,6 +9,7 @@ import { formatMoney } from "@/lib/utils";
 import { salaryService } from "@/service/salaryService";
 import type { RetirementCompensation } from "@/service/salaryService";
 import { currentJobService } from "@/service/currentJobService";
+import { contractService } from "@/service/contractService";
 import { timesheetService } from "@/service/timesheetService";
 import { fetchHrPolicies } from "@/service/companyService";
 import { toast } from "sonner";
@@ -167,25 +168,31 @@ const getStatusMeta = (status: string) => {
 const SectionHeading = ({
   icon,
   label,
+  description,
   accent = "from-violet-600 to-blue-600",
 }: {
   icon: React.ReactNode;
   label: string;
+  description?: string;
   accent?: string;
 }) => (
-  <div className="flex items-center gap-2.5 mb-5">
+  <div className="mb-5 flex items-center gap-3">
     <div
       className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white",
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm ring-1 ring-black/5",
         accent,
       )}
     >
       {icon}
     </div>
-    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">
-      {label}
-    </h3>
-    <div className="flex-1 h-px bg-slate-100" />
+    <div className="min-w-0">
+      <h3 className="text-[15px] font-semibold leading-tight text-slate-800">
+        {label}
+      </h3>
+      {description && (
+        <p className="truncate text-xs text-slate-400">{description}</p>
+      )}
+    </div>
   </div>
 );
 
@@ -371,7 +378,8 @@ export default function SalaryForm() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }, []);
-  const [salaryMonth, setSalaryMonth] = useState<string>(currentMonthIso);
+  // Salary Month is read-only — always the current month.
+  const [salaryMonth] = useState<string>(currentMonthIso);
   const [totalDaysWorked, setTotalDaysWorked] = useState<number | null>(null);
   const [loadingDaysWorked, setLoadingDaysWorked] = useState(false);
 
@@ -409,7 +417,8 @@ export default function SalaryForm() {
       if (!isValidAmount(String(data.otherAllowance)))
         errors.otherAllowance = "Valid other allowance amount is required";
       if (!isValidDate(data.effectiveFrom))
-        errors.effectiveFrom = "Valid effective from date is required";
+        errors.effectiveFrom =
+          "Effective From is missing — set the employment start date on the Current Job tab first.";
       if (data.effectiveTo && !isValidDate(data.effectiveTo))
         errors.effectiveTo = "Invalid effective to date";
       return errors;
@@ -451,10 +460,51 @@ export default function SalaryForm() {
           grade: r.job?.salaryGrade ?? r.salaryGrade ?? "",
           loaded: true,
         });
+
+        // Effective From = employment/contract start date; Effective To = contract
+        // end / expected end date — both read from the current job (source of truth).
+        const cj = (res ?? {}) as {
+          startDate?: string | null;
+          effectiveFrom?: string | null;
+          contractStartDate?: string | null;
+          expectedEndDate?: string | null;
+          contractEndDate?: string | null;
+        };
+        const from =
+          cj.startDate || cj.effectiveFrom || cj.contractStartDate || "";
+        const to = cj.expectedEndDate || cj.contractEndDate || "";
+        if (from || to) {
+          setFormData((prev) => ({
+            ...prev,
+            effectiveFrom: from || prev.effectiveFrom,
+            effectiveTo: to || prev.effectiveTo,
+          }));
+        }
       })
       .catch(() => {
         if (mounted) setSalaryBand((p) => ({ ...p, loaded: true }));
       });
+    return () => {
+      mounted = false;
+    };
+  }, [employeeId]);
+
+  // Contract dates are the fallback source for Effective From / To when the current
+  // job hasn't supplied them (the two are kept in sync). Read-only either way.
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    contractService
+      .get(employeeId)
+      .then((c) => {
+        if (!mounted || !c) return;
+        setFormData((prev) => ({
+          ...prev,
+          effectiveFrom: prev.effectiveFrom || c.effectiveDate || "",
+          effectiveTo: prev.effectiveTo || c.expirationDate || "",
+        }));
+      })
+      .catch(() => {});
     return () => {
       mounted = false;
     };
@@ -820,10 +870,11 @@ export default function SalaryForm() {
         {/* ── LEFT: form ── */}
         <div className="space-y-4">
           {/* Basic Salary card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
+          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)]">
             <SectionHeading
               icon={<DollarSign className="h-4 w-4" />}
               label="Basic Salary"
+              description="Monthly base pay before allowances"
               accent="from-violet-600 to-blue-600"
             />
             {!editing ? (
@@ -905,10 +956,11 @@ export default function SalaryForm() {
           </div>
 
           {/* Benefits card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
+          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)]">
             <SectionHeading
               icon={<BadgePercent className="h-4 w-4" />}
               label="Benefits & Allowances"
+              description="Transport, travel, housing, food & other"
               accent="from-emerald-500 to-teal-600"
             />
             <div className="space-y-3">
@@ -1059,10 +1111,11 @@ export default function SalaryForm() {
           </div>
 
           {/* End of Service Compensation card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
+          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)]">
             <SectionHeading
               icon={<Award className="h-4 w-4" />}
               label="End of Service Compensation"
+              description="Accrued gratuity, paid on final settlement"
               accent="from-amber-500 to-orange-600"
             />
             {loadingEos ? (
@@ -1154,10 +1207,11 @@ export default function SalaryForm() {
           </div>
 
           {/* Status & Dates card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
+          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)]">
             <SectionHeading
               icon={<CheckCircle className="h-4 w-4" />}
               label="Status & Effective Dates"
+              description="Bound to the current job & contract"
               accent="from-emerald-500 to-teal-600"
             />
             {!editing ? (
@@ -1197,55 +1251,57 @@ export default function SalaryForm() {
                 />
               </div>
 
-              {/* Effective From */}
+              {/* Effective From — read-only, from the current job / contract start */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-emerald-600" />
-                  Effective From <span className="text-rose-500">*</span>
+                  Effective From
                 </Label>
-                <Input
-                  type="date"
-                  value={formData.effectiveFrom}
-                  onChange={(e) => updateField("effectiveFrom")(e.target.value)}
-                  disabled={!editing}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
-                />
-                {errors.effectiveFrom && (
-                  <p className="text-xs text-rose-500">
-                    {errors.effectiveFrom}
-                  </p>
-                )}
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3">
+                  <span className="text-sm font-medium text-slate-700">
+                    {formData.effectiveFrom
+                      ? formatViewDate(formData.effectiveFrom)
+                      : "—"}
+                  </span>
+                  <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700">
+                    Auto
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Employment start date (Current Job / Contract).
+                </p>
               </div>
 
-              {/* Effective To */}
+              {/* Effective To — read-only, from the contract end / expected end date */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-slate-500" />
                   Effective To
-                  <span className="text-[10px] font-normal text-muted-foreground">
-                    (optional)
-                  </span>
                 </Label>
-                <Input
-                  type="date"
-                  value={formData.effectiveTo}
-                  onChange={(e) => updateField("effectiveTo")(e.target.value)}
-                  disabled={!editing}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
-                />
-                {errors.effectiveTo && (
-                  <p className="text-xs text-rose-500">{errors.effectiveTo}</p>
-                )}
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3">
+                  <span className="text-sm font-medium text-slate-700">
+                    {formData.effectiveTo
+                      ? formatViewDate(formData.effectiveTo)
+                      : "—"}
+                  </span>
+                  <span className="ml-auto rounded-full bg-slate-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                    Auto
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Contract end / Expected End Date.
+                </p>
               </div>
             </div>
             )}
           </div>
 
           {/* Salary Month & Total Days Worked card */}
-          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-4">
+          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)]">
             <SectionHeading
               icon={<CalendarDays className="h-4 w-4" />}
               label="Salary Month"
+              description="Current month & attendance-based days worked"
               accent="from-sky-500 to-indigo-600"
             />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1254,14 +1310,21 @@ export default function SalaryForm() {
                   <CalendarDays className="h-3.5 w-3.5 text-sky-600" />
                   Salary Month
                 </Label>
-                <Input
-                  type="month"
-                  value={salaryMonth}
-                  onChange={(e) => setSalaryMonth(e.target.value)}
-                  className="h-9 rounded-lg border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
-                />
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3">
+                  <span className="text-sm font-medium text-slate-700">
+                    {salaryMonth
+                      ? new Date(`${salaryMonth}-01`).toLocaleDateString("en-GB", {
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </span>
+                  <span className="ml-auto rounded-full bg-sky-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-700">
+                    Auto
+                  </span>
+                </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Defaults to the current month. Drives the days-worked figure below.
+                  Read-only — always the current month. Drives the days-worked figure below.
                 </p>
               </div>
 

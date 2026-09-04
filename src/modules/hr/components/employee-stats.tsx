@@ -1,6 +1,12 @@
 import { useMemo } from "react";
 
-import { UsersRound, UserCheck, CalendarClock, UserX } from "lucide-react";
+import {
+  UsersRound,
+  UserCheck,
+  CalendarClock,
+  UserX,
+  UserCog,
+} from "lucide-react";
 import type { Employee } from "@/types/hr";
 
 const normalize = (s?: string | null) =>
@@ -22,9 +28,10 @@ export function EmployeeStats({
   const stats = useMemo(() => {
     const total    = employees.length;
     const active   = employees.filter((e) => normalize(e.status) === "ACTIVE").length;
+    const probation = employees.filter((e) => normalize(e.status) === "UNDER_PROBATION").length;
     const onLeave  = employees.filter((e) => normalize(e.status) === "ON_LEAVE").length;
     const inactive = employees.filter((e) => normalize(e.status) === "INACTIVE").length;
-    return { total, active, onLeave, inactive };
+    return { total, active, probation, onLeave, inactive };
   }, [employees]);
 
   return (
@@ -48,6 +55,15 @@ export function EmployeeStats({
             icon: UserCheck,
             onClick: () => onFilter?.("ACTIVE"),
             active: activeFilter === "ACTIVE",
+          },
+          {
+            label: "Under Probation",
+            value: stats.probation,
+            hint: stats.total > 0 ? `${Math.round((stats.probation / stats.total) * 100)}% of workforce` : "0% of workforce",
+            accent: "violet",
+            icon: UserCog,
+            onClick: () => onFilter?.("UNDER_PROBATION"),
+            active: activeFilter === "UNDER_PROBATION",
           },
           {
             label: "On Leave",

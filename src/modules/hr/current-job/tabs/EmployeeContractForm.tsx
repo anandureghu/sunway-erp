@@ -106,6 +106,16 @@ const CONTRACT_TYPE_LABELS: Record<string, string> = {
   CONSULTANT: "Consultant",
 };
 
+/** Whole months between two ISO dates (rounded), 0 when missing/invalid. */
+function monthsBetween(start?: string, end?: string): number {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (isNaN(s.getTime()) || isNaN(e.getTime()) || e < s) return 0;
+  const days = (e.getTime() - s.getTime()) / 86_400_000;
+  return Math.max(Math.round(days / 30.4375), 0);
+}
+
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft",
   ACTIVE: "Active",
@@ -752,6 +762,20 @@ export default function EmployeeContractForm() {
     return () => registerHandlers(null);
   }, [shellSave, handleFormCancel, handleEdit, registerHandlers]);
 
+  /* ============ AUTO CONTRACT PERIOD (start → end) ============ */
+  // Contract period (months) is derived from Effective Date → Expiration Date and is
+  // read-only; recompute whenever either date changes.
+  useEffect(() => {
+    const months = monthsBetween(
+      formData.effectiveDate,
+      formData.expirationDate,
+    );
+    if (months !== formData.contractPeriodMonths) {
+      updateField("contractPeriodMonths")(months);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.effectiveDate, formData.expirationDate]);
+
   /* ================= VALIDATION ================= */
 
   const errors = validateContractForm(formData);
@@ -1063,28 +1087,19 @@ export default function EmployeeContractForm() {
               </div>
             </FormField>
 
-            <FormField
-              label="Contract Type"
-              required
-              error={errors.contractType}
-            >
-              <Select
-                value={formData.contractType}
-                onValueChange={(v) =>
-                  updateField("contractType")(v as ContractType)
-                }
-                disabled={!editing}
-              >
-                <SelectTrigger className="h-9 rounded-lg border-slate-300">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PERMANENT">Permanent</SelectItem>
-                  <SelectItem value="TEMPORARY">Temporary</SelectItem>
-                  <SelectItem value="INTERN">Intern</SelectItem>
-                  <SelectItem value="CONSULTANT">Consultant</SelectItem>
-                </SelectContent>
-              </Select>
+            <FormField label="Contract Type">
+              {/* Contract type follows the employment category on the Current Job tab
+                  (Consultant → Consultant, Contract → Temporary, …) and is read-only. */}
+              <div className="flex h-9 items-center">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                  {CONTRACT_TYPE_LABELS[formData.contractType] ??
+                    formData.contractType ??
+                    "—"}
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Set from the employment category on the Current Job tab.
+              </p>
             </FormField>
 
             <FormField label="Status">
@@ -1135,6 +1150,9 @@ export default function EmployeeContractForm() {
                   }
                 />
               </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Follows the expected end date on the Current Job tab.
+              </p>
             </FormField>
 
             <FormField label="Contract Period (Months)">
@@ -1143,14 +1161,15 @@ export default function EmployeeContractForm() {
                 <Input
                   type="number"
                   className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
-                  disabled={!editing}
+                  disabled
+                  readOnly
                   placeholder="0"
                   value={formData.contractPeriodMonths || ""}
-                  onChange={(e) =>
-                    updateField("contractPeriodMonths")(Number(e.target.value))
-                  }
                 />
               </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Calculated from Effective Date → Expiration Date.
+              </p>
             </FormField>
 
             <FormField label="Notice Period (Days)">

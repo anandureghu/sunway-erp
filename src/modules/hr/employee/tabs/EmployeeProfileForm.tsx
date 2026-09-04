@@ -96,10 +96,31 @@ const fromBackendStatus = (s?: string | null): string => {
   if (up === "ACTIVE") return "Active";
   if (up === "INACTIVE") return "Inactive";
   if (up === "ON_LEAVE") return "On Leave";
+  if (up === "UNDER_PROBATION") return "Under Probation";
   if (up === "RESIGNED") return "Resigned";
   if (up === "TERMINATED") return "Terminated";
   if (up === "RETIRED") return "Retired";
   return String(s);
+};
+
+// Allowed status transitions keyed by the employee's CURRENT (saved) status.
+// Probation is confirmed to Active automatically (no manual "Active" option); an
+// exited employee can only be re-hired to Active; Inactive can move anywhere.
+const STATUS_TRANSITIONS: Record<string, string[]> = {
+  "Under Probation": ["Resigned", "Terminated"],
+  Active: ["Resigned", "Terminated", "Retired", "Inactive"],
+  "On Leave": ["Resigned", "Terminated", "Retired", "Inactive"],
+  Resigned: ["Active"],
+  Terminated: ["Active"],
+  Retired: ["Active"],
+  Inactive: ["Retired", "Resigned", "Terminated", "Active"],
+};
+
+/** Status options for the dropdown: the current status plus its allowed transitions. */
+const allowedStatusOptions = (current?: string): string[] => {
+  const cur = current || "Active";
+  const targets = STATUS_TRANSITIONS[cur] ?? [];
+  return [cur, ...targets.filter((t) => t !== cur)];
 };
 
 /** Normalize a backend employee record into the form's profile shape. */
@@ -125,6 +146,10 @@ function validateEmployeeProfile(data: EmpProfile): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!data.firstName?.trim()) errors.firstName = "First name is required";
   if (!data.lastName?.trim()) errors.lastName = "Last name is required";
+  // Identification number: digits only, at most 12.
+  if (data.identification && !/^\d{1,12}$/.test(data.identification)) {
+    errors.identification = "ID must be digits only, up to 12 digits";
+  }
   // Expected end date (last working day) is mandatory for an exiting employee.
   if (isExitStatusLabel(data.status) && !data.expectedEndDate) {
     errors.expectedEndDate = "Expected end date is required for this status";
@@ -401,6 +426,8 @@ export default function EmployeeProfileForm() {
         if (low === "active") return "ACTIVE";
         if (low === "inactive") return "INACTIVE";
         if (low === "on leave" || low === "on_leave") return "ON_LEAVE";
+        if (low === "under probation" || low === "under_probation")
+          return "UNDER_PROBATION";
         if (low === "resigned") return "RESIGNED";
         if (low === "terminated") return "TERMINATED";
         if (low === "retired") return "RETIRED";
@@ -561,7 +588,7 @@ export default function EmployeeProfileForm() {
   const errors = validateEmployeeProfile(draft);
 
   return (
-    <div className="bg-slate-50/60 min-h-screen space-y-5">
+    <div className="space-y-5">
       {/* ── Header card — matches the SecondaryPageHeader used on the other tabs
              (white card + gradient top strip + icon/title + actions). ── */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -772,13 +799,21 @@ export default function EmployeeProfileForm() {
             </StyledSelect>
           </FormField>
 
-          <FormField label="Identification No">
+          <FormField label="Identification No" error={errors.identification}>
             <IconInput
               icon={<ShieldCheck className="h-4 w-4" />}
               disabled={!editing}
               value={draft.identification ?? ""}
-              onChange={(e) => set("identification", e.target.value)}
-              placeholder="Enter ID number"
+              inputMode="numeric"
+              maxLength={12}
+              onChange={(e) =>
+                // Digits only, at most 12 — strip anything else as it's typed.
+                set(
+                  "identification",
+                  e.target.value.replace(/\D/g, "").slice(0, 12),
+                )
+              }
+              placeholder="Up to 12 digits"
             />
           </FormField>
 
@@ -808,6 +843,9 @@ export default function EmployeeProfileForm() {
         )}
       </div>
 
+      {/* Professional Details and Origin & Background sit side-by-side on large
+          screens (parallel layout); they stack on smaller screens. */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       {/* ── Professional Details ── */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <SectionHeading
@@ -839,16 +877,14 @@ export default function EmployeeProfileForm() {
                 if (next !== "Terminated") set("terminationCode", "");
               }}
             >
-              <option value="Active">Active</option>
-              {/* On Leave is set automatically from leave approval — not a manual choice.
-                  Kept selectable only to display an already-on-leave employee. */}
-              {draft.status === "On Leave" && (
-                <option value="On Leave">On Leave</option>
-              )}
-              <option value="Inactive">Inactive</option>
-              <option value="Resigned">Resigned</option>
-              <option value="Terminated">Terminated</option>
-              <option value="Retired">Retired</option>
+              {/* Options are limited to the transitions allowed from the employee's
+                  current status (see STATUS_TRANSITIONS). Probation auto-confirms to
+                  Active, so it's never a manual choice; exits allow only re-hire. */}
+              {allowedStatusOptions(id ? saved.status : draft.status).map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </StyledSelect>
           </FormField>
 
@@ -974,6 +1010,7 @@ export default function EmployeeProfileForm() {
           <ViewField icon={<MapPin className="h-4 w-4" />} label="Hometown" value={draft.hometown} />
         </FormRow>
         )}
+      </div>
       </div>
 
       {/* Hidden file input */}

@@ -98,6 +98,7 @@ export default function BenefitsAdjustmentPanel() {
     if (scope === "GRADE_CODE") return !!gradeCode;
     if (scope === "DEPARTMENT") return !!departmentId;
     if (scope === "EMPLOYEE") return !!employeeId;
+    if (scope === "ALL_EMPLOYEES") return true;
     return false;
   }, [
     canEdit,
@@ -112,6 +113,13 @@ export default function BenefitsAdjustmentPanel() {
 
   const submit = async () => {
     if (!canSubmit) return;
+    // Applying to everyone is high-impact — confirm first.
+    if (scope === "ALL_EMPLOYEES") {
+      const ok = window.confirm(
+        `Raise the selected benefits by ${percentage}% for ALL employees in the company?`,
+      );
+      if (!ok) return;
+    }
     setSaving(true);
     try {
       const result = await benefitsAdjustmentService.adjust({
@@ -182,6 +190,7 @@ export default function BenefitsAdjustmentPanel() {
               <SelectItem value="GRADE_CODE">Grade code</SelectItem>
               <SelectItem value="DEPARTMENT">Department</SelectItem>
               <SelectItem value="EMPLOYEE">Employee</SelectItem>
+              <SelectItem value="ALL_EMPLOYEES">All employees</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -192,8 +201,15 @@ export default function BenefitsAdjustmentPanel() {
               ? "Grade code"
               : scope === "DEPARTMENT"
                 ? "Department"
-                : "Employee"}
+                : scope === "EMPLOYEE"
+                  ? "Employee"
+                  : "Scope"}
           </label>
+          {scope === "ALL_EMPLOYEES" && (
+            <div className="mt-1 flex h-9 items-center text-sm text-slate-500">
+              Applies to every active employee.
+            </div>
+          )}
           {scope === "GRADE_CODE" && (
             <Select
               value={gradeCode}

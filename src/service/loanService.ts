@@ -3,10 +3,25 @@ import type { Loan, LoanPayload } from "@/types/hr/loan";
 
 const BASE = "/employees";
 
+export interface LoanEligibility {
+  eligible: boolean;
+  reason?: string | null;
+  minServiceDays?: number | null;
+  daysOfService?: number | null;
+  maxRepaymentMonths?: number | null;
+}
+
 export const loanService = {
   // Get loan types for dropdown
   getLoanTypes(employeeId: number) {
     return apiClient.get<string[]>(`${BASE}/${employeeId}/loans/types`);
+  },
+
+  // Pre-check whether the employee may request a loan right now.
+  checkEligibility(employeeId: number) {
+    return apiClient.get<LoanEligibility>(
+      `${BASE}/${employeeId}/loans/eligibility`,
+    );
   },
 
   // Apply for loan
@@ -78,6 +93,11 @@ export const loanService = {
     return apiClient.post<Loan>(`/loans/${loanId}/archive`, null, {
       params: { archived },
     });
+  },
+
+  // Permanently delete an archived (completed) loan record.
+  deleteLoanRecord(loanId: number) {
+    return apiClient.delete(`/loans/${loanId}`);
   },
 };
 
