@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ItemSectionCard } from "@/components/inventory/item-section-card";
 import type {
   AssignSubscriptionRequest,
   CompanySubscription,
@@ -23,10 +23,37 @@ import type {
 import { assignSubscription } from "@/service/subscriptionService";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+import { CalendarRange, HardDrive } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /** Default quota shown when assigning a new plan (matches backend plan default). */
 const DEFAULT_MAX_STORAGE_GIB = 5;
 const GIB = 1024 * 1024 * 1024;
+
+const icls =
+  "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
+
+function F({
+  label,
+  required,
+  children,
+  className,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+        {label}
+        {required && <span className="ml-0.5 text-rose-400">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 type Props = {
   open: boolean;
@@ -89,7 +116,8 @@ export function AssignSubscriptionDialog({
     setWarningDays(String(initial?.warningDays ?? 7));
     setMaxStorageGiB(bytesToGiBInput(initial?.maxStorageBytes));
     setNotes(initial?.notes ?? "");
-  }, [open, initial, today]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on open only
+  }, [open]);
 
   useEffect(() => {
     if (planType === "FREE") {
@@ -139,94 +167,127 @@ export function AssignSubscriptionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-0 bg-slate-50/80 p-0 sm:rounded-2xl">
+        <DialogHeader className="border-b border-slate-100 bg-white px-6 py-5">
+          <DialogTitle className="text-lg font-semibold text-slate-900">
             {initial ? "Edit subscription" : "Assign subscription"}
             {companyName ? ` — ${companyName}` : ""}
           </DialogTitle>
+          <p className="text-[13px] font-normal text-slate-500">
+            {initial
+              ? "Update plan, billing window, and storage limits."
+              : "Set plan, billing window, and storage limits for this company."}
+          </p>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Plan</Label>
-            <Select
-              value={planType}
-              onValueChange={(v) => setPlanType(v as SubscriptionPlanType)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="FREE">Free</SelectItem>
-                <SelectItem value="MONTHLY">Monthly</SelectItem>
-                <SelectItem value="YEARLY">Yearly</SelectItem>
-                <SelectItem value="CUSTOM">Custom</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {planType !== "FREE" && (
-            <div className="space-y-1.5">
-              <Label>Amount</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
+
+        <div className="space-y-4 p-5">
+          <ItemSectionCard
+            icon={<CalendarRange className="h-3.5 w-3.5 text-white" />}
+            title="Plan & billing"
+          >
+            <F label="Plan" required>
+              <Select
+                value={planType}
+                onValueChange={(v) => setPlanType(v as SubscriptionPlanType)}
+              >
+                <SelectTrigger className={icls}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FREE">Free</SelectItem>
+                  <SelectItem value="MONTHLY">Monthly</SelectItem>
+                  <SelectItem value="YEARLY">Yearly</SelectItem>
+                  <SelectItem value="CUSTOM">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </F>
+
+            {planType !== "FREE" && (
+              <F label="Amount" required>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className={icls}
+                />
+              </F>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <F label="Starts" required>
+                <Input
+                  type="date"
+                  value={startsAt}
+                  onChange={(e) => setStartsAt(e.target.value)}
+                  className={icls}
+                />
+              </F>
+              <F label={planType === "FREE" ? "Ends (optional)" : "Ends"} required={planType !== "FREE"}>
+                <Input
+                  type="date"
+                  value={endsAt}
+                  onChange={(e) => setEndsAt(e.target.value)}
+                  className={icls}
+                />
+              </F>
             </div>
-          )}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Starts</Label>
-              <Input
-                type="date"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-              />
+          </ItemSectionCard>
+
+          <ItemSectionCard
+            icon={<HardDrive className="h-3.5 w-3.5 text-white" />}
+            title="Limits & notes"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <F label="Warning days">
+                <Input
+                  type="number"
+                  min={0}
+                  value={warningDays}
+                  onChange={(e) => setWarningDays(e.target.value)}
+                  className={icls}
+                />
+              </F>
+              <F label="Max storage (GiB)" required>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={maxStorageGiB}
+                  onChange={(e) => setMaxStorageGiB(e.target.value)}
+                  className={icls}
+                />
+              </F>
             </div>
-            <div className="space-y-1.5">
-              <Label>Ends {planType === "FREE" ? "(optional)" : ""}</Label>
-              <Input
-                type="date"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Warning days</Label>
-            <Input
-              type="number"
-              min={0}
-              value={warningDays}
-              onChange={(e) => setWarningDays(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Max storage (GiB)</Label>
-            <Input
-              type="number"
-              min={0}
-              step="0.1"
-              value={maxStorageGiB}
-              onChange={(e) => setMaxStorageGiB(e.target.value)}
-            />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-slate-400">
               Default for all plans is {DEFAULT_MAX_STORAGE_GIB} GiB. Cloud and
               database usage both count toward this limit; uploads are blocked
               when the total is reached.
             </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Notes</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <F label="Notes">
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className={icls}
+                placeholder="Optional internal notes"
+              />
+            </F>
+          </ItemSectionCard>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button
+              className="rounded-xl bg-slate-900 hover:bg-slate-800"
+              onClick={handleSave}
+              disabled={saving}
+            >
               {saving ? "Saving…" : "Save"}
             </Button>
           </div>

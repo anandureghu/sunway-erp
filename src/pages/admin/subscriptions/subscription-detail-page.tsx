@@ -303,7 +303,15 @@ export default function SubscriptionDetailPage() {
         <>
           <div className="flex flex-wrap items-center gap-2">
             {subscriptionStatusBadge(data.status)}
-            {paymentStatusBadge(data.paymentStatus)}
+            {/* Prefer current-period invoice payment over subscription-level PAID
+                so a newly generated unpaid invoice is not shown as "Paid". */}
+            {currentPeriodInvoice && !currentPeriodInvoice.paid ? (
+              <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                Invoice unpaid
+              </Badge>
+            ) : (
+              paymentStatusBadge(data.paymentStatus)
+            )}
             <Badge variant="secondary">{data.planType}</Badge>
             {data.locked && <Badge variant="destructive">Locked</Badge>}
             {currentPeriodInvoice?.sent && (

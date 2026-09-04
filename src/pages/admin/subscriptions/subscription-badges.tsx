@@ -22,14 +22,14 @@ export function paymentStatusBadge(status?: SubscriptionPaymentStatus | null) {
   if (status === "PAID") {
     return (
       <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-        Paid
+        Period paid
       </Badge>
     );
   }
   if (status === "UNPAID") {
     return (
       <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
-        Unpaid
+        Period unpaid
       </Badge>
     );
   }
