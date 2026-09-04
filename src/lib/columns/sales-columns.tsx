@@ -524,7 +524,9 @@ export function createPicklistColumns(
         const canCancel = picklist.status === "created";
         const canArchive =
           !picklist.archived &&
-          (picklist.status === "picked" || picklist.status === "cancelled");
+          (picklist.status === "cancelled" ||
+            (picklist.status === "picked" &&
+              picklist.shipmentStatus === "delivered"));
         const isProcessing = processingPicklistId === picklist.id;
 
         return (

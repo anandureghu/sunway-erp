@@ -122,7 +122,7 @@ export function SalesOrderDetailsDialog({ open, order, onOpenChange }: Props) {
                 {order.items.length > 0 ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-5 gap-4 font-medium text-sm border-b pb-2">
-                      <div>Item</div>
+                      <div>Item Name</div>
                       <div className="text-right">Quantity</div>
                       <div className="text-right">Unit Price</div>
                       <div className="text-right">Discount</div>
@@ -134,14 +134,14 @@ export function SalesOrderDetailsDialog({ open, order, onOpenChange }: Props) {
                         className="grid grid-cols-5 gap-4 text-sm border-b pb-2"
                       >
                         <div>
+                          {(item.itemSku || item.item?.sku) && (
+                            <p className="text-xs text-muted-foreground">
+                              {item.itemSku || item.item?.sku}
+                            </p>
+                          )}
                           <p className="font-medium">
                             {item.itemName || `Item ${item.itemId}`}
                           </p>
-                          {item.item?.sku && (
-                            <p className="text-xs text-muted-foreground">
-                              SKU: {item.item.sku}
-                            </p>
-                          )}
                         </div>
                         <div className="text-right">{item.quantity}</div>
                         <div className="text-right">

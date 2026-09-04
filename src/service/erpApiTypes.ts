@@ -429,6 +429,7 @@ export type SalesOrderUpdateDTO = {
 export type SalesOrderItemResponseDTO = {
   id?: Id;
   itemId?: Id;
+  itemSku?: string;
   itemName?: string;
   quantity?: number;
   returnedQty?: number;
@@ -497,6 +498,7 @@ export type PicklistResponseDTO = {
   warehouseName?: string;
   warehouse?: Warehouse;
   shipmentId?: Id;
+  shipmentStatus?: string;
 };
 
 export type ShipmentItemDTO = {

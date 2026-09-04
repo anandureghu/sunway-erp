@@ -55,6 +55,7 @@ function toSalesOrder(dto: SalesOrderResponseDTO): SalesOrder {
     id: `soi-${dto.id}-${idx}`,
     orderId: String(dto.id),
     itemId: li.itemId || 0,
+    itemSku: li.itemSku,
     itemName: li.itemName,
     warehouseId: li.warehouseId,
     warehouseName: li.warehouseName,
@@ -173,6 +174,9 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     createdAt: dto.createdAt || "",
     updatedAt: undefined,
     shipmentId: dto.shipmentId != null ? String(dto.shipmentId) : undefined,
+    shipmentStatus: dto.shipmentStatus
+      ? normalizeStatus(dto.shipmentStatus)
+      : undefined,
   };
 }
 
@@ -481,19 +485,26 @@ export function attachOrderAndItems(
     };
   });
 
-  // Stamp shipmentId from dispatches so Create Dispatch can hide already-shipped picklists
+  // Stamp shipmentId/status from dispatches so Create Dispatch can hide already-shipped picklists
   // even if the picklist API omits shipmentId.
-  const shipmentIdByPicklistId = new Map<string, string>();
+  const shipmentByPicklistId = new Map<string, { id: string; status?: string }>();
   for (const d of dispatchesEnriched) {
     if (d.picklistId && d.id) {
-      shipmentIdByPicklistId.set(String(d.picklistId), String(d.id));
+      shipmentByPicklistId.set(String(d.picklistId), {
+        id: String(d.id),
+        status: d.status,
+      });
     }
   }
 
-  const picklistsWithShipment = picklistsEnriched.map((p) => ({
-    ...p,
-    shipmentId: p.shipmentId || shipmentIdByPicklistId.get(String(p.id)),
-  }));
+  const picklistsWithShipment = picklistsEnriched.map((p) => {
+    const fromDispatch = shipmentByPicklistId.get(String(p.id));
+    return {
+      ...p,
+      shipmentId: p.shipmentId || fromDispatch?.id,
+      shipmentStatus: p.shipmentStatus || fromDispatch?.status,
+    };
+  });
 
   return { picklistsEnriched: picklistsWithShipment, dispatchesEnriched };
 }

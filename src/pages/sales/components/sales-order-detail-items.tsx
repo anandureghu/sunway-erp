@@ -54,7 +54,7 @@ export function SalesOrderDetailItems({ so }: Props) {
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               <th className="px-4 py-3 text-center">#</th>
-              <th className="px-3 py-3 text-left">Item</th>
+              <th className="px-3 py-3 text-left">Item Name</th>
               <th className="px-3 py-3 text-center">Qty</th>
               <th className="px-3 py-3 text-center">Unit price</th>
               <th className="px-3 py-3 text-center">Discount</th>
@@ -83,6 +83,11 @@ export function SalesOrderDetailItems({ so }: Props) {
                       {index + 1}
                     </td>
                     <td className="px-3 py-3 align-middle text-left">
+                      {item.itemSku ? (
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                          {item.itemSku}
+                        </p>
+                      ) : null}
                       <p className="font-medium leading-snug text-slate-900">
                         {item.itemId ? (
                           <Link

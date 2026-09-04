@@ -37,6 +37,7 @@ export type SalesOrderItem = {
   id: string;
   orderId: string;
   itemId: number;
+  itemSku?: string;
   itemName?: string;
   item?: ItemResponseDTO;
   quantity: number;
@@ -138,6 +139,8 @@ export type Picklist = {
   updatedAt?: string;
   /** Present when a shipment/dispatch already exists for this picklist. */
   shipmentId?: string;
+  /** Backend shipment status when linked (e.g. delivered). */
+  shipmentStatus?: string;
 };
 
 // Dispatch Types
