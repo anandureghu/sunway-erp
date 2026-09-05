@@ -335,6 +335,25 @@ export async function archiveBatchMovements(
   return res.data;
 }
 
+export async function deleteBatchMovement(
+  id: number,
+): Promise<{ deleted: boolean }> {
+  const res = await apiClient.delete<{ deleted: boolean }>(
+    `/inventory/batch-movements/${id}`,
+  );
+  return res.data;
+}
+
+export async function deleteBatchMovements(
+  ids: number[],
+): Promise<{ deleted: number }> {
+  const res = await apiClient.post<{ deleted: number }>(
+    "/inventory/batch-movements/delete",
+    { ids },
+  );
+  return res.data;
+}
+
 export async function getInventoryBatchInsights(
   params?: InventoryBatchReportQuery,
 ): Promise<StockBatchInsightsDTO> {

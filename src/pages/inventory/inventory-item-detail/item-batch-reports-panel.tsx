@@ -25,13 +25,23 @@ import type {
 import {
   archiveBatchMovement,
   archiveBatchMovements,
+  deleteBatchMovement,
+  deleteBatchMovements,
   getInventoryBatchInsights,
   getInventoryBatchMovements,
   getInventoryBatchReport,
   getItemBatchMovements,
   listItemBatches,
 } from "@/service/inventoryService";
-import { Archive, BarChart3, History, Layers, Loader2, TrendingUp } from "lucide-react";
+import {
+  Archive,
+  BarChart3,
+  History,
+  Layers,
+  Loader2,
+  Trash2,
+  TrendingUp,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -133,7 +143,9 @@ function MovementLogPanel({
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [archivingId, setArchivingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [bulkArchiving, setBulkArchiving] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const load = useCallback(async () => {
@@ -245,6 +257,63 @@ function MovementLogPanel({
     }
   }, [confirm, selectedIds]);
 
+  const handleDelete = useCallback(
+    async (id: number) => {
+      if (
+        !(await confirm({
+          title: "Delete archived movement",
+          description:
+            "Permanently delete this archived movement? This cannot be undone.",
+          confirmLabel: "Delete",
+          variant: "destructive",
+        }))
+      ) {
+        return;
+      }
+      setDeletingId(id);
+      try {
+        await deleteBatchMovement(id);
+        toast.success("Movement deleted");
+        setRefreshKey((k) => k + 1);
+      } catch (e: unknown) {
+        toast.error(getApiErrorMessage(e, "Failed to delete movement"));
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [confirm],
+  );
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (
+      !(await confirm({
+        title: "Delete archived movements",
+        description: `Permanently delete ${ids.length} archived movement(s)? This cannot be undone.`,
+        confirmLabel: "Delete",
+        variant: "destructive",
+      }))
+    ) {
+      return;
+    }
+    setBulkDeleting(true);
+    try {
+      const result = await deleteBatchMovements(ids);
+      toast.success(
+        result.deleted === 1
+          ? "1 movement deleted"
+          : `${result.deleted} movements deleted`,
+      );
+      setSelectedIds(new Set());
+      setRefreshKey((k) => k + 1);
+    } catch (e: unknown) {
+      toast.error(getApiErrorMessage(e, "Failed to delete movements"));
+    } finally {
+      setBulkDeleting(false);
+    }
+  }, [confirm, selectedIds]);
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -274,14 +343,22 @@ function MovementLogPanel({
         </div>
       </div>
 
-      {!showArchivedOnly ? (
+      {showArchivedOnly ? (
+        <BulkActionBar
+          mode="delete"
+          selectedCount={selectedIds.size}
+          onDelete={() => void handleBulkDelete()}
+          onClear={() => setSelectedIds(new Set())}
+          deleting={bulkDeleting}
+        />
+      ) : (
         <BulkActionBar
           selectedCount={selectedIds.size}
           onArchive={() => void handleBulkArchive()}
           onClear={() => setSelectedIds(new Set())}
           archiving={bulkArchiving}
         />
-      ) : null}
+      )}
 
       {loading ? (
         <Skeleton className="h-64 w-full rounded-lg" />
@@ -296,45 +373,39 @@ function MovementLogPanel({
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-muted/80 text-left text-xs uppercase text-muted-foreground backdrop-blur">
               <tr>
-                {!showArchivedOnly ? (
-                  <th className="w-10 p-3">
-                    <Checkbox
-                      checked={
-                        movements.length > 0 &&
-                        selectedIds.size === movements.length
-                      }
-                      onCheckedChange={(checked) =>
-                        toggleAll(checked === true)
-                      }
-                      aria-label="Select all"
-                    />
-                  </th>
-                ) : null}
+                <th className="w-10 p-3">
+                  <Checkbox
+                    checked={
+                      movements.length > 0 &&
+                      selectedIds.size === movements.length
+                    }
+                    onCheckedChange={(checked) =>
+                      toggleAll(checked === true)
+                    }
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="p-3">Date</th>
                 <th className="p-3">Type</th>
                 <th className="p-3">Batch</th>
                 <th className="p-3">Warehouse</th>
                 <th className="p-3 text-right">Qty</th>
                 <th className="p-3 text-right">Value</th>
-                {!showArchivedOnly ? (
-                  <th className="w-[100px] p-3">Actions</th>
-                ) : null}
+                <th className="w-[100px] p-3">Actions</th>
               </tr>
             </thead>
             <tbody className="[&_tr:nth-child(even)]:bg-slate-50/50">
               {movements.map((m) => (
                 <tr key={m.id} className="border-t">
-                  {!showArchivedOnly ? (
-                    <td className="p-3">
-                      <Checkbox
-                        checked={selectedIds.has(m.id)}
-                        onCheckedChange={(checked) =>
-                          toggleRow(m.id, checked === true)
-                        }
-                        aria-label={`Select movement ${m.id}`}
-                      />
-                    </td>
-                  ) : null}
+                  <td className="p-3">
+                    <Checkbox
+                      checked={selectedIds.has(m.id)}
+                      onCheckedChange={(checked) =>
+                        toggleRow(m.id, checked === true)
+                      }
+                      aria-label={`Select movement ${m.id}`}
+                    />
+                  </td>
                   <td className="p-3 text-xs text-muted-foreground">
                     {m.createdAt
                       ? new Date(m.createdAt).toLocaleString()
@@ -358,8 +429,24 @@ function MovementLogPanel({
                   <td className="p-3 text-right">
                     <CurrencyAmount amount={Math.abs(m.lineValue)} />
                   </td>
-                  {!showArchivedOnly ? (
-                    <td className="p-3">
+                  <td className="p-3">
+                    {showArchivedOnly ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1 text-destructive hover:text-destructive"
+                        disabled={deletingId === m.id}
+                        onClick={() => void handleDelete(m.id)}
+                      >
+                        {deletingId === m.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Delete
+                      </Button>
+                    ) : (
                       <Button
                         type="button"
                         variant="outline"
@@ -375,8 +462,8 @@ function MovementLogPanel({
                         )}
                         Archive
                       </Button>
-                    </td>
-                  ) : null}
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
