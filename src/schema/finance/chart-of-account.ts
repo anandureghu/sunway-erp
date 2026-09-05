@@ -3,49 +3,34 @@ import { z } from "zod";
 
 const COA_KEYS = COA.map((c) => c.key) as [string, ...string[]];
 
-/** API often returns null; Zod string fields reject null unless preprocessed. */
-const optionalString = z.preprocess(
-  (v) => (v == null ? "" : v),
-  z.string().optional(),
-);
-
-const requiredString = z.preprocess(
-  (v) => (v == null ? "" : v),
-  z.string(),
-);
-
 export const COA_SCHEMA = z
   .object({
-    accountCode: requiredString,
+    accountCode: z.string(),
 
     accountName: z
       .string()
       .min(2, "Account name is required")
       .max(100, "Account name too long"),
 
-    description: optionalString,
+    description: z.string().optional(),
 
     type: z.enum(COA_KEYS),
 
     parentId: z.number().nullable().optional(),
 
-    accountNo: requiredString,
-    interCompanyNumber: z.preprocess(
-      (v) => (v == null ? "" : v),
-      z.string().regex(/^\d{3}$/, "Inter company no must be exactly 3 digits"),
-    ),
+    accountNo: z.string(),
+    interCompanyNumber: z
+      .string()
+      .regex(/^\d{3}$/, "Inter company no must be exactly 3 digits"),
 
     departmentId: z.number().nullable().optional(),
 
-    projectCode: z.preprocess(
-      (v) => (v == null || v === "" ? undefined : v),
-      z
-        .string()
-        .refine((v) => !v || /^\d{4}$/.test(v), {
-          message: "Project Code must be exactly 4 digits",
-        })
-        .optional(),
-    ),
+    projectCode: z
+      .string()
+      .refine((v) => !v || /^\d{4}$/.test(v), {
+        message: "Project Code must be exactly 4 digits",
+      })
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.type === "BUDGET") {
@@ -73,12 +58,24 @@ export const COA_SCHEMA = z
 
 export type COAFormData = z.infer<typeof COA_SCHEMA>;
 
+/** API / list-row shape — nulls are common from the backend. */
+export type CoaFormSource = {
+  accountCode?: string | null;
+  accountName?: string | null;
+  description?: string | null;
+  type?: string | null;
+  parentId?: number | null;
+  accountNo?: string | null;
+  interCompanyNumber?: string | null;
+  departmentId?: number | null;
+  projectCode?: string | null;
+  departmentCode?: string | null;
+  departmentName?: string | null;
+};
+
 /** Normalize list-row / API nulls into form-safe values before reset. */
 export function normalizeCoaFormDefaults(
-  coa: Partial<COAFormData> & {
-    departmentCode?: string | null;
-    departmentName?: string | null;
-  },
+  coa: CoaFormSource,
 ): COAFormData & { departmentCode?: string; departmentName?: string } {
   return {
     accountCode: coa.accountCode ?? "",

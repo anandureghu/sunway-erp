@@ -20,6 +20,7 @@ import {
   COA_SCHEMA,
   normalizeCoaFormDefaults,
   type COAFormData,
+  type CoaFormSource,
 } from "@/schema/finance/chart-of-account";
 import {
   Select,
@@ -39,10 +40,7 @@ import { apiClient } from "@/service/apiClient";
 interface ChartOfAccountsFormProps {
   onSubmit: (data: COAFormData) => Promise<void> | void;
   loading?: boolean;
-  defaultValues?: Partial<COAFormData> & {
-    departmentCode?: string | null;
-    departmentName?: string | null;
-  } | null;
+  defaultValues?: (CoaFormSource & Partial<COAFormData>) | null;
   /** Override primary button label (create flow uses review step). */
   submitLabel?: string;
 }
