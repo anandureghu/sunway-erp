@@ -56,13 +56,13 @@ export const INVENTORY_PERMISSION_MODULES: PermissionModuleRow[] = [
   // Overview
   { id: "INVENTORY_DASHBOARD", label: "Dashboard", group: "Overview", description: "Inventory dashboard overview" },
   // Inventory Stocks  (/inventory/stocks)
-  { id: "INVENTORY_STOCK", label: "Stock Management", group: "Inventory Stocks", description: "Stock list, levels & adjustments" },
-  { id: "INVENTORY_ITEM", label: "Items", group: "Inventory Stocks", description: "Item master & item detail" },
+  { id: "INVENTORY_STOCK", label: "Stock Management", group: "Inventory Stocks", description: "Stock list, receive, variances, batch movements & ops reports" },
+  { id: "INVENTORY_ITEM", label: "Items", group: "Inventory Stocks", description: "Item master, catalog archive/delete & discounts" },
   // Sales  (/inventory/sales)
-  { id: "INVENTORY_SALES", label: "Sales", group: "Sales", description: "Orders, customers, picklist, dispatch & invoices" },
+  { id: "INVENTORY_SALES", label: "Sales", group: "Sales", description: "Orders, customers, picklist & dispatch (invoices need Finance → Invoices)" },
   // Purchase  (/inventory/purchase)
-  { id: "INVENTORY_PURCHASE", label: "Purchase", group: "Purchase", description: "Requisitions, orders, suppliers & invoices" },
-  { id: "INVENTORY_RECEIPT", label: "Goods Receipt", group: "Purchase", description: "Inspect goods receipts and receive accepted quantity into stock" },
+  { id: "INVENTORY_PURCHASE", label: "Purchase", group: "Purchase", description: "Requisitions, POs & suppliers (invoices need Finance → Invoices)" },
+  { id: "INVENTORY_RECEIPT", label: "Goods Receipt", group: "Purchase", description: "Inspect receipts, confirm inspection, post stock & archive" },
   // Inventory Settings  (/inventory/settings)
   { id: "INVENTORY_CATEGORY", label: "Categories", group: "Inventory Settings", description: "Item categories" },
   { id: "INVENTORY_WAREHOUSE", label: "Warehouse", group: "Inventory Settings", description: "Warehouses, locations & dispatch carriers" },

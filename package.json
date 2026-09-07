@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "currency:check": "node ./scripts/check-hardcoded-currency.mjs",
+    "qa:inventory-permissions": "node ./scripts/qa-inventory-permissions.mjs",
     "preview": "vite preview",
     "prepare": "husky"
   },

@@ -17,8 +17,10 @@ export default function ManageStocks() {
   const navigate = useNavigate();
   const stockCaps = useModulePermission(InventoryModule.STOCK);
   const itemCaps = useModulePermission(InventoryModule.ITEM);
+  const warehouseCaps = useModulePermission(InventoryModule.WAREHOUSE);
   const canViewStock = stockCaps.canView || itemCaps.canView;
-  const canReceive = stockCaps.canCreate || stockCaps.canEdit;
+  const canReceive =
+    (stockCaps.canCreate || stockCaps.canEdit) && warehouseCaps.canView;
   const canManageVariances =
     stockCaps.canCreate || stockCaps.canEdit || stockCaps.canApprove;
   const [activeTab, setActiveTab] = useState("stock");
@@ -174,6 +176,9 @@ export default function ManageStocks() {
                     items={items}
                     warehouses={warehouses}
                     onStockUpdated={refetch}
+                    canCreate={stockCaps.canCreate}
+                    canApprove={stockCaps.canApprove}
+                    canDelete={stockCaps.canDelete}
                   />
                 </TabsContent>
                 )}

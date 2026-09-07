@@ -257,6 +257,8 @@ export default function App() {
                     InventoryModule.WAREHOUSE,
                     InventoryModule.PURCHASE,
                     InventoryModule.SALES,
+                    InventoryModule.ITEM,
+                    InventoryModule.RECEIPT,
                   ]}
                   title="Inventory settings access denied"
                 >
@@ -279,7 +281,7 @@ export default function App() {
               path="stocks/:id"
               element={
                 <ModuleAccessGate
-                  module={InventoryModule.ITEM}
+                  modules={[InventoryModule.ITEM, InventoryModule.STOCK]}
                   title="Item detail access denied"
                 >
                   <InventoryItemDetail />
@@ -403,7 +405,10 @@ export default function App() {
             <Route
               path="sales/invoices"
               element={
-                <ModuleAccessGate module={InventoryModule.SALES}>
+                <ModuleAccessGate
+                  module="FINANCE_INVOICE"
+                  title="Invoice access denied"
+                >
                   <InvoicesPage />
                 </ModuleAccessGate>
               }
@@ -412,7 +417,7 @@ export default function App() {
               path="purchase"
               element={
                 <ModuleAccessGate
-                  module={InventoryModule.PURCHASE}
+                  modules={[InventoryModule.PURCHASE, InventoryModule.RECEIPT]}
                   title="Purchase access denied"
                 >
                   <PurchaseLandingPage />
@@ -454,7 +459,10 @@ export default function App() {
             <Route
               path="purchase/invoices"
               element={
-                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                <ModuleAccessGate
+                  module="FINANCE_INVOICE"
+                  title="Invoice access denied"
+                >
                   <PurchaseInvoicesPage />
                 </ModuleAccessGate>
               }
@@ -462,7 +470,10 @@ export default function App() {
             <Route
               path="purchase/invoices/:id"
               element={
-                <ModuleAccessGate module={InventoryModule.PURCHASE}>
+                <ModuleAccessGate
+                  module="FINANCE_INVOICE"
+                  title="Invoice access denied"
+                >
                   <PurchaseInvoiceDetailPage />
                 </ModuleAccessGate>
               }

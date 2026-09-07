@@ -79,10 +79,12 @@ function statusBadge(status: StockVariance["status"]) {
 
 type VarianceHistoryPanelProps = {
   refreshKey: number;
+  canArchive?: boolean;
 };
 
 export function VarianceHistoryPanel({
   refreshKey,
+  canArchive = false,
 }: VarianceHistoryPanelProps) {
   const { confirm } = useConfirmDialog();
   const [rows, setRows] = useState<StockVariance[]>([]);
@@ -237,7 +239,7 @@ export function VarianceHistoryPanel({
           </p>
         ) : (
           <div className="space-y-4">
-            {!showArchivedOnly ? (
+            {!showArchivedOnly && canArchive ? (
               <div className="px-6 pt-4">
                 <BulkActionBar
                   selectedCount={selectedIds.size}
@@ -251,7 +253,7 @@ export function VarianceHistoryPanel({
               <Table className="[&_tbody_tr:nth-child(even)]:bg-slate-50/50">
                 <TableHeader>
                   <TableRow>
-                    {!showArchivedOnly ? (
+                    {!showArchivedOnly && canArchive ? (
                       <TableHead className="w-10">
                         <Checkbox
                           checked={
@@ -273,7 +275,7 @@ export function VarianceHistoryPanel({
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Reviewed by</TableHead>
-                    {!showArchivedOnly ? (
+                    {!showArchivedOnly && canArchive ? (
                       <TableHead className="w-[100px]">Actions</TableHead>
                     ) : null}
                   </TableRow>
@@ -281,7 +283,7 @@ export function VarianceHistoryPanel({
                 <TableBody>
                   {rows.map((row, idx) => (
                     <TableRow key={row.id}>
-                      {!showArchivedOnly ? (
+                      {!showArchivedOnly && canArchive ? (
                         <TableCell>
                           <Checkbox
                             checked={selectedIds.has(row.id)}
@@ -318,7 +320,7 @@ export function VarianceHistoryPanel({
                           ? (row.approvedByName ?? "—")
                           : (row.rejectedByName ?? "—")}
                       </TableCell>
-                      {!showArchivedOnly ? (
+                      {!showArchivedOnly && canArchive ? (
                         <TableCell>
                           <Button
                             type="button"

@@ -23,8 +23,10 @@ import {
   Users,
 } from "lucide-react";
 import { INVENTORY_PERMISSION_MODULES } from "@/lib/permission-catalog";
+import { InventoryModule } from "@/lib/module-permissions";
 import { useAuth } from "@/context/AuthContext";
 import { canManagePermissions } from "@/lib/permission-ui";
+import { canView } from "@/service/companyService";
 import type { ReactNode } from "react";
 
 type SubTab = {
@@ -48,16 +50,26 @@ const InventorySettingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, permissions } = useAuth();
   const showPermissions = canManagePermissions(user?.role, permissions);
+  const isAdmin =
+    (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+    (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
+  const allow = (module: string) =>
+    isAdmin || permissions === null || canView(permissions, module);
 
   const groups = useMemo<GroupTab[]>(() => {
-    const list: GroupTab[] = [
-      {
+    const list: GroupTab[] = [];
+
+    if (allow(InventoryModule.CATEGORY)) {
+      list.push({
         value: "categories",
         label: "Categories",
         icon: <List className="w-4 h-4" />,
         element: () => <CategoriesMaster />,
-      },
-      {
+      });
+    }
+
+    if (allow(InventoryModule.WAREHOUSE)) {
+      list.push({
         value: "warehouses",
         label: "Warehouses",
         icon: <Building className="w-4 h-4" />,
@@ -75,27 +87,34 @@ const InventorySettingsPage = () => {
             element: () => <CarrierMaster />,
           },
         ],
-      },
-      {
+      });
+    }
+
+    const partnerChildren: SubTab[] = [];
+    if (allow(InventoryModule.SALES)) {
+      partnerChildren.push({
+        value: "customers",
+        label: "Customers",
+        icon: <Users className="w-4 h-4" />,
+        element: () => <CustomersPage />,
+      });
+    }
+    if (allow(InventoryModule.PURCHASE)) {
+      partnerChildren.push({
+        value: "suppliers",
+        label: "Suppliers",
+        icon: <Users className="w-4 h-4" />,
+        element: () => <VendorsPage />,
+      });
+    }
+    if (partnerChildren.length > 0) {
+      list.push({
         value: "partners",
         label: "Partners",
         icon: <Handshake className="w-4 h-4" />,
-        children: [
-          {
-            value: "customers",
-            label: "Customers",
-            icon: <Users className="w-4 h-4" />,
-            element: () => <CustomersPage />,
-          },
-          {
-            value: "suppliers",
-            label: "Suppliers",
-            icon: <Users className="w-4 h-4" />,
-            element: () => <VendorsPage />,
-          },
-        ],
-      },
-    ];
+        children: partnerChildren,
+      });
+    }
 
     if (showPermissions) {
       list.push({
@@ -118,22 +137,24 @@ const InventorySettingsPage = () => {
       });
     }
 
-    list.push({
-      value: "pricing",
-      label: "Pricing",
-      icon: <Percent className="w-4 h-4" />,
-      children: [
-        {
-          value: "item-discount",
-          label: "Item discount",
-          icon: <Tag className="w-4 h-4" />,
-          element: () => <ItemDiscountMaster />,
-        },
-      ],
-    });
+    if (allow(InventoryModule.ITEM)) {
+      list.push({
+        value: "pricing",
+        label: "Pricing",
+        icon: <Percent className="w-4 h-4" />,
+        children: [
+          {
+            value: "item-discount",
+            label: "Item discount",
+            icon: <Tag className="w-4 h-4" />,
+            element: () => <ItemDiscountMaster />,
+          },
+        ],
+      });
+    }
 
     return list;
-  }, [showPermissions]);
+  }, [showPermissions, permissions, isAdmin]);
 
   // Map legacy flat tab ids (pre-grouping) onto group + sub.
   const legacyTabMap: Record<string, { tab: string; sub?: string }> = {
@@ -235,13 +256,19 @@ const InventorySettingsPage = () => {
         icon={<Settings className="w-6 h-6" />}
       />
 
-      <AppTab
-        title=""
-        variant="warning"
-        tabs={tabsList}
-        value={activeGroup}
-        onValueChange={setGroup}
-      />
+      {groups.length === 0 ? (
+        <p className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+          You do not have permission to view any inventory settings.
+        </p>
+      ) : (
+        <AppTab
+          title=""
+          variant="warning"
+          tabs={tabsList}
+          value={activeGroup}
+          onValueChange={setGroup}
+        />
+      )}
     </div>
   );
 };

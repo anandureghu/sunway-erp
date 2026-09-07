@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/chart";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { getApiErrorMessage } from "@/lib/api-error-message";
+import { InventoryModule } from "@/lib/module-permissions";
+import { useModulePermission } from "@/hooks/use-module-permission";
 import type {
   StockBatchInsightsDTO,
   StockBatchMovementReportDTO,
@@ -136,6 +138,9 @@ function MovementLogPanel({
   filterItemId,
 }: MovementLogPanelProps) {
   const { confirm } = useConfirmDialog();
+  const stockCaps = useModulePermission(InventoryModule.STOCK);
+  const canArchive = stockCaps.canDelete;
+  const canHardDelete = stockCaps.canDelete;
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState<StockBatchMovementReportDTO | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
@@ -344,21 +349,23 @@ function MovementLogPanel({
       </div>
 
       {showArchivedOnly ? (
-        <BulkActionBar
-          mode="delete"
-          selectedCount={selectedIds.size}
-          onDelete={() => void handleBulkDelete()}
-          onClear={() => setSelectedIds(new Set())}
-          deleting={bulkDeleting}
-        />
-      ) : (
+        canHardDelete ? (
+          <BulkActionBar
+            mode="delete"
+            selectedCount={selectedIds.size}
+            onDelete={() => void handleBulkDelete()}
+            onClear={() => setSelectedIds(new Set())}
+            deleting={bulkDeleting}
+          />
+        ) : null
+      ) : canArchive ? (
         <BulkActionBar
           selectedCount={selectedIds.size}
           onArchive={() => void handleBulkArchive()}
           onClear={() => setSelectedIds(new Set())}
           archiving={bulkArchiving}
         />
-      )}
+      ) : null}
 
       {loading ? (
         <Skeleton className="h-64 w-full rounded-lg" />
@@ -373,39 +380,45 @@ function MovementLogPanel({
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-muted/80 text-left text-xs uppercase text-muted-foreground backdrop-blur">
               <tr>
-                <th className="w-10 p-3">
-                  <Checkbox
-                    checked={
-                      movements.length > 0 &&
-                      selectedIds.size === movements.length
-                    }
-                    onCheckedChange={(checked) =>
-                      toggleAll(checked === true)
-                    }
-                    aria-label="Select all"
-                  />
-                </th>
+                {(showArchivedOnly ? canHardDelete : canArchive) ? (
+                  <th className="w-10 p-3">
+                    <Checkbox
+                      checked={
+                        movements.length > 0 &&
+                        selectedIds.size === movements.length
+                      }
+                      onCheckedChange={(checked) =>
+                        toggleAll(checked === true)
+                      }
+                      aria-label="Select all"
+                    />
+                  </th>
+                ) : null}
                 <th className="p-3">Date</th>
                 <th className="p-3">Type</th>
                 <th className="p-3">Batch</th>
                 <th className="p-3">Warehouse</th>
                 <th className="p-3 text-right">Qty</th>
                 <th className="p-3 text-right">Value</th>
-                <th className="w-[100px] p-3">Actions</th>
+                {(showArchivedOnly ? canHardDelete : canArchive) ? (
+                  <th className="w-[100px] p-3">Actions</th>
+                ) : null}
               </tr>
             </thead>
             <tbody className="[&_tr:nth-child(even)]:bg-slate-50/50">
               {movements.map((m) => (
                 <tr key={m.id} className="border-t">
-                  <td className="p-3">
-                    <Checkbox
-                      checked={selectedIds.has(m.id)}
-                      onCheckedChange={(checked) =>
-                        toggleRow(m.id, checked === true)
-                      }
-                      aria-label={`Select movement ${m.id}`}
-                    />
-                  </td>
+                  {(showArchivedOnly ? canHardDelete : canArchive) ? (
+                    <td className="p-3">
+                      <Checkbox
+                        checked={selectedIds.has(m.id)}
+                        onCheckedChange={(checked) =>
+                          toggleRow(m.id, checked === true)
+                        }
+                        aria-label={`Select movement ${m.id}`}
+                      />
+                    </td>
+                  ) : null}
                   <td className="p-3 text-xs text-muted-foreground">
                     {m.createdAt
                       ? new Date(m.createdAt).toLocaleString()
@@ -429,41 +442,43 @@ function MovementLogPanel({
                   <td className="p-3 text-right">
                     <CurrencyAmount amount={Math.abs(m.lineValue)} />
                   </td>
-                  <td className="p-3">
-                    {showArchivedOnly ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1 text-destructive hover:text-destructive"
-                        disabled={deletingId === m.id}
-                        onClick={() => void handleDelete(m.id)}
-                      >
-                        {deletingId === m.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                        Delete
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1"
-                        disabled={archivingId === m.id}
-                        onClick={() => void handleArchive(m.id)}
-                      >
-                        {archivingId === m.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Archive className="h-3.5 w-3.5" />
-                        )}
-                        Archive
-                      </Button>
-                    )}
-                  </td>
+                  {(showArchivedOnly ? canHardDelete : canArchive) ? (
+                    <td className="p-3">
+                      {showArchivedOnly ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 text-destructive hover:text-destructive"
+                          disabled={deletingId === m.id}
+                          onClick={() => void handleDelete(m.id)}
+                        >
+                          {deletingId === m.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          Delete
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1"
+                          disabled={archivingId === m.id}
+                          onClick={() => void handleArchive(m.id)}
+                        >
+                          {archivingId === m.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Archive className="h-3.5 w-3.5" />
+                          )}
+                          Archive
+                        </Button>
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

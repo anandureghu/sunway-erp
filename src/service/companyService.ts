@@ -354,7 +354,8 @@ export const getSidebarItems = async (
             ...(canView(permissions, "INVENTORY_SALES")
               ? [{ title: "Sales", url: "/inventory/sales", icon: ShoppingCart }]
               : []),
-            ...(canView(permissions, "INVENTORY_PURCHASE")
+            ...(canView(permissions, "INVENTORY_PURCHASE") ||
+            canView(permissions, "INVENTORY_RECEIPT")
               ? [{ title: "Purchase", url: "/inventory/purchase", icon: Receipt }]
               : []),
             ...(canView(permissions, "INVENTORY_STOCK")
@@ -374,7 +375,9 @@ export const getSidebarItems = async (
             ...(canView(permissions, "INVENTORY_CATEGORY") ||
             canView(permissions, "INVENTORY_WAREHOUSE") ||
             canView(permissions, "INVENTORY_PURCHASE") ||
-            canView(permissions, "INVENTORY_SALES")
+            canView(permissions, "INVENTORY_SALES") ||
+            canView(permissions, "INVENTORY_ITEM") ||
+            canView(permissions, "INVENTORY_RECEIPT")
               ? [
                   {
                     title: "Inventory Settings",

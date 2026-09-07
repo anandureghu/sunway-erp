@@ -14,10 +14,10 @@ const DEFAULT_ACTIONS: SimpleAction[] = ["view", "create", "edit", "delete"];
 /**
  * The actions that apply to each page, matched to the actions the backend
  * controllers actually enforce (so we never show a verb the API ignores):
- *  - reports are read-only,
- *  - pages whose controllers post/confirm/approve get Approve,
- *  - pages with no DELETE endpoint (ledger, journal, budget, items, stock,
- *    receipts) omit Delete.
+ *  - reports / dashboards are view-only,
+ *  - pages whose controllers approve/confirm get Approve,
+ *  - DELETE is included wherever archive/hard-delete endpoints exist
+ *    (stock variances, batch movements, goods receipts, sales orders, …).
  * Anything not listed falls back to full view/create/edit/delete.
  */
 const PAGE_ACTIONS: Record<string, SimpleAction[]> = {
@@ -46,12 +46,12 @@ const PAGE_ACTIONS: Record<string, SimpleAction[]> = {
   FINANCE_COA: ["view", "create", "edit", "delete"],
   FINANCE_BUDGET: ["view", "create", "edit"],
   FINANCE_RECONCILIATION: ["view", "create", "edit", "approve"],
-  // ── Inventory ──
-  INVENTORY_STOCK: ["view", "create", "edit", "approve"],
+  // ── Inventory (must match @RequiresPermission on inventory controllers) ──
+  INVENTORY_STOCK: ["view", "create", "edit", "delete", "approve"],
   INVENTORY_ITEM: ["view", "create", "edit", "delete"],
-  INVENTORY_SALES: ["view", "create", "edit", "delete"],
+  INVENTORY_SALES: ["view", "create", "edit", "delete", "approve"],
   INVENTORY_PURCHASE: ["view", "create", "edit", "delete", "approve"],
-  INVENTORY_RECEIPT: ["view", "create", "edit"],
+  INVENTORY_RECEIPT: ["view", "create", "edit", "delete", "approve"],
   INVENTORY_CATEGORY: ["view", "create", "edit", "delete"],
   INVENTORY_WAREHOUSE: ["view", "create", "edit", "delete"],
 };

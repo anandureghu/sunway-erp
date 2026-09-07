@@ -32,6 +32,10 @@ import {
 } from "@/components/kpi-summary-strip";
 import { PageHeader } from "@/components/PageHeader";
 import { excludeArchived } from "@/lib/exclude-archived";
+import { InventoryModule } from "@/lib/module-permissions";
+import { useModulePermission } from "@/hooks/use-module-permission";
+import { canView } from "@/service/companyService";
+import { useAuth } from "@/context/AuthContext";
 
 type ActionCard = {
   title: string;
@@ -40,6 +44,7 @@ type ActionCard = {
   cta: string;
   icon: React.ComponentType<{ className?: string }> | string;
   tone: string;
+  module: string;
 };
 
 const normalizeStatus = (status?: string | null) =>
@@ -55,6 +60,16 @@ export default function PurchaseLandingPage() {
   const [invoices, setInvoices] = useState<FinanceInvoice[]>([]);
   const [allReceipts, setAllReceipts] = useState<GoodsReceipt[]>([]);
   const [loading, setLoading] = useState(true);
+  const { permissions, user } = useAuth();
+  const purchaseCaps = useModulePermission(InventoryModule.PURCHASE);
+  const receiptCaps = useModulePermission(InventoryModule.RECEIPT);
+  const isAdmin =
+    (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+    (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
+  const canSeeInvoices =
+    isAdmin ||
+    permissions === null ||
+    canView(permissions, "FINANCE_INVOICE");
 
   useEffect(() => {
     let cancelled = false;
@@ -62,9 +77,15 @@ export default function PurchaseLandingPage() {
       setLoading(true);
       try {
         const [ordersData, invoicesData, receiptsData] = await Promise.all([
-          listPurchaseOrders().catch(() => [] as PurchaseOrder[]),
-          listPurchaseInvoices().catch(() => [] as FinanceInvoice[]),
-          listGoodsReceipts().catch(() => [] as GoodsReceipt[]),
+          purchaseCaps.canView
+            ? listPurchaseOrders().catch(() => [] as PurchaseOrder[])
+            : Promise.resolve([] as PurchaseOrder[]),
+          canSeeInvoices
+            ? listPurchaseInvoices().catch(() => [] as FinanceInvoice[])
+            : Promise.resolve([] as FinanceInvoice[]),
+          receiptCaps.canView
+            ? listGoodsReceipts().catch(() => [] as GoodsReceipt[])
+            : Promise.resolve([] as GoodsReceipt[]),
         ]);
         if (cancelled) return;
         setOrders(ordersData);
@@ -77,7 +98,7 @@ export default function PurchaseLandingPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [purchaseCaps.canView, receiptCaps.canView, canSeeInvoices]);
 
   const pendingOrders = useMemo(
     () =>
@@ -127,6 +148,7 @@ export default function PurchaseLandingPage() {
       cta: "All requisitions",
       icon: ClipboardList,
       tone: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-950/50",
+      module: InventoryModule.PURCHASE,
     },
 
     {
@@ -136,6 +158,7 @@ export default function PurchaseLandingPage() {
       cta: "Open orders",
       icon: ShoppingCart,
       tone: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/50",
+      module: InventoryModule.PURCHASE,
     },
     {
       title: "Goods receipt / Inspect",
@@ -144,6 +167,7 @@ export default function PurchaseLandingPage() {
       cta: "Inspect",
       icon: Package,
       tone: "text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50",
+      module: InventoryModule.RECEIPT,
     },
 
     {
@@ -153,6 +177,7 @@ export default function PurchaseLandingPage() {
       cta: "View invoices",
       icon: Receipt,
       tone: "text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-950/50",
+      module: "FINANCE_INVOICE",
     },
     {
       title: "Suppliers",
@@ -161,8 +186,13 @@ export default function PurchaseLandingPage() {
       cta: "Manage suppliers",
       icon: Users,
       tone: "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50",
+      module: InventoryModule.PURCHASE,
     },
-  ];
+  ].filter((card) => {
+    if (card.module === "FINANCE_INVOICE") return canSeeInvoices;
+    if (card.module === InventoryModule.RECEIPT) return receiptCaps.canView;
+    return purchaseCaps.canView;
+  });
 
   const purchaseHubKpis: KpiSummaryStat[] = [
     {

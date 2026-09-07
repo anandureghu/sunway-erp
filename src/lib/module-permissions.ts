@@ -1,6 +1,7 @@
 import { canView } from "@/service/companyService";
 
 export const InventoryModule = {
+  DASHBOARD: "INVENTORY_DASHBOARD",
   CATEGORY: "INVENTORY_CATEGORY",
   WAREHOUSE: "INVENTORY_WAREHOUSE",
   STOCK: "INVENTORY_STOCK",
@@ -52,21 +53,44 @@ export function canCreateModule(
   permissions: PermissionMap,
   module: string,
 ): boolean {
-  return cap(permissions, module, ["create", "CREATE"]);
+  return cap(permissions, module, [
+    "create",
+    "CREATE",
+    "create_own",
+    "create_all",
+    "createOwn",
+    "createAll",
+  ]);
 }
 
 export function canEditModule(
   permissions: PermissionMap,
   module: string,
 ): boolean {
-  return cap(permissions, module, ["edit", "EDIT", "editPermission"]);
+  return cap(permissions, module, [
+    "edit",
+    "EDIT",
+    "editPermission",
+    "edit_own",
+    "edit_all",
+    "editOwn",
+    "editAll",
+  ]);
 }
 
 export function canDeleteModule(
   permissions: PermissionMap,
   module: string,
 ): boolean {
-  return cap(permissions, module, ["delete", "DELETE", "deletePermission"]);
+  return cap(permissions, module, [
+    "delete",
+    "DELETE",
+    "deletePermission",
+    "delete_own",
+    "delete_all",
+    "deleteOwn",
+    "deleteAll",
+  ]);
 }
 
 export function canApproveModule(

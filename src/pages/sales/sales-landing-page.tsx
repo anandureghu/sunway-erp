@@ -31,6 +31,8 @@ import {
 } from "@/components/kpi-summary-strip";
 import { PageHeader } from "@/components/PageHeader";
 import { excludeArchived } from "@/lib/exclude-archived";
+import { useAuth } from "@/context/AuthContext";
+import { canView } from "@/service/companyService";
 
 type ActionCard = {
   title: string;
@@ -39,6 +41,7 @@ type ActionCard = {
   cta: string;
   icon: React.ComponentType<{ className?: string }>;
   tone: string;
+  requiresFinanceInvoice?: boolean;
 };
 
 const normalizeStatus = (status?: string | null) =>
@@ -51,10 +54,18 @@ const isSameDay = (a: Date, b: Date) =>
 
 export default function SalesLandingPage() {
   const navigate = useNavigate();
+  const { permissions, user } = useAuth();
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const isAdmin =
+    (user?.role ?? "").toString().toUpperCase() === "ADMIN" ||
+    (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
+  const canSeeInvoices =
+    isAdmin ||
+    permissions === null ||
+    canView(permissions, "FINANCE_INVOICE");
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +141,7 @@ export default function SalesLandingPage() {
       cta: "View Invoices",
       icon: Receipt,
       tone: "text-purple-600 bg-purple-100",
+      requiresFinanceInvoice: true,
     },
     {
       title: "Customer Management",
@@ -155,7 +167,7 @@ export default function SalesLandingPage() {
       icon: Truck,
       tone: "text-cyan-600 bg-cyan-100",
     },
-  ];
+  ].filter((card) => !card.requiresFinanceInvoice || canSeeInvoices);
 
   const salesHubKpis: KpiSummaryStat[] = [
     {
