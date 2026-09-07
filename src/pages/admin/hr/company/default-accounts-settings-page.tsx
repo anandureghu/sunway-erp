@@ -29,6 +29,7 @@ import type {
   ProcessAccountDefault,
 } from "@/types/process-account-default";
 import {
+  ACCOUNTING_PROCESS_HINTS,
   ACCOUNTING_PROCESS_LABELS,
   ALL_ACCOUNTING_PROCESS_CODES,
   DEBIT_ONLY_PROCESS_CODES,
@@ -168,15 +169,22 @@ export default function DefaultAccountsSettingsPage({
       if (DEBIT_ONLY_PROCESS_CODES.has(code)) {
         return Boolean(creditAccountId);
       }
+      // EOSB: credit alone is invalid; debit alone is allowed (legacy).
+      if (code === "END_OF_SERVICE") {
+        return Boolean(creditAccountId) && !debitAccountId;
+      }
       return (
         (debitAccountId && !creditAccountId) ||
         (!debitAccountId && creditAccountId)
       );
     });
     if (incompleteProcess) {
-      const message = DEBIT_ONLY_PROCESS_CODES.has(incompleteProcess)
-        ? `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} does not use a credit account`
-        : `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} needs both debit and credit accounts`;
+      const message =
+        incompleteProcess === "END_OF_SERVICE"
+          ? "End of service (EOSB) needs a debit account when a credit account is set"
+          : DEBIT_ONLY_PROCESS_CODES.has(incompleteProcess)
+            ? `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} does not use a credit account`
+            : `${ACCOUNTING_PROCESS_LABELS[incompleteProcess]} needs both debit and credit accounts`;
       toast.error(message);
       return;
     }
@@ -184,6 +192,9 @@ export default function DefaultAccountsSettingsPage({
     const processPayload = ALL_ACCOUNTING_PROCESS_CODES.filter((code) => {
       const { debitAccountId, creditAccountId } = processAccounts[code];
       if (DEBIT_ONLY_PROCESS_CODES.has(code)) {
+        return Boolean(debitAccountId);
+      }
+      if (code === "END_OF_SERVICE") {
         return Boolean(debitAccountId);
       }
       return debitAccountId && creditAccountId;
@@ -390,9 +401,16 @@ export default function DefaultAccountsSettingsPage({
                 const debitOnly = DEBIT_ONLY_PROCESS_CODES.has(code);
                 return (
                 <div key={code} className="space-y-4 py-6 first:pt-0 last:pb-0">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {ACCOUNTING_PROCESS_LABELS[code]}
-                  </h3>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {ACCOUNTING_PROCESS_LABELS[code]}
+                    </h3>
+                    {ACCOUNTING_PROCESS_HINTS[code] ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {ACCOUNTING_PROCESS_HINTS[code]}
+                      </p>
+                    ) : null}
+                  </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     <FormItem>
                       <FormControl>

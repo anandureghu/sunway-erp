@@ -31,15 +31,23 @@ export const ACCOUNTING_PROCESS_LABELS: Record<AccountingProcessCode, string> =
   {
     MANUAL_JOURNAL: "Manual journal entry",
     STOCK_VARIANCE: "Variance process",
-    END_OF_SERVICE: "End of service payment",
+    END_OF_SERVICE: "End of service (EOSB)",
     EMPLOYEE_TICKET_PAYMENT: "Employee ticket payment",
     PAYROLL: "Payroll",
     OTHER_PAYMENT: "Other payments",
   };
 
+/** Optional helper under each process row on Default accounts. */
+export const ACCOUNTING_PROCESS_HINTS: Partial<
+  Record<AccountingProcessCode, string>
+> = {
+  END_OF_SERVICE:
+    "Debit = EOSB expense. Credit = liability provision — monthly accruals and settlement use this account.",
+};
+
 /** Processes that post a debit only (no credit account). */
 export const DEBIT_ONLY_PROCESS_CODES: ReadonlySet<AccountingProcessCode> =
-  new Set(["END_OF_SERVICE"]);
+  new Set();
 
 export const ALL_ACCOUNTING_PROCESS_CODES = Object.keys(
   ACCOUNTING_PROCESS_LABELS,
