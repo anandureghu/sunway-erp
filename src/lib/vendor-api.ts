@@ -36,9 +36,11 @@ export function normalizeVendorFromApi(raw: unknown): Vendor {
   const is1099 =
     r.is1099Vendor !== undefined
       ? Boolean(r.is1099Vendor)
-      : r.is_1099_vendor !== undefined
-        ? Boolean(r.is_1099_vendor)
-        : false;
+      : r["1099Vendor"] !== undefined
+        ? Boolean(r["1099Vendor"])
+        : r.is_1099_vendor !== undefined
+          ? Boolean(r.is_1099_vendor)
+          : false;
 
   const creditRaw = r.creditLimit;
   const creditLimit =
