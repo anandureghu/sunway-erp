@@ -163,7 +163,12 @@ export default function SubscriptionDetailPage() {
       const blob = await downloadSubscriptionInvoicePdf(companyId, inv.id);
       openBlobPreview(blob);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to preview PDF"));
+      toast.error(
+        getApiErrorMessage(
+          err,
+          inv.paid ? "Failed to preview receipt" : "Failed to preview PDF",
+        ),
+      );
     } finally {
       setInvoiceBusy(null);
     }
@@ -172,9 +177,17 @@ export default function SubscriptionDetailPage() {
   const handleDownload = async (inv: SubscriptionInvoice) => {
     try {
       const blob = await downloadSubscriptionInvoicePdf(companyId, inv.id);
-      triggerBlobDownload(blob, `${inv.invoiceNo}.pdf`);
+      const filename = inv.paid
+        ? `${inv.receiptNo ?? `receipt-${inv.paymentId ?? inv.id}`}.pdf`
+        : `${inv.invoiceNo}.pdf`;
+      triggerBlobDownload(blob, filename);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to download PDF"));
+      toast.error(
+        getApiErrorMessage(
+          err,
+          inv.paid ? "Failed to download receipt" : "Failed to download PDF",
+        ),
+      );
     }
   };
 
@@ -554,7 +567,7 @@ function CurrentPeriodInvoicePanel({
                 disabled={!invoice || busy != null}
               >
                 <Eye className="mr-2 h-4 w-4" />
-                Preview PDF
+                {invoice?.paid ? "Preview receipt" : "Preview PDF"}
               </Button>
               <Button
                 type="button"
@@ -564,7 +577,7 @@ function CurrentPeriodInvoicePanel({
                 disabled={!invoice}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Download
+                {invoice?.paid ? "Download receipt" : "Download"}
               </Button>
               <Button
                 type="button"

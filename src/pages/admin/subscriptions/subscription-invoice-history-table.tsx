@@ -189,7 +189,7 @@ export function SubscriptionInvoiceHistoryTable({
                         onClick={() => onDownload(inv)}
                       >
                         <Download className="mr-1 h-4 w-4" />
-                        PDF
+                        {inv.paid ? "Receipt" : "PDF"}
                       </Button>
                     </div>
                   </td>

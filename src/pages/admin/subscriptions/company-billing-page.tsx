@@ -64,9 +64,17 @@ export default function CompanyBillingPage() {
   const handleDownload = async (inv: SubscriptionInvoice) => {
     try {
       const blob = await downloadMySubscriptionInvoicePdf(inv.id);
-      triggerBlobDownload(blob, `${inv.invoiceNo}.pdf`);
+      const filename = inv.paid
+        ? `${inv.receiptNo ?? `receipt-${inv.paymentId ?? inv.id}`}.pdf`
+        : `${inv.invoiceNo}.pdf`;
+      triggerBlobDownload(blob, filename);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to download PDF"));
+      toast.error(
+        getApiErrorMessage(
+          err,
+          inv.paid ? "Failed to download receipt" : "Failed to download PDF",
+        ),
+      );
     }
   };
 
