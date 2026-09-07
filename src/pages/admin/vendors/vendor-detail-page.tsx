@@ -142,12 +142,20 @@ export default function VendorDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
+              <span className="font-semibold">Supplier Code:</span>{" "}
+              {vendor.vendorCode || "-"}
+            </p>
+            <p>
               <span className="font-semibold">Supplier Name:</span>{" "}
               {vendor.vendorName}
             </p>
             <p>
               <span className="font-semibold">Contact Person:</span>{" "}
               {vendor.contactPersonName || "-"}
+            </p>
+            <p>
+              <span className="font-semibold">Category:</span>{" "}
+              {vendor.categoryName || "-"}
             </p>
             <p>
               <span className="font-semibold">Email:</span>{" "}
@@ -197,9 +205,22 @@ export default function VendorDetailPage() {
             <CardTitle className="text-lg">Financial Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
+            {vendor.is1099Vendor ? (
+              <p>
+                <span className="font-semibold">VAT:</span>{" "}
+                {vendor.taxId || "-"}
+              </p>
+            ) : null}
             <p>
-              <span className="font-semibold">Tax ID:</span>{" "}
-              {vendor.taxId || "-"}
+              <span className="font-semibold">Vendor CR. No.:</span>{" "}
+              {vendor.vendorCrNo || "-"}
+            </p>
+            <p>
+              <span className="font-semibold">Bank Name:</span>{" "}
+              {vendor.bankName || "-"}
+            </p>
+            <p>
+              <span className="font-semibold">IBAN:</span> {vendor.iban || "-"}
             </p>
             <p>
               <span className="font-semibold">Payment Terms:</span>{" "}

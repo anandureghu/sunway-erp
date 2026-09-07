@@ -7,6 +7,10 @@ export const VENDOR_SCHEMA = z.object({
     .string()
     .min(2, "Vendor name must be at least 2 characters long"),
   taxId: z.string().optional(),
+  categoryId: z.number().nullable().optional(),
+  vendorCrNo: z.string().optional(),
+  bankName: z.string().optional(),
+  iban: z.string().optional(),
   paymentTerms: z.string().min(1, "Payment terms are required"),
   currencyCode: z.string().optional(),
   creditLimit: z

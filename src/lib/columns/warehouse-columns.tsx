@@ -50,6 +50,12 @@ export function createWarehouseColumns(
 ): ColumnDef<Warehouse>[] {
   return [
     {
+      accessorKey: "code",
+      header: "WAREHOUSE CODE",
+      enableSorting: true,
+      cell: ({ row }) => <OptionalCell value={row.original.code} />,
+    },
+    {
       accessorKey: "name",
       header: "WAREHOUSE NAME",
       enableSorting: true,
@@ -60,6 +66,18 @@ export function createWarehouseColumns(
           </span>
         </div>
       ),
+    },
+    {
+      accessorKey: "warehouseType",
+      header: "TYPE",
+      enableSorting: true,
+      cell: ({ row }) => <OptionalCell value={row.original.warehouseType} />,
+    },
+    {
+      accessorKey: "capacity",
+      header: "CAPACITY",
+      enableSorting: true,
+      cell: ({ row }) => <OptionalCell value={row.original.capacity} />,
     },
     {
       id: "address",

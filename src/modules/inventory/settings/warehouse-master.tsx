@@ -1,9 +1,6 @@
 import { DataTable } from "@/components/ui/data-table";
-import SelectEmployees from "@/components/select-employees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import PhoneInput from "@/components/PhoneInput";
-import CountrySelect from "@/components/country-select";
 import {
   Select,
   SelectContent,
@@ -12,16 +9,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createWarehouseColumns } from "@/lib/columns/warehouse-columns";
-import { type WarehouseFormData, WAREHOUSE_SCHEMA } from "@/schema/inventory";
 import {
   listWarehouses,
-  createWarehouse,
   deleteWarehouse,
-  generateWarehouseCode,
-  updateWarehouse,
 } from "@/service/inventoryService";
 import type { Warehouse } from "@/types/inventory";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Plus,
   Search,
@@ -30,71 +22,21 @@ import {
   CircleSlash2,
 } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
-import { normalizePhone } from "@/lib/countries";
-
-// Section card
-function SectionCard({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
-          {icon}
-        </div>
-        <span className="text-[13px] font-semibold text-slate-700">
-          {title}
-        </span>
-      </div>
-      <div className="p-5 space-y-5">{children}</div>
-    </div>
-  );
-}
-
-// Field wrapper
-function F({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-        {label}
-        {required && <span className="ml-0.5 text-rose-400">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-const icls =
-  "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
+import { WarehouseDialog } from "./warehouse-dialog";
 
 const WarehouseMaster = () => {
   const { confirm } = useConfirmDialog();
-  // Warehouses management state
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [showWarehouseForm, setShowWarehouseForm] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
+    null,
+  );
 
-  // TODO: set loading and error states properly
   const [, setLoading] = useState(true);
   const [, setLoadError] = useState<string | null>(null);
 
@@ -104,167 +46,64 @@ const WarehouseMaster = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const {
-    register: registerWarehouse,
-    handleSubmit: handleWarehouseSubmit,
-    control: warehouseControl,
-    formState: { errors: warehouseErrors },
-    reset: resetWarehouse,
-    watch: watchWarehouse,
-  } = useForm<WarehouseFormData>({
-    resolver: zodResolver(WAREHOUSE_SCHEMA),
-    defaultValues: {
-      status: "active",
-      city: "",
-      street: "",
-      country: "",
-      pin: "",
-      contactPersonName: "",
-      manager: null,
-    },
-  });
-
-  // Warehouse handlers
-  const onWarehouseSubmit = async (data: WarehouseFormData) => {
-    try {
-      const normalizedName = data.name.trim();
-
-      const payload: Record<string, unknown> = {
-        name: normalizedName,
-        status: data.status || "active",
-        street: data.street || "",
-        city: data.city || "",
-        country: data.country || "",
-        pin: data.pin || "",
-        phone: data.phone || "",
-        contactPersonName: data.contactPersonName || "",
-      };
-      if (data.manager != null && !Number.isNaN(Number(data.manager))) {
-        payload.manager = Number(data.manager);
-      }
-
-      // Add code for new warehouses
-      if (!editingWarehouse) {
-        payload.code = generateWarehouseCode(normalizedName);
-      }
-
-      if (editingWarehouse) {
-        await updateWarehouse(editingWarehouse.id, payload);
-        toast.success("Warehouse updated successfully!");
-      } else {
-        await createWarehouse(payload);
-        toast.success("Warehouse created successfully!");
-      }
-
-      // Reload warehouses
-      const warehousesList = await listWarehouses();
-      setWarehouses(warehousesList);
-
-      // Reset form
-      setShowWarehouseForm(false);
-      setEditingWarehouse(null);
-      resetWarehouse();
-    } catch (error: any) {
-      console.error("Failed to save warehouse:", error);
-      const status = error?.response?.status;
-      const errorMessage = error?.response?.data?.message || "";
-      const errorData = error?.response?.data || {};
-
-      if (status === 409) {
-        // Conflict - warehouse name or code already exists
-        const conflictField =
-          errorData.field ||
-          (errorMessage.toLowerCase().includes("code") ? "code" : "name");
-        if (conflictField === "code") {
-          toast.error(
-            `Warehouse code already exists. The name "${data.name}" generates a code that conflicts. Please use a different name.`,
-          );
-        } else {
-          toast.error(
-            `Warehouse name "${data.name}" already exists. Please use a different name.`,
-          );
-        }
-      } else if (errorMessage) {
-        toast.error(errorMessage);
-      } else {
-        toast.error(
-          editingWarehouse
-            ? "Failed to update warehouse. Please try again."
-            : "Failed to create warehouse. Please try again.",
-        );
-      }
-    }
-  };
+  const reload = useCallback(async () => {
+    const warehousesList = await listWarehouses();
+    setWarehouses(warehousesList);
+  }, []);
 
   const handleEditWarehouse = (warehouse: Warehouse) => {
     setEditingWarehouse(warehouse);
-    resetWarehouse({
-      ...warehouse,
-      name: warehouse.name,
-      status: warehouse.status,
-      phone: normalizePhone(warehouse.phone),
-      manager: warehouse.managerId,
-    });
-    setShowWarehouseForm(true);
+    setDialogOpen(true);
   };
 
   const handleDeleteWarehouse = async (id: string) => {
-    if (!(await confirm("Are you sure you want to delete this warehouse?"))) return;
+    if (!(await confirm("Are you sure you want to delete this warehouse?")))
+      return;
 
     try {
       await deleteWarehouse(id);
       toast.success("Warehouse deleted successfully!");
-
-      // Reload warehouses
-      const warehousesList = await listWarehouses();
-      setWarehouses(warehousesList);
-    } catch (error: any) {
+      await reload();
+    } catch (error: unknown) {
       console.error("Failed to delete warehouse:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to delete warehouse. Please try again.",
-      );
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to delete warehouse. Please try again.";
+      toast.error(message);
     }
   };
 
   const handleNewWarehouse = () => {
     setEditingWarehouse(null);
-    resetWarehouse({
-      status: "active",
-    });
-    setShowWarehouseForm(true);
+    setDialogOpen(true);
   };
 
-  // Load stock data from API
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
         setLoadError(null);
-
-        // Fetch all data in parallel
-        const [warehousesList] = await Promise.all([listWarehouses()]);
-
-        if (!cancelled) {
-          setWarehouses(warehousesList);
-        }
-      } catch (error: any) {
+        const warehousesList = await listWarehouses();
+        if (!cancelled) setWarehouses(warehousesList);
+      } catch (error: unknown) {
         if (!cancelled) {
           console.error("Failed to load warehouse data:", error);
-          setLoadError(error?.message || "Failed to load warehouse data");
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load warehouse data",
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Calculate statistics
   const stats = useMemo(() => {
     const total = warehouses.length;
     const active = warehouses.filter((w) => w.status === "active").length;
@@ -292,6 +131,7 @@ const WarehouseMaster = () => {
       const matchesSearch =
         searchQuery === "" ||
         wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (wh.code || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (wh.location || "").toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus =
@@ -301,12 +141,10 @@ const WarehouseMaster = () => {
     });
   }, [warehouses, searchQuery, statusFilter]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredWarehouses.length / itemsPerPage);
   const paginatedWarehouses = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredWarehouses.slice(startIndex, endIndex);
+    return filteredWarehouses.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredWarehouses, currentPage, itemsPerPage]);
 
   useEffect(() => {
@@ -324,13 +162,13 @@ const WarehouseMaster = () => {
         actions={
           <Button
             onClick={handleNewWarehouse}
-            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
+            className="bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm hover:from-orange-600 hover:to-amber-600"
           >
-            <Plus className="h-4 w-4 mr-2" /> New Warehouse
+            <Plus className="mr-2 h-4 w-4" /> New Warehouse
           </Button>
         }
       />
-      {/* Summary Cards */}
+
       <div className="mb-6">
         <KpiSummaryStrip
           items={[
@@ -374,255 +212,48 @@ const WarehouseMaster = () => {
         />
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex-1 relative min-w-[300px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative min-w-[300px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
           <Input
             placeholder="Search warehouses..."
-            className="pl-10 rounded-xl border-slate-200 text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+            className="rounded-xl border-slate-200 pl-10 text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[140px] rounded-xl border-slate-200 text-[13px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+            setKpiFilter(null);
+          }}
+        >
+          <SelectTrigger className="w-[140px] rounded-xl border-slate-200 text-[13px]">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Warehouse Form */}
-      {showWarehouseForm && (
-        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-          {/* ── Form Header ── */}
-          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3.5 bg-slate-50/60">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-orange-500">
-              <WarehouseIcon className="h-3.5 w-3.5 text-white" />
-            </div>
-            <span className="text-[13px] font-semibold text-slate-700">
-              {editingWarehouse ? "Edit Warehouse" : "Add Warehouse"}
-            </span>
-          </div>
-
-          <div className="p-5">
-            <form
-              onSubmit={handleWarehouseSubmit(onWarehouseSubmit)}
-              className="space-y-6"
-            >
-              {/* ── Section: Basic Information ── */}
-              <SectionCard
-                icon={<WarehouseIcon className="h-3.5 w-3.5 text-white" />}
-                title="Basic information"
-              >
-                <div className="grid grid-cols-2 gap-5">
-                  <F label="Warehouse Name" required>
-                    <Input
-                      placeholder="Warehouse name"
-                      {...registerWarehouse("name")}
-                      className={icls}
-                    />
-                    {warehouseErrors.name && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.name.message}
-                      </p>
-                    )}
-                  </F>
-
-                  <F label="Status" required>
-                    <Select
-                      onValueChange={(value) =>
-                        resetWarehouse({
-                          ...watchWarehouse(),
-                          status: value as "active" | "inactive",
-                        })
-                      }
-                      value={watchWarehouse("status")}
-                    >
-                      <SelectTrigger className={icls}>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {warehouseErrors.status && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.status.message}
-                      </p>
-                    )}
-                  </F>
-
-                  <F label="Phone">
-                    <Controller
-                      name="phone"
-                      control={warehouseControl}
-                      render={({ field, fieldState }) => (
-                        <PhoneInput
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          invalid={!!fieldState.error}
-                          className={icls}
-                        />
-                      )}
-                    />
-                    {warehouseErrors.phone && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.phone.message}
-                      </p>
-                    )}
-                  </F>
-
-                  <F label="Contact Person Name">
-                    <Input
-                      placeholder="Contact Person Name"
-                      {...registerWarehouse("contactPersonName")}
-                      className={icls}
-                    />
-                    {warehouseErrors.contactPersonName && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.contactPersonName.message}
-                      </p>
-                    )}
-                  </F>
-                </div>
-              </SectionCard>
-
-              {/* ── Section: Address ── */}
-              <SectionCard
-                icon={<WarehouseIcon className="h-3.5 w-3.5 text-white" />}
-                title="Address"
-              >
-                <div className="grid grid-cols-2 gap-5">
-                  <F label="Street">
-                    <Input
-                      placeholder="Street"
-                      {...registerWarehouse("street")}
-                      className={icls}
-                    />
-                    {warehouseErrors.street && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.street.message}
-                      </p>
-                    )}
-                  </F>
-
-                  <F label="City">
-                    <Input
-                      placeholder="City"
-                      {...registerWarehouse("city")}
-                      className={icls}
-                    />
-                    {warehouseErrors.city && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.city.message}
-                      </p>
-                    )}
-                  </F>
-
-                  <F label="Country">
-                    <Controller
-                      name="country"
-                      control={warehouseControl}
-                      render={({ field }) => (
-                        <CountrySelect
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          placeholder="Select country"
-                          className={icls}
-                        />
-                      )}
-                    />
-                    {warehouseErrors.country && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.country.message}
-                      </p>
-                    )}
-                  </F>
-
-                  <F label="Pin Code">
-                    <Input
-                      placeholder="Pin Code"
-                      {...registerWarehouse("pin")}
-                      className={icls}
-                    />
-                    {warehouseErrors.pin && (
-                      <p className="text-[11px] text-rose-400 mt-1">
-                        {warehouseErrors.pin.message}
-                      </p>
-                    )}
-                  </F>
-                </div>
-              </SectionCard>
-
-              {/* ── Section: Manager Assignment ── */}
-              <SectionCard
-                icon={<WarehouseIcon className="h-3.5 w-3.5 text-white" />}
-                title="Manager assignment"
-              >
-                <SelectEmployees
-                  idMode="user"
-                  value={watchWarehouse("manager")?.toString()}
-                  onChange={(v) =>
-                    resetWarehouse({
-                      ...watchWarehouse(),
-                      manager: Number(v),
-                    })
-                  }
-                  label=""
-                  placeholder="Select Manager"
-                />
-                {warehouseErrors.manager && (
-                  <p className="text-[11px] text-rose-400 mt-1">
-                    {warehouseErrors.manager.message}
-                  </p>
-                )}
-              </SectionCard>
-
-              {/* ── Footer ── */}
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setShowWarehouseForm(false);
-                    setEditingWarehouse(null);
-                    resetWarehouse();
-                  }}
-                  className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-800"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[13px] font-semibold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700"
-                >
-                  {editingWarehouse ? "Update" : "Create"} Warehouse
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <WarehouseDialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditingWarehouse(null);
+        }}
+        warehouse={editingWarehouse}
+        onSuccess={async () => {
+          await reload();
+        }}
+      />
 
       {paginatedWarehouses.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="py-8 text-center text-muted-foreground">
           No warehouses found
         </div>
       ) : (
@@ -634,9 +265,8 @@ const WarehouseMaster = () => {
             )}
             data={paginatedWarehouses}
           />
-          {/* Pagination */}
           {totalPages > 0 && (
-            <div className="flex items-center justify-between mt-4">
+            <div className="mt-4 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
                 Showing{" "}
                 {Math.min(
@@ -668,7 +298,7 @@ const WarehouseMaster = () => {
                       onClick={() => setCurrentPage(page)}
                       className={
                         currentPage === page
-                          ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                          ? "min-w-[40px] border-orange-500 bg-orange-500 text-white hover:bg-orange-600"
                           : "min-w-[40px]"
                       }
                     >

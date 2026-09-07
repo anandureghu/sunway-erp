@@ -6,7 +6,13 @@ import { normalizePhone } from "@/lib/countries";
 /** Raw vendor JSON from Spring (camelCase + occasional snake_case). */
 type VendorApiRecord = Record<string, unknown> & {
   id?: number;
+  vendorCode?: string;
   vendorName?: string;
+  categoryId?: number | string | null;
+  categoryName?: string | null;
+  vendorCrNo?: string | null;
+  bankName?: string | null;
+  iban?: string | null;
   isActive?: boolean;
   active?: boolean;
   is1099Vendor?: boolean;
@@ -44,8 +50,17 @@ export function normalizeVendorFromApi(raw: unknown): Vendor {
 
   return {
     id: Number(r.id),
+    vendorCode: r.vendorCode != null ? String(r.vendorCode) : undefined,
     vendorName: String(r.vendorName ?? ""),
     taxId: r.taxId != null ? String(r.taxId) : undefined,
+    categoryId:
+      r.categoryId != null && r.categoryId !== ""
+        ? Number(r.categoryId)
+        : null,
+    categoryName: r.categoryName != null ? String(r.categoryName) : null,
+    vendorCrNo: r.vendorCrNo != null ? String(r.vendorCrNo) : undefined,
+    bankName: r.bankName != null ? String(r.bankName) : undefined,
+    iban: r.iban != null ? String(r.iban) : undefined,
     paymentTerms: r.paymentTerms != null ? String(r.paymentTerms) : undefined,
     currencyCode: r.currencyCode != null ? String(r.currencyCode) : undefined,
     creditLimit: Number.isFinite(creditLimit) ? creditLimit : 0,
@@ -84,6 +99,10 @@ export function vendorToFormDefaults(vendor: Vendor): Partial<VendorFormData> {
   return {
     vendorName: v.vendorName,
     taxId: v.taxId ?? "",
+    categoryId: v.categoryId ?? null,
+    vendorCrNo: v.vendorCrNo ?? "",
+    bankName: v.bankName ?? "",
+    iban: v.iban ?? "",
     paymentTerms: v.paymentTerms ?? "",
     currencyCode: v.currencyCode ?? "",
     creditLimit: v.creditLimit ?? 0,
@@ -109,7 +128,11 @@ export function vendorFormToApiPayload(
 ): Record<string, unknown> {
   return {
     vendorName: data.vendorName,
-    taxId: data.taxId?.trim() || null,
+    taxId: data.is1099Vendor ? data.taxId?.trim() || null : null,
+    categoryId: data.categoryId ?? null,
+    vendorCrNo: data.vendorCrNo?.trim() || null,
+    bankName: data.bankName?.trim() || null,
+    iban: data.iban?.trim() || null,
     paymentTerms: data.paymentTerms?.trim() || null,
     currencyCode: data.currencyCode?.trim() || null,
     creditLimit: data.creditLimit ?? 0,

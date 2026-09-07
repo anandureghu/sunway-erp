@@ -107,6 +107,7 @@ export const VendorDialog = ({
             onSubmit={handleSubmit}
             loading={submitting}
             defaultValues={formDefaults}
+            vendorCode={vendor?.vendorCode}
           />
         </div>
       </DialogContent>

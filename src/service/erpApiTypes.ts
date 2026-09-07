@@ -84,6 +84,8 @@ export type WarehouseResponseDTO = {
   // Core identity
   code: string;
   name: string;
+  warehouseType?: string;
+  capacity?: number;
   status: "active" | "inactive";
 
   // Address
@@ -107,14 +109,32 @@ export type WarehouseResponseDTO = {
 export type WarehouseCreateDTO = {
   code?: string;
   name?: string;
+  warehouseType?: string | null;
+  capacity?: number | null;
   location?: string;
   status?: string;
+  street?: string;
+  city?: string;
+  country?: string;
+  pin?: string;
+  phone?: string;
+  contactPersonName?: string;
+  manager?: number | null;
 };
 
 export type WarehouseUpdateDTO = {
   name?: string;
+  warehouseType?: string | null;
+  capacity?: number | null;
   location?: string;
   status?: string;
+  street?: string;
+  city?: string;
+  country?: string;
+  pin?: string;
+  phone?: string;
+  contactPersonName?: string;
+  manager?: number | null;
 };
 
 export type ItemResponseDTO = {

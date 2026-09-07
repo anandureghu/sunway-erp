@@ -1,7 +1,13 @@
 export interface Vendor {
   id: number;
+  vendorCode?: string;
   vendorName: string;
   taxId?: string;
+  categoryId?: number | null;
+  categoryName?: string | null;
+  vendorCrNo?: string;
+  bankName?: string;
+  iban?: string;
   paymentTerms?: string;
   currencyCode?: string;
   creditLimit?: number;

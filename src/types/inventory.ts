@@ -53,6 +53,7 @@ export type Warehouse = {
   name: string;
   location: string;
   address?: string;
+  warehouseType?: string;
   capacity?: number;
   status: "active" | "inactive";
   createdAt: string;

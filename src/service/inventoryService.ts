@@ -35,7 +35,8 @@ function toWarehouse(dto: WarehouseResponseDTO): Warehouse {
     name: dto.name || "",
     location: dto.location || "",
     address: undefined,
-    capacity: undefined,
+    warehouseType: dto.warehouseType,
+    capacity: dto.capacity,
     status: normalizeStatus(dto.status) === "inactive" ? "inactive" : "active",
     createdAt: "",
 

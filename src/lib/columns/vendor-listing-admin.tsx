@@ -113,12 +113,12 @@ export const getVendorColumns = ({
   role,
 }: VendorColumnsProps): ColumnDef<Vendor>[] => [
   {
-    accessorKey: "id",
-    header: "ID",
+    accessorKey: "vendorCode",
+    header: "Supplier Code",
     enableSorting: true,
-    cell: (ctx: CellProps<Vendor>) => (
+    cell: ({ row }: CellProps<Vendor>) => (
       <span className="text-blue-600 font-medium">
-        {String(ctx.getValue() ?? "-")}
+        {String(row.original.vendorCode ?? row.original.id ?? "-")}
       </span>
     ),
   },
