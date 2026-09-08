@@ -28,6 +28,19 @@ import { kpiFilterItem } from "@/lib/kpi-filter";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { WarehouseDialog } from "./warehouse-dialog";
+import { ImportWarehousesCsvDialog } from "./import-warehouses-csv-dialog";
+
+const TYPE_LABELS: Record<string, string> = {
+  MAIN: "Main / General",
+  BRANCH: "Branch",
+  TRANSIT: "Transit",
+  COLD_STORAGE: "Cold storage",
+  RETURNS: "Returns",
+  HAZARDOUS: "Hazardous",
+  PPE_SAFETY: "PPE / Safety",
+  SITE_STORE: "Site store",
+  OTHER: "Other",
+};
 
 const WarehouseMaster = () => {
   const { confirm } = useConfirmDialog();
@@ -42,6 +55,9 @@ const WarehouseMaster = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [cityFilter, setCityFilter] = useState<string>("all");
+  const [managerFilter, setManagerFilter] = useState<string>("all");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -111,6 +127,31 @@ const WarehouseMaster = () => {
     return { total, active, inactive };
   }, [warehouses]);
 
+  const typeOptions = useMemo(() => {
+    const set = new Set<string>();
+    warehouses.forEach((w) => {
+      if (w.warehouseType) set.add(w.warehouseType);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [warehouses]);
+
+  const cityOptions = useMemo(() => {
+    const set = new Set<string>();
+    warehouses.forEach((w) => {
+      if (w.city?.trim()) set.add(w.city.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [warehouses]);
+
+  const managerOptions = useMemo(() => {
+    const set = new Set<string>();
+    warehouses.forEach((w) => {
+      if (w.managerName?.trim()) set.add(w.managerName.trim());
+      else if (w.contactPersonName?.trim()) set.add(w.contactPersonName.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [warehouses]);
+
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
     switch (key) {
@@ -127,19 +168,54 @@ const WarehouseMaster = () => {
   }, []);
 
   const filteredWarehouses = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return warehouses.filter((wh) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (wh.code || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (wh.location || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const haystack = [
+        wh.name,
+        wh.code,
+        wh.city,
+        wh.street,
+        wh.phone,
+        wh.managerName,
+        wh.contactPersonName,
+        wh.warehouseType,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = q === "" || haystack.includes(q);
 
       const matchesStatus =
         statusFilter === "all" || wh.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesType =
+        typeFilter === "all" || (wh.warehouseType || "") === typeFilter;
+
+      const matchesCity =
+        cityFilter === "all" || (wh.city || "").trim() === cityFilter;
+
+      const managerLabel =
+        wh.managerName?.trim() || wh.contactPersonName?.trim() || "";
+      const matchesManager =
+        managerFilter === "all" || managerLabel === managerFilter;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesType &&
+        matchesCity &&
+        matchesManager
+      );
     });
-  }, [warehouses, searchQuery, statusFilter]);
+  }, [
+    warehouses,
+    searchQuery,
+    statusFilter,
+    typeFilter,
+    cityFilter,
+    managerFilter,
+  ]);
 
   const totalPages = Math.ceil(filteredWarehouses.length / itemsPerPage);
   const paginatedWarehouses = useMemo(() => {
@@ -153,6 +229,10 @@ const WarehouseMaster = () => {
     }
   }, [totalPages, currentPage]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, typeFilter, cityFilter, managerFilter]);
+
   return (
     <div className="min-w-0 max-w-full space-y-6">
       <SecondaryPageHeader
@@ -160,12 +240,19 @@ const WarehouseMaster = () => {
         description="Manage warehouses"
         icon={<WarehouseIcon className="h-5 w-5" />}
         actions={
-          <Button
-            onClick={handleNewWarehouse}
-            className="bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm hover:from-orange-600 hover:to-amber-600"
-          >
-            <Plus className="mr-2 h-4 w-4" /> New Warehouse
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ImportWarehousesCsvDialog
+              onImported={async () => {
+                await reload();
+              }}
+            />
+            <Button
+              onClick={handleNewWarehouse}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm hover:from-orange-600 hover:to-amber-600"
+            >
+              <Plus className="mr-2 h-4 w-4" /> New Warehouse
+            </Button>
+          </div>
         }
       />
 
@@ -213,16 +300,73 @@ const WarehouseMaster = () => {
         />
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1 basis-[220px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
           <Input
-            placeholder="Search warehouses..."
+            placeholder="Search code, name, city, manager…"
             className="rounded-xl border-slate-200 pl-10 text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <Select
+          value={typeFilter}
+          onValueChange={(value) => {
+            setTypeFilter(value);
+            setKpiFilter(null);
+          }}
+        >
+          <SelectTrigger className="w-[160px] shrink-0 rounded-xl border-slate-200 text-[13px]">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+            <SelectItem value="all">All Types</SelectItem>
+            {typeOptions.map((type) => (
+              <SelectItem key={type} value={type}>
+                {TYPE_LABELS[type] || type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={cityFilter}
+          onValueChange={(value) => {
+            setCityFilter(value);
+            setKpiFilter(null);
+          }}
+        >
+          <SelectTrigger className="w-[150px] shrink-0 rounded-xl border-slate-200 text-[13px]">
+            <SelectValue placeholder="All Cities" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+            <SelectItem value="all">All Cities</SelectItem>
+            {cityOptions.map((city) => (
+              <SelectItem key={city} value={city}>
+                {city}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={managerFilter}
+          onValueChange={(value) => {
+            setManagerFilter(value);
+            setKpiFilter(null);
+          }}
+        >
+          <SelectTrigger className="w-[180px] shrink-0 rounded-xl border-slate-200 text-[13px]">
+            <SelectValue placeholder="All Managers" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+            <SelectItem value="all">All Managers</SelectItem>
+            {managerOptions.map((manager) => (
+              <SelectItem key={manager} value={manager}>
+                {manager}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select
           value={statusFilter}
           onValueChange={(value) => {

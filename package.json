@@ -11,6 +11,7 @@
     "qa:inventory-permissions": "node ./scripts/qa-inventory-permissions.mjs",
     "qa:warehouse-supplier": "node ./scripts/qa-warehouse-supplier.mjs",
     "qa:category-import": "node ./scripts/qa-category-import.mjs",
+    "qa:warehouse-import": "node ./scripts/qa-warehouse-import.mjs",
     "preview": "vite preview",
     "prepare": "husky"
   },

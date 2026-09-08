@@ -569,6 +569,77 @@ export async function importCategoriesCsv(
   return res.data;
 }
 
+export const WAREHOUSE_CSV_CANONICAL_FIELDS = [
+  "warehouseCode",
+  "warehouseName",
+  "warehouseType",
+  "street",
+  "city",
+  "manager",
+  "phone",
+  "capacity",
+  "status",
+  "country",
+  "pin",
+  "contactPersonName",
+] as const;
+
+export type WarehouseCsvPreview = {
+  headers: string[];
+  fieldMapping: Record<string, string | null>;
+  aiMapped: boolean;
+  dataRowCount: number;
+  sampleRows: Record<string, string>[];
+  warnings?: string[];
+};
+
+export type WarehouseCsvImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  fieldMapping?: Record<string, string | null>;
+  aiMapped?: boolean;
+  errors: { row: number; code?: string | null; message: string }[];
+};
+
+export async function previewWarehousesCsv(
+  file: File,
+): Promise<WarehouseCsvPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<WarehouseCsvPreview>(
+    "/inventory/warehouses/import-csv/preview",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return res.data;
+}
+
+export async function importWarehousesCsv(
+  file: File,
+  mapping?: Record<string, string | null>,
+): Promise<WarehouseCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (mapping) {
+    formData.append("mapping", JSON.stringify(mapping));
+  }
+  const res = await apiClient.post<WarehouseCsvImportResult>(
+    "/inventory/warehouses/import-csv",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return res.data;
+}
+
 export async function updateItem(id: Id | string, payload: ItemUpdateDTO) {
   const res = await apiClient.put<ItemResponseDTO>(
     `/inventory/items/${id}`,

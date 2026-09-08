@@ -17,11 +17,14 @@ import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 const WAREHOUSE_TYPES = [
-  { value: "MAIN", label: "Main" },
+  { value: "MAIN", label: "Main / General" },
   { value: "BRANCH", label: "Branch" },
   { value: "TRANSIT", label: "Transit" },
   { value: "COLD_STORAGE", label: "Cold storage" },
   { value: "RETURNS", label: "Returns" },
+  { value: "HAZARDOUS", label: "Hazardous" },
+  { value: "PPE_SAFETY", label: "PPE / Safety" },
+  { value: "SITE_STORE", label: "Site store" },
   { value: "OTHER", label: "Other" },
 ] as const;
 
