@@ -24,6 +24,7 @@ import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { Users } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { ImportVendorsCsvDialog } from "./import-vendors-csv-dialog";
 
 export default function VendorsPage({
   financeSettings,
@@ -39,6 +40,10 @@ export default function VendorsPage({
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [vendorTypeFilter, setVendorTypeFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [cityFilter, setCityFilter] = useState<string>("all");
+  const [paymentTermsFilter, setPaymentTermsFilter] = useState<string>("all");
+  const [bankFilter, setBankFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { pathname } = useLocation();
@@ -46,7 +51,7 @@ export default function VendorsPage({
 
   const fetchVendors = async () => {
     try {
-      const res = await apiClient.get("/vendors");
+      const res = await apiClient.get("/vendors", { params: { size: 500 } });
       const mappedVendors = (res.data.content as unknown[]).map((row) =>
         normalizeVendorFromApi(row),
       );
@@ -151,15 +156,49 @@ export default function VendorsPage({
     return Array.from(countrySet).sort();
   }, [vendors]);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    vendors.forEach((v) => {
+      if (v.categoryName?.trim()) set.add(v.categoryName.trim());
+    });
+    return Array.from(set).sort();
+  }, [vendors]);
+
+  const cities = useMemo(() => {
+    const set = new Set<string>();
+    vendors.forEach((v) => {
+      if (v.city?.trim()) set.add(v.city.trim());
+    });
+    return Array.from(set).sort();
+  }, [vendors]);
+
+  const paymentTerms = useMemo(() => {
+    const set = new Set<string>();
+    vendors.forEach((v) => {
+      if (v.paymentTerms?.trim()) set.add(v.paymentTerms.trim());
+    });
+    return Array.from(set).sort();
+  }, [vendors]);
+
+  const banks = useMemo(() => {
+    const set = new Set<string>();
+    vendors.forEach((v) => {
+      if (v.bankName?.trim()) set.add(v.bankName.trim());
+    });
+    return Array.from(set).sort();
+  }, [vendors]);
+
   const filteredVendors = useMemo(() => {
     return vendors.filter((vendor) => {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
         (vendor.vendorName?.toLowerCase() ?? "").includes(query) ||
+        (vendor.vendorCode?.toLowerCase() ?? "").includes(query) ||
         (vendor.contactPersonName?.toLowerCase() ?? "").includes(query) ||
         (vendor.email?.toLowerCase() ?? "").includes(query) ||
         (vendor.phoneNo?.toLowerCase() ?? "").includes(query) ||
-        (vendor.city?.toLowerCase() ?? "").includes(query);
+        (vendor.city?.toLowerCase() ?? "").includes(query) ||
+        (vendor.categoryName?.toLowerCase() ?? "").includes(query);
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -174,11 +213,42 @@ export default function VendorsPage({
         (vendorTypeFilter === "1099" && vendor.is1099Vendor === true) ||
         (vendorTypeFilter === "non1099" && vendor.is1099Vendor !== true);
 
+      const matchesCategory =
+        categoryFilter === "all" ||
+        (vendor.categoryName || "").trim() === categoryFilter;
+
+      const matchesCity =
+        cityFilter === "all" || (vendor.city || "").trim() === cityFilter;
+
+      const matchesPayment =
+        paymentTermsFilter === "all" ||
+        (vendor.paymentTerms || "").trim() === paymentTermsFilter;
+
+      const matchesBank =
+        bankFilter === "all" || (vendor.bankName || "").trim() === bankFilter;
+
       return (
-        matchesSearch && matchesStatus && matchesCountry && matchesVendorType
+        matchesSearch &&
+        matchesStatus &&
+        matchesCountry &&
+        matchesVendorType &&
+        matchesCategory &&
+        matchesCity &&
+        matchesPayment &&
+        matchesBank
       );
     });
-  }, [vendors, searchQuery, statusFilter, countryFilter, vendorTypeFilter]);
+  }, [
+    vendors,
+    searchQuery,
+    statusFilter,
+    countryFilter,
+    vendorTypeFilter,
+    categoryFilter,
+    cityFilter,
+    paymentTermsFilter,
+    bankFilter,
+  ]);
 
   // Pagination
   const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
@@ -208,7 +278,8 @@ export default function VendorsPage({
         description="Manage suppliers"
         icon={<Users className="h-5 w-5" />}
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
+            <ImportVendorsCsvDialog onImported={() => void fetchVendors()} />
             <Button
               onClick={() => {
                 setSelected(null);
@@ -218,7 +289,7 @@ export default function VendorsPage({
             >
               + New Supplier
             </Button>
-          </>
+          </div>
         }
       />
       {/* Summary Cards */}
@@ -282,13 +353,89 @@ export default function VendorsPage({
         <div className="flex-1 relative min-w-[300px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search by name, email, phone, or city..."
+            placeholder="Search code, name, category, city…"
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => {
+              setCategoryFilter(value);
+              setKpiFilter(null);
+            }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={cityFilter}
+            onValueChange={(value) => {
+              setCityFilter(value);
+              setKpiFilter(null);
+            }}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Cities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Cities</SelectItem>
+              {cities.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={paymentTermsFilter}
+            onValueChange={(value) => {
+              setPaymentTermsFilter(value);
+              setKpiFilter(null);
+            }}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Terms" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Terms</SelectItem>
+              {paymentTerms.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={bankFilter}
+            onValueChange={(value) => {
+              setBankFilter(value);
+              setKpiFilter(null);
+            }}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="All Banks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Banks</SelectItem>
+              {banks.map((b) => (
+                <SelectItem key={b} value={b}>
+                  {b}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select
             value={statusFilter}
             onValueChange={(value) => {

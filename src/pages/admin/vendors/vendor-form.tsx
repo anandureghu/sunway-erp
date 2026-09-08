@@ -88,8 +88,6 @@ export const VendorForm = ({
     },
   });
 
-  const is1099 = form.watch("is1099Vendor");
-
   useEffect(() => {
     let cancelled = false;
     void listCategories()
@@ -343,13 +341,24 @@ export const VendorForm = ({
                     <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
                       Payment Terms <span className="text-rose-400">*</span>
                     </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Net 30"
-                        {...field}
-                        className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
-                      />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-10 rounded-xl border border-slate-200 bg-white text-[13px]">
+                          <SelectValue placeholder="Select terms" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Net 30">Net 30</SelectItem>
+                        <SelectItem value="Net 45">Net 45</SelectItem>
+                        <SelectItem value="Net 60">Net 60</SelectItem>
+                        <SelectItem value="COD">COD</SelectItem>
+                        <SelectItem value="Net 15">Net 15</SelectItem>
+                        <SelectItem value="Due on receipt">Due on receipt</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -493,27 +502,25 @@ export const VendorForm = ({
               />
             </div>
 
-            {is1099 ? (
-              <FormField
-                control={form.control}
-                name="taxId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                      VAT
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="VAT number"
-                        {...field}
-                        className="h-10 max-w-md rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
+            <FormField
+              control={form.control}
+              name="taxId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                    VAT / TIN
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="VAT / TIN number"
+                      {...field}
+                      className="h-10 max-w-md rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 

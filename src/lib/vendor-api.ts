@@ -130,7 +130,7 @@ export function vendorFormToApiPayload(
 ): Record<string, unknown> {
   return {
     vendorName: data.vendorName,
-    taxId: data.is1099Vendor ? data.taxId?.trim() || null : null,
+    taxId: data.taxId?.trim() || null,
     categoryId: data.categoryId ?? null,
     vendorCrNo: data.vendorCrNo?.trim() || null,
     bankName: data.bankName?.trim() || null,

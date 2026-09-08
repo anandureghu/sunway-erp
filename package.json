@@ -12,6 +12,7 @@
     "qa:warehouse-supplier": "node ./scripts/qa-warehouse-supplier.mjs",
     "qa:category-import": "node ./scripts/qa-category-import.mjs",
     "qa:warehouse-import": "node ./scripts/qa-warehouse-import.mjs",
+    "qa:vendor-import": "node ./scripts/qa-vendor-import.mjs",
     "preview": "vite preview",
     "prepare": "husky"
   },
