@@ -67,7 +67,15 @@ export function ItemDetailStockOverview({
       hint:
         indicator === "low_stock"
           ? "At or below reorder — restock soon"
-          : `Min ${safeLocaleQty(item.minimum, unit)} · Max ${safeLocaleQty(item.maximum, unit)}`,
+          : [
+              `Min ${safeLocaleQty(item.minimum, unit)}`,
+              `Max ${safeLocaleQty(item.maximum, unit)}`,
+              item.reorderQty != null
+                ? `Qty ${safeLocaleQty(item.reorderQty, unit)}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
       tone:
         indicator === "low_stock"
           ? "bg-rose-50 text-rose-600"

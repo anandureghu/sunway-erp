@@ -25,10 +25,21 @@ export function ItemDetailBody({ item }: Props) {
     { label: "Category", value: item.category?.trim() || "—" },
     { label: "Sub category", value: item.subCategory?.trim() || "—" },
     { label: "Item type", value: item.type?.trim() || "—" },
+    { label: "Criticality", value: item.criticality?.trim() || "—" },
+    { label: "HSN / tariff code", value: item.hsnCode?.trim() || "—" },
     { label: "Unit of measure", value: formatUnitLabel(unit) },
+    { label: "Weight", value: item.weightKg != null ? `${item.weightKg} kg` : "—" },
+    { label: "Dimensions", value: item.dimensions?.trim() || "—" },
+    {
+      label: "Warranty",
+      value:
+        item.warrantyMonths != null ? `${item.warrantyMonths} months` : "—",
+    },
     { label: "Barcode", value: item.barcode?.trim() || "—" },
     { label: "Serial no.", value: item.serialNo?.trim() || "—" },
   ];
+
+  const remarks = item.remarks?.trim();
 
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -46,6 +57,15 @@ export function ItemDetailBody({ item }: Props) {
               item.sku || "—"
             }.`}
         </p>
+
+        {remarks ? (
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+              Remarks
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{remarks}</p>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">

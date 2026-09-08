@@ -49,6 +49,18 @@ export const ITEM_SCHEMA = z
     expiryDate: z.string().optional(),
     unitSale: z.number().min(0).optional(),
     image: z.any().optional(),
+
+    criticality: z.string().optional(),
+    hsnCode: z.string().optional(),
+    vatApplicable: z.boolean().optional(),
+    reorderQty: z.number().min(0).optional().nullable(),
+    leadTimeDays: z.number().min(0).optional().nullable(),
+    preferredVendorId: z.number().optional().nullable(),
+    supplierPartNo: z.string().optional(),
+    weightKg: z.number().min(0).optional().nullable(),
+    dimensions: z.string().optional(),
+    warrantyMonths: z.number().min(0).optional().nullable(),
+    remarks: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     const isEdit = !!data.id;

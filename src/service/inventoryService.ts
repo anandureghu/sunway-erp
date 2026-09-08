@@ -475,6 +475,54 @@ export const createItem = async (formData: FormData) => {
   return res.data;
 };
 
+export const ITEM_CSV_CANONICAL_FIELDS = [
+  "sku",
+  "name",
+  "category",
+  "subCategory",
+  "warehouse",
+  "quantity",
+  "unitMeasure",
+  "barcode",
+  "brand",
+  "type",
+  "model",
+  "manufacturerPartNumber",
+  "location",
+  "description",
+  "remarks",
+  "serialNo",
+  "dateReceived",
+  "expiryDate",
+  "status",
+  "costPrice",
+  "sellingPrice",
+  "reorderLevel",
+  "reorderQty",
+  "minimum",
+  "maximum",
+  "criticality",
+  "hsnCode",
+  "vatApplicable",
+  "leadTimeDays",
+  "preferredSupplier",
+  "supplierPartNo",
+  "weightKg",
+  "dimensions",
+  "warrantyMonths",
+] as const;
+
+export type ItemCsvCanonicalField = (typeof ITEM_CSV_CANONICAL_FIELDS)[number];
+
+export type ItemCsvPreview = {
+  headers: string[];
+  fieldMapping: Record<string, string | null>;
+  aiMapped: boolean;
+  dataRowCount: number;
+  sampleRows: Record<string, string>[];
+  warnings?: string[];
+};
+
 export type ItemCsvImportResult = {
   created: number;
   skipped: number;
@@ -484,9 +532,30 @@ export type ItemCsvImportResult = {
   errors: { row: number; sku?: string | null; message: string }[];
 };
 
-export async function importItemsCsv(file: File): Promise<ItemCsvImportResult> {
+export async function previewItemsCsv(file: File): Promise<ItemCsvPreview> {
   const formData = new FormData();
   formData.append("file", file);
+  const res = await apiClient.post<ItemCsvPreview>(
+    "/inventory/items/import-csv/preview",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return res.data;
+}
+
+export async function importItemsCsv(
+  file: File,
+  mapping?: Record<string, string | null>,
+): Promise<ItemCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (mapping) {
+    formData.append("mapping", JSON.stringify(mapping));
+  }
   const res = await apiClient.post<ItemCsvImportResult>(
     "/inventory/items/import-csv",
     formData,

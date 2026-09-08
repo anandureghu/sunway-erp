@@ -60,6 +60,16 @@ export function ItemDetailCostSelling({ item }: Props) {
             </span>
           </div>
         ) : null}
+        <div className="flex justify-between gap-2 border-t border-slate-100 pt-2">
+          <span className="text-slate-500">VAT applicable</span>
+          <span className="font-semibold">
+            {item.vatApplicable == null
+              ? "—"
+              : item.vatApplicable
+                ? "Yes"
+                : "No"}
+          </span>
+        </div>
       </div>
     </section>
   );

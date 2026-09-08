@@ -195,6 +195,19 @@ export type ItemResponseDTO = {
   unitSale: number | null;
   imageUrl: string | null;
   description: string | null;
+
+  criticality?: string | null;
+  hsnCode?: string | null;
+  vatApplicable?: boolean | null;
+  reorderQty?: number | null;
+  leadTimeDays?: number | null;
+  preferredVendorId?: number | null;
+  preferredVendorName?: string | null;
+  supplierPartNo?: string | null;
+  weightKg?: number | null;
+  dimensions?: string | null;
+  warrantyMonths?: number | null;
+  remarks?: string | null;
 };
 
 export type ItemCreateDTO = {
