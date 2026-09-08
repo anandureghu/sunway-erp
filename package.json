@@ -10,6 +10,7 @@
     "currency:check": "node ./scripts/check-hardcoded-currency.mjs",
     "qa:inventory-permissions": "node ./scripts/qa-inventory-permissions.mjs",
     "qa:warehouse-supplier": "node ./scripts/qa-warehouse-supplier.mjs",
+    "qa:category-import": "node ./scripts/qa-category-import.mjs",
     "preview": "vite preview",
     "prepare": "husky"
   },

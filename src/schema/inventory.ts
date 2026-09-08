@@ -213,6 +213,11 @@ export const CATEGORY_SCHEMA = z.object({
   name: z.string().min(1, "Category name is required"),
   parentId: z.string().optional(), // For subcategories
   status: z.enum(["active", "inactive"]),
+  glAccountCode: z
+    .string()
+    .max(64, "GL account code must be 64 characters or less")
+    .optional()
+    .or(z.literal("")),
 });
 
 export const CARRIER_SCHEMA = z.object({

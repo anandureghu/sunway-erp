@@ -41,6 +41,7 @@ export type CategoryResponseDTO = {
   code?: string;
   name?: string;
   status?: string;
+  glAccountCode?: string | null;
   parentId?: Id;
   subCategories?: CategoryResponseDTO[];
 };
@@ -50,11 +51,13 @@ export type CategoryCreateDTO = {
   name?: string;
   status?: string;
   parentId?: Id;
+  glAccountCode?: string | null;
 };
 
 export type CategoryUpdateDTO = {
   name?: string;
   status?: string;
+  glAccountCode?: string | null;
 };
 
 export type DispatchCarrierResponseDTO = {

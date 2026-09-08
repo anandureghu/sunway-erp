@@ -27,6 +27,7 @@ import {
   getCategory,
 } from "@/service/inventoryService";
 import type { ItemCategory } from "@/types/inventory";
+import { ImportCategoriesCsvDialog } from "@/modules/inventory/settings/import-categories-csv-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Search,
@@ -115,6 +116,7 @@ const CategoriesMaster = () => {
           ? ("inactive" as const)
           : ("active" as const),
       parentId: category.parentId ? String(category.parentId) : undefined,
+      glAccountCode: category.glAccountCode || "",
     });
     setShowCategoryForm(true);
   };
@@ -161,6 +163,7 @@ const CategoriesMaster = () => {
     resetCategory({
       status: "active" as const,
       parentId: undefined,
+      glAccountCode: "",
     });
     setShowCategoryForm(true);
   };
@@ -171,6 +174,7 @@ const CategoriesMaster = () => {
     resetCategory({
       status: "active" as const,
       parentId: parentCategory.id,
+      glAccountCode: "",
     });
     setShowCategoryForm(true);
   };
@@ -186,6 +190,7 @@ const CategoriesMaster = () => {
         const updatePayload: any = {
           name: normalizedName,
           status: data.status || "active",
+          glAccountCode: data.glAccountCode?.trim() || null,
         };
         // If editing and parentId changed, we need to handle it via API
         // Note: Update endpoint might not support parentId change, so we check
@@ -202,6 +207,7 @@ const CategoriesMaster = () => {
               name: normalizedName,
               status: data.status || "active",
               parentId: data.parentId ? Number(data.parentId) : undefined,
+              glAccountCode: data.glAccountCode?.trim() || null,
             },
             previewCodeSuffix,
           );
@@ -371,12 +377,20 @@ const CategoriesMaster = () => {
         description="Manage categories"
         icon={<Layers3 className="h-5 w-5" />}
         actions={
-          <Button
-            onClick={handleNewCategory}
-            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
-          >
-            <Plus className="h-4 w-4 mr-2" /> New Category
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ImportCategoriesCsvDialog
+              onImported={async () => {
+                const categoriesList = await listCategories();
+                setCategories(categoriesList);
+              }}
+            />
+            <Button
+              onClick={handleNewCategory}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm"
+            >
+              <Plus className="h-4 w-4 mr-2" /> New Category
+            </Button>
+          </div>
         }
       />
 
@@ -668,6 +682,24 @@ const CategoriesMaster = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    GL Account Code{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (optional)
+                    </span>
+                  </label>
+                  <Input
+                    placeholder="e.g. 5100-100"
+                    {...registerCategory("glAccountCode")}
+                  />
+                  {categoryErrors.glAccountCode && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {categoryErrors.glAccountCode.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
@@ -717,6 +749,22 @@ const CategoriesMaster = () => {
                   {selectedCategoryForDetails.name}
                 </p>
               </div>
+              {selectedCategoryForDetails.code && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Category Code</p>
+                  <p className="font-mono text-sm">
+                    {selectedCategoryForDetails.code}
+                  </p>
+                </div>
+              )}
+              {selectedCategoryForDetails.glAccountCode && (
+                <div>
+                  <p className="text-sm text-muted-foreground">GL Account Code</p>
+                  <p className="font-mono text-sm">
+                    {selectedCategoryForDetails.glAccountCode}
+                  </p>
+                </div>
+              )}
               {selectedCategoryForDetails.description && (
                 <div>
                   <p className="text-sm text-muted-foreground">Description</p>

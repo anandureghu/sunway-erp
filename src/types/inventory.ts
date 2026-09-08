@@ -148,6 +148,7 @@ export type ItemCategory = {
   name: string;
   description?: string;
   status?: string;
+  glAccountCode?: string | null;
   parentId?: string; // For hierarchical categories
   createdAt: string;
   subCategories?: ItemCategory[]; // Nested subcategories

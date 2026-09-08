@@ -81,6 +81,16 @@ export function createCategoryColumns(
       ),
     },
     {
+      accessorKey: "glAccountCode",
+      header: "GL Account",
+      enableSorting: true,
+      cell: ({ row }) => (
+        <span className="text-gray-700 font-mono text-xs whitespace-nowrap">
+          {row.original.glAccountCode || "—"}
+        </span>
+      ),
+    },
+    {
       accessorKey: "status",
       header: "ACTIVE",
       enableSorting: true,

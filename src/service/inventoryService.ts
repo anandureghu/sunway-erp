@@ -60,6 +60,7 @@ function toCategory(dto: CategoryResponseDTO): ItemCategory {
     name: dto.name || dto.code || "",
     description: undefined,
     status: dto.status,
+    glAccountCode: dto.glAccountCode ?? undefined,
     parentId: dto.parentId ? String(dto.parentId) : undefined,
     createdAt: "",
     subCategories: dto.subCategories
@@ -488,6 +489,76 @@ export async function importItemsCsv(file: File): Promise<ItemCsvImportResult> {
   formData.append("file", file);
   const res = await apiClient.post<ItemCsvImportResult>(
     "/inventory/items/import-csv",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return res.data;
+}
+
+export const CATEGORY_CSV_CANONICAL_FIELDS = [
+  "categoryCode",
+  "categoryName",
+  "subCategoryCode",
+  "subCategoryName",
+  "glAccountCode",
+  "status",
+] as const;
+
+export type CategoryCsvCanonicalField =
+  (typeof CATEGORY_CSV_CANONICAL_FIELDS)[number];
+
+export type CategoryCsvPreview = {
+  headers: string[];
+  fieldMapping: Record<string, string | null>;
+  aiMapped: boolean;
+  dataRowCount: number;
+  sampleRows: Record<string, string>[];
+  warnings?: string[];
+};
+
+export type CategoryCsvImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  parentsCreated?: number;
+  subCategoriesCreated?: number;
+  fieldMapping?: Record<string, string | null>;
+  aiMapped?: boolean;
+  errors: { row: number; code?: string | null; message: string }[];
+};
+
+export async function previewCategoriesCsv(
+  file: File,
+): Promise<CategoryCsvPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<CategoryCsvPreview>(
+    "/inventory/categories/import-csv/preview",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  return res.data;
+}
+
+export async function importCategoriesCsv(
+  file: File,
+  mapping?: Record<string, string | null>,
+): Promise<CategoryCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (mapping) {
+    formData.append("mapping", JSON.stringify(mapping));
+  }
+  const res = await apiClient.post<CategoryCsvImportResult>(
+    "/inventory/categories/import-csv",
     formData,
     {
       headers: {
