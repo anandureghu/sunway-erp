@@ -216,16 +216,16 @@ const InventorySettingsPage = () => {
         : group.children[0].value;
 
       return (
-        <Tabs value={sub} onValueChange={setSub} className="w-full">
-          <div className="mb-4 w-full overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200/80 bg-slate-50/80 p-1 [scrollbar-width:thin]">
+        <Tabs value={sub} onValueChange={setSub} className="w-full min-w-0">
+          <div className="mb-4 w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200/80 bg-slate-50/80 p-1 [scrollbar-width:thin]">
             <TabsList className="inline-flex min-w-max w-max flex-nowrap gap-1 bg-transparent p-0">
               {group.children.map((child) => (
                 <StyledTabsTrigger
                   key={child.value}
                   value={child.value}
-                  className="flex items-center gap-2 shrink-0 whitespace-nowrap"
+                  className="flex shrink-0 items-center gap-2 whitespace-nowrap"
                 >
-                  <span className="size-4 flex items-center justify-center">
+                  <span className="flex size-4 items-center justify-center">
                     {child.icon}
                   </span>
                   {child.label}
@@ -237,7 +237,7 @@ const InventorySettingsPage = () => {
             <TabsContent
               key={child.value}
               value={child.value}
-              className="mt-0 focus-visible:outline-none"
+              className="mt-0 min-w-0 focus-visible:outline-none"
             >
               {child.element()}
             </TabsContent>
@@ -248,7 +248,7 @@ const InventorySettingsPage = () => {
   }));
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="min-w-0 max-w-full space-y-6 p-6">
       <PageHeader
         title="Inventory Settings"
         description="Configure categories, warehouses, partners, pricing, and administration."
@@ -264,6 +264,7 @@ const InventorySettingsPage = () => {
         <AppTab
           title=""
           variant="warning"
+          className="min-w-0 max-w-full p-0"
           tabs={tabsList}
           value={activeGroup}
           onValueChange={setGroup}

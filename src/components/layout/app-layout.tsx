@@ -10,20 +10,25 @@ import { SubscriptionExpiryBanner } from "@/components/subscription/subscription
 import { SubscriptionHardLock } from "@/components/subscription/subscription-hard-lock";
 import { MaxShiftCheckoutGuard } from "@/components/max-shift-checkout-guard";
 import { SessionIdleTimeoutGuard } from "@/components/session-idle-timeout-guard";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 const LayoutBody = () => {
   const { company } = useAuth();
 
   return (
     <>
+      <ScrollToTop />
       <MaxShiftCheckoutGuard />
       <SessionIdleTimeoutGuard />
       <AppSidebar />
       <SidebarEdgeHoverOpen />
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-muted/30 transition-[margin] duration-200 ease-linear pb-[60px]">
+      <main
+        data-app-scroll-container
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-muted/30 transition-[margin] duration-200 ease-linear pb-[60px]"
+      >
         <SubscriptionExpiryBanner />
         <Navbar />
-        <div key={company?.id ?? "no-company"} className="min-w-0 flex-1">
+        <div key={company?.id ?? "no-company"} className="min-w-0 max-w-full flex-1">
           <Outlet />
         </div>
       </main>

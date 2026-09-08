@@ -91,18 +91,18 @@ export const AppTab = <TProps extends Record<string, unknown>>({
         {...(value != null
           ? { value, onValueChange }
           : { defaultValue: defaultValue ?? tabs[0]?.value })}
-        className="w-full pt-2"
+        className="w-full min-w-0 pt-2"
       >
-        <div className="w-full overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
+        <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
           <TabsList className="inline-flex min-w-max w-max flex-nowrap gap-1 bg-transparent p-0">
             {tabs.map((tab) => (
               <StyledTabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="flex items-center gap-2 shrink-0 whitespace-nowrap"
+                className="flex shrink-0 items-center gap-2 whitespace-nowrap"
               >
                 {tab.icon && (
-                  <div className="size-4 rounded-full flex items-center justify-center">
+                  <div className="flex size-4 items-center justify-center rounded-full">
                     {tab.icon}
                   </div>
                 )}
@@ -113,7 +113,11 @@ export const AppTab = <TProps extends Record<string, unknown>>({
         </div>
 
         {tabs.map((tab) => (
-          <TabsContent key={tab.value} value={tab.value} className="pt-4 focus-visible:outline-none">
+          <TabsContent
+            key={tab.value}
+            value={tab.value}
+            className="min-w-0 pt-4 focus-visible:outline-none"
+          >
             {typeof tab.element === "function"
               ? tab.element(props as TProps)
               : tab.element || <div>{tab.label} Content</div>}

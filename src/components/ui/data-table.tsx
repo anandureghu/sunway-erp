@@ -71,8 +71,8 @@ export function DataTable<TData>({
   });
 
   return (
-    <div className="overflow-x-auto rounded-md border border-slate-200/70 shadow-sm">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-md border border-slate-200/70 shadow-sm max-w-full">
+      <table className="w-full min-w-[720px] text-sm">
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>

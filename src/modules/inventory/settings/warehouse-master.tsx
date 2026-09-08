@@ -154,7 +154,7 @@ const WarehouseMaster = () => {
   }, [totalPages, currentPage]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6">
       <SecondaryPageHeader
         title="Warehouses"
         description="Manage warehouses"
@@ -169,8 +169,9 @@ const WarehouseMaster = () => {
         }
       />
 
-      <div className="mb-6">
+      <div className="mb-6 min-w-0">
         <KpiSummaryStrip
+          className="xl:grid-cols-3"
           items={[
             kpiFilterItem(
               {
@@ -212,8 +213,8 @@ const WarehouseMaster = () => {
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative min-w-[300px] flex-1">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="relative min-w-0 flex-1 basis-[220px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
           <Input
             placeholder="Search warehouses..."
@@ -229,7 +230,7 @@ const WarehouseMaster = () => {
             setKpiFilter(null);
           }}
         >
-          <SelectTrigger className="w-[140px] rounded-xl border-slate-200 text-[13px]">
+          <SelectTrigger className="w-[140px] shrink-0 rounded-xl border-slate-200 text-[13px]">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent className="rounded-xl border-slate-200 shadow-lg">
@@ -257,7 +258,7 @@ const WarehouseMaster = () => {
           No warehouses found
         </div>
       ) : (
-        <>
+        <div className="min-w-0 max-w-full space-y-4">
           <DataTable
             columns={createWarehouseColumns(
               handleEditWarehouse,
@@ -266,7 +267,7 @@ const WarehouseMaster = () => {
             data={paginatedWarehouses}
           />
           {totalPages > 0 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-sm text-muted-foreground">
                 Showing{" "}
                 {Math.min(
@@ -280,7 +281,7 @@ const WarehouseMaster = () => {
                 )}{" "}
                 of {filteredWarehouses.length} warehouses
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -319,7 +320,7 @@ const WarehouseMaster = () => {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

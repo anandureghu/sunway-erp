@@ -88,13 +88,13 @@ export function createWarehouseColumns(
         const line1 = [street, city].filter(Boolean).join(", ");
         const line2 = [country, pin].filter(Boolean).join(" - ");
         return (
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="h-4 w-4 mt-0.5 text-indigo-500 shrink-0" />
-            <div className="leading-tight">
-              <div className="text-gray-900 whitespace-nowrap">
-                {line1 || "-"}
-              </div>
-              {line2 && <div className="text-xs text-gray-500">{line2}</div>}
+          <div className="flex max-w-[240px] items-start gap-2 text-sm">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+            <div className="min-w-0 leading-tight">
+              <div className="break-words text-gray-900">{line1 || "-"}</div>
+              {line2 ? (
+                <div className="break-words text-xs text-gray-500">{line2}</div>
+              ) : null}
             </div>
           </div>
         );
@@ -108,7 +108,7 @@ export function createWarehouseColumns(
     },
     {
       accessorKey: "contactPersonName",
-      header: "CONTACT PERSON",
+      header: "CONTACT",
       enableSorting: true,
       cell: ({ row }) => (
         <OptionalCell value={row.original.contactPersonName} />
