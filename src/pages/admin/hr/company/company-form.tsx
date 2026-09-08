@@ -410,7 +410,6 @@ export const CompanyForm = ({
                   value={field.value ? String(field.value) : undefined}
                   onChange={(v) => field.onChange(v ? Number(v) : undefined)}
                   disableLabel
-                  disabled={!isEditMode}
                 />
               </FormControl>
               <FormMessage />
