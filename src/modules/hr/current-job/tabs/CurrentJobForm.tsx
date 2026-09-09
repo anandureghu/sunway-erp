@@ -51,14 +51,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { CurrentJobCtx } from "../CurrentJobLayout";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { formatDisplayDate } from "@/lib/format-date";
 
 /* ================= VIEW-MODE HELPERS ================= */
 
-const formatViewDate = (v?: string | number | readonly string[]) => {
-  if (v == null || v === "") return "";
-  const [y, m, d] = String(v).split("-");
-  return y && m && d ? `${d}-${m}-${y}` : String(v);
-};
+const formatViewDate = formatDisplayDate;
 
 const ViewField = ({
   icon,

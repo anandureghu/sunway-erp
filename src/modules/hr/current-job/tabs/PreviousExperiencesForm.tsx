@@ -23,6 +23,7 @@ import { toInputDate, toIsoDate } from "@/lib/date";
 import { FormRow } from "@/modules/hr/components/form-components";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { formatDisplayDate } from "@/lib/format-date";
 
 /* ================= VIEW HELPERS ================= */
 
@@ -59,11 +60,7 @@ const ViewField = ({
   );
 };
 
-const formatViewDate = (v?: string | number | readonly string[]) => {
-  if (v == null || v === "") return "";
-  const [y, m, d] = String(v).split("-");
-  return y && m && d ? `${d}-${m}-${y}` : String(v);
-};
+const formatViewDate = formatDisplayDate;
 
 /* ================= TYPES ================= */
 

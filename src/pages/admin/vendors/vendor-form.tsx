@@ -394,7 +394,7 @@ export const VendorForm = ({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="IBAN"
+                        placeholder="QA58DOHB000012345678901234567"
                         {...field}
                         className="h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
                       />

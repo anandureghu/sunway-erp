@@ -39,6 +39,7 @@ const TEMPLATE_HEADERS = [
   "Unit Cost (QAR)",
   "Selling Price (QAR)",
   "VAT Applicable",
+  "On Hand Quantity",
   "Reorder Level",
   "Reorder Qty",
   "Min Stock",
@@ -51,6 +52,8 @@ const TEMPLATE_HEADERS = [
   "Weight (kg)",
   "Dimensions (LxWxH)",
   "Warranty (Months)",
+  "Date Received",
+  "Sale by Date",
   "Status",
   "Remarks",
 ];
@@ -61,7 +64,7 @@ const FIELD_LABELS: Record<string, string> = {
   category: "Category",
   subCategory: "Sub-Category",
   warehouse: "Default Warehouse",
-  quantity: "Quantity",
+  quantity: "On Hand Quantity",
   unitMeasure: "UOM",
   barcode: "Barcode",
   brand: "Brand",
@@ -73,7 +76,7 @@ const FIELD_LABELS: Record<string, string> = {
   remarks: "Remarks",
   serialNo: "Serial No.",
   dateReceived: "Date Received",
-  expiryDate: "Expiry Date",
+  expiryDate: "Sale by Date",
   status: "Status",
   costPrice: "Unit Cost",
   sellingPrice: "Selling Price",
@@ -132,6 +135,7 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
         "6200",
         "7500",
         "Yes",
+        "10",
         "5",
         "2",
         "10",
@@ -144,6 +148,8 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
         "45",
         "98x30x22",
         "24",
+        "01/09/2026",
+        "01/09/2028",
         "Active",
         "",
       ]
@@ -298,6 +304,10 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
                   Category, sub-category, warehouse, and supplier are matched
                   when found — otherwise left empty (warehouse falls back to
                   company default)
+                </li>
+                <li>
+                  Date Received, Sale by Date (DD/MM/YYYY), and On Hand Quantity
+                  are supported
                 </li>
                 <li>Review mapping below before confirming</li>
                 <li>Duplicate SKUs are skipped</li>

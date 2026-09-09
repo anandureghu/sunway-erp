@@ -2,6 +2,7 @@ import type { Vendor } from "@/types/vendor";
 import type { VendorFormData } from "@/schema/vendor";
 import { normalizeEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/countries";
+import { normalizeIban } from "@/lib/qatar-validation";
 
 /** Raw vendor JSON from Spring (camelCase + occasional snake_case). */
 type VendorApiRecord = Record<string, unknown> & {
@@ -134,7 +135,7 @@ export function vendorFormToApiPayload(
     categoryId: data.categoryId ?? null,
     vendorCrNo: data.vendorCrNo?.trim() || null,
     bankName: data.bankName?.trim() || null,
-    iban: data.iban?.trim() || null,
+    iban: data.iban?.trim() ? normalizeIban(data.iban) : null,
     paymentTerms: data.paymentTerms?.trim() || null,
     currencyCode: data.currencyCode?.trim() || null,
     creditLimit: data.creditLimit ?? 0,

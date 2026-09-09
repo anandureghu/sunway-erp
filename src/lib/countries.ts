@@ -317,6 +317,14 @@ export function validatePhone(
     return { valid: false, message: "Phone number can only contain digits" };
   }
 
+  // Qatar preferred format: +974 xxxx xxxx (8 national digits)
+  if (country.dial === "974" && national.length !== 8) {
+    return {
+      valid: false,
+      message: "Qatar numbers must be +974 followed by 8 digits",
+    };
+  }
+
   const total = country.dial.length + national.length;
   if (national.length < 4) {
     return { valid: false, message: "Phone number is too short" };

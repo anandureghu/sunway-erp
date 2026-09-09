@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BankAccount } from "@/types/bank-account";
+import { isValidQatarIban } from "@/lib/qatar-validation";
 
 interface Props {
   open: boolean;
@@ -136,6 +137,10 @@ export function BankAccountDialog({
   }, [open]);
 
   const handleSubmit = async () => {
+    if (form.iban?.trim() && !isValidQatarIban(form.iban)) {
+      toast.error("IBAN must be a 29-character Qatar IBAN starting with QA");
+      return;
+    }
     setLoading(true);
     try {
       if (isEdit) {
@@ -247,11 +252,15 @@ export function BankAccountDialog({
                     icon={<CreditCard className="h-[15px] w-[15px]" />}
                   >
                     <Input
-                      placeholder="QA57QNBA000000000000"
+                      placeholder="QA58DOHB000012345678901234567"
                       value={form.iban}
                       onChange={(e) => patch("iban", e.target.value.toUpperCase())}
                       className={cn(fieldCls(), "font-mono")}
+                      maxLength={34}
                     />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Qatar IBAN: 29 characters starting with QA
+                    </p>
                   </Field>
 
                   <Field

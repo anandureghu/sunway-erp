@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { REQUIRED_EMAIL } from "@/schema/email";
 import { REQUIRED_PHONE } from "@/schema/phone";
+import { isValidQatarIban } from "@/lib/qatar-validation";
 
 export const VENDOR_SCHEMA = z.object({
   vendorName: z
@@ -10,7 +11,12 @@ export const VENDOR_SCHEMA = z.object({
   categoryId: z.number().nullable().optional(),
   vendorCrNo: z.string().optional(),
   bankName: z.string().optional(),
-  iban: z.string().optional(),
+  iban: z
+    .string()
+    .optional()
+    .refine((val) => isValidQatarIban(val), {
+      message: "IBAN must be a 29-character Qatar IBAN starting with QA",
+    }),
   paymentTerms: z.string().min(1, "Payment terms are required"),
   currencyCode: z.string().optional(),
   creditLimit: z

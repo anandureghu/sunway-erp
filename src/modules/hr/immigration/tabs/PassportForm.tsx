@@ -27,14 +27,11 @@ import {
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { cn } from "@/lib/utils";
+import { formatDisplayDate } from "@/lib/format-date";
 
 /* ================= VIEW-MODE HELPERS ================= */
 
-const formatViewDate = (v?: string | number | readonly string[]) => {
-  if (v == null || v === "") return "";
-  const [y, m, d] = String(v).split("-");
-  return y && m && d ? `${d}-${m}-${y}` : String(v);
-};
+const formatViewDate = formatDisplayDate;
 const ViewField = ({ icon, label, value, mono }: { icon: React.ReactNode; label: string; value?: React.ReactNode; mono?: boolean; }) => {
   const empty = value == null || value === "" || value === "—";
   return (

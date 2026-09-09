@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 import type { SalaryCtx } from "../SalaryShell";
+import { formatDisplayDate } from "@/lib/format-date";
 
 // ── read-only "view mode" primitives (mirror EmployeeProfileForm) ─────────────
 const ViewField = ({
@@ -71,11 +72,7 @@ const ViewField = ({
   );
 };
 
-const formatViewDate = (v?: string | number | readonly string[]) => {
-  if (v == null || v === "") return "";
-  const [y, m, d] = String(v).split("-");
-  return y && m && d ? `${d}-${m}-${y}` : String(v);
-};
+const formatViewDate = formatDisplayDate;
 
 type BenefitType = "ALLOWANCE" | "COMPANY_PROVIDED";
 

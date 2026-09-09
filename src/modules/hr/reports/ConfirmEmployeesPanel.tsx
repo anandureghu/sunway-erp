@@ -6,12 +6,12 @@ import type { Employee } from "@/types/hr";
 import { cn, initialsFrom } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { formatDisplayDate } from "@/lib/format-date";
 
-// yyyy-mm-dd → dd-mm-yyyy for display (no timezone shift).
+// yyyy-mm-dd → DD/MM/YYYY for display (no timezone shift).
 function fmtDate(v?: string): string {
   if (!v) return "—";
-  const [y, m, d] = String(v).split("-");
-  return y && m && d ? `${d}-${m}-${y}` : v;
+  return formatDisplayDate(v) || "—";
 }
 
 /** Whether an employee's probation period has already ended (ready to confirm). */

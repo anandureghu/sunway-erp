@@ -23,6 +23,7 @@ import { SummaryCard } from "@/modules/hr/components/summary-card";
 import CountrySelect from "@/components/country-select";
 import CountryFlag from "@/components/CountryFlag";
 import PhoneInput from "@/components/PhoneInput";
+import { formatDisplayDate } from "@/lib/format-date";
 import {
   normalizePhone,
   validatePhone,
@@ -74,15 +75,10 @@ const ViewField = ({
   );
 };
 
-// Format an ISO / yyyy-mm-dd date string as dd-mm-yyyy for read-only display.
+// Format an ISO / yyyy-mm-dd date string as DD/MM/YYYY for read-only display.
 const formatDMY = (value?: string) => {
   if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${dd}-${mm}-${yyyy}`;
+  return formatDisplayDate(value) || value;
 };
 
 // Default initial state for a new dependent

@@ -33,12 +33,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { canActScoped } from "@/lib/module-permissions";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { formatDisplayDate } from "@/lib/format-date";
 
-const formatViewDate = (v?: string | number | readonly string[]) => {
-  if (v == null || v === "") return "";
-  const [y, m, d] = String(v).split("-");
-  return y && m && d ? `${d}-${m}-${y}` : String(v);
-};
+const formatViewDate = formatDisplayDate;
 
 const ViewField = ({
   icon,

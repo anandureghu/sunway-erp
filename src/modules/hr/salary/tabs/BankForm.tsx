@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import CountrySelect from "@/components/country-select";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { isValidQatarIban } from "@/lib/qatar-validation";
 
 import type { SalaryCtx } from "../SalaryShell";
 
@@ -93,6 +94,9 @@ function validateBankForm(data: BankModel): ValidationErrors {
   if (!data.accountType) errors.accountType = "Account type is required";
   if (!data.accountNo?.trim()) errors.accountNo = "Account number is required";
   if (!data.country?.trim()) errors.country = "Country is required";
+  if (data.iban?.trim() && !isValidQatarIban(data.iban)) {
+    errors.iban = "IBAN must be a 29-character Qatar IBAN starting with QA";
+  }
   return errors;
 }
 
@@ -556,7 +560,7 @@ export default function BankForm() {
                 </div>
               </Field>
 
-              <Field label="IBAN">
+              <Field label="IBAN" error={errors.iban}>
                 <div className="relative">
                   <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -566,7 +570,7 @@ export default function BankForm() {
                     onChange={(e) =>
                       patch("iban", e.target.value.toUpperCase())
                     }
-                    placeholder="e.g. QA58DOHB000012345678901234567"
+                    placeholder="QA58DOHB000012345678901234567"
                   />
                 </div>
               </Field>

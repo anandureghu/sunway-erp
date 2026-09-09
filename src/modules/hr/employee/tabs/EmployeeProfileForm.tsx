@@ -26,6 +26,8 @@ import CountryFlag from "@/components/CountryFlag";
 import { getCountryByName } from "@/lib/countries";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { ProfileCtx } from "./ProfileShell";
+import { isAtLeast18, isValidQid } from "@/lib/qatar-validation";
+import { formatDisplayDate } from "@/lib/format-date";
 
 type Prefix = "" | "Mr." | "Mrs." | "Ms." | "Miss" | "Dr.";
 
@@ -146,9 +148,12 @@ function validateEmployeeProfile(data: EmpProfile): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!data.firstName?.trim()) errors.firstName = "First name is required";
   if (!data.lastName?.trim()) errors.lastName = "Last name is required";
-  // Identification number: digits only, at most 12.
-  if (data.identification && !/^\d{1,12}$/.test(data.identification)) {
-    errors.identification = "ID must be digits only, up to 12 digits";
+  // QID / identification: digits only, at least 12 for Qatar residents.
+  if (data.identification && !isValidQid(data.identification)) {
+    errors.identification = "QID must be at least 12 digits";
+  }
+  if (data.dateOfBirth && !isAtLeast18(data.dateOfBirth)) {
+    errors.dateOfBirth = "Employee must be older than 18 years";
   }
   // Expected end date (last working day) is mandatory for an exiting employee.
   if (isExitStatusLabel(data.status) && !data.expectedEndDate) {
@@ -194,13 +199,9 @@ const getStatusMeta = (status?: string) => {
 };
 
 // ── shared styled select ──────────────────────────────────────────────────────
-// Re-format a yyyy-mm-dd value into dd-mm-yyyy for read-only display (avoids the
+// Re-format a yyyy-mm-dd value into DD/MM/YYYY for read-only display (avoids the
 // timezone shift a `new Date(...)` round-trip would introduce).
-const formatViewDate = (v?: string | number | readonly string[]) => {
-  if (v == null || v === "") return "";
-  const [y, m, d] = String(v).split("-");
-  return y && m && d ? `${d}-${m}-${y}` : String(v);
-};
+const formatViewDate = formatDisplayDate;
 
 // Read-only value tile — a clean icon + value chip shown in place of a greyed-out
 // input when the field isn't editable (view mode / always-locked fields).
@@ -755,7 +756,7 @@ export default function EmployeeProfileForm() {
             />
           </FormField>
 
-          <FormField label="Date of Birth">
+          <FormField label="Date of Birth" error={errors.dateOfBirth}>
             <IconInput
               icon={<Calendar className="h-4 w-4" />}
               type="date"
@@ -805,15 +806,14 @@ export default function EmployeeProfileForm() {
               disabled={!editing}
               value={draft.identification ?? ""}
               inputMode="numeric"
-              maxLength={12}
+              maxLength={20}
               onChange={(e) =>
-                // Digits only, at most 12 — strip anything else as it's typed.
                 set(
                   "identification",
-                  e.target.value.replace(/\D/g, "").slice(0, 12),
+                  e.target.value.replace(/\D/g, ""),
                 )
               }
-              placeholder="Up to 12 digits"
+              placeholder="At least 12 digits"
             />
           </FormField>
 
