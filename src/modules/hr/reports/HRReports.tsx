@@ -440,37 +440,54 @@ export default function HRReports() {
       permissions?.PAYROLL?.VIEW_ALL
     );
 
+  // Each report tab has its own HRR_* permission; the HR_REPORTS umbrella (and admin)
+  // grants all of them. Tabs that also depend on a cross-module grant (Immigration,
+  // Leaves, Loans, Payroll view-all, Employee view-all) keep that as an extra path.
+  const canRpt = (mod: string) => canHrReports || canView(permissions, mod);
+
   const groups = useMemo<GroupTab[]>(() => {
     const list: GroupTab[] = [];
 
-    if (canHrReports) {
+    const workforce = [
+      ...(canRpt("HRR_WORKFORCE") ? [ANALYTICS_TABS[0]] : []),
+      ...(canRpt("HRR_PERFORMANCE") ? [ANALYTICS_TABS[1]] : []),
+    ];
+    if (workforce.length) {
       list.push({
         value: "workforce-analytics",
         label: "Workforce & performance",
         icon: <Users className="h-4 w-4" />,
-        children: [...ANALYTICS_TABS],
+        children: workforce,
       });
+    }
+
+    const timeAttendance = [
+      ...(canRpt("HRR_TIMESHEETS") ? [ATTENDANCE_TAB] : []),
+      ...(canRpt("HRR_ATTENDANCE_HISTORY") ? [ATTENDANCE_HISTORY_TAB] : []),
+    ];
+    if (timeAttendance.length) {
       list.push({
         value: "time-attendance",
         label: "Time & attendance",
         icon: <Clock className="h-4 w-4" />,
-        children: [ATTENDANCE_TAB, ATTENDANCE_HISTORY_TAB],
+        children: timeAttendance,
       });
     }
 
-    if (canLeaves || canLoans) {
+    const leaveLoans = [
+      ...(canRpt("HRR_LEAVE_HISTORY") || canLeaves ? [LEAVES_TAB] : []),
+      ...(canRpt("HRR_LOAN_HISTORY") || canLoans ? [LOANS_TAB] : []),
+    ];
+    if (leaveLoans.length) {
       list.push({
         value: "leave-loans",
         label: "Leave & loans",
         icon: <Umbrella className="h-4 w-4" />,
-        children: [
-          ...(canLeaves ? [LEAVES_TAB] : []),
-          ...(canLoans ? [LOANS_TAB] : []),
-        ],
+        children: leaveLoans,
       });
     }
 
-    if (canImmigration) {
+    if (canRpt("HRR_IMMIGRATION_EXPIRY") || canImmigration) {
       list.push({
         value: "compliance",
         label: "Compliance",
@@ -479,7 +496,7 @@ export default function HRReports() {
       });
     }
 
-    if (canPayrollSummary) {
+    if (canRpt("HRR_PAYROLL_SUMMARY") || canPayrollSummary) {
       list.push({
         value: "payroll",
         label: "Payroll",
@@ -488,25 +505,32 @@ export default function HRReports() {
       });
     }
 
-    if (canExitInterviews) {
+    const lifecycle = [
+      ...(canRpt("HRR_EXIT_INTERVIEWS") || canExitInterviews ? [EXIT_TAB] : []),
+      ...(canRpt("HRR_ARCHIVE") ? [ARCHIVE_TAB] : []),
+    ];
+    if (lifecycle.length) {
       list.push({
         value: "lifecycle",
         label: "Employee lifecycle",
         icon: <UserRoundCog className="h-4 w-4" />,
-        children: [EXIT_TAB, ARCHIVE_TAB],
+        children: lifecycle,
       });
     }
 
-    list.push({
-      value: "audit",
-      label: "Audit",
-      icon: <FileText className="h-4 w-4" />,
-      children: [HISTORY_TAB],
-    });
+    if (canRpt("HRR_HISTORY")) {
+      list.push({
+        value: "audit",
+        label: "Audit",
+        icon: <FileText className="h-4 w-4" />,
+        children: [HISTORY_TAB],
+      });
+    }
 
     return list.filter((g) => g.children.length > 0);
   }, [
     canHrReports,
+    permissions,
     canLeaves,
     canLoans,
     canImmigration,
@@ -1750,7 +1774,8 @@ export default function HRReports() {
                                       Delete
                                     </button>
                                   </>
-                                ) : l.leaveStatus === "COMPLETED" ? (
+                                ) : l.leaveStatus === "COMPLETED" ||
+                                  l.leaveStatus === "REJECTED" ? (
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -2052,7 +2077,8 @@ export default function HRReports() {
                                       Delete
                                     </button>
                                   </>
-                                ) : l.status === "CLOSED" ? (
+                                ) : l.status === "CLOSED" ||
+                                  l.status === "REJECTED" ? (
                                   <button
                                     type="button"
                                     onClick={() => handleArchiveLoan(l.id, true)}

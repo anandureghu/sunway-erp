@@ -660,17 +660,17 @@ export default function EmployeeProfileForm() {
                     No employee number
                   </span>
                 )}
-                {draft.jobCode && (
+                {(draft.designation || draft.jobCode) && (
                   <span
                     className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 border border-sky-100"
                     title={
-                      draft.designation
-                        ? `Job code ${draft.jobCode} — ${draft.designation}`
-                        : "Job code"
+                      draft.jobCode
+                        ? `Job code ${draft.jobCode}${draft.designation ? ` — ${draft.designation}` : ""}`
+                        : "Job title"
                     }
                   >
                     <Briefcase className="h-3 w-3" />
-                    {draft.jobCode}
+                    {draft.designation || draft.jobCode}
                   </span>
                 )}
               </div>
