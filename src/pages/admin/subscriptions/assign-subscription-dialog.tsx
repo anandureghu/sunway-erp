@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ItemSectionCard } from "@/components/inventory/item-section-card";
+import { CurrencyInput } from "@/components/currency/currency-input";
 import type {
   AssignSubscriptionRequest,
   CompanySubscription,
@@ -205,13 +206,12 @@ export function AssignSubscriptionDialog({
 
             {planType !== "FREE" && (
               <F label="Amount" required>
-                <Input
-                  type="number"
+                <CurrencyInput
                   min={0}
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className={icls}
+                  className="h-10"
                 />
               </F>
             )}

@@ -10,6 +10,7 @@ import { ItemDetailLocation } from "./item-detail-location";
 import { ItemDetailStockOverview } from "./item-detail-stock-overview";
 import { ItemDetailCostSelling } from "./item-detail-cost-selling";
 import { ItemDetailAudit } from "./item-detail-audit";
+import { ItemDetailNegativeStock } from "./item-detail-negative-stock";
 
 type Props = {
   item: ItemResponseDTO;
@@ -62,7 +63,8 @@ export function ItemDetailSections({
         warehouseStock={warehouseStock}
         warehouseStockLoading={warehouseStockLoading}
       />
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <ItemDetailNegativeStock item={item} />
         <ItemDetailCostSelling item={item} />
         <ItemDetailAudit item={item} />
       </div>

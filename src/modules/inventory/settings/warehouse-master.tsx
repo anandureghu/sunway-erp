@@ -73,7 +73,7 @@ const WarehouseMaster = () => {
   };
 
   const handleDeleteWarehouse = async (id: string) => {
-    if (!(await confirm("Are you sure you want to delete this warehouse?")))
+    if (!(await confirm("Are you sure you want to delete this warehouse? Warehouses with on-hand or reserved stock cannot be deleted.")))
       return;
 
     try {

@@ -1,5 +1,5 @@
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
-import { FileText } from "lucide-react";
+import { FileText, Wrench } from "lucide-react";
 import { formatUnitLabel } from "./formatters";
 
 type Props = {
@@ -15,10 +15,32 @@ function SpecRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SpecPanel({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: { label: string; value: string }[];
+}) {
+  return (
+    <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
+      <div className="flex items-center gap-2">
+        <Wrench className="h-4 w-4 text-indigo-600" />
+        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+      </div>
+      <div className="mt-2 flex-1">
+        {rows.map((row) => (
+          <SpecRow key={row.label} label={row.label} value={row.value} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ItemDetailBody({ item }: Props) {
   const unit = item.unitMeasure || "pcs";
 
-  const specs: { label: string; value: string }[] = [
+  const classification: { label: string; value: string }[] = [
     { label: "Brand", value: item.brand?.trim() || "—" },
     { label: "Manufacturer part no.", value: item.manufacturerPartNumber?.trim() || "—" },
     { label: "Model", value: item.model?.trim() || "—" },
@@ -26,6 +48,9 @@ export function ItemDetailBody({ item }: Props) {
     { label: "Sub category", value: item.subCategory?.trim() || "—" },
     { label: "Item type", value: item.type?.trim() || "—" },
     { label: "Criticality", value: item.criticality?.trim() || "—" },
+  ];
+
+  const physical: { label: string; value: string }[] = [
     { label: "HSN / tariff code", value: item.hsnCode?.trim() || "—" },
     { label: "Unit of measure", value: formatUnitLabel(unit) },
     { label: "Weight", value: item.weightKg != null ? `${item.weightKg} kg` : "—" },
@@ -42,7 +67,12 @@ export function ItemDetailBody({ item }: Props) {
   const remarks = item.remarks?.trim();
 
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <SpecPanel title="Classification" rows={classification} />
+        <SpecPanel title="Physical & identifiers" rows={physical} />
+      </div>
+
       <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-indigo-600" />
@@ -66,17 +96,6 @@ export function ItemDetailBody({ item }: Props) {
             <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{remarks}</p>
           </div>
         ) : null}
-      </div>
-
-      <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
-        <h2 className="text-base font-semibold text-slate-900">
-          Technical specifications
-        </h2>
-        <div className="mt-2 flex-1">
-          {specs.map((row) => (
-            <SpecRow key={row.label} label={row.label} value={row.value} />
-          ))}
-        </div>
       </div>
     </div>
   );

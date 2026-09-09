@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import PhoneInput from "@/components/PhoneInput";
 import CountrySelect from "@/components/country-select";
 import SelectCurrency from "@/components/select-currency";
+import { CurrencyInput } from "@/components/currency/currency-input";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -558,8 +559,7 @@ export const CompanyForm = ({
                   <FormItem>
                     <FormLabel>Amount</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
+                      <CurrencyInput
                         min={0}
                         step="0.01"
                         disabled={planType === "FREE"}

@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ItemSectionCard } from "@/components/inventory/item-section-card";
+import { CurrencyInput } from "@/components/currency/currency-input";
 import { recordSubscriptionPayment } from "@/service/subscriptionService";
 import type { SubscriptionInvoice } from "@/types/subscription";
 import { toast } from "sonner";
@@ -205,13 +206,12 @@ export function RecordPaymentDialog({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <F label="Amount" required>
-                <Input
-                  type="number"
+                <CurrencyInput
                   min={0}
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className={icls}
+                  className="h-10"
                 />
               </F>
               <F label="Paid on" required>

@@ -6,6 +6,7 @@ import {
   COUNTRIES,
   DEFAULT_COUNTRY,
   composePhone,
+  formatNationalGroups,
   getCountryByIso,
   parsePhone,
   type Country,
@@ -14,7 +15,7 @@ import CountryFlag from "@/components/CountryFlag";
 import { useAnchoredPosition } from "@/hooks/use-anchored-position";
 
 type Props = {
-  /** Stored combined value, e.g. "+974 33001122" */
+  /** Stored combined value, e.g. "+974 1234 4321" */
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -29,21 +30,24 @@ type Props = {
 
 /**
  * Phone field with a searchable country dial-code selector and a national-number
- * input. Emits the canonical "+<dial> <digits>" string (or "" when cleared).
+ * input. Emits the canonical "+<dial> <grouped digits>" string (or "" when cleared).
+ * Qatar numbers display as +974 1234 4321.
  */
 export default function PhoneInput({
   value,
   onChange,
   onBlur,
   disabled = false,
-  placeholder = "Phone number",
+  placeholder = "1234 4321",
   invalid = false,
   className,
   compact = false,
 }: Props) {
   const initial = parsePhone(value);
   const [iso, setIso] = useState(initial.country.iso2);
-  const [national, setNational] = useState(initial.national);
+  const [national, setNational] = useState(
+    formatNationalGroups(initial.country.dial, initial.national),
+  );
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -56,7 +60,7 @@ export default function PhoneInput({
     if (composePhone(country, national) === (value ?? "")) return;
     const parsed = parsePhone(value);
     setIso(parsed.country.iso2);
-    setNational(parsed.national);
+    setNational(formatNationalGroups(parsed.country.dial, parsed.national));
      
   }, [value]);
 
@@ -68,14 +72,16 @@ export default function PhoneInput({
     setIso(c.iso2);
     setOpen(false);
     setSearch("");
-    emit(c, national);
+    const digits = national.replace(/\D/g, "");
+    setNational(formatNationalGroups(c.dial, digits));
+    emit(c, digits);
   };
 
   const handleNationalChange = (raw: string) => {
-    // keep digits and spaces only for a tidy display; storage strips spaces
-    const cleaned = raw.replace(/[^\d\s]/g, "");
-    setNational(cleaned);
-    emit(country, cleaned);
+    const digits = raw.replace(/\D/g, "").slice(0, country.dial === "974" ? 8 : 15);
+    const display = formatNationalGroups(country.dial, digits);
+    setNational(display);
+    emit(country, digits);
   };
 
   const filtered = useMemo(() => {

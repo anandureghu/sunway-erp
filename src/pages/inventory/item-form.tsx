@@ -35,6 +35,7 @@ import {
 import SelectWarehouse from "@/components/select-warehouse";
 import SelectVendor from "@/components/select-vendor";
 import { ItemSectionCard } from "@/components/inventory/item-section-card";
+import { CurrencyInput } from "@/components/currency/currency-input";
 import type { ItemResponseDTO } from "@/service/erpApiTypes";
 import { cn } from "@/lib/utils";
 
@@ -201,7 +202,7 @@ function CreateItemForm({
       maximum: 0,
       unitSale: 0,
       negativeStockPermitted: false,
-      vatApplicable: true,
+      vatApplicable: false,
     },
   });
 
@@ -628,12 +629,22 @@ function CreateItemForm({
       <ItemSectionCard icon={<DollarSign className="h-3.5 w-3.5 text-white" />} title="Cost and selling">
         <div className={fieldsGrid}>
           <F label="Cost Price" required>
-            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("costPrice", { valueAsNumber: true })} className={icls} />
+            <CurrencyInput
+              step="0.01"
+              min={0}
+              placeholder="0.00"
+              {...register("costPrice", { valueAsNumber: true })}
+            />
             {errors.costPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.costPrice.message}</p>}
           </F>
 
           <F label="Selling price" required>
-            <Input type="number" step="0.01" min="0" placeholder="0.00" {...register("sellingPrice", { valueAsNumber: true })} className={icls} />
+            <CurrencyInput
+              step="0.01"
+              min={0}
+              placeholder="0.00"
+              {...register("sellingPrice", { valueAsNumber: true })}
+            />
             {errors.sellingPrice && <p className="text-[11px] text-rose-400 mt-1">{errors.sellingPrice.message}</p>}
           </F>
 

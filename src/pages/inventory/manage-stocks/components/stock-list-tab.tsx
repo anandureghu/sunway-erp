@@ -440,7 +440,7 @@ export function StockListTab({
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         title="Permanently delete archived products?"
-        description={`You are about to permanently delete ${selectedItemIds.length} archived product(s). This removes the item master and warehouse stock rows. Items with purchase, sales, or receipt history cannot be deleted. Type DELETE to confirm.`}
+        description={`You are about to permanently delete ${selectedItemIds.length} archived product(s). Only items with zero on hand, reserved, and on-order quantity (and no transaction history) can be deleted. Prefer deactivating items when stock is clear. Type DELETE to confirm.`}
         count={selectedItemIds.length}
         entityLabel="products"
         requireDeleteAll

@@ -277,14 +277,29 @@ export function parsePhone(value?: string): ParsedPhone {
   return { country: DEFAULT_COUNTRY, national: raw.replace(/\D/g, "") };
 }
 
-/** Compose the canonical stored form: "+<dial> <national digits>" (or "" if blank). */
+/** Compose the canonical stored form: "+<dial> <national>" (or "" if blank). */
 export function composePhone(country: Country, national: string): string {
   const digits = (national ?? "").replace(/\D/g, "");
   if (!digits) return "";
-  return `+${country.dial} ${digits}`;
+  return `+${country.dial} ${formatNationalGroups(country.dial, digits)}`;
 }
 
-/** Normalize any stored phone value to the canonical "+<dial> <digits>" form. */
+/** Group national digits for display (Qatar: 1234 4321). */
+export function formatNationalGroups(dial: string, nationalDigits: string): string {
+  const digits = (nationalDigits ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (dial === "974") {
+    // +974 1234 4321
+    const parts: string[] = [];
+    for (let i = 0; i < digits.length; i += 4) {
+      parts.push(digits.slice(i, i + 4));
+    }
+    return parts.join(" ");
+  }
+  return digits;
+}
+
+/** Normalize any stored phone value to the canonical "+<dial> <grouped digits>" form. */
 export function normalizePhone(value: string | undefined | null): string {
   const raw = (value ?? "").trim();
   if (!raw) return "";
@@ -321,7 +336,7 @@ export function validatePhone(
   if (country.dial === "974" && national.length !== 8) {
     return {
       valid: false,
-      message: "Qatar numbers must be +974 followed by 8 digits",
+      message: "Use Qatar format +974 1234 4321 (8 digits)",
     };
   }
 

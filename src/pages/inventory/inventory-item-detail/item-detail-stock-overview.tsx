@@ -116,8 +116,46 @@ export function ItemDetailStockOverview({
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
-        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+      <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
+        <h3 className="text-sm font-semibold text-slate-900">Stock policy</h3>
+        <p className="mt-0.5 text-[11px] text-slate-500">
+          Reorder rules and lead time for this SKU
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { label: "Reorder level", value: safeLocaleQty(item.reorderLevel, unit) },
+            {
+              label: "Reorder qty",
+              value:
+                item.reorderQty != null
+                  ? safeLocaleQty(item.reorderQty, unit)
+                  : "—",
+            },
+            { label: "Minimum stock", value: safeLocaleQty(item.minimum, unit) },
+            { label: "Maximum stock", value: safeLocaleQty(item.maximum, unit) },
+            {
+              label: "Lead time (days)",
+              value:
+                item.leadTimeDays != null
+                  ? String(item.leadTimeDays)
+                  : "—",
+            },
+          ].map((row) => (
+            <div
+              key={row.label}
+              className="flex items-baseline justify-between gap-4 border-b border-slate-100 py-2.5 last:border-0"
+            >
+              <span className="text-sm text-slate-500">{row.label}</span>
+              <span className="text-right text-sm font-semibold text-slate-900">
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2.5 flex items-center gap-2">
           <Warehouse className="h-4 w-4 text-indigo-600" />
           <div>
             <h3 className="text-sm font-semibold text-slate-900">
@@ -130,69 +168,55 @@ export function ItemDetailStockOverview({
         </div>
 
         {warehouseStockLoading ? (
-          <div className="flex items-center gap-2 px-4 py-6 text-sm text-slate-500">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-4 py-6 text-sm text-slate-500">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading warehouse stock…
           </div>
         ) : warehouseStock.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-slate-500">
+          <p className="rounded-xl border border-slate-200/80 bg-white px-4 py-6 text-sm text-slate-500">
             No warehouse stock rows yet. Receive stock into a warehouse to see
             quantities here.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-2.5 font-medium">Warehouse</th>
-                  <th className="px-4 py-2.5 text-right font-medium">On hand</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Reserved</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Available</th>
-                </tr>
-              </thead>
-              <tbody>
-                {warehouseStock.map((row) => (
-                  <tr
-                    key={row.warehouseId}
-                    className="border-b border-slate-50 last:border-0"
-                  >
-                    <td className="px-4 py-2.5 font-medium text-slate-900">
-                      <Link
-                        to={`/inventory/warehouses/${row.warehouseId}`}
-                        className="underline-offset-2 hover:underline"
-                      >
-                        {row.warehouseName || `Warehouse ${row.warehouseId}`}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-800">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {warehouseStock.map((row) => (
+              <div
+                key={row.warehouseId}
+                className="rounded-xl border border-slate-200/80 bg-white p-3"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                  <Warehouse className="h-3.5 w-3.5" />
+                </div>
+                <Link
+                  to={`/inventory/warehouses/${row.warehouseId}`}
+                  className="mt-2.5 block truncate text-sm font-bold text-slate-900 underline-offset-2 hover:underline"
+                >
+                  {row.warehouseName || `Warehouse ${row.warehouseId}`}
+                </Link>
+                <div className="mt-2 space-y-1 text-[11px] text-slate-500">
+                  <div className="flex justify-between gap-2">
+                    <span>On hand</span>
+                    <span className="font-semibold tabular-nums text-slate-800">
                       {safeLocaleQty(row.quantityOnHand, unit)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-slate-800">
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span>Reserved</span>
+                    <span className="font-semibold tabular-nums text-slate-800">
                       {safeLocaleQty(row.reserved, unit)}
-                    </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-900">
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2 border-t border-slate-100 pt-1">
+                    <span>Available</span>
+                    <span className="font-bold tabular-nums text-slate-900">
                       {safeLocaleQty(row.available, unit)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-      </div>
-
-      <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 text-sm">
-        <div className="flex justify-between gap-2">
-          <span className="text-slate-500">Negative stock permitted</span>
-          <span className="font-semibold text-slate-900">
-            {item.negativeStockPermitted ? "Yes" : "No"}
-          </span>
-        </div>
-        <p className="mt-1 text-[11px] text-slate-500">
-          {item.negativeStockPermitted
-            ? "Sales may exceed available warehouse quantity."
-            : "Sales cannot exceed available stock at the selected warehouse."}
-        </p>
       </div>
     </section>
   );
