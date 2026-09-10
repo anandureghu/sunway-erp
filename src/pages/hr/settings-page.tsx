@@ -50,6 +50,8 @@ type SubTab = {
   label: string;
   icon: ReactNode;
   element: () => ReactNode;
+  /** Whether the current user may see this tab. */
+  guard?: boolean;
 };
 
 type GroupTab = {
@@ -85,7 +87,26 @@ export default function HRSettingsPage() {
   const [roles, setRoles] = useState<Role[]>([]);
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
-  const isAuthorized = isAdmin || canView(permissions, "HR_SETTINGS");
+  // Authorized if admin, the HR_SETTINGS umbrella, or ANY per-tab HRS_* permission.
+  const HRS_MODULES = [
+    "HRS_ORG_STRUCTURE",
+    "HRS_DEPARTMENTS",
+    "HRS_JOB_CODES",
+    "HRS_ROLES",
+    "HRS_CONFIRMATIONS",
+    "HRS_CONTRACT_RENEWALS",
+    "HRS_APPRAISAL_CONFIG",
+    "HRS_LEAVE_TYPES",
+    "HRS_LEAVE_APPROVALS",
+    "HRS_LOAN_APPROVALS",
+    "HRS_POLICIES",
+    "HRS_SOCIAL",
+    "HRS_PERMISSIONS",
+  ];
+  const isAuthorized =
+    isAdmin ||
+    canView(permissions, "HR_SETTINGS") ||
+    HRS_MODULES.some((m) => canView(permissions, m));
 
   const [canApproveLeaves, setCanApproveLeaves] = useState(false);
   useEffect(() => {
@@ -109,6 +130,11 @@ export default function HRSettingsPage() {
       permissions?.EMPLOYEE_PROFILE?.APPROVE
     );
 
+  // Each HR Settings tab has its own permission; the HR_SETTINGS umbrella (and admin)
+  // grants all of them. Approval tabs also honour their existing approval permission.
+  const hasSettingsUmbrella = isAdmin || canView(permissions, "HR_SETTINGS");
+  const canTab = (mod: string) => hasSettingsUmbrella || canView(permissions, mod);
+
   const groups = useMemo<GroupTab[]>(() => {
     const list: GroupTab[] = [
       {
@@ -121,24 +147,28 @@ export default function HRSettingsPage() {
             label: "Org Structure",
             icon: <Network className="h-4 w-4" />,
             element: () => <OrgStructurePanel />,
+            guard: canTab("HRS_ORG_STRUCTURE"),
           },
           {
             value: "department",
             label: "Departments",
             icon: <Building2 className="h-4 w-4" />,
             element: () => <DepartmentListPage hrSettings />,
+            guard: canTab("HRS_DEPARTMENTS"),
           },
           {
             value: "jobs",
             label: "Job Codes",
             icon: <Briefcase className="h-4 w-4" />,
             element: () => <JobCodesTab jobs={jobs} setJobs={setJobs} />,
+            guard: canTab("HRS_JOB_CODES"),
           },
           {
             value: "roles",
             label: "Roles",
             icon: <Users className="h-4 w-4" />,
             element: () => <SettingsRolesPage hrSettings />,
+            guard: canTab("HRS_ROLES"),
           },
         ],
       },
@@ -147,27 +177,26 @@ export default function HRSettingsPage() {
         label: "Employee lifecycle",
         icon: <UserRoundCog className="h-4 w-4" />,
         children: [
-          ...(canConfirmEmployees
-            ? [
-                {
-                  value: "confirm-employees",
-                  label: "Confirmations",
-                  icon: <UserCheck className="h-4 w-4" />,
-                  element: () => <ConfirmEmployeesPanel />,
-                },
-              ]
-            : []),
+          {
+            value: "confirm-employees",
+            label: "Confirmations",
+            icon: <UserCheck className="h-4 w-4" />,
+            element: () => <ConfirmEmployeesPanel />,
+            guard: canTab("HRS_CONFIRMATIONS") || canConfirmEmployees,
+          },
           {
             value: "contract-renewables",
             label: "Contract renewals",
             icon: <CalendarClock className="h-4 w-4" />,
             element: () => <ContractRenewablesPanel />,
+            guard: canTab("HRS_CONTRACT_RENEWALS"),
           },
           {
             value: "appraisal",
             label: "Appraisals",
             icon: <Star className="h-4 w-4" />,
             element: () => <AppraisalTab />,
+            guard: canTab("HRS_APPRAISAL_CONFIG"),
           },
         ],
       },
@@ -181,27 +210,22 @@ export default function HRSettingsPage() {
             label: "Leave types",
             icon: <Calendar className="h-4 w-4" />,
             element: () => <LeaveCustomizationForm />,
+            guard: canTab("HRS_LEAVE_TYPES"),
           },
-          ...(canApproveLeaves
-            ? [
-                {
-                  value: "leave-approvals",
-                  label: "Leave approvals",
-                  icon: <CalendarCheck className="h-4 w-4" />,
-                  element: () => <LeaveApprovalPanel />,
-                },
-              ]
-            : []),
-          ...(canApproveLoans
-            ? [
-                {
-                  value: "loan-approvals",
-                  label: "Loan approvals",
-                  icon: <Wallet className="h-4 w-4" />,
-                  element: () => <LoanApprovalPanel />,
-                },
-              ]
-            : []),
+          {
+            value: "leave-approvals",
+            label: "Leave approvals",
+            icon: <CalendarCheck className="h-4 w-4" />,
+            element: () => <LeaveApprovalPanel />,
+            guard: canTab("HRS_LEAVE_APPROVALS") || canApproveLeaves,
+          },
+          {
+            value: "loan-approvals",
+            label: "Loan approvals",
+            icon: <Wallet className="h-4 w-4" />,
+            element: () => <LoanApprovalPanel />,
+            guard: canTab("HRS_LOAN_APPROVALS") || canApproveLoans,
+          },
         ],
       },
       {
@@ -214,31 +238,37 @@ export default function HRSettingsPage() {
             label: "HR Policies",
             icon: <FileText className="h-4 w-4" />,
             element: () => <HrPoliciesForm />,
+            guard: canTab("HRS_POLICIES"),
           },
           {
             value: "social",
             label: "Social",
             icon: <Share2 className="h-4 w-4" />,
             element: () => <SocialSettingsPage hrSettings />,
+            guard: canTab("HRS_SOCIAL"),
           },
-          ...(isAdmin
-            ? [
-                {
-                  value: "permissions",
-                  label: "Permissions",
-                  icon: <KeyRound className="h-4 w-4" />,
-                  element: () => (
-                    <PermissionsTab roles={roles} setRoles={setRoles} />
-                  ),
-                },
-              ]
-            : []),
+          {
+            value: "permissions",
+            label: "Permissions",
+            icon: <KeyRound className="h-4 w-4" />,
+            element: () => (
+              <PermissionsTab roles={roles} setRoles={setRoles} />
+            ),
+            guard: isAdmin || canView(permissions, "HRS_PERMISSIONS"),
+          },
         ],
       },
     ];
 
-    return list.filter((g) => (g.children?.length ?? 0) > 0 || !!g.element);
+    // Drop tabs the user can't access, then empty groups.
+    return list
+      .map((g) => ({
+        ...g,
+        children: g.children?.filter((c) => c.guard !== false),
+      }))
+      .filter((g) => (g.children?.length ?? 0) > 0 || !!g.element);
   }, [
+    permissions,
     canApproveLeaves,
     canApproveLoans,
     canConfirmEmployees,

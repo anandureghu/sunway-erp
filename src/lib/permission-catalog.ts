@@ -27,9 +27,34 @@ export const HR_PERMISSION_MODULES: PermissionModuleRow[] = [
   // Time & Performance
   { id: "LEAVES", label: "Leaves", group: "Time & Performance", description: "Leave requests, balances & approvals" },
   { id: "APPRAISAL", label: "Appraisal", group: "Time & Performance", description: "Performance reviews & appraisal cycles" },
-  // Administration
-  { id: "HR_REPORTS", label: "HR Reports", group: "Administration", description: "HR analytics, reports & immigration expiry" },
-  { id: "HR_SETTINGS", label: "HR Settings", group: "Administration", description: "Leave types, policies, roles & permissions" },
+  // HR Settings — per tab (HR_SETTINGS umbrella grants all of them)
+  { id: "HR_SETTINGS", label: "All HR Settings", group: "HR Settings", description: "Umbrella — grants every HR Settings tab below" },
+  { id: "HRS_ORG_STRUCTURE", label: "Org Structure", group: "HR Settings", description: "Divisions & organization chart" },
+  { id: "HRS_DEPARTMENTS", label: "Departments", group: "HR Settings", description: "Company departments" },
+  { id: "HRS_JOB_CODES", label: "Job Codes", group: "HR Settings", description: "Job codes, grades & approval" },
+  { id: "HRS_ROLES", label: "Roles", group: "HR Settings", description: "Company roles" },
+  { id: "HRS_CONFIRMATIONS", label: "Confirmations", group: "HR Settings", description: "Probation confirmations" },
+  { id: "HRS_CONTRACT_RENEWALS", label: "Contract Renewals", group: "HR Settings", description: "Contract renewal review" },
+  { id: "HRS_APPRAISAL_CONFIG", label: "Appraisals Setup", group: "HR Settings", description: "Appraisal cycle configuration" },
+  { id: "HRS_LEAVE_TYPES", label: "Leave Types", group: "HR Settings", description: "Leave type / policy customization" },
+  { id: "HRS_LEAVE_APPROVALS", label: "Leave Approvals", group: "HR Settings", description: "Approve / reject leave requests" },
+  { id: "HRS_LOAN_APPROVALS", label: "Loan Approvals", group: "HR Settings", description: "Approve / reject loan requests" },
+  { id: "HRS_POLICIES", label: "HR Policies", group: "HR Settings", description: "Company HR policies & statutory defaults" },
+  { id: "HRS_SOCIAL", label: "Social", group: "HR Settings", description: "Social / branding settings" },
+  { id: "HRS_PERMISSIONS", label: "Permissions", group: "HR Settings", description: "Assign role permissions" },
+  // HR Reports — per tab (HR_REPORTS umbrella grants all of them)
+  { id: "HR_REPORTS", label: "All HR Reports", group: "HR Reports", description: "Umbrella — grants every HR Reports tab below" },
+  { id: "HRR_WORKFORCE", label: "Workforce Overview", group: "HR Reports", description: "Workforce analytics" },
+  { id: "HRR_PERFORMANCE", label: "Employee Performance", group: "HR Reports", description: "Appraisal performance report" },
+  { id: "HRR_TIMESHEETS", label: "Employee Time Sheets", group: "HR Reports", description: "Timesheet report" },
+  { id: "HRR_ATTENDANCE_HISTORY", label: "Attendance History", group: "HR Reports", description: "Attendance history report" },
+  { id: "HRR_LEAVE_HISTORY", label: "Leave History", group: "HR Reports", description: "Leave history report" },
+  { id: "HRR_LOAN_HISTORY", label: "Loan History", group: "HR Reports", description: "Loan history report" },
+  { id: "HRR_IMMIGRATION_EXPIRY", label: "Immigration Expiry", group: "HR Reports", description: "Passport / visa / permit expiry report" },
+  { id: "HRR_PAYROLL_SUMMARY", label: "Payroll Summary", group: "HR Reports", description: "Company payroll summary" },
+  { id: "HRR_EXIT_INTERVIEWS", label: "Exit Interviews", group: "HR Reports", description: "Exit interview records" },
+  { id: "HRR_ARCHIVE", label: "Archive", group: "HR Reports", description: "Archived employees" },
+  { id: "HRR_HISTORY", label: "Activity History", group: "HR Reports", description: "HR activity history" },
 ];
 
 // ── Finance ─────────────────────────────────────────────────────────────────
