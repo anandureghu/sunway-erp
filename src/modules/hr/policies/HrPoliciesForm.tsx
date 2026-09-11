@@ -332,30 +332,37 @@ export default function HrPoliciesForm() {
                   <p className="text-[11px] text-slate-400 mt-0.5">
                     When standard working hours + overtime cap are reached, warn
                     the employee, then auto check them out after this grace period.
-                    Worked time stays capped at the max shift.
+                    Worked time stays capped at the max shift. Options show total
+                    on-clock time until check-out.
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
-                {(
-                  [
-                    { value: 0, label: "No grace" },
-                    { value: 15, label: "15 min" },
-                    { value: 20, label: "20 min" },
-                    { value: 30, label: "30 min" },
-                  ] as const
-                ).map((opt) => {
+                {[0, 15, 20, 30].map((graceMinutes) => {
+                  const stdHours = hrPolicies.standardWorkingHoursPerDay ?? 6;
+                  const otCap = hrPolicies.otMaxHoursPerDay ?? 2;
+                  const totalMinutes =
+                    Math.round((stdHours + otCap) * 60) + graceMinutes;
+                  const hours = Math.floor(totalMinutes / 60);
+                  const mins = totalMinutes % 60;
+                  const label =
+                    mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
                   const current = hrPolicies.maxShiftCheckoutGraceMinutes ?? 0;
-                  const selected = current === opt.value;
+                  const selected = current === graceMinutes;
                   return (
                     <button
-                      key={String(opt.value)}
+                      key={graceMinutes}
                       type="button"
                       disabled={hrPoliciesLoading}
+                      title={
+                        graceMinutes === 0
+                          ? "Check out at max shift (no grace)"
+                          : `Check out ${graceMinutes} min after max shift`
+                      }
                       onClick={() =>
                         updateHrPolicyField(
                           "maxShiftCheckoutGraceMinutes",
-                          opt.value,
+                          graceMinutes,
                         )
                       }
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
@@ -364,7 +371,7 @@ export default function HrPoliciesForm() {
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                     >
-                      {opt.label}
+                      {label}
                     </button>
                   );
                 })}
