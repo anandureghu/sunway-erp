@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { excludeArchived } from "@/lib/exclude-archived";
+import { matchesDateRange } from "@/lib/date";
 
 export default function SalesOrdersPage() {
   const { confirm, confirmCancel } = useConfirmDialog();
@@ -38,6 +39,8 @@ export default function SalesOrdersPage() {
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [listTab, setListTab] = useState<"active" | "closed">("active");
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
@@ -227,13 +230,16 @@ export default function SalesOrdersPage() {
         paymentStatusFilter === "all" ||
         normalizePaymentStatusKey(order.paymentStatus) ===
           paymentStatusFilter.toUpperCase();
-      return matchesSearch && matchesStatus && matchesPaymentStatus;
+      const matchesDate = matchesDateRange(order.orderDate, dateFrom, dateTo);
+      return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
     });
   }, [
     orders,
     searchQuery,
     statusFilter,
     paymentStatusFilter,
+    dateFrom,
+    dateTo,
     listTab,
     isClosedOrder,
     normalizePaymentStatusKey,
@@ -506,6 +512,8 @@ export default function SalesOrdersPage() {
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         paymentStatusFilter={paymentStatusFilter}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
         columns={columns}
         enableBulkArchive={listTab === "closed"}
         rowSelection={rowSelection}
@@ -525,6 +533,10 @@ export default function SalesOrdersPage() {
         onPaymentStatusChange={(value) => {
           setPaymentStatusFilter(value);
           setKpiFilter(null);
+        }}
+        onDateRangeChange={({ from, to }) => {
+          setDateFrom(from);
+          setDateTo(to);
         }}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}

@@ -30,6 +30,7 @@ import { PurchaseOrderForm } from "./components/purchase-order-form";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { excludeArchived } from "@/lib/exclude-archived";
+import { matchesDateRange } from "@/lib/date";
 
 type OrderTab = "open" | "terminal";
 
@@ -42,6 +43,8 @@ export default function PurchaseOrdersPage() {
   );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -214,13 +217,16 @@ export default function PurchaseOrdersPage() {
       const matchesPaymentStatus =
         paymentStatusFilter === "all" ||
         paymentKey === paymentStatusFilter.toUpperCase();
-      return matchesSearch && matchesStatus && matchesPaymentStatus;
+      const matchesDate = matchesDateRange(order.orderDate, dateFrom, dateTo);
+      return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
     });
   }, [
     orders,
     searchQuery,
     statusFilter,
     paymentStatusFilter,
+    dateFrom,
+    dateTo,
     normalizePaymentStatusKey,
   ]);
 
@@ -498,6 +504,8 @@ export default function PurchaseOrdersPage() {
         orders={filteredOrders}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
         columns={columns}
         enableBulkArchive
         rowSelection={rowSelection}
@@ -517,6 +525,10 @@ export default function PurchaseOrdersPage() {
           setStatusFilter(value);
           setKpiFilter(null);
           setPaymentStatusFilter("all");
+        }}
+        onDateRangeChange={({ from, to }) => {
+          setDateFrom(from);
+          setDateTo(to);
         }}
         onRowClick={handleRowClick}
         onRetry={() => void refreshOrders()}

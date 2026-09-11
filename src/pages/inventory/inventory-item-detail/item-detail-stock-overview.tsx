@@ -7,6 +7,7 @@ import { resolveStockIndicator } from "./item-detail-utils";
 import {
   AlertTriangle,
   ArrowDownToLine,
+  Clock,
   Loader2,
   Package,
   Warehouse,
@@ -81,6 +82,14 @@ export function ItemDetailStockOverview({
           ? "bg-rose-50 text-rose-600"
           : "bg-slate-100 text-slate-600",
     },
+    {
+      icon: Clock,
+      title: "Lead time",
+      value:
+        item.leadTimeDays != null ? `${item.leadTimeDays} days` : "—",
+      hint: "Supplier replenishment lead time",
+      tone: "bg-sky-50 text-sky-600",
+    },
   ];
 
   return (
@@ -88,11 +97,11 @@ export function ItemDetailStockOverview({
       <div>
         <h2 className="text-base font-bold text-slate-900">Inventory Control</h2>
         <p className="mt-0.5 text-xs text-slate-500">
-          Live inventory levels by warehouse and stock policy
+          Live inventory levels by warehouse
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
           <div
             key={card.title}
@@ -114,44 +123,6 @@ export function ItemDetailStockOverview({
             </p>
           </div>
         ))}
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4">
-        <h3 className="text-sm font-semibold text-slate-900">Stock policy</h3>
-        <p className="mt-0.5 text-[11px] text-slate-500">
-          Reorder rules and lead time for this SKU
-        </p>
-        <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            { label: "Reorder level", value: safeLocaleQty(item.reorderLevel, unit) },
-            {
-              label: "Reorder qty",
-              value:
-                item.reorderQty != null
-                  ? safeLocaleQty(item.reorderQty, unit)
-                  : "—",
-            },
-            { label: "Minimum stock", value: safeLocaleQty(item.minimum, unit) },
-            { label: "Maximum stock", value: safeLocaleQty(item.maximum, unit) },
-            {
-              label: "Lead time (days)",
-              value:
-                item.leadTimeDays != null
-                  ? String(item.leadTimeDays)
-                  : "—",
-            },
-          ].map((row) => (
-            <div
-              key={row.label}
-              className="flex items-baseline justify-between gap-4 border-b border-slate-100 py-2.5 last:border-0"
-            >
-              <span className="text-sm text-slate-500">{row.label}</span>
-              <span className="text-right text-sm font-semibold text-slate-900">
-                {row.value}
-              </span>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div>

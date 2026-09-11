@@ -53,6 +53,21 @@ export function parseLocalDate(value?: string | null): Date | null {
   return isNaN(fallback.getTime()) ? null : fallback;
 }
 
+/** Compare an ISO/order date against optional yyyy-MM-dd bounds (inclusive). */
+export function matchesDateRange(
+  isoDate: string | undefined | null,
+  from: string,
+  to: string,
+): boolean {
+  if (!from && !to) return true;
+  if (!isoDate) return false;
+  const day = isoDate.trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  if (from && day < from) return false;
+  if (to && day > to) return false;
+  return true;
+}
+
 export function addMonths(dateStr: string, months: number): string {
   if (!dateStr) return '';
   const [year, month, day] = dateStr.split('-').map(Number);

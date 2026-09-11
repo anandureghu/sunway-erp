@@ -20,6 +20,10 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import {
+  OrderDateRangeFilter,
+  type OrderDateRange,
+} from "@/components/order-date-range-filter";
 
 type OrderTab = "open" | "terminal";
 
@@ -29,6 +33,8 @@ type Props = {
   orders: PurchaseOrder[];
   searchQuery: string;
   statusFilter: string;
+  dateFrom: string;
+  dateTo: string;
   listTab?: OrderTab;
   onListTabChange?: (tab: OrderTab) => void;
   columns: ColumnDef<PurchaseOrder>[];
@@ -40,6 +46,7 @@ type Props = {
   bulkArchiving?: boolean;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: string) => void;
+  onDateRangeChange: (next: OrderDateRange) => void;
   onRowClick: (row: Row<PurchaseOrder>) => void;
   onRetry: () => void;
   kpiItems?: KpiSummaryStat[];
@@ -55,6 +62,8 @@ export function PurchaseOrdersListView({
   orders,
   searchQuery,
   statusFilter,
+  dateFrom,
+  dateTo,
   columns,
   enableBulkArchive = false,
   rowSelection,
@@ -64,6 +73,7 @@ export function PurchaseOrdersListView({
   bulkArchiving = false,
   onSearchChange,
   onStatusChange,
+  onDateRangeChange,
   onRowClick,
   onRetry,
   kpiItems,
@@ -166,6 +176,11 @@ export function PurchaseOrdersListView({
                     </TabsTrigger>
                   </TabsList>
                   <div className="flex flex-wrap gap-2">
+                    <OrderDateRangeFilter
+                      from={dateFrom}
+                      to={dateTo}
+                      onChange={onDateRangeChange}
+                    />
                     <div className="relative">
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
