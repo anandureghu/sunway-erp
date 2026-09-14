@@ -2,6 +2,7 @@
   | "Active"
   | "Inactive"
   | "On Leave"
+  | "Under Probation"
   | "Resigned"
   | "Terminated"
   | "Retired";
@@ -34,6 +35,7 @@ export const EMPLOYEE_STATUS_OPTIONS: { value: EmployeeStatus; label: string }[]
   { value: "Active", label: "Active" },
   { value: "Inactive", label: "Inactive" },
   { value: "On Leave", label: "On Leave" },
+  { value: "Under Probation", label: "Under Probation" },
   { value: "Resigned", label: "Resigned" },
   { value: "Terminated", label: "Terminated" },
   { value: "Retired", label: "Retired" },

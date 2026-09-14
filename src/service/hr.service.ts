@@ -124,6 +124,10 @@
     const res = await apiClient.get<Employee[]>("/employees/archived");
     return res.data ?? [];
   }
+  async function listInactiveEmployees(): Promise<Employee[]> {
+    const res = await apiClient.get<Employee[]>("/employees/inactive");
+    return res.data ?? [];
+  }
   async function archiveEmployee(employeeId: number): Promise<void> {
     await apiClient.put(`/employees/${employeeId}/archive`);
   }
@@ -202,6 +206,7 @@
     updateEmployee,
     deleteEmployee,
     listArchivedEmployees,
+    listInactiveEmployees,
     archiveEmployee,
     unarchiveEmployee,
     uploadImage,

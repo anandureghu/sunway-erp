@@ -40,7 +40,7 @@ export default function PayrollTab() {
     if (!employeeId) return;
     setLoading(true);
     try {
-      const res = await payrollService.getPayrollHistory(employeeId);
+      const res = await payrollService.getPayrollHistory(employeeId, true);
       setHistory(res?.data ?? []);
     } catch (err: unknown) {
       console.error("Failed to load payroll history", err);
