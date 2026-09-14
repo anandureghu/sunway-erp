@@ -555,7 +555,7 @@ export default function PayrollSettings() {
                   <Clock className="h-3.5 w-3.5 text-white" />
                 </div>
                 <span className="text-sm font-bold text-slate-700">
-                  Recent Payrolls
+                  Current Month Payrolls
                 </span>
               </div>
               {loadingSummaries ? (
@@ -732,7 +732,7 @@ export default function PayrollSettings() {
                     <FileText className="h-3.5 w-3.5 text-white" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Payroll History
+                    Current Month Payroll
                   </span>
                   {history.length > 0 && (
                     <span className="ml-auto text-[10px] font-semibold text-slate-400">
@@ -750,7 +750,7 @@ export default function PayrollSettings() {
                   <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
                     <AlertCircle className="h-8 w-8" />
                     <p className="text-sm font-medium">
-                      No payroll history yet
+                      No payroll record for the current month
                     </p>
                     <p className="text-xs">Generate your first payroll above</p>
                   </div>

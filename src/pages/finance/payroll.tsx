@@ -1141,12 +1141,12 @@ function EmployeePayrollTab() {
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
                   <FileText className="h-4 w-4 text-white" />
                 </div>
-                <h3 className="font-bold text-slate-800">Recent Payrolls</h3>
+                <h3 className="font-bold text-slate-800">Current Month Payrolls</h3>
               </div>
               <div className="divide-y divide-slate-50">
                 {recentPayrolls.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-6">
-                    No payroll records yet
+                    No payroll records for the current month
                   </p>
                 ) : (
                   recentPayrolls.map((r) => {
@@ -1686,7 +1686,7 @@ function EmployeePayrollTab() {
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-100">
                   <FileText className="h-4 w-4 text-slate-500" />
-                  <h3 className="font-bold text-slate-800">Payroll History</h3>
+                  <h3 className="font-bold text-slate-800">Current Month Payroll</h3>
                 </div>
 
                 {loadingHistory ? (
@@ -1697,7 +1697,7 @@ function EmployeePayrollTab() {
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <FileText className="h-8 w-8 text-slate-200 mb-2" />
                     <p className="text-sm text-slate-400">
-                      No payroll history for this employee
+                      No payroll record for this employee this month
                     </p>
                   </div>
                 ) : (

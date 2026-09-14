@@ -122,7 +122,9 @@ export const payrollService = {
     );
   },
 
-  getPayrollHistory(employeeId: number) {
-    return apiClient.get(`${BASE}/${employeeId}/salary/payroll/history`);
+  getPayrollHistory(employeeId: number, includeAll = false) {
+    return apiClient.get(`${BASE}/${employeeId}/salary/payroll/history`, {
+      params: includeAll ? { all: true } : undefined,
+    });
   },
 };

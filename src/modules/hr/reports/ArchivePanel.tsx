@@ -82,7 +82,7 @@ export function ArchivePanel() {
     setLoading(true);
     try {
       const [active, arch] = await Promise.all([
-        hrService.listEmployees(),
+        hrService.listInactiveEmployees(),
         hrService.listArchivedEmployees(),
       ]);
       setInactive(

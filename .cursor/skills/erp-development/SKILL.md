@@ -63,6 +63,10 @@ npm run build
 
 <!-- Agents: prepend new bullets here (newest first). Do not duplicate project.mdc. -->
 
+- **Payroll processing history** — payroll-generation screens use the default current-month employee history. Call `payrollService.getPayrollHistory(employeeId, true)` only in the dedicated employee Payroll History screen, where prior-month records must remain visible.
+
+- **Operational employee lists** — `hrService.listEmployees()` is the current-workforce API: it includes staff on probation and excludes inactive, exited, and archived records. Use the dedicated inactive/archive endpoints for HR records screens rather than reintroducing inactive staff into operational selectors.
+
 - **Session idle timeout** — Company HR policy `sessionIdleTimeoutMinutes` (`0`/off, `15`, `20`, `30`). UI in `HrPoliciesForm`; `SessionIdleTimeoutGuard` in `app-layout` signs out after inactivity (warns last 60s). Not attendance check-out — that is `maxShiftCheckoutGraceMinutes` + `MaxShiftCheckoutGuard`.
 - **Purchase orders (draft edit)** — Edit from list when `status === "draft"`; `purchase-order-form` sends `supplierId` on update; use `CurrencyAmount` for money; supplier `Select` stays enabled in edit mode.
 - **PO → AP** — Pay vendors only after **Release to supplier** (`confirmed`). `vendorPaymentSettled === true` means AP payment confirmed; cancel PO only while draft and unpaid. AP: Vendor payments + Purchase invoices tabs.
