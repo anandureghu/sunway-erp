@@ -63,3 +63,55 @@ export const deleteDepartment = async (companyId: number, departmentId: number) 
     throw error;
   }
 };
+
+export const DEPARTMENT_CSV_CANONICAL_FIELDS = [
+  "departmentCode",
+  "departmentName",
+  "description",
+] as const;
+
+export type DepartmentCsvPreview = {
+  headers: string[];
+  fieldMapping: Record<string, string | null>;
+  aiMapped: boolean;
+  dataRowCount: number;
+  sampleRows: Record<string, string>[];
+  warnings?: string[];
+};
+
+export type DepartmentCsvImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: { row: number; code?: string | null; message: string }[];
+};
+
+export async function previewDepartmentsCsv(
+  companyId: number,
+  file: File,
+): Promise<DepartmentCsvPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<DepartmentCsvPreview>(
+    `/companies/${companyId}/departments/import-csv/preview`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}
+
+export async function importDepartmentsCsv(
+  companyId: number,
+  file: File,
+  mapping?: Record<string, string | null>,
+): Promise<DepartmentCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (mapping) formData.append("mapping", JSON.stringify(mapping));
+  const res = await apiClient.post<DepartmentCsvImportResult>(
+    `/companies/${companyId}/departments/import-csv`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}

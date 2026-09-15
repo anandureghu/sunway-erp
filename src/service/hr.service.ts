@@ -217,3 +217,68 @@
   };
 
   export default hrService;
+
+export const EMPLOYEE_CSV_CANONICAL_FIELDS = [
+  "employeeNo",
+  "firstName",
+  "middleName",
+  "lastName",
+  "gender",
+  "prefix",
+  "maritalStatus",
+  "dateOfBirth",
+  "joinDate",
+  "status",
+  "birthplace",
+  "hometown",
+  "nationality",
+  "religion",
+  "identification",
+  "phoneNo",
+  "altPhone",
+  "email",
+  "departmentName",
+  "companyRole",
+] as const;
+
+export type EmployeeCsvPreview = {
+  headers: string[];
+  fieldMapping: Record<string, string | null>;
+  aiMapped: boolean;
+  dataRowCount: number;
+  sampleRows: Record<string, string>[];
+  warnings?: string[];
+};
+
+export type EmployeeCsvImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: { row: number; employeeNo?: string | null; message: string }[];
+};
+
+export async function previewEmployeesCsv(file: File): Promise<EmployeeCsvPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<EmployeeCsvPreview>(
+    "/employees/import-csv/preview",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}
+
+export async function importEmployeesCsv(
+  file: File,
+  mapping?: Record<string, string | null>,
+): Promise<EmployeeCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (mapping) formData.append("mapping", JSON.stringify(mapping));
+  const res = await apiClient.post<EmployeeCsvImportResult>(
+    "/employees/import-csv",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}

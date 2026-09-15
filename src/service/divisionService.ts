@@ -60,3 +60,52 @@ export const deleteDivision = async (id: number): Promise<boolean> => {
     throw error;
   }
 };
+
+export const DIVISION_CSV_CANONICAL_FIELDS = [
+  "code",
+  "name",
+  "description",
+  "departmentName",
+] as const;
+
+export type DivisionCsvPreview = {
+  headers: string[];
+  fieldMapping: Record<string, string | null>;
+  aiMapped: boolean;
+  dataRowCount: number;
+  sampleRows: Record<string, string>[];
+  warnings?: string[];
+};
+
+export type DivisionCsvImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: { row: number; code?: string | null; message: string }[];
+};
+
+export async function previewDivisionsCsv(file: File): Promise<DivisionCsvPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<DivisionCsvPreview>(
+    "/divisions/import-csv/preview",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}
+
+export async function importDivisionsCsv(
+  file: File,
+  mapping?: Record<string, string | null>,
+): Promise<DivisionCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (mapping) formData.append("mapping", JSON.stringify(mapping));
+  const res = await apiClient.post<DivisionCsvImportResult>(
+    "/divisions/import-csv",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}

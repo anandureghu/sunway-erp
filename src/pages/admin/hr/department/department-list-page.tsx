@@ -14,6 +14,7 @@ import type { DivisionResponseDTO } from "@/types/division";
 import { DepartmentDialog } from "./department-dialog";
 import { DepartmentDetailDialog } from "./department-detail-dialog";
 import { DivisionDialog } from "../division/division-dialog";
+import { ImportDepartmentsCsvDialog } from "./import-departments-csv-dialog";
 import type { DepartmentTableRow } from "@/lib/columns/department-listing-admin";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -195,6 +196,10 @@ export default function DepartmentListPage({
 
   const headerActions = (
     <div className="flex gap-2">
+      <ImportDepartmentsCsvDialog
+        companyId={companyId}
+        onImported={loadData}
+      />
       <Button
         variant="outline"
         onClick={() => {

@@ -15,6 +15,7 @@ import {
   JobCodeViewDialog,
   JobCodeDeleteDialog,
 } from "./job-code-dialogs";
+import { ImportJobCodesCsvDialog } from "./import-job-codes-csv-dialog";
 
 export function JobCodesTab({
   jobs,
@@ -235,6 +236,7 @@ export function JobCodesTab({
                 className="pl-9 w-48"
               />
             </div>
+            <ImportJobCodesCsvDialog onImported={fetchJobCodes} />
             <Button
               onClick={openAdd}
               className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"

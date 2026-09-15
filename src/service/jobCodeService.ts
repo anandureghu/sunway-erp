@@ -105,3 +105,62 @@ export const jobCodeService = {
   reject,
   delete: remove,
 };
+
+export const JOB_CODE_CSV_CANONICAL_FIELDS = [
+  "code",
+  "title",
+  "level",
+  "salaryGrade",
+  "minSalary",
+  "maxSalary",
+  "active",
+  "departmentName",
+  "divisionName",
+  "employmentCategory",
+  "employmentType",
+  "workLocation",
+  "workCity",
+  "workCountry",
+] as const;
+
+export type JobCodeCsvPreview = {
+  headers: string[];
+  fieldMapping: Record<string, string | null>;
+  aiMapped: boolean;
+  dataRowCount: number;
+  sampleRows: Record<string, string>[];
+  warnings?: string[];
+};
+
+export type JobCodeCsvImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: { row: number; code?: string | null; message: string }[];
+};
+
+export async function previewJobCodesCsv(file: File): Promise<JobCodeCsvPreview> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post<JobCodeCsvPreview>(
+    "/hr/job-codes/import-csv/preview",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}
+
+export async function importJobCodesCsv(
+  file: File,
+  mapping?: Record<string, string | null>,
+): Promise<JobCodeCsvImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (mapping) formData.append("mapping", JSON.stringify(mapping));
+  const res = await apiClient.post<JobCodeCsvImportResult>(
+    "/hr/job-codes/import-csv",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data;
+}

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import type { DivisionResponseDTO } from "@/types/division";
 import { DivisionDialog } from "./division-dialog";
 import { getDivisionColumns } from "@/lib/columns/division-listing-admin";
+import { ImportDivisionsCsvDialog } from "./import-divisions-csv-dialog";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/context/AuthContext";
 import { fetchDivisions, deleteDivision } from "@/service/divisionService";
@@ -110,15 +111,18 @@ export default function DivisionListPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input placeholder="Search division..." className="pl-10" />
             </div>
-            <Button
-              onClick={() => {
-                setSelected(null);
-                setOpen(true);
-              }}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              Add Division
-            </Button>
+            <div className="flex gap-2">
+              <ImportDivisionsCsvDialog onImported={fetchDivisionsData} />
+              <Button
+                onClick={() => {
+                  setSelected(null);
+                  setOpen(true);
+                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Add Division
+              </Button>
+            </div>
           </div>
         </CardHeader>
 

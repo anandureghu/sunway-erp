@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { UserPlus, Users2, LayoutGrid } from "lucide-react";
 import { cn, isSecurityAdmin } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
+import { ImportEmployeesCsvDialog } from "@/pages/employees/import-employees-csv-dialog";
 
 interface EmployeeTableProps {
   data: Employee[];
@@ -379,13 +380,21 @@ export default function EmployeesPage() {
         icon={<Users2 className="w-6 h-6" />}
         actions={
           showAdd && (
-            <Button
-              onClick={() => setShowAddEmployee(true)}
-              className="gap-2 shrink-0 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm shadow-sm transition-all"
-            >
-              <UserPlus className="h-4 w-4" />
-              Add Employee
-            </Button>
+            <div className="flex gap-2">
+              <ImportEmployeesCsvDialog
+                onImported={async () => {
+                  const list = await hrService.listEmployees();
+                  setEmployees(list);
+                }}
+              />
+              <Button
+                onClick={() => setShowAddEmployee(true)}
+                className="gap-2 shrink-0 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm shadow-sm transition-all"
+              >
+                <UserPlus className="h-4 w-4" />
+                Add Employee
+              </Button>
+            </div>
           )
         }
       />
