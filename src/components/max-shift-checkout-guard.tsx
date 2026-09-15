@@ -10,10 +10,12 @@ import {
 import { notifyTimesheetChanged, onTimesheetChanged } from "@/lib/timesheet-sync";
 import { parseTimesheetDateTime, resolveCompanyTimezone } from "@/lib/timesheet-time";
 
+/** Warn this many ms before the fixed auto check-out limit. */
+const WARN_BEFORE_MS = 5 * 60_000;
+
 /**
- * Warns when the employee reaches max shift (standard hours + OT cap), then
- * auto check-outs after the company grace period (15/20/30 min, or immediately
- * when grace is 0).
+ * Warns near the company auto check-out limit (8 / 10 / 12 hours on the clock),
+ * then auto check-outs when that limit is reached.
  */
 export function MaxShiftCheckoutGuard() {
   const { user, isAuthenticated } = useAuth();
@@ -62,13 +64,12 @@ export function MaxShiftCheckoutGuard() {
       notifyTimesheetChanged();
       toast.message("Checked out as per company policy", {
         description:
-          "Your maximum shift (including overtime) has ended. Please stop work for this session.",
+          "Your maximum on-clock time has ended. Please stop work for this session.",
       });
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message ?? "Could not auto check-out";
-      // Already checked out elsewhere — treat as done.
       if (/already checked out/i.test(message)) {
         setPhase("checked_out");
         refresh();
@@ -80,7 +81,6 @@ export function MaxShiftCheckoutGuard() {
     }
   }, [empId, refresh]);
 
-  // Tick while checked in.
   useEffect(() => {
     const checkedIn = !!(today?.checkInTime && !today?.checkOutTime);
     if (!checkedIn || !today?.checkInTime || !today.maxShiftMinutes) {
@@ -90,7 +90,6 @@ export function MaxShiftCheckoutGuard() {
     }
 
     const maxShiftMs = today.maxShiftMinutes * 60_000;
-    const graceMs = Math.max(0, (today.maxShiftCheckoutGraceMinutes ?? 0) * 60_000);
     const checkInAt = parseTimesheetDateTime(
       today.checkInTime,
       resolveCompanyTimezone(today.timezone),
@@ -104,16 +103,17 @@ export function MaxShiftCheckoutGuard() {
     const tick = () => {
       if (checkingOutRef.current) return;
       const elapsed = Date.now() - checkInAt;
-      if (elapsed < maxShiftMs) {
-        setPhase((p) => (p === "checked_out" ? p : "idle"));
-        setSecondsLeft(null);
-        return;
-      }
+      const untilCheckout = maxShiftMs - elapsed;
 
-      const untilCheckout = maxShiftMs + graceMs - elapsed;
       if (untilCheckout <= 0) {
         setSecondsLeft(0);
         void performAutoCheckout();
+        return;
+      }
+
+      if (untilCheckout > WARN_BEFORE_MS) {
+        setPhase((p) => (p === "checked_out" ? p : "idle"));
+        setSecondsLeft(null);
         return;
       }
 
@@ -145,9 +145,9 @@ export function MaxShiftCheckoutGuard() {
                   You have been checked out as per company policy
                 </h2>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                  Your maximum allowed shift (standard working hours plus overtime)
-                  has ended. Please stop work for this session. You can continue
-                  using the app, but attendance for today is closed.
+                  Your maximum allowed on-clock time has ended. Please stop work
+                  for this session. You can continue using the app, but attendance
+                  for today is closed.
                 </p>
               </div>
             </div>
@@ -173,9 +173,15 @@ export function MaxShiftCheckoutGuard() {
 
   const mm = Math.floor(secondsLeft / 60);
   const ss = String(secondsLeft % 60).padStart(2, "0");
-  const maxHours = today?.maxShiftMinutes
-    ? (today.maxShiftMinutes / 60).toFixed(today.maxShiftMinutes % 60 === 0 ? 0 : 1)
-    : null;
+  const maxHours =
+    today?.autoCheckoutAfterHours ??
+    (today?.maxShiftMinutes
+      ? Number(
+          (today.maxShiftMinutes / 60).toFixed(
+            today.maxShiftMinutes % 60 === 0 ? 0 : 1,
+          ),
+        )
+      : null);
 
   return (
     <div
@@ -197,19 +203,16 @@ export function MaxShiftCheckoutGuard() {
                 id="max-shift-title"
                 className="text-base font-bold text-slate-900"
               >
-                Maximum shift reached
+                Maximum shift almost reached
               </h2>
               <p
                 id="max-shift-desc"
                 className="mt-1 text-sm leading-relaxed text-slate-600"
               >
-                You have reached the company limit
-                {maxHours ? ` of ${maxHours} hours` : ""} (standard day
-                {today?.otMaxHoursPerDay
-                  ? ` + ${today.otMaxHoursPerDay}h overtime`
-                  : ""}
-                ). Finish wrapping up — you will be checked out automatically when
-                the grace period ends.
+                You are approaching the company limit
+                {maxHours != null ? ` of ${maxHours} hours` : ""} on the clock.
+                Finish wrapping up — you will be checked out automatically when
+                the timer ends.
               </p>
             </div>
           </div>

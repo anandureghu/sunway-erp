@@ -68,8 +68,8 @@ export interface HrPoliciesPayload {
   requireCheckIn?: boolean;
   /** IANA timezone for company attendance clocks (default Asia/Qatar). */
   timezone?: string;
-  /** Grace minutes after max shift (standard + OT) before auto check-out. */
-  maxShiftCheckoutGraceMinutes?: number | null;
+  /** Auto check-out after this many hours on the clock. Allowed: 8, 10, 12. */
+  autoCheckoutAfterHours?: number | null;
   /**
    * Minutes of UI inactivity before the app signs the user out.
    * Allowed values: 0/null (disabled), 15, 20, 30.

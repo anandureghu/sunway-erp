@@ -35,7 +35,7 @@ const DEFAULT_HR_POLICIES: HrPoliciesPayload = {
   standardWorkingHoursPerDay: 6,
   requireCheckIn: true,
   timezone: "Asia/Qatar",
-  maxShiftCheckoutGraceMinutes: 0,
+  autoCheckoutAfterHours: 10,
   sessionIdleTimeoutMinutes: 0,
   probationPeriodMonths: 3,
   otDayRateMultiplier: 1.25,
@@ -81,7 +81,7 @@ export default function HrPoliciesForm() {
         if (cancelled) return;
         const normalized = {
           ...data,
-          maxShiftCheckoutGraceMinutes: data.maxShiftCheckoutGraceMinutes ?? 0,
+          autoCheckoutAfterHours: data.autoCheckoutAfterHours ?? 10,
           sessionIdleTimeoutMinutes: data.sessionIdleTimeoutMinutes ?? 0,
         };
         setHrPolicies(normalized);
@@ -330,40 +330,24 @@ export default function HrPoliciesForm() {
                     Auto check-out after max shift
                   </p>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    When standard working hours + overtime cap are reached, warn
-                    the employee, then auto check them out after this grace period.
-                    Worked time stays capped at the max shift. Options show total
-                    on-clock time until check-out.
+                    When this many hours on the clock are reached, warn the
+                    employee, then auto check them out. Worked time stays capped
+                    at the same duration.
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
-                {[0, 15, 20, 30].map((graceMinutes) => {
-                  const stdHours = hrPolicies.standardWorkingHoursPerDay ?? 6;
-                  const otCap = hrPolicies.otMaxHoursPerDay ?? 2;
-                  const totalMinutes =
-                    Math.round((stdHours + otCap) * 60) + graceMinutes;
-                  const hours = Math.floor(totalMinutes / 60);
-                  const mins = totalMinutes % 60;
-                  const label =
-                    mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
-                  const current = hrPolicies.maxShiftCheckoutGraceMinutes ?? 0;
-                  const selected = current === graceMinutes;
+                {[8, 10, 12].map((hours) => {
+                  const current = hrPolicies.autoCheckoutAfterHours ?? 10;
+                  const selected = current === hours;
                   return (
                     <button
-                      key={graceMinutes}
+                      key={hours}
                       type="button"
                       disabled={hrPoliciesLoading}
-                      title={
-                        graceMinutes === 0
-                          ? "Check out at max shift (no grace)"
-                          : `Check out ${graceMinutes} min after max shift`
-                      }
+                      title={`Auto check-out after ${hours} hours on the clock`}
                       onClick={() =>
-                        updateHrPolicyField(
-                          "maxShiftCheckoutGraceMinutes",
-                          graceMinutes,
-                        )
+                        updateHrPolicyField("autoCheckoutAfterHours", hours)
                       }
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                         selected
@@ -371,7 +355,7 @@ export default function HrPoliciesForm() {
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                     >
-                      {label}
+                      {hours}h
                     </button>
                   );
                 })}

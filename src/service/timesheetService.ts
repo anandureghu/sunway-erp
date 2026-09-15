@@ -18,8 +18,8 @@ export interface TimesheetEntry {
   otMaxHoursPerDay?: number;
   /** Max paid shift in minutes (standard + OT cap). */
   maxShiftMinutes?: number;
-  /** Grace minutes after max shift before automatic check-out. */
-  maxShiftCheckoutGraceMinutes?: number;
+  /** Auto check-out after this many hours on the clock (8 / 10 / 12). */
+  autoCheckoutAfterHours?: number;
 }
 
 export interface MonthlySummary {

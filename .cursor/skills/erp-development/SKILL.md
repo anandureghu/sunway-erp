@@ -67,7 +67,7 @@ npm run build
 
 - **Operational employee lists** — `hrService.listEmployees()` is the current-workforce API: it includes staff on probation and excludes inactive, exited, and archived records. Use the dedicated inactive/archive endpoints for HR records screens rather than reintroducing inactive staff into operational selectors.
 
-- **Session idle timeout** — Company HR policy `sessionIdleTimeoutMinutes` (`0`/off, `15`, `20`, `30`). UI in `HrPoliciesForm`; `SessionIdleTimeoutGuard` in `app-layout` signs out after inactivity (warns last 60s). Not attendance check-out — that is `maxShiftCheckoutGraceMinutes` + `MaxShiftCheckoutGuard`.
+- **Session idle timeout** — Company HR policy `sessionIdleTimeoutMinutes` (`0`/off, `15`, `20`, `30`). UI in `HrPoliciesForm`; `SessionIdleTimeoutGuard` in `app-layout` signs out after inactivity (warns last 60s). Not attendance check-out — that is `autoCheckoutAfterHours` (`8` / `10` / `12`) + `MaxShiftCheckoutGuard`.
 - **Purchase orders (draft edit)** — Edit from list when `status === "draft"`; `purchase-order-form` sends `supplierId` on update; use `CurrencyAmount` for money; supplier `Select` stays enabled in edit mode.
 - **PO → AP** — Pay vendors only after **Release to supplier** (`confirmed`). `vendorPaymentSettled === true` means AP payment confirmed; cancel PO only while draft and unpaid. AP: Vendor payments + Purchase invoices tabs.
 - **PO receipts** — After AP payment confirm: download **invoice receipt** (`getInvoicePdfUrl`) and **payment receipt** (`GET /finance/payments/{id}/pdf`) from PO detail; purchase invoice detail has Invoice/Receipt tabs for GENERATED docs.
