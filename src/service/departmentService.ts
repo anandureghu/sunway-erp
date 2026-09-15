@@ -81,6 +81,7 @@ export type DepartmentCsvPreview = {
 
 export type DepartmentCsvImportResult = {
   created: number;
+  updated: number;
   skipped: number;
   failed: number;
   errors: { row: number; code?: string | null; message: string }[];

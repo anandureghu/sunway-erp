@@ -210,15 +210,14 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
     try {
       const res = await importItemsCsv(file, mapping);
       setResult(res);
-      if (res.created > 0) {
-        toast.success(
-          res.aiMapped
-            ? `Imported ${res.created} item(s) (AI column mapping)`
-            : `Imported ${res.created} item(s)`,
-        );
+      if (res.created > 0 || res.updated > 0) {
+        const parts = [];
+        if (res.created > 0) parts.push(`${res.created} created`);
+        if (res.updated > 0) parts.push(`${res.updated} updated`);
+        toast.success(`Items imported: ${parts.join(", ")}${res.aiMapped ? " (AI mapping)" : ""}`);
         onImported();
       } else if (res.failed === 0 && res.skipped > 0) {
-        toast.message(`No new items — ${res.skipped} skipped (duplicate SKU)`);
+        toast.message(`No changes — ${res.skipped} skipped`);
       } else {
         toast.error("Import finished with errors");
       }
@@ -433,6 +432,8 @@ export function ImportItemsCsvDialog({ onImported }: Props) {
               <div className="rounded-lg border bg-slate-50 p-3 text-sm space-y-3">
                 <p>
                   Created <strong>{result.created}</strong>
+                  {" · "}
+                  Updated <strong>{result.updated}</strong>
                   {" · "}
                   Skipped <strong>{result.skipped}</strong>
                   {" · "}

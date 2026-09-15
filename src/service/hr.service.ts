@@ -252,6 +252,7 @@ export type EmployeeCsvPreview = {
 
 export type EmployeeCsvImportResult = {
   created: number;
+  updated: number;
   skipped: number;
   failed: number;
   errors: { row: number; employeeNo?: string | null; message: string }[];

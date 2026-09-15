@@ -103,11 +103,14 @@ export function ImportDepartmentsCsvDialog({ companyId, onImported }: Props) {
     try {
       const res = await importDepartmentsCsv(companyId, file, mapping);
       setResult(res);
-      if (res.created > 0) {
-        toast.success(`Imported ${res.created} department(s)`);
+      if (res.created > 0 || res.updated > 0) {
+        const parts = [];
+        if (res.created > 0) parts.push(`${res.created} created`);
+        if (res.updated > 0) parts.push(`${res.updated} updated`);
+        toast.success(`Departments imported: ${parts.join(", ")}`);
         onImported();
       } else if (res.failed === 0 && res.skipped > 0) {
-        toast.message(`No new departments — ${res.skipped} skipped (duplicate code)`);
+        toast.message(`No changes — ${res.skipped} skipped`);
       } else {
         toast.error("Import finished with errors");
       }
@@ -310,6 +313,8 @@ export function ImportDepartmentsCsvDialog({ companyId, onImported }: Props) {
               <div className="rounded-lg border bg-slate-50 p-3 text-sm space-y-3">
                 <p>
                   Created <strong>{result.created}</strong>
+                  {" · "}
+                  Updated <strong>{result.updated}</strong>
                   {" · "}
                   Skipped <strong>{result.skipped}</strong>
                   {" · "}

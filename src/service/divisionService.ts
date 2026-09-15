@@ -79,6 +79,7 @@ export type DivisionCsvPreview = {
 
 export type DivisionCsvImportResult = {
   created: number;
+  updated: number;
   skipped: number;
   failed: number;
   errors: { row: number; code?: string | null; message: string }[];

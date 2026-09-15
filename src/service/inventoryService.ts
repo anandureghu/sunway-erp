@@ -525,6 +525,7 @@ export type ItemCsvPreview = {
 
 export type ItemCsvImportResult = {
   created: number;
+  updated: number;
   skipped: number;
   failed: number;
   fieldMapping?: Record<string, string | null>;
