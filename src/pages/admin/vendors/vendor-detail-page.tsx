@@ -1,17 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { type Vendor } from "@/types/vendor";
 import { normalizeVendorFromApi } from "@/lib/vendor-api";
 import { getApiErrorMessage } from "@/lib/api-error-message";
-import { ArrowLeft, Edit, Trash } from "lucide-react";
+import {
+  Building2,
+  CreditCard,
+  Edit,
+  Globe,
+  Mail,
+  MapPin,
+  Phone,
+  Trash,
+  Truck,
+  User,
+} from "lucide-react";
 import { VendorDialog } from "./vendor-dialog";
-import { PurchasePageHeader } from "@/pages/purchase/components/purchase-page-header";
-
+import { PageHeader } from "@/components/PageHeader";
 import { resolveVendorListPath } from "@/lib/navigation-back";
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2.5 last:border-0 last:pb-0 first:pt-0">
+      <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </span>
+      <span className="min-w-0 text-right text-[13px] font-medium text-slate-800 break-all">
+        {value ?? "—"}
+      </span>
+    </div>
+  );
+}
 
 export default function VendorDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -53,7 +83,7 @@ export default function VendorDetailPage() {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -65,7 +95,7 @@ export default function VendorDetailPage() {
       </div>
     );
 
-  const subtitle = [vendor.contactPersonName, vendor.email]
+  const subtitle = [vendor.vendorCode, vendor.contactPersonName, vendor.email]
     .filter(Boolean)
     .join(" · ");
 
@@ -75,187 +105,175 @@ export default function VendorDetailPage() {
         isPurchaseHub ? "mx-auto space-y-6 p-4 sm:p-6" : "space-y-6 p-6"
       }
     >
-      {isPurchaseHub ? (
-        <PurchasePageHeader
-          title={vendor.vendorName}
-          description={
-            subtitle ||
-            "Vendor master record used on purchase orders and supplier invoices."
-          }
-          backHref={listPath}
-          actions={
-            <>
+      <PageHeader
+        variant={isPurchaseHub ? "darkGreen" : "darkBlue"}
+        title={vendor.vendorName}
+        description={
+          subtitle ||
+          "Vendor master record used on purchase orders and supplier invoices."
+        }
+        backHref={listPath}
+        icon={<Truck className="h-5 w-5 text-white" />}
+        actions={
+          <>
+            <Button
+              size="lg"
+              variant="secondary"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+              onClick={() => setOpen(true)}
+            >
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </Button>
+            {vendor.active !== false && (
               <Button
                 size="lg"
-                variant="secondary"
-                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
-                onClick={() => setOpen(true)}
+                variant="destructive"
+                className="shadow-md"
+                onClick={handleDeactivate}
               >
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </Button>
-              {vendor.active !== false && (
-                <Button
-                  size="lg"
-                  variant="destructive"
-                  className="shadow-md"
-                  onClick={handleDeactivate}
-                >
-                  <Trash className="mr-2 h-4 w-4" /> Deactivate
-                </Button>
-              )}
-            </>
-          }
-        />
-      ) : (
-        <div className="flex items-center justify-between">
-          <div className="flex gap-3 items-center">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(listPath)}
-              className="flex gap-1"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back
-            </Button>
-            <h1 className="text-2xl font-semibold">{vendor.vendorName}</h1>
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setOpen(true)}>
-              <Edit className="h-4 w-4 mr-1" /> Edit
-            </Button>
-
-            {vendor.active !== false && (
-              <Button variant="destructive" onClick={handleDeactivate}>
-                <Trash className="h-4 w-4 mr-1" /> Deactivate
+                <Trash className="mr-2 h-4 w-4" /> Deactivate
               </Button>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        }
+      />
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Vendor Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Supplier Information</CardTitle>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 bg-slate-50/80 pb-4">
+            <CardTitle className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-800">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
+                <Building2 className="h-4 w-4 text-indigo-600" />
+              </div>
+              Supplier Information
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>
-              <span className="font-semibold">Supplier Code:</span>{" "}
-              {vendor.vendorCode || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Supplier Name:</span>{" "}
-              {vendor.vendorName}
-            </p>
-            <p>
-              <span className="font-semibold">Contact Person:</span>{" "}
-              {vendor.contactPersonName || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Category:</span>{" "}
-              {vendor.categoryName || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Email:</span>{" "}
-              {vendor.email || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Phone:</span>{" "}
-              {vendor.phoneNo || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Fax:</span> {vendor.fax || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Active:</span>{" "}
-              {vendor.active ? "Yes" : "No"}
-            </p>
-            <p>
-              <span className="font-semibold">1099 Supplier:</span>{" "}
-              {vendor.is1099Vendor ? "Yes" : "No"}
-            </p>
+          <CardContent className="space-y-0 pt-4">
+            <DetailRow label="Supplier Code" value={vendor.vendorCode || "—"} />
+            <DetailRow label="Supplier Name" value={vendor.vendorName} />
+            <DetailRow
+              label="Contact Person"
+              value={
+                <span className="inline-flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-slate-400" />
+                  {vendor.contactPersonName || "—"}
+                </span>
+              }
+            />
+            <DetailRow label="Category" value={vendor.categoryName || "—"} />
+            <DetailRow
+              label="Email"
+              value={
+                vendor.email ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-slate-400" />
+                    {vendor.email}
+                  </span>
+                ) : (
+                  "—"
+                )
+              }
+            />
+            <DetailRow
+              label="Phone"
+              value={
+                vendor.phoneNo ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-slate-400" />
+                    {vendor.phoneNo}
+                  </span>
+                ) : (
+                  "—"
+                )
+              }
+            />
+            <DetailRow label="Fax" value={vendor.fax || "—"} />
+            <DetailRow
+              label="Active"
+              value={
+                <Badge
+                  variant="outline"
+                  className={
+                    vendor.active
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-slate-200 bg-slate-50 text-slate-500"
+                  }
+                >
+                  {vendor.active ? "Yes" : "No"}
+                </Badge>
+              }
+            />
+            <DetailRow
+              label="1099 Supplier"
+              value={vendor.is1099Vendor ? "Yes" : "No"}
+            />
           </CardContent>
         </Card>
 
-        {/* Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Address</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 bg-slate-50/80 pb-4">
+            <CardTitle className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-800">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+                <MapPin className="h-4 w-4 text-blue-600" />
+              </div>
+              Address
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>
-              <span className="font-semibold">Street:</span>{" "}
-              {vendor.street || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">City:</span> {vendor.city || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Country:</span>{" "}
-              {vendor.country || "-"}
-            </p>
+          <CardContent className="pt-4">
+            <div className="space-y-0 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-1">
+              <DetailRow label="Street" value={vendor.street || "—"} />
+              <DetailRow label="City" value={vendor.city || "—"} />
+              <DetailRow label="Country" value={vendor.country || "—"} />
+            </div>
           </CardContent>
         </Card>
 
-        {/* Financial Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Financial Information</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 bg-slate-50/80 pb-4">
+            <CardTitle className="flex items-center gap-2.5 text-[15px] font-semibold text-slate-800">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
+                <CreditCard className="h-4 w-4 text-amber-600" />
+              </div>
+              Financial Information
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="space-y-0 pt-4">
             {vendor.is1099Vendor ? (
-              <p>
-                <span className="font-semibold">VAT:</span>{" "}
-                {vendor.taxId || "-"}
-              </p>
+              <DetailRow label="VAT" value={vendor.taxId || "—"} />
             ) : null}
-            <p>
-              <span className="font-semibold">Vendor CR. No.:</span>{" "}
-              {vendor.vendorCrNo || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Bank Name:</span>{" "}
-              {vendor.bankName || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">IBAN:</span> {vendor.iban || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Payment Terms:</span>{" "}
-              {vendor.paymentTerms || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Currency:</span>{" "}
-              {vendor.currencyCode || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Credit Limit:</span>{" "}
-              {vendor.creditLimit
-                ? `${
-                    vendor.currencyCode || ""
-                  } ${vendor.creditLimit.toLocaleString()}`
-                : "-"}
-            </p>
-            {vendor.websiteUrl && (
-              <p>
-                <span className="font-semibold">Website:</span>{" "}
-                <a
-                  href={vendor.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  {vendor.websiteUrl}
-                </a>
-              </p>
-            )}
+            <DetailRow label="Vendor CR. No." value={vendor.vendorCrNo || "—"} />
+            <DetailRow label="Bank Name" value={vendor.bankName || "—"} />
+            <DetailRow label="IBAN" value={vendor.iban || "—"} />
+            <DetailRow label="Payment Terms" value={vendor.paymentTerms || "—"} />
+            <DetailRow label="Currency" value={vendor.currencyCode || "—"} />
+            <DetailRow
+              label="Credit Limit"
+              value={
+                vendor.creditLimit
+                  ? `${vendor.currencyCode || ""} ${vendor.creditLimit.toLocaleString()}`.trim()
+                  : "—"
+              }
+            />
+            {vendor.websiteUrl ? (
+              <DetailRow
+                label="Website"
+                value={
+                  <a
+                    href={vendor.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-indigo-600 hover:underline"
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    {vendor.websiteUrl}
+                  </a>
+                }
+              />
+            ) : null}
           </CardContent>
         </Card>
       </div>
 
-      {/* Edit Dialog */}
       <VendorDialog
         open={open}
         onOpenChange={setOpen}
