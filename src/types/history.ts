@@ -7,6 +7,7 @@ export type HistoryEntityType =
   | "STOCK_VARIANCE"
   | "GOODS_RECEIPT"
   | "PICKLIST"
+  | "INVENTORY_ITEM"
   | "SALES_INVOICE"
   | "CUSTOMER_PAYMENT"
   | "PURCHASE_INVOICE"
@@ -51,6 +52,7 @@ export const HISTORY_ENTITY_LABELS: Record<HistoryEntityType, string> = {
   STOCK_VARIANCE: "Stock variances",
   GOODS_RECEIPT: "Goods receipts",
   PICKLIST: "Picklists",
+  INVENTORY_ITEM: "Inventory Items",
   SALES_INVOICE: "Sales invoices",
   CUSTOMER_PAYMENT: "Customer payments",
   PURCHASE_INVOICE: "Purchase invoices",
@@ -68,6 +70,7 @@ export const HISTORY_TYPE_MODULE: Record<HistoryEntityType, HistoryModule> = {
   STOCK_VARIANCE: "inventory",
   GOODS_RECEIPT: "inventory",
   PICKLIST: "inventory",
+  INVENTORY_ITEM: "inventory",
   SALES_INVOICE: "finance",
   CUSTOMER_PAYMENT: "finance",
   PURCHASE_INVOICE: "finance",
@@ -79,6 +82,7 @@ export const HISTORY_TYPE_MODULE: Record<HistoryEntityType, HistoryModule> = {
 
 export const HISTORY_MODULE_TYPES: Record<HistoryModule, HistoryEntityType[]> = {
   inventory: [
+    "INVENTORY_ITEM",
     "SALES_ORDER",
     "PURCHASE_ORDER",
     "PURCHASE_REQUISITION",
@@ -111,6 +115,7 @@ export const OPERATIONAL_ARCHIVE_TYPE: Partial<
   STOCK_VARIANCE: "STOCK_VARIANCE",
   GOODS_RECEIPT: "GOODS_RECEIPT",
   PICKLIST: "PICKLIST",
+  INVENTORY_ITEM: "INVENTORY_ITEM",
   SALES_INVOICE: "SALES_INVOICE",
   CUSTOMER_PAYMENT: "CUSTOMER_PAYMENT",
   PURCHASE_INVOICE: "PURCHASE_INVOICE",

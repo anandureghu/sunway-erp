@@ -346,7 +346,7 @@ export function OperationsReportTab({ data }: { data: ReportData }) {
         <CardHeader>
           <CardTitle>Archived records</CardTitle>
           <CardDescription>
-            Archived inventory transactions and documents
+            Archived inventory items, transactions, and documents
           </CardDescription>
         </CardHeader>
         <CardContent>
