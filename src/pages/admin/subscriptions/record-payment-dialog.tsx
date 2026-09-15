@@ -84,7 +84,7 @@ export function RecordPaymentDialog({
   const [methodNote, setMethodNote] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [invoiceId, setInvoiceId] = useState<string>("auto");
-  const [sendReceipt, setSendReceipt] = useState(true);
+  const [sendReceipt, setSendReceipt] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const unpaidInvoices = useMemo(
@@ -105,7 +105,7 @@ export function RecordPaymentDialog({
     setPaidOn(new Date().toISOString().slice(0, 10));
     setMethodNote("");
     setPeriodEnd("");
-    setSendReceipt(true);
+    setSendReceipt(false);
     setInvoiceId(unpaid.length === 1 ? String(unpaid[0].id) : "auto");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: open transition only
   }, [open]);
@@ -127,7 +127,7 @@ export function RecordPaymentDialog({
     }
     setSaving(true);
     try {
-      await recordSubscriptionPayment(companyId, {
+      const result = await recordSubscriptionPayment(companyId, {
         amount: amt,
         paidOn,
         methodNote: methodNote || undefined,
@@ -140,11 +140,22 @@ export function RecordPaymentDialog({
         extendSubscription: true,
         sendReceipt,
       });
-      toast.success(
-        sendReceipt
-          ? "Payment recorded — receipt generated and sent"
-          : "Payment recorded — receipt generated",
-      );
+      const latest = result.payments?.[0];
+      if (sendReceipt) {
+        if (latest?.receiptSent) {
+          toast.success(
+            `Payment recorded — receipt emailed to ${latest.receiptToEmail ?? "billing contacts"}`,
+          );
+        } else if (latest?.receiptSendError) {
+          toast.warning(
+            `Payment recorded, but email failed: ${latest.receiptSendError}`,
+          );
+        } else {
+          toast.success("Payment recorded — receipt generated");
+        }
+      } else {
+        toast.success("Payment recorded");
+      }
       onSaved();
       onOpenChange(false);
     } catch (err) {
@@ -258,6 +269,11 @@ export function RecordPaymentDialog({
               />
               Email receipt to billing contacts
             </label>
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              Optional. Requires working SMTP credentials on the server
+              (MAIL_USERNAME / MAIL_PASSWORD). Payment still saves if email
+              fails.
+            </p>
           </ItemSectionCard>
 
           <div className="flex justify-end gap-2 pt-1">

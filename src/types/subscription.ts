@@ -44,6 +44,8 @@ export type SubscriptionPayment = {
   receiptSent: boolean;
   receiptToEmail?: string | null;
   receiptSendError?: string | null;
+  archived?: boolean;
+  archivedAt?: string | null;
 };
 
 export type SubscriptionReminderLog = {
@@ -54,6 +56,8 @@ export type SubscriptionReminderLog = {
   toEmail?: string | null;
   success: boolean;
   error?: string | null;
+  archived?: boolean;
+  archivedAt?: string | null;
 };
 
 export type SubscriptionInvoice = {
@@ -85,6 +89,8 @@ export type SubscriptionInvoice = {
   paymentId?: number | null;
   paidOn?: string | null;
   receiptNo?: string | null;
+  archived?: boolean;
+  archivedAt?: string | null;
 };
 
 export type CompanySubscription = {

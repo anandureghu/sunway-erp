@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   cancelSubscription,
+  archiveSubscriptionInvoice,
+  archiveSubscriptionPayment,
+  archiveSubscriptionReminder,
   downloadSubscriptionInvoicePdf,
   downloadSubscriptionPaymentReceiptPdf,
   extendSubscription,
@@ -22,6 +25,7 @@ import type {
   CompanySubscription,
   SubscriptionInvoice,
   SubscriptionPayment,
+  SubscriptionReminderLog,
 } from "@/types/subscription";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
@@ -34,7 +38,10 @@ import {
   subscriptionStatusBadge,
 } from "./subscription-badges";
 import {
+  Archive,
+  ArchiveRestore,
   Ban,
+  Building2,
   CalendarPlus,
   CreditCard,
   Download,
@@ -45,6 +52,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const HISTORY_PAGE_SIZE = 10;
 
 function formatMoney(amount?: number | null, currency?: string | null) {
   if (amount == null) return "—";
@@ -52,6 +63,20 @@ function formatMoney(amount?: number | null, currency?: string | null) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}${currency ? ` ${currency}` : ""}`;
+}
+
+function usePagedRows<T>(rows: T[], pageSize = HISTORY_PAGE_SIZE) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const slice = rows.slice(safePage * pageSize, safePage * pageSize + pageSize);
+  return {
+    page: safePage,
+    setPage,
+    totalPages,
+    slice,
+    total: rows.length,
+  };
 }
 
 export default function SubscriptionDetailPage() {
@@ -69,25 +94,27 @@ export default function SubscriptionDetailPage() {
   };
   const [data, setData] = useState<CompanySubscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [invoiceBusy, setInvoiceBusy] = useState<
     "generate" | "regenerate" | "send" | "preview" | null
   >(null);
   const [receiptBusyId, setReceiptBusyId] = useState<number | null>(null);
+  const [archiveBusyId, setArchiveBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!Number.isFinite(companyId)) return;
     setLoading(true);
     try {
-      setData(await fetchSubscription(companyId));
+      setData(await fetchSubscription(companyId, includeArchived));
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to load subscription"));
       setData(null);
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [companyId, includeArchived]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -151,7 +178,13 @@ export default function SubscriptionDetailPage() {
       );
       void load();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Failed to send invoice"));
+      const message = getApiErrorMessage(err, "Failed to send invoice");
+      toast.error(
+        /MAIL_|Authentication failed|not configured/i.test(message)
+          ? `${message} Payment recording still works without email.`
+          : message,
+      );
+      void load();
     } finally {
       setInvoiceBusy(null);
     }
@@ -223,16 +256,69 @@ export default function SubscriptionDetailPage() {
         payment.id,
         resend,
       );
-      toast.success(
-        updated.receiptSent
-          ? `Receipt sent to ${updated.receiptToEmail ?? "billing contacts"}`
-          : "Receipt could not be sent",
-      );
+      if (updated.receiptSent) {
+        toast.success(
+          `Receipt sent to ${updated.receiptToEmail ?? "billing contacts"}`,
+        );
+      } else {
+        toast.error(
+          updated.receiptSendError ??
+            "Receipt could not be sent. Check server MAIL_* SMTP settings.",
+        );
+      }
       void load();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to send receipt"));
     } finally {
       setReceiptBusyId(null);
+    }
+  };
+
+  const handleArchivePayment = async (
+    payment: SubscriptionPayment,
+    archived: boolean,
+  ) => {
+    setArchiveBusyId(`pay-${payment.id}`);
+    try {
+      await archiveSubscriptionPayment(companyId, payment.id, archived);
+      toast.success(archived ? "Payment archived" : "Payment restored");
+      void load();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update payment"));
+    } finally {
+      setArchiveBusyId(null);
+    }
+  };
+
+  const handleArchiveInvoice = async (
+    invoice: SubscriptionInvoice,
+    archived: boolean,
+  ) => {
+    setArchiveBusyId(`inv-${invoice.id}`);
+    try {
+      await archiveSubscriptionInvoice(companyId, invoice.id, archived);
+      toast.success(archived ? "Invoice archived" : "Invoice restored");
+      void load();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update invoice"));
+    } finally {
+      setArchiveBusyId(null);
+    }
+  };
+
+  const handleArchiveReminder = async (
+    reminder: SubscriptionReminderLog,
+    archived: boolean,
+  ) => {
+    setArchiveBusyId(`rem-${reminder.id}`);
+    try {
+      await archiveSubscriptionReminder(companyId, reminder.id, archived);
+      toast.success(archived ? "Reminder archived" : "Reminder restored");
+      void load();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update reminder"));
+    } finally {
+      setArchiveBusyId(null);
     }
   };
 
@@ -276,18 +362,30 @@ export default function SubscriptionDetailPage() {
       (inv.periodEnd ?? null) === (data.endsAt ?? null),
   );
 
+  const mailErrorHint =
+    data?.payments?.find((p) => p.receiptSendError)?.receiptSendError ??
+    data?.invoices?.find((inv) => inv.sendError && !inv.sent)?.sendError ??
+    null;
+
   return (
-    <div className="space-y-4 p-4 md:p-6">
+    <div className="space-y-6 p-4 md:p-6">
       <PageHeader
+        variant="darkBlue"
         title={data?.companyName ?? `Company #${companyId}`}
-        description="Subscription detail, payments, invoices, and reminders"
+        description={
+          data?.companyCode
+            ? `${data.companyCode} · Subscription detail, payments, invoices, and reminders`
+            : "Subscription detail, payments, invoices, and reminders"
+        }
         backHref="/admin/subscriptions"
+        icon={<Building2 className="h-5 w-5 text-white" />}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              size="lg"
+              variant="secondary"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
               onClick={() => void load()}
               disabled={loading}
             >
@@ -296,8 +394,9 @@ export default function SubscriptionDetailPage() {
             </Button>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              size="lg"
+              variant="secondary"
+              className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
               onClick={() => setTab("invoices")}
               disabled={loading || !data}
             >
@@ -308,43 +407,81 @@ export default function SubscriptionDetailPage() {
         }
       />
 
+      {mailErrorHint ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-medium">Email delivery is failing on this server</p>
+          <p className="mt-1 text-[13px] text-amber-900/90">{mailErrorHint}</p>
+          <p className="mt-1 text-[12px] text-amber-800/80">
+            Payments and invoice PDFs still work. Fix SMTP credentials
+            (MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM) to send email.
+          </p>
+        </div>
+      ) : null}
+
       {loading && !data ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : !data ? (
         <p className="text-sm text-destructive">Subscription not found.</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            {subscriptionStatusBadge(data.status)}
-            {/* Prefer current-period invoice payment over subscription-level PAID
-                so a newly generated unpaid invoice is not shown as "Paid". */}
-            {currentPeriodInvoice && !currentPeriodInvoice.paid ? (
-              <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
-                Invoice unpaid
-              </Badge>
-            ) : (
-              paymentStatusBadge(data.paymentStatus)
-            )}
-            <Badge variant="secondary">{data.planType}</Badge>
-            {data.locked && <Badge variant="destructive">Locked</Badge>}
-            {currentPeriodInvoice?.sent && (
-              <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">
-                Invoice sent
-              </Badge>
-            )}
-            {currentPeriodInvoice?.generated && !currentPeriodInvoice.sent && (
-              <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
-                {currentPeriodInvoice.stale ? "Invoice stale" : "Ready to send"}
-              </Badge>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {subscriptionStatusBadge(data.status)}
+              {currentPeriodInvoice && !currentPeriodInvoice.paid ? (
+                <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                  Invoice unpaid
+                </Badge>
+              ) : (
+                paymentStatusBadge(data.paymentStatus)
+              )}
+              <Badge variant="secondary">{data.planType}</Badge>
+              {data.locked && <Badge variant="destructive">Locked</Badge>}
+              {currentPeriodInvoice?.sent && (
+                <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">
+                  Invoice sent
+                </Badge>
+              )}
+              {currentPeriodInvoice?.generated && !currentPeriodInvoice.sent && (
+                <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+                  {currentPeriodInvoice.stale ? "Invoice stale" : "Ready to send"}
+                </Badge>
+              )}
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <Checkbox
+                checked={includeArchived}
+                onCheckedChange={(v) => setIncludeArchived(v === true)}
+              />
+              Show archived
+            </label>
           </div>
 
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="invoices">Invoices</TabsTrigger>
-              <TabsTrigger value="reminders">Reminders</TabsTrigger>
+          <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+            <TabsList className="h-10 rounded-xl bg-slate-100 p-1">
+              <TabsTrigger
+                value="overview"
+                className="rounded-lg px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="payments"
+                className="rounded-lg px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Payments
+              </TabsTrigger>
+              <TabsTrigger
+                value="invoices"
+                className="rounded-lg px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Invoices
+              </TabsTrigger>
+              <TabsTrigger
+                value="reminders"
+                className="rounded-lg px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                Reminders
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -430,8 +567,10 @@ export default function SubscriptionDetailPage() {
                 payments={data.payments ?? []}
                 currencyCode={data.currencyCode}
                 receiptBusyId={receiptBusyId}
+                archiveBusyId={archiveBusyId}
                 onDownloadReceipt={(p) => void handleDownloadReceipt(p)}
                 onSendReceipt={(p, resend) => void handleSendReceipt(p, resend)}
+                onArchive={(p, archived) => void handleArchivePayment(p, archived)}
               />
             </TabsContent>
 
@@ -448,27 +587,34 @@ export default function SubscriptionDetailPage() {
               />
 
               <SubscriptionInvoiceHistoryTable
-                invoices={data.invoices ?? []}
+                invoices={(data.invoices ?? []).filter(
+                  (inv) =>
+                    !(
+                      inv.periodStart === data.startsAt &&
+                      (inv.periodEnd ?? null) === (data.endsAt ?? null)
+                    ),
+                )}
                 currentPeriodStart={data.startsAt}
                 currentPeriodEnd={data.endsAt}
-                emptyMessage="No invoices yet. Generate an invoice for the current period to begin."
+                emptyMessage="No prior invoices yet. Generate an invoice for the current period to begin."
                 onPreview={(inv) => void handlePreview(inv)}
                 onDownload={(inv) => void handleDownload(inv)}
+                onArchive={(inv, archived) =>
+                  void handleArchiveInvoice(inv, archived)
+                }
+                archiveBusyId={archiveBusyId}
                 previewBusy={invoiceBusy === "preview"}
+                pageSize={HISTORY_PAGE_SIZE}
               />
             </TabsContent>
 
             <TabsContent value="reminders">
-              <HistoryTable
-                empty="No reminder emails logged yet."
-                headers={["Type", "Period", "Sent at", "To", "Result"]}
-                rows={(data.reminders ?? []).map((r) => [
-                  r.reminderType,
-                  r.periodKey,
-                  new Date(r.sentAt).toLocaleString(),
-                  r.toEmail ?? "—",
-                  r.success ? "OK" : r.error ?? "Failed",
-                ])}
+              <RemindersTable
+                reminders={data.reminders ?? []}
+                archiveBusyId={archiveBusyId}
+                onArchive={(r, archived) =>
+                  void handleArchiveReminder(r, archived)
+                }
               />
             </TabsContent>
           </Tabs>
@@ -668,9 +814,63 @@ function CurrentPeriodInvoicePanel({
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-background p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function TablePager({
+  page,
+  totalPages,
+  total,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  total: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) {
+    return (
+      <p className="px-3 py-2 text-xs text-muted-foreground">
+        {total} record{total === 1 ? "" : "s"}
+      </p>
+    );
+  }
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-3 py-2">
+      <p className="text-xs text-muted-foreground">
+        {total} record{total === 1 ? "" : "s"}
+      </p>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-xl"
+          disabled={page <= 0}
+          onClick={() => onPageChange(page - 1)}
+        >
+          Previous
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Page {page + 1} of {totalPages}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-xl"
+          disabled={page + 1 >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 }
@@ -679,150 +879,224 @@ function SubscriptionPaymentsTable({
   payments,
   currencyCode,
   receiptBusyId,
+  archiveBusyId,
   onDownloadReceipt,
   onSendReceipt,
+  onArchive,
 }: {
   payments: SubscriptionPayment[];
   currencyCode?: string | null;
   receiptBusyId: number | null;
+  archiveBusyId: string | null;
   onDownloadReceipt: (payment: SubscriptionPayment) => void;
   onSendReceipt: (payment: SubscriptionPayment, resend?: boolean) => void;
+  onArchive: (payment: SubscriptionPayment, archived: boolean) => void;
 }) {
+  const sorted = [...payments].sort((a, b) => b.paidOn.localeCompare(a.paidOn));
+  const { page, setPage, totalPages, slice, total } = usePagedRows(sorted);
+
   if (payments.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
         No payments recorded yet.
       </p>
     );
   }
 
-  const sorted = [...payments].sort((a, b) => b.paidOn.localeCompare(a.paidOn));
-
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="px-3 py-2.5">Paid on</th>
-            <th className="px-3 py-2.5">Amount</th>
-            <th className="px-3 py-2.5">Invoice</th>
-            <th className="px-3 py-2.5">Period</th>
-            <th className="px-3 py-2.5">Method</th>
-            <th className="px-3 py-2.5">Receipt</th>
-            <th className="px-3 py-2.5 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((p) => (
-            <tr key={p.id} className="border-t">
-              <td className="px-3 py-2.5">{p.paidOn}</td>
-              <td className="px-3 py-2.5">
-                {formatMoney(p.amount, currencyCode)}
-              </td>
-              <td className="px-3 py-2.5 text-muted-foreground">
-                {p.invoiceNo ?? "—"}
-              </td>
-              <td className="px-3 py-2.5 text-muted-foreground">
-                {p.periodStart ?? "—"} → {p.periodEnd ?? "—"}
-              </td>
-              <td className="px-3 py-2.5 text-muted-foreground">
-                {p.methodNote ?? "—"}
-              </td>
-              <td className="px-3 py-2.5">
-                {p.receiptGenerated ? (
-                  <div className="space-y-0.5">
-                    <Badge variant="secondary">{p.receiptNo ?? "Generated"}</Badge>
-                    {p.receiptSent ? (
-                      <p className="text-xs text-muted-foreground">
-                        Sent {p.receiptToEmail ? `to ${p.receiptToEmail}` : ""}
-                      </p>
-                    ) : p.receiptSendError ? (
-                      <p className="text-xs text-destructive">{p.receiptSendError}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Not sent</p>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </td>
-              <td className="px-3 py-2.5 text-right">
-                {p.receiptGenerated ? (
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDownloadReceipt(p)}
-                    >
-                      <Download className="mr-1 h-4 w-4" />
-                      Receipt
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onSendReceipt(p, p.receiptSent)}
-                      disabled={receiptBusyId === p.id}
-                    >
-                      <Mail className="mr-1 h-4 w-4" />
-                      {receiptBusyId === p.id
-                        ? "Sending…"
-                        : p.receiptSent
-                          ? "Resend"
-                          : "Send"}
-                    </Button>
-                  </div>
-                ) : null}
-              </td>
+    <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-slate-100 bg-slate-50/80 text-left text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="px-3 py-3">Paid on</th>
+              <th className="px-3 py-3">Amount</th>
+              <th className="px-3 py-3">Invoice</th>
+              <th className="px-3 py-3">Period</th>
+              <th className="px-3 py-3">Method</th>
+              <th className="px-3 py-3">Receipt</th>
+              <th className="px-3 py-3 text-right">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {slice.map((p) => (
+              <tr
+                key={p.id}
+                className={`border-t border-slate-100 ${p.archived ? "bg-slate-50/70 opacity-80" : ""}`}
+              >
+                <td className="px-3 py-2.5">{p.paidOn}</td>
+                <td className="px-3 py-2.5">
+                  {formatMoney(p.amount, currencyCode)}
+                </td>
+                <td className="px-3 py-2.5 text-muted-foreground">
+                  {p.invoiceNo ?? "—"}
+                </td>
+                <td className="px-3 py-2.5 text-muted-foreground">
+                  {p.periodStart ?? "—"} → {p.periodEnd ?? "—"}
+                </td>
+                <td className="px-3 py-2.5 text-muted-foreground">
+                  {p.methodNote ?? "—"}
+                </td>
+                <td className="px-3 py-2.5">
+                  {p.receiptGenerated ? (
+                    <div className="space-y-0.5">
+                      <Badge variant="secondary">
+                        {p.receiptNo ?? "Generated"}
+                      </Badge>
+                      {p.receiptSent ? (
+                        <p className="text-xs text-muted-foreground">
+                          Sent {p.receiptToEmail ? `to ${p.receiptToEmail}` : ""}
+                        </p>
+                      ) : p.receiptSendError ? (
+                        <p className="max-w-xs text-xs text-destructive">
+                          {p.receiptSendError}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Not sent</p>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2.5 text-right">
+                  <div className="flex justify-end gap-1">
+                    {p.receiptGenerated ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDownloadReceipt(p)}
+                        >
+                          <Download className="mr-1 h-4 w-4" />
+                          Receipt
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onSendReceipt(p, p.receiptSent)}
+                          disabled={receiptBusyId === p.id}
+                        >
+                          <Mail className="mr-1 h-4 w-4" />
+                          {receiptBusyId === p.id
+                            ? "Sending…"
+                            : p.receiptSent
+                              ? "Resend"
+                              : "Send"}
+                        </Button>
+                      </>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={archiveBusyId === `pay-${p.id}`}
+                      onClick={() => onArchive(p, !p.archived)}
+                    >
+                      {p.archived ? (
+                        <ArchiveRestore className="mr-1 h-4 w-4" />
+                      ) : (
+                        <Archive className="mr-1 h-4 w-4" />
+                      )}
+                      {p.archived ? "Restore" : "Archive"}
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <TablePager
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={setPage}
+      />
+    </Card>
   );
 }
 
-function HistoryTable({
-  headers,
-  rows,
-  empty,
+function RemindersTable({
+  reminders,
+  archiveBusyId,
+  onArchive,
 }: {
-  headers: string[];
-  rows: string[][];
-  empty: string;
+  reminders: SubscriptionReminderLog[];
+  archiveBusyId: string | null;
+  onArchive: (reminder: SubscriptionReminderLog, archived: boolean) => void;
 }) {
-  if (rows.length === 0) {
+  const sorted = [...reminders].sort((a, b) =>
+    b.sentAt.localeCompare(a.sentAt),
+  );
+  const { page, setPage, totalPages, slice, total } = usePagedRows(sorted);
+
+  if (reminders.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-        {empty}
+      <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+        No reminder emails logged yet.
       </p>
     );
   }
+
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
-          <tr>
-            {headers.map((h) => (
-              <th key={h} className="px-3 py-2.5">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-t">
-              {row.map((cell, j) => (
-                <td key={j} className="px-3 py-2.5">
-                  {cell}
-                </td>
-              ))}
+    <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="border-b border-slate-100 bg-slate-50/80 text-left text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="px-3 py-3">Type</th>
+              <th className="px-3 py-3">Period</th>
+              <th className="px-3 py-3">Sent at</th>
+              <th className="px-3 py-3">To</th>
+              <th className="px-3 py-3">Result</th>
+              <th className="px-3 py-3 text-right">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {slice.map((r) => (
+              <tr
+                key={r.id}
+                className={`border-t border-slate-100 ${r.archived ? "bg-slate-50/70 opacity-80" : ""}`}
+              >
+                <td className="px-3 py-2.5">{r.reminderType}</td>
+                <td className="px-3 py-2.5">{r.periodKey}</td>
+                <td className="px-3 py-2.5">
+                  {new Date(r.sentAt).toLocaleString()}
+                </td>
+                <td className="px-3 py-2.5">{r.toEmail ?? "—"}</td>
+                <td className="px-3 py-2.5">
+                  {r.success ? "OK" : r.error ?? "Failed"}
+                </td>
+                <td className="px-3 py-2.5 text-right">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={archiveBusyId === `rem-${r.id}`}
+                    onClick={() => onArchive(r, !r.archived)}
+                  >
+                    {r.archived ? (
+                      <ArchiveRestore className="mr-1 h-4 w-4" />
+                    ) : (
+                      <Archive className="mr-1 h-4 w-4" />
+                    )}
+                    {r.archived ? "Restore" : "Archive"}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <TablePager
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        onPageChange={setPage}
+      />
+    </Card>
   );
 }

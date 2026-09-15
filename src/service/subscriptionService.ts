@@ -11,6 +11,7 @@ import type {
   SubscriptionPayment,
   SubscriptionPaymentStatus,
   SubscriptionPlanType,
+  SubscriptionReminderLog,
   SubscriptionStatus,
   SubscriptionStatusResponse,
 } from "@/types/subscription";
@@ -52,9 +53,11 @@ export async function fetchSubscriptions(params: {
 
 export async function fetchSubscription(
   companyId: number,
+  includeArchived = false,
 ): Promise<CompanySubscription> {
   const res = await apiClient.get<CompanySubscription>(
     `/admin/subscriptions/${companyId}`,
+    { params: { includeArchived: includeArchived || undefined } },
   );
   return res.data;
 }
@@ -174,6 +177,45 @@ export async function sendSubscriptionPaymentReceipt(
     `/admin/subscriptions/${companyId}/payments/${paymentId}/receipt/send`,
     null,
     { params: { resend } },
+  );
+  return res.data;
+}
+
+export async function archiveSubscriptionPayment(
+  companyId: number,
+  paymentId: number,
+  archived = true,
+): Promise<SubscriptionPayment> {
+  const res = await apiClient.post<SubscriptionPayment>(
+    `/admin/subscriptions/${companyId}/payments/${paymentId}/archive`,
+    null,
+    { params: { archived } },
+  );
+  return res.data;
+}
+
+export async function archiveSubscriptionInvoice(
+  companyId: number,
+  invoiceId: number,
+  archived = true,
+): Promise<SubscriptionInvoice> {
+  const res = await apiClient.post<SubscriptionInvoice>(
+    `/admin/subscriptions/${companyId}/invoices/${invoiceId}/archive`,
+    null,
+    { params: { archived } },
+  );
+  return res.data;
+}
+
+export async function archiveSubscriptionReminder(
+  companyId: number,
+  reminderId: number,
+  archived = true,
+): Promise<SubscriptionReminderLog> {
+  const res = await apiClient.post<SubscriptionReminderLog>(
+    `/admin/subscriptions/${companyId}/reminders/${reminderId}/archive`,
+    null,
+    { params: { archived } },
   );
   return res.data;
 }
