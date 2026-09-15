@@ -43,6 +43,7 @@ import { normalizeRole } from "@/lib/utils";
 import { roleService } from "@/service/roleService";
 import { hrService } from "@/service/hr.service";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { canManagePermissions } from "@/lib/permission-ui";
 
 interface Role {
   id: number;
@@ -75,7 +76,8 @@ interface Props {
 }
 
 export default function PermissionsTab({ moduleType, modules }: Props) {
-  const { user } = useAuth();
+  const { user, permissions: authPermissions } = useAuth();
+  const canGrantAdminOnly = canManagePermissions(user?.role, authPermissions);
   const [roles, setRoles] = useState<Role[]>([]);
   const [perms, setPerms] = useState<Permission[]>([]);
   const [modal, setModal] = useState<"perm" | "role" | null>(null);
@@ -737,6 +739,7 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
               <PermissionCards
                 modules={modules}
                 caps={permForm.caps}
+                canGrantAdminOnly={canGrantAdminOnly}
                 onChange={(next) =>
                   setPermForm((v) => ({ ...v, caps: next }))
                 }

@@ -54,10 +54,23 @@ const PAGE_ACTIONS: Record<string, SimpleAction[]> = {
   INVENTORY_RECEIPT: ["view", "create", "edit", "delete", "approve"],
   INVENTORY_CATEGORY: ["view", "create", "edit", "delete"],
   INVENTORY_WAREHOUSE: ["view", "create", "edit", "delete"],
+  // Bulk upload — create-only; assignment is admin-only (see ADMIN_ONLY).
+  HRS_BULK_UPLOAD: ["create"],
+  FINS_BULK_UPLOAD: ["create"],
+  INVS_BULK_UPLOAD: ["create"],
+  INVENTORY_ITEM_BULK_UPLOAD: ["create"],
+  INVENTORY_VENDOR_BULK_UPLOAD: ["create"],
 };
 
-/** Pages whose management is reserved for administrators (badge only). */
-const ADMIN_ONLY = new Set(["HR_SETTINGS"]);
+/** Pages whose grants may only be changed by administrators. */
+const ADMIN_ONLY = new Set([
+  "HR_SETTINGS",
+  "HRS_BULK_UPLOAD",
+  "FINS_BULK_UPLOAD",
+  "INVS_BULK_UPLOAD",
+  "INVENTORY_ITEM_BULK_UPLOAD",
+  "INVENTORY_VENDOR_BULK_UPLOAD",
+]);
 
 /** The Simple actions that apply to a given page. */
 export function pageActions(moduleId: string): SimpleAction[] {

@@ -39,6 +39,8 @@ interface Props {
   modules: PermissionModuleRow[];
   caps: CapsState;
   onChange: (next: CapsState) => void;
+  /** When false, admin-only permission cards cannot be toggled. */
+  canGrantAdminOnly?: boolean;
 }
 
 function buildCards(mod: PermissionModuleRow, mode: Mode): CardDef[] {
@@ -75,7 +77,12 @@ function buildCards(mod: PermissionModuleRow, mode: Mode): CardDef[] {
   return cards;
 }
 
-export default function PermissionCards({ modules, caps, onChange }: Props) {
+export default function PermissionCards({
+  modules,
+  caps,
+  onChange,
+  canGrantAdminOnly = true,
+}: Props) {
   const [mode, setMode] = useState<Mode>("simple");
   const [query, setQuery] = useState("");
 
@@ -125,8 +132,12 @@ export default function PermissionCards({ modules, caps, onChange }: Props) {
   };
 
   const setCards = (cards: CardDef[], value: boolean) => {
+    const allowed = canGrantAdminOnly
+      ? cards
+      : cards.filter((c) => !c.adminOnly);
+    if (allowed.length === 0) return;
     const next: CapsState = { ...caps };
-    for (const card of cards) {
+    for (const card of allowed) {
       const cur = next[card.modId] ?? {};
       next[card.modId] = {
         ...cur,
@@ -136,8 +147,10 @@ export default function PermissionCards({ modules, caps, onChange }: Props) {
     onChange(next);
   };
 
-  const toggleCard = (card: CardDef) =>
+  const toggleCard = (card: CardDef) => {
+    if (card.adminOnly && !canGrantAdminOnly) return;
     setCards([card], cardState(card) !== "on");
+  };
 
   // ── Counters ──
   const allCards = useMemo(
@@ -237,13 +250,16 @@ export default function PermissionCards({ modules, caps, onChange }: Props) {
                   const cards = cardsByMod.get(normalizeModuleKey(m.id)) ?? [];
                   return cards.map((card) => {
                     const state = cardState(card);
+                    const locked = card.adminOnly && !canGrantAdminOnly;
                     return (
                       <button
                         key={`${card.modId}:${card.id}`}
                         type="button"
+                        disabled={locked}
                         onClick={() => toggleCard(card)}
                         className={cn(
                           "flex items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+                          locked && "cursor-not-allowed opacity-60",
                           state === "off"
                             ? "border-slate-200 bg-white hover:border-slate-300"
                             : "border-blue-300 bg-blue-50/40",

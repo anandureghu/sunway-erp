@@ -11,6 +11,15 @@ export const InventoryModule = {
   SALES: "INVENTORY_SALES",
 } as const;
 
+/** CSV bulk-import permissions (admin-grantable). */
+export const BulkUploadModule = {
+  HR: "HRS_BULK_UPLOAD",
+  FINANCE: "FINS_BULK_UPLOAD",
+  INVENTORY_SETTINGS: "INVS_BULK_UPLOAD",
+  ITEM: "INVENTORY_ITEM_BULK_UPLOAD",
+  VENDOR: "INVENTORY_VENDOR_BULK_UPLOAD",
+} as const;
+
 export type InventoryModuleName =
   (typeof InventoryModule)[keyof typeof InventoryModule];
 
@@ -61,6 +70,14 @@ export function canCreateModule(
     "createOwn",
     "createAll",
   ]);
+}
+
+/** Whether the user may use CSV bulk import for the given bulk-upload module. */
+export function canBulkUpload(
+  permissions: PermissionMap,
+  module: string,
+): boolean {
+  return canCreateModule(permissions, module);
 }
 
 export function canEditModule(

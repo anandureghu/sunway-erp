@@ -16,6 +16,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import {
+  BulkUploadModule,
+  canBulkUpload,
+} from "@/lib/module-permissions";
 import {
   WAREHOUSE_CSV_CANONICAL_FIELDS,
   importWarehousesCsv,
@@ -56,6 +61,7 @@ type Props = {
 };
 
 export function ImportWarehousesCsvDialog({ onImported }: Props) {
+  const { permissions } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -158,6 +164,10 @@ export function ImportWarehousesCsvDialog({ onImported }: Props) {
     Object.values(mapping).filter((v): v is string => !!v),
   );
   const mappingEntries = Object.entries(mapping);
+
+  if (!canBulkUpload(permissions, BulkUploadModule.INVENTORY_SETTINGS)) {
+    return null;
+  }
 
   return (
     <>

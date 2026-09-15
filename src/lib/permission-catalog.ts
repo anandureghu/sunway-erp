@@ -42,6 +42,7 @@ export const HR_PERMISSION_MODULES: PermissionModuleRow[] = [
   { id: "HRS_POLICIES", label: "HR Policies", group: "HR Settings", description: "Company HR policies & statutory defaults" },
   { id: "HRS_SOCIAL", label: "Social", group: "HR Settings", description: "Social / branding settings" },
   { id: "HRS_PERMISSIONS", label: "Permissions", group: "HR Settings", description: "Assign role permissions" },
+  { id: "HRS_BULK_UPLOAD", label: "Bulk Upload", group: "HR Settings", description: "CSV bulk import in HR Settings (admin-grantable)" },
   // HR Reports — per tab (HR_REPORTS umbrella grants all of them)
   { id: "HR_REPORTS", label: "All HR Reports", group: "HR Reports", description: "Umbrella — grants every HR Reports tab below" },
   { id: "HRR_WORKFORCE", label: "Workforce Overview", group: "HR Reports", description: "Workforce analytics" },
@@ -74,6 +75,8 @@ export const FINANCE_PERMISSION_MODULES: PermissionModuleRow[] = [
   { id: "FINANCE_COA", label: "Chart of Accounts", group: "Finance Settings", description: "Account structure" },
   { id: "FINANCE_BUDGET", label: "Budget", group: "Finance Settings", description: "Budgets & budget lines" },
   { id: "FINANCE_RECONCILIATION", label: "Reconciliation", group: "Finance Settings", description: "Bank & account reconciliation" },
+  { id: "FINS_BULK_UPLOAD", label: "Bulk Upload", group: "Finance Settings", description: "CSV bulk import in Finance Settings (admin-grantable)" },
+  { id: "INVENTORY_VENDOR_BULK_UPLOAD", label: "Supplier Bulk Upload", group: "Finance Settings", description: "Import suppliers from CSV (admin-grantable)" },
 ];
 
 // ── Inventory ───────────────────────────────────────────────────────────────
@@ -83,6 +86,7 @@ export const INVENTORY_PERMISSION_MODULES: PermissionModuleRow[] = [
   // Inventory Stocks  (/inventory/stocks)
   { id: "INVENTORY_STOCK", label: "Stock Management", group: "Inventory Stocks", description: "Stock list, receive, variances, batch movements & ops reports" },
   { id: "INVENTORY_ITEM", label: "Items", group: "Inventory Stocks", description: "Item master, catalog archive/delete & discounts" },
+  { id: "INVENTORY_ITEM_BULK_UPLOAD", label: "Item Bulk Upload", group: "Inventory Stocks", description: "Import items from CSV (admin-grantable)" },
   // Sales  (/inventory/sales)
   { id: "INVENTORY_SALES", label: "Sales", group: "Sales", description: "Orders, customers, picklist & dispatch (invoices need Finance → Invoices)" },
   // Purchase  (/inventory/purchase)
@@ -91,4 +95,6 @@ export const INVENTORY_PERMISSION_MODULES: PermissionModuleRow[] = [
   // Inventory Settings  (/inventory/settings)
   { id: "INVENTORY_CATEGORY", label: "Categories", group: "Inventory Settings", description: "Item categories" },
   { id: "INVENTORY_WAREHOUSE", label: "Warehouse", group: "Inventory Settings", description: "Warehouses, locations & dispatch carriers" },
+  { id: "INVS_BULK_UPLOAD", label: "Bulk Upload", group: "Inventory Settings", description: "Import categories & warehouses from CSV (admin-grantable)" },
+  { id: "INVENTORY_VENDOR_BULK_UPLOAD", label: "Supplier Bulk Upload", group: "Inventory Settings", description: "Import suppliers from CSV (admin-grantable)" },
 ];
