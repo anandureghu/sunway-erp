@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -52,6 +53,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const PAGE_SIZE = 20;
+
 function formatMoney(amount?: number | null, currency?: string | null) {
   if (amount == null) return "—";
   return `${Number(amount).toLocaleString(undefined, {
@@ -93,7 +96,7 @@ export default function SubscriptionsPage() {
         paymentStatus,
         expiringWithinDays: expiringWithin ? Number(expiringWithin) : undefined,
         page,
-        size: 20,
+        size: PAGE_SIZE,
       });
       setRows(data.content ?? []);
       setTotalPages(data.totalPages ?? 0);
@@ -187,245 +190,297 @@ export default function SubscriptionsPage() {
   };
 
   return (
-    <div className="space-y-4 p-4 md:p-6">
+    <div className="space-y-6 p-4 md:p-6">
       <PageHeader
+        variant="darkBlue"
         title="Subscriptions"
         description="Platform billing: plans, renewals, and subscription health"
+        icon={<CreditCard className="h-5 w-5 text-white" />}
       />
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="listing">Listing</TabsTrigger>
-          <TabsTrigger value="analysis">Analysis</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <TabsList className="h-10 rounded-xl bg-slate-100 p-1">
+          <TabsTrigger
+            value="listing"
+            className="rounded-lg px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            Listing
+          </TabsTrigger>
+          <TabsTrigger
+            value="analysis"
+            className="rounded-lg px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            Analysis
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="listing" className="space-y-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Status</p>
-              <Select
-                value={status || "all"}
-                onValueChange={(v) => {
-                  setPage(0);
-                  setStatus(v === "all" ? "" : (v as SubscriptionStatus));
-                }}
+          <Card className="rounded-2xl border-slate-200 shadow-sm">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/80 pb-4">
+              <CardTitle className="text-[15px] font-semibold text-slate-800">
+                Filters
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-end gap-3 pt-4">
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Status
+                </p>
+                <Select
+                  value={status || "all"}
+                  onValueChange={(v) => {
+                    setPage(0);
+                    setStatus(v === "all" ? "" : (v as SubscriptionStatus));
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[160px] rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="EXPIRING">Expiring</SelectItem>
+                    <SelectItem value="EXPIRED">Expired</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Plan
+                </p>
+                <Select
+                  value={planType || "all"}
+                  onValueChange={(v) => {
+                    setPage(0);
+                    setPlanType(v === "all" ? "" : (v as SubscriptionPlanType));
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[140px] rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="FREE">Free</SelectItem>
+                    <SelectItem value="MONTHLY">Monthly</SelectItem>
+                    <SelectItem value="YEARLY">Yearly</SelectItem>
+                    <SelectItem value="CUSTOM">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Payment
+                </p>
+                <Select
+                  value={paymentStatus || "all"}
+                  onValueChange={(v) => {
+                    setPage(0);
+                    setPaymentStatus(
+                      v === "all" ? "" : (v as SubscriptionPaymentStatus),
+                    );
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[140px] rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="UNPAID">Unpaid</SelectItem>
+                    <SelectItem value="NOT_REQUIRED">N/A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Expiring within days
+                </p>
+                <Input
+                  className="h-9 w-[120px] rounded-xl"
+                  type="number"
+                  min={1}
+                  placeholder="e.g. 7"
+                  value={expiringWithin}
+                  onChange={(e) => {
+                    setPage(0);
+                    setExpiringWithin(e.target.value);
+                  }}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-xl"
+                onClick={() => void loadList()}
               >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="EXPIRING">Expiring</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Plan</p>
-              <Select
-                value={planType || "all"}
-                onValueChange={(v) => {
-                  setPage(0);
-                  setPlanType(v === "all" ? "" : (v as SubscriptionPlanType));
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="FREE">Free</SelectItem>
-                  <SelectItem value="MONTHLY">Monthly</SelectItem>
-                  <SelectItem value="YEARLY">Yearly</SelectItem>
-                  <SelectItem value="CUSTOM">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Payment</p>
-              <Select
-                value={paymentStatus || "all"}
-                onValueChange={(v) => {
-                  setPage(0);
-                  setPaymentStatus(
-                    v === "all" ? "" : (v as SubscriptionPaymentStatus),
-                  );
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                  <SelectItem value="UNPAID">Unpaid</SelectItem>
-                  <SelectItem value="NOT_REQUIRED">N/A</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Expiring within days</p>
-              <Input
-                className="w-[120px]"
-                type="number"
-                min={1}
-                placeholder="e.g. 7"
-                value={expiringWithin}
-                onChange={(e) => {
-                  setPage(0);
-                  setExpiringWithin(e.target.value);
-                }}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void loadList()}
-            >
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-              Refresh
-            </Button>
-          </div>
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                Refresh
+              </Button>
+            </CardContent>
+          </Card>
 
-          <div className="overflow-x-auto rounded-lg border bg-background">
-            <table className="w-full min-w-[900px] text-sm">
-              <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2.5">Company</th>
-                  <th className="px-3 py-2.5">Plan</th>
-                  <th className="px-3 py-2.5">Amount</th>
-                  <th className="px-3 py-2.5">Status</th>
-                  <th className="px-3 py-2.5">Period</th>
-                  <th className="px-3 py-2.5">Days left</th>
-                  <th className="px-3 py-2.5">Payment</th>
-                  <th className="px-3 py-2.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+          <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1000px] text-sm">
+                <thead className="border-b border-slate-100 bg-slate-50/80 text-left text-[11px] font-medium uppercase tracking-wide text-slate-400">
                   <tr>
-                    <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
-                      Loading…
-                    </td>
+                    <th className="w-14 px-3 py-3">SI No</th>
+                    <th className="px-3 py-3">Company code</th>
+                    <th className="px-3 py-3">Company</th>
+                    <th className="px-3 py-3">Plan</th>
+                    <th className="px-3 py-3">Amount</th>
+                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Period</th>
+                    <th className="px-3 py-3">Days left</th>
+                    <th className="px-3 py-3">Payment</th>
+                    <th className="px-3 py-3 text-right">Actions</th>
                   </tr>
-                ) : rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
-                      No subscriptions found
-                    </td>
-                  </tr>
-                ) : (
-                  rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="border-b last:border-0 cursor-pointer hover:bg-muted/30"
-                      onClick={() =>
-                        navigate(`/admin/subscriptions/${row.companyId}`)
-                      }
-                    >
-                      <td className="px-3 py-2.5 font-medium">
-                        <Link
-                          to={`/admin/subscriptions/${row.companyId}`}
-                          className="hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {row.companyName ?? `#${row.companyId}`}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-2.5">{row.planType}</td>
-                      <td className="px-3 py-2.5">
-                        {formatMoney(row.amount, row.currencyCode)}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {subscriptionStatusBadge(row.status)}
-                      </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">
-                        {row.startsAt}
-                        {" → "}
-                        {row.endsAt ?? "open"}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {row.daysRemaining == null ? "—" : row.daysRemaining}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex flex-col gap-1">
-                          {paymentStatusBadge(row.paymentStatus)}
-                          {row.lastPaymentOn ? (
-                            <span className="text-xs text-muted-foreground">
-                              {row.lastPaymentOn} (
-                              {formatMoney(row.lastPaymentAmount)})
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 text-right">
-                        <div data-no-row-nav onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  navigate(
-                                    `/admin/subscriptions/${row.companyId}`,
-                                  )
-                                }
-                              >
-                                View detail
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => void openAssign(row)}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit plan
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openPayment(row)}>
-                                <CreditCard className="mr-2 h-4 w-4" />
-                                Record payment
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => void handleSendInvoice(row)}
-                              >
-                                <Mail className="mr-2 h-4 w-4" />
-                                Invoice workflow
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => void handleExtend(row)}
-                              >
-                                <CalendarPlus className="mr-2 h-4 w-4" />
-                                Extend
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => void handleCancel(row)}
-                              >
-                                <Ban className="mr-2 h-4 w-4" />
-                                Cancel subscription
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td
+                        colSpan={10}
+                        className="px-3 py-10 text-center text-muted-foreground"
+                      >
+                        Loading…
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : rows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={10}
+                        className="px-3 py-10 text-center text-muted-foreground"
+                      >
+                        No subscriptions found
+                      </td>
+                    </tr>
+                  ) : (
+                    rows.map((row, index) => (
+                      <tr
+                        key={row.id}
+                        className="border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50/80"
+                        onClick={() =>
+                          navigate(`/admin/subscriptions/${row.companyId}`)
+                        }
+                      >
+                        <td className="px-3 py-2.5 tabular-nums text-slate-500">
+                          {page * PAGE_SIZE + index + 1}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="font-mono text-[12px] font-medium text-slate-700">
+                            {row.companyCode || "—"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 font-medium text-slate-900">
+                          <Link
+                            to={`/admin/subscriptions/${row.companyId}`}
+                            className="hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {row.companyName ?? `#${row.companyId}`}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2.5">{row.planType}</td>
+                        <td className="px-3 py-2.5">
+                          {formatMoney(row.amount, row.currencyCode)}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {subscriptionStatusBadge(row.status)}
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">
+                          {row.startsAt}
+                          {" → "}
+                          {row.endsAt ?? "open"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {row.daysRemaining == null ? "—" : row.daysRemaining}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex flex-col gap-1">
+                            {paymentStatusBadge(row.paymentStatus)}
+                            {row.lastPaymentOn ? (
+                              <span className="text-xs text-muted-foreground">
+                                {row.lastPaymentOn} (
+                                {formatMoney(row.lastPaymentAmount)})
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <div
+                            data-no-row-nav
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate(
+                                      `/admin/subscriptions/${row.companyId}`,
+                                    )
+                                  }
+                                >
+                                  View detail
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => void openAssign(row)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit plan
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => openPayment(row)}
+                                >
+                                  <CreditCard className="mr-2 h-4 w-4" />
+                                  Record payment
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => void handleSendInvoice(row)}
+                                >
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  Invoice workflow
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => void handleExtend(row)}
+                                >
+                                  <CalendarPlus className="mr-2 h-4 w-4" />
+                                  Extend
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => void handleCancel(row)}
+                                >
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  Cancel subscription
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
           {totalPages > 1 && (
             <div className="flex items-center justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-xl"
                 disabled={page <= 0}
                 onClick={() => setPage((p) => p - 1)}
               >
@@ -437,6 +492,7 @@ export default function SubscriptionsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-xl"
                 disabled={page + 1 >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
@@ -452,7 +508,10 @@ export default function SubscriptionsPage() {
           ) : (
             <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <KpiCard label="Total companies" value={String(analytics.totalCompanies)} />
+                <KpiCard
+                  label="Total companies"
+                  value={String(analytics.totalCompanies)}
+                />
                 <KpiCard
                   label="Est. monthly recurring"
                   value={formatMoney(analytics.estimatedMonthlyRecurring)}
@@ -469,7 +528,10 @@ export default function SubscriptionsPage() {
                   label="Expiring in 30 days"
                   value={String(analytics.expiringIn30Days)}
                 />
-                <KpiCard label="New in period" value={String(analytics.newInPeriod)} />
+                <KpiCard
+                  label="New in period"
+                  value={String(analytics.newInPeriod)}
+                />
                 <KpiCard
                   label="Expired in period"
                   value={String(analytics.expiredInPeriod)}
@@ -481,24 +543,34 @@ export default function SubscriptionsPage() {
                 <BreakdownCard title="By plan" data={analytics.countByPlanType} />
               </div>
 
-              <div className="rounded-lg border bg-background p-4">
-                <h3 className="mb-3 text-sm font-semibold">Payments by month</h3>
-                {analytics.paymentsByMonth?.length ? (
-                  <ul className="space-y-1.5 text-sm">
-                    {analytics.paymentsByMonth.map((p) => (
-                      <li
-                        key={p.month}
-                        className="flex justify-between border-b border-dashed py-1 last:border-0"
-                      >
-                        <span className="text-muted-foreground">{p.month}</span>
-                        <span className="font-medium">{formatMoney(p.amount)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No payments in range</p>
-                )}
-              </div>
+              <Card className="rounded-2xl border-slate-200 shadow-sm">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/80 pb-4">
+                  <CardTitle className="text-[15px] font-semibold text-slate-800">
+                    Payments by month
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {analytics.paymentsByMonth?.length ? (
+                    <ul className="space-y-1.5 text-sm">
+                      {analytics.paymentsByMonth.map((p) => (
+                        <li
+                          key={p.month}
+                          className="flex justify-between border-b border-dashed border-slate-100 py-1.5 last:border-0"
+                        >
+                          <span className="text-muted-foreground">{p.month}</span>
+                          <span className="font-medium">
+                            {formatMoney(p.amount)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No payments in range
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             </>
           )}
         </TabsContent>
@@ -530,9 +602,13 @@ export default function SubscriptionsPage() {
 
 function KpiCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-background p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+        {value}
+      </p>
     </div>
   );
 }
@@ -545,16 +621,22 @@ function BreakdownCard({
   data: Record<string, number>;
 }) {
   return (
-    <div className="rounded-lg border bg-background p-4">
-      <h3 className="mb-3 text-sm font-semibold">{title}</h3>
-      <ul className="space-y-1.5 text-sm">
-        {Object.entries(data ?? {}).map(([key, count]) => (
-          <li key={key} className="flex justify-between">
-            <span className="text-muted-foreground">{key}</span>
-            <span className="font-medium">{count}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Card className="rounded-2xl border-slate-200 shadow-sm">
+      <CardHeader className="border-b border-slate-100 bg-slate-50/80 pb-4">
+        <CardTitle className="text-[15px] font-semibold text-slate-800">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <ul className="space-y-1.5 text-sm">
+          {Object.entries(data ?? {}).map(([key, count]) => (
+            <li key={key} className="flex justify-between">
+              <span className="text-muted-foreground">{key}</span>
+              <span className="font-medium">{count}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }

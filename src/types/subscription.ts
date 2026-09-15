@@ -91,6 +91,7 @@ export type CompanySubscription = {
   id: number;
   companyId: number;
   companyName?: string | null;
+  companyCode?: string | null;
   planType: SubscriptionPlanType;
   amount: number;
   currencyCode?: string | null;
