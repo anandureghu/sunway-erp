@@ -14,6 +14,7 @@ import { GlTabPanel } from "@/components/finance/gl-tab-panel";
 import {
   bulkArchiveHistoryRecords,
 } from "@/service/historyService";
+import { ImportTransactionsCsvDialog } from "@/modules/finance/import-transactions-csv-dialog";
 
 const BUDGET_DISTRIBUTION_TYPE = "BUDGET_DISTRIBUTION";
 
@@ -215,6 +216,7 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
       onSearchChange={setSearchQuery}
       loading={loading}
       loadingMessage="Loading transactions…"
+      actions={<ImportTransactionsCsvDialog onImported={load} />}
     >
       <div className="space-y-4">
         <BulkActionBar

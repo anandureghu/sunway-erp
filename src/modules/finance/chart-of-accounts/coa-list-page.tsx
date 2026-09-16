@@ -10,6 +10,7 @@ import { CHART_OF_ACCOUNTS_COLUMNS } from "@/lib/columns/finance/chart-of-accoun
 import { useAuth } from "@/context/AuthContext";
 import { ChartOfAccountsDialog } from "@/modules/finance/chart-of-accounts/coa-dialog";
 import { GlTabPanel } from "@/components/finance/gl-tab-panel";
+import { ImportCoaCsvDialog } from "@/modules/finance/chart-of-accounts/import-coa-csv-dialog";
 
 export default function ChartOfAccountsListPage() {
   const [chartOfAccounts, setChartOfAccounts] = useState<ChartOfAccounts[]>([]);
@@ -92,16 +93,19 @@ export default function ChartOfAccountsListPage() {
         onSearchChange={setSearchQuery}
         loading={loading}
         actions={
-          <Button
-            onClick={() => {
-              setSelected(null);
-              setOpen(true);
-            }}
-            className="rounded-lg bg-indigo-600 hover:bg-indigo-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add account
-          </Button>
+          <div className="flex items-center gap-2">
+            <ImportCoaCsvDialog onImported={fetchChartOfAccounts} />
+            <Button
+              onClick={() => {
+                setSelected(null);
+                setOpen(true);
+              }}
+              className="rounded-lg bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add account
+            </Button>
+          </div>
         }
       >
         <DataTable columns={columns} data={filtered} />
