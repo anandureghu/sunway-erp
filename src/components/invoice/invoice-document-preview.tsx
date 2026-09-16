@@ -434,6 +434,12 @@ export function InvoiceDocumentPreview({
                 <strong>Account Number:</strong>{" "}
                 {safeInvoiceValue(invoice.bankAccountNumber)}
               </p>
+              {invoice.bankIban && (
+                <p>
+                  <strong>IBAN:</strong>{" "}
+                  {invoice.bankIban}
+                </p>
+              )}
               <p>
                 <strong>IFSC/SWIFT:</strong>{" "}
                 {safeInvoiceValue(invoice.bankIfscCode)}

@@ -38,6 +38,7 @@ import { filterItemsByQuery } from "@/lib/filter-items";
 import { ItemSearchCombobox } from "./item-search-combobox";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { formatAwaitingStockReceiptLabel } from "@/lib/filter-awaiting-stock-receipts";
+import { useAuth } from "@/context/AuthContext";
 
 function findInventoryItemForItemId(
   items: ItemResponseDTO[],
@@ -91,6 +92,8 @@ export function ReceiveItemTab({
   warehouses,
   onStockUpdated,
 }: ReceiveItemTabProps) {
+  const { company } = useAuth();
+  const currencyCode = company?.currency?.currencyCode ?? "";
   const {
     register,
     handleSubmit,
@@ -707,15 +710,23 @@ export function ReceiveItemTab({
                   <label className="text-sm font-medium mb-2 block">
                     Cost price
                   </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Enter cost price"
-                    disabled={mode === "po"}
-                    readOnly={mode === "po"}
-                    {...register("costPrice", { valueAsNumber: true })}
-                  />
+                  <div className="flex">
+                    {currencyCode && (
+                      <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-xs font-medium text-muted-foreground">
+                        {currencyCode}
+                      </span>
+                    )}
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      disabled={mode === "po"}
+                      readOnly={mode === "po"}
+                      className={currencyCode ? "rounded-l-none" : ""}
+                      {...register("costPrice", { valueAsNumber: true })}
+                    />
+                  </div>
                   {errors.costPrice && (
                     <p className="text-sm text-red-500 mt-1">
                       {errors.costPrice.message}
@@ -733,13 +744,21 @@ export function ReceiveItemTab({
                     <label className="text-sm font-medium mb-2 block">
                       Unit Price
                     </label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="Enter unit price"
-                      {...register("unitPrice", { valueAsNumber: true })}
-                    />
+                    <div className="flex">
+                      {currencyCode && (
+                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-3 text-xs font-medium text-muted-foreground">
+                          {currencyCode}
+                        </span>
+                      )}
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        className={currencyCode ? "rounded-l-none" : ""}
+                        {...register("unitPrice", { valueAsNumber: true })}
+                      />
+                    </div>
                     {errors.unitPrice && (
                       <p className="text-sm text-red-500 mt-1">
                         {errors.unitPrice.message}

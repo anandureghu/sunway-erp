@@ -18,7 +18,7 @@ import type {
   BudgetResponseDTO,
 } from "@/types/budget";
 import { BudgetDistributeDialog } from "./budget-distribute-dialog";
-import { ArrowLeft, Archive, Plus, Search } from "lucide-react";
+import { Archive, Calculator, Plus, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useModulePermission } from "@/hooks/use-module-permission";
 import { MODULES } from "@/service/permissionService";
@@ -26,6 +26,7 @@ import { StatusBadge } from "@/lib/status-badge";
 import { CreditAmount } from "@/components/accounting-amount";
 import { Badge } from "@/components/ui/badge";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 
 export default function BudgetDetailPage() {
   const { confirm } = useConfirmDialog();
@@ -136,17 +137,21 @@ export default function BudgetDetailPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/finance/ledger")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-semibold">{data.budgetName}</h1>
-          <p className="text-sm text-muted-foreground">
-            Budget distribution history
-          </p>
-        </div>
-      </div>
+      <SecondaryPageHeader
+        title={data.budgetName}
+        description="Budget distribution history"
+        backHref="/finance/ledger"
+        icon={<Calculator className="h-5 w-5" />}
+        variant="amber"
+        actions={
+          canDistribute ? (
+            <Button onClick={() => setDistributeOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Distribute Budget
+            </Button>
+          ) : undefined
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -198,14 +203,8 @@ export default function BudgetDetailPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+        <CardHeader>
           <CardTitle className="text-base">Distribution transactions</CardTitle>
-          {canDistribute && (
-            <Button onClick={() => setDistributeOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Distribute Budget
-            </Button>
-          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
