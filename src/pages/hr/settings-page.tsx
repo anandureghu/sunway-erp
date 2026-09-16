@@ -23,6 +23,7 @@ import {
   UserRoundCog,
   Umbrella,
   Shield,
+  Hash,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import SettingsRolesPage from "@/pages/settings/settings-role-page";
 import { JobCodesTab } from "./settings/job-codes-tab";
 import { PermissionsTab } from "./settings/permissions-tab";
 import type { JobCode, Role } from "./settings/shared";
+import NumberSequencesPage from "@/pages/admin/hr/company/number-sequences-page";
 
 type SubTab = {
   value: string;
@@ -75,6 +77,7 @@ const legacyTabMap: Record<string, { tab: string; sub?: string }> = {
   jobs: { tab: "organization", sub: "jobs" },
   department: { tab: "organization", sub: "department" },
   roles: { tab: "organization", sub: "roles" },
+  "number-sequences": { tab: "organization", sub: "number-sequences" },
   social: { tab: "policies", sub: "social" },
   permissions: { tab: "policies", sub: "permissions" },
 };
@@ -169,6 +172,13 @@ export default function HRSettingsPage() {
             icon: <Users className="h-4 w-4" />,
             element: () => <SettingsRolesPage hrSettings />,
             guard: canTab("HRS_ROLES"),
+          },
+          {
+            value: "number-sequences",
+            label: "Number Sequences",
+            icon: <Hash className="h-4 w-4" />,
+            element: () => <NumberSequencesPage hrSettings />,
+            guard: hasSettingsUmbrella,
           },
         ],
       },

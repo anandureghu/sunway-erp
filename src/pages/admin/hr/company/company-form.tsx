@@ -76,6 +76,7 @@ const normalizeCompanyDefaults = (
     country: toOptionalString(values.country),
     phoneNo: toOptionalString(values.phoneNo),
     crNo: toOptionalNumber(values.crNo),
+    noOfEmployees: toOptionalNumber(values.noOfEmployees),
     currencyId: toOptionalNumber(currencyIdFromValues),
     hrEnabled: values.hrEnabled,
     financeEnabled: values.financeEnabled,
@@ -248,6 +249,31 @@ export const CompanyForm = ({
                     type="number"
                     placeholder="1029834756"
                     {...field}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value ? Number(e.target.value) : undefined,
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="noOfEmployees"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Employees</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="e.g. 50"
+                    {...field}
+                    value={field.value ?? ""}
                     onChange={(e) =>
                       field.onChange(
                         e.target.value ? Number(e.target.value) : undefined,
