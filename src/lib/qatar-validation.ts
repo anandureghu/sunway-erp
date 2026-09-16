@@ -20,10 +20,10 @@ export const OPTIONAL_QATAR_IBAN = z
     message: "IBAN must be a 29-character Qatar IBAN starting with QA",
   });
 
-/** QID / national ID: digits only, at least 12 when provided. */
+/** QID / national ID: exactly 11 digits when provided. */
 export function isValidQid(value: string | undefined | null): boolean {
   if (value == null || !String(value).trim()) return true;
-  return /^\d{12,}$/.test(String(value).trim());
+  return /^\d{11}$/.test(String(value).trim());
 }
 
 /**

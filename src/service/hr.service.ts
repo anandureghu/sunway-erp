@@ -228,6 +228,7 @@ export const EMPLOYEE_CSV_CANONICAL_FIELDS = [
   "maritalStatus",
   "dateOfBirth",
   "joinDate",
+  "probationEndDate",
   "status",
   "birthplace",
   "hometown",
@@ -239,6 +240,15 @@ export const EMPLOYEE_CSV_CANONICAL_FIELDS = [
   "email",
   "departmentName",
   "companyRole",
+  "designation",
+  "workLocation",
+  "reportingManagerNo",
+  "bankName",
+  "iban",
+  "basicSalary",
+  "housingAllowance",
+  "transportAllowance",
+  "otherAllowance",
 ] as const;
 
 export type EmployeeCsvPreview = {

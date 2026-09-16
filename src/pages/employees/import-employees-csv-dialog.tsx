@@ -11,6 +11,10 @@ import {
   Loader2,
   Sparkles,
   AlertTriangle,
+  CheckCircle2,
+  Building2,
+  Banknote,
+  Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -33,12 +37,22 @@ const TEMPLATE_HEADERS = [
   "Marital Status",
   "Date of Birth",
   "Join Date",
+  "Probation End Date",
   "Status",
   "Nationality",
   "Phone",
   "Email",
   "Department",
   "Company Role",
+  "Designation",
+  "Work Location",
+  "Reporting Manager ID",
+  "Bank Name",
+  "IBAN",
+  "Basic Salary (QAR)",
+  "Housing Allowance (QAR)",
+  "Transport Allowance (QAR)",
+  "Other Allowances (QAR)",
 ];
 
 const FIELD_LABELS: Record<string, string> = {
@@ -51,6 +65,7 @@ const FIELD_LABELS: Record<string, string> = {
   maritalStatus: "Marital Status",
   dateOfBirth: "Date of Birth",
   joinDate: "Join Date",
+  probationEndDate: "Probation End Date",
   status: "Status",
   birthplace: "Birthplace",
   hometown: "Hometown",
@@ -62,6 +77,15 @@ const FIELD_LABELS: Record<string, string> = {
   email: "Email",
   departmentName: "Department",
   companyRole: "Company Role",
+  designation: "Designation (Job Title)",
+  workLocation: "Work Location",
+  reportingManagerNo: "Reporting Manager No",
+  bankName: "Bank Name",
+  iban: "IBAN",
+  basicSalary: "Basic Salary",
+  housingAllowance: "Housing Allowance",
+  transportAllowance: "Transport Allowance",
+  otherAllowance: "Other Allowances",
 };
 
 type Props = { onImported: () => void };
@@ -71,24 +95,33 @@ export function ImportEmployeesCsvDialog({ onImported }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importStep, setImportStep] = useState(0);
   const [preview, setPreview] = useState<EmployeeCsvPreview | null>(null);
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
   const [result, setResult] = useState<EmployeeCsvImportResult | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const IMPORT_STEPS = [
+    { label: "Creating employee records", icon: <FileSpreadsheet className="h-3.5 w-3.5" /> },
+    { label: "Saving bank details", icon: <Banknote className="h-3.5 w-3.5" /> },
+    { label: "Saving compensation", icon: <Briefcase className="h-3.5 w-3.5" /> },
+    { label: "Assigning job codes", icon: <Building2 className="h-3.5 w-3.5" /> },
+  ];
+
   const reset = () => {
     setPreview(null);
     setMapping({});
     setResult(null);
     setFile(null);
+    setImportStep(0);
     if (inputRef.current) inputRef.current.value = "";
   };
 
   const downloadTemplate = () => {
     const sample = [
       TEMPLATE_HEADERS.join(","),
-      '"EMP-001","Ahmed","","Al Rashidi","Male","Mr","Single","15/03/1990","01/09/2024","ACTIVE","Qatari","+974 5512 3456","ahmed@company.qa","Operations","Senior Engineer"',
+      '"EMP-001","Ahmed","","Al Rashidi","Male","Mr","Single","15/03/1990","01/09/2024","15/03/2025","ACTIVE","Qatari","+974 5512 3456","ahmed@company.qa","Operations","Senior Engineer","Software Engineer","Office","EMP-0005","QNB","QA12QNBA000000001234567890","18000","5000","2000","1500"',
     ].join("\n");
     const blob = new Blob([sample], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -132,9 +165,21 @@ export function ImportEmployeesCsvDialog({ onImported }: Props) {
   const handleConfirmImport = async () => {
     if (!file) return;
     setImporting(true);
+    setImportStep(0);
     setResult(null);
+
+    // Cycle through steps to show progress while the server processes
+    const rowCount = preview?.dataRowCount ?? 1;
+    const msPerRow = Math.min(Math.max(rowCount * 80, 800), 6000);
+    const stepInterval = Math.floor(msPerRow / IMPORT_STEPS.length);
+    const timer = setInterval(() => {
+      setImportStep((s) => (s < IMPORT_STEPS.length - 1 ? s + 1 : s));
+    }, stepInterval);
+
     try {
       const res = await importEmployeesCsv(file, mapping);
+      clearInterval(timer);
+      setImportStep(IMPORT_STEPS.length);
       setResult(res);
       if (res.created > 0 || res.updated > 0) {
         const parts = [];
@@ -148,6 +193,8 @@ export function ImportEmployeesCsvDialog({ onImported }: Props) {
         toast.error("Import finished with errors");
       }
     } catch (error: unknown) {
+      clearInterval(timer);
+      setImportStep(0);
       const err = error as {
         response?: { data?: { message?: string; error?: string } };
         message?: string;
@@ -258,6 +305,7 @@ export function ImportEmployeesCsvDialog({ onImported }: Props) {
                 <li>Dates: DD/MM/YYYY or YYYY-MM-DD</li>
                 <li>Each employee gets a system-generated employee number and a linked login account</li>
                 <li>Phone and email are saved as contact info</li>
+                <li>Bank (IBAN), salary, and job code are saved when columns are present</li>
               </ul>
             </div>
 
@@ -350,18 +398,42 @@ export function ImportEmployeesCsvDialog({ onImported }: Props) {
                   </div>
                 )}
 
-                <Button
-                  className="w-full gap-1.5"
-                  disabled={importing}
-                  onClick={() => void handleConfirmImport()}
-                >
-                  {importing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
+                {importing ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                      <span className="font-medium">Processing {preview?.dataRowCount ?? "…"} rows</span>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.round((importStep / IMPORT_STEPS.length) * 100)}%` }}
+                      />
+                    </div>
+                    <ul className="space-y-1.5">
+                      {IMPORT_STEPS.map((step, idx) => (
+                        <li key={idx} className={`flex items-center gap-2 text-xs transition-colors ${idx <= importStep ? "text-emerald-700 font-medium" : "text-slate-400"}`}>
+                          {idx < importStep ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                          ) : idx === importStep ? (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-emerald-500" />
+                          ) : (
+                            <span className="h-3.5 w-3.5 shrink-0 flex items-center justify-center rounded-full border border-slate-300 text-[9px] text-slate-400">{idx + 1}</span>
+                          )}
+                          {step.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full gap-1.5"
+                    onClick={() => void handleConfirmImport()}
+                  >
                     <Upload className="h-4 w-4" />
-                  )}
-                  {importing ? "Importing…" : "Confirm import"}
-                </Button>
+                    Confirm import
+                  </Button>
+                )}
               </div>
             )}
 

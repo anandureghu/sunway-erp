@@ -148,9 +148,9 @@ function validateEmployeeProfile(data: EmpProfile): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!data.firstName?.trim()) errors.firstName = "First name is required";
   if (!data.lastName?.trim()) errors.lastName = "Last name is required";
-  // QID / identification: digits only, at least 12 for Qatar residents.
+  // QID / identification: exactly 11 digits for Qatar residents.
   if (data.identification && !isValidQid(data.identification)) {
-    errors.identification = "QID must be at least 12 digits";
+    errors.identification = "QID must be exactly 11 digits";
   }
   if (data.dateOfBirth && !isAtLeast18(data.dateOfBirth)) {
     errors.dateOfBirth = "Employee must be older than 18 years";
@@ -813,7 +813,7 @@ export default function EmployeeProfileForm() {
                   e.target.value.replace(/\D/g, ""),
                 )
               }
-              placeholder="At least 12 digits"
+              placeholder="11 digits"
             />
           </FormField>
 

@@ -15,6 +15,7 @@ import { DepartmentDialog } from "./department-dialog";
 import { DepartmentDetailDialog } from "./department-detail-dialog";
 import { DivisionDialog } from "../division/division-dialog";
 import { ImportDepartmentsCsvDialog } from "./import-departments-csv-dialog";
+import { ImportDivisionsCsvDialog } from "../division/import-divisions-csv-dialog";
 import type { DepartmentTableRow } from "@/lib/columns/department-listing-admin";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -200,6 +201,7 @@ export default function DepartmentListPage({
         companyId={companyId}
         onImported={loadData}
       />
+      <ImportDivisionsCsvDialog onImported={loadData} />
       <Button
         variant="outline"
         onClick={() => {
