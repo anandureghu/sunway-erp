@@ -18,7 +18,7 @@ import type {
   BudgetResponseDTO,
 } from "@/types/budget";
 import { BudgetDistributeDialog } from "./budget-distribute-dialog";
-import { Archive, Calculator, Plus, Search } from "lucide-react";
+import { Archive, ArrowLeft, Calculator, Plus, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useModulePermission } from "@/hooks/use-module-permission";
 import { MODULES } from "@/service/permissionService";
