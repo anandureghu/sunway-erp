@@ -187,7 +187,9 @@ export interface LeaveRecord {
 }
 
 export interface LeavePolicy {
-  role: Role;
+  /** The JOB CODE this policy applies to (e.g. "ENG-003"). Leave entitlement is
+   *  tied to the job code; a role governs system access only. */
+  jobCode: string;
   leaveType: LeaveType;
   daysAllowed: number;
   paid?: boolean;

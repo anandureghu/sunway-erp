@@ -35,6 +35,8 @@ export interface EmployeeMonthlyAttendance {
   employeeNo: string | null;
   employeeName: string | null;
   department: string | null;
+  // Employment status: ACTIVE | UNDER_PROBATION | ON_LEAVE (departed/inactive excluded).
+  employeeStatus?: string | null;
   daysRecorded: number;
   daysPresent: number; // worked days (>= 6h) that feed payroll
   totalHours: number;

@@ -99,9 +99,10 @@ export function JobCodeFormDialog({
 }) {
   const selectedDept = departments.find((d) => d.id === form.departmentId);
   const pfx = deptPrefix(selectedDept?.name);
-  const deptDivisions = divisions.filter(
-    (dv) => dv.departmentId == null || dv.departmentId === form.departmentId,
-  );
+  // Show only the selected department's divisions (none until a department is picked).
+  const deptDivisions = form.departmentId
+    ? divisions.filter((dv) => dv.departmentId === form.departmentId)
+    : [];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent

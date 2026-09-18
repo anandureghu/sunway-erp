@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { type LeavePolicy, type LeaveType } from "@/types/hr";
 import { leavePolicyService } from "@/service/leavePolicyService";
-import { roleService, type RoleResponse } from "@/service/roleService";
+import { jobCodeService, type JobCode } from "@/service/jobCodeService";
 import { fetchHrPolicies } from "@/service/companyService";
 import { useAuth } from "@/context/AuthContext";
 
@@ -41,17 +41,19 @@ const QATAR_LEAVE_DEFAULT_DAYS: Partial<Record<LeaveType, number>> = {
   "Bereavement Leave": 3,
 };
 
-// Dynamic roles type
-interface RoleOption {
+// Dynamic job-code type. Leave entitlement is configured per JOB CODE (a role
+// governs system access only). `key` is the job code (e.g. "ENG-003"), `label`
+// is the job title shown to the admin.
+interface JobCodeOption {
   key: string;
   label: string;
   color?: { bg: string; text: string };
 }
 
 // Empty array as default - will be populated from API
-const DEFAULT_ROLES: RoleOption[] = [];
+const DEFAULT_JOB_CODES: JobCodeOption[] = [];
 
-// Predefined color palette for dynamic role coloring
+// Predefined color palette for dynamic job-code coloring
 const ROLE_COLOR_PALETTE = [
   { bg: "bg-purple-100 text-purple-700", text: "text-purple-700" },
   { bg: "bg-indigo-100 text-indigo-700", text: "text-indigo-700" },
@@ -70,11 +72,11 @@ const ROLE_COLOR_PALETTE = [
   { bg: "bg-slate-100 text-slate-700", text: "text-slate-700" },
 ];
 
-// Generate consistent color based on role name
-const getRoleColor = (roleName: string): { bg: string; text: string } => {
+// Generate consistent color based on job code
+const getJobCodeColor = (jobCode: string): { bg: string; text: string } => {
   let hash = 0;
-  for (let i = 0; i < roleName.length; i++) {
-    hash = roleName.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < jobCode.length; i++) {
+    hash = jobCode.charCodeAt(i) + ((hash << 5) - hash);
   }
   const index = Math.abs(hash) % ROLE_COLOR_PALETTE.length;
   return ROLE_COLOR_PALETTE[index];
@@ -186,14 +188,13 @@ const LEAVE_TYPE_GENDER_CONFIG: LeaveTypeGenderConfig[] = [
   },
 ];
 
-// Convert RoleResponse to our format with dynamic colors
-const convertRolesFromApi = (roles: RoleResponse[]): RoleOption[] => {
-  return roles.map((role) => ({
-    key: role.name,
-    label: role.name
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (l: string) => l.toUpperCase()),
-    color: getRoleColor(role.name),
+// Convert job codes from the API to our matrix option format with dynamic colors.
+// `key` is the job code (the value stored on the policy); `label` is the title.
+const convertJobCodesFromApi = (jobCodes: JobCode[]): JobCodeOption[] => {
+  return jobCodes.map((jc) => ({
+    key: jc.code,
+    label: jc.title?.trim() ? jc.title : jc.code,
+    color: getJobCodeColor(jc.code),
   }));
 };
 
@@ -205,15 +206,15 @@ export default function LeaveCustomizationForm() {
   const [hasChanges, setHasChanges] = useState(false);
   const [savedPolicies, setSavedPolicies] = useState<LeavePolicy[]>([]);
 
-  const [roles, setRoles] = useState<RoleOption[]>(DEFAULT_ROLES);
-  const [rolesLoading, setRolesLoading] = useState(true);
+  const [jobCodes, setJobCodes] = useState<JobCodeOption[]>(DEFAULT_JOB_CODES);
+  const [jobCodesLoading, setJobCodesLoading] = useState(true);
 
   // Leave types live in code today (no backend table). Keeping the slot here
   // so a future /leave-types CRUD can drop in without touching the matrix code.
   const [leaveTypes] = useState<string[]>(DEFAULT_LEAVE_TYPES);
   const leaveTypesLoading = false;
 
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [selectedJobCode, setSelectedJobCode] = useState<string | null>(null);
   const [selectedGender, setSelectedGender] = useState<Gender>("FEMALE");
 
   // Company-level HR policies (accrual / retirement / loan) are edited in their
@@ -246,39 +247,37 @@ export default function LeaveCustomizationForm() {
   }, [company?.id]);
 
   useEffect(() => {
-    const fetchRoles = async () => {
+    const fetchJobCodes = async () => {
       try {
         if (!company?.id) {
-          console.warn("No company ID available for fetching roles");
-          setRolesLoading(false);
+          console.warn("No company ID available for fetching job codes");
+          setJobCodesLoading(false);
           return;
         }
 
-        const response = await roleService.getRoles(company.id);
-
-        // Log the response for debugging
-        console.log("Roles API response:", response);
-        console.log("Roles data length:", response?.length);
+        // Active job codes for this company (company-scoped on the backend).
+        const response = await jobCodeService.getActive();
 
         if (response && Array.isArray(response) && response.length > 0) {
-          setRoles(convertRolesFromApi(response));
+          setJobCodes(convertJobCodesFromApi(response));
         } else {
-          console.warn("No roles returned from API, using defaults");
+          console.warn("No job codes returned from API");
+          setJobCodes([]);
         }
       } catch (error: any) {
         console.error(
-          "Failed to fetch roles:",
+          "Failed to fetch job codes:",
           error?.response?.data ?? error.message,
         );
       } finally {
-        setRolesLoading(false);
+        setJobCodesLoading(false);
       }
     };
-    fetchRoles();
+    fetchJobCodes();
   }, [company?.id]);
 
   useEffect(() => {
-    if (!company?.id || rolesLoading || leaveTypesLoading) return;
+    if (!company?.id || jobCodesLoading || leaveTypesLoading) return;
 
     const loadPolicies = async () => {
       setLoading(true);
@@ -288,15 +287,15 @@ export default function LeaveCustomizationForm() {
 
         const fullMatrix: LeavePolicy[] = [];
 
-        roles.forEach((role) => {
+        jobCodes.forEach((jobCode) => {
           leaveTypes.forEach((leaveType) => {
             const existing = saved.find(
               (p: LeavePolicy) =>
-                p.role === role.key && p.leaveType === leaveType,
+                p.jobCode === jobCode.key && p.leaveType === leaveType,
             );
 
             fullMatrix.push({
-              role: role.key,
+              jobCode: jobCode.key,
               leaveType: leaveType as LeaveType,
               daysAllowed: existing
                 ? existing.defaultDays
@@ -314,10 +313,10 @@ export default function LeaveCustomizationForm() {
         toast.error("Failed to load policies");
 
         const initialPolicies: LeavePolicy[] = [];
-        roles.forEach((role) => {
+        jobCodes.forEach((jobCode) => {
           leaveTypes.forEach((leaveType) => {
             initialPolicies.push({
-              role: role.key,
+              jobCode: jobCode.key,
               leaveType: leaveType as LeaveType,
               daysAllowed:
                 QATAR_LEAVE_DEFAULT_DAYS[leaveType as LeaveType] ?? 0,
@@ -332,8 +331,8 @@ export default function LeaveCustomizationForm() {
     };
 
     loadPolicies();
-    setSelectedRole(null);
-  }, [company?.id, rolesLoading, leaveTypesLoading, roles, leaveTypes]);
+    setSelectedJobCode(null);
+  }, [company?.id, jobCodesLoading, leaveTypesLoading, jobCodes, leaveTypes]);
 
   const isLeaveTypeApplicable = (
     leaveType: string,
@@ -348,10 +347,10 @@ export default function LeaveCustomizationForm() {
     return config ? config.isGenderRestricted : false;
   };
 
-  const updatePolicy = (role: string, leaveType: string, days: number) => {
+  const updatePolicy = (jobCode: string, leaveType: string, days: number) => {
     setPolicies((prev) =>
       prev.map((policy) =>
-        policy.role === role && policy.leaveType === leaveType
+        policy.jobCode === jobCode && policy.leaveType === leaveType
           ? { ...policy, daysAllowed: Math.max(0, Math.min(365, days)) }
           : policy,
       ),
@@ -359,28 +358,28 @@ export default function LeaveCustomizationForm() {
     setHasChanges(true);
   };
 
-  const incrementPolicy = (role: string, leaveType: string) => {
+  const incrementPolicy = (jobCode: string, leaveType: string) => {
     const policy = policies.find(
-      (p) => p.role === role && p.leaveType === leaveType,
+      (p) => p.jobCode === jobCode && p.leaveType === leaveType,
     );
     if (policy) {
-      updatePolicy(role, leaveType, policy.daysAllowed + 1);
+      updatePolicy(jobCode, leaveType, policy.daysAllowed + 1);
     }
   };
 
-  const decrementPolicy = (role: string, leaveType: string) => {
+  const decrementPolicy = (jobCode: string, leaveType: string) => {
     const policy = policies.find(
-      (p) => p.role === role && p.leaveType === leaveType,
+      (p) => p.jobCode === jobCode && p.leaveType === leaveType,
     );
     if (policy && policy.daysAllowed > 0) {
-      updatePolicy(role, leaveType, policy.daysAllowed - 1);
+      updatePolicy(jobCode, leaveType, policy.daysAllowed - 1);
     }
   };
 
-  const toggleWeekends = (role: string, leaveType: string) => {
+  const toggleWeekends = (jobCode: string, leaveType: string) => {
     setPolicies((prev) =>
       prev.map((p) =>
-        p.role === role && p.leaveType === leaveType
+        p.jobCode === jobCode && p.leaveType === leaveType
           ? { ...p, includeWeekends: !p.includeWeekends }
           : p,
       ),
@@ -395,7 +394,7 @@ export default function LeaveCustomizationForm() {
 
     try {
       const payload = policies.map((p) => ({
-        role: p.role,
+        jobCode: p.jobCode,
         leaveType: p.leaveType,
         daysAllowed: p.daysAllowed,
         defaultDays: p.daysAllowed,
@@ -429,14 +428,14 @@ export default function LeaveCustomizationForm() {
       const response = await leavePolicyService.getPolicies(company.id);
       const saved = response.data || [];
       const fullMatrix: LeavePolicy[] = [];
-      roles.forEach((role) => {
+      jobCodes.forEach((jobCode) => {
         leaveTypes.forEach((leaveType) => {
           const existing = saved.find(
             (p: LeavePolicy) =>
-              p.role === role.key && p.leaveType === leaveType,
+              p.jobCode === jobCode.key && p.leaveType === leaveType,
           );
           fullMatrix.push({
-            role: role.key,
+            jobCode: jobCode.key,
             leaveType: leaveType as LeaveType,
             daysAllowed: existing
               ? (existing.defaultDays ?? existing.daysAllowed ?? 0)
@@ -464,10 +463,10 @@ export default function LeaveCustomizationForm() {
     setHasChanges(false);
   };
 
-  const getTotalDays = (role: string, gender: Gender) => {
+  const getTotalDays = (jobCode: string, gender: Gender) => {
     return policies
       .filter(
-        (p) => p.role === role && isLeaveTypeApplicable(p.leaveType, gender),
+        (p) => p.jobCode === jobCode && isLeaveTypeApplicable(p.leaveType, gender),
       )
       .reduce((sum, p) => {
         // When accrual is enabled, Annual Leave is earned per month worked, so
@@ -490,20 +489,20 @@ export default function LeaveCustomizationForm() {
     );
   }
 
-  if (rolesLoading || leaveTypesLoading) {
+  if (jobCodesLoading || leaveTypesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mx-auto mb-4" />
-          <p className="text-slate-600">Loading roles and leave types...</p>
+          <p className="text-slate-600">Loading job codes and leave types...</p>
         </div>
       </div>
     );
   }
 
-  const visibleRoles = selectedRole
-    ? roles.filter((r) => r.key === selectedRole)
-    : roles;
+  const visibleJobCodes = selectedJobCode
+    ? jobCodes.filter((r) => r.key === selectedJobCode)
+    : jobCodes;
 
   return (
     <div className="space-y-5 p-0 bg-slate-50/60 min-h-screen">
@@ -537,7 +536,7 @@ export default function LeaveCustomizationForm() {
               onClick={handleResetQatarDefaults}
               disabled={loading}
               className="h-9 gap-1.5 border-white/30 bg-white/10 text-white text-sm hover:bg-white/20 hover:text-white"
-              title="Reset Sick, Maternity, Hajj, Marriage, and Bereavement to Qatar defaults for all roles"
+              title="Reset Sick, Maternity, Hajj, Marriage, and Bereavement to Qatar defaults for all job codes"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Reset defaults
@@ -568,7 +567,7 @@ export default function LeaveCustomizationForm() {
         </div>
       </div>
 
-      {/* ── Controls row: gender + role filter ── */}
+      {/* ── Controls row: gender + job code filter ── */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 space-y-4">
         {/* Gender */}
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -614,34 +613,35 @@ export default function LeaveCustomizationForm() {
         {/* Divider */}
         <div className="h-px bg-slate-100" />
 
-        {/* Role pills */}
+        {/* Job code pills */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 mr-1">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-              Role
+              Job Code
             </span>
           </div>
           <button
-            onClick={() => setSelectedRole(null)}
+            onClick={() => setSelectedJobCode(null)}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-              selectedRole === null
+              selectedJobCode === null
                 ? "bg-slate-800 text-white"
                 : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
           >
-            All Roles
+            All Job Codes
           </button>
-          {roles.map((role) => (
+          {jobCodes.map((jobCode) => (
             <button
-              key={role.key}
-              onClick={() => setSelectedRole(role.key)}
+              key={jobCode.key}
+              onClick={() => setSelectedJobCode(jobCode.key)}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                selectedRole === role.key
+                selectedJobCode === jobCode.key
                   ? "bg-indigo-100 text-indigo-700 border border-indigo-200"
                   : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
               }`}
+              title={jobCode.key}
             >
-              {role.label}
+              {jobCode.label}
             </button>
           ))}
         </div>
@@ -651,8 +651,8 @@ export default function LeaveCustomizationForm() {
       <div className="flex items-center gap-2.5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
         <Info className="h-4 w-4 shrink-0 text-blue-500" />
         <p className="text-xs text-blue-700">
-          Set the number of leave days allowed per role. Changes apply across
-          all employees with that role.
+          Set the number of leave days allowed per job code. Changes apply across
+          all employees whose current job uses that job code.
         </p>
       </div>
 
@@ -667,23 +667,37 @@ export default function LeaveCustomizationForm() {
               {accrualDaysPerMonth} day{accrualDaysPerMonth === 1 ? "" : "s"}/month
             </span>{" "}
             worked (≈ {annualAccrualEquivalent} days/year) from each employee's
-            join date, so the per-role Annual Leave value below is managed by
+            join date, so the per-job-code Annual Leave value below is managed by
             that policy and can't be edited here. Change it in{" "}
             <span className="font-semibold">HR Policies</span>.
           </p>
         </div>
       )}
 
-      {/* ── Policy cards per role ── */}
+      {/* ── Empty state: no job codes to configure ── */}
+      {visibleJobCodes.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+          <p className="text-sm font-semibold text-slate-700">
+            No job codes to configure
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Leave entitlement is set per job code. Create active job codes in{" "}
+            <span className="font-semibold">HR Settings → Job Codes</span>, then
+            return here to set their leave days.
+          </p>
+        </div>
+      )}
+
+      {/* ── Policy cards per job code ── */}
       <div className="space-y-4">
-        {visibleRoles.map((role) => {
-          const total = getTotalDays(role.key, selectedGender);
+        {visibleJobCodes.map((jobCode) => {
+          const total = getTotalDays(jobCode.key, selectedGender);
           return (
             <div
-              key={role.key}
+              key={jobCode.key}
               className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
             >
-              {/* Role header */}
+              {/* Job code header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100">
@@ -691,10 +705,10 @@ export default function LeaveCustomizationForm() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-800">
-                      {role.label}
+                      {jobCode.label}
                     </p>
                     <p className="text-[11px] text-slate-400 font-mono">
-                      {role.key}
+                      {jobCode.key}
                     </p>
                   </div>
                 </div>
@@ -716,7 +730,7 @@ export default function LeaveCustomizationForm() {
                     return null;
 
                   const policy = policies.find(
-                    (p) => p.role === role.key && p.leaveType === leaveType,
+                    (p) => p.jobCode === jobCode.key && p.leaveType === leaveType,
                   );
                   const colors = LEAVE_TYPE_COLORS[leaveType] || {
                     bg: "bg-slate-50 border-slate-200",
@@ -787,7 +801,7 @@ export default function LeaveCustomizationForm() {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() =>
-                                decrementPolicy(role.key, leaveType)
+                                decrementPolicy(jobCode.key, leaveType)
                               }
                               disabled={days === 0}
                               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
@@ -802,7 +816,7 @@ export default function LeaveCustomizationForm() {
                               value={days}
                               onChange={(e) =>
                                 updatePolicy(
-                                  role.key,
+                                  jobCode.key,
                                   leaveType,
                                   parseInt(e.target.value) || 0,
                                 )
@@ -812,7 +826,7 @@ export default function LeaveCustomizationForm() {
 
                             <button
                               onClick={() =>
-                                incrementPolicy(role.key, leaveType)
+                                incrementPolicy(jobCode.key, leaveType)
                               }
                               disabled={days >= 365}
                               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
@@ -832,7 +846,7 @@ export default function LeaveCustomizationForm() {
                         type="button"
                         role="switch"
                         aria-checked={!!policy?.includeWeekends}
-                        onClick={() => toggleWeekends(role.key, leaveType)}
+                        onClick={() => toggleWeekends(jobCode.key, leaveType)}
                         className={`w-full flex items-center justify-between gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-semibold transition-colors ${
                           policy?.includeWeekends
                             ? "border-violet-200 bg-violet-50 text-violet-700"
