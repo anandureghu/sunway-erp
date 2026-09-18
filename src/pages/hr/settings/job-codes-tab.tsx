@@ -34,7 +34,9 @@ export function JobCodesTab({
   const [departments, setDepartments] = useState<{ id: number; name: string }[]>(
     [],
   );
-  const [divisions, setDivisions] = useState<{ id: number; name: string }[]>([]);
+  const [divisions, setDivisions] = useState<
+    { id: number; name: string; departmentId?: number | null }[]
+  >([]);
   const F = (p: Partial<JobCode>) => setForm((v) => ({ ...v, ...p }));
 
   useEffect(() => {
@@ -65,6 +67,9 @@ export function JobCodesTab({
           (Array.isArray(divs) ? divs : []).map((d: any) => ({
             id: d.id,
             name: d.name ?? `#${d.id}`,
+            // Carry the owning department so the dialog can show only that
+            // department's divisions when a department is selected.
+            departmentId: d.departmentId ?? null,
           })),
         );
       } catch {

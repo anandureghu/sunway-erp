@@ -26,6 +26,7 @@ import { toast } from "sonner";
 
 import { formatPunchTime, parseTimesheetDateTime, resolveCompanyTimezone } from "@/lib/timesheet-time";
 import { fetchHrPolicies } from "@/service/companyService";
+import { hrService } from "@/service/hr.service";
 import { useAuth } from "@/context/AuthContext";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -69,6 +70,33 @@ const TODAY_META: Record<string, { label: string; cls: string; dot: string }> = 
     cls: "bg-slate-50 text-slate-500 border-slate-200",
     dot: "bg-slate-300",
   },
+  // On approved leave today — counts as absent for the day.
+  ON_LEAVE: {
+    label: "Absent",
+    cls: "bg-rose-50 text-rose-700 border-rose-200",
+    dot: "bg-rose-400",
+  },
+};
+
+// Employment-status badge (the new "Status" column). The board only ever shows
+// active / on-probation / on-leave employees; departed & inactive are filtered out.
+const EMP_STATUS_META: Record<string, { label: string; cls: string }> = {
+  ACTIVE: { label: "Active", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  UNDER_PROBATION: { label: "Probation", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  ON_LEAVE: { label: "On Leave", cls: "bg-violet-50 text-violet-700 border-violet-200" },
+};
+
+const empStatusMeta = (status?: string | null) => {
+  if (!status) return null;
+  return (
+    EMP_STATUS_META[status] ?? {
+      label: status
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
+      cls: "bg-slate-50 text-slate-600 border-slate-200",
+    }
+  );
 };
 
 const DAY_STATUS_META: Record<string, { label: string; cls: string }> = {
@@ -126,7 +154,22 @@ export default function EmployeeTimeSheets() {
     setLoading(true);
     setError(null);
     try {
-      setRows(await timesheetService.getCompanyMonthlySummary(year, month));
+      // Attendance can still contain an archived employee's historical punches.
+      // Keep those records, but never show that employee on the live timesheet.
+      // This client-side guard also covers API deployments that have not yet
+      // applied the active-employee filter to the monthly-summary endpoint.
+      const [attendance, archivedEmployees] = await Promise.all([
+        timesheetService.getCompanyMonthlySummary(year, month),
+        hrService.listArchivedEmployees().catch(() => []),
+      ]);
+      const archivedEmployeeIds = new Set(
+        archivedEmployees
+          .map((employee) => Number(employee.id))
+          .filter(Number.isFinite),
+      );
+      setRows(
+        attendance.filter((row) => !archivedEmployeeIds.has(row.employeeId)),
+      );
     } catch (err) {
       // Distinguish a failed load from a genuinely empty month.
       const message = getApiErrorMessage(err, "Failed to load timesheets");
@@ -487,6 +530,7 @@ export default function EmployeeTimeSheets() {
                     {[
                       "Sl No.",
                       "Employee",
+                      "Status",
                       "Status Today",
                       "In",
                       "Out",
@@ -499,7 +543,7 @@ export default function EmployeeTimeSheets() {
                         key={h}
                         className={cn(
                           "px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500",
-                          i >= 5 ? "text-right" : "text-left",
+                          i >= 6 ? "text-right" : "text-left",
                         )}
                       >
                         {h}
@@ -538,6 +582,23 @@ export default function EmployeeTimeSheets() {
                               </p>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            const s = empStatusMeta(r.employeeStatus);
+                            return s ? (
+                              <span
+                                className={cn(
+                                  "inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                                  s.cls,
+                                )}
+                              >
+                                {s.label}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300">—</span>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3">
                           <span

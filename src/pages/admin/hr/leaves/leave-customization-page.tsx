@@ -65,7 +65,7 @@ export default function LeaveCustomizationPage() {
         </CardHeader>
         <CardContent>
           <p className="text-slate-600">
-            Configure leave allowances for different employee roles. Set the number of days allowed for each leave type per role to customize leave management according to your organization's policies.
+            Configure leave allowances per job code. Set the number of days allowed for each leave type per job code to customize leave management according to your organization's policies. (A role governs system access only — leave entitlement follows the employee's job code.)
           </p>
         </CardContent>
       </Card>
