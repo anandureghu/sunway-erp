@@ -309,6 +309,7 @@ export function CreatePurchaseRequisitionForm({
     setItemSearchQuery("");
   };
 
+
   const addItemToRequisition = () => {
     if (!selectedItem || itemQuantity <= 0) {
       if (!selectedItem) {
