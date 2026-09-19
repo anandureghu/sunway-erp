@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, Percent, Search, Tag } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Percent, Search, Tag } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,8 @@ export default function ItemDiscountMaster() {
   const [saleByTo, setSaleByTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [discountPercent, setDiscountPercent] = useState("10");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -143,6 +145,16 @@ export default function ItemDiscountMaster() {
     }).length;
   }, [filtered, previewDiscount]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [category, type, saleByFrom, saleByTo, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const paginated = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
   const clearFilters = () => {
     setCategory("all");
     setType("all");
@@ -150,6 +162,7 @@ export default function ItemDiscountMaster() {
     setSaleByTo("");
     setSearchQuery("");
     setDiscountPercent("10");
+    setPage(1);
   };
 
   const handleApply = async () => {
@@ -211,7 +224,7 @@ export default function ItemDiscountMaster() {
     }
   };
 
-  const colCount = previewDiscount != null ? 12 : 11;
+  const colCount = previewDiscount != null ? 13 : 12;
 
   return (
     <div className="space-y-4">
@@ -352,9 +365,11 @@ export default function ItemDiscountMaster() {
           <p className="text-sm text-muted-foreground pb-2">
             Showing{" "}
             <span className="font-semibold text-slate-700">
-              {filtered.length}
+              {filtered.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)}
             </span>{" "}
-            of {items.length} items
+            of{" "}
+            <span className="font-semibold text-slate-700">{filtered.length}</span>{" "}
+            items
           </p>
         </div>
       </div>
@@ -364,6 +379,7 @@ export default function ItemDiscountMaster() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12 text-center">SI. No.</TableHead>
                 <TableHead>Item code</TableHead>
                 <TableHead>Item name</TableHead>
                 <TableHead>Item type</TableHead>
@@ -402,7 +418,7 @@ export default function ItemDiscountMaster() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((item) => {
+                paginated.map((item, idx) => {
                   const list = listPriceOf(item);
                   const selling = Number(item.sellingPrice ?? 0);
                   const cost = Number(item.costPrice ?? 0);
@@ -413,6 +429,9 @@ export default function ItemDiscountMaster() {
                       : null;
                   return (
                     <TableRow key={item.id}>
+                      <TableCell className="text-center text-sm text-muted-foreground tabular-nums">
+                        {pageStart + idx + 1}
+                      </TableCell>
                       <TableCell className="font-mono text-sm font-medium">
                         {item.sku || "—"}
                       </TableCell>
@@ -471,6 +490,45 @@ export default function ItemDiscountMaster() {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t px-4 py-3">
+            <p className="text-sm text-muted-foreground">
+              Page {safePage} of {totalPages}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <Button
+                  key={p}
+                  variant={p === safePage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPage(p)}
+                  className="h-8 w-8 p-0"
+                >
+                  {p}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

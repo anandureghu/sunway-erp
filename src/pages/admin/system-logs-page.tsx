@@ -21,6 +21,7 @@ import {
   ListFilter,
   ScrollText,
   Search,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -64,6 +65,9 @@ export default function AdminSystemLogsPage() {
   const [pageSize, setPageSize] = useState<number>(20);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const [dateFilter, setDateFilter] = useState("");
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
   const activeFilterCount = countActiveSystemLogFilters(filters);
 
@@ -92,11 +96,16 @@ export default function AdminSystemLogsPage() {
       if (search) {
         params.search = search;
       }
-      if (filters.fromDate) {
-        params.from = filters.fromDate;
-      }
-      if (filters.toDate) {
-        params.to = filters.toDate;
+      if (dateFilter) {
+        params.from = dateFilter;
+        params.to = dateFilter;
+      } else {
+        if (filters.fromDate) {
+          params.from = filters.fromDate;
+        }
+        if (filters.toDate) {
+          params.to = filters.toDate;
+        }
       }
       const parsedUserId = filters.userIdFilter.trim();
       if (parsedUserId && /^\d+$/.test(parsedUserId)) {
@@ -108,6 +117,7 @@ export default function AdminSystemLogsPage() {
       setRows(res.data.content ?? []);
       setTotalElements(res.data.totalElements ?? 0);
       setTotalPages(res.data.totalPages ?? 0);
+      setSelectedIds(new Set());
     } catch {
       toast.error("Could not load system logs");
       setRows([]);
@@ -116,7 +126,7 @@ export default function AdminSystemLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, filters, search]);
+  }, [page, pageSize, filters, search, dateFilter]);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -141,7 +151,45 @@ export default function AdminSystemLogsPage() {
     setFilters(DEFAULT_SYSTEM_LOG_FILTERS);
     setSearchInput("");
     setSearch("");
+    setDateFilter("");
     setPage(0);
+  };
+
+  const allSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.id));
+  const someSelected = selectedIds.size > 0;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(rows.map((r) => r.id)));
+    }
+  };
+
+  const toggleOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setDeleting(true);
+    try {
+      await apiClient.delete("/admin/system-logs", { data: [...selectedIds] });
+      toast.success(`Deleted ${selectedIds.size} log${selectedIds.size === 1 ? "" : "s"}`);
+      void load();
+    } catch {
+      toast.error("Failed to delete selected logs");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (!isSuperAdmin) {
@@ -174,6 +222,16 @@ export default function AdminSystemLogsPage() {
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
+          <Input
+            type="date"
+            className="w-auto shrink-0"
+            title="Filter by date"
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(0);
+            }}
+          />
           <div className="flex shrink-0 gap-2">
             <Button
               type="button"
@@ -194,6 +252,33 @@ export default function AdminSystemLogsPage() {
             </Button>
           </div>
         </div>
+
+        {someSelected && (
+          <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+            <span className="text-sm text-red-800 font-medium">
+              {selectedIds.size} selected
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              className="gap-1.5"
+              disabled={deleting}
+              onClick={() => void handleDelete()}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {deleting ? "Deleting…" : "Delete selected"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
 
         <SystemLogsAppliedFilters
           filters={filters}
@@ -223,11 +308,31 @@ export default function AdminSystemLogsPage() {
             No logs match your filters.
           </p>
         ) : (
-          <ul className="divide-y">
-            {rows.map((row) => (
-              <SystemLogListItem key={row.id} log={row} />
-            ))}
-          </ul>
+          <>
+            <div className="flex items-center gap-3 px-4 py-2 border-b bg-slate-50">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-blue-600 cursor-pointer"
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someSelected && !allSelected;
+                }}
+                onChange={toggleSelectAll}
+                aria-label="Select all"
+              />
+              <span className="text-xs text-muted-foreground">Select all on this page</span>
+            </div>
+            <ul className="divide-y">
+              {rows.map((row) => (
+                <SystemLogListItem
+                  key={row.id}
+                  log={row}
+                  selected={selectedIds.has(row.id)}
+                  onToggle={() => toggleOne(row.id)}
+                />
+              ))}
+            </ul>
+          </>
         )}
 
         {!loading && totalPages > 0 && (

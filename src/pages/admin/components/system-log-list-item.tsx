@@ -6,9 +6,11 @@ import type { AdminSystemLog } from "@/types/admin-system-log";
 
 type SystemLogListItemProps = {
   log: AdminSystemLog;
+  selected?: boolean;
+  onToggle?: () => void;
 };
 
-export function SystemLogListItem({ log }: SystemLogListItemProps) {
+export function SystemLogListItem({ log, selected, onToggle }: SystemLogListItemProps) {
   const userLabel =
     log.userUsername || log.userEmail || (log.userId != null ? `User #${log.userId}` : null);
   const requestLabel =
@@ -18,7 +20,17 @@ export function SystemLogListItem({ log }: SystemLogListItemProps) {
 
   return (
     <li className="px-4 py-3 hover:bg-muted/30">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start gap-3">
+        {onToggle !== undefined && (
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0 accent-blue-600 cursor-pointer"
+            checked={selected ?? false}
+            onChange={onToggle}
+            aria-label="Select log entry"
+          />
+        )}
+      <div className="flex items-start justify-between gap-3 flex-1">
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Badge
@@ -70,6 +82,7 @@ export function SystemLogListItem({ log }: SystemLogListItemProps) {
           More
           <ChevronRight className="h-4 w-4" />
         </Link>
+      </div>
       </div>
     </li>
   );
