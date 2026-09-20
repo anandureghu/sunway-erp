@@ -41,6 +41,28 @@ const EMPLOYMENT_CATEGORIES = [
 ];
 const EMPLOYMENT_TYPES = ["FULL_TIME", "PART_TIME"];
 const WORK_LOCATIONS = ["OFFICE", "HYBRID", "REMOTE"];
+const COUNTRIES = [
+  "Qatar",
+  "United Arab Emirates",
+  "Saudi Arabia",
+  "Kuwait",
+  "Bahrain",
+  "Oman",
+  "Jordan",
+  "Lebanon",
+  "Egypt",
+  "India",
+  "Pakistan",
+  "Philippines",
+  "United Kingdom",
+  "United States",
+  "Canada",
+  "Australia",
+  "Germany",
+  "France",
+  "Singapore",
+  "Other",
+];
 const humanizeEnum = (v: string) =>
   v
     .replace(/_/g, " ")
@@ -324,12 +346,19 @@ export function JobCodeFormDialog({
               </div>
               <div>
                 <label className={jcLabelCls}>Work country</label>
-                <input
+                <JcSelectField
                   value={form.workCountry ?? ""}
-                  onChange={(e) => onField({ workCountry: e.target.value })}
-                  placeholder="Qatar"
-                  className={jcInputCls}
-                />
+                  onChange={(e) =>
+                    onField({ workCountry: e.target.value || null })
+                  }
+                >
+                  <option value="">Select…</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </JcSelectField>
               </div>
             </div>
           </JcSection>

@@ -140,7 +140,6 @@ export default function GlAccountBalancesPage() {
 
   const columns: ColumnDef<ChartOfAccounts>[] = useMemo(
     () => [
-      { accessorKey: "id", header: "ID" },
       { accessorKey: "accountNo", header: "Account No" },
       { accessorKey: "accountCode", header: "Account Code" },
       { accessorKey: "accountName", header: "Account Name" },
