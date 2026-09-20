@@ -32,6 +32,7 @@ type Props = {
   onGeneratePicklist?: () => void;
   onViewPicklist?: () => void;
   hasActivePicklist?: boolean;
+  submitting?: boolean;
 };
 
 export function SalesOrderDetailHero({
@@ -44,6 +45,7 @@ export function SalesOrderDetailHero({
   onGeneratePicklist,
   onViewPicklist,
   hasActivePicklist = false,
+  submitting = false,
 }: Props) {
   const status = orderStatusKey(so);
   const payment = paymentStatusKey(so);
@@ -130,7 +132,7 @@ export function SalesOrderDetailHero({
                       size="lg"
                       className="h-10 gap-2 rounded-xl bg-sky-600 hover:bg-sky-700"
                       onClick={onConfirm}
-                      disabled={!canConfirm}
+                      disabled={!canConfirm || submitting}
                     >
                       <CheckCircle2 className="h-4 w-4" />
                       Confirm order

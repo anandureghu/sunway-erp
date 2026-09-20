@@ -83,11 +83,12 @@ const SalesOrdersDetailPage = () => {
   const [so, setSo] = useState<SalesOrderResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [returnsRefreshKey, setReturnsRefreshKey] = useState(0);
   const [activePicklistId, setActivePicklistId] = useState<string | null>(null);
 
   const updateStatus = async (action: "confirm" | "cancel") => {
-    if (!so) return;
+    if (!so || submitting) return;
     if (
       action === "cancel" &&
       !(await confirmCancel(`order ${so.orderNumber || so.id}`))
@@ -95,6 +96,7 @@ const SalesOrdersDetailPage = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
       await apiClient.post(`/sales/orders/${so.id}/${action}`);
       const { data } = await apiClient.get<SalesOrderResponseDTO>(
@@ -118,6 +120,8 @@ const SalesOrdersDetailPage = () => {
           err?.message ||
           `Failed to ${action} order.`,
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -220,6 +224,7 @@ const SalesOrdersDetailPage = () => {
           onEdit={() => setEditing(true)}
           onConfirm={() => void updateStatus("confirm")}
           onCancel={() => void updateStatus("cancel")}
+          submitting={submitting}
           onDownloadDocument={() => void handleDownloadDocumentPdf()}
           onReturned={() => {
             setReturnsRefreshKey((k) => k + 1);

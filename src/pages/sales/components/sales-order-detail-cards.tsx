@@ -15,6 +15,7 @@ type Props = {
   onGeneratePicklist?: () => void;
   onViewPicklist?: () => void;
   hasActivePicklist?: boolean;
+  submitting?: boolean;
 };
 
 export function SalesOrderDetailCards({
@@ -28,6 +29,7 @@ export function SalesOrderDetailCards({
   onGeneratePicklist,
   onViewPicklist,
   hasActivePicklist = false,
+  submitting = false,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -41,6 +43,7 @@ export function SalesOrderDetailCards({
         onGeneratePicklist={onGeneratePicklist}
         onViewPicklist={onViewPicklist}
         hasActivePicklist={hasActivePicklist}
+        submitting={submitting}
       />
 
       <SalesOrderDetailItems so={so} />
