@@ -92,7 +92,7 @@ function validateBankForm(data: BankModel): ValidationErrors {
   if (!data.bankName?.trim()) errors.bankName = "Bank name is required";
   if (!data.bankBranch?.trim()) errors.bankBranch = "Bank branch is required";
   if (!data.accountType) errors.accountType = "Account type is required";
-  if (!data.accountNo?.trim()) errors.accountNo = "Account number is required";
+  if (!data.accountNo?.trim()) errors.accountNo = "IBAN Number is required";
   if (!data.country?.trim()) errors.country = "Country is required";
   if (data.iban?.trim() && !isValidQatarIban(data.iban)) {
     errors.iban = "IBAN must be a 29-character Qatar IBAN starting with QA";
@@ -547,7 +547,7 @@ export default function BankForm() {
                 </div>
               </Field>
 
-              <Field label="Account Number" required error={errors.accountNo}>
+              <Field label="IBAN Number" required error={errors.accountNo}>
                 <div className="relative">
                   <Hash className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -584,7 +584,7 @@ export default function BankForm() {
               />
               <ViewField
                 icon={<Hash className="h-4 w-4" />}
-                label="Account Number"
+                label="IBAN Number"
                 value={maskAccount(draft.accountNo)}
                 mono
               />

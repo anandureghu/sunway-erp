@@ -431,7 +431,7 @@ export function InvoiceDocumentPreview({
                 {safeInvoiceValue(invoice.companyName)}
               </p>
               <p>
-                <strong>Account Number:</strong>{" "}
+                <strong>IBAN Number:</strong>{" "}
                 {safeInvoiceValue(invoice.bankAccountNumber)}
               </p>
               {invoice.bankIban && (

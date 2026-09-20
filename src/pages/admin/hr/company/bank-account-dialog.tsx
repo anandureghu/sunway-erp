@@ -233,7 +233,7 @@ export function BankAccountDialog({
                 </Field>
 
                 <Field
-                  label="Account number"
+                  label="IBAN Number"
                   required
                   icon={<Hash className="h-[15px] w-[15px]" />}
                 >

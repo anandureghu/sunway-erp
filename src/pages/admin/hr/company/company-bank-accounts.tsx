@@ -134,7 +134,7 @@ export function CompanyBankAccounts({
                   </div>
                   <div className="flex flex-wrap gap-x-6 gap-y-2">
                     <LabeledField label="Account Holder" value={acc.accountHolderName} />
-                    <LabeledField label="Account No." value={acc.accountNumber} mono />
+                    <LabeledField label="IBAN Number" value={acc.accountNumber} mono />
                     {acc.iban && <LabeledField label="IBAN" value={acc.iban} mono />}
                     {acc.ifscCode && <LabeledField label="IFSC Code" value={acc.ifscCode} mono />}
                     {acc.branchName && <LabeledField label="Branch" value={acc.branchName} />}
