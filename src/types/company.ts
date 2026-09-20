@@ -43,6 +43,8 @@ export interface Company {
   defaultPurchaseCreditAccountId?: number | null;
   defaultBankAccountId?: number | null;
   invoiceHeaderSubtitle?: string | null;
+  invoiceHeaderSubtitleUnpaid?: string | null;
+  invoiceHeaderSubtitlePaid?: string | null;
   invoiceNotesUnpaid?: string | null;
   invoiceNotesPaid?: string | null;
   invoiceTerms?: string | null;

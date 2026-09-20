@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Info } from "lucide-react";
 import { apiClient } from "@/service/apiClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,10 +17,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import type { Company } from "@/types/company";
 
 const SCHEMA = z.object({
-  invoiceHeaderSubtitle: z.string().max(200).optional(),
+  invoiceHeaderSubtitleUnpaid: z.string().max(200).optional(),
+  invoiceHeaderSubtitlePaid: z.string().max(200).optional(),
   invoiceNotesUnpaid: z.string().max(1000).optional(),
   invoiceNotesPaid: z.string().max(1000).optional(),
   invoiceTerms: z.string().max(4000).optional(),
@@ -28,6 +35,61 @@ const SCHEMA = z.object({
 });
 
 type FormData = z.infer<typeof SCHEMA>;
+
+type Placeholder = { token: string; label: string; description: string };
+
+const UNPAID_PLACEHOLDERS: Placeholder[] = [
+  { token: "{{companyName}}",   label: "Company Name",   description: "Your registered company name" },
+  { token: "{{invoiceId}}",     label: "Invoice Number", description: "Auto-generated invoice reference" },
+  { token: "{{invoiceDate}}",   label: "Invoice Date",   description: "Date the invoice was created" },
+  { token: "{{dueDate}}",       label: "Due Date",       description: "Payment deadline date" },
+  { token: "{{customerName}}", label: "Customer Name",  description: "Name of the billed customer" },
+  { token: "{{totalAmount}}",   label: "Total Amount",   description: "Invoice total including taxes" },
+];
+
+const PAID_PLACEHOLDERS: Placeholder[] = [
+  { token: "{{companyName}}",   label: "Company Name",   description: "Your registered company name" },
+  { token: "{{invoiceId}}",     label: "Invoice Number", description: "Auto-generated invoice reference" },
+  { token: "{{paidDate}}",      label: "Paid Date",      description: "Date the payment was received" },
+  { token: "{{customerName}}", label: "Customer Name",  description: "Name of the billed customer" },
+  { token: "{{totalAmount}}",   label: "Total Amount",   description: "Invoice total including taxes" },
+];
+
+const HEADER_PLACEHOLDERS: Placeholder[] = [
+  { token: "{{companyName}}",  label: "Company Name",   description: "Your registered company name" },
+  { token: "{{invoiceId}}",    label: "Invoice Number", description: "Auto-generated invoice reference" },
+  { token: "{{invoiceDate}}",  label: "Invoice Date",   description: "Date the invoice was created" },
+];
+
+function PlaceholderHint({ placeholders }: { placeholders: Placeholder[] }) {
+  return (
+    <HoverCard openDelay={100}>
+      <HoverCardTrigger asChild>
+        <button type="button" className="ml-1.5 inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 p-3" align="start" side="right">
+        <p className="text-xs text-muted-foreground mb-2.5 leading-relaxed">
+          Type these placeholders directly in the text. They are automatically replaced with real values when the document is generated.
+        </p>
+        <div className="space-y-1.5">
+          {placeholders.map(({ token, label, description }) => (
+            <div key={token} className="flex items-start gap-2">
+              <code className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-foreground">
+                {token}
+              </code>
+              <div className="min-w-0">
+                <span className="text-xs font-medium text-foreground">{label}</span>
+                <span className="text-xs text-muted-foreground"> — {description}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
 
 type Props = {
   company: Company;
@@ -40,7 +102,8 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
   const form = useForm<FormData>({
     resolver: zodResolver(SCHEMA),
     defaultValues: {
-      invoiceHeaderSubtitle: "",
+      invoiceHeaderSubtitleUnpaid: "",
+      invoiceHeaderSubtitlePaid: "",
       invoiceNotesUnpaid: "",
       invoiceNotesPaid: "",
       invoiceTerms: "",
@@ -51,7 +114,8 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
 
   useEffect(() => {
     form.reset({
-      invoiceHeaderSubtitle: company.invoiceHeaderSubtitle || "",
+      invoiceHeaderSubtitleUnpaid: company.invoiceHeaderSubtitleUnpaid || company.invoiceHeaderSubtitle || "",
+      invoiceHeaderSubtitlePaid: company.invoiceHeaderSubtitlePaid || "",
       invoiceNotesUnpaid: company.invoiceNotesUnpaid || "",
       invoiceNotesPaid: company.invoiceNotesPaid || "",
       invoiceTerms: company.invoiceTerms || "",
@@ -84,13 +148,36 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
           <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
               control={form.control}
-              name="invoiceHeaderSubtitle"
+              name="invoiceHeaderSubtitleUnpaid"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Header Subtitle</FormLabel>
+                  <FormLabel className="flex items-center">
+                    Header Subtitle (Unpaid)
+                    <PlaceholderHint placeholders={HEADER_PLACEHOLDERS} />
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Invoice generated by ERP system"
+                      placeholder="Invoice to be Paid Before the items are delivered"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="invoiceHeaderSubtitlePaid"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center">
+                    Header Subtitle (Paid)
+                    <PlaceholderHint placeholders={HEADER_PLACEHOLDERS} />
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Thank you for your payment"
                       {...field}
                     />
                   </FormControl>
@@ -104,11 +191,14 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
               name="invoiceNotesUnpaid"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes Template (Unpaid)</FormLabel>
+                  <FormLabel className="flex items-center">
+                    Notes Template (Unpaid)
+                    <PlaceholderHint placeholders={UNPAID_PLACEHOLDERS} />
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       rows={4}
-                      placeholder="Use placeholders like {{companyName}}, {{invoiceDate}}, {{dueDate}}, {{invoiceId}}"
+                      placeholder="e.g. Dear {{customerName}}, please make payment by {{dueDate}}."
                       {...field}
                     />
                   </FormControl>
@@ -122,11 +212,14 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
               name="invoiceNotesPaid"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes Template (Paid)</FormLabel>
+                  <FormLabel className="flex items-center">
+                    Notes Template (Paid)
+                    <PlaceholderHint placeholders={PAID_PLACEHOLDERS} />
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       rows={3}
-                      placeholder="Use placeholders like {{companyName}}, {{invoiceId}}, {{paidDate}}"
+                      placeholder="e.g. Thank you {{customerName}}, payment received on {{paidDate}}."
                       {...field}
                     />
                   </FormControl>
@@ -140,7 +233,7 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
               name="invoiceTerms"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Terms & Conditions (one line per item)</FormLabel>
+                  <FormLabel>Terms & Conditions — Invoice (Unpaid) <span className="text-muted-foreground font-normal">(one line per item)</span></FormLabel>
                   <FormControl>
                     <Textarea
                       rows={8}
