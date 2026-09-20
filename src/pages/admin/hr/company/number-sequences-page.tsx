@@ -27,7 +27,18 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   SUP:     "Suppliers / Vendors",
   WH:      "Warehouses",
   TX:      "Transactions",
+  JE:      "Journal Entries (JE No.)",
+  BUDGET:  "Budget Codes",
+  CN:      "Credit Notes",
+  CUST:    "Customer Codes",
 };
+
+const DEFAULT_CONFIGS: NumberingConfig[] = [
+  { docType: "JE",     prefix: "JE",     startNumber: 1000 },
+  { docType: "BUDGET", prefix: "BUD",    startNumber: 1000 },
+  { docType: "CN",     prefix: "CN",     startNumber: 1000 },
+  { docType: "CUST",   prefix: "CUST",   startNumber: 1000 },
+];
 
 export default function NumberSequencesPage({ hrSettings }: { hrSettings?: boolean }) {
   const { user } = useAuth();
@@ -43,7 +54,13 @@ export default function NumberSequencesPage({ hrSettings }: { hrSettings?: boole
         const res = await apiClient.get<NumberingConfig[]>(
           `/companies/${companyId}/numbering-config`,
         );
-        setConfigs(res.data);
+        const existing = res.data;
+        const existingTypes = new Set(existing.map((c) => c.docType));
+        const merged = [
+          ...existing,
+          ...DEFAULT_CONFIGS.filter((d) => !existingTypes.has(d.docType)),
+        ];
+        setConfigs(merged);
       } catch {
         toast.error("Failed to load numbering config");
       } finally {
