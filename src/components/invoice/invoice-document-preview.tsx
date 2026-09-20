@@ -140,12 +140,17 @@ export function InvoiceDocumentPreview({
   });
   const showDiscount = discountAmount > 0;
   const showTax = (invoice.taxAmount ?? 0) > 0;
-  const showQr =
-    Boolean(invoice.invoiceQrEnabled) && Boolean(invoice.publicInvoiceUrl);
+  const showQr = Boolean(invoice.invoiceQrEnabled);
+  const qrData = invoice.publicInvoiceUrl
+    || [
+        `Invoice: ${safeInvoiceValue(invoice.invoiceId)}`,
+        `Company: ${safeInvoiceValue(invoice.companyName)}`,
+        `Amount: ${invoiceMoney(invoice.amount, currencyCode)}`,
+        `Date: ${formatInvoiceDate(invoice.invoiceDate)}`,
+        `Status: ${(invoice.status || "UNPAID").toUpperCase()}`,
+      ].join("\n");
   const qrImageUrl = showQr
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
-        invoice.publicInvoiceUrl as string,
-      )}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`
     : null;
 
   return (
@@ -165,13 +170,18 @@ export function InvoiceDocumentPreview({
                 <div className="text-[22px] font-extrabold text-blue-800">
                   {safeInvoiceValue(invoice.companyName)}
                 </div>
-                <div className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-slate-500">
-                  {brandSub}
-                </div>
+                {invoice.invoiceHeaderSubtitle && (
+                  <div className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                    {invoice.invoiceHeaderSubtitle}
+                  </div>
+                )}
               </td>
               <td className="align-top text-right">
                 <div className="text-lg font-extrabold uppercase tracking-[0.06em] text-slate-900">
                   {docTitle}
+                </div>
+                <div className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-slate-400">
+                  {brandSub}
                 </div>
                 <div className="mt-1 font-mono text-xs text-slate-500">
                   {safeInvoiceValue(invoice.invoiceId)}
@@ -421,37 +431,27 @@ export function InvoiceDocumentPreview({
             <div className="mb-3 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-500">
               Payment Information
             </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3.5 text-[12px] leading-relaxed text-slate-600">
-              <p>
-                <strong>Bank Name:</strong>{" "}
-                {safeInvoiceValue(invoice.bankAccountName)}
-              </p>
-              <p>
-                <strong>Account Holder:</strong>{" "}
-                {safeInvoiceValue(invoice.companyName)}
-              </p>
-              <p>
-                <strong>IBAN Number:</strong>{" "}
-                {safeInvoiceValue(invoice.bankAccountNumber)}
-              </p>
-              {invoice.bankIban && (
-                <p>
-                  <strong>IBAN:</strong>{" "}
-                  {invoice.bankIban}
-                </p>
-              )}
-              <p>
-                <strong>IFSC/SWIFT:</strong>{" "}
-                {safeInvoiceValue(invoice.bankIfscCode)}
-              </p>
-              <p>
-                <strong>Branch:</strong>{" "}
-                {safeInvoiceValue(invoice.bankBranchName)}
-              </p>
-              <p>
-                <strong>Reference:</strong>{" "}
-                {safeInvoiceValue(invoice.invoiceId)}
-              </p>
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3.5 text-[12px] text-slate-600">
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 leading-snug">
+                <span className="font-semibold">Bank Name:</span>
+                <span>{safeInvoiceValue(invoice.bankAccountName)}</span>
+                <span className="font-semibold">Account Holder:</span>
+                <span>{safeInvoiceValue(invoice.companyName)}</span>
+                <span className="font-semibold">IBAN Number:</span>
+                <span>{safeInvoiceValue(invoice.bankAccountNumber)}</span>
+                {invoice.bankIban && (
+                  <>
+                    <span className="font-semibold">IBAN:</span>
+                    <span>{invoice.bankIban}</span>
+                  </>
+                )}
+                <span className="font-semibold">IFSC/SWIFT:</span>
+                <span>{safeInvoiceValue(invoice.bankIfscCode)}</span>
+                <span className="font-semibold">Branch:</span>
+                <span>{safeInvoiceValue(invoice.bankBranchName)}</span>
+                <span className="font-semibold">Reference:</span>
+                <span>{safeInvoiceValue(invoice.invoiceId)}</span>
+              </div>
             </div>
           </section>
         )}
