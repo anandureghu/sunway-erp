@@ -541,7 +541,9 @@ export default function PurchaseOrderDetailPage() {
             <div className="mb-4">
               <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Release sends the order to the supplier.
+                {st === "received"
+                  ? "Order is Completed"
+                  : "Release sends the order to the supplier."}
               </p>
             </div>
 

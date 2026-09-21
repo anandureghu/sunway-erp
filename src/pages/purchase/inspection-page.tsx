@@ -390,6 +390,7 @@ export default function InspectionPage() {
     () =>
       createGoodsReceiptColumns({
         onOpenReceipt: (id) => navigate(`/inventory/purchase/inspection/${id}`),
+        onCompleteInspection: (id) => navigate(`/inventory/purchase/inspection/${id}`),
         onArchive: handleArchiveReceipt,
         processingReceiptId: archivingId,
       }),
