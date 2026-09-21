@@ -524,18 +524,20 @@ export default function PurchaseInvoiceDetailPage() {
                   View matched document
                 </a>
               )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!goodsFullyReceived}
-                onClick={() => setMatchDialogOpen(true)}
-              >
-                <CheckSquare className="mr-2 h-4 w-4" />
-                {invoice.vendorInvoiceDocumentUrl
-                  ? "Re-match vendor invoice"
-                  : "Match Vendor Invoice"}
-              </Button>
+              {!isPaid && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!goodsFullyReceived}
+                  onClick={() => setMatchDialogOpen(true)}
+                >
+                  <CheckSquare className="mr-2 h-4 w-4" />
+                  {invoice.vendorInvoiceDocumentUrl
+                    ? "Re-match vendor invoice"
+                    : "Match Vendor Invoice"}
+                </Button>
+              )}
             </CardContent>
           </Card>
 

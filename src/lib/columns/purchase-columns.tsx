@@ -615,7 +615,7 @@ export function createPurchaseInvoiceColumns(
                     Open document
                   </DropdownMenuItem>
                 )}
-                {onMatchVendorInvoice && (
+                {onMatchVendorInvoice && normalizedStatus !== "PAID" && (
                   <>
                     <DropdownMenuSeparator />
                     {inv.vendorInvoiceDocumentUrl && onViewMatchedInvoice && (
@@ -673,6 +673,7 @@ export const PURCHASE_INVOICE_COLUMNS: ColumnDef<FinanceInvoice>[] =
 // Goods Receipt Columns
 export type GoodsReceiptColumnActions = {
   onOpenReceipt?: (id: string) => void;
+  onCompleteInspection?: (id: string) => void;
   onArchive?: (id: string) => void;
   processingReceiptId?: string | null;
 };
@@ -686,7 +687,7 @@ const GOODS_RECEIPT_STATUS_COLORS: Record<string, string> = {
 export function createGoodsReceiptColumns(
   actions: GoodsReceiptColumnActions = {},
 ): ColumnDef<GoodsReceipt>[] {
-  const { onOpenReceipt, onArchive, processingReceiptId } = actions;
+  const { onOpenReceipt, onCompleteInspection, onArchive, processingReceiptId } = actions;
 
   return [
     {
@@ -785,6 +786,15 @@ export function createGoodsReceiptColumns(
                     <Eye className="mr-2 h-4 w-4" />
                     View Details
                   </DropdownMenuItem>
+                )}
+                {receipt.status === "inspected" && onCompleteInspection && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onCompleteInspection(receipt.id)}>
+                      <CheckSquare className="mr-2 h-4 w-4" />
+                      Complete Inspection
+                    </DropdownMenuItem>
+                  </>
                 )}
                 {canArchive && onArchive && (
                   <>
