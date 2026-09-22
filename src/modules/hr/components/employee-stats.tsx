@@ -30,8 +30,11 @@ export function EmployeeStats({
     const active   = employees.filter((e) => normalize(e.status) === "ACTIVE").length;
     const probation = employees.filter((e) => normalize(e.status) === "UNDER_PROBATION").length;
     const onLeave  = employees.filter((e) => normalize(e.status) === "ON_LEAVE").length;
+    const former = employees.filter((e) =>
+      ["RESIGNED", "TERMINATED", "RETIRED"].includes(normalize(e.status)),
+    ).length;
     const inactive = employees.filter((e) => normalize(e.status) === "INACTIVE").length;
-    return { total, active, probation, onLeave, inactive };
+    return { total, active, probation, onLeave, former, inactive };
   }, [employees]);
 
   return (
@@ -73,6 +76,15 @@ export function EmployeeStats({
             icon: CalendarClock,
             onClick: () => onFilter?.("ON_LEAVE"),
             active: activeFilter === "ON_LEAVE",
+          },
+          {
+            label: "Former",
+            value: stats.former,
+            hint: "Resigned, terminated, or retired",
+            accent: "orange",
+            icon: UserX,
+            onClick: () => onFilter?.("FORMER"),
+            active: activeFilter === "FORMER",
           },
           {
             label: "Inactive",

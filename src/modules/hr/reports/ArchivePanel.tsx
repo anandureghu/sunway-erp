@@ -27,12 +27,14 @@ function Row({
   actionIcon: ActionIcon,
   onAction,
   busy,
+  actionDisabledReason,
 }: {
   e: Employee;
-  actionLabel: string;
-  actionIcon: typeof Archive;
-  onAction: () => void;
-  busy: boolean;
+  actionLabel?: string;
+  actionIcon?: typeof Archive;
+  onAction?: () => void;
+  busy?: boolean;
+  actionDisabledReason?: string;
 }) {
   return (
     <div className="flex items-center gap-3 border-b border-slate-50 px-4 py-2.5 last:border-0">
@@ -49,19 +51,25 @@ function Row({
       <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
         {fmtStatus(e.status)}
       </span>
-      <button
-        type="button"
-        onClick={onAction}
-        disabled={busy}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-      >
-        {busy ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <ActionIcon className="h-3.5 w-3.5" />
-        )}
-        {actionLabel}
-      </button>
+      {actionDisabledReason ? (
+        <span className="max-w-[9rem] text-right text-[10px] leading-snug text-slate-400">
+          {actionDisabledReason}
+        </span>
+      ) : actionLabel && ActionIcon && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          disabled={busy}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+        >
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <ActionIcon className="h-3.5 w-3.5" />
+          )}
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -85,11 +93,7 @@ export function ArchivePanel() {
         hrService.listInactiveEmployees(),
         hrService.listArchivedEmployees(),
       ]);
-      setInactive(
-        (Array.isArray(active) ? active : []).filter(
-          (e) => String(e.status ?? "").toUpperCase() === "INACTIVE",
-        ),
-      );
+      setInactive(Array.isArray(active) ? active : []);
       setArchived(Array.isArray(arch) ? arch : []);
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to load archive"));
@@ -154,6 +158,8 @@ export function ArchivePanel() {
             <h3 className="text-sm font-bold text-slate-800">Employee Archive</h3>
             <p className="text-[11px] text-slate-500">
               Keep the working set lean — archive settled (inactive) staff
+              after final settlement. Resigned / terminated / retired staff
+              also appear here until settlement marks them inactive.
             </p>
           </div>
         </div>
@@ -196,19 +202,28 @@ export function ArchivePanel() {
             {inactiveFiltered.length === 0 ? (
               <div className="flex flex-col items-center py-10 text-center text-sm text-slate-400">
                 <UserRound className="mb-1 h-7 w-7 text-slate-200" />
-                No inactive employees.
+                No former or inactive employees.
               </div>
             ) : (
-              inactiveFiltered.map((e) => (
-                <Row
-                  key={e.id}
-                  e={e}
-                  actionLabel="Archive"
-                  actionIcon={Archive}
-                  onAction={() => doArchive(e)}
-                  busy={busyId === String(e.id)}
-                />
-              ))
+              inactiveFiltered.map((e) => {
+                const canArchive =
+                  String(e.status ?? "").toUpperCase() === "INACTIVE";
+                return (
+                  <Row
+                    key={e.id}
+                    e={e}
+                    actionLabel={canArchive ? "Archive" : undefined}
+                    actionIcon={canArchive ? Archive : undefined}
+                    onAction={canArchive ? () => doArchive(e) : undefined}
+                    busy={busyId === String(e.id)}
+                    actionDisabledReason={
+                      canArchive
+                        ? undefined
+                        : "Complete final settlement to archive"
+                    }
+                  />
+                );
+              })
             )}
           </div>
 

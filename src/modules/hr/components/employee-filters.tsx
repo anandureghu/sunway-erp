@@ -10,7 +10,10 @@ const filters = [
   { label: "Active",          value: "active",          dot: "bg-emerald-500" },
   { label: "Under Probation", value: "under probation", dot: "bg-indigo-500" },
   { label: "On Leave",        value: "on leave",        dot: "bg-amber-500" },
-  { label: "Inactive",        value: "inactive",        dot: "bg-rose-500" },
+  { label: "Resigned",        value: "resigned",        dot: "bg-orange-500" },
+  { label: "Terminated",      value: "terminated",      dot: "bg-rose-500" },
+  { label: "Retired",         value: "retired",         dot: "bg-violet-500" },
+  { label: "Inactive",        value: "inactive",        dot: "bg-slate-500" },
 ] as const;
 
 export function EmployeeFilters({

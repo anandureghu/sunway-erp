@@ -128,7 +128,12 @@ export default function EmployeesPage() {
         stat.includes(query);
 
       const matchesStatus =
-        !statusFilter || normalize(employee.status) === desired;
+        !statusFilter ||
+        (desired === "FORMER"
+          ? ["RESIGNED", "TERMINATED", "RETIRED"].includes(
+              normalize(employee.status),
+            )
+          : normalize(employee.status) === desired);
 
       const matchesEmpType =
         !empTypeFilter ||
