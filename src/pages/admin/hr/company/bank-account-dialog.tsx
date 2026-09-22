@@ -15,14 +15,13 @@ import { apiClient } from "@/service/apiClient";
 import {
   Landmark,
   Hash,
-  CreditCard,
   User,
   X,
   CheckCircle2,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BankAccount } from "@/types/bank-account";
-import { isValidQatarIban } from "@/lib/qatar-validation";
+import { isValidQatarIban, normalizeIban } from "@/lib/qatar-validation";
 
 interface Props {
   open: boolean;
@@ -137,23 +136,29 @@ export function BankAccountDialog({
   }, [open]);
 
   const handleSubmit = async () => {
-    if (form.iban?.trim() && !isValidQatarIban(form.iban)) {
+    if (!form.accountNumber?.trim()) {
+      toast.error("IBAN Number is required");
+      return;
+    }
+    if (!isValidQatarIban(form.accountNumber)) {
       toast.error("IBAN must be a 29-character Qatar IBAN starting with QA");
       return;
     }
+    const iban = normalizeIban(form.accountNumber);
+    const payload = {
+      ...form,
+      accountNumber: iban,
+      // Keep legacy iban column in sync so invoices/APIs don't show a second value
+      iban,
+      companyId,
+    };
     setLoading(true);
     try {
       if (isEdit) {
-        await apiClient.put(`/bank-accounts/${bankAccount!.id}`, {
-          ...form,
-          companyId,
-        });
+        await apiClient.put(`/bank-accounts/${bankAccount!.id}`, payload);
         toast.success("Bank account updated");
       } else {
-        await apiClient.post("/bank-accounts", {
-          ...form,
-          companyId,
-        });
+        await apiClient.post("/bank-accounts", payload);
         toast.success("Bank account added");
       }
       onSuccess();
@@ -232,29 +237,19 @@ export function BankAccountDialog({
                   />
                 </Field>
 
-                <Field
-                  label="IBAN Number"
-                  required
-                  icon={<Hash className="h-[15px] w-[15px]" />}
-                >
-                  <Input
-                    placeholder="1234567890"
-                    value={form.accountNumber}
-                    onChange={(e) => patch("accountNumber", e.target.value)}
-                    className={cn(fieldCls(), "font-mono")}
-                  />
-                </Field>
-
                 <div className="grid grid-cols-2 gap-4">
                   <Field
-                    label="IBAN"
+                    label="IBAN Number"
+                    required
                     hint="International Bank Account Number"
-                    icon={<CreditCard className="h-[15px] w-[15px]" />}
+                    icon={<Hash className="h-[15px] w-[15px]" />}
                   >
                     <Input
                       placeholder="QA58DOHB000012345678901234567"
-                      value={form.iban}
-                      onChange={(e) => patch("iban", e.target.value.toUpperCase())}
+                      value={form.accountNumber}
+                      onChange={(e) =>
+                        patch("accountNumber", e.target.value.toUpperCase())
+                      }
                       className={cn(fieldCls(), "font-mono")}
                       maxLength={34}
                     />

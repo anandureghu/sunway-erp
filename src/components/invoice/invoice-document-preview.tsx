@@ -438,13 +438,11 @@ export function InvoiceDocumentPreview({
                 <span className="font-semibold">Account Holder:</span>
                 <span>{safeInvoiceValue(invoice.companyName)}</span>
                 <span className="font-semibold">IBAN Number:</span>
-                <span>{safeInvoiceValue(invoice.bankAccountNumber)}</span>
-                {invoice.bankIban && (
-                  <>
-                    <span className="font-semibold">IBAN:</span>
-                    <span>{invoice.bankIban}</span>
-                  </>
-                )}
+                <span>
+                  {safeInvoiceValue(
+                    invoice.bankAccountNumber || invoice.bankIban,
+                  )}
+                </span>
                 <span className="font-semibold">IFSC/SWIFT:</span>
                 <span>{safeInvoiceValue(invoice.bankIfscCode)}</span>
                 <span className="font-semibold">Branch:</span>
