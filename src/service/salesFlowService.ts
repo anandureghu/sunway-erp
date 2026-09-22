@@ -270,6 +270,13 @@ export async function cancelSalesOrder(id: Id | string) {
   return toSalesOrder(res.data);
 }
 
+export async function completeSalesOrder(id: Id | string) {
+  const res = await apiClient.post<SalesOrderResponseDTO>(
+    `/sales/orders/${id}/complete`,
+  );
+  return toSalesOrder(res.data);
+}
+
 export async function archiveSalesOrder(id: Id | string) {
   const res = await apiClient.post<SalesOrderResponseDTO>(
     `/sales/orders/${id}/archive`,

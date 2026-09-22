@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
+import type { Picklist } from "@/types/sales";
 import {
   CheckCircle2,
   ClipboardList,
@@ -27,10 +28,12 @@ type Props = {
   onEdit: () => void;
   onConfirm: () => void;
   onCancel: () => void;
+  onComplete?: () => void;
   onDownloadDocument: () => void;
   onReturned?: () => void;
   onGeneratePicklist?: () => void;
   onViewPicklist?: () => void;
+  activePicklist?: Picklist | null;
   hasActivePicklist?: boolean;
   submitting?: boolean;
 };
@@ -40,10 +43,12 @@ export function SalesOrderDetailHero({
   onEdit,
   onConfirm,
   onCancel,
+  onComplete,
   onDownloadDocument,
   onReturned,
   onGeneratePicklist,
   onViewPicklist,
+  activePicklist = null,
   hasActivePicklist = false,
   submitting = false,
 }: Props) {
@@ -56,13 +61,29 @@ export function SalesOrderDetailHero({
   const showDocumentActions =
     hasSalesInvoice && !isQuotation && status !== "CANCELLED";
   const showReceiptActions = isInvoiceReceiptView(so.paymentStatus);
+  const shipmentStatus = (activePicklist?.shipmentStatus || "").toLowerCase();
+  const isPickedOrInTransit =
+    activePicklist != null &&
+    activePicklist.status === "picked" &&
+    shipmentStatus !== "delivered" &&
+    shipmentStatus !== "cancelled";
   const canReturn =
+    isPickedOrInTransit &&
     !isQuotation &&
     status !== "CANCELLED" &&
     (so.items ?? []).some((line) => {
       const ordered = line.quantity ?? 0;
       const returned = line.returnedQty ?? 0;
       return ordered - returned > 0;
+    });
+  const canCompleteOrder =
+    Boolean(onComplete) &&
+    status === "CONFIRMED" &&
+    (so.items ?? []).length > 0 &&
+    (so.items ?? []).every((line) => {
+      const ordered = line.quantity ?? 0;
+      const returned = line.returnedQty ?? 0;
+      return returned >= ordered;
     });
   const canCancelOrder =
     status !== "CANCELLED" &&
@@ -80,6 +101,7 @@ export function SalesOrderDetailHero({
     canCancelOrder ||
     showDocumentActions ||
     canReturn ||
+    canCompleteOrder ||
     canGeneratePicklist ||
     canViewPicklist;
 
@@ -209,6 +231,19 @@ export function SalesOrderDetailHero({
                   >
                     <ClipboardList className="h-4 w-4" />
                     View picklist
+                  </Button>
+                ) : null}
+
+                {canCompleteOrder ? (
+                  <Button
+                    type="button"
+                    size="lg"
+                    className="h-10 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700"
+                    onClick={onComplete}
+                    disabled={submitting}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Complete order
                   </Button>
                 ) : null}
 

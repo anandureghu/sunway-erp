@@ -3,7 +3,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { apiClient } from "@/service/apiClient";
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { getInvoicePdfUrl } from "@/service/invoiceService";
-import { listPicklists } from "@/service/salesFlowService";
+import {
+  completeSalesOrder,
+  listPicklists,
+} from "@/service/salesFlowService";
+import type { Picklist } from "@/types/sales";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -79,13 +83,22 @@ function dtoToSalesOrder(so: SalesOrderResponseDTO): SalesOrder {
 const SalesOrdersDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { confirmCancel } = useConfirmDialog();
+  const { confirm, confirmCancel } = useConfirmDialog();
   const [so, setSo] = useState<SalesOrderResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [returnsRefreshKey, setReturnsRefreshKey] = useState(0);
-  const [activePicklistId, setActivePicklistId] = useState<string | null>(null);
+  const [activePicklist, setActivePicklist] = useState<Picklist | null>(null);
+
+  const refreshActivePicklist = async (orderId: string) => {
+    const picklists = await listPicklists().catch(() => []);
+    const active = picklists.find(
+      (pl) =>
+        String(pl.orderId) === String(orderId) && pl.status !== "cancelled",
+    );
+    setActivePicklist(active ?? null);
+  };
 
   const updateStatus = async (action: "confirm" | "cancel") => {
     if (!so || submitting) return;
@@ -125,6 +138,43 @@ const SalesOrdersDetailPage = () => {
     }
   };
 
+  const handleCompleteOrder = async () => {
+    if (!so || submitting) return;
+    const ok = await confirm({
+      title: "Complete order?",
+      description:
+        "All the line items in this order have been returned, do you want to complete the order?",
+      confirmLabel: "Complete Order",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+
+    setSubmitting(true);
+    try {
+      await completeSalesOrder(so.id!);
+      const { data } = await apiClient.get<SalesOrderResponseDTO>(
+        `/sales/orders/${so.id}`,
+      );
+      setSo(data);
+      await refreshActivePicklist(String(so.id));
+      toast.success("Order completed");
+    } catch (error: unknown) {
+      console.error("Complete order failed", error);
+      const err = error as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
+      toast.error(
+        err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          err?.message ||
+          "Failed to complete order.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -141,11 +191,11 @@ const SalesOrdersDetailPage = () => {
           (pl) =>
             String(pl.orderId) === String(id) && pl.status !== "cancelled",
         );
-        setActivePicklistId(active?.id ?? null);
+        setActivePicklist(active ?? null);
       } catch {
         if (!cancelled) {
           setSo(null);
-          setActivePicklistId(null);
+          setActivePicklist(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -224,6 +274,7 @@ const SalesOrdersDetailPage = () => {
           onEdit={() => setEditing(true)}
           onConfirm={() => void updateStatus("confirm")}
           onCancel={() => void updateStatus("cancel")}
+          onComplete={() => void handleCompleteOrder()}
           submitting={submitting}
           onDownloadDocument={() => void handleDownloadDocumentPdf()}
           onReturned={() => {
@@ -233,15 +284,17 @@ const SalesOrdersDetailPage = () => {
               .then(({ data }) => setSo(data));
           }}
           returnsRefreshKey={returnsRefreshKey}
-          hasActivePicklist={activePicklistId != null}
+          activePicklist={activePicklist}
+          hasActivePicklist={activePicklist != null}
           onGeneratePicklist={() =>
             navigate("/inventory/sales/picklist", {
               state: { salesOrderId: String(so.id) },
             })
           }
           onViewPicklist={
-            activePicklistId
-              ? () => navigate(`/inventory/sales/picklist/${activePicklistId}`)
+            activePicklist
+              ? () =>
+                  navigate(`/inventory/sales/picklist/${activePicklist.id}`)
               : undefined
           }
         />
