@@ -102,15 +102,20 @@ export function InvoiceDocumentPreview({
     .split(/\r?\n/)
     .map((term) => term.trim())
     .filter(Boolean);
+  const templateVars = {
+    companyName: safeInvoiceValue(invoice.companyName),
+    invoiceDate: formatInvoiceDate(invoice.invoiceDate),
+    dueDate: formatInvoiceDate(invoice.dueDate),
+    paidDate: formatInvoiceDate(invoice.paidDate),
+    invoiceId: safeInvoiceValue(invoice.invoiceId),
+  };
   const notesText = formatInvoiceTemplate(
     isPaid ? invoice.invoiceNotesPaid : invoice.invoiceNotesUnpaid,
-    {
-      companyName: safeInvoiceValue(invoice.companyName),
-      invoiceDate: formatInvoiceDate(invoice.invoiceDate),
-      dueDate: formatInvoiceDate(invoice.dueDate),
-      paidDate: formatInvoiceDate(invoice.paidDate),
-      invoiceId: safeInvoiceValue(invoice.invoiceId),
-    },
+    templateVars,
+  );
+  const headerSubtitle = formatInvoiceTemplate(
+    invoice.invoiceHeaderSubtitle,
+    templateVars,
   );
   const addressLine = [
     invoice.companyStreet,
@@ -170,11 +175,21 @@ export function InvoiceDocumentPreview({
                 <div className="text-[22px] font-extrabold text-blue-800">
                   {safeInvoiceValue(invoice.companyName)}
                 </div>
-                {invoice.invoiceHeaderSubtitle && (
-                  <div className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-slate-500">
-                    {invoice.invoiceHeaderSubtitle}
+                {addressLine ? (
+                  <div className="mt-1 max-w-[360px] text-[11px] leading-snug text-slate-500">
+                    {addressLine}
                   </div>
-                )}
+                ) : null}
+                {invoice.companyPhone ? (
+                  <div className="mt-0.5 text-[11px] text-slate-500">
+                    {invoice.companyPhone}
+                  </div>
+                ) : null}
+                {headerSubtitle.trim() ? (
+                  <div className="mt-1.5 text-[11px] leading-snug text-slate-600">
+                    {headerSubtitle}
+                  </div>
+                ) : null}
               </td>
               <td className="align-top text-right">
                 <div className="text-lg font-extrabold uppercase tracking-[0.06em] text-slate-900">
@@ -431,25 +446,38 @@ export function InvoiceDocumentPreview({
             <div className="mb-3 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-500">
               Payment Information
             </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3.5 text-[12px] text-slate-600">
-              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 leading-snug">
-                <span className="font-semibold">Bank Name:</span>
-                <span>{safeInvoiceValue(invoice.bankAccountName)}</span>
-                <span className="font-semibold">Account Holder:</span>
-                <span>{safeInvoiceValue(invoice.companyName)}</span>
-                <span className="font-semibold">IBAN Number:</span>
-                <span>
-                  {safeInvoiceValue(
-                    invoice.bankAccountNumber || invoice.bankIban,
-                  )}
-                </span>
-                <span className="font-semibold">IFSC/SWIFT:</span>
-                <span>{safeInvoiceValue(invoice.bankIfscCode)}</span>
-                <span className="font-semibold">Branch:</span>
-                <span>{safeInvoiceValue(invoice.bankBranchName)}</span>
-                <span className="font-semibold">Reference:</span>
-                <span>{safeInvoiceValue(invoice.invoiceId)}</span>
-              </div>
+            <div className="inline-block max-w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] leading-snug text-slate-600">
+              <table className="border-collapse">
+                <tbody>
+                  {(
+                    [
+                      ["Bank Name", safeInvoiceValue(invoice.bankAccountName)],
+                      [
+                        "Account Holder",
+                        safeInvoiceValue(
+                          invoice.bankAccountHolderName || invoice.companyName,
+                        ),
+                      ],
+                      [
+                        "IBAN Number",
+                        safeInvoiceValue(
+                          invoice.bankAccountNumber || invoice.bankIban,
+                        ),
+                      ],
+                      ["IFSC/SWIFT", safeInvoiceValue(invoice.bankIfscCode)],
+                      ["Branch", safeInvoiceValue(invoice.bankBranchName)],
+                      ["Reference", safeInvoiceValue(invoice.invoiceId)],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <tr key={label}>
+                      <td className="whitespace-nowrap py-0.5 pr-3 align-top font-semibold">
+                        {label}:
+                      </td>
+                      <td className="py-0.5 align-top">{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
@@ -461,12 +489,6 @@ export function InvoiceDocumentPreview({
             </div>
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3.5 text-[12px] leading-relaxed text-slate-600 whitespace-pre-wrap">
               {notesText}
-              {addressLine && (
-                <p className="mt-2">Company Address: {addressLine}</p>
-              )}
-              {invoice.companyPhone && (
-                <p className="mt-2">Contact: {invoice.companyPhone}</p>
-              )}
             </div>
           </section>
         )}
@@ -543,11 +565,11 @@ export function InvoiceDocumentPreview({
               <p className="mt-1">
                 For support:{" "}
                 {safeInvoiceValue(
-                  invoice.companyEmail || invoice.invoiceFooterSupportEmail,
+                  invoice.invoiceFooterSupportEmail || invoice.companyEmail,
                 )}{" "}
                 | For billing:{" "}
                 {safeInvoiceValue(
-                  invoice.billingEmail || invoice.invoiceFooterBillingEmail,
+                  invoice.invoiceFooterBillingEmail || invoice.billingEmail,
                 )}
               </p>
               {invoice.companyWebsiteUrl && (

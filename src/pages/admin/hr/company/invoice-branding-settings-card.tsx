@@ -31,6 +31,8 @@ const SCHEMA = z.object({
   invoiceNotesPaid: z.string().max(1000).optional(),
   invoiceTerms: z.string().max(4000).optional(),
   invoiceFooterSignatureNote: z.string().max(300).optional(),
+  invoiceFooterSupportEmail: z.string().max(120).optional(),
+  invoiceFooterBillingEmail: z.string().max(120).optional(),
   invoiceQrEnabled: z.boolean(),
 });
 
@@ -108,6 +110,8 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
       invoiceNotesPaid: "",
       invoiceTerms: "",
       invoiceFooterSignatureNote: "",
+      invoiceFooterSupportEmail: "",
+      invoiceFooterBillingEmail: "",
       invoiceQrEnabled: false,
     },
   });
@@ -120,6 +124,10 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
       invoiceNotesPaid: company.invoiceNotesPaid || "",
       invoiceTerms: company.invoiceTerms || "",
       invoiceFooterSignatureNote: company.invoiceFooterSignatureNote || "",
+      invoiceFooterSupportEmail:
+        company.invoiceFooterSupportEmail || company.companyEmail || "",
+      invoiceFooterBillingEmail:
+        company.invoiceFooterBillingEmail || company.billingEmail || "",
       invoiceQrEnabled: !!company.invoiceQrEnabled,
     });
   }, [company, form]);
@@ -262,6 +270,49 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
                 </FormItem>
               )}
             />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="invoiceFooterSupportEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Support contact (invoice footer)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="support@company.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Shown as “For support: …” on the invoice footer.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="invoiceFooterBillingEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billing contact (invoice footer)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="accounts@company.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Shown as “For billing: …” on the invoice footer.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

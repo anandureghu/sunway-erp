@@ -307,6 +307,7 @@ export type Invoice = {
   bankAccountId?: number;
   bankAccountName?: string;
   bankAccountNumber?: string;
+  bankAccountHolderName?: string;
   bankIban?: string;
   bankIfscCode?: string;
   bankBranchName?: string;
