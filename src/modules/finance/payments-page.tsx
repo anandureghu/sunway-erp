@@ -210,6 +210,11 @@ export default function PaymentsPage({
         `/finance/payments/${payment.id}/pdf`,
       );
       if (res.data && !res.data.includes("dummy.url")) {
+        setPayments((prev) =>
+          prev.map((p) =>
+            p.id === payment.id ? { ...p, pdfUrl: res.data } : p,
+          ),
+        );
         window.open(res.data, "_blank", "noopener,noreferrer");
       } else {
         toast.error("Receipt PDF is not available yet.");
@@ -302,7 +307,10 @@ export default function PaymentsPage({
         onConfirm: handleConfirmPayment,
         onOpenInvoice: handleOpenInvoice,
         onOpenPurchaseOrder: handleOpenPurchaseOrder,
-        onViewReceipt: variant === "vendor" ? handleViewReceipt : undefined,
+        onViewReceipt:
+          variant === "vendor" || variant === "customer"
+            ? handleViewReceipt
+            : undefined,
         onArchive: handleArchivePayment,
         archivingPaymentId,
       }),

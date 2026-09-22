@@ -198,14 +198,18 @@ export default function PurchaseInvoiceDetailPage() {
     try {
       if (isPaid) {
         await apiClient.post(`/invoices/${invoice.id}/receipt-email`);
-        toast.success("Receipt email sent (when mail is configured).");
+        toast.success("Receipt email sent.");
       } else {
         await apiClient.post(`/invoices/${invoice.id}/email`);
-        toast.success("Invoice email sent (when mail is configured).");
+        toast.success("Invoice email sent.");
       }
-    } catch {
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string; error?: string } } };
       toast.error(
-        isPaid ? "Could not send receipt email." : "Could not send invoice email.",
+        ax?.response?.data?.message ||
+          ax?.response?.data?.error ||
+          (err instanceof Error ? err.message : null) ||
+          (isPaid ? "Could not send receipt email." : "Could not send invoice email."),
       );
     }
   };
@@ -252,23 +256,6 @@ export default function PurchaseInvoiceDetailPage() {
               >
                 {showReceipt ? "Email receipt" : "Email invoice"}
               </Button>
-              {openDocumentHref && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
-                  asChild
-                >
-                  <a
-                    href={openDocumentHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open PDF
-                  </a>
-                </Button>
-              )}
               <Badge
                 className={statusColors[statusRaw] || "bg-gray-100 text-gray-800"}
               >
@@ -287,10 +274,12 @@ export default function PurchaseInvoiceDetailPage() {
           }
         />
 
-        <InvoiceDocumentPreview
-          invoice={documentInvoice}
-          currencyCode={documentInvoice.currencyCode}
-        />
+        <div className="flex justify-center">
+          <InvoiceDocumentPreview
+            invoice={documentInvoice}
+            currencyCode={documentInvoice.currencyCode}
+          />
+        </div>
       </div>
     );
   }

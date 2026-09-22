@@ -292,7 +292,15 @@ export const PAYMENT_COLUMNS = ({
                   </a>
                 );
               }
-              if (variant === "vendor" && onViewReceipt && !isPendingVendor) {
+              const outstanding = Number(item.invoiceOutstanding ?? NaN);
+              const invoiceFullyPaid =
+                Number.isFinite(outstanding) && outstanding <= 0;
+              const canGenerate =
+                Boolean(onViewReceipt) &&
+                !isPendingVendor &&
+                (variant === "vendor" ||
+                  (variant === "customer" && invoiceFullyPaid));
+              if (canGenerate) {
                 return (
                   <button
                     type="button"
@@ -300,7 +308,7 @@ export const PAYMENT_COLUMNS = ({
                     data-no-row-nav
                     onClick={(e) => {
                       e.stopPropagation();
-                      void onViewReceipt(item);
+                      void onViewReceipt!(item);
                     }}
                   >
                     View

@@ -61,6 +61,21 @@ function lineExtraDescription(item: InvoiceLineItem): string | undefined {
   return undefined;
 }
 
+/** Collapse consecutive duplicate address segments (e.g. "Qatar, Qatar"). */
+function dedupeAddressParts(address: string): string {
+  const parts = address
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const deduped: string[] = [];
+  for (const part of parts) {
+    const prev = deduped[deduped.length - 1];
+    if (prev && prev.toLowerCase() === part.toLowerCase()) continue;
+    deduped.push(part);
+  }
+  return deduped.join(", ");
+}
+
 export function InvoiceDocumentPreview({
   invoice,
   currencyCode,
@@ -90,14 +105,18 @@ export function InvoiceDocumentPreview({
     : safeInvoiceValue(invoice.purchaseOrder?.supplierName ?? invoice.toParty);
   const partyEmail = isSales
     ? safeInvoiceValue(invoice.salesOrder?.customerEmail)
-    : "";
+    : safeInvoiceValue(invoice.purchaseOrder?.supplierEmail);
   const partyPhone = isSales
     ? safeInvoiceValue(invoice.salesOrder?.customerPhone)
-    : "";
-  const partyAddress = isSales
-    ? safeInvoiceValue(invoice.salesOrder?.shippingAddress)
-    : "";
-  const brandSub = isSales ? "Customer Invoice" : "Accounts Payable";
+    : safeInvoiceValue(invoice.purchaseOrder?.supplierPhone);
+  const partyAddressRaw = isSales
+    ? invoice.salesOrder?.shippingAddress
+    : invoice.purchaseOrder?.supplierAddress;
+  const partyAddress =
+    partyAddressRaw?.trim()
+      ? dedupeAddressParts(partyAddressRaw.trim())
+      : INVOICE_DOC_MISSING;
+  const brandSub = isSales ? null : "Accounts Payable";
   const termsAndConditions = (invoice.invoiceTerms || "")
     .split(/\r?\n/)
     .map((term) => term.trim())
@@ -177,11 +196,21 @@ export function InvoiceDocumentPreview({
                 </div>
                 {addressLine ? (
                   <div className="mt-1 max-w-[360px] text-[11px] leading-snug text-slate-500">
+                    <span className="font-semibold text-slate-600">
+                      address:
+                    </span>{" "}
                     {addressLine}
+                  </div>
+                ) : null}
+                {invoice.companyEmail ? (
+                  <div className="mt-0.5 text-[11px] text-slate-500">
+                    <span className="font-semibold text-slate-600">email:</span>{" "}
+                    {invoice.companyEmail}
                   </div>
                 ) : null}
                 {invoice.companyPhone ? (
                   <div className="mt-0.5 text-[11px] text-slate-500">
+                    <span className="font-semibold text-slate-600">phone:</span>{" "}
                     {invoice.companyPhone}
                   </div>
                 ) : null}
@@ -195,9 +224,11 @@ export function InvoiceDocumentPreview({
                 <div className="text-lg font-extrabold uppercase tracking-[0.06em] text-slate-900">
                   {docTitle}
                 </div>
-                <div className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-slate-400">
-                  {brandSub}
-                </div>
+                {brandSub ? (
+                  <div className="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-slate-400">
+                    {brandSub}
+                  </div>
+                ) : null}
                 <div className="mt-1 font-mono text-xs text-slate-500">
                   {safeInvoiceValue(invoice.invoiceId)}
                 </div>
@@ -228,19 +259,28 @@ export function InvoiceDocumentPreview({
                   <div className="mt-1 text-[13px] font-semibold text-slate-900">
                     {partyName}
                   </div>
-                  {partyEmail !== INVOICE_DOC_MISSING && (
+                  {partyAddress !== INVOICE_DOC_MISSING && (
                     <div className="mt-1 text-[11px] text-slate-500">
+                      <span className="font-semibold text-slate-600">
+                        address:
+                      </span>{" "}
+                      {partyAddress}
+                    </div>
+                  )}
+                  {partyEmail !== INVOICE_DOC_MISSING && (
+                    <div className="mt-0.5 text-[11px] text-slate-500">
+                      <span className="font-semibold text-slate-600">
+                        email:
+                      </span>{" "}
                       {partyEmail}
                     </div>
                   )}
                   {partyPhone !== INVOICE_DOC_MISSING && (
-                    <div className="text-[11px] text-slate-500">
+                    <div className="mt-0.5 text-[11px] text-slate-500">
+                      <span className="font-semibold text-slate-600">
+                        phone:
+                      </span>{" "}
                       {partyPhone}
-                    </div>
-                  )}
-                  {partyAddress !== INVOICE_DOC_MISSING && (
-                    <div className="text-[11px] text-slate-500">
-                      {partyAddress}
                     </div>
                   )}
                 </td>

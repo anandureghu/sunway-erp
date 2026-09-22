@@ -208,6 +208,9 @@ export type PurchaseOrder = {
   requisition?: PurchaseRequisition;
   supplierId: string;
   supplierName?: string;
+  supplierEmail?: string;
+  supplierPhone?: string;
+  supplierAddress?: string;
   supplier?: Supplier;
   orderDate: string;
   /** Required delivery date carried from the source PR. */

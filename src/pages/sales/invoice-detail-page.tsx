@@ -13,6 +13,7 @@ import {
 } from "@/lib/invoice-document-utils";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { InvoiceDocumentPreview } from "@/components/invoice/invoice-document-preview";
+import { printInvoiceElement } from "@/lib/print-invoice";
 
 export default function InvoiceDetailPage() {
   const { alert } = useConfirmDialog();
@@ -46,6 +47,22 @@ export default function InvoiceDetailPage() {
   ]
     .filter(Boolean)
     .join(" · ");
+
+  const handlePrint = () => {
+    try {
+      printInvoiceElement(
+        "invoice-pdf",
+        isReceiptView
+          ? `Receipt ${invoice.invoiceId}`
+          : `Invoice ${invoice.invoiceId}`,
+      );
+    } catch (error) {
+      console.error("Invoice print failed", error);
+      void alert(
+        error instanceof Error ? error.message : "Unable to print invoice",
+      );
+    }
+  };
 
   const handleDownloadPdf = () => {
     apiClient
@@ -115,7 +132,7 @@ export default function InvoiceDetailPage() {
             {isReceiptView && (
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="rounded-md border border-white/40 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-100"
               >
                 Print
@@ -142,11 +159,13 @@ export default function InvoiceDetailPage() {
         }
       />
 
-      <InvoiceDocumentPreview
-        id="invoice-pdf"
-        invoice={invoice}
-        currencyCode={currencyCode}
-      />
+      <div className="mt-4 flex justify-center">
+        <InvoiceDocumentPreview
+          id="invoice-pdf"
+          invoice={invoice}
+          currencyCode={currencyCode}
+        />
+      </div>
     </div>
   );
 }
