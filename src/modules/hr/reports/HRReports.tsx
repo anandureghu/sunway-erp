@@ -83,12 +83,29 @@ const COLORS = {
 const PALETTE = Object.values(COLORS);
 
 const STATUS_COLOR: Record<string, string> = {
-  Active: COLORS.emerald,
-  Inactive: COLORS.slate,
-  "On Leave": COLORS.amber,
+  ACTIVE: COLORS.emerald,
+  INACTIVE: COLORS.slate,
+  ON_LEAVE: COLORS.amber,
+  UNDER_PROBATION: COLORS.sky,
+  RESIGNED: COLORS.rose,
+  TERMINATED: COLORS.rose,
+  RETIRED: COLORS.violet,
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+/** Normalize API/display status strings to enum-style keys (e.g. ACTIVE). */
+function normalizeStatus(s?: string | null): string {
+  return String(s ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+}
+
+function deptOf(e: { departmentName?: string; department?: string }): string {
+  return e.departmentName || e.department || "Unassigned";
+}
+
 function countBy<T>(
   arr: T[],
   key: (item: T) => string,
@@ -750,7 +767,8 @@ export default function HRReports() {
 
   // ── workforce analytics ─────────────────────────────────────────────────────
   const statusData = useMemo(
-    () => countBy(employees, (e) => e.status || "Unknown"),
+    () =>
+      countBy(employees, (e) => normalizeStatus(e.status) || "Unknown"),
     [employees],
   );
   const genderData = useMemo(
@@ -758,7 +776,7 @@ export default function HRReports() {
     [employees],
   );
   const allDeptData = useMemo(
-    () => countBy(employees, (e) => e.department || "Unassigned"),
+    () => countBy(employees, (e) => deptOf(e)),
     [employees],
   );
   // Chart shows the top 8; the KPI count must reflect the true total.
@@ -781,9 +799,15 @@ export default function HRReports() {
     [employees],
   );
 
-  const activeCount = employees.filter((e) => e.status === "Active").length;
-  const inactiveCount = employees.filter((e) => e.status === "Inactive").length;
-  const onLeaveCount = employees.filter((e) => e.status === "On Leave").length;
+  const activeCount = employees.filter(
+    (e) => normalizeStatus(e.status) === "ACTIVE",
+  ).length;
+  const inactiveCount = employees.filter(
+    (e) => normalizeStatus(e.status) === "INACTIVE",
+  ).length;
+  const onLeaveCount = employees.filter(
+    (e) => normalizeStatus(e.status) === "ON_LEAVE",
+  ).length;
 
   // ── appraisal analytics ─────────────────────────────────────────────────────
   const appraisalStatusData = useMemo(
@@ -1154,7 +1178,7 @@ export default function HRReports() {
                             {e.firstName} {e.lastName}
                           </td>
                           <td className="py-2.5 text-slate-500">
-                            {e.department || "—"}
+                            {deptOf(e) === "Unassigned" ? "—" : deptOf(e)}
                           </td>
                           <td className="py-2.5 text-slate-500">
                             {e.companyRole || e.designation || "—"}
@@ -1168,14 +1192,15 @@ export default function HRReports() {
                             <span
                               className={cn(
                                 "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                                e.status === "Active"
+                                normalizeStatus(e.status) === "ACTIVE"
                                   ? "bg-emerald-50 text-emerald-700"
-                                  : e.status === "On Leave"
+                                  : normalizeStatus(e.status) === "ON_LEAVE"
                                     ? "bg-amber-50 text-amber-700"
                                     : "bg-slate-100 text-slate-600",
                               )}
                             >
-                              {e.status}
+                              {normalizeStatus(e.status).replace(/_/g, " ") ||
+                                "—"}
                             </span>
                           </td>
                         </tr>

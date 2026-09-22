@@ -115,7 +115,11 @@ export default function SalesLandingPage() {
     () =>
       dispatches.filter((d) => {
         const status = normalizeStatus(d.status);
-        return status === "in_transit" || status === "dispatched" || status === "shipped";
+        return (
+          status === "in_transit" ||
+          status === "dispatched" ||
+          status === "out_for_delivery"
+        );
       }).length,
     [dispatches],
   );

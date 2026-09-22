@@ -108,7 +108,7 @@ export function ProbationTrackerCard({
   return (
     <DashboardSectionCard
       title="Probation tracker"
-      viewAllTo="/hr/reports?tab=confirm-employees"
+      viewAllTo="/hr/settings?tab=lifecycle&sub=confirm-employees"
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">

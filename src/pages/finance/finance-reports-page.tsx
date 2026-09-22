@@ -341,7 +341,7 @@ export default function FinanceReportsPage() {
             {
               label: "Revenue",
               value: fmt(data.totals.revenue),
-              hint: `${data.totals.invoiceCount} invoices`,
+              hint: `${data.totals.invoiceCount} sales invoices`,
               accent: "emerald",
               icon: TrendingUp,
             },
@@ -362,14 +362,14 @@ export default function FinanceReportsPage() {
             {
               label: "Outstanding AR",
               value: fmt(data.totals.totalReceivables),
-              hint: `${data.arAging.currentCount + data.arAging.d1To30Count + data.arAging.d31To60Count + data.arAging.d61To90Count + data.arAging.d90PlusCount} open`,
+              hint: `Current open · ${data.arAging.currentCount + data.arAging.d1To30Count + data.arAging.d31To60Count + data.arAging.d61To90Count + data.arAging.d90PlusCount}`,
               accent: "sky",
               icon: Users,
             },
             {
               label: "Outstanding AP",
               value: fmt(data.totals.totalPayables),
-              hint: `${data.apAging.currentCount + data.apAging.d1To30Count + data.apAging.d31To60Count + data.apAging.d61To90Count + data.apAging.d90PlusCount} open`,
+              hint: `Current open · ${data.apAging.currentCount + data.apAging.d1To30Count + data.apAging.d31To60Count + data.apAging.d61To90Count + data.apAging.d90PlusCount}`,
               accent: "amber",
               icon: Building2,
             },
@@ -405,7 +405,7 @@ export default function FinanceReportsPage() {
             <TabsContent value="receivables" className="space-y-4">
               <AgingTab
                 title="Receivables aging"
-                description="Outstanding sales invoices grouped by how many days they are past their due date."
+                description="Current outstanding sales invoices (all open balances), grouped by days past due — not limited to the selected report period."
                 aging={data.arAging}
                 parties={data.topCustomers}
                 partyLabel="Top customers"
@@ -416,7 +416,7 @@ export default function FinanceReportsPage() {
             <TabsContent value="payables" className="space-y-4">
               <AgingTab
                 title="Payables aging"
-                description="Outstanding purchase invoices grouped by how many days they are past their due date."
+                description="Current outstanding purchase invoices (all open balances), grouped by days past due — not limited to the selected report period."
                 aging={data.apAging}
                 parties={data.topVendors}
                 partyLabel="Top vendors"
