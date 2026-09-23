@@ -1590,7 +1590,7 @@ function EmployeePayrollTab() {
                       <div className="flex items-center justify-between px-3 py-2">
                         <span className="text-slate-600">Gross earnings</span>
                         <span className="font-semibold text-slate-800 tabular-nums">
-                          {formatMoney(payrollPreview.grossPay, currencySymbol)}
+                          {formatMoney(payrollPreview.earnedGrossPay, currencySymbol)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between px-3 py-2">
