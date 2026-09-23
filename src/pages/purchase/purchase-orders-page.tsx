@@ -343,9 +343,13 @@ export default function PurchaseOrdersPage() {
     async (id: string) => {
       const order = orders.find((o) => o.id === id);
       if (!order) return toast.error("Order not found");
-      if (order.status !== "received" && order.status !== "cancelled") {
+      const isFullyPaid = (order.paymentStatus || "").toUpperCase() === "PAID";
+      const isArchivable =
+        order.status === "cancelled" ||
+        (order.status === "received" && isFullyPaid);
+      if (!isArchivable) {
         return toast.error(
-          "Only received or cancelled orders can be archived.",
+          "Only fully paid received orders, or cancelled orders, can be archived.",
         );
       }
       if (order.archived) return toast.error("Order is already archived.");

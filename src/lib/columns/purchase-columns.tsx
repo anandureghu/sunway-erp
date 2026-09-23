@@ -204,8 +204,10 @@ export function createPurchaseOrderColumns(
         const canCancel = st === "draft" || st === "approved";
         const canReceive =
           st === "confirmed" || st === "partially_received";
+        const isFullyPaid = (order.paymentStatus || "").toUpperCase() === "PAID";
         const canArchive =
-          !order.archived && (st === "received" || st === "cancelled");
+          !order.archived &&
+          (st === "cancelled" || (st === "received" && isFullyPaid));
         const reqId = order.requisitionId;
         const isProcessing = processingOrderId === order.id;
 
