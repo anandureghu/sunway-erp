@@ -108,6 +108,7 @@ import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
 import SubscriptionsPage from "./pages/admin/subscriptions/subscriptions-page";
 import SubscriptionDetailPage from "./pages/admin/subscriptions/subscription-detail-page";
 import CompanyBillingPage from "./pages/admin/subscriptions/company-billing-page";
+import PlatformSettingsPage from "./pages/admin/platform-settings/platform-settings-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
@@ -212,6 +213,7 @@ export default function App() {
               path="subscriptions/:companyId"
               element={<SubscriptionDetailPage />}
             />
+            <Route path="platform-settings" element={<PlatformSettingsPage />} />
             <Route path="bank-accounts" element={<Navigate to="/finance/settings?tab=bank-accounts" replace />} />
             <Route
               path="default-accounts"

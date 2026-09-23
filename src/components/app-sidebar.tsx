@@ -200,6 +200,7 @@ export function AppSidebar() {
         { title: "Companies", url: "/admin/company", icon: Building },
         { title: "Subscriptions", url: "/admin/subscriptions", icon: CreditCard },
         { title: "System Logs", url: "/admin/system-logs", icon: ScrollText },
+        { title: "Platform Settings", url: "/admin/platform-settings", icon: Settings },
       ],
     },
   ];
