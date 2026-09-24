@@ -150,8 +150,11 @@ export function InvoiceDocumentPreview({
   const showTerms = isSales && termsAndConditions.length > 0;
   // Backend stores subtotalAmount as post-discount (sum of line totals before tax).
   // Display Subtotal as the pre-discount gross so Discount is not applied twice.
+  // When subtotalAmount is missing, fall back to amount minus tax (amount includes tax).
   const discountAmount = invoice.discountAmount ?? 0;
-  const netSubtotal = invoice.subtotalAmount ?? invoice.amount ?? 0;
+  const netSubtotal = invoice.subtotalAmount
+    ? invoice.subtotalAmount
+    : Math.max((invoice.amount ?? 0) - (invoice.taxAmount ?? 0), 0);
   const grossSubtotal = netSubtotal + discountAmount;
   const discountPctLabel = salesDiscountPercentLabel({
     discountAmount,
