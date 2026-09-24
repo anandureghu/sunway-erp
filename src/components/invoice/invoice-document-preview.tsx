@@ -154,7 +154,8 @@ export function InvoiceDocumentPreview({
     !isSales &&
     Boolean(supplierBankName || supplierIban || supplierCurrencyCode);
   const showNotes = isSales && Boolean(notesText.trim());
-  const showTerms = isSales && termsAndConditions.length > 0;
+  // Terms & Conditions apply to unpaid invoices only (not paid invoices / receipts).
+  const showTerms = isSales && !isPaid && termsAndConditions.length > 0;
   // Backend stores subtotalAmount as post-discount (sum of line totals before tax).
   // Display Subtotal as the pre-discount gross so Discount is not applied twice.
   // When subtotalAmount is missing, fall back to amount minus tax (amount includes tax).
