@@ -16,8 +16,23 @@ export function totalLineQty(so: SalesOrderResponseDTO): number {
   return (so.items || []).reduce((acc, item) => acc + (item.quantity || 0), 0);
 }
 
+/** Remaining balance due — null outstanding (no invoice yet) means the full total. */
+export function outstandingBalance(so: SalesOrderResponseDTO): number {
+  const total = so.totalAmount ?? 0;
+  if (paymentStatusKey(so) === "PAID") return 0;
+  return so.outstandingAmount ?? total;
+}
+
+/**
+ * Amount already settled. Treat missing outstanding as unpaid (paid = 0), matching
+ * the sales-orders list columns — do not coalesce null outstanding to 0.
+ */
 export function paidAmount(so: SalesOrderResponseDTO): number {
-  return (so.totalAmount ?? 0) - (so.outstandingAmount ?? 0);
+  const total = so.totalAmount ?? 0;
+  const payment = paymentStatusKey(so);
+  if (payment === "PAID") return total;
+  if (so.outstandingAmount == null) return 0;
+  return Math.max(0, total - Number(so.outstandingAmount));
 }
 
 export function nextStepMessage(so: SalesOrderResponseDTO): string {

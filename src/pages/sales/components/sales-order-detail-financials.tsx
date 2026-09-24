@@ -3,6 +3,7 @@ import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
 import { CheckCircle2, CreditCard } from "lucide-react";
 import {
   formatStatusLabel,
+  outstandingBalance,
   paidAmount,
   paymentStatusKey,
 } from "./sales-order-detail-utils";
@@ -16,6 +17,7 @@ export function SalesOrderDetailFinancials({ so }: Props) {
   const isPaid = payment === "PAID";
   const isPartial = payment === "PARTIALLY_PAID";
   const paid = paidAmount(so);
+  const outstanding = outstandingBalance(so);
 
   return (
     <section className="space-y-4">
@@ -65,12 +67,10 @@ export function SalesOrderDetailFinancials({ so }: Props) {
           </p>
           <p
             className={`mt-2 text-2xl font-bold tabular-nums ${
-              (so.outstandingAmount ?? 0) > 0
-                ? "text-rose-600"
-                : "text-slate-900"
+              outstanding > 0 ? "text-rose-600" : "text-slate-900"
             }`}
           >
-            <CurrencyAmount amount={so.outstandingAmount ?? 0} />
+            <CurrencyAmount amount={outstanding} />
           </p>
           <p className="mt-1 text-xs text-slate-500">Remaining balance due</p>
         </div>
@@ -99,7 +99,7 @@ export function SalesOrderDetailFinancials({ so }: Props) {
               Due
             </p>
             <p className="mt-1 text-base font-bold text-rose-600">
-              <CurrencyAmount amount={so.outstandingAmount ?? 0} />
+              <CurrencyAmount amount={outstanding} />
             </p>
           </div>
         </div>

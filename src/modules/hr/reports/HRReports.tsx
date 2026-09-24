@@ -95,11 +95,28 @@ const STATUS_COLOR: Record<string, string> = {
 // ── helpers ───────────────────────────────────────────────────────────────────
 /** Normalize API/display status strings to enum-style keys (e.g. ACTIVE). */
 function normalizeStatus(s?: string | null): string {
-  return String(s ?? "")
+  const raw = String(s ?? "")
     .trim()
     .toUpperCase()
-    .replace(/\s+/g, "_")
-    .replace(/-/g, "_");
+    .replace(/[\s-]+/g, "_");
+  if (!raw) return "";
+  // Compact / display aliases → canonical EmployeeStatus names
+  const ALIASES: Record<string, string> = {
+    ACTIVE: "ACTIVE",
+    INACTIVE: "INACTIVE",
+    ON_LEAVE: "ON_LEAVE",
+    ONLEAVE: "ON_LEAVE",
+    UNDER_PROBATION: "UNDER_PROBATION",
+    UNDERPROBATION: "UNDER_PROBATION",
+    RESIGNED: "RESIGNED",
+    TERMINATED: "TERMINATED",
+    RETIRED: "RETIRED",
+  };
+  return ALIASES[raw] ?? raw;
+}
+
+function statusLabel(key: string): string {
+  return key.replace(/_/g, " ");
 }
 
 function deptOf(e: { departmentName?: string; department?: string }): string {
@@ -771,6 +788,12 @@ export default function HRReports() {
       countBy(employees, (e) => normalizeStatus(e.status) || "Unknown"),
     [employees],
   );
+  const statusCount = (key: string) =>
+    statusData.find((s) => s.name === key)?.value ?? 0;
+  // Derive KPI cards from the same buckets as the status pie so they cannot drift.
+  const activeCount = statusCount("ACTIVE");
+  const inactiveCount = statusCount("INACTIVE");
+  const onLeaveCount = statusCount("ON_LEAVE");
   const genderData = useMemo(
     () => countBy(employees, (e) => e.gender || "Unknown"),
     [employees],
@@ -798,16 +821,6 @@ export default function HRReports() {
     () => employees.filter((e) => isWithinDays(e.joinDate, 30)),
     [employees],
   );
-
-  const activeCount = employees.filter(
-    (e) => normalizeStatus(e.status) === "ACTIVE",
-  ).length;
-  const inactiveCount = employees.filter(
-    (e) => normalizeStatus(e.status) === "INACTIVE",
-  ).length;
-  const onLeaveCount = employees.filter(
-    (e) => normalizeStatus(e.status) === "ON_LEAVE",
-  ).length;
 
   // ── appraisal analytics ─────────────────────────────────────────────────────
   const appraisalStatusData = useMemo(
@@ -1080,7 +1093,7 @@ export default function HRReports() {
                           }}
                         />
                         <span className="text-sm text-slate-700 flex-1">
-                          {s.name}
+                          {statusLabel(s.name)}
                         </span>
                         <span className="text-sm font-bold text-slate-800 tabular-nums">
                           {s.value}
@@ -1199,8 +1212,7 @@ export default function HRReports() {
                                     : "bg-slate-100 text-slate-600",
                               )}
                             >
-                              {normalizeStatus(e.status).replace(/_/g, " ") ||
-                                "—"}
+                              {statusLabel(normalizeStatus(e.status)) || "—"}
                             </span>
                           </td>
                         </tr>

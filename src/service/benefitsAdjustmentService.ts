@@ -15,6 +15,13 @@ export type BenefitsComponent =
   | "TRAVEL"
   | "OTHER";
 
+/** Sub-type when adjusting the OTHER allowance component. */
+export type OtherBenefitType =
+  | "ANNUAL_TICKET"
+  | "BONUS"
+  | "ADVANCE_SALARY"
+  | "REIMBURSEMENT";
+
 export interface BenefitsAdjustmentRequest {
   scope: BenefitsScope;
   gradeCode?: string | null;
@@ -22,6 +29,8 @@ export interface BenefitsAdjustmentRequest {
   employeeId?: number | null;
   percentage: number;
   components: BenefitsComponent[];
+  /** Required when components includes OTHER. */
+  otherBenefitType?: OtherBenefitType | null;
 }
 
 export interface BenefitsAdjustmentResult {

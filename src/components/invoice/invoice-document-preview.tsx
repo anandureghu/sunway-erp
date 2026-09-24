@@ -146,6 +146,13 @@ export function InvoiceDocumentPreview({
     .join(", ");
   const showPaymentInfo =
     isSales && Boolean(invoice.bankAccountName) && !isPaid;
+  const po = invoice.purchaseOrder;
+  const supplierBankName = po?.supplierBankName?.trim() || "";
+  const supplierIban = po?.supplierIban?.trim() || "";
+  const supplierCurrencyCode = po?.supplierCurrencyCode?.trim() || "";
+  const showSupplierBankDetails =
+    !isSales &&
+    Boolean(supplierBankName || supplierIban || supplierCurrencyCode);
   const showNotes = isSales && Boolean(notesText.trim());
   const showTerms = isSales && termsAndConditions.length > 0;
   // Backend stores subtotalAmount as post-discount (sum of line totals before tax).
@@ -525,6 +532,36 @@ export function InvoiceDocumentPreview({
           </section>
         )}
 
+        {showSupplierBankDetails && (
+          <section>
+            <div className="mb-3 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-500">
+              Supplier Bank Details
+            </div>
+            <div className="inline-block max-w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] leading-snug text-slate-600">
+              <table className="border-collapse">
+                <tbody>
+                  {(
+                    [
+                      ["Bank Name", supplierBankName],
+                      ["IBAN", supplierIban],
+                      ["Currency", supplierCurrencyCode],
+                    ] as const
+                  )
+                    .filter(([, value]) => Boolean(value))
+                    .map(([label, value]) => (
+                      <tr key={label}>
+                        <td className="whitespace-nowrap py-0.5 pr-3 align-top font-semibold">
+                          {label}:
+                        </td>
+                        <td className="py-0.5 align-top">{value}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
         {showNotes && (
           <section>
             <div className="mb-3 border-b border-slate-200 pb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-500">
@@ -559,7 +596,7 @@ export function InvoiceDocumentPreview({
             <tbody>
               <tr>
                 <td className="w-1/2 px-6 text-center align-bottom">
-                  <div className="mt-12 border-t-2 border-slate-900 pt-2">
+                  <div className="mt-8 border-t-2 border-slate-900 pt-2">
                     <div className="text-[12px] font-bold text-slate-900">
                       {partyName}
                     </div>
@@ -571,7 +608,7 @@ export function InvoiceDocumentPreview({
                   </div>
                 </td>
                 <td className="w-1/2 px-6 text-center align-bottom">
-                  <div className="mt-12 border-t-2 border-slate-900 pt-2">
+                  <div className="mt-8 border-t-2 border-slate-900 pt-2">
                     <div className="text-[12px] font-bold text-slate-900">
                       {safeInvoiceValue(invoice.companyName)}
                     </div>
@@ -589,23 +626,23 @@ export function InvoiceDocumentPreview({
       <table className="w-full border-collapse border-t border-slate-200">
         <tbody>
           <tr>
-            <td className="w-[70%] px-8 py-5 align-top text-[10px] text-slate-400">
+            <td className="w-[70%] px-8 py-3 align-top text-[10px] text-slate-400">
               <p className="font-semibold text-slate-700">
                 {safeInvoiceValue(
                   invoice.invoiceFooterCompanyLine || invoice.companyName,
                 )}
               </p>
               {invoice.invoiceFooterTaxLine && (
-                <p className="mt-1">{invoice.invoiceFooterTaxLine}</p>
+                <p className="mt-0.5">{invoice.invoiceFooterTaxLine}</p>
               )}
-              {addressLine && <p className="mt-1">Address: {addressLine}</p>}
-              <p className="mt-1">
+              {addressLine && <p className="mt-0.5">Address: {addressLine}</p>}
+              <p className="mt-0.5">
                 {safeInvoiceValue(
                   invoice.invoiceFooterSignatureNote ||
                     "This is a computer-generated document and does not require a physical signature.",
                 )}
               </p>
-              <p className="mt-1">
+              <p className="mt-0.5">
                 For support:{" "}
                 {safeInvoiceValue(
                   invoice.invoiceFooterSupportEmail || invoice.companyEmail,
@@ -616,19 +653,19 @@ export function InvoiceDocumentPreview({
                 )}
               </p>
               {invoice.companyWebsiteUrl && (
-                <p className="mt-1">Website: {invoice.companyWebsiteUrl}</p>
+                <p className="mt-0.5">Website: {invoice.companyWebsiteUrl}</p>
               )}
             </td>
             {showQr && qrImageUrl && (
-              <td className="w-[30%] px-8 py-5 text-center align-top">
-                <div className="mx-auto mb-2 h-[120px] w-[120px] overflow-hidden rounded-xl border-2 border-slate-200 bg-white">
+              <td className="w-[30%] px-8 py-3 text-center align-top">
+                <div className="mx-auto mb-1.5 h-[96px] w-[96px] overflow-hidden rounded-lg border border-slate-200 bg-white">
                   <img
                     src={qrImageUrl}
                     alt="Invoice QR"
                     className="h-full w-full object-cover"
                   />
                 </div>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[10px] text-slate-500">
                   Scan to View Online
                 </div>
               </td>
@@ -637,7 +674,7 @@ export function InvoiceDocumentPreview({
           <tr>
             <td
               colSpan={2}
-              className="px-8 pb-5 text-right text-[10px] text-slate-400"
+              className="px-8 pb-4 text-right text-[10px] text-slate-400"
             >
               Ref: {safeInvoiceValue(invoice.invoiceId)} |{" "}
               {safeInvoiceValue(invoice.companyName)}

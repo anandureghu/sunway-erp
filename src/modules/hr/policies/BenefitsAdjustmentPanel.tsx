@@ -18,6 +18,7 @@ import {
   benefitsAdjustmentService,
   type BenefitsComponent,
   type BenefitsScope,
+  type OtherBenefitType,
 } from "@/service/benefitsAdjustmentService";
 
 type Dept = { id: number; departmentName?: string; name?: string };
@@ -37,6 +38,13 @@ const COMPONENTS: { key: BenefitsComponent; label: string }[] = [
   { key: "BASIC", label: "Basic salary" },
 ];
 
+const OTHER_BENEFIT_TYPES: { value: OtherBenefitType; label: string }[] = [
+  { value: "ANNUAL_TICKET", label: "Annual Ticket" },
+  { value: "BONUS", label: "Bonus" },
+  { value: "ADVANCE_SALARY", label: "Advance Salary" },
+  { value: "REIMBURSEMENT", label: "reimbursement" },
+];
+
 /**
  * HR Settings → bulk benefits adjustment. Raises selected pay components by a
  * percentage for a group of employees chosen by grade code, department, or a single
@@ -54,11 +62,16 @@ export default function BenefitsAdjustmentPanel() {
   const [selected, setSelected] = useState<Set<BenefitsComponent>>(
     new Set(["HOUSING", "TRANSPORT", "FOOD", "TRAVEL", "OTHER"]),
   );
+  const [otherBenefitType, setOtherBenefitType] = useState<OtherBenefitType | "">(
+    "",
+  );
 
   const [gradeCodes, setGradeCodes] = useState<string[]>([]);
   const [departments, setDepartments] = useState<Dept[]>([]);
   const [employees, setEmployees] = useState<Emp[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const otherSelected = selected.has("OTHER");
 
   useEffect(() => {
     benefitsAdjustmentService.gradeCodes().then(setGradeCodes);
@@ -79,6 +92,10 @@ export default function BenefitsAdjustmentPanel() {
       .catch(() => setDepartments([]));
   }, [company?.id]);
 
+  useEffect(() => {
+    if (!otherSelected) setOtherBenefitType("");
+  }, [otherSelected]);
+
   const toggle = (key: BenefitsComponent) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -95,6 +112,7 @@ export default function BenefitsAdjustmentPanel() {
     if (!canEdit || saving) return false;
     if (!percentage || percentage <= 0) return false;
     if (selected.size === 0) return false;
+    if (otherSelected && !otherBenefitType) return false;
     if (scope === "GRADE_CODE") return !!gradeCode;
     if (scope === "DEPARTMENT") return !!departmentId;
     if (scope === "EMPLOYEE") return !!employeeId;
@@ -105,6 +123,8 @@ export default function BenefitsAdjustmentPanel() {
     saving,
     percentage,
     selected,
+    otherSelected,
+    otherBenefitType,
     scope,
     gradeCode,
     departmentId,
@@ -129,6 +149,9 @@ export default function BenefitsAdjustmentPanel() {
         employeeId: scope === "EMPLOYEE" ? Number(employeeId) : null,
         percentage,
         components: Array.from(selected),
+        otherBenefitType: otherSelected
+          ? (otherBenefitType as OtherBenefitType)
+          : null,
       });
       if (result.adjusted === 0) {
         toast.info(
@@ -137,8 +160,12 @@ export default function BenefitsAdjustmentPanel() {
             : "Matched employees have no active salary record to adjust.",
         );
       } else {
+        const typeNote =
+          otherSelected && otherBenefitType
+            ? ` (${OTHER_BENEFIT_TYPES.find((t) => t.value === otherBenefitType)?.label ?? otherBenefitType})`
+            : "";
         toast.success(
-          `Raised benefits by ${percentage}% for ${result.adjusted} employee${
+          `Raised benefits by ${percentage}%${typeNote} for ${result.adjusted} employee${
             result.adjusted === 1 ? "" : "s"
           }.`,
         );
@@ -321,6 +348,30 @@ export default function BenefitsAdjustmentPanel() {
             })}
           </div>
         </div>
+
+        {otherSelected && (
+          <div className="sm:col-span-2">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Benefit type
+            </label>
+            <Select
+              value={otherBenefitType}
+              onValueChange={(v) => setOtherBenefitType(v as OtherBenefitType)}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="mt-1 h-9 max-w-md text-sm">
+                <SelectValue placeholder="Select benefit type" />
+              </SelectTrigger>
+              <SelectContent>
+                {OTHER_BENEFIT_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex justify-end">

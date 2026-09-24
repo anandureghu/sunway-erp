@@ -92,7 +92,7 @@ function validateBankForm(data: BankModel): ValidationErrors {
   if (!data.bankName?.trim()) errors.bankName = "Bank name is required";
   if (!data.bankBranch?.trim()) errors.bankBranch = "Bank branch is required";
   if (!data.accountType) errors.accountType = "Account type is required";
-  if (!data.accountNo?.trim()) errors.accountNo = "IBAN Number is required";
+  if (!data.accountNo?.trim()) errors.accountNo = "Account number is required";
   if (!data.country?.trim()) errors.country = "Country is required";
   if (data.iban?.trim() && !isValidQatarIban(data.iban)) {
     errors.iban = "IBAN must be a 29-character Qatar IBAN starting with QA";
@@ -547,7 +547,7 @@ export default function BankForm() {
                 </div>
               </Field>
 
-              <Field label="IBAN Number" required error={errors.accountNo}>
+              <Field label="Account Number" required error={errors.accountNo}>
                 <div className="relative">
                   <Hash className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -584,7 +584,7 @@ export default function BankForm() {
               />
               <ViewField
                 icon={<Hash className="h-4 w-4" />}
-                label="IBAN Number"
+                label="Account Number"
                 value={maskAccount(draft.accountNo)}
                 mono
               />
@@ -725,7 +725,7 @@ export default function BankForm() {
             />
             <StatPill
               icon={<Hash className="h-4 w-4 text-blue-600" />}
-              label="Account No"
+              label="Account Number"
               value={draft.accountNo ? `•••• ${draft.accountNo.slice(-4)}` : ""}
               accent="border-blue-100 bg-blue-50/50"
             />
@@ -757,7 +757,7 @@ export default function BankForm() {
                 { label: "Bank Name", ok: !!draft.bankName },
                 { label: "Bank Branch", ok: !!draft.bankBranch },
                 { label: "Account Type", ok: !!draft.accountType },
-                { label: "Account No", ok: !!draft.accountNo },
+                { label: "Account Number", ok: !!draft.accountNo },
                 { label: "Country", ok: !!draft.country },
               ].map(({ label, ok }) => (
                 <div key={label} className="flex items-center gap-2">

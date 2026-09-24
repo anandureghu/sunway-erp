@@ -211,6 +211,10 @@ export type PurchaseOrder = {
   supplierEmail?: string;
   supplierPhone?: string;
   supplierAddress?: string;
+  /** Vendor bank details for purchase invoice / receipt documents. */
+  supplierBankName?: string | null;
+  supplierIban?: string | null;
+  supplierCurrencyCode?: string | null;
   supplier?: Supplier;
   orderDate: string;
   /** Required delivery date carried from the source PR. */
