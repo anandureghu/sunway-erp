@@ -14,6 +14,8 @@ import {
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { InvoiceDocumentPreview } from "@/components/invoice/invoice-document-preview";
 import { printInvoiceElement } from "@/lib/print-invoice";
+import { regenerateInvoicePdf } from "@/service/invoiceService";
+import { toast } from "sonner";
 
 export default function InvoiceDetailPage() {
   const { alert } = useConfirmDialog();
@@ -21,11 +23,17 @@ export default function InvoiceDetailPage() {
   const location = useLocation();
   const { currencyCode: companyCurrencyCode } = useCompanyCurrency();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
 
-  useEffect(() => {
+  const reloadInvoice = () => {
+    if (!id) return;
     apiClient.get(`/invoices/${id}`).then((res) => {
       setInvoice(res.data);
     });
+  };
+
+  useEffect(() => {
+    reloadInvoice();
   }, [id]);
 
   if (!invoice) {
@@ -35,6 +43,8 @@ export default function InvoiceDetailPage() {
   const currencyCode = invoice.currencyCode ?? companyCurrencyCode;
   const isSales = invoice.type === "SALES";
   const isReceiptView = isPaidInvoiceView(invoice.status);
+  const canRegenerate =
+    !invoice.documentSource || invoice.documentSource === "GENERATED";
   const orderNo =
     invoice.orderNumber ||
     (isSales
@@ -82,6 +92,34 @@ export default function InvoiceDetailPage() {
             : "Unable to download invoice PDF",
         );
       });
+  };
+
+  const handleRegeneratePdf = async () => {
+    if (!canRegenerate || regenerating) return;
+    setRegenerating(true);
+    try {
+      const url = await regenerateInvoicePdf(invoice.id);
+      toast.success(
+        isReceiptView
+          ? "Receipt PDF regenerated."
+          : "Invoice PDF regenerated.",
+      );
+      reloadInvoice();
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      console.error("Invoice PDF regenerate failed", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : isReceiptView
+            ? "Unable to regenerate receipt PDF"
+            : "Unable to regenerate invoice PDF",
+      );
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   const handleSendEmail = async () => {
@@ -145,6 +183,20 @@ export default function InvoiceDetailPage() {
             >
               {isReceiptView ? "Download Receipt" : "Download Invoice"}
             </button>
+            {canRegenerate && (
+              <button
+                type="button"
+                disabled={regenerating}
+                onClick={() => void handleRegeneratePdf()}
+                className="rounded-md border border-white/40 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-100 disabled:opacity-60"
+              >
+                {regenerating
+                  ? "Regenerating…"
+                  : isReceiptView
+                    ? "Regenerate Receipt"
+                    : "Regenerate PDF"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => void handleSendEmail()}

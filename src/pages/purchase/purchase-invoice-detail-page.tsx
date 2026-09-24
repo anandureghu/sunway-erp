@@ -9,6 +9,7 @@ import {
   getInvoice,
   getInvoicePdfUrl,
   invoiceDocumentPreviewUrl,
+  regenerateInvoicePdf,
 } from "@/service/invoiceService";
 import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
@@ -37,6 +38,7 @@ export default function PurchaseInvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [matchDialogOpen, setMatchDialogOpen] = useState(false);
   const [goodsFullyReceived, setGoodsFullyReceived] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   useEffect(() => {
     if (!id) {
       setLoading(false);
@@ -193,6 +195,39 @@ export default function PurchaseInvoiceDetailPage() {
     }
   };
 
+  const handleRegeneratePdf = async () => {
+    if (!isGenerated || regenerating) return;
+    setRegenerating(true);
+    try {
+      const url = await regenerateInvoicePdf(invoice.id);
+      toast.success(
+        showReceipt ? "Receipt PDF regenerated." : "Invoice PDF regenerated.",
+      );
+      const refreshed = await getInvoice(Number(id));
+      setInvoice(refreshed);
+      try {
+        const full = await apiClient.get<Invoice>(`/invoices/${id}`);
+        setDocumentInvoice(full.data);
+      } catch {
+        /* keep existing preview */
+      }
+      if (url && !url.includes("dummy.url")) {
+        setPreviewUrl(url);
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } };
+      toast.error(
+        ax?.response?.data?.message ||
+          (err instanceof Error
+            ? err.message
+            : "Could not regenerate PDF."),
+      );
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   const handleEmailDocument = async () => {
     if (!isGenerated) return;
     try {
@@ -246,6 +281,20 @@ export default function PurchaseInvoiceDetailPage() {
                 onClick={() => void handleDownloadPdf()}
               >
                 {showReceipt ? "Download receipt" : "Download invoice"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                disabled={regenerating}
+                onClick={() => void handleRegeneratePdf()}
+              >
+                {regenerating
+                  ? "Regenerating…"
+                  : showReceipt
+                    ? "Regenerate receipt"
+                    : "Regenerate PDF"}
               </Button>
               <Button
                 type="button"
@@ -312,6 +361,22 @@ export default function PurchaseInvoiceDetailPage() {
                 onClick={() => void handleDownloadPdf()}
               >
                 {showReceipt ? "Download receipt" : "Download invoice"}
+              </Button>
+            )}
+            {isGenerated && (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
+                disabled={regenerating}
+                onClick={() => void handleRegeneratePdf()}
+              >
+                {regenerating
+                  ? "Regenerating…"
+                  : showReceipt
+                    ? "Regenerate receipt"
+                    : "Regenerate PDF"}
               </Button>
             )}
             {isGenerated && (

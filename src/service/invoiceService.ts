@@ -166,6 +166,14 @@ export async function getInvoicePdfUrl(invoiceId: number): Promise<string> {
   return res.data;
 }
 
+/** Rebuild system-generated invoice/receipt PDF and delete the previous blob. */
+export async function regenerateInvoicePdf(invoiceId: number): Promise<string> {
+  const res = await apiClient.post<string>(
+    `/invoices/${invoiceId}/pdf/regenerate`,
+  );
+  return res.data;
+}
+
 function isUsableDocumentUrl(url?: string | null): boolean {
   return Boolean(url && url.trim() && !url.includes("dummy.url"));
 }

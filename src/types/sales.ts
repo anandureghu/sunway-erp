@@ -324,6 +324,8 @@ export type Invoice = {
   publicInvoiceUrl?: string;
 
   pdfUrl?: string;
+  receiptPdfUrl?: string | null;
+  documentSource?: "GENERATED" | "SUPPLIER_UPLOAD" | "EXTERNAL_LINK" | null;
 
   createdAt: string;
 
