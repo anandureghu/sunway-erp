@@ -70,6 +70,12 @@ const TODAY_META: Record<string, { label: string; cls: string; dot: string }> = 
     cls: "bg-slate-50 text-slate-500 border-slate-200",
     dot: "bg-slate-300",
   },
+  // Resigned / terminated / retired, separation not yet complete — marked absent.
+  ABSENT: {
+    label: "Absent",
+    cls: "bg-rose-50 text-rose-700 border-rose-200",
+    dot: "bg-rose-400",
+  },
   // On approved leave today — counts as absent for the day.
   ON_LEAVE: {
     label: "Absent",
@@ -84,6 +90,10 @@ const EMP_STATUS_META: Record<string, { label: string; cls: string }> = {
   ACTIVE: { label: "Active", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   UNDER_PROBATION: { label: "Probation", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   ON_LEAVE: { label: "On Leave", cls: "bg-violet-50 text-violet-700 border-violet-200" },
+  // Exiting — shown until the exit interview + final settlement are complete.
+  RESIGNED: { label: "Resigned", cls: "bg-orange-50 text-orange-700 border-orange-200" },
+  TERMINATED: { label: "Terminated", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+  RETIRED: { label: "Retired", cls: "bg-sky-50 text-sky-700 border-sky-200" },
 };
 
 const empStatusMeta = (status?: string | null) => {

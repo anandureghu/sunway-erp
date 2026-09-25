@@ -14,8 +14,30 @@ import {
   Shield,
   X,
   ChevronDown,
+  AlertTriangle,
+  ArchiveRestore,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import CountrySelect from "@/components/country-select";
+import { hrService, type DuplicateEmployeeMatch } from "@/service/hr.service";
+
+// Status → label + badge colours for the "employee already exists" warning.
+const DUP_STATUS_META: Record<string, { label: string; cls: string }> = {
+  ACTIVE: { label: "Active", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  UNDER_PROBATION: { label: "Under probation", cls: "bg-sky-50 text-sky-700 border-sky-200" },
+  ON_LEAVE: { label: "On leave", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  RESIGNED: { label: "Resigned", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+  TERMINATED: { label: "Terminated", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+  RETIRED: { label: "Retired", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  INACTIVE: { label: "Inactive", cls: "bg-slate-100 text-slate-700 border-slate-300" },
+};
+const dupStatusMeta = (status?: string | null) =>
+  DUP_STATUS_META[String(status ?? "").toUpperCase()] ?? {
+    label: status || "Unknown",
+    cls: "bg-slate-50 text-slate-600 border-slate-200",
+  };
 
 export type SelectedEmployee = {
   employeeNo: string;
@@ -156,7 +178,12 @@ export function AddEmployeeModal({
   });
 
   const { company } = useAuth();
+  const navigate = useNavigate();
   const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
+  // Existing records that are the same person (same ID number, or same first +
+  // middle + last name). While any are shown the employee is NOT created.
+  const [duplicates, setDuplicates] = useState<DuplicateEmployeeMatch[]>([]);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -183,12 +210,42 @@ export function AddEmployeeModal({
   ) => {
     const { name, value } = e.target as HTMLInputElement;
     setForm((prev) => ({ ...prev, [name]: value }));
+    // Editing a name or the ID number re-opens the check on the next save.
+    if (["firstName", "middleName", "lastName", "identification"].includes(name)) {
+      setDuplicates([]);
+    }
   };
 
-  const handleSubmit = () => {
+  const goTo = (path: string) => {
+    onClose();
+    navigate(path);
+  };
+
+  const handleSubmit = async () => {
     if (!form.firstName.trim() || !form.lastName.trim()) {
       toast.error("First name and Last name are required");
       return;
+    }
+    // Never create the same person twice — check the ID number and the exact full
+    // name (first + middle + last) against every record, inactive/archived included.
+    setChecking(true);
+    try {
+      const matches = await hrService.checkDuplicateEmployee({
+        firstName: form.firstName,
+        middleName: form.middleName,
+        lastName: form.lastName,
+        identification: form.identification,
+      });
+      if (matches.length > 0) {
+        setDuplicates(matches);
+        toast.warning("This employee already exists — see the details in the form.");
+        return;
+      }
+    } catch {
+      // The server re-checks on create and refuses a duplicate, so a failed
+      // pre-check does not let one through.
+    } finally {
+      setChecking(false);
     }
     const payload = {
       firstName: form.firstName,
@@ -268,6 +325,110 @@ export function AddEmployeeModal({
           className="space-y-4 overflow-y-auto bg-white px-6 py-5"
           style={{ maxHeight: "calc(92vh - 132px)" }}
         >
+          {/* ── Employee already exists ── */}
+          {duplicates.length > 0 && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold text-amber-900">
+                    {duplicates.length === 1
+                      ? "This employee already exists"
+                      : `${duplicates.length} matching employees already exist`}
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-amber-800">
+                    A new record will not be created. Use the existing record below.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {duplicates.map((d) => {
+                      const meta = dupStatusMeta(d.status);
+                      const inactive = String(d.status ?? "").toUpperCase() === "INACTIVE";
+                      return (
+                        <li
+                          key={d.id}
+                          className="rounded-xl border border-amber-200 bg-white px-3 py-2.5"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[13px] font-semibold text-slate-800">
+                              {d.fullName}
+                            </span>
+                            {d.employeeNo && (
+                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">
+                                #{d.employeeNo}
+                              </span>
+                            )}
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}
+                            >
+                              {meta.label}
+                            </span>
+                            {d.archived && (
+                              <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">
+                                Archived
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            Matched by{" "}
+                            {d.matchedBy === "IDENTIFICATION"
+                              ? `identification no. ${d.identification ?? ""}`
+                              : "first, middle and last name"}
+                            {d.departmentName ? ` · ${d.departmentName}` : ""}
+                          </p>
+
+                          {inactive && (
+                            <p className="mt-2 rounded-lg bg-slate-50 px-2.5 py-2 text-[12px] text-slate-700">
+                              {d.archived ? (
+                                <>
+                                  This employee is <strong>Inactive</strong> and archived.{" "}
+                                  <strong>Restore</strong> them from{" "}
+                                  <strong>HR Reports → Archive</strong>, then open the profile
+                                  and click <strong>Activate Employee</strong> to re-hire.
+                                </>
+                              ) : (
+                                <>
+                                  This employee is <strong>Inactive</strong>. Open the profile
+                                  and click <strong>Activate Employee</strong> to re-hire instead
+                                  of creating a new record.
+                                </>
+                              )}
+                            </p>
+                          )}
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {inactive && d.archived ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  goTo(
+                                    `/hr/reports?tab=archive&q=${encodeURIComponent(d.employeeNo || d.fullName)}`,
+                                  )
+                                }
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-violet-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-violet-700"
+                              >
+                                <ArchiveRestore className="h-3.5 w-3.5" />
+                                Restore from archive
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => goTo(`/hr/employees/${d.id}/profile`)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-blue-700"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                {inactive ? "Open profile to activate" : "Open existing profile"}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Personal Information ── */}
           <Section
             icon={<User className="h-3.5 w-3.5 text-slate-600" />}
@@ -472,10 +633,20 @@ export function AddEmployeeModal({
             <button
               onClick={handleSubmit}
               type="button"
-              className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-[13px] font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-indigo-700"
+              disabled={checking || duplicates.length > 0}
+              title={
+                duplicates.length > 0
+                  ? "This employee already exists — change the name or ID number to add a different person"
+                  : undefined
+              }
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-[13px] font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <UserPlus className="h-3.5 w-3.5" />
-              Save employee
+              {checking ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <UserPlus className="h-3.5 w-3.5" />
+              )}
+              {checking ? "Checking…" : "Save employee"}
             </button>
           </div>
         </div>

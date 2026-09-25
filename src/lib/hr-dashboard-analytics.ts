@@ -66,10 +66,17 @@ type LeaveHistoryRow = {
   leaveStatus?: string;
 };
 
-const LEFT_EMPLOYEE_STATUSES = new Set(["resigned", "terminated", "retired"]);
+// Not part of the headcount: exiting staff and INACTIVE (separation complete).
+const LEFT_EMPLOYEE_STATUSES = new Set([
+  "resigned",
+  "terminated",
+  "retired",
+  "inactive",
+]);
 
+/** Status normalised to lower-case words: "ON_LEAVE" / "On Leave" → "on leave". */
 function normalizeEmployeeStatus(status?: string): string {
-  return (status ?? "Active").trim();
+  return (status ?? "Active").trim().replace(/_/g, " ");
 }
 
 /** Active headcount for HR dashboard analytics (matches nationality / contract charts). */

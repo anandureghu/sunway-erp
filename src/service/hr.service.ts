@@ -2,6 +2,19 @@
   import { apiClient } from "./apiClient";
   import { jobCodeService, type JobCode } from "./jobCodeService";
 
+  /** An existing employee that matches a new hire (see checkDuplicateEmployee). */
+  export interface DuplicateEmployeeMatch {
+    id: number;
+    employeeNo?: string | null;
+    fullName: string;
+    /** Backend enum name: ACTIVE, INACTIVE, RESIGNED, … */
+    status?: string | null;
+    archived: boolean;
+    identification?: string | null;
+    departmentName?: string | null;
+    matchedBy: "IDENTIFICATION" | "FULL_NAME";
+  }
+
   /* =====================================================
     LIST EMPLOYEES (current company)
   ===================================================== */
@@ -134,6 +147,35 @@
   async function unarchiveEmployee(employeeId: number): Promise<void> {
     await apiClient.put(`/employees/${employeeId}/unarchive`);
   }
+  /** Re-hire an INACTIVE employee: status → ACTIVE and restored to the directory. */
+  async function reactivateEmployee(employeeId: number): Promise<Employee> {
+    const res = await apiClient.put<Employee>(`/employees/${employeeId}/reactivate`);
+    return res.data;
+  }
+
+  /**
+   * Existing employees (any status, archived included) that are the same person as a
+   * new hire: same identification number, or the exact same first + middle + last name.
+   */
+  async function checkDuplicateEmployee(params: {
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    identification?: string;
+  }): Promise<DuplicateEmployeeMatch[]> {
+    const res = await apiClient.get<DuplicateEmployeeMatch[]>(
+      "/employees/duplicate-check",
+      {
+        params: {
+          firstName: params.firstName?.trim() || undefined,
+          middleName: params.middleName?.trim() || undefined,
+          lastName: params.lastName?.trim() || undefined,
+          identification: params.identification?.trim() || undefined,
+        },
+      },
+    );
+    return Array.isArray(res.data) ? res.data : [];
+  }
 
   /* =====================================================
     UPLOAD EMPLOYEE IMAGE (optional)
@@ -209,6 +251,8 @@
     listInactiveEmployees,
     archiveEmployee,
     unarchiveEmployee,
+    checkDuplicateEmployee,
+    reactivateEmployee,
     uploadImage,
     getActiveJobCodes,
     resetEmployeePassword,

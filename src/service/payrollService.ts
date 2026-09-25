@@ -83,6 +83,10 @@ export type PayrollPreview = {
   finalSettlement: boolean;
   grossPay: number;
   payrollAccount: PayrollAccountStatus;
+  /** Annual ticket / bonus / reimbursement grants paid in this run. */
+  benefitsAmount?: number;
+  /** Calendar months the pay period covers (3 for Jun 1 – Aug 31). */
+  periodMonths?: number;
 };
 
 export function parsePayrollApiError(err: unknown): { message: string; details: string[] } {

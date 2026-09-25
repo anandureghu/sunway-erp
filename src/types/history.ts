@@ -14,7 +14,8 @@ export type HistoryEntityType =
   | "VENDOR_PAYMENT"
   | "JOURNAL_ENTRY"
   | "TRANSACTION"
-  | "BUDGET_DISTRIBUTION";
+  | "BUDGET_DISTRIBUTION"
+  | "EMPLOYEE";
 
 export type HistoryRecord = {
   id: number;
@@ -60,6 +61,7 @@ export const HISTORY_ENTITY_LABELS: Record<HistoryEntityType, string> = {
   JOURNAL_ENTRY: "Journal entries",
   TRANSACTION: "Transactions",
   BUDGET_DISTRIBUTION: "Budget distributions",
+  EMPLOYEE: "Archived employees",
 };
 
 /** Backend module each entity type belongs to (must match HistoryEntityType.java). */
@@ -78,6 +80,7 @@ export const HISTORY_TYPE_MODULE: Record<HistoryEntityType, HistoryModule> = {
   JOURNAL_ENTRY: "finance",
   TRANSACTION: "finance",
   BUDGET_DISTRIBUTION: "finance",
+  EMPLOYEE: "hr",
 };
 
 export const HISTORY_MODULE_TYPES: Record<HistoryModule, HistoryEntityType[]> = {
@@ -103,7 +106,7 @@ export const HISTORY_MODULE_TYPES: Record<HistoryModule, HistoryEntityType[]> = 
     "TRANSACTION",
     "BUDGET_DISTRIBUTION",
   ],
-  hr: [],
+  hr: ["EMPLOYEE"],
 };
 
 export const OPERATIONAL_ARCHIVE_TYPE: Partial<

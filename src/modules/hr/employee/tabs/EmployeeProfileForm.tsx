@@ -16,6 +16,7 @@ import {
   Hash,
   UserCircle2,
   Building2,
+  UserCheck,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import roleService from "@/service/roleService";
@@ -380,6 +381,33 @@ export default function EmployeeProfileForm() {
     [],
   );
 
+  // Re-hire an INACTIVE employee (status → Active, restored to every list).
+  const { confirm } = useConfirmDialog();
+  const [activating, setActivating] = useState(false);
+  const handleActivate = useCallback(async () => {
+    if (!id) return;
+    const name = [saved.firstName, saved.lastName].filter(Boolean).join(" ");
+    const ok = await confirm(
+      `Activate ${name || "this employee"}? They will be set to Active, restored to all lists, and able to sign in again.`,
+    );
+    if (!ok) return;
+    setActivating(true);
+    try {
+      const { hrService } = await import("@/service/hr.service");
+      await hrService.reactivateEmployee(Number(id));
+      const fresh = await hrService.getEmployee(id);
+      const next = fresh ? mapEmployeeToProfile(fresh) : { ...saved, status: "Active" };
+      setSaved(next);
+      setDraft(next);
+      window.dispatchEvent(new CustomEvent("employee:updated", { detail: next }));
+      toast.success(`${name || "Employee"} is active again`);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to activate employee"));
+    } finally {
+      setActivating(false);
+    }
+  }, [id, saved, confirm]);
+
   // Fetch company roles with IDs
   useEffect(() => {
     const companyId = currentUser?.companyId;
@@ -678,16 +706,29 @@ export default function EmployeeProfileForm() {
             </div>
           </div>
 
-          {/* Status badge */}
-          <span
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
-              statusMeta.badge,
+          {/* Status badge (+ Activate for an inactive employee) */}
+          <div className="flex shrink-0 items-center gap-2">
+            {id && !editing && saved.status === "Inactive" && (
+              <button
+                type="button"
+                onClick={handleActivate}
+                disabled={activating}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60"
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                {activating ? "Activating…" : "Activate Employee"}
+              </button>
             )}
-          >
-            <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
-            {draft.status || "Active"}
-          </span>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold ring-4",
+                statusMeta.badge,
+              )}
+            >
+              <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
+              {draft.status || "Active"}
+            </span>
+          </div>
         </div>
       </div>
 

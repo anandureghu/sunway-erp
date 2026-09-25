@@ -8,6 +8,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import { hrService } from "@/service/hr.service";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { initialsFrom } from "@/lib/utils";
@@ -84,7 +85,9 @@ export function ArchivePanel() {
   const [archived, setArchived] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  // ?q= pre-fills the search (e.g. from the Add Employee "already exists" warning).
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
 
   const load = useCallback(async () => {
     setLoading(true);
